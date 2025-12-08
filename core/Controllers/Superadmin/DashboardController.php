@@ -108,11 +108,19 @@ class DashboardController {
      */
     public function runMissingSeeders()
     {
-        // Establecer JSON como tipo de respuesta ANTES de todo
-        header('Content-Type: application/json');
+        // Limpiar TODOS los buffers de salida existentes
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
 
-        // Capturar cualquier output que pueda ocurrir antes
+        // Iniciar nuevo buffer limpio
         ob_start();
+
+        // Establecer JSON como tipo de respuesta
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=utf-8');
+            header('Cache-Control: no-cache, no-store, must-revalidate');
+        }
 
         try {
             SessionSecurity::startSession();
