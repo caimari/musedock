@@ -110,7 +110,8 @@ document.addEventListener('DOMContentLoaded', function() {
             credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
             },
             body: '_token=' + encodeURIComponent(csrfToken) + '&seeder=' + encodeURIComponent(seederKey)
         })

@@ -33,19 +33,7 @@ class ThemesSeeder
                     'font_family' => 'Inter, sans-serif'
                 ])
             ],
-            [
-                'name' => 'starter-blog',
-                'display_name' => 'Starter Blog',
-                'description' => 'Tema optimizado para blogs',
-                'version' => '1.0.0',
-                'author' => 'MuseDock',
-                'status' => 'active',
-                'is_default' => 0,
-                'settings' => json_encode([
-                    'primary_color' => '#059669',
-                    'show_sidebar' => true
-                ])
-            ],
+
         ];
 
         foreach ($themes as $theme) {

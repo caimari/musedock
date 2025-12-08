@@ -35,7 +35,10 @@ class CsrfMiddleware
         if (!isset($_SESSION['_csrf_token'])) {
             Logger::log("CSRF: Token de sesión no encontrado", 'WARNING', [
                 'uri' => $_SERVER['REQUEST_URI'] ?? 'unknown',
-                'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+                'session_id' => session_id(),
+                'session_keys' => array_keys($_SESSION),
+                'cookie_phpsessid' => $_COOKIE['PHPSESSID'] ?? 'NOT SET'
             ]);
             $this->fail();
             return false;

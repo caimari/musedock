@@ -35,7 +35,7 @@ return [
         'session_lifetime' => \Screenart\Musedock\Env::get('SESSION_LIFETIME', 7200),
         'session_secure' => \Screenart\Musedock\Env::get('SESSION_SECURE', true),
         'session_httponly' => \Screenart\Musedock\Env::get('SESSION_HTTPONLY', true),
-        'session_samesite' => \Screenart\Musedock\Env::get('SESSION_SAMESITE', 'Strict'),
+        'session_samesite' => \Screenart\Musedock\Env::get('SESSION_SAMESITE', 'Lax'),
         'rate_limit_attempts' => \Screenart\Musedock\Env::get('RATE_LIMIT_ATTEMPTS', 5),
         'rate_limit_decay' => \Screenart\Musedock\Env::get('RATE_LIMIT_DECAY_MINUTES', 15),
         'password_min_length' => \Screenart\Musedock\Env::get('PASSWORD_MIN_LENGTH', 12),

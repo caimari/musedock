@@ -26,6 +26,16 @@ class SuperAdminMiddleware
             return true;
         }
 
+        // Debug: Log estado de sesión para AJAX
+        if (strpos($requestUri, '/musedock/run-seeders') !== false) {
+            error_log("SuperAdminMiddleware [run-seeders] - Session ID: " . session_id());
+            error_log("SuperAdminMiddleware [run-seeders] - super_admin isset: " . (isset($_SESSION['super_admin']) ? 'YES' : 'NO'));
+            if (isset($_SESSION['super_admin'])) {
+                error_log("SuperAdminMiddleware [run-seeders] - role: " . ($_SESSION['super_admin']['role'] ?? 'NOT SET'));
+            }
+            error_log("SuperAdminMiddleware [run-seeders] - COOKIE: " . json_encode($_COOKIE));
+        }
+
         // SOLO super_admins con rol 'superadmin' pueden acceder
         if (isset($_SESSION['super_admin'])) {
             $role = $_SESSION['super_admin']['role'] ?? '';
@@ -34,8 +44,26 @@ class SuperAdminMiddleware
             }
 
             // Tiene sesión de super_admin pero no el rol correcto
-            error_log("SuperAdminMiddleware - Usuario sin rol superadmin intentó acceder.");
+            error_log("SuperAdminMiddleware - Usuario sin rol superadmin intentó acceder. Rol actual: " . $role);
             $this->forceLogout();
+
+            // Detectar si es AJAX antes de redirigir
+            $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                      strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') ||
+                      (!empty($_SERVER['HTTP_ACCEPT']) &&
+                      strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Acceso denegado. Solo SuperAdmins pueden acceder.',
+                    'redirect' => '/musedock/login?error=forbidden'
+                ]);
+                exit;
+            }
+
             header("Location: /musedock/login?error=forbidden");
             exit;
         }
