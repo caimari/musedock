@@ -81,79 +81,29 @@
   .tox-tinymce {
     border: 1px solid #ced4da !important;
     border-radius: 0.25rem !important;
-  }
-
-  .tox .tox-edit-area__iframe {
-    background-color: white !important;
-    display: block !important;
-    width: 100% !important;
-    height: 100% !important;
-  }
-
-  /* Asegurar que el área de edición sea visible */
-  .tox .tox-edit-area {
-    display: flex !important;
-    flex: 1 !important;
-    overflow: hidden !important;
-  }
-
-  .tox .tox-sidebar-wrap {
-    display: flex !important;
-    flex: 1 !important;
-  }
-
-  .tox .tox-editor-container {
     display: flex !important;
     flex-direction: column !important;
-    flex: 1 !important;
   }
-  
-  /* Eliminar TODOS los bordes de foco y cajas de sombra en TinyMCE */
-  .tox *, 
-  .tox-tinymce *, 
-  .tox-tinymce *:focus,
-  .tox *:focus,
-  .tox .tox-edit-area__iframe,
-  .tox .tox-edit-area__iframe:focus,
-  .tox .tox-edit-area:focus,
-  .tox-tinymce--toolbar-bottom,
-  .tox-tinymce-aux:focus,
+
+  /* Eliminar bordes de foco en elementos específicos (sin usar selectores * que rompen el layout) */
   .tox-tinymce:focus,
   .tox-tinymce:focus-within,
-  .tox .tox-toolbar:focus,
-  .tox .tox-toolbar__group:focus,
-  .tox .tox-toolbar__primary:focus,
+  .tox .tox-edit-area__iframe:focus,
   .tox .tox-tbtn:focus,
-  .tox .tox-menu:focus,
-  .tox .tox-collection__item--active,
-  .tox .tox-dialog *:focus,
-  .tox-editor-container,
-  .tox-editor-container *,
-  .mce-content-body,
   .mce-content-body:focus {
     outline: none !important;
     box-shadow: none !important;
   }
-  
-  /* Agregar un borde diferente al hacer foco, en lugar del azul predeterminado */
-  .tox.tox-tinymce:focus, 
-  .tox.tox-tinymce:focus-within { 
-    border: 1px solid #ced4da !important; 
+
+  /* Borde al hacer foco */
+  .tox.tox-tinymce:focus,
+  .tox.tox-tinymce:focus-within {
+    border: 1px solid #ced4da !important;
   }
-  
-  /* Estilos adicionales para el área de edición */
-  .tox-edit-area {
-    border: none !important;
-  }
-  
-  /* Estilos para el contenido editable */
-  .mce-content-body {
-    outline: none !important;
-  }
-  
-  /* Eliminar el borde azul dentro del iframe */
-  iframe#content-editor_ifr {
-    outline: none !important;
+
+  /* Asegurar que el iframe del editor tenga fondo blanco */
+  .tox .tox-edit-area__iframe {
+    background-color: white !important;
   }
   
   /* --- Estilos Opcionales --- */
