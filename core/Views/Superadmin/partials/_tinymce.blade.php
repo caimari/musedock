@@ -149,7 +149,7 @@ $tinymce_toolbar_lines = [
     'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media codesample | code fullscreen | help'
 ];
 $tinymce_external_plugins = [];
-$tinymce_context_menu_items = ['cut', 'copy', 'paste', '|', 'link', 'image', 'table'];
+$tinymce_context_menu_items = ['imagecontextmenu', 'link', 'image', '|', 'cut', 'copy', 'paste', '|', 'table'];
 
 // La configuración del plugin AIWriter se agregará mediante JavaScript
 // para evitar problemas si el plugin no está disponible
@@ -253,11 +253,20 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         browser_spellcheck: true,
         paste_data_images: true,
         image_caption: true,
-        
+
+        // Configuración de imágenes - permitir redimensionar y seleccionar fácilmente
+        object_resizing: true,
+        image_advtab: true, // Pestaña avanzada en diálogo de imagen (para añadir enlaces, etc.)
+        image_title: true,
+        automatic_uploads: false,
+
+        // Hacer imágenes más fáciles de seleccionar con clic
+        noneditable_noneditable_class: 'mceNonEditable',
+
         // Desactivar las quickbars (barras flotantes)
         quickbars_selection_toolbar: false,
         quickbars_insert_toolbar: false,
-        
+
         entity_encoding: 'raw',
         convert_urls: false,
 
@@ -324,6 +333,112 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
 
         // Función Setup con solución para el borde azul
         setup: function(editor) {
+            // Registrar botón para añadir enlace a imagen
+            editor.ui.registry.addMenuItem('imagelink', {
+                text: 'Añadir enlace a imagen',
+                icon: 'link',
+                onAction: function() {
+                    const selectedNode = editor.selection.getNode();
+                    if (selectedNode.tagName === 'IMG') {
+                        // Verificar si ya tiene un enlace padre
+                        const parentLink = selectedNode.closest('a');
+                        const currentHref = parentLink ? parentLink.href : '';
+                        const currentTarget = parentLink ? parentLink.target : '_self';
+
+                        editor.windowManager.open({
+                            title: 'Enlace de imagen',
+                            body: {
+                                type: 'panel',
+                                items: [
+                                    {
+                                        type: 'input',
+                                        name: 'url',
+                                        label: 'URL de destino',
+                                        placeholder: 'https://ejemplo.com'
+                                    },
+                                    {
+                                        type: 'selectbox',
+                                        name: 'target',
+                                        label: 'Abrir en',
+                                        items: [
+                                            { text: 'Misma ventana', value: '_self' },
+                                            { text: 'Nueva ventana', value: '_blank' }
+                                        ]
+                                    }
+                                ]
+                            },
+                            initialData: {
+                                url: currentHref,
+                                target: currentTarget
+                            },
+                            buttons: [
+                                { type: 'cancel', text: 'Cancelar' },
+                                { type: 'submit', text: 'Aplicar', primary: true }
+                            ],
+                            onSubmit: function(api) {
+                                const data = api.getData();
+                                if (data.url) {
+                                    // Crear o actualizar el enlace
+                                    if (parentLink) {
+                                        parentLink.href = data.url;
+                                        parentLink.target = data.target;
+                                    } else {
+                                        const link = editor.dom.create('a', {
+                                            href: data.url,
+                                            target: data.target
+                                        });
+                                        selectedNode.parentNode.insertBefore(link, selectedNode);
+                                        link.appendChild(selectedNode);
+                                    }
+                                } else if (parentLink) {
+                                    // Si se borró la URL, quitar el enlace
+                                    parentLink.parentNode.insertBefore(selectedNode, parentLink);
+                                    parentLink.remove();
+                                }
+                                api.close();
+                            }
+                        });
+                    }
+                }
+            });
+
+            // Registrar botón para lightbox
+            editor.ui.registry.addMenuItem('imagelightbox', {
+                text: 'Abrir en Lightbox',
+                icon: 'fullscreen',
+                onAction: function() {
+                    const selectedNode = editor.selection.getNode();
+                    if (selectedNode.tagName === 'IMG') {
+                        const imgSrc = selectedNode.src;
+                        // Verificar si ya tiene un enlace padre
+                        const parentLink = selectedNode.closest('a');
+
+                        if (parentLink) {
+                            // Actualizar enlace existente para lightbox
+                            parentLink.href = imgSrc;
+                            parentLink.setAttribute('data-lightbox', 'gallery');
+                            parentLink.target = '';
+                        } else {
+                            // Crear enlace lightbox
+                            const link = editor.dom.create('a', {
+                                href: imgSrc,
+                                'data-lightbox': 'gallery'
+                            });
+                            selectedNode.parentNode.insertBefore(link, selectedNode);
+                            link.appendChild(selectedNode);
+                        }
+                        editor.nodeChanged();
+                    }
+                }
+            });
+
+            // Registrar menú contextual personalizado para imágenes
+            editor.ui.registry.addContextMenu('imagecontextmenu', {
+                update: function(element) {
+                    return element.tagName === 'IMG' ? 'image | imagelink imagelightbox | link' : '';
+                }
+            });
+
             editor.on('init', function() {
                 console.log('TinyMCE inicializado para: #' + editor.id);
 
@@ -376,10 +491,33 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                                 outline: none !important;
                                 box-shadow: none !important;
                             }
+                            /* Hacer imágenes más fáciles de seleccionar */
+                            img {
+                                cursor: pointer;
+                                transition: outline 0.15s ease;
+                            }
+                            img:hover {
+                                outline: 2px dashed #3b7ddd;
+                                outline-offset: 2px;
+                            }
+                            img[data-mce-selected] {
+                                outline: 2px solid #3b7ddd !important;
+                                outline-offset: 2px;
+                            }
                         `;
-                        
+
                         iframeDoc.head.appendChild(styleElement);
-                        
+
+                        // Manejador de clic para seleccionar imágenes fácilmente
+                        iframeDoc.body.addEventListener('click', function(e) {
+                            if (e.target.tagName === 'IMG') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                editor.selection.select(e.target);
+                                editor.nodeChanged();
+                            }
+                        }, true);
+
                         // Eliminar el foco en todo el documento
                         iframeDoc.body.addEventListener('focus', function(e) {
                             this.style.outline = 'none';
