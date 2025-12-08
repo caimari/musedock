@@ -195,9 +195,23 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
 (function() {
     // Función para ocultar skeleton y mostrar editor
     function hideSkeleton() {
+        console.log('Ocultando skeleton loader...');
         const skeleton = document.getElementById('tinymce-skeleton');
         if (skeleton) {
             skeleton.style.display = 'none';
+            console.log('Skeleton ocultado');
+        } else {
+            console.warn('Skeleton no encontrado');
+        }
+
+        // Asegurarse de que el editor TinyMCE sea visible
+        const tinymceContainer = document.querySelector('.tox-tinymce');
+        if (tinymceContainer) {
+            tinymceContainer.style.display = 'block';
+            tinymceContainer.style.visibility = 'visible';
+            console.log('Contenedor TinyMCE mostrado');
+        } else {
+            console.warn('Contenedor TinyMCE no encontrado');
         }
     }
 
