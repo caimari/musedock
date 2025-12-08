@@ -110,8 +110,13 @@ class CsrfMiddleware
         }
 
         // Detectar si es una petición AJAX
-        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
-                  strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+        // Verificar múltiples headers posibles
+        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                  strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') ||
+                  (!empty($_SERVER['HTTP_ACCEPT']) &&
+                  strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) ||
+                  (!empty($_SERVER['CONTENT_TYPE']) &&
+                  strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false);
 
         if ($isAjax) {
             header('Content-Type: application/json');

@@ -53,7 +53,25 @@ class SuperAdminMiddleware
             setcookie('remember_token', '', time() - 3600, '/', '', true, true);
         }
 
-        // No autenticado o no es super_admin - redirigir al login
+        // No autenticado o no es super_admin
+        // Detectar si es una petición AJAX
+        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                  strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') ||
+                  (!empty($_SERVER['HTTP_ACCEPT']) &&
+                  strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            http_response_code(401);
+            echo json_encode([
+                'success' => false,
+                'error' => 'No autenticado',
+                'redirect' => '/musedock/login'
+            ]);
+            exit;
+        }
+
+        // Redirigir al login
         header("Location: /musedock/login");
         exit;
     }
