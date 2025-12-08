@@ -624,5 +624,9 @@
   "footer": {
     "cookie_settings": "Cookie settings",
     "contact": "Contact"
+  },
+
+  "header": {
+    "login_button": "Login"
   }
 }

@@ -18,7 +18,7 @@
         <link rel="icon" type="image/x-icon" href="{{ asset(ltrim(setting('site_favicon'), '/')) }}">
     @else
         <!-- Fallback favicon -->
-        <link rel="shortcut icon" type="image/x-icon" href="{{ asset('assets/img/favicon.png') }}">
+        <link rel="shortcut icon" type="image/x-icon" href="{{ asset('img/favicon.png') }}">
         {{-- O mantener el original: <link rel="icon" type="image/x-icon" href="{{ asset('themes/default/favicon.ico') }}"> --}}
     @endif
 
@@ -811,8 +811,12 @@ body.mobile-menu-open {
                 <!-- Acciones (botón + idiomas + toggle móvil) -->
                 @php
                     // Obtener opciones del tema para header
-                    $ctaEnabled = themeOption('header.header_cta_enabled', true);
-                    $ctaText = themeOption('header.header_cta_text', 'INSCRÍBETE');
+                    $ctaEnabled = themeOption('header.header_cta_enabled', false);
+                    // Obtener texto del botón según el idioma actual
+                    $currentLangCta = $_SESSION['lang'] ?? setting('language', 'es');
+                    $ctaTextEs = themeOption('header.header_cta_text_es', __('header.login_button'));
+                    $ctaTextEn = themeOption('header.header_cta_text_en', 'Login');
+                    $ctaText = ($currentLangCta === 'en') ? $ctaTextEn : $ctaTextEs;
                     $ctaUrl = themeOption('header.header_cta_url', '#');
                     $langSelectorEnabled = themeOption('header.header_lang_selector_enabled', true);
                 @endphp

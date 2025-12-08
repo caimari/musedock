@@ -139,12 +139,17 @@
         "header_cta_enabled": {
           "type": "toggle",
           "label": "Mostrar botón Call-to-Action",
-          "default": true
+          "default": false
         },
-        "header_cta_text": {
+        "header_cta_text_es": {
           "type": "text",
-          "label": "Texto del botón CTA",
-          "default": "INSCRÍBETE"
+          "label": "Texto del botón CTA (Español)",
+          "default": "Iniciar sesión"
+        },
+        "header_cta_text_en": {
+          "type": "text",
+          "label": "Texto del botón CTA (English)",
+          "default": "Login"
         },
         "header_cta_url": {
           "type": "text",

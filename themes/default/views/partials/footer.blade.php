@@ -1,9 +1,15 @@
+@php
+    // Asegurar contexto tenant para traducciones del frontend
+    \Screenart\Musedock\Services\TranslationService::setContext('tenant');
+    $currentLang = $_SESSION['lang'] ?? setting('language', 'es');
+    \Screenart\Musedock\Services\TranslationService::load($currentLang, 'tenant');
+@endphp
 <footer>
     <!-- Footer Start -->
     <div class="footer-area footer-padding">
         <div class="container">
             <div class="row d-flex justify-content-between">
-                
+
                 <div class="col-xl-4 col-lg-4 col-md-4 col-sm-6">
                    <div class="single-footer-caption mb-50">
                      <div class="single-footer-caption mb-30">
