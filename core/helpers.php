@@ -1734,3 +1734,40 @@ if (!function_exists('is_module_active')) {
         return $cache[$slug];
     }
 }
+
+/**
+ * Get CMS version from version.json
+ */
+if (!function_exists('cms_version')) {
+    function cms_version($key = 'version') {
+        static $versionData = null;
+
+        if ($versionData === null) {
+            $versionFile = __DIR__ . '/../version.json';
+            if (file_exists($versionFile)) {
+                $versionData = json_decode(file_get_contents($versionFile), true);
+            } else {
+                $versionData = [
+                    'version' => '1.0.0',
+                    'name' => 'MuseDock CMS',
+                    'created_year' => 2024
+                ];
+            }
+        }
+
+        return $versionData[$key] ?? null;
+    }
+}
+
+/**
+ * Get CMS copyright string
+ */
+if (!function_exists('cms_copyright')) {
+    function cms_copyright() {
+        $createdYear = cms_version('created_year');
+        $currentYear = date('Y');
+        $yearRange = $createdYear == $currentYear ? $currentYear : "{$createdYear}-{$currentYear}";
+
+        return "© {$yearRange}";
+    }
+}

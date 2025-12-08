@@ -1,7 +1,6 @@
 {
-    "core": "1.0.0",
-    "installed_at": null,
-    "last_update": null,
-    "php_version": null,
-    "channel": "stable"
+  "version": "1.0.0",
+  "name": "MuseDock CMS",
+  "release_date": "2025-01-08",
+  "created_year": 2024
 }
