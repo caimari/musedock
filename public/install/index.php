@@ -603,14 +603,19 @@ function setupDatabase($data) {
  * Run migrations
  */
 function runMigrations() {
-    // Load the .env we just created
-    require_once ROOT_PATH . '/core/Env.php';
-    \Screenart\Musedock\Env::load(ROOT_PATH . '/.env');
-
-    // Load database class
-    require_once ROOT_PATH . '/core/Database.php';
-
     try {
+        // Load the .env we just created
+        ob_start();
+        require_once ROOT_PATH . '/core/Env.php';
+        ob_end_clean();
+
+        \Screenart\Musedock\Env::load(ROOT_PATH . '/.env');
+
+        // Load database class
+        ob_start();
+        require_once ROOT_PATH . '/core/Database.php';
+        ob_end_clean();
+
         $pdo = \Screenart\Musedock\Database::connect();
 
         // Create migrations table
@@ -649,25 +654,36 @@ function runMigrations() {
                 continue;
             }
 
-            require_once $file;
+            // Start output buffering for this migration to catch any errors
+            ob_start();
+            try {
+                require_once $file;
 
-            // Extract class name from filename
-            $parts = explode('_', $filename, 5);
-            $timestamp = implode('_', array_slice($parts, 0, 4));
-            $name = $parts[4] ?? '';
-            $className = str_replace(' ', '', ucwords(str_replace('_', ' ', $name))) . '_' . $timestamp;
+                // Extract class name from filename
+                $parts = explode('_', $filename, 5);
+                $timestamp = implode('_', array_slice($parts, 0, 4));
+                $name = $parts[4] ?? '';
+                $className = str_replace(' ', '', ucwords(str_replace('_', ' ', $name))) . '_' . $timestamp;
 
-            if (class_exists($className)) {
-                $migration = new $className();
-                if (method_exists($migration, 'up')) {
-                    $migration->up();
+                if (class_exists($className)) {
+                    $migration = new $className();
+                    if (method_exists($migration, 'up')) {
+                        $migration->up();
+                    }
+
+                    // Record migration
+                    $stmt = $pdo->prepare("INSERT INTO migrations (migration, batch) VALUES (?, ?)");
+                    $stmt->execute([$filename, $batch]);
+
+                    $migrated++;
                 }
 
-                // Record migration
-                $stmt = $pdo->prepare("INSERT INTO migrations (migration, batch) VALUES (?, ?)");
-                $stmt->execute([$filename, $batch]);
-
-                $migrated++;
+                // Clear the buffer if successful
+                ob_end_clean();
+            } catch (Exception $e) {
+                // Clean buffer and re-throw
+                ob_end_clean();
+                throw new Exception("Migration {$filename} failed: " . $e->getMessage());
             }
         }
 
@@ -692,12 +708,16 @@ function runSeeders() {
             return ['success' => true, 'message' => 'No seeders found'];
         }
 
+        ob_start();
         require_once $seederPath;
+        ob_end_clean();
 
         if (class_exists('DatabaseSeeder')) {
             $seeder = new \DatabaseSeeder();
             if (method_exists($seeder, 'run')) {
+                ob_start();
                 $seeder->run();
+                ob_end_clean();
             }
         }
 
@@ -1339,8 +1359,8 @@ $step = max(1, min(5, $step));
                 </div>
                 <div class="card-body">
                     <div id="install-summary">
-                        <h5 class="mb-3">Installation Summary</h5>
-                        <div class="bg-dark p-3 rounded mb-4" id="summary-content">
+                        <h5 class="mb-3" style="color: var(--text-light);">Installation Summary</h5>
+                        <div class="p-3 rounded mb-4" style="background: rgba(0,0,0,0.2); color: #e5e7eb;" id="summary-content">
                             <!-- Filled by JS -->
                         </div>
 
