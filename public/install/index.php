@@ -18,6 +18,17 @@ define('MIN_PHP_VERSION', '8.0.0');
 // Session for wizard steps
 session_start();
 
+// Load translations
+require_once INSTALL_PATH . '/i18n.php';
+$lang = $_COOKIE['installer_lang'] ?? (substr($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? 'en', 0, 2) === 'es' ? 'es' : 'en');
+if (!in_array($lang, ['en', 'es'])) {
+    $lang = 'en';
+}
+function __($key) {
+    global $lang, $translations;
+    return $translations[$lang][$key] ?? $translations['en'][$key] ?? $key;
+}
+
 // Initialize step
 if (!isset($_SESSION['install_step'])) {
     $_SESSION['install_step'] = 1;
@@ -914,6 +925,7 @@ $step = max(1, min(5, $step));
             background: rgba(0, 0, 0, 0.2);
             border-radius: 8px;
             margin-bottom: 8px;
+            color: var(--text-light); /* Texto blanco */
         }
 
         .requirement-item.passed {
@@ -1012,9 +1024,17 @@ $step = max(1, min(5, $step));
 </head>
 <body>
     <div class="installer-container">
+        <!-- Language Selector -->
+        <div class="text-end mb-3">
+            <select class="form-select form-select-sm d-inline-block w-auto" id="languageSelector" style="background: rgba(0,0,0,0.3); color: white; border-color: rgba(255,255,255,0.3);">
+                <option value="en" <?= ($_COOKIE['installer_lang'] ?? 'en') === 'en' ? 'selected' : '' ?>>🇬🇧 English</option>
+                <option value="es" <?= ($_COOKIE['installer_lang'] ?? 'en') === 'es' ? 'selected' : '' ?>>🇪🇸 Español</option>
+            </select>
+        </div>
+
         <div class="brand">
             <h1><i class="bi bi-box-seam-fill"></i> MuseDock CMS</h1>
-            <p>Installation Wizard</p>
+            <p><?= __('installation_wizard') ?></p>
         </div>
 
         <!-- Step Indicators -->
@@ -1652,6 +1672,15 @@ $step = max(1, min(5, $step));
 
         // Initial check
         checkRequirements();
+
+        // Language Selector Handler
+        document.getElementById('languageSelector').addEventListener('change', function() {
+            const lang = this.value;
+            // Set cookie for 1 year
+            document.cookie = `installer_lang=${lang}; path=/; max-age=31536000`;
+            // Reload page to apply language
+            window.location.reload();
+        });
     </script>
 </body>
 </html>
