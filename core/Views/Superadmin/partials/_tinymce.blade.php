@@ -149,7 +149,7 @@ $tinymce_toolbar_lines = [
     'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media codesample | code fullscreen | help'
 ];
 $tinymce_external_plugins = [];
-$tinymce_context_menu_items = ['imagecontextmenu', 'link', 'image', '|', 'cut', 'copy', 'paste', '|', 'table'];
+$tinymce_context_menu_items = ['link', 'image', 'imagelink', 'imagelightbox', '|', 'cut', 'copy', 'paste', '|', 'table'];
 
 // La configuración del plugin AIWriter se agregará mediante JavaScript
 // para evitar problemas si el plugin no está disponible
@@ -337,6 +337,18 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
             editor.ui.registry.addMenuItem('imagelink', {
                 text: 'Añadir enlace a imagen',
                 icon: 'link',
+                onSetup: function(api) {
+                    // Solo habilitar si hay una imagen seleccionada
+                    const updateState = function() {
+                        const node = editor.selection.getNode();
+                        api.setEnabled(node.tagName === 'IMG');
+                    };
+                    editor.on('NodeChange', updateState);
+                    updateState();
+                    return function() {
+                        editor.off('NodeChange', updateState);
+                    };
+                },
                 onAction: function() {
                     const selectedNode = editor.selection.getNode();
                     if (selectedNode.tagName === 'IMG') {
@@ -406,6 +418,18 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
             editor.ui.registry.addMenuItem('imagelightbox', {
                 text: 'Abrir en Lightbox',
                 icon: 'fullscreen',
+                onSetup: function(api) {
+                    // Solo habilitar si hay una imagen seleccionada
+                    const updateState = function() {
+                        const node = editor.selection.getNode();
+                        api.setEnabled(node.tagName === 'IMG');
+                    };
+                    editor.on('NodeChange', updateState);
+                    updateState();
+                    return function() {
+                        editor.off('NodeChange', updateState);
+                    };
+                },
                 onAction: function() {
                     const selectedNode = editor.selection.getNode();
                     if (selectedNode.tagName === 'IMG') {
@@ -429,13 +453,6 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                         }
                         editor.nodeChanged();
                     }
-                }
-            });
-
-            // Registrar menú contextual personalizado para imágenes
-            editor.ui.registry.addContextMenu('imagecontextmenu', {
-                update: function(element) {
-                    return element.tagName === 'IMG' ? 'image | imagelink imagelightbox | link' : '';
                 }
             });
 
@@ -509,14 +526,17 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                         iframeDoc.head.appendChild(styleElement);
 
                         // Manejador de clic para seleccionar imágenes fácilmente
-                        iframeDoc.body.addEventListener('click', function(e) {
-                            if (e.target.tagName === 'IMG') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                editor.selection.select(e.target);
-                                editor.nodeChanged();
+                        // Solo con click izquierdo (button === 0) y sin bloquear eventos
+                        iframeDoc.body.addEventListener('mousedown', function(e) {
+                            // Solo click izquierdo (no derecho para menú contextual)
+                            if (e.button === 0 && e.target.tagName === 'IMG') {
+                                // Pequeño delay para permitir que TinyMCE procese primero
+                                setTimeout(function() {
+                                    editor.selection.select(e.target);
+                                    editor.nodeChanged();
+                                }, 10);
                             }
-                        }, true);
+                        });
 
                         // Eliminar el foco en todo el documento
                         iframeDoc.body.addEventListener('focus', function(e) {
