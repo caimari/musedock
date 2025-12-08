@@ -19,6 +19,14 @@
               <label class="form-label">Nombre</label>
               <input type="text" name="name" class="form-control" value="{{ $language->name }}" required>
             </div>
+            @php
+              // Verificar si multitenancy está habilitado
+              $multiTenantEnabled = \Screenart\Musedock\Env::get('MULTI_TENANT_ENABLED', null);
+              if ($multiTenantEnabled === null) {
+                  $multiTenantEnabled = setting('multi_tenant_enabled', false);
+              }
+            @endphp
+            @if($multiTenantEnabled)
             <div class="col-md-4 mb-3">
               <label class="form-label">Tenant</label>
               <select name="tenant_id" class="form-control">
@@ -30,6 +38,10 @@
                 @endforeach
               </select>
             </div>
+            @else
+            {{-- Multitenancy deshabilitado - mantener valor actual o global --}}
+            <input type="hidden" name="tenant_id" value="global">
+            @endif
           </div>
           <div class="form-check mb-3">
             <input class="form-check-input" type="checkbox" name="active" value="1" id="activeCheck"

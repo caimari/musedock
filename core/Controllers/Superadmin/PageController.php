@@ -213,9 +213,28 @@ public function store()
         exit;
     }
     
+    // Verificar si es la primera página (sin homepage existente)
+    $pdo = \Screenart\Musedock\Database::connect();
+    $checkHomepage = $pdo->prepare("SELECT COUNT(*) FROM pages WHERE is_homepage = 1 AND tenant_id IS NULL");
+    $checkHomepage->execute();
+    $hasHomepage = (int)$checkHomepage->fetchColumn() > 0;
+
+    // Si no hay homepage, esta será la primera y se marcará automáticamente
+    $isFirstPage = !$hasHomepage;
+
     // Creamos la página con los datos normales
     $page = Page::create($data);
-    
+
+    // Si es la primera página, marcarla como homepage automáticamente
+    if ($isFirstPage) {
+        try {
+            $setHomepage = $pdo->prepare("UPDATE pages SET is_homepage = 1 WHERE id = ?");
+            $setHomepage->execute([$page->id]);
+        } catch (\Exception $e) {
+            error_log("Error al establecer primera página como homepage: " . $e->getMessage());
+        }
+    }
+
     // Actualizamos específicamente el tenant_id a NULL después de crear
     try {
         $pdo = \Screenart\Musedock\Database::connect();
