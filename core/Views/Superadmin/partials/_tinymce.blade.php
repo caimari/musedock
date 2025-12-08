@@ -82,9 +82,30 @@
     border: 1px solid #ced4da !important;
     border-radius: 0.25rem !important;
   }
-  
-  .tox .tox-edit-area__iframe { 
-    background-color: white !important; 
+
+  .tox .tox-edit-area__iframe {
+    background-color: white !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Asegurar que el área de edición sea visible */
+  .tox .tox-edit-area {
+    display: flex !important;
+    flex: 1 !important;
+    overflow: hidden !important;
+  }
+
+  .tox .tox-sidebar-wrap {
+    display: flex !important;
+    flex: 1 !important;
+  }
+
+  .tox .tox-editor-container {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
   }
   
   /* Eliminar TODOS los bordes de foco y cajas de sombra en TinyMCE */
@@ -195,13 +216,9 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
 (function() {
     // Función para ocultar skeleton y mostrar editor
     function hideSkeleton() {
-        console.log('Ocultando skeleton loader...');
         const skeleton = document.getElementById('tinymce-skeleton');
         if (skeleton) {
             skeleton.style.display = 'none';
-            console.log('Skeleton ocultado');
-        } else {
-            console.warn('Skeleton no encontrado');
         }
 
         // Asegurarse de que el editor TinyMCE sea visible
@@ -209,9 +226,6 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         if (tinymceContainer) {
             tinymceContainer.style.display = 'block';
             tinymceContainer.style.visibility = 'visible';
-            console.log('Contenedor TinyMCE mostrado');
-        } else {
-            console.warn('Contenedor TinyMCE no encontrado');
         }
     }
 
@@ -572,27 +586,20 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
 
     // Esperar a que el DOM esté listo antes de inicializar
     if (document.readyState === 'loading') {
-        console.log('DOM aún cargando, esperando DOMContentLoaded...');
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOMContentLoaded disparado, verificando textarea...');
             const textarea = document.getElementById('content-editor');
-            console.log('Textarea encontrado:', textarea ? 'SÍ' : 'NO');
             if (textarea) {
                 initTinyMCEWithFallback();
             } else {
-                console.error('ERROR: No se encontró el textarea #content-editor');
                 showTextareaFallback(true);
             }
         });
     } else {
         // DOM ya está listo, verificar que el textarea exista
-        console.log('DOM ya listo, verificando textarea...');
         const textarea = document.getElementById('content-editor');
-        console.log('Textarea encontrado:', textarea ? 'SÍ' : 'NO');
         if (textarea) {
             initTinyMCEWithFallback();
         } else {
-            console.error('ERROR: No se encontró el textarea #content-editor');
             showTextareaFallback(true);
         }
     }
