@@ -57,9 +57,37 @@
                 </small> 
                 <span id="slug-check-result" class="ms-3 fw-bold"></span> 
               </div>
-              {{-- Editor TinyMCE --}} 
-              <div class="mb-3"> 
-                <textarea id="content-editor" name="content">{{ old('content', $Page->content) }}</textarea> 
+              {{-- Editor TinyMCE --}}
+              <div class="mb-3" id="editor-wrapper">
+                {{-- Skeleton Loader - se muestra mientras TinyMCE carga --}}
+                <div id="tinymce-skeleton" class="tinymce-skeleton">
+                  <div class="tinymce-skeleton-toolbar">
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-separator"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-separator"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-separator"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                  </div>
+                  <div class="tinymce-skeleton-content">
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                  </div>
+                </div>
+                <textarea id="content-editor" name="content" style="display:none !important;">{{ old('content', $Page->content) }}</textarea>
               </div>
             </div> 
           </div>

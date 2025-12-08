@@ -51,11 +51,38 @@
                 </small>
               </div>
 
-              {{-- Textarea para TinyMCE --}}
-              <div class="mb-3">
+              {{-- Editor TinyMCE --}}
+              <div class="mb-3" id="editor-wrapper">
                 <label for="content-editor" class="form-label">{{ __('pages.content') }}</label>
-                <textarea name="content" id="content-editor" class="form-control"
-                  style="visibility: hidden; height: 600px;">{{ old('content', $Page->content ?? '') }}</textarea>
+                {{-- Skeleton Loader - se muestra mientras TinyMCE carga --}}
+                <div id="tinymce-skeleton" class="tinymce-skeleton">
+                  <div class="tinymce-skeleton-toolbar">
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-separator"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-separator"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-separator"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                  </div>
+                  <div class="tinymce-skeleton-content">
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                  </div>
+                </div>
+                <textarea name="content" id="content-editor" style="display:none !important;">{{ old('content', $Page->content ?? '') }}</textarea>
               </div>
             </div>
           </div> {{-- Fin Card Contenido Principal --}}

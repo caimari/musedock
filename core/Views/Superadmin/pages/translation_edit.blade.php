@@ -56,10 +56,33 @@
                         </div>
 
                         {{-- Contenido Traducido (TinyMCE) --}}
-                        <div class="mb-3">
+                        <div class="mb-3" id="editor-wrapper">
                             <label for="content-editor" class="form-label">Contenido</label>
-                            {{-- Añadir clase is-invalid si hay error en content --}}
-                            <textarea id="content-editor" name="content" class="form-control @error('content') is-invalid @enderror" style="visibility: hidden; height: 600px;">{{ old('content', $translation->content ?? '') }}</textarea>
+                            {{-- Skeleton Loader - se muestra mientras TinyMCE carga --}}
+                            <div id="tinymce-skeleton" class="tinymce-skeleton">
+                              <div class="tinymce-skeleton-toolbar">
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-separator"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-separator"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                              </div>
+                              <div class="tinymce-skeleton-content">
+                                <div class="tinymce-skeleton-line"></div>
+                                <div class="tinymce-skeleton-line"></div>
+                                <div class="tinymce-skeleton-line"></div>
+                                <div class="tinymce-skeleton-line"></div>
+                                <div class="tinymce-skeleton-line"></div>
+                                <div class="tinymce-skeleton-line"></div>
+                              </div>
+                            </div>
+                            <textarea id="content-editor" name="content" class="@error('content') is-invalid @enderror" style="display:none !important;">{{ old('content', $translation->content ?? '') }}</textarea>
                             @error('content')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
