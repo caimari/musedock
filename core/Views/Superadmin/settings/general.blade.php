@@ -98,7 +98,7 @@
             </div>
             <div class="col-md-6">
               <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="show_title" name="show_title" {{ ($settings['show_title'] ?? '1') == '1' ? 'checked' : '' }}>
+                <input type="checkbox" class="form-check-input" id="show_title" name="show_title" {{ ($settings['show_title'] ?? '0') == '1' ? 'checked' : '' }}>
                 <label class="form-check-label" for="show_title">Mostrar título del sitio</label>
               </div>
             </div>
@@ -143,6 +143,14 @@
             <label class="form-label">WhatsApp</label>
             <input type="text" name="contact_whatsapp" class="form-control" value="{{ $settings['contact_whatsapp'] ?? '' }}" placeholder="+34 123 456 789">
             <small class="text-muted">Número de WhatsApp (solo números con prefijo internacional)</small>
+          </div>
+
+          <hr class="my-4">
+
+          <div class="mb-3">
+            <label class="form-label">Texto de copyright</label>
+            <input type="text" name="footer_copyright" class="form-control" value="{{ $settings['footer_copyright'] ?? '© Copyright MuseDock ' . date('Y') . '.' }}" placeholder="© Copyright MuseDock {{ date('Y') }}.">
+            <small class="text-muted">Texto que aparece en el pie de página. Puedes usar HTML básico.</small>
           </div>
         </div>
       </div>

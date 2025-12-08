@@ -217,10 +217,7 @@
                     <div class="col-xl-12 ">
                         <div class="footer-copy-right text-center">
                             <p>
-                                © Copyright {{ setting('site_name', 'Consulting Theme') }} {{ date('Y') }}.
-                                @if(setting('site_credit', ''))
-                                    {{ setting('site_credit') }}
-                                @endif
+                                {!! setting('footer_copyright', '© Copyright MuseDock ' . date('Y') . '.') !!}
                             </p>
                         </div>
                     </div>

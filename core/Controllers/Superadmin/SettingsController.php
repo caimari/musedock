@@ -100,11 +100,23 @@ class SettingsController
      */
     public function checkUpdates()
     {
-        SessionSecurity::startSession();
+        // IMPORTANTE: Limpiar TODOS los buffers antes de cualquier cosa
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
 
-        header('Content-Type: application/json');
+        // Establecer headers JSON INMEDIATAMENTE
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('X-Content-Type-Options: nosniff');
+
+        // Iniciar buffer para capturar cualquier output accidental
+        ob_start();
 
         try {
+            SessionSecurity::startSession();
+
             $versionInfo = $this->getVersionInfo();
             $currentVersion = $versionInfo['current'];
             $latestVersion = null;
@@ -114,9 +126,18 @@ class SettingsController
 
             // 1. Intentar obtener versión desde Packagist (composer)
             $packagistUrl = "https://repo.packagist.org/p2/{$versionInfo['packagist']}.json";
-            $packagistData = @file_get_contents($packagistUrl, false, stream_context_create([
-                'http' => ['timeout' => 5, 'ignore_errors' => true]
-            ]));
+            $context = stream_context_create([
+                'http' => [
+                    'timeout' => 5,
+                    'ignore_errors' => true,
+                    'header' => "User-Agent: MuseDock-CMS/1.0\r\n"
+                ],
+                'ssl' => [
+                    'verify_peer' => true,
+                    'verify_peer_name' => true
+                ]
+            ]);
+            $packagistData = @file_get_contents($packagistUrl, false, $context);
 
             if ($packagistData) {
                 $packagist = json_decode($packagistData, true);
@@ -125,7 +146,8 @@ class SettingsController
                 if (!empty($packages)) {
                     // Ordenar por versión y obtener la más reciente (excluyendo dev)
                     $stableVersions = array_filter($packages, function($pkg) {
-                        return !str_contains($pkg['version'] ?? '', 'dev');
+                        $version = $pkg['version'] ?? '';
+                        return !str_contains($version, 'dev') && !str_contains($version, 'alpha') && !str_contains($version, 'beta');
                     });
 
                     if (!empty($stableVersions)) {
@@ -146,15 +168,15 @@ class SettingsController
                     $githubRepo = $matches[1];
                     $githubUrl = "https://api.github.com/repos/{$githubRepo}/releases/latest";
 
-                    $opts = [
+                    $opts = stream_context_create([
                         'http' => [
                             'method' => 'GET',
-                            'header' => "User-Agent: MuseDock-CMS\r\n",
+                            'header' => "User-Agent: MuseDock-CMS/1.0\r\nAccept: application/vnd.github.v3+json\r\n",
                             'timeout' => 5,
                             'ignore_errors' => true
                         ]
-                    ];
-                    $githubData = @file_get_contents($githubUrl, false, stream_context_create($opts));
+                    ]);
+                    $githubData = @file_get_contents($githubUrl, false, $opts);
 
                     if ($githubData) {
                         $release = json_decode($githubData, true);
@@ -169,7 +191,7 @@ class SettingsController
                     // Si no hay releases, intentar tags
                     if (!$latestVersion) {
                         $tagsUrl = "https://api.github.com/repos/{$githubRepo}/tags";
-                        $tagsData = @file_get_contents($tagsUrl, false, stream_context_create($opts));
+                        $tagsData = @file_get_contents($tagsUrl, false, $opts);
 
                         if ($tagsData) {
                             $tags = json_decode($tagsData, true);
@@ -189,6 +211,9 @@ class SettingsController
                 $hasUpdate = version_compare($latestVersion, $currentVersion, '>');
             }
 
+            // Descartar cualquier output accidental capturado
+            ob_end_clean();
+
             echo json_encode([
                 'success' => true,
                 'current_version' => $currentVersion,
@@ -197,14 +222,19 @@ class SettingsController
                 'source' => $source,
                 'download_url' => $downloadUrl,
                 'changelog' => $changelog ? mb_substr($changelog, 0, 500) : null
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
 
         } catch (\Throwable $e) {
+            // Descartar cualquier output capturado
+            if (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+
             echo json_encode([
                 'success' => false,
                 'error' => $e->getMessage(),
                 'current_version' => $versionInfo['current'] ?? '0.0.0'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
 
         exit;
@@ -259,7 +289,7 @@ public function update()
         'timezone', 'date_format', 'time_format',
         'show_logo', 'show_title', 'site_logo', 'site_favicon',
         'footer_short_description', 'contact_address', 'contact_email',
-        'contact_phone', 'contact_whatsapp'
+        'contact_phone', 'contact_whatsapp', 'footer_copyright'
     ]);
 
     flash('success', 'Ajustes generales guardados correctamente.');
