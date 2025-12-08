@@ -6,16 +6,98 @@
  * If you're seeing this, your web server is NOT properly configured.
  */
 
-// Security warning: accessing from wrong directory
+// Detect language from browser or cookie
+$lang = $_COOKIE['musedock_lang'] ?? substr($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? 'en', 0, 2);
+if (!in_array($lang, ['en', 'es'])) {
+    $lang = 'en';
+}
+
+// Handle language switch
+if (isset($_GET['lang']) && in_array($_GET['lang'], ['en', 'es'])) {
+    $lang = $_GET['lang'];
+    setcookie('musedock_lang', $lang, time() + (365 * 24 * 60 * 60), '/');
+    header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
+    exit;
+}
+
 $isProduction = !in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1', 'localhost']);
 
+// Translations
+$i18n = [
+    'en' => [
+        'title' => 'Document Root Configuration Required',
+        'subtitle' => 'Your web server is not pointing to the correct directory',
+        'security_risk' => 'Security Risk Detected',
+        'security_desc' => 'Your web server\'s document root is pointing to the project root directory instead of the <code>public/</code> folder. This exposes sensitive files like <code>.env</code>, configuration files, and source code to the internet.',
+        'whats_exposed' => 'What\'s Exposed Right Now:',
+        'exposed_env' => 'Database credentials and API keys',
+        'exposed_config' => 'System configuration files',
+        'exposed_logs' => 'Application logs with sensitive data',
+        'exposed_vendor' => 'Third-party libraries (potential vulnerabilities)',
+        'exposed_core' => 'Application source code',
+        'how_to_fix' => 'How to Fix',
+        'apache_step' => 'Edit your Apache configuration or virtual host file:',
+        'apache_restart' => 'Then restart Apache:',
+        'nginx_step' => 'Edit your Nginx server block configuration:',
+        'nginx_restart' => 'Then restart Nginx:',
+        'cpanel_step' => 'In your hosting control panel:',
+        'cpanel_1' => 'Go to "Addon Domains" or "Domains"',
+        'cpanel_2' => 'Set document root to:',
+        'cpanel_3' => 'Or create a subdomain pointing to the <code>public</code> folder',
+        'cpanel_4' => 'Alternatively, move all files from <code>public/</code> to <code>public_html/</code> and move <code>core/</code>, <code>config/</code>, etc. one level up',
+        'alternative' => 'Alternative: Move Files (Not Recommended)',
+        'alternative_desc' => 'If you cannot change document root, you can restructure the files (but this is less secure):',
+        'move_comment1' => '# Move public contents to root',
+        'move_comment2' => '# Move sensitive directories outside web root (if possible)',
+        'move_comment3' => '# Update paths in index.php accordingly',
+        'dev_redirect' => 'Temporary Redirect (Development Only)',
+        'dev_desc' => 'Since you\'re accessing from localhost, you can temporarily access the installer:',
+        'goto_installer' => 'Go to Installer (Development)',
+        'footer_help' => 'For more help, visit:',
+        'documentation' => 'Documentation'
+    ],
+    'es' => [
+        'title' => 'Configuración de Document Root Requerida',
+        'subtitle' => 'Tu servidor web no está apuntando al directorio correcto',
+        'security_risk' => 'Riesgo de Seguridad Detectado',
+        'security_desc' => 'El document root de tu servidor web está apuntando al directorio raíz del proyecto en lugar de la carpeta <code>public/</code>. Esto expone archivos sensibles como <code>.env</code>, archivos de configuración y código fuente a internet.',
+        'whats_exposed' => 'Lo Que Está Expuesto Ahora Mismo:',
+        'exposed_env' => 'Credenciales de base de datos y claves API',
+        'exposed_config' => 'Archivos de configuración del sistema',
+        'exposed_logs' => 'Logs de la aplicación con datos sensibles',
+        'exposed_vendor' => 'Bibliotecas de terceros (vulnerabilidades potenciales)',
+        'exposed_core' => 'Código fuente de la aplicación',
+        'how_to_fix' => 'Cómo Solucionarlo',
+        'apache_step' => 'Edita tu configuración de Apache o archivo de virtual host:',
+        'apache_restart' => 'Luego reinicia Apache:',
+        'nginx_step' => 'Edita la configuración del bloque server de Nginx:',
+        'nginx_restart' => 'Luego reinicia Nginx:',
+        'cpanel_step' => 'En el panel de control de tu hosting:',
+        'cpanel_1' => 'Ve a "Dominios Addon" o "Dominios"',
+        'cpanel_2' => 'Configura el document root a:',
+        'cpanel_3' => 'O crea un subdominio apuntando a la carpeta <code>public</code>',
+        'cpanel_4' => 'Alternativamente, mueve todos los archivos de <code>public/</code> a <code>public_html/</code> y mueve <code>core/</code>, <code>config/</code>, etc. un nivel arriba',
+        'alternative' => 'Alternativa: Mover Archivos (No Recomendado)',
+        'alternative_desc' => 'Si no puedes cambiar el document root, puedes reestructurar los archivos (pero esto es menos seguro):',
+        'move_comment1' => '# Mover contenido de public a raíz',
+        'move_comment2' => '# Mover directorios sensibles fuera de la web root (si es posible)',
+        'move_comment3' => '# Actualizar rutas en index.php en consecuencia',
+        'dev_redirect' => 'Redirección Temporal (Solo Desarrollo)',
+        'dev_desc' => 'Como estás accediendo desde localhost, puedes acceder temporalmente al instalador:',
+        'goto_installer' => 'Ir al Instalador (Desarrollo)',
+        'footer_help' => 'Para más ayuda, visita:',
+        'documentation' => 'Documentación'
+    ]
+];
+
+$t = $i18n[$lang];
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= $lang ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MuseDock CMS - Configuration Required</title>
+    <title>MuseDock CMS - <?= $t['title'] ?></title>
     <style>
         * {
             margin: 0;
@@ -25,19 +107,54 @@ $isProduction = !in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1', 'l
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            color: #e2e8f0;
+        }
+
+        .lang-selector {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .lang-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn.active {
+            background: #6366f1;
+            border-color: #6366f1;
+            color: white;
         }
 
         .container {
-            background: white;
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 800px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-width: 900px;
             width: 100%;
             padding: 40px;
         }
@@ -55,35 +172,35 @@ $isProduction = !in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1', 'l
         }
 
         h1 {
-            color: #1f2937;
+            color: #f1f5f9;
             font-size: 32px;
             margin-bottom: 16px;
             text-align: center;
         }
 
         .subtitle {
-            color: #6b7280;
+            color: #94a3b8;
             font-size: 18px;
             text-align: center;
             margin-bottom: 32px;
         }
 
         .alert {
-            background: #fef3c7;
-            border-left: 4px solid #f59e0b;
+            background: rgba(251, 191, 36, 0.15);
+            border-left: 4px solid #fbbf24;
             padding: 16px;
             margin-bottom: 24px;
             border-radius: 8px;
         }
 
         .alert h3 {
-            color: #92400e;
+            color: #fbbf24;
             font-size: 18px;
             margin-bottom: 8px;
         }
 
         .alert p {
-            color: #78350f;
+            color: #cbd5e1;
             line-height: 1.6;
         }
 
@@ -92,7 +209,7 @@ $isProduction = !in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1', 'l
         }
 
         .section h2 {
-            color: #1f2937;
+            color: #f1f5f9;
             font-size: 20px;
             margin-bottom: 16px;
             display: flex;
@@ -101,7 +218,7 @@ $isProduction = !in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1', 'l
         }
 
         .step {
-            background: #f9fafb;
+            background: rgba(51, 65, 85, 0.6);
             border-left: 4px solid #6366f1;
             padding: 16px;
             margin-bottom: 12px;
@@ -109,13 +226,23 @@ $isProduction = !in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1', 'l
         }
 
         .step strong {
-            color: #4f46e5;
+            color: #818cf8;
             display: block;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .step p {
+            color: #cbd5e1;
             margin-bottom: 8px;
         }
 
+        .step ol {
+            color: #cbd5e1;
+        }
+
         code {
-            background: #1f2937;
+            background: rgba(0, 0, 0, 0.4);
             color: #10b981;
             padding: 2px 8px;
             border-radius: 4px;
@@ -124,18 +251,19 @@ $isProduction = !in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1', 'l
         }
 
         .code-block {
-            background: #1f2937;
-            color: #e5e7eb;
+            background: #0f172a;
+            color: #e2e8f0;
             padding: 16px;
             border-radius: 8px;
             overflow-x: auto;
             margin: 12px 0;
             font-family: 'Courier New', monospace;
             font-size: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .code-block .comment {
-            color: #9ca3af;
+            color: #64748b;
         }
 
         .code-block .keyword {
@@ -147,36 +275,45 @@ $isProduction = !in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1', 'l
         }
 
         .danger {
-            background: #fee2e2;
-            border-left: 4px solid #dc2626;
+            background: rgba(239, 68, 68, 0.15);
+            border-left: 4px solid #ef4444;
             padding: 16px;
             border-radius: 8px;
             margin-bottom: 24px;
         }
 
         .danger h3 {
-            color: #991b1b;
+            color: #fca5a5;
             font-size: 18px;
             margin-bottom: 8px;
         }
 
         .danger ul {
-            color: #7f1d1d;
+            color: #cbd5e1;
             margin-left: 24px;
             line-height: 1.8;
         }
 
+        .danger code {
+            background: rgba(0, 0, 0, 0.3);
+            color: #fca5a5;
+        }
+
         .success {
-            background: #d1fae5;
+            background: rgba(16, 185, 129, 0.15);
             border-left: 4px solid #10b981;
             padding: 16px;
             border-radius: 8px;
         }
 
         .success h3 {
-            color: #065f46;
+            color: #6ee7b7;
             font-size: 18px;
             margin-bottom: 8px;
+        }
+
+        .success p {
+            color: #cbd5e1;
         }
 
         .btn {
@@ -199,9 +336,18 @@ $isProduction = !in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1', 'l
             text-align: center;
             margin-top: 32px;
             padding-top: 24px;
-            border-top: 1px solid #e5e7eb;
-            color: #6b7280;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
             font-size: 14px;
+        }
+
+        .footer a {
+            color: #818cf8;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
         }
 
         @media (max-width: 640px) {
@@ -216,42 +362,53 @@ $isProduction = !in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1', 'l
             .code-block {
                 font-size: 12px;
             }
+
+            .lang-selector {
+                top: 10px;
+                right: 10px;
+            }
+
+            .lang-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="lang-selector">
+        <a href="?lang=en" class="lang-btn <?= $lang === 'en' ? 'active' : '' ?>">English</a>
+        <a href="?lang=es" class="lang-btn <?= $lang === 'es' ? 'active' : '' ?>">Español</a>
+    </div>
+
     <div class="container">
         <div class="warning-icon">⚠️</div>
 
-        <h1>Document Root Configuration Required</h1>
-        <p class="subtitle">Your web server is not pointing to the correct directory</p>
+        <h1><?= $t['title'] ?></h1>
+        <p class="subtitle"><?= $t['subtitle'] ?></p>
 
         <div class="alert">
-            <h3>🔒 Security Risk Detected</h3>
-            <p>
-                Your web server's document root is pointing to the project root directory instead of the
-                <code>public/</code> folder. This exposes sensitive files like <code>.env</code>,
-                configuration files, and source code to the internet.
-            </p>
+            <h3>🔒 <?= $t['security_risk'] ?></h3>
+            <p><?= $t['security_desc'] ?></p>
         </div>
 
         <div class="danger">
-            <h3>🚨 What's Exposed Right Now:</h3>
+            <h3>🚨 <?= $t['whats_exposed'] ?></h3>
             <ul>
-                <li><code>.env</code> - Database credentials and API keys</li>
-                <li><code>config/</code> - System configuration files</li>
-                <li><code>storage/logs/</code> - Application logs with sensitive data</li>
-                <li><code>vendor/</code> - Third-party libraries (potential vulnerabilities)</li>
-                <li><code>core/</code> - Application source code</li>
+                <li><code>.env</code> - <?= $t['exposed_env'] ?></li>
+                <li><code>config/</code> - <?= $t['exposed_config'] ?></li>
+                <li><code>storage/logs/</code> - <?= $t['exposed_logs'] ?></li>
+                <li><code>vendor/</code> - <?= $t['exposed_vendor'] ?></li>
+                <li><code>core/</code> - <?= $t['exposed_core'] ?></li>
             </ul>
         </div>
 
         <div class="section">
-            <h2>🔧 How to Fix</h2>
+            <h2>🔧 <?= $t['how_to_fix'] ?></h2>
 
             <div class="step">
                 <strong>Apache (.htaccess)</strong>
-                <p>Edit your Apache configuration or virtual host file:</p>
+                <p><?= $t['apache_step'] ?></p>
                 <div class="code-block">
 <span class="comment"># Apache VirtualHost Configuration</span>
 &lt;VirtualHost *:80&gt;
@@ -265,12 +422,12 @@ $isProduction = !in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1', 'l
     &lt;/Directory&gt;
 &lt;/VirtualHost&gt;
                 </div>
-                <p>Then restart Apache: <code>sudo systemctl restart apache2</code></p>
+                <p><?= $t['apache_restart'] ?> <code>sudo systemctl restart apache2</code></p>
             </div>
 
             <div class="step">
                 <strong>Nginx</strong>
-                <p>Edit your Nginx server block configuration:</p>
+                <p><?= $t['nginx_step'] ?></p>
                 <div class="code-block">
 <span class="comment"># Nginx Server Block</span>
 server {
@@ -291,52 +448,51 @@ server {
     }
 }
                 </div>
-                <p>Then restart Nginx: <code>sudo systemctl restart nginx</code></p>
+                <p><?= $t['nginx_restart'] ?> <code>sudo systemctl restart nginx</code></p>
             </div>
 
             <div class="step">
                 <strong>cPanel / Shared Hosting</strong>
-                <p>In your hosting control panel:</p>
+                <p><?= $t['cpanel_step'] ?></p>
                 <ol style="margin-left: 24px; margin-top: 12px; line-height: 1.8;">
-                    <li>Go to "Addon Domains" or "Domains"</li>
-                    <li>Set document root to: <code>public_html/musedock/public</code></li>
-                    <li>Or create a subdomain pointing to the <code>public</code> folder</li>
-                    <li>Alternatively, move all files from <code>public/</code> to <code>public_html/</code>
-                        and move <code>core/</code>, <code>config/</code>, etc. one level up</li>
+                    <li><?= $t['cpanel_1'] ?></li>
+                    <li><?= $t['cpanel_2'] ?> <code>public_html/musedock/public</code></li>
+                    <li><?= $t['cpanel_3'] ?></li>
+                    <li><?= $t['cpanel_4'] ?></li>
                 </ol>
             </div>
         </div>
 
         <div class="section">
-            <h2>📝 Alternative: Move Files (Not Recommended)</h2>
-            <p style="margin-bottom: 12px; color: #6b7280;">
-                If you cannot change document root, you can restructure the files (but this is less secure):
+            <h2>📝 <?= $t['alternative'] ?></h2>
+            <p style="margin-bottom: 12px; color: #94a3b8;">
+                <?= $t['alternative_desc'] ?>
             </p>
             <div class="code-block">
-<span class="comment"># Move public contents to root</span>
+<span class="comment"><?= $t['move_comment1'] ?></span>
 mv public/* ./
 mv public/.htaccess ./
 
-<span class="comment"># Move sensitive directories outside web root (if possible)</span>
+<span class="comment"><?= $t['move_comment2'] ?></span>
 mv core/ ../core/
 mv config/ ../config/
 mv storage/ ../storage/
 
-<span class="comment"># Update paths in index.php accordingly</span>
+<span class="comment"><?= $t['move_comment3'] ?></span>
             </div>
         </div>
 
         <?php if (!$isProduction): ?>
         <div class="success">
-            <h3>🔄 Temporary Redirect (Development Only)</h3>
-            <p>Since you're accessing from localhost, you can temporarily access the installer:</p>
-            <a href="/public/install/" class="btn">Go to Installer (Development)</a>
+            <h3>🔄 <?= $t['dev_redirect'] ?></h3>
+            <p><?= $t['dev_desc'] ?></p>
+            <a href="/public/install/" class="btn"><?= $t['goto_installer'] ?></a>
         </div>
         <?php endif; ?>
 
         <div class="footer">
             <strong>MuseDock CMS</strong><br>
-            For more help, visit: <a href="https://musedock.org/docs" target="_blank">Documentation</a>
+            <?= $t['footer_help'] ?> <a href="https://musedock.org/docs" target="_blank"><?= $t['documentation'] ?></a>
         </div>
     </div>
 </body>
