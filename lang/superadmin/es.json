@@ -76,7 +76,13 @@
     "available_modules": "Módulos disponibles",
     "add_stats": "Aquí puedes añadir estadísticas reales",
     "manage_modules_desc": "Visualiza y administra los módulos instalados",
-    "view_site": "Ver Sitio"
+    "view_site": "Ver Sitio",
+    "missing_seeders_title": "Configuración incompleta",
+    "missing_seeders_description": "Se detectaron datos faltantes que pueden afectar el funcionamiento del sistema:",
+    "run_all_seeders": "Ejecutar todos",
+    "seeders_success": "Seeders ejecutados correctamente",
+    "seeders_error": "Error al ejecutar seeders",
+    "seeders_reloading": "Recargando página..."
   },
   "pages": {
     "title": "Páginas",

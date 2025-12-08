@@ -76,7 +76,13 @@
     "available_modules": "Available modules",
     "add_stats": "You can add real statistics here",
     "manage_modules_desc": "View and manage installed modules",
-    "view_site": "View Site"
+    "view_site": "View Site",
+    "missing_seeders_title": "Incomplete Configuration",
+    "missing_seeders_description": "Missing data detected that may affect system functionality:",
+    "run_all_seeders": "Run all",
+    "seeders_success": "Seeders executed successfully",
+    "seeders_error": "Error executing seeders",
+    "seeders_reloading": "Reloading page..."
   },
   "pages": {
     "title": "Pages",
