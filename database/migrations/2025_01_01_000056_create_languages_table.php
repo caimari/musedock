@@ -21,6 +21,7 @@ class CreateLanguagesTable_2025_12_08_104752
                   `code` varchar(10) NOT NULL,
                   `name` varchar(100) NOT NULL,
                   `active` tinyint(1) DEFAULT 1,
+                  `order_position` int(11) DEFAULT 0,
                   `tenant_id` int(11) DEFAULT NULL,
                   `created_at` datetime DEFAULT current_timestamp(),
                   PRIMARY KEY (`id`)
