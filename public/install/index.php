@@ -1399,9 +1399,14 @@ $step = max(1, min(5, $step));
                             <h5><i class="bi bi-exclamation-octagon me-2"></i>Installation Failed</h5>
                             <p id="error-message"></p>
                         </div>
-                        <button type="button" class="btn btn-outline-light" onclick="location.reload()">
-                            <i class="bi bi-arrow-clockwise me-2"></i>Try Again
-                        </button>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-light" id="btn-retry-install">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Retry Installation
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="goToStep(2)">
+                                <i class="bi bi-arrow-left me-2"></i>Back to Database
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1416,6 +1421,26 @@ $step = max(1, min(5, $step));
     <script>
         const csrfToken = '<?= $_SESSION['csrf_token'] ?>';
         let installData = {};
+
+        // Load saved data from sessionStorage
+        try {
+            const savedData = sessionStorage.getItem('musedock_install_data');
+            if (savedData) {
+                installData = JSON.parse(savedData);
+                console.log('Loaded saved installation data');
+            }
+        } catch (e) {
+            console.warn('Could not load saved data:', e);
+        }
+
+        // Save data to sessionStorage
+        function saveInstallData() {
+            try {
+                sessionStorage.setItem('musedock_install_data', JSON.stringify(installData));
+            } catch (e) {
+                console.warn('Could not save data:', e);
+            }
+        }
 
         // Password toggle
         document.querySelectorAll('.password-toggle').forEach(toggle => {
@@ -1565,6 +1590,9 @@ $step = max(1, min(5, $step));
                             installData[key] = value;
                         }
                     }
+
+                    // Save to sessionStorage
+                    saveInstallData();
                 } else {
                     resultDiv.innerHTML = `<div class="alert alert-danger"><i class="bi bi-x-circle me-2"></i>${data.error}</div>`;
                     document.getElementById('btn-next-2').disabled = true;
@@ -1584,6 +1612,7 @@ $step = max(1, min(5, $step));
             for (const [key, value] of formData.entries()) {
                 installData[key] = value;
             }
+            saveInstallData();
             goToStep(3);
         });
 
@@ -1619,6 +1648,9 @@ $step = max(1, min(5, $step));
                     installData[key] = value;
                 }
             }
+
+            // Save to sessionStorage
+            saveInstallData();
 
             // Show summary
             updateSummary();
@@ -1674,7 +1706,16 @@ $step = max(1, min(5, $step));
                     body: new URLSearchParams(installData)
                 });
 
-                const data = await response.json();
+                // Get response text first
+                const responseText = await response.text();
+
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    // JSON parse failed - show raw response
+                    throw new Error(`Invalid JSON response. Server returned:\n${responseText.substring(0, 500)}`);
+                }
 
                 if (data.success) {
                     // Update progress
@@ -1692,15 +1733,44 @@ $step = max(1, min(5, $step));
                         }
                     }, 1000);
                 } else {
+                    // Show detailed error with steps
+                    let errorHtml = `<strong>Installation Error:</strong><br>${data.error || 'Unknown error'}`;
+
+                    if (data.steps && data.steps.length > 0) {
+                        errorHtml += '<br><br><strong>Steps completed:</strong><ul style="text-align: left; margin-top: 10px;">';
+                        data.steps.forEach(step => {
+                            const icon = step.status === 'completed' ? '✓' :
+                                        step.status === 'warning' ? '⚠' : '✗';
+                            const color = step.status === 'completed' ? '#4ade80' :
+                                         step.status === 'warning' ? '#fbbf24' : '#ef4444';
+                            errorHtml += `<li><span style="color: ${color}">${icon}</span> ${step.step}`;
+                            if (step.message) {
+                                errorHtml += `<br><small style="color: #9ca3af">${step.message}</small>`;
+                            }
+                            errorHtml += '</li>';
+                        });
+                        errorHtml += '</ul>';
+                    }
+
                     document.getElementById('install-progress').style.display = 'none';
                     document.getElementById('install-error').style.display = 'block';
-                    document.getElementById('error-message').textContent = data.error;
+                    document.getElementById('error-message').innerHTML = errorHtml;
                 }
             } catch (error) {
                 document.getElementById('install-progress').style.display = 'none';
                 document.getElementById('install-error').style.display = 'block';
-                document.getElementById('error-message').textContent = error.message;
+                document.getElementById('error-message').innerHTML = `<strong>Connection Error:</strong><br>${error.message}`;
             }
+        });
+
+        // Retry installation button
+        document.getElementById('btn-retry-install').addEventListener('click', function() {
+            // Hide error, show summary again
+            document.getElementById('install-error').style.display = 'none';
+            document.getElementById('install-summary').style.display = 'block';
+
+            // Re-enable install button
+            document.getElementById('btn-install').disabled = false;
         });
 
         // Initial check
