@@ -201,9 +201,46 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         }
     }
 
+    // Función para mostrar el textarea como fallback
+    function showTextareaFallback(showError = false) {
+        hideSkeleton();
+        const textarea = document.getElementById('content-editor');
+        if (textarea) {
+            textarea.style.cssText = 'display: block !important; width: 100%; height: 400px; min-height: 400px; padding: 15px; border: 1px solid #ced4da; border-radius: 0.25rem; font-family: monospace;';
+
+            if (showError) {
+                // Agregar un mensaje sobre el error si no existe ya
+                if (!document.getElementById('tinymce-error-msg')) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.id = 'tinymce-error-msg';
+                    errorDiv.className = 'alert alert-warning mt-2';
+                    errorDiv.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>No se pudo cargar el editor visual. Puedes editar el contenido en modo texto.';
+                    textarea.parentNode.insertBefore(errorDiv, textarea.nextSibling);
+                }
+            }
+        }
+    }
+
+    // Timeout de seguridad: si TinyMCE no carga en 10 segundos, mostrar textarea
+    const safetyTimeout = setTimeout(function() {
+        console.warn('TinyMCE no cargó en 10 segundos. Mostrando textarea como fallback.');
+        if (typeof tinymce === 'undefined' || !tinymce.get('content-editor')) {
+            showTextareaFallback(true);
+        }
+    }, 10000);
+
+    // Verificar si TinyMCE está disponible
+    if (typeof tinymce === 'undefined') {
+        console.error('TinyMCE no está cargado. Mostrando textarea.');
+        clearTimeout(safetyTimeout);
+        showTextareaFallback(true);
+        return;
+    }
+
     // Prevenir inicialización múltiple
-    if (typeof tinymce !== 'undefined' && tinymce.get('content-editor')) {
+    if (tinymce.get('content-editor')) {
         console.log("TinyMCE ya está inicializado para #content-editor. No se inicializará de nuevo.");
+        clearTimeout(safetyTimeout);
         hideSkeleton();
         return;
     }
@@ -245,11 +282,77 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         
         entity_encoding: 'raw',
         convert_urls: false,
-        
+
+        // Habilitar el file picker para imágenes y medios
+        file_picker_types: 'image media file',
+        file_picker_callback: function(callback, value, meta) {
+            // Verificar si el Media Manager está disponible
+            if (typeof window.openMediaManagerForTinyMCE === 'function') {
+                window.openMediaManagerForTinyMCE(callback, value, meta);
+            } else if (typeof window.openMediaManager === 'function') {
+                // Fallback: crear un input temporal y usar el modal estándar
+                window._tinymceFilePickerCallback = callback;
+                window._tinymceFilePickerMeta = meta;
+
+                // Crear elementos temporales para el media manager
+                let tempInput = document.getElementById('tinymce-media-input');
+                if (!tempInput) {
+                    tempInput = document.createElement('input');
+                    tempInput.type = 'hidden';
+                    tempInput.id = 'tinymce-media-input';
+                    document.body.appendChild(tempInput);
+                }
+
+                // Abrir el gestor de medios con los selectores
+                const mediaModal = document.getElementById('md-media-manager');
+                if (mediaModal) {
+                    // Configurar callback personalizado para TinyMCE
+                    window._tinymceMediaCallback = function(url) {
+                        if (window._tinymceFilePickerCallback) {
+                            window._tinymceFilePickerCallback(url, { title: '' });
+                            window._tinymceFilePickerCallback = null;
+                        }
+                    };
+
+                    // Simular clic en botón que abre el modal
+                    const btn = document.createElement('button');
+                    btn.className = 'open-media-modal-button';
+                    btn.dataset.inputTarget = '#tinymce-media-input';
+                    btn.style.display = 'none';
+                    document.body.appendChild(btn);
+                    btn.click();
+                    btn.remove();
+                }
+            } else {
+                // Si no hay Media Manager, usar input file nativo
+                const input = document.createElement('input');
+                input.setAttribute('type', 'file');
+                input.setAttribute('accept', meta.filetype === 'image' ? 'image/*' : '*/*');
+
+                input.addEventListener('change', function() {
+                    const file = this.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function() {
+                            callback(reader.result, { title: file.name });
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+
+                input.click();
+            }
+        },
+
         // Función Setup con solución para el borde azul
         setup: function(editor) {
             editor.on('init', function() {
                 console.log('TinyMCE inicializado para: #' + editor.id);
+
+                // Limpiar timeout de seguridad
+                if (typeof safetyTimeout !== 'undefined') {
+                    clearTimeout(safetyTimeout);
+                }
 
                 // Ocultar skeleton loader
                 hideSkeleton();
@@ -385,6 +488,7 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                 // Intentar inicializar con AIWriter
                 try {
                     await initTinyMCE(currentConfig);
+                    clearTimeout(safetyTimeout);
                     console.log("TinyMCE inicializado correctamente con AIWriter");
                     return; // Éxito, salir de la función
                 } catch (error) {
@@ -401,6 +505,7 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         // Si no se ha inicializado con AIWriter, usar configuración básica
         try {
             await initTinyMCE(baseConfig);
+            clearTimeout(safetyTimeout);
             console.log("TinyMCE inicializado correctamente con configuración básica");
         } catch (error) {
             console.error("Error crítico al inicializar TinyMCE:", error);
@@ -441,33 +546,51 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
             
             try {
                 await initTinyMCE(minimalConfig);
+                clearTimeout(safetyTimeout);
                 console.log("TinyMCE inicializado con configuración mínima");
             } catch (finalError) {
                 console.error("ERROR FATAL: No se pudo inicializar TinyMCE:", finalError);
-
-                // Ocultar skeleton y mostrar textarea con mensaje de error
-                hideSkeleton();
-                const textarea = document.getElementById('content-editor');
-                if (textarea) {
-                    textarea.style.display = 'block';
-                    textarea.style.height = '300px';
-
-                    // Agregar un mensaje sobre el error
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'alert alert-danger mt-2';
-                    errorDiv.textContent = 'No se pudo cargar el editor. Por favor, recargue la página o contacte al administrador.';
-                    textarea.parentNode.insertBefore(errorDiv, textarea.nextSibling);
-                }
+                clearTimeout(safetyTimeout);
+                showTextareaFallback(true);
             }
         }
     }
 
     // Esperar a que el DOM esté listo antes de inicializar
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initTinyMCEWithFallback);
+        console.log('DOM aún cargando, esperando DOMContentLoaded...');
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded disparado, verificando textarea...');
+            const textarea = document.getElementById('content-editor');
+            console.log('Textarea encontrado:', textarea ? 'SÍ' : 'NO');
+            if (textarea) {
+                initTinyMCEWithFallback();
+            } else {
+                console.error('ERROR: No se encontró el textarea #content-editor');
+                showTextareaFallback(true);
+            }
+        });
     } else {
-        // DOM ya está listo, inicializar inmediatamente
-        initTinyMCEWithFallback();
+        // DOM ya está listo, verificar que el textarea exista
+        console.log('DOM ya listo, verificando textarea...');
+        const textarea = document.getElementById('content-editor');
+        console.log('Textarea encontrado:', textarea ? 'SÍ' : 'NO');
+        if (textarea) {
+            initTinyMCEWithFallback();
+        } else {
+            console.error('ERROR: No se encontró el textarea #content-editor');
+            showTextareaFallback(true);
+        }
     }
 })();
 </script>
+
+@php
+// Verificar si el módulo Media Manager está activo
+$mediaModuleActive = function_exists('is_module_active') ? is_module_active('media-manager') : false;
+@endphp
+
+@if($mediaModuleActive)
+{{-- Incluir el Media Manager para TinyMCE --}}
+@include('partials._tinymce_media_manager')
+@endif
