@@ -7,11 +7,15 @@ use Blog\Models\BlogCategory;
 use Blog\Requests\BlogCategoryRequest;
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Helpers\FileUploadValidator;
+use Screenart\Musedock\Traits\RequiresPermission;
 
 class BlogCategoryController
 {
+    use RequiresPermission;
+
     public function index()
     {
+        $this->checkPermission('blog.view');
         // Capturamos parámetros de búsqueda y paginación
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
@@ -65,6 +69,7 @@ class BlogCategoryController
 
     public function create()
     {
+        $this->checkPermission('blog.create');
         // Obtener todas las categorías para el selector de categoría padre
         $categories = BlogCategory::whereNull('tenant_id')->orderBy('name', 'ASC')->get();
 
@@ -78,6 +83,7 @@ class BlogCategoryController
 
     public function store()
     {
+        $this->checkPermission('blog.create');
         $data = $_POST;
         unset($data['_token'], $data['_csrf']);
 
@@ -124,6 +130,7 @@ class BlogCategoryController
 
     public function edit($id)
     {
+        $this->checkPermission('blog.edit');
         // Limpiar datos 'old' al inicio
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
         unset($_SESSION['_old_input']);
@@ -180,6 +187,7 @@ class BlogCategoryController
 
     public function update($id)
     {
+        $this->checkPermission('blog.edit');
         // Iniciar sesión si es necesario
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
@@ -414,6 +422,7 @@ class BlogCategoryController
 
     public function destroy($id)
     {
+        $this->checkPermission('blog.delete');
         $category = BlogCategory::find($id);
         if (!$category) {
             flash('error', __('blog.category.error_not_found'));
@@ -459,6 +468,7 @@ class BlogCategoryController
 
     public function bulk()
     {
+        $this->checkPermission('blog.delete');
         $action = $_POST['action'] ?? null;
         $selected = $_POST['selected'] ?? [];
 

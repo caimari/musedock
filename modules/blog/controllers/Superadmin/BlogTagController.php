@@ -6,11 +6,15 @@ use Screenart\Musedock\View;
 use Blog\Models\BlogTag;
 use Blog\Requests\BlogTagRequest;
 use Screenart\Musedock\Database;
+use Screenart\Musedock\Traits\RequiresPermission;
 
 class BlogTagController
 {
+    use RequiresPermission;
+
     public function index()
     {
+        $this->checkPermission('blog.view');
         // Capturamos parámetros de búsqueda y paginación
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
@@ -63,6 +67,7 @@ class BlogTagController
 
     public function create()
     {
+        $this->checkPermission('blog.create');
         return View::renderSuperadmin('blog.tags.create', [
             'title' => 'Crear Etiqueta',
             'tag' => new BlogTag(),
@@ -72,6 +77,7 @@ class BlogTagController
 
     public function store()
     {
+        $this->checkPermission('blog.create');
         $data = $_POST;
         unset($data['_token'], $data['_csrf']);
 
@@ -107,6 +113,7 @@ class BlogTagController
 
     public function edit($id)
     {
+        $this->checkPermission('blog.edit');
         // Limpiar datos 'old' al inicio
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
         unset($_SESSION['_old_input']);
@@ -156,6 +163,7 @@ class BlogTagController
 
     public function update($id)
     {
+        $this->checkPermission('blog.edit');
         // Iniciar sesión si es necesario
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
@@ -230,6 +238,7 @@ class BlogTagController
 
     public function destroy($id)
     {
+        $this->checkPermission('blog.delete');
         $tag = BlogTag::find($id);
         if (!$tag) {
             flash('error', __('blog.tag.error_not_found'));
@@ -266,6 +275,7 @@ class BlogTagController
 
     public function bulk()
     {
+        $this->checkPermission('blog.delete');
         $action = $_POST['action'] ?? null;
         $selected = $_POST['selected'] ?? [];
 
