@@ -183,7 +183,17 @@ document.addEventListener('DOMContentLoaded', function() {
         'X-Requested-With': 'XMLHttpRequest'
       }
     })
-    .then(response => response.json())
+    .then(response => {
+      // Verificar si la respuesta es JSON válido
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        // Si no es JSON, obtener el texto para mostrar el error real
+        return response.text().then(text => {
+          throw new Error('El servidor devolvió HTML en lugar de JSON. Respuesta: ' + text.substring(0, 200));
+        });
+      }
+      return response.json();
+    })
     .then(data => {
       btn.disabled = false;
       btn.innerHTML = originalHtml;

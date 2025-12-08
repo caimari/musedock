@@ -117,6 +117,16 @@ class SettingsController
         try {
             SessionSecurity::startSession();
 
+            // Verificar permiso - sin redirección, solo devolver error JSON
+            if (!userCan('settings.view')) {
+                ob_end_clean();
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'No tienes permiso para verificar actualizaciones'
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
             $versionInfo = $this->getVersionInfo();
             $currentVersion = $versionInfo['current'];
             $latestVersion = null;
