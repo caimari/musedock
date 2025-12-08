@@ -48,10 +48,7 @@ class SuperAdminMiddleware
             $this->forceLogout();
 
             // Detectar si es AJAX antes de redirigir
-            $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
-                      strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') ||
-                      (!empty($_SERVER['HTTP_ACCEPT']) &&
-                      strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+            $isAjax = $this->isAjaxRequest();
 
             if ($isAjax) {
                 header('Content-Type: application/json');
@@ -82,11 +79,8 @@ class SuperAdminMiddleware
         }
 
         // No autenticado o no es super_admin
-        // Detectar si es una petición AJAX
-        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
-                  strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') ||
-                  (!empty($_SERVER['HTTP_ACCEPT']) &&
-                  strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+        // Detectar si es una petición AJAX o una ruta que debe responder JSON
+        $isAjax = $this->isAjaxRequest();
 
         if ($isAjax) {
             header('Content-Type: application/json');
@@ -102,6 +96,48 @@ class SuperAdminMiddleware
         // Redirigir al login
         header("Location: /musedock/login");
         exit;
+    }
+
+    /**
+     * Detectar si la petición es AJAX o debe responder con JSON
+     */
+    private function isAjaxRequest(): bool
+    {
+        // 1. Header X-Requested-With estándar
+        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+            strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+            return true;
+        }
+
+        // 2. Header Accept contiene application/json
+        if (!empty($_SERVER['HTTP_ACCEPT']) &&
+            strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
+            return true;
+        }
+
+        // 3. Rutas específicas que siempre deben responder JSON
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        $jsonRoutes = [
+            '/musedock/settings/check-updates',
+            '/musedock/run-seeders',
+            '/musedock/settings/clear-flashes',
+            '/musedock/media/api/',
+            '/api/',
+        ];
+
+        foreach ($jsonRoutes as $route) {
+            if (strpos($requestUri, $route) !== false) {
+                return true;
+            }
+        }
+
+        // 4. Content-Type de la petición es JSON
+        if (!empty($_SERVER['CONTENT_TYPE']) &&
+            strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

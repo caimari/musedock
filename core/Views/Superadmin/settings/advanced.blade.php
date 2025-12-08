@@ -233,21 +233,60 @@ document.addEventListener('DOMContentLoaded', function() {
           resultDiv.style.display = 'block';
         }
       } else {
-        statusDiv.innerHTML = '<span class="badge bg-secondary"><i class="bi bi-question-circle me-1"></i>{{ __("settings.check_failed") }}</span>';
+        // Manejar diferentes tipos de errores JSON
+        let alertClass = 'secondary';
+        let alertIcon = 'info-circle';
+
+        // Si es error de autenticación, mostrar alerta diferente
+        if (data.error && data.error.includes('autenticado')) {
+          alertClass = 'warning';
+          alertIcon = 'exclamation-triangle';
+        } else if (data.error && data.error.includes('permiso')) {
+          alertClass = 'danger';
+          alertIcon = 'x-circle';
+        }
+
+        statusDiv.innerHTML = `<span class="badge bg-${alertClass}"><i class="bi bi-${alertIcon} me-1"></i>{{ __("settings.check_failed") }}</span>`;
+
+        // Mostrar información de debug si existe
+        let debugInfo = '';
+        if (data.debug && (data.debug.previous_output || data.debug.buffer_output)) {
+          debugInfo = `<hr><small class="text-muted"><strong>Debug:</strong><br>`;
+          if (data.debug.previous_output) debugInfo += `Previous: ${data.debug.previous_output}<br>`;
+          if (data.debug.buffer_output) debugInfo += `Buffer: ${data.debug.buffer_output}`;
+          debugInfo += `</small>`;
+        }
+        if (data.error_file) {
+          debugInfo += `<br><small class="text-muted">File: ${data.error_file}</small>`;
+        }
+
         resultDiv.innerHTML = `
-          <div class="alert alert-secondary mb-0">
-            <i class="bi bi-info-circle me-1"></i> {{ __("settings.could_not_check") }}
+          <div class="alert alert-${alertClass} mb-0">
+            <i class="bi bi-${alertIcon} me-1"></i> {{ __("settings.could_not_check") }}
             <br><small class="text-muted">${data.error || '{{ __("settings.no_response") }}'}</small>
+            ${debugInfo}
           </div>
         `;
         resultDiv.style.display = 'block';
+
+        // Log completo en consola
+        console.warn('Verificación de actualizaciones fallida:', data);
       }
     })
     .catch(error => {
       btn.disabled = false;
       btn.innerHTML = originalHtml;
       statusDiv.innerHTML = '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Error</span>';
-      resultDiv.innerHTML = `<div class="alert alert-danger mb-0">${error.message}</div>`;
+
+      // Mostrar error completo incluyendo información de debug si existe
+      let errorHtml = `<div class="alert alert-danger mb-0">
+        <strong>Error:</strong> ${error.message}
+      </div>`;
+
+      // Log completo en consola para depuración
+      console.error('Error verificando actualizaciones:', error);
+
+      resultDiv.innerHTML = errorHtml;
       resultDiv.style.display = 'block';
     });
   });

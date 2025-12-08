@@ -158,14 +158,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- Enlace del footer para abrir configuracion de cookies (RGPD) ---
     const openCookieSettingsLink = document.getElementById('open-cookie-settings');
+    console.log('Cookie settings link found:', openCookieSettingsLink ? 'YES' : 'NO');
+    console.log('Preferences modal found:', preferencesModal ? 'YES' : 'NO');
+
     if (openCookieSettingsLink) {
         openCookieSettingsLink.addEventListener('click', (e) => {
+            console.log('Cookie settings link clicked');
             e.preventDefault();
             e.stopPropagation();
-            // Evitar scroll cuando hay navbar fijo
-            if (window.scrollY > 0) {
-                window.scrollTo({ top: window.scrollY, behavior: 'instant' });
-            }
             showPreferencesModal();
         });
     }

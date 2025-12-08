@@ -85,11 +85,11 @@
 	<link rel="stylesheet" href="/assets/css/swiper-bundle.min.css">
 	<link rel="stylesheet" href="{{ asset('themes/default/css/slider-themes.css') }}">
 {{-- Slick Carousel CSS (local) --}}
-<link rel="stylesheet" href="{{ asset('assets/vendor/slick/slick.min.css') }}" />
-<link rel="stylesheet" href="{{ asset('assets/vendor/slick/slick-theme.min.css') }}" />
+<link rel="stylesheet" href="{{ asset('vendor/slick/slick.min.css') }}" />
+<link rel="stylesheet" href="{{ asset('vendor/slick/slick-theme.min.css') }}" />
 {{-- Owl Carousel CSS (local) --}}
-<link rel="stylesheet" href="{{ asset('assets/vendor/owl-carousel/owl.carousel.min.css') }}" />
-<link rel="stylesheet" href="{{ asset('assets/vendor/owl-carousel/owl.theme.default.min.css') }}" />
+<link rel="stylesheet" href="{{ asset('vendor/owl-carousel/owl.carousel.min.css') }}" />
+<link rel="stylesheet" href="{{ asset('vendor/owl-carousel/owl.theme.default.min.css') }}" />
 
 
 
@@ -1171,9 +1171,9 @@ if (header && header.classList.contains('enable-sticky')) {
 	{{-- Swiper JS local (reemplaza CDN) --}}
 <script src="/assets/js/swiper-bundle.min.js"></script>
 {{-- Slick Carousel JS (local) --}}
-<script src="{{ asset('assets/vendor/slick/slick.min.js') }}"></script>
+<script src="{{ asset('vendor/slick/slick.min.js') }}"></script>
 {{-- Owl Carousel JS (local) --}}
-<script src="{{ asset('assets/vendor/owl-carousel/owl.carousel.min.js') }}"></script>
+<script src="{{ asset('vendor/owl-carousel/owl.carousel.min.js') }}"></script>
 
 
 
@@ -1181,7 +1181,7 @@ if (header && header.classList.contains('enable-sticky')) {
 	
 	
 @if(setting('cookies_enabled', '1') == '1')
-<script src="{{ asset('themes/default/js/cookie-consent.js') }}"></script>
+<script src="{{ asset('themes/default/js/cookie-consent.js') }}?v={{ filemtime(public_path('assets/themes/default/js/cookie-consent.js')) ?: time() }}"></script>
 @endif
 	
 @php

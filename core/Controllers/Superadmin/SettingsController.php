@@ -100,32 +100,28 @@ class SettingsController
      */
     public function checkUpdates()
     {
-        // IMPORTANTE: Limpiar TODOS los buffers antes de cualquier cosa
+        // Capturar cualquier output previo que pueda haber
+        $previousOutput = '';
         while (ob_get_level() > 0) {
-            ob_end_clean();
+            $previousOutput .= ob_get_clean();
         }
 
         // Establecer headers JSON INMEDIATAMENTE
-        header('Content-Type: application/json; charset=utf-8');
-        header('Cache-Control: no-cache, no-store, must-revalidate');
-        header('Pragma: no-cache');
-        header('X-Content-Type-Options: nosniff');
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=utf-8');
+            header('Cache-Control: no-cache, no-store, must-revalidate');
+            header('Pragma: no-cache');
+            header('X-Content-Type-Options: nosniff');
+        }
 
-        // Iniciar buffer para capturar cualquier output accidental
+        // Iniciar buffer limpio
         ob_start();
 
         try {
             SessionSecurity::startSession();
 
-            // Verificar permiso - sin redirección, solo devolver error JSON
-            if (!userCan('settings.view')) {
-                ob_end_clean();
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'No tienes permiso para verificar actualizaciones'
-                ], JSON_UNESCAPED_UNICODE);
-                exit;
-            }
+            // Verificar que el usuario tenga permiso
+            $this->checkPermission('settings.view');
 
             $versionInfo = $this->getVersionInfo();
             $currentVersion = $versionInfo['current'];
@@ -235,15 +231,27 @@ class SettingsController
             ], JSON_UNESCAPED_UNICODE);
 
         } catch (\Throwable $e) {
-            // Descartar cualquier output capturado
+            // Capturar cualquier output del buffer
+            $bufferOutput = '';
             if (ob_get_level() > 0) {
-                ob_end_clean();
+                $bufferOutput = ob_get_clean();
+            }
+
+            // Log del error para debugging
+            error_log("checkUpdates ERROR: " . $e->getMessage() . " | File: " . $e->getFile() . ":" . $e->getLine());
+            if ($previousOutput) {
+                error_log("checkUpdates previousOutput: " . substr($previousOutput, 0, 500));
             }
 
             echo json_encode([
                 'success' => false,
                 'error' => $e->getMessage(),
-                'current_version' => $versionInfo['current'] ?? '0.0.0'
+                'error_file' => basename($e->getFile()) . ':' . $e->getLine(),
+                'current_version' => $versionInfo['current'] ?? '0.0.0',
+                'debug' => [
+                    'previous_output' => $previousOutput ? substr($previousOutput, 0, 200) : null,
+                    'buffer_output' => $bufferOutput ? substr($bufferOutput, 0, 200) : null
+                ]
             ], JSON_UNESCAPED_UNICODE);
         }
 

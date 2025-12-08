@@ -20,6 +20,7 @@ trait RequiresPermission
      * @param string $permission Slug del permiso (ej: 'pages.view')
      * @param string|null $redirectUrl URL de redirección si falla (default: dashboard)
      * @return void
+     * @throws \Exception en peticiones AJAX cuando no hay permiso
      */
     protected function checkPermission(string $permission, ?string $redirectUrl = null): void
     {
@@ -34,6 +35,11 @@ trait RequiresPermission
                 $userEmail = $auth['email'] ?? 'unknown';
 
                 logger()->warning("Acceso denegado: {$userEmail} (ID: {$userId}) intentó acceder a acción que requiere permiso '{$permission}'");
+            }
+
+            // Detectar si es una petición AJAX - lanzar excepción en lugar de redirigir
+            if ($this->isAjaxRequest()) {
+                throw new \Exception($message);
             }
 
             flash('error', $message);
@@ -129,6 +135,50 @@ trait RequiresPermission
         return $auth &&
                $auth['type'] === 'super_admin' &&
                ($_SESSION['super_admin']['role'] ?? '') === 'superadmin';
+    }
+
+    /**
+     * Detectar si la petición es AJAX o debe responder con JSON
+     *
+     * @return bool
+     */
+    private function isAjaxRequest(): bool
+    {
+        // 1. Header X-Requested-With estándar
+        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+            strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+            return true;
+        }
+
+        // 2. Header Accept contiene application/json
+        if (!empty($_SERVER['HTTP_ACCEPT']) &&
+            strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
+            return true;
+        }
+
+        // 3. Rutas específicas que siempre deben responder JSON
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        $jsonRoutes = [
+            '/musedock/settings/check-updates',
+            '/musedock/run-seeders',
+            '/musedock/settings/clear-flashes',
+            '/musedock/media/api/',
+            '/api/',
+        ];
+
+        foreach ($jsonRoutes as $route) {
+            if (strpos($requestUri, $route) !== false) {
+                return true;
+            }
+        }
+
+        // 4. Content-Type de la petición es JSON
+        if (!empty($_SERVER['CONTENT_TYPE']) &&
+            strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
