@@ -751,13 +751,15 @@ function runMigrations() {
             // Start output buffering for this migration to catch any errors
             ob_start();
             try {
-                require_once $file;
+                // Extract class name from file content
+                $content = file_get_contents($file);
+                if (preg_match('/class\s+(\w+)/', $content, $matches)) {
+                    $className = $matches[1];
+                } else {
+                    throw new Exception("Could not extract class name from {$filename}");
+                }
 
-                // Extract class name from filename
-                $parts = explode('_', $filename, 5);
-                $timestamp = implode('_', array_slice($parts, 0, 4));
-                $name = $parts[4] ?? '';
-                $className = str_replace(' ', '', ucwords(str_replace('_', ' ', $name))) . '_' . $timestamp;
+                require_once $file;
 
                 if (class_exists($className)) {
                     $migration = new $className();
@@ -770,6 +772,8 @@ function runMigrations() {
                     $stmt->execute([$filename, $batch]);
 
                     $migrated++;
+                } else {
+                    throw new Exception("Class {$className} not found in {$filename}");
                 }
 
                 // Clear the buffer if successful
