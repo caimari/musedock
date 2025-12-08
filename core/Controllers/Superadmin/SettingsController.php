@@ -63,11 +63,151 @@ class SettingsController
         $this->checkPermission('settings.view');
 
         $settings = $this->getSettings();
+        $versionInfo = $this->getVersionInfo();
 
         return View::renderSuperadmin('settings.advanced', [
             'title' => 'Ajustes avanzados',
             'settings' => $settings,
+            'versionInfo' => $versionInfo,
         ]);
+    }
+
+    /**
+     * Obtener información de versión desde composer.json
+     */
+    protected function getVersionInfo(): array
+    {
+        $composerPath = dirname(__DIR__, 3) . '/composer.json';
+        $info = [
+            'current' => '0.0.0',
+            'name' => 'musedock',
+            'repository' => 'https://github.com/caimari/musedock',
+            'packagist' => 'caimari/musedock'
+        ];
+
+        if (file_exists($composerPath)) {
+            $composer = json_decode(file_get_contents($composerPath), true);
+            $info['current'] = $composer['version'] ?? '0.0.0';
+            $info['name'] = $composer['name'] ?? 'musedock';
+            $info['repository'] = $composer['support']['source'] ?? $info['repository'];
+        }
+
+        return $info;
+    }
+
+    /**
+     * Verificar actualizaciones disponibles (AJAX)
+     */
+    public function checkUpdates()
+    {
+        SessionSecurity::startSession();
+
+        header('Content-Type: application/json');
+
+        try {
+            $versionInfo = $this->getVersionInfo();
+            $currentVersion = $versionInfo['current'];
+            $latestVersion = null;
+            $source = null;
+            $downloadUrl = null;
+            $changelog = null;
+
+            // 1. Intentar obtener versión desde Packagist (composer)
+            $packagistUrl = "https://repo.packagist.org/p2/{$versionInfo['packagist']}.json";
+            $packagistData = @file_get_contents($packagistUrl, false, stream_context_create([
+                'http' => ['timeout' => 5, 'ignore_errors' => true]
+            ]));
+
+            if ($packagistData) {
+                $packagist = json_decode($packagistData, true);
+                $packages = $packagist['packages'][$versionInfo['packagist']] ?? [];
+
+                if (!empty($packages)) {
+                    // Ordenar por versión y obtener la más reciente (excluyendo dev)
+                    $stableVersions = array_filter($packages, function($pkg) {
+                        return !str_contains($pkg['version'] ?? '', 'dev');
+                    });
+
+                    if (!empty($stableVersions)) {
+                        usort($stableVersions, function($a, $b) {
+                            return version_compare($b['version'] ?? '0', $a['version'] ?? '0');
+                        });
+                        $latestVersion = $stableVersions[0]['version'] ?? null;
+                        $source = 'packagist';
+                        $downloadUrl = "composer update {$versionInfo['packagist']}";
+                    }
+                }
+            }
+
+            // 2. Si no hay Packagist, intentar GitHub API
+            if (!$latestVersion) {
+                preg_match('/github\.com\/([^\/]+\/[^\/]+)/', $versionInfo['repository'], $matches);
+                if (!empty($matches[1])) {
+                    $githubRepo = $matches[1];
+                    $githubUrl = "https://api.github.com/repos/{$githubRepo}/releases/latest";
+
+                    $opts = [
+                        'http' => [
+                            'method' => 'GET',
+                            'header' => "User-Agent: MuseDock-CMS\r\n",
+                            'timeout' => 5,
+                            'ignore_errors' => true
+                        ]
+                    ];
+                    $githubData = @file_get_contents($githubUrl, false, stream_context_create($opts));
+
+                    if ($githubData) {
+                        $release = json_decode($githubData, true);
+                        if (isset($release['tag_name'])) {
+                            $latestVersion = ltrim($release['tag_name'], 'v');
+                            $source = 'github';
+                            $downloadUrl = $release['html_url'] ?? null;
+                            $changelog = $release['body'] ?? null;
+                        }
+                    }
+
+                    // Si no hay releases, intentar tags
+                    if (!$latestVersion) {
+                        $tagsUrl = "https://api.github.com/repos/{$githubRepo}/tags";
+                        $tagsData = @file_get_contents($tagsUrl, false, stream_context_create($opts));
+
+                        if ($tagsData) {
+                            $tags = json_decode($tagsData, true);
+                            if (!empty($tags[0]['name'])) {
+                                $latestVersion = ltrim($tags[0]['name'], 'v');
+                                $source = 'github-tags';
+                                $downloadUrl = "https://github.com/{$githubRepo}";
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Comparar versiones
+            $hasUpdate = false;
+            if ($latestVersion) {
+                $hasUpdate = version_compare($latestVersion, $currentVersion, '>');
+            }
+
+            echo json_encode([
+                'success' => true,
+                'current_version' => $currentVersion,
+                'latest_version' => $latestVersion,
+                'has_update' => $hasUpdate,
+                'source' => $source,
+                'download_url' => $downloadUrl,
+                'changelog' => $changelog ? mb_substr($changelog, 0, 500) : null
+            ]);
+
+        } catch (\Throwable $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'current_version' => $versionInfo['current'] ?? '0.0.0'
+            ]);
+        }
+
+        exit;
     }
 
 
