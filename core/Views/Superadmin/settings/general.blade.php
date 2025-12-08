@@ -19,7 +19,7 @@
         </div>
         <div class="card-body">
           <div class="mb-3">
-            <label class="form-label">Título del sitio</label>
+            <label class="form-label">Título del sitio <span class="text-danger">*</span></label>
             <input type="text" name="site_name" class="form-control" value="{{ $settings['site_name'] ?? '' }}" required>
             <small class="text-muted">Nombre principal de tu sitio web</small>
           </div>

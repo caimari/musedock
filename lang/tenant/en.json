@@ -619,5 +619,10 @@
     "no_required_permissions": "You don't have the required permissions to access this section",
     "no_all_permissions": "You don't have all the required permissions to access this section",
     "superadmin_only": "Access restricted to super administrators only"
+  },
+
+  "footer": {
+    "cookie_settings": "Cookie settings",
+    "contact": "Contact"
   }
 }

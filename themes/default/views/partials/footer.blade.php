@@ -13,7 +13,14 @@
                          </div>
                          <div class="footer-tittle">
                              <div class="footer-pera">
-                                 <p>{{ setting('footer_short_description', 'Descripción corta del sitio aquí.') }}</p>
+                                 <p>{{ setting('footer_short_description', '') }}</p>
+                            </div>
+
+                            <!-- Enlace configuración de cookies (RGPD) -->
+                            <div class="cookie-settings-link my-2">
+                                <a href="#" id="open-cookie-settings" style="color: #999; font-size: 13px; text-decoration: underline;">
+                                    <i class="fas fa-cookie-bite me-1"></i>{{ __('footer.cookie_settings') }}
+                                </a>
                             </div>
 
                             <!-- Selector de idiomas como SELECT -->
@@ -192,9 +199,13 @@
                             {{-- Si hay widgets para footer3, mostrarlos --}}
                             @include('partials.widget-renderer', ['areaSlug' => 'footer3'])
                         @else
-                            {{-- Si no hay ni menú ni widgets, mostrar info de contacto --}}
+                            {{-- Si no hay ni menú ni widgets, mostrar info de contacto solo si hay datos --}}
+                            @php
+                                $hasContactData = setting('contact_phone') || setting('contact_email') || setting('contact_address') || setting('contact_whatsapp');
+                            @endphp
+                            @if($hasContactData)
                             <div class="footer-tittle">
-                                <h4>{{ setting('footer_col4_title', 'Contacto') }}</h4>
+                                <h4>{{ setting('footer_col4_title', __('footer.contact')) }}</h4>
                                 <ul>
                                     @if(setting('contact_phone'))<li><a href="tel:{{ setting('contact_phone') }}">{{ setting('contact_phone') }}</a></li>@endif
                                     @if(setting('contact_email'))<li><a href="mailto:{{ setting('contact_email') }}">{{ setting('contact_email') }}</a></li>@endif
@@ -202,6 +213,7 @@
                                     @if(setting('contact_whatsapp'))<li><a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', setting('contact_whatsapp')) }}"><i class="fab fa-whatsapp"></i> {{ setting('contact_whatsapp') }}</a></li>@endif
                                 </ul>
                             </div>
+                            @endif
                         @endif
                     </div>
                 </div>

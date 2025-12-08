@@ -24,10 +24,10 @@
 
     <!-- SEO Meta Tags dinámicas  -->
     <meta name="keywords" content="{{ \Screenart\Musedock\View::yieldSection('keywords') ?: setting('site_keywords', 'SEO, Web, CMS') }}">
-    <meta property="og:title" content="{{ \Screenart\Musedock\View::yieldSection('og_title') ?: setting('site_name', 'Mi Sitio') }}">
-    <meta property="og:description" content="{{ \Screenart\Musedock\View::yieldSection('og_description') ?: setting('site_description', 'Tu gestor de contenidos') }}">
+    <meta property="og:title" content="{{ \Screenart\Musedock\View::yieldSection('og_title') ?: setting('site_name', '') }}">
+    <meta property="og:description" content="{{ \Screenart\Musedock\View::yieldSection('og_description') ?: setting('site_description', '') }}">
     <meta property="og:url" content="{{ url($_SERVER['REQUEST_URI']) }}">
-    <meta property="og:site_name" content="{{ setting('site_name', 'Mi Sitio') }}">
+    <meta property="og:site_name" content="{{ setting('site_name', '') }}">
     <meta property="og:type" content="website">
     @if(setting('og_image'))
         <meta property="og:image" content="{{ asset(setting('og_image')) }}">
@@ -35,7 +35,7 @@
     <link rel="canonical" href="{{ url($_SERVER['REQUEST_URI']) }}">
     <meta name="robots" content="{{ trim(\Screenart\Musedock\View::yieldSection('robots', 'index,follow')) }}">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{{ \Screenart\Musedock\View::yieldSection('twitter_title') ?: setting('site_name', 'Mi Sitio') }}">
+    <meta name="twitter:title" content="{{ \Screenart\Musedock\View::yieldSection('twitter_title') ?: setting('site_name', '') }}">
     <meta name="twitter:description" content="{{ \Screenart\Musedock\View::yieldSection('twitter_description') ?: setting('site_description', 'Tu gestor de contenidos') }}">
     @if(setting('twitter_site'))
         <meta name="twitter:site" content="{{ setting('twitter_site') }}">
@@ -770,8 +770,8 @@ body.mobile-menu-open {
                     @php
                         // Configuraciones de logo y título
                         $showLogo = setting('show_logo', '1') === '1';
-                        $showTitle = setting('show_title', '1') === '1';
-                        $siteName = setting('site_name', 'Mi Sitio');
+                        $showTitle = setting('show_title', '0') === '1';
+                        $siteName = setting('site_name', '');
                         $logoPath = setting('site_logo', '');
                         $defaultLogo = asset('themes/default/img/logo/logo.png');
                     @endphp
@@ -1125,34 +1125,6 @@ if (header && header.classList.contains('enable-sticky')) {
                         </label>
                     </div>
                     <p>{{ setting('cookies_cat_necessary_desc', 'Estas cookies son esenciales para el correcto funcionamiento de nuestro sitio web. Sin ellas, el sitio no funcionaría correctamente.') }}</p>
-                </div>
-
-                <!-- Performance & Analytics Cookies -->
-                <div class="cookie-category">
-                    <div class="category-header">
-                        <h4>{{ setting('cookies_cat_analytics_title', 'Cookies de Rendimiento y Analíticas') }}</h4>
-                        <label class="switch">
-                            <input type="checkbox" id="cookie-pref-analytics" data-category="analytics">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                    <p>{{ setting('cookies_cat_analytics_desc', 'Estas cookies nos permiten recordar las elecciones que has hecho en el pasado y analizar el tráfico para mejorar nuestro sitio.') }}</p>
-                    <!-- Opcional: Detalle de cookies -->
-                    @if(setting('cookies_show_details', '1') == '1')
-                    <div class="cookie-details">
-                        <h5>{{ setting('cookies_details_title', 'Cookies Utilizadas:') }}</h5>
-                        <table>
-                            <thead>
-                                <tr><th>Nombre</th><th>Servicio</th><th>Descripción</th><th>Expiración</th></tr>
-                            </thead>
-                            <tbody>
-                                <tr><td>_ga</td><td>Google Analytics</td><td>Cookie establecida por Google Analytics.</td><td>12 días</td></tr>
-                                <tr><td>_gid</td><td>Google Analytics</td><td>Cookie establecida por Google Analytics.</td><td>Sesión</td></tr>
-                                <!-- Agrega más cookies si es necesario -->
-                            </tbody>
-                        </table>
-                    </div>
-                    @endif
                 </div>
 
                 <!-- Targeting & Advertising Cookies -->
