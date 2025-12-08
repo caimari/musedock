@@ -79,12 +79,7 @@ if (!document.getElementById('md-media-manager-tinymce')) {
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                                     </button>
                                 </div>
-                                <div class="md-filter">
-                                    <select id="md-filter-select-tinymce">
-                                        <option value="image">Solo Imágenes</option>
-                                        <option value="all">Todos</option>
-                                    </select>
-                                </div>
+                                <!-- Filtro de tipo eliminado - mostramos todos los archivos -->
                             </div>
 
                             <div class="md-grid-container">
@@ -423,7 +418,7 @@ if (!document.getElementById('md-media-manager-tinymce')) {
     let tinymceMeta = null;
     let currentPage = 1;
     let searchTerm = '';
-    let filterType = 'image';
+    let filterType = 'all'; // Mostrar todos los tipos por defecto para evitar confusión
     let currentFolderId = null;
     let currentFolderName = 'Raíz';
     let currentDisk = 'media';
@@ -443,7 +438,6 @@ if (!document.getElementById('md-media-manager-tinymce')) {
         const loader = modal.querySelector('.md-loader');
         const searchInput = document.getElementById('md-search-input-tinymce');
         const searchButton = document.getElementById('md-search-button-tinymce');
-        const filterSelect = document.getElementById('md-filter-select-tinymce');
         const diskSelector = document.getElementById('md-disk-select-tinymce');
         const foldersTree = document.getElementById('md-folders-tree-tinymce');
         const currentFolderDisplay = document.getElementById('md-current-folder-tinymce');
@@ -772,9 +766,7 @@ if (!document.getElementById('md-media-manager-tinymce')) {
             searchInput.onkeypress = function(e) { if (e.key === 'Enter') { e.preventDefault(); searchTerm = this.value; loadMedia(1); } };
         }
 
-        if (filterSelect) {
-            filterSelect.onchange = function() { filterType = this.value; loadMedia(1); };
-        }
+        // Filtro de tipo eliminado - siempre mostramos todos los archivos
 
         if (diskSelector) {
             diskSelector.onchange = function() {
