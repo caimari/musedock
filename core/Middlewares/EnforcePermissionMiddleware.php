@@ -39,6 +39,7 @@ class EnforcePermissionMiddleware
 
         // Dashboard (accesible para cualquier superadmin autenticado)
         'DashboardController@index',
+        'DashboardController@runMissingSeeders',
         'MusedockController@index',
 
         // Perfil personal (el usuario edita su propio perfil)
