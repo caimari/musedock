@@ -16,8 +16,7 @@
     "autoload": {
         "psr-4": {
             "CustomForms\\Controllers\\": "controllers/",
-            "CustomForms\\Models\\": "models/",
-            "CustomForms\\Requests\\": "requests/"
+            "CustomForms\\Models\\": "models/"
         }
     },
 

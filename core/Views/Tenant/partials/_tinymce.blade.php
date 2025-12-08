@@ -4,15 +4,83 @@
 
 <!-- Estilos actualizados para eliminar completamente el borde azul del editor TinyMCE -->
 <style>
+  /* --- Skeleton Loader para TinyMCE --- */
+  .tinymce-skeleton {
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    background: #fff;
+    height: 600px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tinymce-skeleton-toolbar {
+    background: #f8f9fa;
+    border-bottom: 1px solid #ced4da;
+    padding: 8px 10px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tinymce-skeleton-btn {
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+    border-radius: 3px;
+  }
+
+  .tinymce-skeleton-separator {
+    width: 1px;
+    height: 28px;
+    background: #dee2e6;
+    margin: 0 4px;
+  }
+
+  .tinymce-skeleton-content {
+    flex: 1;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .tinymce-skeleton-line {
+    height: 16px;
+    background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+    border-radius: 4px;
+  }
+
+  .tinymce-skeleton-line:nth-child(1) { width: 90%; }
+  .tinymce-skeleton-line:nth-child(2) { width: 75%; }
+  .tinymce-skeleton-line:nth-child(3) { width: 85%; }
+  .tinymce-skeleton-line:nth-child(4) { width: 60%; }
+  .tinymce-skeleton-line:nth-child(5) { width: 80%; animation-delay: 0.1s; }
+  .tinymce-skeleton-line:nth-child(6) { width: 70%; animation-delay: 0.2s; }
+
+  @keyframes skeleton-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Ocultar textarea mientras TinyMCE no esté listo */
+  #content-editor {
+    display: none;
+  }
+
   /* --- Estilos Generales para Inputs --- */
   textarea:focus, input:focus, select:focus, .form-control:focus, .form-select:focus, .btn:focus, .input-group-text:focus {
     outline: none !important; box-shadow: none !important; border-color: #ced4da !important;
   }
-  
+
   /* --- Estilos Específicos para TinyMCE UI --- */
-  .tox-tinymce { 
-    border: 1px solid #ced4da !important; 
-    border-radius: 0.25rem !important; 
+  .tox-tinymce {
+    border: 1px solid #ced4da !important;
+    border-radius: 0.25rem !important;
   }
   
   .tox .tox-edit-area__iframe { 
@@ -122,11 +190,50 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
 // Pasar la configuración a JavaScript como variables
 @endphp
 
+{{-- Skeleton Loader HTML - se muestra mientras TinyMCE carga --}}
+<div id="tinymce-skeleton" class="tinymce-skeleton">
+  <div class="tinymce-skeleton-toolbar">
+    <div class="tinymce-skeleton-btn"></div>
+    <div class="tinymce-skeleton-btn"></div>
+    <div class="tinymce-skeleton-separator"></div>
+    <div class="tinymce-skeleton-btn"></div>
+    <div class="tinymce-skeleton-btn"></div>
+    <div class="tinymce-skeleton-btn"></div>
+    <div class="tinymce-skeleton-separator"></div>
+    <div class="tinymce-skeleton-btn"></div>
+    <div class="tinymce-skeleton-btn"></div>
+    <div class="tinymce-skeleton-btn"></div>
+    <div class="tinymce-skeleton-btn"></div>
+    <div class="tinymce-skeleton-separator"></div>
+    <div class="tinymce-skeleton-btn"></div>
+    <div class="tinymce-skeleton-btn"></div>
+    <div class="tinymce-skeleton-btn"></div>
+  </div>
+  <div class="tinymce-skeleton-content">
+    <div class="tinymce-skeleton-line"></div>
+    <div class="tinymce-skeleton-line"></div>
+    <div class="tinymce-skeleton-line"></div>
+    <div class="tinymce-skeleton-line"></div>
+    <div class="tinymce-skeleton-line"></div>
+    <div class="tinymce-skeleton-line"></div>
+  </div>
+</div>
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+// Inicializar TinyMCE inmediatamente (sin esperar DOMContentLoaded para más rapidez)
+(function() {
+    // Función para ocultar skeleton y mostrar editor
+    function hideSkeleton() {
+        const skeleton = document.getElementById('tinymce-skeleton');
+        if (skeleton) {
+            skeleton.style.display = 'none';
+        }
+    }
+
     // Prevenir inicialización múltiple
-    if (tinymce.get('content-editor')) {
+    if (typeof tinymce !== 'undefined' && tinymce.get('content-editor')) {
         console.log("TinyMCE ya está inicializado para #content-editor. No se inicializará de nuevo.");
+        hideSkeleton();
         return;
     }
 
@@ -172,7 +279,10 @@ document.addEventListener('DOMContentLoaded', function() {
         setup: function(editor) {
             editor.on('init', function() {
                 console.log('TinyMCE inicializado para: #' + editor.id);
-                
+
+                // Ocultar skeleton loader
+                hideSkeleton();
+
                 // Hacer visible el contenedor del editor
                 const container = editor.getContainer();
                 if (container) container.style.visibility = 'visible';
@@ -334,6 +444,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 setup: function(editor) {
                     editor.on('init', function() {
                         console.log('TinyMCE inicializado (configuración mínima) para: #' + editor.id);
+                        hideSkeleton();
                         const container = editor.getContainer();
                         if (container) container.style.visibility = 'visible';
                         
@@ -362,13 +473,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log("TinyMCE inicializado con configuración mínima");
             } catch (finalError) {
                 console.error("ERROR FATAL: No se pudo inicializar TinyMCE:", finalError);
-                
-                // Mostrar mensaje al usuario
+
+                // Ocultar skeleton y mostrar textarea con mensaje de error
+                hideSkeleton();
                 const textarea = document.getElementById('content-editor');
                 if (textarea) {
-                    textarea.style.visibility = 'visible';
+                    textarea.style.display = 'block';
                     textarea.style.height = '300px';
-                    
+
                     // Agregar un mensaje sobre el error
                     const errorDiv = document.createElement('div');
                     errorDiv.className = 'alert alert-danger mt-2';
@@ -378,8 +490,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-    
-    // Iniciar el proceso de inicialización
-    initTinyMCEWithFallback();
-});
+
+    // Esperar a que el DOM esté listo antes de inicializar
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTinyMCEWithFallback);
+    } else {
+        // DOM ya está listo, inicializar inmediatamente
+        initTinyMCEWithFallback();
+    }
+})();
 </script>

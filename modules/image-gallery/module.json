@@ -16,8 +16,7 @@
     "autoload": {
         "psr-4": {
             "ImageGallery\\Controllers\\": "controllers/",
-            "ImageGallery\\Models\\": "models/",
-            "ImageGallery\\Requests\\": "requests/"
+            "ImageGallery\\Models\\": "models/"
         }
     },
 
