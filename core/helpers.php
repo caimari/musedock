@@ -1736,21 +1736,31 @@ if (!function_exists('is_module_active')) {
 }
 
 /**
- * Get CMS version from version.json
+ * Get CMS version from composer.json
  */
 if (!function_exists('cms_version')) {
     function cms_version($key = 'version') {
         static $versionData = null;
 
         if ($versionData === null) {
-            $versionFile = __DIR__ . '/../version.json';
-            if (file_exists($versionFile)) {
-                $versionData = json_decode(file_get_contents($versionFile), true);
+            $composerFile = __DIR__ . '/../composer.json';
+            if (file_exists($composerFile)) {
+                $composer = json_decode(file_get_contents($composerFile), true);
+                $versionData = [
+                    'version' => $composer['version'] ?? '1.0.0',
+                    'name' => 'MuseDock CMS',
+                    'package' => $composer['name'] ?? 'caimari/musedock',
+                    'description' => $composer['description'] ?? '',
+                    'created_year' => 2024,
+                    'homepage' => $composer['homepage'] ?? 'https://musedock.org'
+                ];
             } else {
                 $versionData = [
                     'version' => '1.0.0',
                     'name' => 'MuseDock CMS',
-                    'created_year' => 2024
+                    'package' => 'caimari/musedock',
+                    'created_year' => 2024,
+                    'homepage' => 'https://musedock.org'
                 ];
             }
         }
