@@ -220,6 +220,19 @@ public static function resolve() {
     // Esto maneja expiración, regeneración de ID, y restauración desde "remember me"
     \Screenart\Musedock\Security\SessionSecurity::startSession();
 
+    // DEBUG: Log estado de sesión para diagnóstico de AJAX
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+    if (strpos($uri, '/musedock/run-seeders') !== false) {
+        error_log("=== DEBUG run-seeders ===");
+        error_log("Session ID: " . session_id());
+        error_log("PHPSESSID cookie: " . ($_COOKIE['PHPSESSID'] ?? 'NOT SET'));
+        error_log("Session keys: " . json_encode(array_keys($_SESSION)));
+        error_log("Has _csrf_token: " . (isset($_SESSION['_csrf_token']) ? 'YES' : 'NO'));
+        error_log("Has super_admin: " . (isset($_SESSION['super_admin']) ? 'YES' : 'NO'));
+        error_log("POST _token: " . ($_POST['_token'] ?? 'NOT SET'));
+        error_log("=========================");
+    }
+
     // Detectar si nos mandan ?lang=xx en la URL
     if (isset($_GET['lang'])) {
         $_SESSION['lang'] = $_GET['lang'];

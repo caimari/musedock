@@ -7,6 +7,18 @@ use Screenart\Musedock\Security\SessionCleaner;
 use Screenart\Musedock\ModuleManager;
 
 class DashboardController {
+
+    /**
+     * Define los permisos requeridos para cada método
+     * El dashboard y seeders son accesibles para cualquier superadmin autenticado
+     */
+    public static function checkPermission(string $method): bool
+    {
+        // El dashboard y la ejecución de seeders son funciones básicas
+        // disponibles para cualquier superadmin autenticado
+        return true;
+    }
+
     public function index() {
         SessionSecurity::startSession();
 
