@@ -34,8 +34,11 @@ public/assets/uploads/*
 assets/uploads/*
 !assets/uploads/.gitkeep
 
-# Vendor (dependencias de Composer)
-vendor/
+# Vendor (dependencias de Composer - solo la raíz)
+/vendor/
+
+# Excepción: assets de vendor frontend SÍ deben incluirse
+!public/assets/vendor/
 
 # Node modules (si usas npm)
 node_modules/

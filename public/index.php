@@ -250,15 +250,10 @@ header('Referrer-Policy: strict-origin-when-cross-origin');
 // 2. Mueva event handlers inline (onclick, etc.) a addEventListener()
 // 3. Si absolutamente necesita unsafe-inline, agregue nonces o hashes
 //
-// Para desarrollo temporal, puede agregar 'unsafe-inline' pero NO en producción
-$isDebug = \Screenart\Musedock\Env::get('APP_DEBUG', false);
-$cspScriptSrc = $isDebug
-    ? "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://code.jquery.com"
-    : "'self' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://code.jquery.com";
-
-$cspStyleSrc = $isDebug
-    ? "'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com"
-    : "'self' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com";
+// CSP con unsafe-inline necesario para AdminLTE y otros plugins que usan inline styles/scripts
+// TODO: Migrar a nonces o hashes para mayor seguridad
+$cspScriptSrc = "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://code.jquery.com";
+$cspStyleSrc = "'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com";
 
 header("Content-Security-Policy: default-src 'self'; script-src {$cspScriptSrc}; style-src {$cspStyleSrc}; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self';");
 
