@@ -3,7 +3,7 @@
     "description": "MuseDock CMS - A modular, multi-tenant content management system with AI integration.",
     "type": "project",
     "license": "MIT",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "keywords": ["cms", "content-management", "multi-tenant", "modular", "ai", "blog", "php"],
     "homepage": "https://musedock.org",
     "support": {
