@@ -19,6 +19,12 @@ define('ROOT_PATH', dirname(dirname(__DIR__))); // public/install -> public -> r
 define('MIN_PHP_VERSION', '8.0.0');
 define('INSTALL_LOG', INSTALL_PATH . '/install.log');
 
+// Load Composer autoloader if available (needed for Database classes)
+$autoloadPath = ROOT_PATH . '/vendor/autoload.php';
+if (file_exists($autoloadPath)) {
+    require_once $autoloadPath;
+}
+
 // Install logger function
 function logInstall($message, $level = 'INFO') {
     $timestamp = date('Y-m-d H:i:s');
