@@ -29,7 +29,8 @@ class DatabaseSeeder
             RolesAndPermissionsSeeder::class,
             ModulesSeeder::class,
             ThemesSeeder::class,
-            AdminMenuSeeder::class,
+            SuperadminMenuSeeder::class, // Menús del panel /musedock/
+            AdminMenuSeeder::class,      // Menús del panel tenant /admin/
         ];
 
         foreach ($seeders as $seederClass) {
