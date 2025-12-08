@@ -1,0 +1,574 @@
+/* Estilos para la cabecera */
+.slider-height2 {
+    min-height: 300px;
+    position: relative;
+    background-size: cover;
+    background-position: center center;
+}
+
+.hero-cap {
+    padding: 60px 0;
+}
+
+.hero-cap h2 {
+    color: #fff;
+    font-size: 50px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 15px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.hero-subtitle {
+    color: #fff;
+    font-size: 18px;
+    max-width: 800px;
+    margin: 0 auto;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* ===================================
+   SIMETRÍA Y ESPACIADOS GENERALES
+   =================================== */
+
+/* Contenedor principal - mismo espaciado que slider */
+main {
+    padding-top: 0;
+}
+
+/* Slider area en home - sin margen y a sangre */
+.slider-area {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+/* Home page - main sin padding cuando tiene slider */
+main:has(> .slider-area:first-child) {
+    padding: 0;
+    margin: 0;
+}
+
+/* Slider del home a sangre completa */
+main > .slider-area:first-child {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* HOME PAGE - Espacio de 8px entre header y slider */
+main > .slider-area {
+    margin-top: 8px !important;
+}
+
+/* HOME PAGE - Slider a sangre completa (sin padding lateral) */
+main > .slider-area,
+main > .slider-area .slider-active,
+main > .slider-area .single-slider {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Container */
+main .container {
+    padding-top: 12px !important;
+}
+
+/* Footer padding */
+footer .footer-padding {
+    padding-top: 25px;
+}
+
+/* Select de idioma personalizado - sin conflictos con Bootstrap o nice-select */
+.custom-language-select {
+    padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--footer-text-color);
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.custom-language-select:focus {
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.custom-language-select::-ms-expand {
+    display: none;
+}
+
+/* Evitar que nice-select afecte el selector de idioma */
+.custom-language-select::after,
+.custom-language-select::before {
+    display: none !important;
+    content: none !important;
+}
+
+/* ===================================
+   FOOTER - ESTILOS PERSONALIZABLES
+   =================================== */
+
+/* Variables CSS por defecto */
+:root {
+    /* Top Bar */
+    --topbar-bg-color: #1a2a40;
+    --topbar-text-color: #ffffff;
+
+    /* Header */
+    --header-bg-color: #f8f9fa;
+    --header-cta-bg-color: #ff5e15;
+    --header-cta-text-color: #ffffff;
+
+    /* Footer */
+    --footer-bg-color: #f8fafe;
+    --footer-text-color: #333333;
+    --footer-link-color: #333333;
+    --footer-link-hover-color: #ff5e15;
+}
+
+/* ===================================
+   TOPBAR - ESTILOS PERSONALIZABLES
+   =================================== */
+
+.header-top {
+    background-color: var(--topbar-bg-color) !important;
+    color: var(--topbar-text-color) !important;
+}
+
+.header-info-left li,
+.header-info-left li i {
+    color: var(--topbar-text-color) !important;
+}
+
+.header-info-right .header-social a {
+    color: var(--topbar-text-color) !important;
+}
+
+/* ===================================
+   HEADER - ESTILOS PERSONALIZABLES
+   =================================== */
+
+.musedock-header {
+    background-color: var(--header-bg-color) !important;
+}
+
+.header-btn {
+    background-color: var(--header-cta-bg-color) !important;
+    color: var(--header-cta-text-color) !important;
+}
+
+.header-btn:hover {
+    filter: brightness(0.9);
+    color: var(--header-cta-text-color) !important;
+}
+
+/* Header sticky (fijo) */
+.musedock-header.sticky {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+/* Espaciado cuando el header es sticky */
+body.has-sticky-header {
+    padding-top: 70px; /* Ajustar según la altura de tu header */
+}
+
+/* ===================================
+   FOOTER - ESTILOS PERSONALIZABLES
+   =================================== */
+
+/* Aplicar variables al footer */
+.footer-area {
+    background-color: var(--footer-bg-color) !important;
+    color: var(--footer-text-color);
+}
+
+.footer-area h4,
+.footer-area h3,
+.footer-area .footer-tittle h4 {
+    color: var(--footer-text-color);
+}
+
+.footer-area p,
+.footer-area li,
+.footer-area span {
+    color: var(--footer-text-color);
+}
+
+.footer-area a {
+    color: var(--footer-link-color);
+}
+
+.footer-area a:hover {
+    color: var(--footer-link-hover-color);
+}
+
+/* Copyright area */
+.footer-area .footer-bottom-area,
+.footer-bottom-area {
+    background-color: var(--footer-bg-color);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-bottom-area p,
+.footer-bottom-area a {
+    color: var(--footer-text-color);
+}
+
+.footer-bottom-area a:hover {
+    color: var(--footer-link-hover-color);
+}
+
+/* El slider-active dentro de slider-area */
+.slider-area .slider-active,
+.slider-area .single-slider {
+    margin: 0;
+    padding: 0;
+}
+
+/* Slider del home a pantalla completa */
+.slider-area .single-slider.slider-height {
+    width: 100%;
+}
+
+/* Contenedor dentro de slider-area sin margen horizontal */
+.slider-area .container {
+    max-width: 100%;
+    padding: 0 15px;
+}
+
+/* Contenedor de página con sidebar - ALINEACIÓN PERFECTA */
+.page-with-sidebar {
+    padding-top: 8px;
+    padding-bottom: 30px;
+}
+
+/* Asegurar que ambas columnas empiecen al mismo nivel - CRÍTICO */
+.page-with-sidebar > .row {
+    display: flex;
+    align-items: flex-start !important;
+    margin: 0;
+}
+
+/* Contenido principal y sidebar - mismo nivel superior */
+.page-with-sidebar .col-md-8,
+.page-with-sidebar .col-lg-9,
+.page-with-sidebar .col-md-4,
+.page-with-sidebar .col-lg-3 {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+/* Columna izquierda a sangre (alineada con logo), espacio solo entre columnas */
+.page-with-sidebar .col-md-8,
+.page-with-sidebar .col-lg-9 {
+    padding-left: 0 !important;
+    padding-right: 8px !important;
+}
+
+.page-with-sidebar .col-md-4,
+.page-with-sidebar .col-lg-3 {
+    padding-left: 8px !important;
+}
+
+/* Eliminar cualquier margen en los hijos directos de las columnas */
+.page-with-sidebar .col-md-8 > *:first-child,
+.page-with-sidebar .col-lg-9 > *:first-child,
+.page-with-sidebar .col-md-4 > *:first-child,
+.page-with-sidebar .col-lg-3 > *:first-child {
+    margin-top: 0 !important;
+}
+
+/* Contenedor de página sin sidebar (home, plantilla default) */
+.page-container {
+    padding-top: 8px;
+    padding-bottom: 30px;
+}
+
+/* Slider React y Swiper - sin márgenes extra */
+.react-slider-wrapper,
+.swiper-container,
+.swiper {
+    margin-top: 0;
+}
+
+/* El contenido del slider debe alinearse con el widget */
+.page-body .swiper,
+.page-body .react-slider-wrapper,
+.page-content-wrapper .swiper {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+}
+
+/* Slider a sangre - eliminar espacios del contenedor padre */
+.page-body p:has(.swiper),
+.page-body p:has(.react-slider-wrapper),
+.page-body div:has(> .swiper):first-child {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 0;
+}
+
+/* Eliminar margen del párrafo que contiene el shortcode del slider */
+.page-body > p:first-child {
+    margin: 0;
+}
+
+/* Slider en página con sidebar - a sangre completa */
+.page-with-sidebar .page-body .swiper,
+.page-with-sidebar .page-content-wrapper .swiper {
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+}
+
+/* El wrapper del slider (react-slider-wrapper) sin espacios */
+.page-with-sidebar .react-slider-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Cualquier elemento antes del swiper que pueda añadir espacio */
+.page-with-sidebar .page-body > *:first-child,
+.page-with-sidebar .page-content-wrapper > *:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* IMPORTANTE: El shortcode del slider viene envuelto en <p> - eliminar ese espacio */
+.page-body p:empty,
+.page-body p:has(> .swiper:only-child) {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 0 !important;
+    font-size: 0 !important;
+}
+
+/* El div que contiene el slider [slider id=X] */
+.page-body > div:first-child:has(.swiper) {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Forzar slider a sangre en cualquier contenedor */
+.swiper[class*="slider-"] {
+    margin: 0 !important;
+}
+
+/* Widget areas - espaciado consistente */
+.widget-area {
+    margin-bottom: 20px;
+}
+
+.widget-area:last-child {
+    margin-bottom: 0;
+}
+
+/* Sidebar - sin padding extra que desalinee */
+.sidebar {
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar .widget-area {
+    margin-bottom: 25px;
+    margin-top: 0;
+}
+
+.sidebar .widget-area:first-child {
+    margin-top: 0;
+}
+
+/* Gallery widget en sidebar */
+.sidebar .gallery-widget {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Gallery widget - eliminar márgenes extra */
+.gallery-widget {
+    margin: 0;
+    padding: 0;
+}
+
+.gallery-widget .gallery-carousel {
+    margin: 0;
+    padding: 0;
+}
+
+.gallery-widget .gallery-item {
+    margin: 0;
+}
+
+/* Footer areas - espaciado uniforme */
+footer .widget-area,
+.footer-area .widget-area {
+    margin-bottom: 20px;
+}
+
+/* Media queries para responsive */
+@media (max-width: 991px) {
+    .page-with-sidebar .col-md-8,
+    .page-with-sidebar .col-lg-9 {
+        margin-bottom: 30px;
+    }
+}
+
+/* ===================================
+   ALINEACIÓN SLIDER Y SIDEBAR
+   =================================== */
+
+/* Eliminar cualquier margen superior del article y page-body */
+.page-content-wrapper {
+    margin: 0;
+    padding: 0;
+}
+
+.page-body {
+    margin: 0;
+    padding: 0;
+}
+
+/* El primer elemento dentro de page-body no debe tener margen superior */
+.page-body > *:first-child {
+    margin-top: 0 !important;
+}
+
+/* Alinear slider con el sidebar */
+.page-body .swiper:first-child,
+.page-body .react-slider-wrapper:first-child,
+.page-body > div:first-child .swiper {
+    margin-top: 0 !important;
+}
+
+/* ===================================
+   SIDEBAR WIDGETS - ALINEACIÓN PERFECTA
+   =================================== */
+
+/* El primer widget en el sidebar debe alinearse con el contenido */
+.sidebar > .widget:first-child,
+.sidebar > div:first-child .widget,
+.sidebar .widget-gallery:first-child,
+.sidebar > div:first-child {
+    margin-top: 0 !important;
+}
+
+/* Widget de galería en sidebar sin márgenes extra */
+.sidebar .widget-gallery {
+    margin: 0;
+    padding: 0;
+}
+
+.sidebar .widget-gallery .widget-title {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.sidebar .widget-gallery .widget-content {
+    margin: 0;
+    padding: 0;
+}
+
+/* El contenedor de widgets del sidebar */
+.sidebar > div:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Widget renderer - sin márgenes extra en el primer widget */
+.sidebar [class*="widget"]:first-child {
+    margin-top: 0 !important;
+}
+
+/* Widget area sidebar - sin márgenes que desalineen */
+.widget-area-sidebar {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.widget-area-sidebar > .widget:first-child {
+    margin-top: 0 !important;
+}
+
+/* Asegurar que el contenedor del shortcode de galería no tenga márgenes */
+.widget-content > .gallery-container,
+.widget-content > .gallery-carousel,
+.widget-content > .musedock-gallery,
+.widget-content > div:first-child {
+    margin-top: 0 !important;
+}
+
+/* Galería de shortcode en widgets - sin márgenes */
+.widget-content .musedock-gallery {
+    margin: 0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.sidebar .musedock-gallery {
+    margin: 0 !important;
+}
+
+/* ===================================
+   GALLERY WIDGET - CARRUSEL ESTILOS
+   =================================== */
+
+/* Widget de galería - bordes redondeados */
+.gallery-widget {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Carrusel de galería en widgets */
+.gallery-widget .gallery-carousel {
+    display: flex;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.gallery-widget .gallery-carousel::-webkit-scrollbar {
+    display: none;
+}
+
+.gallery-widget .gallery-item {
+    flex: 0 0 100%;
+    min-width: 100%;
+}
+
+.gallery-widget .gallery-item img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}

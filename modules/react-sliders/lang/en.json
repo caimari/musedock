@@ -1,0 +1,101 @@
+{
+  "module_name": "Modern Sliders",
+  "module_description": "Slider management with React and Tailwind CSS",
+
+  "menu": {
+    "sliders": "Sliders",
+    "slides": "Slides",
+    "settings": "Settings"
+  },
+
+  "slider": {
+    "title": "Sliders",
+    "list": "Slider List",
+    "create": "Create Slider",
+    "edit": "Edit Slider",
+    "delete": "Delete Slider",
+    "name": "Name",
+    "identifier": "Identifier",
+    "engine": "Engine",
+    "animation": "Animation",
+    "autoplay": "Autoplay",
+    "autoplay_delay": "Delay (ms)",
+    "loop": "Loop",
+    "navigation": "Navigation",
+    "pagination": "Pagination",
+    "slides_per_view": "Slides per view",
+    "space_between": "Space between slides",
+    "speed": "Speed (ms)",
+    "no_sliders_found": "No sliders found",
+    "create_first_slider": "Create first slider",
+    "add_slider": "Add slider",
+    "settings_title": "Slider Settings"
+  },
+
+  "slide": {
+    "title": "Slides",
+    "list": "Slide List",
+    "create": "Create Slide",
+    "edit": "Edit Slide",
+    "delete": "Delete Slide",
+    "add_slide": "Add slide",
+    "image": "Image",
+    "title_field": "Title",
+    "subtitle": "Subtitle",
+    "description": "Description",
+    "button_text": "Button text",
+    "button_link": "Button link",
+    "button_target": "Open in",
+    "target_self": "Same window",
+    "target_blank": "New window",
+    "order": "Order",
+    "active": "Active",
+    "background_color": "Background color",
+    "text_color": "Text color",
+    "overlay_opacity": "Overlay opacity",
+    "no_slides_found": "No slides found",
+    "drag_to_reorder": "Drag to reorder"
+  },
+
+  "engine_types": {
+    "swiper": "Swiper (Modern)",
+    "slick": "Slick Slider",
+    "keen": "Keen Slider",
+    "embla": "Embla Carousel"
+  },
+
+  "animation_types": {
+    "fade": "Fade",
+    "slide": "Slide",
+    "cube": "Cube",
+    "coverflow": "Coverflow",
+    "flip": "Flip"
+  },
+
+  "messages": {
+    "slider_created": "Slider created successfully",
+    "slider_updated": "Slider updated successfully",
+    "slider_deleted": "Slider deleted successfully",
+    "slide_created": "Slide created successfully",
+    "slide_updated": "Slide updated successfully",
+    "slide_deleted": "Slide deleted successfully",
+    "slides_reordered": "Slide order updated",
+    "error_creating_slider": "Error creating slider",
+    "error_updating_slider": "Error updating slider",
+    "error_deleting_slider": "Error deleting slider",
+    "error_slider_not_found": "Slider not found",
+    "error_slide_not_found": "Slide not found",
+    "error_image_upload": "Error uploading image",
+    "confirm_delete_slider": "Are you sure you want to delete this slider?",
+    "confirm_delete_slide": "Are you sure you want to delete this slide?",
+    "cannot_delete_with_slides": "Cannot delete a slider with slides"
+  },
+
+  "validation": {
+    "name_required": "Name is required",
+    "identifier_required": "Identifier is required",
+    "identifier_format": "Identifier can only contain letters, numbers and hyphens",
+    "image_required": "Image is required",
+    "title_required": "Title is required"
+  }
+}

@@ -1,0 +1,162 @@
+name: Create Production Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo, pdo_mysql, mbstring, json, openssl, curl, fileinfo, gd
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+
+      - name: Create .env.example if not exists
+        run: |
+          if [ ! -f .env.example ]; then
+            cp .env .env.example 2>/dev/null || echo "No .env found, skipping"
+          fi
+
+      - name: Remove development files
+        run: |
+          rm -rf .git
+          rm -rf .github
+          rm -rf docs/
+          rm -rf .claude/
+          rm -f .gitignore
+          rm -f .gitattributes
+          rm -f phpunit.xml
+          rm -f .phpcs.xml
+
+      - name: Create directory structure info
+        run: |
+          cat > STRUCTURE.txt << 'EOF'
+          MuseDock CMS - Directory Structure
+          ===================================
+
+          ✅ Core Directories:
+          - core/         → Framework core classes
+          - config/       → Configuration files
+          - database/     → Migrations and seeders
+          - modules/      → Installable modules
+          - public/       → Web root (point your server here!)
+          - routes/       → Route definitions
+          - storage/      → Logs, cache, uploads
+          - vendor/       → Composer dependencies (included)
+
+          📁 Important Files:
+          - .env.example  → Environment template
+          - composer.json → Composer configuration
+          - migrate       → Migration CLI tool
+          - README.md     → Documentation
+          - INSTALL_FTP.md → FTP installation guide
+
+          ⚠️ Security Note:
+          Configure your web server to point to the public/ folder!
+          See README.md for details.
+          EOF
+
+      - name: Create release archive
+        run: |
+          cd ..
+          mv musedock musedock-${{ github.ref_name }}
+          zip -r musedock-${{ github.ref_name }}-complete.zip musedock-${{ github.ref_name }} \
+            -x "*.git*" \
+            -x "*docs/*" \
+            -x "*.claude/*" \
+            -x "*.DS_Store" \
+            -x "*Thumbs.db"
+
+      - name: Calculate checksums
+        run: |
+          cd ..
+          sha256sum musedock-${{ github.ref_name }}-complete.zip > musedock-${{ github.ref_name }}-checksums.txt
+          md5sum musedock-${{ github.ref_name }}-complete.zip >> musedock-${{ github.ref_name }}-checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ../musedock-${{ github.ref_name }}-complete.zip
+            ../musedock-${{ github.ref_name }}-checksums.txt
+          body: |
+            ## MuseDock CMS ${{ github.ref_name }}
+
+            ### 📦 What's Included
+
+            This is a **production-ready release** with all dependencies included:
+            - ✅ Composer dependencies (`vendor/`) pre-installed
+            - ✅ Ready for FTP upload (no SSH required)
+            - ✅ Web installer included (`/install/`)
+            - ✅ All modules and themes
+
+            ### 🚀 Installation Methods
+
+            #### Method 1: FTP Installation (No SSH)
+            1. Download `musedock-${{ github.ref_name }}-complete.zip`
+            2. Extract on your computer
+            3. Upload all files via FTP to your hosting
+            4. Configure document root to `public/` folder
+            5. Visit `http://yourdomain.com/install/`
+            6. Follow the installation wizard
+
+            📖 [Detailed FTP Installation Guide](INSTALL_FTP.md)
+
+            #### Method 2: SSH Installation
+            ```bash
+            wget https://github.com/caimari/musedock/releases/download/${{ github.ref_name }}/musedock-${{ github.ref_name }}-complete.zip
+            unzip musedock-${{ github.ref_name }}-complete.zip
+            cd musedock-${{ github.ref_name }}
+            # Visit http://yourdomain.com/install/
+            ```
+
+            #### Method 3: Composer (Developers)
+            ```bash
+            composer create-project caimari/musedock myproject
+            cd myproject
+            # Visit http://yourdomain.com/install/
+            ```
+
+            ### 📋 Requirements
+
+            - PHP 8.0 or higher
+            - MySQL 5.7+ / MariaDB 10.3+ or PostgreSQL 12+
+            - Extensions: PDO, pdo_mysql, mbstring, json, openssl, curl, fileinfo, gd
+
+            ### 🔒 Security
+
+            **IMPORTANT:** Configure your web server to point to the `public/` directory!
+
+            Never expose the root directory to the web. See [Security Configuration](README.md#security-configuration).
+
+            ### 📝 Changelog
+
+            See [CHANGELOG.md](CHANGELOG.md) for full changes.
+
+            ### ✅ Checksums
+
+            Verify your download integrity:
+            ```bash
+            sha256sum musedock-${{ github.ref_name }}-complete.zip
+            # Compare with musedock-${{ github.ref_name }}-checksums.txt
+            ```
+
+            ### 🆘 Support
+
+            - 📖 [Documentation](https://musedock.org/docs)
+            - 🐛 [Report Issues](https://github.com/caimari/musedock/issues)
+            - 💬 [Community Forum](https://musedock.org/community)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

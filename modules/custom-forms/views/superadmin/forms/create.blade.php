@@ -1,0 +1,163 @@
+@extends('layouts::app')
+
+@section('title', $title ?? __forms('form.create'))
+
+@push('styles')
+<link rel="stylesheet" href="/modules/custom-forms/css/admin.css">
+@endpush
+
+@section('content')
+<div class="app-content">
+    <div class="container-fluid">
+        <div class="mb-4">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ route('custom-forms.index') }}">{{ __forms('form.forms') }}</a></li>
+                    <li class="breadcrumb-item active">{{ __forms('form.create') }}</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0"><i class="bi bi-plus-circle me-2"></i>{{ $title ?? __forms('form.create') }}</h2>
+        </div>
+
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="bi bi-exclamation-triangle me-2"></i>{!! session('error') !!}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
+        <form action="{{ route('custom-forms.store') }}" method="POST">
+            @csrf
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header"><h5 class="mb-0">{{ __forms('form.basic_info') }}</h5></div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">{{ __forms('form.name') }} <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="name" name="name" value="{{ old('name') }}" required placeholder="{{ __forms('form.name_placeholder') }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="slug" class="form-label">{{ __forms('form.slug') }}</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+                                    <input type="text" class="form-control" id="slug" name="slug" value="{{ old('slug') }}" pattern="[a-z0-9\-]+" placeholder="{{ __forms('form.slug_placeholder') }}">
+                                </div>
+                                <div class="form-text">{{ __forms('form.slug_help') }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="description" class="form-label">{{ __forms('form.description') }}</label>
+                                <textarea class="form-control" id="description" name="description" rows="2">{{ old('description') }}</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="submit_button_text" class="form-label">{{ __forms('form.submit_button_text') }}</label>
+                                <input type="text" class="form-control" id="submit_button_text" name="submit_button_text" value="{{ old('submit_button_text', 'Enviar') }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4">
+                        <div class="card-header"><h5 class="mb-0">{{ __forms('form.messages') }}</h5></div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="success_message" class="form-label">{{ __forms('form.success_message') }}</label>
+                                <textarea class="form-control" id="success_message" name="success_message" rows="2">{{ old('success_message', $settings['default_success_message'] ?? '') }}</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="error_message" class="form-label">{{ __forms('form.error_message') }}</label>
+                                <textarea class="form-control" id="error_message" name="error_message" rows="2">{{ old('error_message', $settings['default_error_message'] ?? '') }}</textarea>
+                            </div>
+                            <div class="mb-0">
+                                <label for="redirect_url" class="form-label">{{ __forms('form.redirect_url') }}</label>
+                                <input type="url" class="form-control" id="redirect_url" name="redirect_url" value="{{ old('redirect_url') }}" placeholder="https://">
+                                <div class="form-text">{{ __forms('form.redirect_help') }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4">
+                        <div class="card-header"><h5 class="mb-0"><i class="bi bi-envelope me-2"></i>{{ __forms('form.email_settings') }}</h5></div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="email_to" class="form-label">{{ __forms('form.email_to') }}</label>
+                                <input type="text" class="form-control" id="email_to" name="email_to" value="{{ old('email_to') }}" placeholder="admin@example.com, otro@example.com">
+                                <div class="form-text">{{ __forms('form.email_to_help') }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email_subject" class="form-label">{{ __forms('form.email_subject') }}</label>
+                                <input type="text" class="form-control" id="email_subject" name="email_subject" value="{{ old('email_subject') }}" placeholder="{{ __forms('form.email_subject_placeholder') }}">
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="email_from_name" class="form-label">{{ __forms('form.email_from_name') }}</label>
+                                    <input type="text" class="form-control" id="email_from_name" name="email_from_name" value="{{ old('email_from_name') }}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="email_from_email" class="form-label">{{ __forms('form.email_from_email') }}</label>
+                                    <input type="email" class="form-control" id="email_from_email" name="email_from_email" value="{{ old('email_from_email') }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header"><h5 class="mb-0">{{ __forms('form.status') }}</h5></div>
+                        <div class="card-body">
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="is_active" value="1" checked>
+                                <label class="form-check-label" for="is_active">{{ __forms('form.is_active') }}</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="store_submissions" id="store_submissions" value="1" checked>
+                                <label class="form-check-label" for="store_submissions">{{ __forms('form.store_submissions') }}</label>
+                            </div>
+                            <div class="form-text">{{ __forms('form.store_submissions_help') }}</div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4">
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-check-lg me-1"></i> {{ __forms('form.create') }}
+                                </button>
+                                <a href="{{ route('custom-forms.index') }}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-x-lg me-1"></i> {{ __forms('form.cancel') }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4 bg-light">
+                        <div class="card-body">
+                            <h6><i class="bi bi-lightbulb me-2"></i>{{ __forms('form.tip') }}</h6>
+                            <p class="small text-muted mb-0">{{ __forms('form.create_tip') }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+@endsection
+
+@push('scripts')
+<script>
+document.getElementById('name').addEventListener('input', function() {
+    const slugInput = document.getElementById('slug');
+    if (!slugInput.dataset.manual) {
+        slugInput.value = this.value.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/[\s_]+/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+    }
+});
+document.getElementById('slug').addEventListener('input', function() {
+    this.dataset.manual = this.value.length > 0 ? '1' : '';
+});
+</script>
+@endpush

@@ -1,0 +1,9 @@
+{
+    "title": "Hello World",
+    "welcome": "Hello from the Hello World module!",
+    "description": "This is an example module to demonstrate the basic module structure in MuseDock CMS.",
+    "example_module": "Example Module",
+    "getting_started": "Getting Started",
+    "documentation": "Documentation",
+    "learn_more": "Learn more"
+}

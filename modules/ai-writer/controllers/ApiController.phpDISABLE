@@ -1,0 +1,429 @@
+<?php
+// modules/aiwriter/controllers/ApiController.php
+namespace AIWriter;
+
+use Screenart\Musedock\Database;
+use Screenart\Musedock\Logger;
+use Screenart\Musedock\Services\AI\AIService;
+use Screenart\Musedock\Services\AI\Exceptions\NoActiveProviderException;
+use Screenart\Musedock\Services\AI\Exceptions\ProviderNotActiveException;
+use Screenart\Musedock\Services\AI\Exceptions\MissingApiKeyException;
+use Screenart\Musedock\Services\AI\Exceptions\AIConfigurationException;
+
+class ApiController
+{
+    /**
+     * Genera contenido usando el servicio de IA centralizado
+     */
+    public function generate()
+    {
+        Logger::debug("AIWriter: Iniciando generate()");
+        
+        try {
+            // Verificar permisos
+            if (!isset($_SESSION['super_admin']) && !isset($_SESSION['admin']) && !isset($_SESSION['user'])) {
+                Logger::warning("AIWriter: Intento de acceso sin autenticación");
+                $this->jsonResponse([
+                    'success' => false, 
+                    'message' => 'No has iniciado sesión',
+                    'error_type' => 'auth_error'
+                ], 401);
+            }
+            
+            if (!has_permission('ai.use')) {
+                Logger::warning("AIWriter: Usuario sin permiso 'ai.use'");
+                $this->jsonResponse([
+                    'success' => false, 
+                    'message' => 'No tienes permiso para usar IA',
+                    'error_type' => 'permission_error'
+                ], 403);
+            }
+            
+            // Obtener datos del POST JSON
+            $json = file_get_contents('php://input');
+            $data = json_decode($json, true);
+            
+            if (!$data) {
+                Logger::warning("AIWriter: Datos JSON inválidos");
+                $this->jsonResponse([
+                    'success' => false, 
+                    'message' => 'Datos inválidos o JSON mal formado',
+                    'error_type' => 'validation_error'
+                ], 400);
+            }
+            
+            Logger::debug("AIWriter: Datos recibidos", ['data' => $data]);
+            
+            // Identificar usuario
+            $userType = null; 
+            $userId = null;
+            
+            if (isset($_SESSION['super_admin'])) { 
+                $userType = 'super_admin'; 
+                $userId = $_SESSION['super_admin']['id']; 
+            } elseif (isset($_SESSION['admin'])) { 
+                $userType = 'admin'; 
+                $userId = $_SESSION['admin']['id']; 
+            } elseif (isset($_SESSION['user'])) { 
+                $userType = 'user'; 
+                $userId = $_SESSION['user']['id']; 
+            }
+            
+            $tenantId = tenant_id();
+            
+            // Construir prompt y mensajes de sistema
+            $action = $data['action'] ?? 'generate';
+            $prompt = $data['prompt'] ?? '';
+            $text = $data['text'] ?? '';
+            $systemMessage = null;
+            
+            Logger::debug("AIWriter: Construyendo prompt para acción: {$action}");
+            
+            switch ($action) {
+                case 'improve':
+                    $systemMessage = "Eres un experto en mejora de textos. Tu tarea es mejorar la redacción del texto manteniendo su significado original.";
+                    $prompt = "Mejora la siguiente redacción manteniendo su significado:\n\n{$text}";
+                    if (!empty($data['prompt'])) {
+                        $prompt .= "\n\nInstrucciones adicionales: " . $data['prompt'];
+                    }
+                    break;
+                    
+                case 'summarize':
+                    $systemMessage = "Eres un experto en síntesis de información.";
+                    $prompt = "Resume el siguiente texto de manera concisa manteniendo los puntos clave:\n\n{$text}";
+                    break;
+                    
+                case 'correct':
+                    $systemMessage = "Eres un editor profesional experto en gramática y ortografía.";
+                    $prompt = "Corrige los errores gramaticales y ortográficos del siguiente texto:\n\n{$text}";
+                    break;
+                    
+                case 'titles':
+                    $systemMessage = "Eres un experto en redacción de titulares y encabezados.";
+                    $baseContent = $prompt ?: $text;
+                    $prompt = "Genera 5 ideas de títulos atractivos para contenido sobre: {$baseContent}";
+                    break;
+                    
+                case 'continue':
+                    $systemMessage = "Eres un escritor profesional que puede continuar cualquier texto de manera coherente.";
+                    $prompt = "Continúa el siguiente texto de manera coherente:\n\n{$text}";
+                    if (!empty($data['prompt'])) {
+                        $prompt .= "\n\nConsideraciones adicionales: " . $data['prompt'];
+                    }
+                    break;
+                    
+                case 'generate':
+                default:
+                    $systemMessage = "Eres un asistente de escritura profesional.";
+                    if (empty($prompt)) {
+                        $prompt = "Genera un párrafo de alta calidad sobre un tema interesante.";
+                    } else {
+                        $prompt = "Genera contenido de alta calidad sobre el siguiente tema: {$prompt}";
+                    }
+                    break;
+            }
+            
+            Logger::debug("AIWriter: Prompt construido", [
+                'action' => $action, 
+                'has_system_message' => !empty($systemMessage)
+            ]);
+            
+            // Opciones para el servicio
+            $options = [
+                'system_message' => $systemMessage,
+                'temperature' => $data['temperature'] ?? 0.7,
+                'max_tokens' => $data['max_tokens'] ?? 1000,
+                'model' => $data['model'] ?? null
+            ];
+            
+            // Metadatos para registro
+            $metadata = [
+                'user_id' => $userId,
+                'user_type' => $userType,
+                'module' => 'aiwriter',
+                'action' => $action,
+                'tenant_id' => $tenantId
+            ];
+            
+            // Verificar si el proveedor se especificó directamente
+            $providerId = $data['provider_id'] ?? null;
+            
+            // Comprobar si el servicio de IA existe
+            if (!class_exists('\\Screenart\\Musedock\\Services\\AI\\AIService')) {
+                // Intentar usar nuestra implementación local si el servicio centralizado no está disponible
+                Logger::warning("AIWriter: AIService no encontrado, usando implementación local");
+                $result = $this->generateWithLocalImplementation($tenantId, $systemMessage, $prompt, $options);
+                
+                $this->jsonResponse([
+                    'success' => true,
+                    'content' => $result['content'],
+                    'usage' => [
+                        'tokens' => $result['tokens'] ?? 0,
+                        'model' => $result['model'] ?? 'openai',
+                        'provider' => 'local_implementation'
+                    ]
+                ]);
+            }
+            
+            // Usar el servicio centralizado de IA
+            Logger::info("AIWriter: Llamando al servicio AIService", [
+                'providerId' => $providerId ? "específico:{$providerId}" : 'default',
+                'metadata' => $metadata
+            ]);
+            
+            if ($providerId) {
+                $result = AIService::generate($providerId, $prompt, $options, $metadata);
+            } else {
+                $result = AIService::generateWithDefault($prompt, $options, $metadata);
+            }
+            
+            Logger::info("AIWriter: Contenido generado exitosamente", [
+                'tokens' => $result['tokens'] ?? 'N/A'
+            ]);
+            
+            $this->jsonResponse([
+                'success' => true,
+                'content' => $result['content'],
+                'usage' => [
+                    'tokens' => $result['tokens'] ?? 0,
+                    'model' => $result['model'] ?? 'unknown',
+                    'provider' => $result['provider'] ?? 'unknown'
+                ]
+            ]);
+            
+        } catch (NoActiveProviderException $e) {
+            // Error cuando no hay proveedores activos
+            Logger::warning("AIWriter: No hay proveedores activos: " . $e->getMessage());
+            
+            // Intentar con implementación local
+            try {
+                Logger::info("AIWriter: Intentando con implementación local");
+                $result = $this->generateWithLocalImplementation($tenantId ?? null, $systemMessage ?? "", $prompt ?? "", $options ?? []);
+                
+                $this->jsonResponse([
+                    'success' => true,
+                    'content' => $result['content'],
+                    'usage' => [
+                        'tokens' => $result['tokens'] ?? 0,
+                        'model' => $result['model'] ?? 'openai',
+                        'provider' => 'local_implementation'
+                    ]
+                ]);
+            } catch (\Exception $localError) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => "No hay proveedores de IA activos. Por favor, configura un proveedor en el panel de administración.",
+                    'error_type' => 'no_active_provider'
+                ], 400);
+            }
+            
+        } catch (ProviderNotActiveException $e) {
+            // Error cuando el proveedor seleccionado no está activo
+            Logger::warning("AIWriter: Proveedor no activo: " . $e->getMessage());
+            $this->jsonResponse([
+                'success' => false,
+                'message' => "El proveedor de IA seleccionado no está activo. Por favor, selecciona otro proveedor o actívalo en el panel de administración.",
+                'error_type' => 'provider_not_active'
+            ], 400);
+            
+        } catch (MissingApiKeyException $e) {
+            // Error cuando falta API key
+            Logger::warning("AIWriter: Falta API key: " . $e->getMessage());
+            $this->jsonResponse([
+                'success' => false,
+                'message' => "El proveedor de IA seleccionado no tiene configurada una clave API. Por favor, configura la API key en el panel de administración.",
+                'error_type' => 'missing_api_key'
+            ], 400);
+            
+        } catch (AIConfigurationException $e) {
+            // Otros errores de configuración de IA
+            Logger::warning("AIWriter: Error de configuración de IA: " . $e->getMessage());
+            $this->jsonResponse([
+                'success' => false,
+                'message' => "Error de configuración en el servicio de IA: " . $e->getMessage(),
+                'error_type' => 'configuration_error'
+            ], 400);
+            
+        } catch (\Exception $e) {
+            // Errores generales
+            Logger::error("AIWriter: Error al generar contenido: " . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            $this->jsonResponse([
+                'success' => false,
+                'message' => "Error al procesar la solicitud: " . $e->getMessage(),
+                'error_type' => 'general_error'
+            ], 500);
+        }
+    }
+    
+    /**
+     * Implementación local para generar texto con OpenAI
+     * Se usa como fallback si el servicio centralizado no está disponible
+     */
+    private function generateWithLocalImplementation($tenantId, $systemMessage, $prompt, $options = [])
+    {
+        Logger::debug("AIWriter: Usando implementación local para generar texto");
+        
+        // Obtener API key desde la configuración del módulo
+        $config = Database::query("
+            SELECT * FROM aiwriter_config 
+            WHERE tenant_id IS NULL OR tenant_id = :tenant_id
+            ORDER BY tenant_id DESC 
+            LIMIT 1
+        ", ['tenant_id' => $tenantId])->fetch();
+        
+        if (!$config || empty($config['api_key'])) {
+            throw new \Exception('API key de OpenAI no configurada en el módulo AIWriter');
+        }
+        
+        $model = $options['model'] ?? $config['model'] ?? 'gpt-4';
+        $temperature = $options['temperature'] ?? 0.7;
+        $maxTokens = $options['max_tokens'] ?? 1000;
+        
+        // Llamar a OpenAI
+        $url = 'https://api.openai.com/v1/chat/completions';
+        
+        $data = [
+            'model' => $model,
+            'messages' => [
+                ['role' => 'system', 'content' => $systemMessage],
+                ['role' => 'user', 'content' => $prompt]
+            ],
+            'temperature' => $temperature,
+            'max_tokens' => $maxTokens
+        ];
+        
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $config['api_key']
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        
+        if (curl_errno($ch)) {
+            $errorMsg = curl_error($ch);
+            curl_close($ch);
+            throw new \Exception('Error de cURL: ' . $errorMsg);
+        }
+        
+        curl_close($ch);
+        
+        if ($httpCode !== 200) {
+            $error = json_decode($response, true);
+            $errorMsg = $error['error']['message'] ?? 'Error en la API de OpenAI';
+            Logger::error("AIWriter: Error en la API de OpenAI", [
+                'http_code' => $httpCode,
+                'error' => $errorMsg,
+                'response' => $response
+            ]);
+            throw new \Exception($errorMsg);
+        }
+        
+        $responseData = json_decode($response, true);
+        $content = $responseData['choices'][0]['message']['content'] ?? '';
+        $tokens = $responseData['usage']['total_tokens'] ?? 0;
+        
+        Logger::info("AIWriter: Generación local exitosa", [
+            'model' => $model,
+            'tokens' => $tokens
+        ]);
+        
+        return [
+            'content' => $content,
+            'tokens' => $tokens,
+            'model' => $model,
+            'provider' => 'openai_local'
+        ];
+    }
+    
+    /**
+     * Maneja acciones rápidas de IA
+     */
+    public function quickAction()
+    {
+        Logger::debug("AIWriter: Iniciando quickAction()");
+        
+        try {
+            // Verificar permisos
+            if (!isset($_SESSION['super_admin']) && !isset($_SESSION['admin']) && !isset($_SESSION['user'])) {
+                Logger::warning("AIWriter: Intento de acceso sin autenticación");
+                $this->jsonResponse([
+                    'success' => false, 
+                    'message' => 'No has iniciado sesión',
+                    'error_type' => 'auth_error'
+                ], 401);
+            }
+            
+            if (!has_permission('ai.use')) {
+                Logger::warning("AIWriter: Usuario sin permiso 'ai.use'");
+                $this->jsonResponse([
+                    'success' => false, 
+                    'message' => 'No tienes permiso para usar IA',
+                    'error_type' => 'permission_error'
+                ], 403);
+            }
+            
+            // Obtener datos del POST JSON
+            $json = file_get_contents('php://input');
+            $data = json_decode($json, true);
+            
+            if (!$data) {
+                Logger::warning("AIWriter: Datos JSON inválidos");
+                $this->jsonResponse([
+                    'success' => false, 
+                    'message' => 'Datos inválidos o JSON mal formado',
+                    'error_type' => 'validation_error'
+                ], 400);
+            }
+            
+            Logger::debug("AIWriter: Datos recibidos para acción rápida", ['data' => $data]);
+            
+            // Validar acción
+            if (empty($data['action'])) {
+                Logger::warning("AIWriter: Falta el parámetro 'action'");
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => "El parámetro 'action' es obligatorio",
+                    'error_type' => 'validation_error'
+                ], 400);
+            }
+            
+            // Redirigir al método principal
+            $this->generate();
+            
+        } catch (\Exception $e) {
+            Logger::error("AIWriter: Error en quickAction: " . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            $this->jsonResponse([
+                'success' => false,
+                'message' => "Error al procesar la acción rápida: " . $e->getMessage(),
+                'error_type' => 'general_error'
+            ], 500);
+        }
+    }
+    
+    /**
+     * Devuelve una respuesta JSON
+     */
+    private function jsonResponse($data, $statusCode = 200)
+    {
+        http_response_code($statusCode);
+        header('Content-Type: application/json');
+        echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}

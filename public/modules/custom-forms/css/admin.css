@@ -1,0 +1,96 @@
+/**
+ * Custom Forms - Admin Styles
+ *
+ * Estilos para el panel de administración
+ */
+
+/* ============================================
+   GENERAL
+   ============================================ */
+
+.custom-forms-module .card {
+    border: none;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+}
+
+.custom-forms-module .card-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+}
+
+/* ============================================
+   FORM LIST
+   ============================================ */
+
+.form-list-item {
+    transition: background 0.2s;
+}
+
+.form-list-item:hover {
+    background: #f8f9fa;
+}
+
+.form-shortcode {
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 12px;
+    padding: 4px 8px;
+    background: #f0f0f0;
+    border-radius: 4px;
+}
+
+/* ============================================
+   SUBMISSIONS
+   ============================================ */
+
+.submission-summary {
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.submission-check {
+    cursor: pointer;
+}
+
+.bulk-actions {
+    z-index: 1050;
+}
+
+/* Status badges */
+.badge-unread {
+    background: #ffc107;
+    color: #212529;
+}
+
+.badge-read {
+    background: #6c757d;
+}
+
+.badge-starred {
+    background: #fd7e14;
+}
+
+.badge-spam {
+    background: #dc3545;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+    .submission-summary {
+        max-width: 200px;
+    }
+
+    .btn-group .btn {
+        padding: 0.25rem 0.5rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 0.5rem;
+        font-size: 14px;
+    }
+}

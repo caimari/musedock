@@ -1,0 +1,119 @@
+# =========================================
+# MUSEDOCK CMS - GitIgnore
+# =========================================
+
+# Variables de entorno (CRÍTICO - NUNCA subir al repositorio)
+.env
+.env.local
+.env.production
+.env.backup
+
+
+# Excepciones: mantener estos archivos de seguridad en control de versiones
+!docs/security_updates.sql
+!docs/security_updates_pgsql.sql
+
+
+# Configuraciones locales
+config/config.local.php
+
+# Logs
+storage/logs/*.log
+storage/logs/*.txt
+*.log
+
+# Caché
+storage/cache/*
+!storage/cache/.gitkeep
+storage/views/*
+!storage/views/.gitkeep
+
+# Uploads de usuarios
+public/assets/uploads/*
+!public/assets/uploads/.gitkeep
+assets/uploads/*
+!assets/uploads/.gitkeep
+
+# Vendor (dependencias de Composer)
+vendor/
+
+# Node modules (si usas npm)
+node_modules/
+package-lock.json
+yarn.lock
+
+# IDEs y editores
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Backups
+*.bak
+*.backup
+*.old
+*.orig
+
+# Archivos temporales
+tmp/
+temp/
+*.tmp
+
+# Archivos de sistema
+.htaccess.backup
+.htpasswd
+
+# SQL dumps
+*.sql
+*.sql.gz
+*.sqlite
+*.db
+
+# Composer
+composer.lock
+composer.phar
+
+# Certificados y claves
+*.pem
+*.key
+*.crt
+*.cer
+
+# Archivos de desarrollo
+.phpunit.result.cache
+phpunit.xml
+.phpcs.xml
+
+# Archivos específicos de musedock
+storage/sessions/*
+!storage/sessions/.gitkeep
+storage/avatars/*
+!storage/avatars/.gitkeep
+
+# Installation lock file (generated after installation)
+install.lock
+core/install.lock
+
+# Uploads and media (user content)
+public/uploads/*
+!public/uploads/.gitkeep
+storage/app/*
+!storage/app/.gitkeep
+
+# Development and documentation (not for production)
+docs/
+.claude/
+
+# Exceptions: Keep these files
+!.env.example
+!install/.htaccess
+!storage/.htaccess
+!config/.htaccess
+!core/.htaccess
+!database/.htaccess
+!vendor/.htaccess

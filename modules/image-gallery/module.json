@@ -1,0 +1,59 @@
+{
+    "name": "Image Gallery",
+    "slug": "image-gallery",
+    "description": "Módulo de galerías de imágenes con múltiples layouts, shortcodes y almacenamiento permanente",
+    "version": "1.0.0",
+    "author": "MuseDock",
+    "active": true,
+    "cms_enabled": true,
+    "tenant_enabled_default": true,
+
+    "requires": {
+        "php": ">=8.0",
+        "musedock": ">=1.0.0"
+    },
+
+    "autoload": {
+        "psr-4": {
+            "ImageGallery\\Controllers\\": "controllers/",
+            "ImageGallery\\Models\\": "models/",
+            "ImageGallery\\Requests\\": "requests/"
+        }
+    },
+
+    "permissions": [
+        "image_gallery.manage",
+        "image_gallery.view",
+        "image_gallery.create",
+        "image_gallery.edit",
+        "image_gallery.delete"
+    ],
+
+    "menu": {
+        "superadmin": {
+            "label": "Galerías",
+            "icon": "bi-images",
+            "route": "image-gallery.index",
+            "order": 55
+        },
+        "tenant": {
+            "label": "Galerías",
+            "icon": "bi-images",
+            "route": "tenant.image-gallery.index",
+            "order": 55
+        }
+    },
+
+    "settings": {
+        "default_layout": "grid",
+        "allowed_layouts": ["grid", "masonry", "carousel", "lightbox", "justified"],
+        "max_upload_size_mb": 10,
+        "allowed_extensions": ["jpg", "jpeg", "png", "gif", "webp", "svg"],
+        "thumbnail_sizes": {
+            "small": {"width": 150, "height": 150},
+            "medium": {"width": 300, "height": 300},
+            "large": {"width": 600, "height": 600}
+        },
+        "image_quality": 85
+    }
+}

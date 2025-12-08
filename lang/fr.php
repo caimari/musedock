@@ -1,0 +1,27 @@
+<?php
+return [
+    'welcome' => 'Bienvenue',
+    'login_error' => 'Nom d\'utilisateur ou mot de passe incorrect',
+    'dashboard' => 'Tableau de bord',
+    'tenants_title' => 'Tenants',
+    'create_tenant' => 'Créer un nouveau tenant',
+    'tenant_name' => 'Nom',
+    'domain' => 'Domaine',
+    'created_at' => 'Créé le',
+    'actions' => 'Actions',
+    'edit' => 'Modifier',
+    'delete' => 'Supprimer',
+    'tenants_create_title' => 'Créer un nouveau tenant',
+    'tenants_edit_title' => 'Modifier le tenant',
+    'tenant_domain' => 'Domaine du tenant',
+    'tenant_status' => 'Statut',
+    'tenant_active' => 'Actif',
+    'tenant_inactive' => 'Inactif',
+    'save' => 'Enregistrer',
+    'update' => 'Mettre à jour',
+    'cancel' => 'Annuler',
+    // Textos nuevos para el home o páginas públicas
+    'home_title' => 'Bienvenue sur votre site',
+    'home_intro' => 'Ceci est le début de votre thème. Vous pouvez le modifier depuis le panneau Superadmin.',
+    'home_learn_more' => 'En savoir plus',
+];

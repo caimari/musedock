@@ -1,0 +1,89 @@
+# Deshabilitar listado de directorios
+Options -Indexes
+Options +SymLinksIfOwnerMatch
+
+# Deshabilitar firmas del servidor (si está permitido)
+ServerSignature Off
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # IMPORTANTE: Si la aplicación está en un subdirectorio, descomenta y ajusta la siguiente línea
+    # RewriteBase /musedock/
+    # Si está en la raíz del dominio, usa: RewriteBase /
+
+    # Bloquear acceso a archivos/directorios ocultos (que empiezan con punto)
+    RewriteRule "(^|/)\." - [F]
+
+    # Prevenir acceso directo a archivos de configuración
+    RewriteRule ^(.*/)?\.env - [F,L]
+    RewriteRule ^(.*/)?\.git - [F,L]
+
+    # Forzar HTTPS (descomentar si tienes SSL)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+    # Si el archivo o directorio solicitado NO existe, redirigir a index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# Bloquear archivos sensibles
+<FilesMatch "\.(env|htaccess|htpasswd|gitignore|git|log|ini|json|lock|sql|md|sh|bak|old|backup|swp|dist|yml|yaml)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Bloquear acceso a archivos de configuración de Composer
+<FilesMatch "^(composer\.(json|lock)|package(-lock)?\.json)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Protección adicional contra inyección de código
+<IfModule mod_rewrite.c>
+    # Bloquear peticiones con query strings sospechosas
+    RewriteCond %{QUERY_STRING} (<|%3C).*script.*(>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} proc/self/environ [NC,OR]
+    RewriteCond %{QUERY_STRING} mosConfig_[a-zA-Z_]{1,21}(=|\%3D) [OR]
+    RewriteCond %{QUERY_STRING} base64_encode.*(.*) [OR]
+    RewriteCond %{QUERY_STRING} (<|%3C).*iframe.*(>|%3E) [NC]
+    RewriteRule ^(.*)$ - [F,L]
+</IfModule>
+
+# Limitar tamaño de subida de archivos (10MB)
+<IfModule mod_php.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>
+
+# Headers de seguridad adicionales (por si no se agregan en PHP)
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Eliminar headers que revelan información del servidor
+    Header always unset X-Powered-By
+    Header always unset Server
+
+    # HSTS (descomentar si tienes SSL)
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+</IfModule>
+

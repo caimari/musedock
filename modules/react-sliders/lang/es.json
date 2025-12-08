@@ -1,0 +1,119 @@
+{
+  "module_name": "Sliders Modernos",
+  "module_description": "Gestión de sliders con React y Tailwind CSS",
+
+  "menu": {
+    "sliders": "Sliders",
+    "slides": "Diapositivas",
+    "settings": "Configuración"
+  },
+
+  "slider": {
+    "title": "Sliders",
+    "sliders": "Sliders",
+    "list": "Lista de Sliders",
+    "create": "Crear Slider",
+    "edit": "Editar Slider",
+    "delete": "Eliminar Slider",
+    "name": "Nombre",
+    "identifier": "Identificador",
+    "engine": "Motor",
+    "animation": "Animación",
+    "autoplay": "Reproducción automática",
+    "autoplay_delay": "Retraso (ms)",
+    "loop": "Repetir",
+    "navigation": "Navegación",
+    "pagination": "Paginación",
+    "slides_per_view": "Slides por vista",
+    "space_between": "Espacio entre slides (px)",
+    "speed": "Velocidad (ms)",
+    "no_sliders_found": "No se encontraron sliders",
+    "create_first_slider": "Crear el primer slider",
+    "add_slider": "Añadir slider",
+    "add_slider_description": "Crea un nuevo slider para tu sitio web",
+    "add_first_slider": "Crear primer slider",
+    "settings_title": "Configuración del Slider",
+    "basic_information": "Información Básica",
+    "name_placeholder": "Ej: Slider principal",
+    "identifier_placeholder": "Ej: hero-slider",
+    "identifier_help": "Identificador único para usar en shortcodes y código",
+    "is_active": "Slider activo",
+    "settings": "Configuración del Slider",
+    "slides_count": "Diapositivas",
+    "status": "Estado",
+    "actions": "Acciones",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "confirm_delete_title": "¿Eliminar slider?",
+    "confirm_delete_message": "Esta acción no se puede deshacer"
+  },
+
+  "slide": {
+    "title": "Diapositivas",
+    "list": "Lista de Diapositivas",
+    "create": "Crear Diapositiva",
+    "edit": "Editar Diapositiva",
+    "delete": "Eliminar Diapositiva",
+    "add_slide": "Añadir diapositiva",
+    "image": "Imagen",
+    "title_field": "Título",
+    "subtitle": "Subtítulo",
+    "description": "Descripción",
+    "button_text": "Texto del botón",
+    "button_link": "Enlace del botón",
+    "button_target": "Abrir en",
+    "target_self": "Misma ventana",
+    "target_blank": "Nueva ventana",
+    "order": "Orden",
+    "active": "Activo",
+    "background_color": "Color de fondo",
+    "text_color": "Color de texto",
+    "overlay_opacity": "Opacidad del overlay",
+    "no_slides_found": "No se encontraron diapositivas",
+    "drag_to_reorder": "Arrastra para reordenar"
+  },
+
+  "engine_types": {
+    "swiper": "Swiper (Moderno)",
+    "slick": "Slick Slider",
+    "keen": "Keen Slider",
+    "embla": "Embla Carousel"
+  },
+
+  "animation_types": {
+    "fade": "Desvanecer",
+    "slide": "Deslizar",
+    "cube": "Cubo",
+    "coverflow": "Coverflow",
+    "flip": "Voltear"
+  },
+
+  "messages": {
+    "slider_created": "Slider creado correctamente",
+    "slider_updated": "Slider actualizado correctamente",
+    "slider_deleted": "Slider eliminado correctamente",
+    "slide_created": "Diapositiva creada correctamente",
+    "slide_updated": "Diapositiva actualizada correctamente",
+    "slide_deleted": "Diapositiva eliminada correctamente",
+    "slides_reordered": "Orden de diapositivas actualizado",
+    "error_creating_slider": "Error al crear el slider",
+    "error_updating_slider": "Error al actualizar el slider",
+    "error_deleting_slider": "Error al eliminar el slider",
+    "error_slider_not_found": "Slider no encontrado",
+    "error_slide_not_found": "Diapositiva no encontrada",
+    "error_image_upload": "Error al subir la imagen",
+    "confirm_delete_slider": "¿Estás seguro de eliminar este slider?",
+    "confirm_delete_slide": "¿Estás seguro de eliminar esta diapositiva?",
+    "cannot_delete_with_slides": "No se puede eliminar un slider con diapositivas"
+  },
+
+  "validation": {
+    "name_required": "El nombre es obligatorio",
+    "identifier_required": "El identificador es obligatorio",
+    "identifier_format": "El identificador solo puede contener letras, números y guiones",
+    "image_required": "La imagen es obligatoria",
+    "title_required": "El título es obligatorio"
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "name": "React Modern",
+  "slug": "react-modern",
+  "version": "1.0.0",
+  "author": "MuseDock Team",
+  "description": "Tema moderno con React + TypeScript + Tailwind CSS, totalmente integrado con el sistema dinámico de MuseDock",
+  "screenshot": "screenshot.png",
+  "layout": "layouts.app",
+  "bootstrap": false,
+  "customizable": true,
+  "react": true,
+  "styles": [
+    "/assets/themes/react-modern/dist/style.css"
+  ],
+  "scripts": [
+    "/assets/themes/react-modern/dist/main.js"
+  ],
+  "content_areas": [
+    {
+      "id": "nav",
+      "name": "Navegación principal",
+      "description": "Menú de navegación en la cabecera del sitio",
+      "supports": ["menu"]
+    },
+    {
+      "id": "hero",
+      "name": "Sección Hero",
+      "description": "Área destacada en la parte superior de la página de inicio",
+      "supports": ["widget"]
+    },
+    {
+      "id": "sidebar",
+      "name": "Barra lateral",
+      "description": "Barra lateral para contenido secundario",
+      "supports": ["menu", "widget"]
+    },
+    {
+      "id": "footer1",
+      "name": "Footer Columna 1",
+      "description": "Primera columna del pie de página",
+      "supports": ["menu", "widget"]
+    },
+    {
+      "id": "footer2",
+      "name": "Footer Columna 2",
+      "description": "Segunda columna del pie de página",
+      "supports": ["menu", "widget"]
+    },
+    {
+      "id": "footer3",
+      "name": "Footer Columna 3",
+      "description": "Tercera columna del pie de página",
+      "supports": ["menu", "widget"]
+    }
+  ],
+  "menu_areas": [
+    {
+      "id": "nav",
+      "name": "Navegación principal",
+      "description": "Menú de navegación en la cabecera del sitio"
+    },
+    {
+      "id": "footer1",
+      "name": "Footer Columna 1",
+      "description": "Primera columna del pie de página"
+    },
+    {
+      "id": "footer2",
+      "name": "Footer Columna 2",
+      "description": "Segunda columna del pie de página"
+    },
+    {
+      "id": "footer3",
+      "name": "Footer Columna 3",
+      "description": "Tercera columna del pie de página"
+    }
+  ],
+  "customizable_options": {
+    "colors": {
+      "type": "section",
+      "label": "Colores",
+      "options": {
+        "primary_color": {
+          "type": "color",
+          "label": "Color primario",
+          "default": "#667eea"
+        },
+        "secondary_color": {
+          "type": "color",
+          "label": "Color secundario",
+          "default": "#764ba2"
+        },
+        "accent_color": {
+          "type": "color",
+          "label": "Color de acento",
+          "default": "#f59e0b"
+        },
+        "header_bg_color": {
+          "type": "color",
+          "label": "Color de fondo del header",
+          "default": "#ffffff"
+        },
+        "header_text_color": {
+          "type": "color",
+          "label": "Color de texto del header",
+          "default": "#1f2937"
+        },
+        "footer_bg_color": {
+          "type": "color",
+          "label": "Color de fondo del footer",
+          "default": "#1f2937"
+        },
+        "footer_text_color": {
+          "type": "color",
+          "label": "Color de texto del footer",
+          "default": "#ffffff"
+        }
+      }
+    },
+    "header": {
+      "type": "section",
+      "label": "Cabecera",
+      "options": {
+        "header_transparent": {
+          "type": "checkbox",
+          "label": "Cabecera transparente en inicio",
+          "default": true
+        },
+        "header_sticky": {
+          "type": "checkbox",
+          "label": "Cabecera fija al scroll",
+          "default": true
+        }
+      }
+    },
+    "custom_code": {
+      "type": "section",
+      "label": "Código personalizado",
+      "options": {
+        "custom_css": {
+          "type": "code",
+          "language": "css",
+          "label": "CSS personalizado",
+          "description": "Añade aquí tu CSS personalizado. Se cargará después de Tailwind.",
+          "default": "/* Estilos personalizados aquí */\n"
+        },
+        "custom_js": {
+          "type": "code",
+          "language": "javascript",
+          "label": "JavaScript personalizado",
+          "description": "JavaScript personalizado que se ejecutará cuando React esté listo.",
+          "default": "/* JavaScript personalizado aquí */\n"
+        }
+      }
+    }
+  },
+  "build": {
+    "tool": "vite",
+    "dev_command": "npm run dev",
+    "build_command": "npm run build",
+    "watch_command": "npm run watch"
+  }
+}

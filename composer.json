@@ -1,0 +1,88 @@
+{
+    "name": "caimari/musedock",
+    "description": "MuseDock CMS - A modular, multi-tenant content management system with AI integration.",
+    "type": "project",
+    "license": "MIT",
+    "version": "1.0.0",
+    "keywords": ["cms", "content-management", "multi-tenant", "modular", "ai", "blog", "php"],
+    "homepage": "https://musedock.org",
+    "support": {
+        "issues": "https://github.com/caimari/musedock/issues",
+        "source": "https://github.com/caimari/musedock"
+    },
+    "autoload": {
+        "psr-4": {
+            "Screenart\\Musedock\\": "core/",
+            "Screenart\\Musedock\\Database\\": "database/"
+        },
+        "files": [
+            "core/Helpers/functions.php"
+        ]
+    },
+    "authors": [
+        {
+            "name": "Antoni Caimari Caldes",
+            "email": "acaimari22@gmail.com",
+            "homepage": "https://screenart.es",
+            "role": "Developer"
+        }
+    ],
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "require": {
+        "php": "^8.0",
+        "ext-pdo": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "eftec/bladeone": "^4.18",
+        "openai-php/client": "^0.10.3",
+        "symfony/http-client": "^6.4",
+        "nyholm/psr7": "^1.8",
+        "nesbot/carbon": "^3.9",
+        "league/flysystem": "^3.29",
+        "league/flysystem-local": "^3.29",
+        "league/flysystem-aws-s3-v3": "^3.29",
+        "mollie/mollie-api-php": "^3.6",
+        "stripe/stripe-php": "^18.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0",
+        "phpstan/phpstan": "^1.10"
+    },
+    "scripts": {
+        "post-create-project-cmd": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
+            "@php -r \"echo '\\n=== MuseDock CMS ===\\n';\"",
+            "@php -r \"echo 'Installation complete!\\n';\"",
+            "@php -r \"echo 'Next steps:\\n';\"",
+            "@php -r \"echo '  1. Open your browser and go to: http://your-domain.com/install/\\n';\"",
+            "@php -r \"echo '  2. Follow the installation wizard\\n';\"",
+            "@php -r \"echo '  3. Or configure .env manually and run: php migrate --seed\\n\\n';\""
+        ],
+        "post-install-cmd": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "migrate": "php migrate",
+        "migrate:fresh": "php migrate fresh",
+        "migrate:seed": "php migrate fresh --seed",
+        "migrate:status": "php migrate status",
+        "generate-migrations": "php generate-migrations",
+        "setup": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
+            "@composer dump-autoload --optimize",
+            "@php -r \"echo 'Setup complete. Configure .env and run: php migrate --seed\\n';\""
+        ]
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        },
+        "optimize-autoloader": true,
+        "sort-packages": true
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
+}

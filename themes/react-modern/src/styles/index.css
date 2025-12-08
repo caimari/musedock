@@ -1,0 +1,310 @@
+/**
+ * Estilos principales del tema React Modern
+ * Incluye Tailwind CSS y estilos personalizados
+ */
+
+/* Importar Tailwind */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilos base personalizados */
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply font-sans antialiased text-gray-900 bg-white;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl lg:text-5xl;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl lg:text-4xl;
+  }
+
+  h4 {
+    @apply text-xl md:text-2xl lg:text-3xl;
+  }
+
+  a {
+    @apply transition-colors duration-200;
+  }
+
+  img {
+    @apply max-w-full h-auto;
+  }
+}
+
+/* Componentes personalizados */
+@layer components {
+  /* Botón primario con gradiente */
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3
+           bg-gradient-to-r from-primary-500 to-secondary-500
+           text-white font-semibold rounded-lg
+           hover:from-primary-600 hover:to-secondary-600
+           transition-all duration-300 transform hover:-translate-y-1
+           shadow-lg hover:shadow-xl;
+  }
+
+  /* Botón secundario */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3
+           bg-white text-primary-600 font-semibold rounded-lg
+           border-2 border-primary-500
+           hover:bg-primary-50
+           transition-all duration-300;
+  }
+
+  /* Container con límite de ancho */
+  .container-custom {
+    @apply container mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Tarjeta con sombra */
+  .card {
+    @apply bg-white rounded-xl shadow-lg hover:shadow-xl
+           transition-shadow duration-300 overflow-hidden;
+  }
+
+  /* Gradiente de texto */
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary-500 to-secondary-500
+           bg-clip-text text-transparent;
+  }
+
+  /* Header fijo */
+  .header-sticky {
+    @apply fixed top-0 left-0 right-0 z-50
+           transition-all duration-300;
+  }
+
+  .header-scrolled {
+    @apply bg-white shadow-md;
+  }
+
+  /* Separador con gradiente */
+  .divider-gradient {
+    @apply h-1 w-20 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full;
+  }
+}
+
+/* Utilidades personalizadas */
+@layer utilities {
+  /* Fondo con gradiente animado */
+  .bg-gradient-animated {
+    background: linear-gradient(
+      -45deg,
+      theme('colors.primary.500'),
+      theme('colors.secondary.500'),
+      theme('colors.accent.500'),
+      theme('colors.primary.600')
+    );
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+  }
+
+  @keyframes gradient {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  /* Glassmorphism */
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/20;
+  }
+
+  /* Texto con sombra suave */
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Ocultar scrollbar pero mantener funcionalidad */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Estilos para contenido dinámico de MuseDock (widgets, páginas, etc.) */
+.musedock-content {
+  @apply text-lg leading-relaxed max-w-none;
+}
+
+.musedock-content h1,
+.musedock-content h2,
+.musedock-content h3 {
+  @apply text-gradient mb-4 font-bold;
+}
+
+.musedock-content h1 {
+  @apply text-4xl;
+}
+
+.musedock-content h2 {
+  @apply text-3xl;
+}
+
+.musedock-content h3 {
+  @apply text-2xl;
+}
+
+.musedock-content p {
+  @apply mb-4;
+}
+
+.musedock-content a {
+  @apply text-primary-600 hover:text-secondary-600 underline;
+}
+
+.musedock-content img {
+  @apply rounded-lg shadow-md my-6;
+}
+
+.musedock-content ul,
+.musedock-content ol {
+  @apply ml-6 mb-4;
+}
+
+.musedock-content ul {
+  @apply list-disc;
+}
+
+.musedock-content ol {
+  @apply list-decimal;
+}
+
+.musedock-content li {
+  @apply mb-2;
+}
+
+.musedock-content blockquote {
+  @apply border-l-4 border-primary-500 pl-4 italic text-gray-700 my-4;
+}
+
+/* Código inline */
+.musedock-content code {
+  @apply bg-gray-800 text-green-400 px-2 py-1 rounded text-sm font-mono;
+  font-size: 0.9em;
+}
+
+/* Bloques de código pre */
+.musedock-content pre {
+  @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto my-6 shadow-lg border border-gray-700;
+  line-height: 1.6;
+}
+
+/* Código dentro de pre mantiene el fondo del pre */
+.musedock-content pre code {
+  @apply bg-transparent text-gray-100 p-0;
+  font-size: 0.95em;
+}
+
+/* Syntax highlighting con colores personalizados */
+.musedock-content pre code .token.comment,
+.musedock-content pre code .token.prolog,
+.musedock-content pre code .token.doctype,
+.musedock-content pre code .token.cdata {
+  color: #6a9955;
+}
+
+.musedock-content pre code .token.punctuation {
+  color: #d4d4d4;
+}
+
+.musedock-content pre code .token.property,
+.musedock-content pre code .token.tag,
+.musedock-content pre code .token.boolean,
+.musedock-content pre code .token.number,
+.musedock-content pre code .token.constant,
+.musedock-content pre code .token.symbol,
+.musedock-content pre code .token.deleted {
+  color: #b5cea8;
+}
+
+.musedock-content pre code .token.selector,
+.musedock-content pre code .token.attr-name,
+.musedock-content pre code .token.string,
+.musedock-content pre code .token.char,
+.musedock-content pre code .token.builtin,
+.musedock-content pre code .token.inserted {
+  color: #ce9178;
+}
+
+.musedock-content pre code .token.operator,
+.musedock-content pre code .token.entity,
+.musedock-content pre code .token.url,
+.musedock-content pre code .language-css .token.string,
+.musedock-content pre code .style .token.string {
+  color: #d4d4d4;
+}
+
+.musedock-content pre code .token.atrule,
+.musedock-content pre code .token.attr-value,
+.musedock-content pre code .token.keyword {
+  color: #c586c0;
+}
+
+.musedock-content pre code .token.function,
+.musedock-content pre code .token.class-name {
+  color: #dcdcaa;
+}
+
+.musedock-content pre code .token.regex,
+.musedock-content pre code .token.important,
+.musedock-content pre code .token.variable {
+  color: #d16969;
+}
+
+/* Responsive menu mobile */
+.mobile-menu {
+  @apply fixed inset-0 bg-white z-40 transform transition-transform duration-300;
+}
+
+.mobile-menu.hidden {
+  @apply translate-x-full;
+}
+
+.mobile-menu.visible {
+  @apply translate-x-0;
+}
+
+/* Loading state */
+.loading {
+  @apply relative overflow-hidden;
+}
+
+.loading::after {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}

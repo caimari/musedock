@@ -1,0 +1,335 @@
+/* --- Cookie Consent Styling --- */
+    /* Popup Card */
+    .cookie-consent-popup {
+        position: fixed;
+        bottom: 20px;
+        right: 20px; /* O left: 20px; */
+        background-color: #ffffff;
+        color: #333333;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        z-index: 10000;
+        max-width: 420px;
+        /* font-size: 0.9rem;  <-- Removido, se controlará con inherit o base */
+        line-height: 1.5;
+        border: 1px solid #eee;
+    }
+
+    .cookie-popup-content h4 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .cookie-popup-content p {
+        margin-bottom: 20px;
+    }
+
+    .cookie-popup-actions {
+        display: flex;
+        flex-wrap: wrap; /* Para pantallas pequeñas */
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    .cookie-btn {
+        padding: 10px 18px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.875rem; /* Tamaño base para botones */
+        font-weight: 500;
+        transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+    }
+
+    .cookie-btn-accept {
+        background-color: #4CAF50; /* Verde */
+        color: white;
+    }
+    .cookie-btn-accept:hover {
+        background-color: #45a049;
+    }
+
+    .cookie-btn-reject {
+        background-color: #f44336; /* Rojo */
+        color: white;
+    }
+    .cookie-btn-reject:hover {
+        background-color: #da190b;
+    }
+
+    .cookie-btn-manage {
+        background-color: #e0e0e0;
+        color: #333;
+        border: 1px solid #ccc;
+    }
+    .cookie-btn-manage:hover {
+        background-color: #d5d5d5;
+    }
+
+    .cookie-popup-links {
+        font-size: 0.8rem; /* Enlaces pequeños pueden mantener tamaño específico */
+    }
+    .cookie-popup-links a {
+        color: #555;
+        text-decoration: underline;
+        margin-right: 15px;
+    }
+    .cookie-popup-links a:hover {
+        color: #000;
+    }
+
+    /* Preferences Modal */
+    .cookie-preferences-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6);
+        z-index: 10001;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .cookie-preferences-modal .modal-content {
+        background-color: #ffffff;
+        color: #333;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        max-width: 650px;
+        width: 100%;
+        position: relative;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .cookie-preferences-modal .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+    }
+
+    .cookie-preferences-modal .modal-header h3 {
+        margin: 0;
+        font-size: 1.4rem;
+        font-weight: 600;
+    }
+
+    .cookie-preferences-modal .modal-close-btn {
+        background: none;
+        border: none;
+        font-size: 2rem;
+        font-weight: bold;
+        color: #888;
+        cursor: pointer;
+        line-height: 1;
+        padding: 0 5px;
+    }
+    .modal-close-btn:hover {
+        color: #333;
+    }
+
+    .cookie-preferences-modal .modal-body {
+        margin-bottom: 20px;
+        overflow-y: auto;
+        flex-grow: 1;
+    }
+    .cookie-preferences-modal .modal-body > p { /* Párrafo introductorio */
+        margin-bottom: 25px;
+        font-size: 0.95rem; /* Tamaño específico para el intro */
+    }
+
+    .cookie-category {
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+
+    .cookie-category .category-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .cookie-category h4 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+
+    .cookie-category p {
+       /* font-size: 0.85rem; <-- Controlado por herencia o ajuste abajo */
+        color: #555;
+        margin-bottom: 0;
+    }
+
+    /* Toggle Switch Styling */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+        flex-shrink: 0;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; }
+    input:checked + .slider { background-color: #4CAF50; }
+    input:focus + .slider { box-shadow: 0 0 1px #4CAF50; }
+    input:checked + .slider:before { transform: translateX(26px); }
+    .slider.round { border-radius: 24px; }
+    .slider.round:before { border-radius: 50%; }
+    .switch.always-on input:disabled + .slider { background-color: #8fcc91; cursor: not-allowed; }
+    .switch.always-on input:disabled + .slider:before { background-color: #e0e0e0; }
+
+    /* Cookie Details Table */
+    .cookie-details {
+        margin-top: 15px;
+        padding-top: 10px;
+        border-top: 1px dashed #ddd;
+    }
+    .cookie-details h5 {
+        /* font-size: 0.9rem; <-- Controlado por herencia o ajuste abajo */
+        margin-bottom: 8px;
+        color: #666;
+        font-weight: 500; /* Un poco más de peso para el título */
+    }
+    .cookie-details table {
+        width: 100%;
+       /* font-size: 0.8rem; <-- Controlado por herencia o ajuste abajo */
+        border-collapse: collapse;
+    }
+    .cookie-details th, .cookie-details td {
+        border: 1px solid #eee;
+        padding: 6px 10px; /* Un poco más de padding */
+        text-align: left;
+        vertical-align: top; /* Mejor alineación si hay texto largo */
+    }
+    .cookie-details th {
+        background-color: #f5f5f5;
+        font-weight: 500;
+    }
+
+    .cookie-preferences-modal .modal-footer {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 10px;
+        border-top: 1px solid #eee;
+        padding-top: 20px;
+        margin-top: auto;
+        flex-shrink: 0;
+    }
+
+
+    /* ===== INICIO: CORRECCIÓN DE FUENTE Y TAMAÑO ===== */
+
+    /* 1. Forzar Herencia de Fuente */
+    .cookie-consent-popup,
+    .cookie-preferences-modal {
+        font-family: inherit; /* Hereda la fuente del elemento padre (body) */
+        font-size: 0.9rem; /* Tamaño base para el texto normal dentro del popup/modal */
+    }
+
+    /* Asegurarse que elementos específicos dentro también heredan */
+    .cookie-consent-popup *,
+    .cookie-preferences-modal *,
+    .cookie-consent-popup button,       /* Hereda fuente para botones */
+    .cookie-preferences-modal button,   /* Hereda fuente para botones */
+    .cookie-preferences-modal input,
+    .cookie-preferences-modal label,
+    .cookie-preferences-modal th,
+    .cookie-preferences-modal td {
+        font-family: inherit;
+        box-sizing: border-box; /* Buena práctica incluir esto */
+    }
+
+    /* 2. Ajuste Tamaño Fuente Pequeña (Opcional pero recomendado) */
+    .cookie-category p {
+        font-size: 0.875rem; /* Ligeramente más grande y legible que 0.85rem */
+    }
+
+    .cookie-details h5 {
+         font-size: 0.9rem; /* Tamaño del subtítulo de la tabla */
+    }
+
+    .cookie-details table,
+    .cookie-details th,
+    .cookie-details td {
+        font-size: 0.85rem; /* Ligeramente más grande y legible que 0.8rem */
+    }
+
+    /* ===== FIN: CORRECCIÓN DE FUENTE Y TAMAÑO ===== */
+
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .cookie-consent-popup {
+            max-width: 90%;
+            right: 5%;
+            left: 5%; /* Centrar mejor en móvil si es ancho */
+            bottom: 10px;
+            font-size: 0.85rem; /* Reducir tamaño base en móvil */
+        }
+        .cookie-consent-popup .cookie-btn {
+            font-size: 0.8rem; /* Reducir tamaño botones */
+            padding: 8px 15px;
+        }
+        .cookie-popup-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .cookie-preferences-modal .modal-content {
+            max-width: 95%;
+            padding: 20px;
+        }
+         .cookie-preferences-modal .modal-header h3 {
+            font-size: 1.2rem; /* Reducir título modal */
+         }
+         .cookie-preferences-modal .modal-body > p {
+            font-size: 0.9rem; /* Reducir intro modal */
+         }
+         .cookie-category h4 {
+            font-size: 1rem; /* Reducir título categoría */
+         }
+         .cookie-category p {
+            font-size: 0.825rem; /* Reducir descripción categoría */
+         }
+         .cookie-details h5 {
+             font-size: 0.85rem; /* Reducir subtítulo tabla */
+         }
+         .cookie-details table,
+         .cookie-details th,
+         .cookie-details td {
+             font-size: 0.8rem; /* Reducir texto tabla */
+             padding: 5px 8px;
+         }
+
+        .cookie-preferences-modal .modal-footer {
+            justify-content: space-between;
+        }
+         .cookie-preferences-modal .modal-footer .cookie-btn {
+            flex-grow: 1;
+            min-width: 100px; /* Ajustar ancho mínimo si es necesario */
+            font-size: 0.8rem; /* Reducir tamaño botones */
+            padding: 8px 10px;
+         }
+    }

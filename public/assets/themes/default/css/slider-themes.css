@@ -1,0 +1,873 @@
+/* =============================================
+   SLIDER SYSTEM - MUSEDOCK THEMES
+   Versión 2.1 - Con selectores de alta especificidad
+   ============================================= */
+
+/* ---------- RESET Y ESTILOS BASE ---------- */
+.swiper {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+}
+
+.swiper-wrapper {
+    display: flex;
+    transition-property: transform;
+}
+
+.swiper-slide {
+    position: relative;
+    flex-shrink: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.swiper-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Navegación básica - ESTILOS POR DEFECTO */
+/* IMPORTANTE: Sobrescribir TODOS los estilos del bundle de Swiper */
+.swiper-button-prev,
+.swiper-button-next,
+#preview-swiper .swiper-button-prev,
+#preview-swiper .swiper-button-next {
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    z-index: 20 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    /* SOBRESCRIBIR dimensiones calculadas del bundle */
+    width: 44px !important;
+    height: 44px !important;
+    margin-top: 0 !important;
+    /* Valores por defecto SIN !important para que pickers puedan sobrescribirlos */
+    background: rgba(255, 255, 255, 0.9);
+    color: #000000;
+    border-radius: 50% !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important;
+}
+
+.swiper-button-prev:hover,
+.swiper-button-next:hover,
+#preview-swiper .swiper-button-prev:hover,
+#preview-swiper .swiper-button-next:hover {
+    /* NO definir background - permitir que el picker lo controle */
+    transform: translateY(-50%) scale(1.1) !important;
+}
+
+.swiper-button-prev,
+#preview-swiper .swiper-button-prev { left: 10px !important; }
+.swiper-button-next,
+#preview-swiper .swiper-button-next { right: 10px !important; }
+
+/* Flechas CSS puras - Sobrescribir iconos del CDN que causan error CSP */
+.swiper-button-prev::after,
+.swiper-button-next::after,
+#preview-swiper .swiper-button-prev::after,
+#preview-swiper .swiper-button-next::after {
+    content: '' !important; /* Eliminar el texto "prev"/"next" */
+    font-family: none !important;
+    width: 12px !important;
+    height: 12px !important;
+    border-right: 3px solid currentColor !important;
+    border-bottom: 3px solid currentColor !important;
+    display: block !important;
+}
+
+.swiper-button-prev::after,
+#preview-swiper .swiper-button-prev::after {
+    transform: rotate(135deg) !important;
+    margin-left: 4px;
+}
+
+.swiper-button-next::after,
+#preview-swiper .swiper-button-next::after {
+    transform: rotate(-45deg) !important;
+    margin-right: 4px;
+}
+
+.swiper-pagination {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    z-index: 20;
+}
+
+.swiper-pagination-bullet {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin: 0 4px;
+    background: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.swiper-pagination-bullet-active {
+    background: #fff;
+    transform: scale(1.2);
+}
+
+/* Captions básicos */
+.caption {
+    position: absolute;
+    z-index: 15;
+    max-width: 80%;
+}
+
+/* ---------- ESTILOS DE FLECHAS PERSONALIZADAS ---------- */
+/* IMPORTANTE: Solo formato (forma, tamaño, efectos) - SIN colores ni fondos */
+/* Los colores se aplican ÚNICAMENTE desde los pickers de color y fondo */
+
+/* ========== CÍRCULOS ========== */
+
+/* Círculo con sombra (44px) */
+.swiper-button-prev.arrow-circle-shadow,
+.swiper-button-next.arrow-circle-shadow {
+    border-radius: 50% !important;
+    width: 44px !important;
+    height: 44px !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important;
+}
+.swiper-button-prev.arrow-circle-shadow:hover,
+.swiper-button-next.arrow-circle-shadow:hover {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+    transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* Círculo mediano (48px) */
+.swiper-button-prev.arrow-circle-medium,
+.swiper-button-next.arrow-circle-medium {
+    border-radius: 50% !important;
+    width: 48px !important;
+    height: 48px !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2) !important;
+}
+.swiper-button-prev.arrow-circle-medium:hover,
+.swiper-button-next.arrow-circle-medium:hover {
+    box-shadow: 0 4px 18px rgba(0,0,0,0.3) !important;
+    transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* Círculo grande (52px) */
+.swiper-button-prev.arrow-circle-large,
+.swiper-button-next.arrow-circle-large {
+    border-radius: 50% !important;
+    width: 52px !important;
+    height: 52px !important;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.2) !important;
+}
+.swiper-button-prev.arrow-circle-large:hover,
+.swiper-button-next.arrow-circle-large:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+    transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* Círculo con blur/glassmorphism (52px) */
+.swiper-button-prev.arrow-circle-blur,
+.swiper-button-next.arrow-circle-blur {
+    border-radius: 50% !important;
+    width: 52px !important;
+    height: 52px !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+}
+.swiper-button-prev.arrow-circle-blur:hover,
+.swiper-button-next.arrow-circle-blur:hover {
+    backdrop-filter: blur(15px) !important;
+    -webkit-backdrop-filter: blur(15px) !important;
+    transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* Círculo con borde (52px) */
+.swiper-button-prev.arrow-circle-border,
+.swiper-button-next.arrow-circle-border {
+    border-radius: 50% !important;
+    width: 52px !important;
+    height: 52px !important;
+    border: 2px solid currentColor !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2) !important;
+}
+.swiper-button-prev.arrow-circle-border:hover,
+.swiper-button-next.arrow-circle-border:hover {
+    box-shadow: 0 6px 25px rgba(0,0,0,0.3) !important;
+    transform: translateY(-50%) scale(1.08) !important;
+}
+
+/* ========== CUADRADOS ========== */
+
+/* Cuadrado básico (44px) */
+.swiper-button-prev.arrow-square-basic,
+.swiper-button-next.arrow-square-basic {
+    border-radius: 0 !important;
+    width: 44px !important;
+    height: 44px !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important;
+}
+.swiper-button-prev.arrow-square-basic:hover,
+.swiper-button-next.arrow-square-basic:hover {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+    transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* Cuadrado mediano (48px) */
+.swiper-button-prev.arrow-square-medium,
+.swiper-button-next.arrow-square-medium {
+    border-radius: 0 !important;
+    width: 48px !important;
+    height: 48px !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2) !important;
+}
+.swiper-button-prev.arrow-square-medium:hover,
+.swiper-button-next.arrow-square-medium:hover {
+    box-shadow: 0 4px 18px rgba(0,0,0,0.3) !important;
+    transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* Cuadrado grande (56px) */
+.swiper-button-prev.arrow-square-large,
+.swiper-button-next.arrow-square-large {
+    border-radius: 0 !important;
+    width: 56px !important;
+    height: 56px !important;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.2) !important;
+}
+.swiper-button-prev.arrow-square-large:hover,
+.swiper-button-next.arrow-square-large:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+    transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* Cuadrado con blur/glassmorphism (56px) */
+.swiper-button-prev.arrow-square-blur,
+.swiper-button-next.arrow-square-blur {
+    border-radius: 0 !important;
+    width: 56px !important;
+    height: 56px !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+}
+.swiper-button-prev.arrow-square-blur:hover,
+.swiper-button-next.arrow-square-blur:hover {
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    transform: translateY(-50%) scale(1.08) !important;
+}
+
+/* Cuadrado con borde (48px) */
+.swiper-button-prev.arrow-square-border,
+.swiper-button-next.arrow-square-border {
+    border-radius: 0 !important;
+    width: 48px !important;
+    height: 48px !important;
+    border: 2px solid currentColor !important;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.15) !important;
+}
+.swiper-button-prev.arrow-square-border:hover,
+.swiper-button-next.arrow-square-border:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25) !important;
+    transform: translateY(-50%) scale(1.08) !important;
+}
+
+/* ========== REDONDEADOS ========== */
+
+/* Redondeado pequeño (40px, radio 8px) */
+.swiper-button-prev.arrow-rounded-small,
+.swiper-button-next.arrow-rounded-small {
+    border-radius: 8px !important;
+    width: 40px !important;
+    height: 40px !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1) !important;
+}
+.swiper-button-prev.arrow-rounded-small:hover,
+.swiper-button-next.arrow-rounded-small:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+    transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* Redondeado mediano (44px, radio 8px) */
+.swiper-button-prev.arrow-rounded-medium,
+.swiper-button-next.arrow-rounded-medium {
+    border-radius: 8px !important;
+    width: 44px !important;
+    height: 44px !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15) !important;
+}
+.swiper-button-prev.arrow-rounded-medium:hover,
+.swiper-button-next.arrow-rounded-medium:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2) !important;
+    transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* Redondeado grande (46px, radio 12px) */
+.swiper-button-prev.arrow-rounded-large,
+.swiper-button-next.arrow-rounded-large {
+    border-radius: 12px !important;
+    width: 46px !important;
+    height: 46px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2) !important;
+}
+.swiper-button-prev.arrow-rounded-large:hover,
+.swiper-button-next.arrow-rounded-large:hover {
+    box-shadow: 0 6px 30px rgba(0,0,0,0.3) !important;
+    transform: translateY(-50%) scale(1.08) !important;
+}
+
+/* ========== MINIMALISTAS ========== */
+
+/* Sin fondo (40px, solo flecha pequeña) */
+.swiper-button-prev.arrow-minimal,
+.swiper-button-next.arrow-minimal {
+    background: transparent !important;
+    width: 40px !important;
+    height: 40px !important;
+    box-shadow: none !important;
+}
+.swiper-button-prev.arrow-minimal::after,
+.swiper-button-next.arrow-minimal::after {
+    width: 12px !important;
+    height: 12px !important;
+    border-width: 3px !important;
+    filter: drop-shadow(0 0 8px rgba(0,0,0,0.4)) !important;
+}
+.swiper-button-prev.arrow-minimal:hover,
+.swiper-button-next.arrow-minimal:hover {
+    transform: translateY(-50%) scale(1.15) !important;
+}
+
+/* Sin fondo grande (56px, flecha grande) */
+.swiper-button-prev.arrow-minimal-large,
+.swiper-button-next.arrow-minimal-large {
+    background: transparent !important;
+    width: 56px !important;
+    height: 56px !important;
+    box-shadow: none !important;
+}
+.swiper-button-prev.arrow-minimal-large::after,
+.swiper-button-next.arrow-minimal-large::after {
+    width: 18px !important;
+    height: 18px !important;
+    border-width: 4px !important;
+    filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)) !important;
+}
+.swiper-button-prev.arrow-minimal-large:hover,
+.swiper-button-next.arrow-minimal-large:hover {
+    transform: translateY(-50%) scale(1.12) !important;
+}
+
+/* ---------- POSICIONES DE CAPTIONS ---------- */
+.caption.position-top-left { top: 20px !important; left: 20px !important; text-align: left !important; }
+.caption.position-top-right { top: 20px !important; right: 20px !important; text-align: right !important; }
+.caption.position-bottom-left { bottom: 20px !important; left: 20px !important; text-align: left !important; }
+.caption.position-bottom-right { bottom: 20px !important; right: 20px !important; text-align: right !important; }
+.caption.position-center { top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; text-align: center !important; }
+
+/* ================================================================
+   TEMAS VISUALES - SWIPER Y GALLERY
+   Cada tema usa selectores con alta especificidad
+   ================================================================ */
+
+/* ========== 1. TEMA: DARK ROUNDED - Glassmorphism elegante ========== */
+.swiper.theme-dark-rounded,
+.gallery-container.theme-dark-rounded,
+.theme-dark-rounded.swiper {
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3) !important;
+}
+
+.swiper.theme-dark-rounded .caption,
+.theme-dark-rounded .swiper .caption,
+.theme-dark-rounded .swiper-slide .caption {
+    background: linear-gradient(135deg, rgba(20, 20, 30, 0.9) 0%, rgba(40, 40, 60, 0.85) 100%) !important;
+    color: white !important;
+    padding: 20px 28px !important;
+    border-radius: 14px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+/* NOTA: Estilos de flechas ELIMINADOS - usar "Formato de Flechas" en el editor */
+
+.swiper.theme-dark-rounded .swiper-pagination-bullet,
+.theme-dark-rounded .swiper-pagination-bullet {
+    background: rgba(255, 255, 255, 0.4) !important;
+    width: 12px !important;
+    height: 12px !important;
+}
+.swiper.theme-dark-rounded .swiper-pagination-bullet-active,
+.theme-dark-rounded .swiper-pagination-bullet-active {
+    background: white !important;
+    box-shadow: 0 0 10px rgba(255,255,255,0.5) !important;
+}
+
+/* Dark Rounded - Gallery Mode */
+.theme-dark-rounded .gallery-thumbs,
+.theme-dark-rounded.gallery-container .gallery-thumbs {
+    background: linear-gradient(180deg, rgba(20,20,30,0.95) 0%, rgba(10,10,20,1) 100%) !important;
+    border-radius: 0 0 16px 16px !important;
+}
+.theme-dark-rounded .gallery-thumbs .swiper-slide {
+    border-radius: 8px !important;
+    border: 2px solid rgba(255,255,255,0.1) !important;
+}
+.theme-dark-rounded .gallery-thumbs .swiper-slide-thumb-active {
+    border-color: rgba(255,255,255,0.8) !important;
+    box-shadow: 0 0 15px rgba(255,255,255,0.3) !important;
+}
+
+/* ========== 2. TEMA: LIGHT MINIMAL - Limpio y elegante ========== */
+.swiper.theme-light-minimal,
+.gallery-container.theme-light-minimal,
+.theme-light-minimal.swiper {
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
+}
+
+.swiper.theme-light-minimal .caption,
+.theme-light-minimal .swiper .caption,
+.theme-light-minimal .swiper-slide .caption {
+    background: rgba(255, 255, 255, 0.95) !important;
+    color: #2d3436 !important;
+    padding: 16px 22px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* NOTA: Estilos de flechas ELIMINADOS - usar "Formato de Flechas" en el editor */
+
+.swiper.theme-light-minimal .swiper-pagination-bullet,
+.theme-light-minimal .swiper-pagination-bullet {
+    background: #dfe6e9 !important;
+    width: 8px !important;
+    height: 8px !important;
+}
+.swiper.theme-light-minimal .swiper-pagination-bullet-active,
+.theme-light-minimal .swiper-pagination-bullet-active {
+    background: #636e72 !important;
+    width: 24px !important;
+    border-radius: 4px !important;
+}
+
+/* Light Minimal - Gallery Mode */
+.theme-light-minimal .gallery-thumbs,
+.theme-light-minimal.gallery-container .gallery-thumbs {
+    background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    border-top: 1px solid #dee2e6 !important;
+}
+.theme-light-minimal .gallery-thumbs .swiper-slide {
+    border-radius: 6px !important;
+    border: 2px solid #dee2e6 !important;
+}
+.theme-light-minimal .gallery-thumbs .swiper-slide-thumb-active {
+    border-color: #636e72 !important;
+}
+
+/* ========== 3. TEMA: HERO FULL - Cinematic con gradiente ========== */
+.swiper.theme-hero-full,
+.gallery-container.theme-hero-full,
+.theme-hero-full.swiper {
+    position: relative !important;
+}
+.swiper.theme-hero-full::before,
+.theme-hero-full.swiper::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+    background: linear-gradient(180deg, transparent 0%, transparent 40%, rgba(0,0,0,0.3) 60%, rgba(0,0,0,0.8) 100%) !important;
+    z-index: 5 !important;
+    pointer-events: none !important;
+}
+
+.swiper.theme-hero-full .caption,
+.theme-hero-full .swiper .caption,
+.theme-hero-full .swiper-slide .caption {
+    background: transparent !important;
+    color: white !important;
+    padding: 30px 40px !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    text-align: center !important;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.8) !important;
+}
+.swiper.theme-hero-full .caption div:first-child,
+.theme-hero-full .caption div:first-child {
+    font-size: 2rem !important;
+    font-weight: 700 !important;
+}
+
+/* NOTA: Estilos de flechas ELIMINADOS - usar "Formato de Flechas" en el editor */
+
+.swiper.theme-hero-full .swiper-pagination-bullet,
+.theme-hero-full .swiper-pagination-bullet {
+    background: rgba(255, 255, 255, 0.4) !important;
+    width: 50px !important;
+    height: 4px !important;
+    border-radius: 2px !important;
+}
+.swiper.theme-hero-full .swiper-pagination-bullet-active,
+.theme-hero-full .swiper-pagination-bullet-active {
+    background: white !important;
+}
+
+/* Hero Full - Gallery Mode */
+.theme-hero-full .gallery-thumbs,
+.theme-hero-full.gallery-container .gallery-thumbs {
+    background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, #000 100%) !important;
+}
+.theme-hero-full .gallery-thumbs .swiper-slide {
+    border: 2px solid rgba(255,255,255,0.2) !important;
+    border-radius: 0 !important;
+}
+.theme-hero-full .gallery-thumbs .swiper-slide-thumb-active {
+    border-color: white !important;
+}
+
+/* ========== 4. TEMA: NEON GLOW - Cyberpunk con resplandor ========== */
+.swiper.theme-neon-glow,
+.gallery-container.theme-neon-glow,
+.theme-neon-glow.swiper {
+    border: 2px solid #00f5ff !important;
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.3), inset 0 0 20px rgba(0, 245, 255, 0.1) !important;
+}
+
+.swiper.theme-neon-glow .caption,
+.theme-neon-glow .swiper .caption,
+.theme-neon-glow .swiper-slide .caption {
+    background: rgba(0, 10, 20, 0.85) !important;
+    color: #00f5ff !important;
+    padding: 18px 24px !important;
+    border-radius: 0 !important;
+    border: 1px solid #00f5ff !important;
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.3), inset 0 0 10px rgba(0, 245, 255, 0.1) !important;
+    text-shadow: 0 0 10px rgba(0, 245, 255, 0.8) !important;
+}
+
+/* NOTA: Estilos de flechas ELIMINADOS - usar "Formato de Flechas" en el editor */
+
+.swiper.theme-neon-glow .swiper-pagination-bullet,
+.theme-neon-glow .swiper-pagination-bullet {
+    background: transparent !important;
+    border: 2px solid #00f5ff !important;
+    box-shadow: 0 0 8px rgba(0, 245, 255, 0.5) !important;
+}
+.swiper.theme-neon-glow .swiper-pagination-bullet-active,
+.theme-neon-glow .swiper-pagination-bullet-active {
+    background: #00f5ff !important;
+    box-shadow: 0 0 15px #00f5ff !important;
+}
+
+/* Neon Glow - Gallery Mode */
+.theme-neon-glow .gallery-thumbs,
+.theme-neon-glow.gallery-container .gallery-thumbs {
+    background: rgba(0, 10, 20, 0.95) !important;
+    border-top: 2px solid #00f5ff !important;
+}
+.theme-neon-glow .gallery-thumbs .swiper-slide {
+    border: 2px solid rgba(0, 245, 255, 0.3) !important;
+    border-radius: 0 !important;
+}
+.theme-neon-glow .gallery-thumbs .swiper-slide-thumb-active {
+    border-color: #00f5ff !important;
+    box-shadow: 0 0 15px rgba(0, 245, 255, 0.5) !important;
+}
+
+/* ========== 5. TEMA: ELEGANT GOLD - Lujo dorado premium ========== */
+.swiper.theme-elegant-gold,
+.gallery-container.theme-elegant-gold,
+.theme-elegant-gold.swiper {
+    border: 3px solid #d4af37 !important;
+    box-shadow: 0 10px 40px rgba(212, 175, 55, 0.2) !important;
+}
+
+.swiper.theme-elegant-gold .swiper-slide img,
+.theme-elegant-gold .swiper-slide img {
+    filter: sepia(8%) contrast(105%) brightness(102%) !important;
+}
+
+.swiper.theme-elegant-gold .caption,
+.theme-elegant-gold .swiper .caption,
+.theme-elegant-gold .swiper-slide .caption {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.95) 0%, rgba(184, 134, 11, 0.95) 100%) !important;
+    color: #1a1a1a !important;
+    padding: 20px 28px !important;
+    border-radius: 0 !important;
+    border-left: 4px solid #8b6914 !important;
+    box-shadow: 0 8px 30px rgba(184, 134, 11, 0.4) !important;
+}
+
+/* NOTA: Estilos de flechas ELIMINADOS - usar "Formato de Flechas" en el editor */
+
+.swiper.theme-elegant-gold .swiper-pagination-bullet,
+.theme-elegant-gold .swiper-pagination-bullet {
+    background: #d4af37 !important;
+    border: 2px solid #8b6914 !important;
+    width: 14px !important;
+    height: 14px !important;
+}
+.swiper.theme-elegant-gold .swiper-pagination-bullet-active,
+.theme-elegant-gold .swiper-pagination-bullet-active {
+    background: #8b6914 !important;
+    transform: scale(1.3) !important;
+}
+
+/* Elegant Gold - Gallery Mode */
+.theme-elegant-gold .gallery-thumbs,
+.theme-elegant-gold.gallery-container .gallery-thumbs {
+    background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%) !important;
+    border-top: 3px solid #d4af37 !important;
+}
+.theme-elegant-gold .gallery-thumbs .swiper-slide {
+    border: 2px solid #d4af37 !important;
+    border-radius: 0 !important;
+}
+.theme-elegant-gold .gallery-thumbs .swiper-slide-thumb-active {
+    border-color: #f9e076 !important;
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.5) !important;
+}
+
+/* ========== 6. TEMA: MODERN GRADIENT - Gradiente vibrante animado ========== */
+.swiper.theme-modern-gradient,
+.gallery-container.theme-modern-gradient,
+.theme-modern-gradient.swiper {
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    position: relative !important;
+}
+.swiper.theme-modern-gradient::after,
+.theme-modern-gradient.swiper::after,
+.gallery-container.theme-modern-gradient::after {
+    content: '' !important;
+    position: absolute !important;
+    bottom: 0 !important; left: 0 !important; right: 0 !important;
+    height: 4px !important;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 25%, #f64f59 50%, #c471ed 75%, #667eea 100%) !important;
+    background-size: 200% 100% !important;
+    animation: gradient-flow 3s linear infinite !important;
+    z-index: 30 !important;
+}
+@keyframes gradient-flow {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+}
+
+.swiper.theme-modern-gradient .caption,
+.theme-modern-gradient .swiper .caption,
+.theme-modern-gradient .swiper-slide .caption {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%) !important;
+    color: white !important;
+    padding: 18px 26px !important;
+    border-radius: 10px !important;
+    backdrop-filter: blur(8px) !important;
+    box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4) !important;
+}
+
+/* NOTA: Estilos de flechas ELIMINADOS - usar "Formato de Flechas" en el editor */
+
+.swiper.theme-modern-gradient .swiper-pagination-bullet,
+.theme-modern-gradient .swiper-pagination-bullet {
+    background: rgba(255,255,255,0.4) !important;
+    width: 10px !important;
+    height: 10px !important;
+}
+.swiper.theme-modern-gradient .swiper-pagination-bullet-active,
+.theme-modern-gradient .swiper-pagination-bullet-active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    width: 28px !important;
+    border-radius: 5px !important;
+}
+
+/* Modern Gradient - Gallery Mode */
+.theme-modern-gradient .gallery-thumbs,
+.theme-modern-gradient.gallery-container .gallery-thumbs {
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%) !important;
+    border-radius: 0 0 12px 12px !important;
+}
+.theme-modern-gradient .gallery-thumbs .swiper-slide {
+    border: 2px solid rgba(102, 126, 234, 0.3) !important;
+    border-radius: 8px !important;
+}
+.theme-modern-gradient .gallery-thumbs .swiper-slide-thumb-active {
+    border-color: #667eea !important;
+    box-shadow: 0 0 15px rgba(102, 126, 234, 0.5) !important;
+}
+
+/* ========== 7. TEMA: GALLERY LIGHT - Especial para galerías ========== */
+.swiper.theme-gallery-light,
+.gallery-container.theme-gallery-light,
+.theme-gallery-light.swiper {
+    border-radius: 12px !important;
+    overflow: hidden !important;
+}
+
+/* NOTA: Estilos de flechas ELIMINADOS - usar "Formato de Flechas" en el editor */
+
+.swiper.theme-gallery-light .swiper-pagination-bullet,
+.theme-gallery-light .swiper-pagination-bullet {
+    background: rgba(0,0,0,0.3) !important;
+}
+.swiper.theme-gallery-light .swiper-pagination-bullet-active,
+.theme-gallery-light .swiper-pagination-bullet-active {
+    background: #FF6600 !important;
+}
+
+.theme-gallery-light .gallery-thumbs,
+.theme-gallery-light.gallery-container .gallery-thumbs {
+    background: linear-gradient(180deg, #f5f5f5 0%, #e8e8e8 100%) !important;
+    border-radius: 0 0 12px 12px !important;
+    border-top: 1px solid #ddd !important;
+}
+.theme-gallery-light .gallery-thumbs .swiper-slide {
+    border: 3px solid transparent !important;
+    border-radius: 8px !important;
+}
+.theme-gallery-light .gallery-thumbs .swiper-slide-thumb-active {
+    border-color: #FF6600 !important;
+    transform: scale(1.08) !important;
+    box-shadow: 0 4px 15px rgba(255, 102, 0, 0.3) !important;
+}
+
+/* ========== 8. TEMA: GALLERY DARK - Galería oscura cinematográfica ========== */
+.swiper.theme-gallery-dark,
+.gallery-container.theme-gallery-dark,
+.theme-gallery-dark.swiper {
+    border-radius: 0 !important;
+}
+
+/* NOTA: Estilos de flechas ELIMINADOS - usar "Formato de Flechas" en el editor */
+
+.swiper.theme-gallery-dark .swiper-pagination-bullet,
+.theme-gallery-dark .swiper-pagination-bullet {
+    background: rgba(255,255,255,0.3) !important;
+    width: 30px !important;
+    height: 3px !important;
+    border-radius: 0 !important;
+}
+.swiper.theme-gallery-dark .swiper-pagination-bullet-active,
+.theme-gallery-dark .swiper-pagination-bullet-active {
+    background: white !important;
+}
+
+.theme-gallery-dark .gallery-thumbs,
+.theme-gallery-dark.gallery-container .gallery-thumbs {
+    background: #0a0a0a !important;
+    border-top: 1px solid #222 !important;
+}
+.theme-gallery-dark .gallery-thumbs .swiper-slide {
+    border: 2px solid #333 !important;
+    border-radius: 0 !important;
+}
+.theme-gallery-dark .gallery-thumbs .swiper-slide-thumb-active {
+    border-color: #fff !important;
+}
+
+/* ---------- ESTILOS BASE PARA GALLERY ---------- */
+.gallery-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.swiper.gallery-top {
+    margin-bottom: 0;
+}
+
+.swiper.gallery-thumbs {
+    height: 70px;
+    box-sizing: border-box;
+    padding: 5px 0;
+    background: rgba(0,0,0,0.85);
+}
+
+.gallery-thumbs .swiper-slide {
+    opacity: 0.5;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 80px !important;
+    height: 60px;
+    flex-shrink: 0;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.gallery-thumbs .swiper-slide-thumb-active {
+    opacity: 1;
+    border-color: #fff;
+}
+
+.gallery-thumbs .swiper-slide img {
+    border-radius: 2px;
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}
+
+/* ---------- ANIMACIONES ---------- */
+.caption.animation-fade-in { animation: caption-fade-in 0.5s ease-in-out; }
+.caption.animation-slide-up { animation: caption-slide-up 0.5s ease-out; }
+.caption.animation-slide-down { animation: caption-slide-down 0.5s ease-out; }
+
+@keyframes caption-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes caption-slide-up {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+@keyframes caption-slide-down {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 768px) {
+    .caption {
+        max-width: 90%;
+        padding: 10px 15px !important;
+    }
+    .swiper-button-prev,
+    .swiper-button-next {
+        width: 36px !important;
+        height: 36px !important;
+    }
+    .gallery-thumbs .swiper-slide {
+        width: 60px !important;
+        height: 45px;
+    }
+}
+
+@media (max-width: 480px) {
+    .caption {
+        max-width: 95%;
+        padding: 8px 12px !important;
+    }
+    .swiper-button-prev,
+    .swiper-button-next {
+        width: 30px !important;
+        height: 30px !important;
+    }
+    .gallery-thumbs .swiper-slide {
+        width: 50px !important;
+        height: 38px;
+    }
+}

@@ -1,0 +1,9 @@
+:root {
+  /* Solo la variable que nos interesa */
+  --header-bg-color: #ffffff;
+}
+
+/* Aplicación de la variable al elemento HTML correcto */
+.header-bottom {
+  background-color: var(--header-bg-color);
+}

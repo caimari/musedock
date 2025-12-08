@@ -1,0 +1,359 @@
+#!/usr/bin/env php
+<?php
+/**
+ * MuseDock CMS - Migration Generator
+ *
+ * Generates migration files from existing database tables.
+ * This tool reverse-engineers your database schema into migration files.
+ *
+ * Usage:
+ *   php generate-migrations                    # Generate all missing migrations
+ *   php generate-migrations --table=users      # Generate for specific table
+ *   php generate-migrations --list             # List tables without migrations
+ *   php generate-migrations --dry-run          # Preview without creating files
+ */
+
+define('BASE_PATH', __DIR__);
+
+// Load environment
+require_once __DIR__ . '/core/Env.php';
+\Screenart\Musedock\Env::load(__DIR__ . '/.env');
+
+// Database connection
+$driver = \Screenart\Musedock\Env::get('DB_DRIVER', 'mysql');
+$host = \Screenart\Musedock\Env::get('DB_HOST', 'localhost');
+$port = \Screenart\Musedock\Env::get('DB_PORT', '3306');
+$database = \Screenart\Musedock\Env::get('DB_NAME');
+$username = \Screenart\Musedock\Env::get('DB_USER');
+$password = \Screenart\Musedock\Env::get('DB_PASS');
+
+try {
+    $dsn = "{$driver}:host={$host};port={$port};dbname={$database};charset=utf8mb4";
+    $pdo = new PDO($dsn, $username, $password, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+    ]);
+} catch (PDOException $e) {
+    die("❌ Database connection failed: " . $e->getMessage() . "\n");
+}
+
+// Parse arguments
+$args = array_slice($argv, 1);
+$options = [
+    'table' => null,
+    'list' => false,
+    'dry-run' => false,
+    'force' => false
+];
+
+foreach ($args as $arg) {
+    if (strpos($arg, '--table=') === 0) {
+        $options['table'] = substr($arg, 8);
+    } elseif ($arg === '--list') {
+        $options['list'] = true;
+    } elseif ($arg === '--dry-run') {
+        $options['dry-run'] = true;
+    } elseif ($arg === '--force') {
+        $options['force'] = true;
+    } elseif ($arg === '--help' || $arg === '-h') {
+        showHelp();
+        exit(0);
+    }
+}
+
+function showHelp() {
+    echo <<<HELP
+MuseDock Migration Generator
+============================
+
+Usage:
+  php generate-migrations [options]
+
+Options:
+  --table=NAME    Generate migration for specific table only
+  --list          List all tables without migrations
+  --dry-run       Preview migrations without creating files
+  --force         Overwrite existing migration files
+  --help, -h      Show this help message
+
+Examples:
+  php generate-migrations                  # Generate all missing
+  php generate-migrations --table=users    # Single table
+  php generate-migrations --list           # Show pending tables
+  php generate-migrations --dry-run        # Preview mode
+
+HELP;
+}
+
+// Get all database tables
+function getAllTables($pdo) {
+    $stmt = $pdo->query("SHOW TABLES");
+    return $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
+
+// Get tables that already have migrations
+function getTablesWithMigrations() {
+    $migrationPath = BASE_PATH . '/database/migrations';
+    $tables = [];
+
+    if (!is_dir($migrationPath)) {
+        return $tables;
+    }
+
+    foreach (glob($migrationPath . '/*.php') as $file) {
+        $content = file_get_contents($file);
+        // Match CREATE TABLE statements
+        if (preg_match_all('/CREATE TABLE[^`]*`([^`]+)`/i', $content, $matches)) {
+            $tables = array_merge($tables, $matches[1]);
+        }
+        if (preg_match_all('/CREATE TABLE IF NOT EXISTS[^`]*`([^`]+)`/i', $content, $matches)) {
+            $tables = array_merge($tables, $matches[1]);
+        }
+        if (preg_match_all('/CREATE TABLE IF NOT EXISTS\s+(\w+)/i', $content, $matches)) {
+            $tables = array_merge($tables, $matches[1]);
+        }
+        if (preg_match_all('/CREATE TABLE\s+(\w+)\s*\(/i', $content, $matches)) {
+            $tables = array_merge($tables, $matches[1]);
+        }
+    }
+
+    return array_unique($tables);
+}
+
+// Get table structure
+function getTableStructure($pdo, $table) {
+    $stmt = $pdo->query("SHOW CREATE TABLE `{$table}`");
+    $result = $stmt->fetch();
+    return $result['Create Table'] ?? '';
+}
+
+// Get table columns with details
+function getTableColumns($pdo, $table) {
+    $stmt = $pdo->query("SHOW FULL COLUMNS FROM `{$table}`");
+    return $stmt->fetchAll();
+}
+
+// Get table indexes
+function getTableIndexes($pdo, $table) {
+    $stmt = $pdo->query("SHOW INDEX FROM `{$table}`");
+    return $stmt->fetchAll();
+}
+
+// Get foreign keys
+function getForeignKeys($pdo, $table, $database) {
+    $sql = "SELECT
+                CONSTRAINT_NAME,
+                COLUMN_NAME,
+                REFERENCED_TABLE_NAME,
+                REFERENCED_COLUMN_NAME
+            FROM information_schema.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA = ?
+              AND TABLE_NAME = ?
+              AND REFERENCED_TABLE_NAME IS NOT NULL";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$database, $table]);
+    return $stmt->fetchAll();
+}
+
+// Convert table name to class name
+function tableToClassName($table) {
+    return str_replace(' ', '', ucwords(str_replace('_', ' ', $table)));
+}
+
+// Generate migration content
+function generateMigration($pdo, $table, $database) {
+    $createStatement = getTableStructure($pdo, $table);
+    $className = tableToClassName($table);
+    $timestamp = date('Y_m_d_His');
+
+    // Clean up the CREATE statement for embedding
+    $createStatement = str_replace("\n", "\n                ", $createStatement);
+
+    $migration = <<<PHP
+<?php
+/**
+ * Migration: Create {$table} table
+ * Generated by MuseDock Migration Generator
+ * Generated at: {$timestamp}
+ */
+
+use Screenart\Musedock\Database;
+
+class Create{$className}Table_{$timestamp}
+{
+    public function up()
+    {
+        \$pdo = Database::connect();
+        \$driver = Database::getDriver();
+
+        if (\$driver === 'mysql') {
+            \$pdo->exec("
+                {$createStatement}
+            ");
+        } else {
+            // PostgreSQL version - needs manual adjustment
+            throw new \Exception('PostgreSQL schema not generated. Please create manually.');
+        }
+
+        echo "✓ Table {$table} created\\n";
+    }
+
+    public function down()
+    {
+        \$pdo = Database::connect();
+        \$pdo->exec("DROP TABLE IF EXISTS `{$table}`");
+        echo "✓ Table {$table} dropped\\n";
+    }
+}
+
+PHP;
+
+    return [
+        'timestamp' => $timestamp,
+        'filename' => "{$timestamp}_create_{$table}_table.php",
+        'content' => $migration,
+        'className' => "Create{$className}Table_{$timestamp}"
+    ];
+}
+
+// Determine dependency order based on foreign keys
+function getTableDependencyOrder($pdo, $tables, $database) {
+    $dependencies = [];
+
+    foreach ($tables as $table) {
+        $fks = getForeignKeys($pdo, $table, $database);
+        $dependencies[$table] = [];
+        foreach ($fks as $fk) {
+            if (in_array($fk['REFERENCED_TABLE_NAME'], $tables)) {
+                $dependencies[$table][] = $fk['REFERENCED_TABLE_NAME'];
+            }
+        }
+    }
+
+    // Topological sort
+    $sorted = [];
+    $visited = [];
+
+    $visit = function($table) use (&$visit, &$sorted, &$visited, $dependencies) {
+        if (isset($visited[$table])) return;
+        $visited[$table] = true;
+
+        foreach ($dependencies[$table] ?? [] as $dep) {
+            $visit($dep);
+        }
+
+        $sorted[] = $table;
+    };
+
+    foreach ($tables as $table) {
+        $visit($table);
+    }
+
+    return $sorted;
+}
+
+// ====================================
+// MAIN EXECUTION
+// ====================================
+
+echo "\n";
+echo "╔══════════════════════════════════════════╗\n";
+echo "║   MuseDock Migration Generator           ║\n";
+echo "╚══════════════════════════════════════════╝\n\n";
+
+// Get all tables
+$allTables = getAllTables($pdo);
+$tablesWithMigrations = getTablesWithMigrations();
+
+// Tables to skip (system tables, views)
+$skipTables = ['migrations', 'v_active_users'];
+
+// Filter tables without migrations
+$tablesToGenerate = array_filter($allTables, function($table) use ($tablesWithMigrations, $skipTables) {
+    return !in_array($table, $tablesWithMigrations) && !in_array($table, $skipTables);
+});
+
+// If specific table requested
+if ($options['table']) {
+    if (!in_array($options['table'], $allTables)) {
+        die("❌ Table '{$options['table']}' not found in database.\n");
+    }
+    $tablesToGenerate = [$options['table']];
+}
+
+// List mode
+if ($options['list']) {
+    echo "Tables without migrations (" . count($tablesToGenerate) . "):\n";
+    echo str_repeat("-", 50) . "\n";
+    foreach ($tablesToGenerate as $table) {
+        echo "  • {$table}\n";
+    }
+    echo "\n";
+    exit(0);
+}
+
+if (empty($tablesToGenerate)) {
+    echo "✓ All tables already have migrations!\n\n";
+    exit(0);
+}
+
+// Sort by dependencies
+$tablesToGenerate = getTableDependencyOrder($pdo, $tablesToGenerate, $database);
+
+echo "Generating migrations for " . count($tablesToGenerate) . " tables...\n";
+echo str_repeat("-", 50) . "\n\n";
+
+$migrationPath = BASE_PATH . '/database/migrations';
+if (!is_dir($migrationPath)) {
+    mkdir($migrationPath, 0755, true);
+}
+
+$generated = [];
+$baseTimestamp = strtotime('2025-01-01 00:00:00');
+$counter = 0;
+
+foreach ($tablesToGenerate as $table) {
+    // Generate sequential timestamps for proper ordering
+    $timestamp = date('Y_m_d_His', $baseTimestamp + ($counter * 2));
+    $migration = generateMigration($pdo, $table, $database);
+
+    // Override timestamp to maintain order
+    $migration['timestamp'] = $timestamp;
+    $migration['filename'] = "{$timestamp}_create_{$table}_table.php";
+
+    $filePath = $migrationPath . '/' . $migration['filename'];
+
+    echo "  [{$counter}] {$table}";
+
+    if (file_exists($filePath) && !$options['force']) {
+        echo " → SKIPPED (exists)\n";
+        $counter++;
+        continue;
+    }
+
+    if ($options['dry-run']) {
+        echo " → Would create: {$migration['filename']}\n";
+    } else {
+        file_put_contents($filePath, $migration['content']);
+        echo " → Created: {$migration['filename']}\n";
+    }
+
+    $generated[] = $migration;
+    $counter++;
+
+    // Small delay to ensure unique timestamps
+    usleep(100);
+}
+
+echo "\n" . str_repeat("-", 50) . "\n";
+
+if ($options['dry-run']) {
+    echo "DRY RUN: Would generate " . count($generated) . " migration files.\n";
+} else {
+    echo "✓ Generated " . count($generated) . " migration files.\n";
+}
+
+echo "\nNext steps:\n";
+echo "  1. Review generated migrations in database/migrations/\n";
+echo "  2. Adjust PostgreSQL support if needed\n";
+echo "  3. Run: php migrate\n\n";

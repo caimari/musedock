@@ -1,0 +1,113 @@
+{
+    "name": "Custom Forms",
+    "slug": "custom-forms",
+    "description": "Creador de formularios personalizados con drag & drop, múltiples tipos de campos y gestión de envíos",
+    "version": "1.0.0",
+    "author": "MuseDock",
+    "active": true,
+    "cms_enabled": true,
+    "tenant_enabled_default": true,
+
+    "requires": {
+        "php": ">=8.0",
+        "musedock": ">=1.0.0"
+    },
+
+    "autoload": {
+        "psr-4": {
+            "CustomForms\\Controllers\\": "controllers/",
+            "CustomForms\\Models\\": "models/",
+            "CustomForms\\Requests\\": "requests/"
+        }
+    },
+
+    "permissions": [
+        "custom_forms.manage",
+        "custom_forms.view",
+        "custom_forms.create",
+        "custom_forms.edit",
+        "custom_forms.delete",
+        "custom_forms.submissions.view",
+        "custom_forms.submissions.delete",
+        "custom_forms.submissions.export"
+    ],
+
+    "menu": {
+        "superadmin": {
+            "label": "Formularios",
+            "icon": "bi-ui-checks-grid",
+            "route": "custom-forms.index",
+            "order": 60,
+            "children": [
+                {
+                    "label": "Todos los formularios",
+                    "route": "custom-forms.index"
+                },
+                {
+                    "label": "Crear formulario",
+                    "route": "custom-forms.create"
+                },
+                {
+                    "label": "Envíos",
+                    "route": "custom-forms.submissions.index"
+                }
+            ]
+        },
+        "tenant": {
+            "label": "Formularios",
+            "icon": "bi-ui-checks-grid",
+            "route": "tenant.custom-forms.index",
+            "order": 60,
+            "children": [
+                {
+                    "label": "Mis formularios",
+                    "route": "tenant.custom-forms.index"
+                },
+                {
+                    "label": "Crear formulario",
+                    "route": "tenant.custom-forms.create"
+                },
+                {
+                    "label": "Envíos",
+                    "route": "tenant.custom-forms.submissions.index"
+                }
+            ]
+        }
+    },
+
+    "settings": {
+        "default_success_message": "Gracias por tu envío. Te contactaremos pronto.",
+        "default_error_message": "Hubo un error al enviar el formulario. Por favor, intenta de nuevo.",
+        "enable_recaptcha": false,
+        "recaptcha_site_key": "",
+        "recaptcha_secret_key": "",
+        "max_file_size_mb": 5,
+        "allowed_file_types": "pdf,doc,docx,jpg,jpeg,png,gif",
+        "store_submissions": true,
+        "send_email_notifications": true,
+        "default_from_email": "",
+        "default_from_name": ""
+    },
+
+    "field_types": [
+        "text",
+        "email",
+        "number",
+        "phone",
+        "textarea",
+        "select",
+        "radio",
+        "checkbox",
+        "checkbox_group",
+        "date",
+        "time",
+        "datetime",
+        "file",
+        "hidden",
+        "url",
+        "password",
+        "heading",
+        "paragraph",
+        "divider"
+    ]
+}

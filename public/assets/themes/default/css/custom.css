@@ -1,0 +1,28 @@
+:root {
+  --topbar-bg-color: #1a2a40;
+  --topbar-text-color: #ffffff;
+  --header-bg-color: #f3edcd;
+  --header-cta-bg-color: #ff5e15;
+  --header-cta-text-color: #ffffff;
+  --footer-bg-color: #d3d9e4;
+  --footer-text-color: #333333;
+  --footer-link-color: #333333;
+  --footer-link-hover-color: #ff5e15;
+}
+
+
+/* Aplicación de la variable al elemento HTML correcto */
+.header-bottom {
+  background-color: var(--header-bg-color);
+}
+
+/* --- CSS Personalizado --- */
+/* Ejemplos:
+.header-bottom {
+  background-color: #ff0000 !important;
+}
+
+.footer-area h4 {
+  color: #00ff00 !important;
+}
+*/
