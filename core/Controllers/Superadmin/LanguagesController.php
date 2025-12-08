@@ -19,7 +19,8 @@ class LanguagesController
         $languages = Database::table('languages')
             ->select('languages.*, tenants.name as tenant_name, tenants.domain as tenant_domain')
             ->leftJoin('tenants', 'languages.tenant_id', '=', 'tenants.id')
-            ->orderBy('languages.code')
+            ->orderBy('languages.order_position')
+            ->orderBy('languages.id')
             ->get();
 
         return View::renderSuperadmin('languages.index', [
@@ -122,12 +123,54 @@ class LanguagesController
         $lang = Database::table('languages')->where('id', $id)->first();
         $newStatus = ($lang->active ?? 0) ? 0 : 1;
 
+        // Check if trying to deactivate the last active language
+        if ($newStatus === 0) {
+            $activeCount = Database::table('languages')
+                ->where('active', 1)
+                ->count();
+
+            if ($activeCount <= 1) {
+                flash('error', 'No se puede desactivar el último idioma activo.');
+                header('Location: /musedock/languages');
+                exit;
+            }
+        }
+
         Database::table('languages')
             ->where('id', $id)
             ->update(['active' => $newStatus]);
 
         flash('success', 'Idioma actualizado.');
         header('Location: /musedock/languages');
+        exit;
+    }
+
+    /**
+     * Update language order via AJAX (drag & drop)
+     */
+    public function updateOrder()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('languages.manage');
+
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        $order = $input['order'] ?? [];
+
+        if (empty($order)) {
+            echo json_encode(['success' => false, 'error' => 'No order data provided']);
+            exit;
+        }
+
+        $pdo = Database::connect();
+
+        foreach ($order as $position => $id) {
+            $stmt = $pdo->prepare("UPDATE languages SET order_position = ? WHERE id = ?");
+            $stmt->execute([$position, $id]);
+        }
+
+        echo json_encode(['success' => true]);
         exit;
     }
 }

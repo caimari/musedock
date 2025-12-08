@@ -123,7 +123,7 @@
             <div class="mb-3">
               <label class="form-label">
                 {{ __('settings.site_language') }}
-                <small class="text-muted">({{ __('settings.manage_languages_link') }} <a href="{{ route('settings.languages') }}">{{ __('menu.settings') }} → {{ __('menu.languages') }}</a>)</small>
+                <small class="text-muted">({{ __('settings.manage_languages_link') }} <a href="{{ route('languages.index') }}">{{ __('menu.languages') }}</a>)</small>
               </label>
               <select name="force_lang" class="form-select">
                 <option value="">{{ __('settings.auto_detect_language') }}</option>

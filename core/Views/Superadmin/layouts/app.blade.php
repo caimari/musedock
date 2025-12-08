@@ -468,26 +468,44 @@
                         </li>
                     @endif
 
-                    {{-- Selector de Idioma --}}
+                    {{-- Selector de Idioma (solo si hay más de un idioma activo) --}}
+                    @php
+                        $adminActiveLanguages = [];
+                        try {
+                            $pdo = \Screenart\Musedock\Database::connect();
+                            $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE active = 1 ORDER BY order_position ASC, id ASC");
+                            $stmt->execute();
+                            $adminActiveLanguages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                        } catch (\Exception $e) {
+                            $adminActiveLanguages = [['code' => 'es', 'name' => 'Español'], ['code' => 'en', 'name' => 'English']];
+                        }
+                        $currentLocale = app_locale();
+                        $currentUrl = $_SERVER['REQUEST_URI'] ?? '/musedock/dashboard';
+                        $showAdminLangSelector = count($adminActiveLanguages) > 1;
+
+                        // Mapeo de códigos a banderas
+                        $langFlags = [
+                            'es' => '🇪🇸', 'en' => '🇺🇸', 'fr' => '🇫🇷', 'de' => '🇩🇪',
+                            'it' => '🇮🇹', 'pt' => '🇵🇹', 'nl' => '🇳🇱', 'ru' => '🇷🇺',
+                            'zh' => '🇨🇳', 'ja' => '🇯🇵', 'ko' => '🇰🇷', 'ar' => '🇸🇦'
+                        ];
+                    @endphp
+                    @if($showAdminLangSelector)
                     <li class="nav-item dropdown">
                         <a class="nav-icon dropdown-toggle" href="#" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="align-middle" data-feather="globe"></i>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end language-dropdown" aria-labelledby="languageDropdown">
-                            @php
-                                $currentLocale = app_locale();
-                                $currentUrl = $_SERVER['REQUEST_URI'] ?? '/musedock/dashboard';
-                            @endphp
-                            <a class="dropdown-item d-flex align-items-center gap-2{{ $currentLocale === 'es' ? ' active' : '' }}" href="/musedock/language/switch?locale=es&redirect={{ urlencode($currentUrl) }}">
-                                <span class="language-flag" aria-hidden="true">🇪🇸</span>
-                                <span class="language-label">Español</span>
-                            </a>
-                            <a class="dropdown-item d-flex align-items-center gap-2{{ $currentLocale === 'en' ? ' active' : '' }}" href="/musedock/language/switch?locale=en&redirect={{ urlencode($currentUrl) }}">
-                                <span class="language-flag" aria-hidden="true">🇺🇸</span>
-                                <span class="language-label">English</span>
-                            </a>
+                            @foreach($adminActiveLanguages as $langItem)
+                                <a class="dropdown-item d-flex align-items-center gap-2{{ $currentLocale === $langItem['code'] ? ' active' : '' }}"
+                                   href="/musedock/language/switch?locale={{ $langItem['code'] }}&redirect={{ urlencode($currentUrl) }}">
+                                    <span class="language-flag" aria-hidden="true">{{ $langFlags[$langItem['code']] ?? '🌐' }}</span>
+                                    <span class="language-label">{{ $langItem['name'] }}</span>
+                                </a>
+                            @endforeach
                         </div>
                     </li>
+                    @endif
 
                     {{-- Dropdown de Usuario (usando datos PHP) --}}
                     <li class="nav-item dropdown">

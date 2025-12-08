@@ -34,16 +34,18 @@
                                 </a>
                             </div>
 
-                            <!-- Selector de idiomas como SELECT -->
-                            <div class="language-selector my-4 text-left">
-                                @php
-                                    $pdo = \Screenart\Musedock\Database::connect();
-                                    $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE active = 1 ORDER BY id ASC");
-                                    $stmt->execute();
-                                    $activeLanguages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                                    $currentLang = $_SESSION['lang'] ?? setting('language', 'es');
-                                @endphp
+                            <!-- Selector de idiomas como SELECT (solo si hay más de un idioma activo) -->
+                            @php
+                                $pdo = \Screenart\Musedock\Database::connect();
+                                $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE active = 1 ORDER BY order_position ASC, id ASC");
+                                $stmt->execute();
+                                $activeLanguages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                                $currentLang = $_SESSION['lang'] ?? setting('language', 'es');
+                                $showFooterLangSelector = count($activeLanguages) > 1;
+                            @endphp
 
+                            @if($showFooterLangSelector)
+                            <div class="language-selector my-4 text-left">
                                 <form action="" method="get" id="language-form" class="d-inline-block">
                                     <select name="lang" id="language-select" class="custom-language-select" style="width: 120px;" onchange="this.form.submit();">
                                         @foreach($activeLanguages as $lang)
@@ -54,6 +56,7 @@
                                     </select>
                                 </form>
                             </div>
+                            @endif
                          </div>
                          
                          <!-- social -->

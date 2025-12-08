@@ -652,9 +652,235 @@ public function deleteFavicon()
         
         // Mensaje de éxito para mostrar en la siguiente carga
         flash('success', 'La caché de las vistas Blade ha sido borrada correctamente.');
-        
+
         // Redirigir de vuelta al formulario de Ajustes Avanzados
         header('Location: ' . route('settings.advanced'));
         exit;
+    }
+
+    /**
+     * Configuración de Email/SMTP
+     */
+    public function email()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.view');
+
+        // Leer configuración actual del .env
+        $envPath = dirname(__DIR__, 3) . '/.env';
+        $envConfig = $this->parseEnvFile($envPath);
+
+        return View::renderSuperadmin('settings.email', [
+            'title' => 'Configuración de Email',
+            'envConfig' => $envConfig,
+        ]);
+    }
+
+    /**
+     * Guardar configuración de Email
+     */
+    public function updateEmail()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.edit');
+
+        $envPath = dirname(__DIR__, 3) . '/.env';
+
+        $emailSettings = [
+            'MAIL_DRIVER' => $_POST['mail_driver'] ?? 'smtp',
+            'SMTP_HOST' => $_POST['smtp_host'] ?? '',
+            'SMTP_PORT' => $_POST['smtp_port'] ?? '587',
+            'SMTP_USERNAME' => $_POST['smtp_username'] ?? '',
+            'SMTP_PASSWORD' => $_POST['smtp_password'] ?? '',
+            'SMTP_ENCRYPTION' => $_POST['smtp_encryption'] ?? 'tls',
+            'MAIL_FROM_ADDRESS' => $_POST['mail_from_address'] ?? '',
+            'MAIL_FROM_NAME' => $_POST['mail_from_name'] ?? '',
+        ];
+
+        // No guardar password si está vacío (mantener el actual)
+        if (empty($emailSettings['SMTP_PASSWORD'])) {
+            $currentEnv = $this->parseEnvFile($envPath);
+            $emailSettings['SMTP_PASSWORD'] = $currentEnv['SMTP_PASSWORD'] ?? '';
+        }
+
+        $this->updateEnvFile($envPath, $emailSettings);
+
+        flash('success', 'Configuración de email guardada correctamente.');
+        header('Location: ' . route('settings.email'));
+        exit;
+    }
+
+    /**
+     * Configuración de Storage/Disco
+     */
+    public function storage()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.view');
+
+        // Leer configuración actual del .env
+        $envPath = dirname(__DIR__, 3) . '/.env';
+        $envConfig = $this->parseEnvFile($envPath);
+
+        return View::renderSuperadmin('settings.storage', [
+            'title' => 'Configuración de Storage',
+            'envConfig' => $envConfig,
+        ]);
+    }
+
+    /**
+     * Guardar configuración de Storage
+     */
+    public function updateStorage()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.edit');
+
+        $envPath = dirname(__DIR__, 3) . '/.env';
+        $driver = $_POST['filesystem_disk'] ?? 'local';
+
+        $storageSettings = [
+            'FILESYSTEM_DISK' => $driver,
+        ];
+
+        // Configuración de Cloudflare R2
+        if ($driver === 'r2' || !empty($_POST['r2_access_key_id'])) {
+            $storageSettings['R2_ACCESS_KEY_ID'] = $_POST['r2_access_key_id'] ?? '';
+            $storageSettings['R2_SECRET_ACCESS_KEY'] = $_POST['r2_secret_access_key'] ?? '';
+            $storageSettings['R2_BUCKET'] = $_POST['r2_bucket'] ?? '';
+            $storageSettings['R2_ENDPOINT'] = $_POST['r2_endpoint'] ?? '';
+            $storageSettings['R2_URL'] = $_POST['r2_url'] ?? '';
+
+            // No guardar secret si está vacío
+            if (empty($storageSettings['R2_SECRET_ACCESS_KEY'])) {
+                $currentEnv = $this->parseEnvFile($envPath);
+                $storageSettings['R2_SECRET_ACCESS_KEY'] = $currentEnv['R2_SECRET_ACCESS_KEY'] ?? '';
+            }
+        }
+
+        // Configuración de Amazon S3
+        if ($driver === 's3' || !empty($_POST['aws_access_key_id'])) {
+            $storageSettings['AWS_ACCESS_KEY_ID'] = $_POST['aws_access_key_id'] ?? '';
+            $storageSettings['AWS_SECRET_ACCESS_KEY'] = $_POST['aws_secret_access_key'] ?? '';
+            $storageSettings['AWS_DEFAULT_REGION'] = $_POST['aws_default_region'] ?? 'eu-west-1';
+            $storageSettings['AWS_BUCKET'] = $_POST['aws_bucket'] ?? '';
+            $storageSettings['AWS_URL'] = $_POST['aws_url'] ?? '';
+
+            // No guardar secret si está vacío
+            if (empty($storageSettings['AWS_SECRET_ACCESS_KEY'])) {
+                $currentEnv = $this->parseEnvFile($envPath);
+                $storageSettings['AWS_SECRET_ACCESS_KEY'] = $currentEnv['AWS_SECRET_ACCESS_KEY'] ?? '';
+            }
+        }
+
+        // Configuración de IONOS S3
+        if ($driver === 'ionos' || !empty($_POST['ionos_access_key_id'])) {
+            $storageSettings['IONOS_ACCESS_KEY_ID'] = $_POST['ionos_access_key_id'] ?? '';
+            $storageSettings['IONOS_SECRET_ACCESS_KEY'] = $_POST['ionos_secret_access_key'] ?? '';
+            $storageSettings['IONOS_BUCKET'] = $_POST['ionos_bucket'] ?? '';
+            $storageSettings['IONOS_REGION'] = $_POST['ionos_region'] ?? 'de';
+            $storageSettings['IONOS_ENDPOINT'] = $_POST['ionos_endpoint'] ?? '';
+            $storageSettings['IONOS_URL'] = $_POST['ionos_url'] ?? '';
+
+            // No guardar secret si está vacío
+            if (empty($storageSettings['IONOS_SECRET_ACCESS_KEY'])) {
+                $currentEnv = $this->parseEnvFile($envPath);
+                $storageSettings['IONOS_SECRET_ACCESS_KEY'] = $currentEnv['IONOS_SECRET_ACCESS_KEY'] ?? '';
+            }
+        }
+
+        $this->updateEnvFile($envPath, $storageSettings);
+
+        flash('success', 'Configuración de storage guardada correctamente.');
+        header('Location: ' . route('settings.storage'));
+        exit;
+    }
+
+    /**
+     * Parsear archivo .env y devolver array asociativo
+     */
+    private function parseEnvFile(string $path): array
+    {
+        $config = [];
+
+        if (!file_exists($path)) {
+            return $config;
+        }
+
+        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
+        foreach ($lines as $line) {
+            // Ignorar comentarios
+            if (strpos(trim($line), '#') === 0) {
+                continue;
+            }
+
+            // Parsear KEY=VALUE
+            if (strpos($line, '=') !== false) {
+                list($key, $value) = explode('=', $line, 2);
+                $key = trim($key);
+                $value = trim($value);
+
+                // Remover comillas si existen
+                if ((substr($value, 0, 1) === '"' && substr($value, -1) === '"') ||
+                    (substr($value, 0, 1) === "'" && substr($value, -1) === "'")) {
+                    $value = substr($value, 1, -1);
+                }
+
+                $config[$key] = $value;
+            }
+        }
+
+        return $config;
+    }
+
+    /**
+     * Actualizar variables en el archivo .env
+     */
+    private function updateEnvFile(string $path, array $settings): bool
+    {
+        if (!file_exists($path)) {
+            return false;
+        }
+
+        $content = file_get_contents($path);
+        $lines = explode("\n", $content);
+        $updatedKeys = [];
+
+        foreach ($lines as $i => $line) {
+            // Ignorar líneas vacías y comentarios
+            if (empty(trim($line)) || strpos(trim($line), '#') === 0) {
+                continue;
+            }
+
+            // Buscar KEY=VALUE
+            if (strpos($line, '=') !== false) {
+                list($key) = explode('=', $line, 2);
+                $key = trim($key);
+
+                if (array_key_exists($key, $settings)) {
+                    $value = $settings[$key];
+                    // Escapar valor si contiene espacios o caracteres especiales
+                    if (preg_match('/[\s#\'"=]/', $value)) {
+                        $value = '"' . addslashes($value) . '"';
+                    }
+                    $lines[$i] = "{$key}={$value}";
+                    $updatedKeys[] = $key;
+                }
+            }
+        }
+
+        // Añadir claves que no existían
+        foreach ($settings as $key => $value) {
+            if (!in_array($key, $updatedKeys)) {
+                // Escapar valor si contiene espacios o caracteres especiales
+                if (preg_match('/[\s#\'"=]/', $value)) {
+                    $value = '"' . addslashes($value) . '"';
+                }
+                $lines[] = "{$key}={$value}";
+            }
+        }
+
+        return file_put_contents($path, implode("\n", $lines)) !== false;
     }
 }

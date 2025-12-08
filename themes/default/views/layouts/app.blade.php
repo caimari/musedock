@@ -833,21 +833,23 @@ body.mobile-menu-open {
 
                     @if($langSelectorEnabled)
                         {{-- Selector de Idioma Escritorio --}}
-                        <div class="lang-select">
-                            @php
-                                // --- Lógica para obtener idiomas (Sin cambios) ---
-                                try {
-                                    $pdo = \Screenart\Musedock\Database::connect();
-                                    $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE active = 1 ORDER BY id ASC");
-                                    $stmt->execute();
-                                    $languages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                                } catch (\Exception $e) {
-                                    // Fallback por si falla la DB
-                                    $languages = [['code' => 'es', 'name' => 'Español'], ['code' => 'en', 'name' => 'English']];
-                                }
-                                $currentLang = $_SESSION['lang'] ?? setting('language', 'es');
-                            @endphp
+                        @php
+                            // --- Lógica para obtener idiomas ordenados ---
+                            try {
+                                $pdo = \Screenart\Musedock\Database::connect();
+                                $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE active = 1 ORDER BY order_position ASC, id ASC");
+                                $stmt->execute();
+                                $languages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                            } catch (\Exception $e) {
+                                // Fallback por si falla la DB
+                                $languages = [['code' => 'es', 'name' => 'Español'], ['code' => 'en', 'name' => 'English']];
+                            }
+                            $currentLang = $_SESSION['lang'] ?? setting('language', 'es');
+                            $showLangSelector = count($languages) > 1;
+                        @endphp
 
+                        @if($showLangSelector)
+                        <div class="lang-select">
                             <button type="button" class="lang-btn">
                                 {{ strtoupper($currentLang) }}
                             </button>
@@ -861,6 +863,7 @@ body.mobile-menu-open {
                                 @endforeach
                             </div>
                         </div>
+                        @endif
                     @endif
 
                     <!-- Toggle único para móvil (se mostrará/ocultará con CSS) -->
@@ -879,22 +882,22 @@ body.mobile-menu-open {
 <!-- Menú móvil completamente nuevo -->
 <div class="mobile-menu" id="mobile-menu">
     <div class="mobile-menu-header">
-        {{-- Asegúrate que la variable $languages está disponible aquí también, o pásala de nuevo --}}
+        {{-- Re-obtener idiomas si no están en scope --}}
         @php
              try {
-                 // Re-obtener idiomas si no están en scope global o pasados por el controlador
-                 if (!isset($languages)) {
+                 if (!isset($languages) || !isset($showLangSelector)) {
                      $pdo = \Screenart\Musedock\Database::connect();
-                     $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE active = 1 ORDER BY id ASC");
+                     $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE active = 1 ORDER BY order_position ASC, id ASC");
                      $stmt->execute();
                      $languages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                      $currentLang = $_SESSION['lang'] ?? setting('language', 'es');
+                     $showLangSelector = count($languages) > 1;
                  }
              } catch (\Exception $e) {
-                 // Fallback si la DB falla o $languages no existe
                  if (!isset($languages)) {
                      $languages = [['code' => 'es', 'name' => 'Español'], ['code' => 'en', 'name' => 'English']];
                      $currentLang = $_SESSION['lang'] ?? setting('language', 'es');
+                     $showLangSelector = true;
                  }
              }
          @endphp
@@ -913,20 +916,20 @@ body.mobile-menu-open {
              ])
         </nav>
 
+        @if($showLangSelector)
         <div class="mobile-languages">
             <h4>Selecciona tu idioma:</h4>
             <div class="mobile-lang-select">
-                {{-- Asegúrate que $languages y $currentLang estén definidos aquí --}}
                 <select id="mobile-lang-switcher" onchange="window.location.href='?lang=' + this.value;">
                     @foreach($languages as $lang)
                         <option value="{{ $lang['code'] }}" {{ $currentLang == $lang['code'] ? 'selected' : '' }}>
-                            {{-- Muestra el nombre completo si está disponible, sino el código --}}
                             {{ $lang['name'] ?? strtoupper($lang['code']) }}
                         </option>
                     @endforeach
                 </select>
             </div>
         </div>
+        @endif
 
         {{-- Botón CTA móvil - usa la misma config que el navbar --}}
         @if($ctaEnabled)

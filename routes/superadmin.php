@@ -167,6 +167,7 @@ Route::get('/musedock/languages/{id}/edit', 'superadmin.LanguagesController@edit
 Route::post('/musedock/languages/{id}/update', 'superadmin.LanguagesController@update')->middleware('superadmin')->name('languages.update');
 Route::post('/musedock/languages/{id}/delete', 'superadmin.LanguagesController@delete')->middleware('superadmin')->name('languages.delete');
 Route::post('/musedock/languages/{id}/toggle', 'superadmin.LanguagesController@toggle')->middleware('superadmin')->name('languages.toggle');
+Route::post('/musedock/languages/update-order', 'superadmin.LanguagesController@updateOrder')->middleware('superadmin')->name('languages.update-order');
 
 
 // Sesiones
@@ -193,6 +194,14 @@ Route::get('/musedock/settings/advanced', 'superadmin.SettingsController@advance
 Route::post('/musedock/settings/advanced', 'superadmin.SettingsController@updateAdvanced')->name('settings.advanced.update')->middleware('superadmin');
 Route::get('/musedock/settings/advanced/clear-blade-cache', 'superadmin.SettingsController@clearBladeCache')->name('settings.clear-blade-cache')->middleware('superadmin');
 Route::get('/musedock/settings/check-updates', 'superadmin.SettingsController@checkUpdates')->name('settings.check-updates')->middleware('superadmin');
+
+// Settings - Email
+Route::get('/musedock/settings/email', 'superadmin.SettingsController@email')->name('settings.email')->middleware('superadmin');
+Route::post('/musedock/settings/email', 'superadmin.SettingsController@updateEmail')->name('settings.email.update')->middleware('superadmin');
+
+// Settings - Storage
+Route::get('/musedock/settings/storage', 'superadmin.SettingsController@storage')->name('settings.storage')->middleware('superadmin');
+Route::post('/musedock/settings/storage', 'superadmin.SettingsController@updateStorage')->name('settings.storage.update')->middleware('superadmin');
 
 // Settings - Languages
 Route::get('/musedock/settings/languages', 'superadmin.SettingsController@languages')
