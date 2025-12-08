@@ -790,7 +790,7 @@ $step = max(1, min(5, $step));
         }
 
         .brand p {
-            color: var(--text-muted);
+            color: #e5e7eb; /* Gris claro legible */
             font-size: 1.1rem;
         }
 
@@ -862,6 +862,7 @@ $step = max(1, min(5, $step));
             margin: 0;
             font-size: 1.5rem;
             font-weight: 600;
+            color: var(--text-light); /* Blanco */
         }
 
         .card-body {
@@ -891,6 +892,11 @@ $step = max(1, min(5, $step));
 
         .form-control::placeholder {
             color: var(--text-muted);
+        }
+
+        /* Override Bootstrap text-muted for better visibility */
+        .text-muted, small {
+            color: #9ca3af !important;
         }
 
         .btn-primary {
@@ -1374,8 +1380,8 @@ $step = max(1, min(5, $step));
             </div>
         </div>
 
-        <p class="text-center text-muted mt-4">
-            <small>MuseDock CMS &copy; <?= date('Y') ?> | <a href="https://musedock.org" target="_blank" class="text-muted">Documentation</a></small>
+        <p class="text-center mt-4" style="color: #9ca3af;">
+            <small>MuseDock CMS &copy; <?= date('Y') ?> | <a href="https://musedock.org" target="_blank" style="color: #d1d5db; text-decoration: none;">Documentation</a></small>
         </p>
     </div>
 
