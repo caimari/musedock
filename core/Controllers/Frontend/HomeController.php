@@ -98,27 +98,37 @@ class HomeController
             error_log("HomeController: No se encontró homepage para este dominio.");
             http_response_code(404);
 
+            // Obtener favicon configurado
+            $favicon = setting('site_favicon', '/assets/superadmin/img/favicon.ico');
+
             // Mostrar mensaje simple sin fallback de contenido
             return "<!DOCTYPE html>
 <html lang=\"es\">
 <head>
     <meta charset=\"UTF-8\">
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <link rel=\"icon\" type=\"image/x-icon\" href=\"" . htmlspecialchars($favicon) . "\">
     <title>Sitio en construcción - " . setting('site_name', 'MuseDock') . "</title>
     <style>
-        body { font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f5f5f5; }
-        .container { text-align: center; padding: 2rem; }
-        h1 { color: #333; margin-bottom: 1rem; }
-        p { color: #666; }
-        .logo { font-size: 3rem; margin-bottom: 1rem; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .container { text-align: center; padding: 3rem; background: white; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 500px; margin: 1rem; }
+        h1 { color: #333; margin-bottom: 1rem; font-size: 1.75rem; }
+        p { color: #666; margin: 0.5rem 0; line-height: 1.6; }
+        .logo { font-size: 4rem; margin-bottom: 1.5rem; }
+        .hint { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 1rem; margin-top: 1.5rem; }
+        .hint p { color: #856404; font-size: 0.9rem; margin: 0; }
+        .hint strong { color: #664d03; }
     </style>
 </head>
 <body>
     <div class=\"container\">
         <div class=\"logo\">🚧</div>
         <h1>Sitio en construcción</h1>
-        <p>Este dominio aún no tiene contenido configurado.</p>
-        <p><small>Accede al panel de administración para crear tu primera página.</small></p>
+        <p>Este dominio aún no tiene una página de inicio configurada.</p>
+        <div class=\"hint\">
+            <p><strong>¿Eres el administrador?</strong></p>
+            <p>Accede al panel de administración, crea una página y márcala como <strong>\"Página de inicio\"</strong> en la configuración de la página.</p>
+        </div>
     </div>
 </body>
 </html>";
