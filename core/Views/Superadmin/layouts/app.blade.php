@@ -171,9 +171,21 @@
   }
 
   // Función auxiliar para verificar si una URL está activa
+  // Comparación exacta o con query string, pero NO por prefijo para evitar falsos positivos
   $isUrlActive = function($url, $currentUrl) {
     if (empty($url) || $url === '#') return false;
-    return str_starts_with($currentUrl, $url) || $currentUrl === $url;
+
+    // Remover query string para comparación
+    $currentPath = strtok($currentUrl, '?');
+    $urlPath = strtok($url, '?');
+
+    // Comparación exacta
+    if ($currentPath === $urlPath) return true;
+
+    // Comparación exacta con trailing slash
+    if (rtrim($currentPath, '/') === rtrim($urlPath, '/')) return true;
+
+    return false;
   };
 
   // Función para verificar si un menú padre tiene algún hijo activo

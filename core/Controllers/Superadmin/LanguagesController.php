@@ -109,6 +109,32 @@ class LanguagesController
         SessionSecurity::startSession();
         $this->checkPermission('languages.manage');
 
+        // Verify password
+        $password = $_POST['password'] ?? '';
+        if (empty($password)) {
+            flash('error', 'Debes confirmar con tu contraseña.');
+            header('Location: /musedock/languages');
+            exit;
+        }
+
+        // Get current user and verify password
+        $auth = SessionSecurity::getAuthenticatedUser();
+        $user = Database::table('super_admins')->where('id', $auth['id'])->first();
+
+        if (!$user || !password_verify($password, $user->password)) {
+            flash('error', 'Contraseña incorrecta.');
+            header('Location: /musedock/languages');
+            exit;
+        }
+
+        // Check if this is the last language
+        $count = Database::table('languages')->count();
+        if ($count <= 1) {
+            flash('error', 'No se puede eliminar el último idioma.');
+            header('Location: /musedock/languages');
+            exit;
+        }
+
         Database::table('languages')->where('id', $id)->delete();
         flash('success', 'Idioma eliminado.');
         header('Location: /musedock/languages');

@@ -319,6 +319,26 @@ class SuperadminMenuSeeder
                 'order_position' => 9,
                 'is_active' => 1
             ]);
+            $this->insertMenu([
+                'parent_id' => $settingsId,
+                'title' => 'Email',
+                'slug' => 'email-settings',
+                'url' => '{admin_path}/settings/email',
+                'icon' => 'bi-envelope',
+                'icon_type' => 'bi',
+                'order_position' => 10,
+                'is_active' => 1
+            ]);
+            $this->insertMenu([
+                'parent_id' => $settingsId,
+                'title' => 'Storage',
+                'slug' => 'storage-settings',
+                'url' => '{admin_path}/settings/storage',
+                'icon' => 'bi-hdd',
+                'icon_type' => 'bi',
+                'order_position' => 11,
+                'is_active' => 1
+            ]);
         }
 
         // Submenús de IA

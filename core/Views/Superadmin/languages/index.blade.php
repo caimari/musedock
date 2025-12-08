@@ -66,12 +66,12 @@
                 <a href="{{ route('languages.edit', $lang->id) }}" class="btn btn-sm btn-primary">
                   <i class="bi bi-pencil"></i>
                 </a>
-                <form action="{{ route('languages.delete', $lang->id) }}" method="POST" class="d-inline delete-form">
-                  {!! csrf_field() !!}
-                  <button type="submit" class="btn btn-sm btn-danger">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </form>
+                <button type="button" class="btn btn-sm btn-danger btn-delete-lang"
+                        data-id="{{ $lang->id }}"
+                        data-name="{{ $lang->name }}"
+                        data-code="{{ $lang->code }}">
+                  <i class="bi bi-trash"></i>
+                </button>
               </td>
             </tr>
             @endforeach
@@ -120,6 +120,7 @@
 document.addEventListener('DOMContentLoaded', function() {
   const tbody = document.getElementById('sortable-languages');
 
+  // Drag & Drop ordering
   if (tbody && typeof Sortable !== 'undefined') {
     new Sortable(tbody, {
       handle: '.drag-handle',
@@ -141,7 +142,6 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            // Show brief success feedback
             const toast = document.createElement('div');
             toast.className = 'position-fixed bottom-0 end-0 p-3';
             toast.style.zIndex = '11';
@@ -161,12 +161,62 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Confirm delete
-  document.querySelectorAll('.delete-form').forEach(form => {
-    form.addEventListener('submit', function(e) {
-      if (!confirm('¿Seguro que quieres eliminar este idioma?')) {
-        e.preventDefault();
-      }
+  // Delete with SweetAlert2 password confirmation
+  document.querySelectorAll('.btn-delete-lang').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const langId = this.dataset.id;
+      const langName = this.dataset.name;
+      const langCode = this.dataset.code;
+
+      Swal.fire({
+        title: '¿Eliminar idioma?',
+        html: `
+          <p>Vas a eliminar el idioma <strong>${langName} (${langCode})</strong>.</p>
+          <p class="text-danger"><small>Esta acción no se puede deshacer.</small></p>
+          <p>Escribe tu contraseña para confirmar:</p>
+        `,
+        input: 'password',
+        inputPlaceholder: 'Tu contraseña',
+        inputAttributes: {
+          autocomplete: 'current-password'
+        },
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-trash me-1"></i> Eliminar',
+        cancelButtonText: 'Cancelar',
+        showLoaderOnConfirm: true,
+        preConfirm: (password) => {
+          if (!password) {
+            Swal.showValidationMessage('Debes introducir tu contraseña');
+            return false;
+          }
+
+          // Create form and submit
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '/musedock/languages/' + langId + '/delete';
+
+          const csrfInput = document.createElement('input');
+          csrfInput.type = 'hidden';
+          csrfInput.name = '_token';
+          csrfInput.value = '{{ csrf_token() }}';
+          form.appendChild(csrfInput);
+
+          const passwordInput = document.createElement('input');
+          passwordInput.type = 'hidden';
+          passwordInput.name = 'password';
+          passwordInput.value = password;
+          form.appendChild(passwordInput);
+
+          document.body.appendChild(form);
+          form.submit();
+
+          return true;
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+      });
     });
   });
 });
