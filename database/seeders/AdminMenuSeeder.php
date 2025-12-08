@@ -5,7 +5,7 @@ namespace Screenart\Musedock\Database\Seeders;
 use Screenart\Musedock\Database;
 
 /**
- * Seeder para menús del panel de administración
+ * Seeder para menús del panel de administración de tenants
  */
 class AdminMenuSeeder
 {
@@ -21,139 +21,163 @@ class AdminMenuSeeder
         $menus = [
             // Dashboard
             [
-                'name' => 'Dashboard',
+                'title' => 'Dashboard',
                 'slug' => 'dashboard',
                 'icon' => 'bi-speedometer2',
-                'route' => '/admin/dashboard',
+                'url' => '/admin/dashboard',
                 'parent_id' => null,
-                'order' => 1,
-                'permission' => 'dashboard.view',
+                'order_position' => 1,
+                'permission' => null,
                 'is_active' => 1
             ],
             // Contenido
             [
-                'name' => 'Contenido',
+                'title' => 'Contenido',
                 'slug' => 'content',
                 'icon' => 'bi-file-earmark-text',
-                'route' => null,
+                'url' => '#',
                 'parent_id' => null,
-                'order' => 2,
+                'order_position' => 2,
                 'permission' => null,
                 'is_active' => 1
             ],
             [
-                'name' => 'Páginas',
+                'title' => 'Páginas',
                 'slug' => 'pages',
                 'icon' => 'bi-file-text',
-                'route' => '/admin/pages',
-                'parent_id' => 2, // Contenido
-                'order' => 1,
+                'url' => '/admin/pages',
+                'parent_id' => 'content',
+                'order_position' => 1,
                 'permission' => 'pages.view',
                 'is_active' => 1
             ],
             [
-                'name' => 'Blog',
+                'title' => 'Blog',
                 'slug' => 'blog',
                 'icon' => 'bi-journal-richtext',
-                'route' => '/admin/blog',
-                'parent_id' => 2, // Contenido
-                'order' => 2,
+                'url' => '/admin/blog',
+                'parent_id' => 'content',
+                'order_position' => 2,
                 'permission' => 'blog.view',
                 'is_active' => 1
             ],
             // Medios
             [
-                'name' => 'Medios',
+                'title' => 'Medios',
                 'slug' => 'media',
                 'icon' => 'bi-images',
-                'route' => '/admin/media',
+                'url' => '/admin/media',
                 'parent_id' => null,
-                'order' => 3,
-                'permission' => 'media.view',
+                'order_position' => 3,
+                'permission' => 'media.manage',
                 'is_active' => 1
             ],
             // Apariencia
             [
-                'name' => 'Apariencia',
+                'title' => 'Apariencia',
                 'slug' => 'appearance',
                 'icon' => 'bi-palette',
-                'route' => null,
+                'url' => '#',
                 'parent_id' => null,
-                'order' => 4,
+                'order_position' => 4,
                 'permission' => null,
                 'is_active' => 1
             ],
             [
-                'name' => 'Temas',
+                'title' => 'Temas',
                 'slug' => 'themes',
                 'icon' => 'bi-brush',
-                'route' => '/admin/themes',
-                'parent_id' => 6, // Apariencia
-                'order' => 1,
-                'permission' => 'themes.view',
+                'url' => '/admin/themes',
+                'parent_id' => 'appearance',
+                'order_position' => 1,
+                'permission' => 'appearance.themes',
                 'is_active' => 1
             ],
             [
-                'name' => 'Menús',
+                'title' => 'Menús',
                 'slug' => 'menus',
                 'icon' => 'bi-list',
-                'route' => '/admin/menus',
-                'parent_id' => 6, // Apariencia
-                'order' => 2,
-                'permission' => 'menus.view',
+                'url' => '/admin/menus',
+                'parent_id' => 'appearance',
+                'order_position' => 2,
+                'permission' => 'appearance.menus',
                 'is_active' => 1
             ],
             // Sistema
             [
-                'name' => 'Sistema',
+                'title' => 'Sistema',
                 'slug' => 'system',
                 'icon' => 'bi-gear',
-                'route' => null,
+                'url' => '#',
                 'parent_id' => null,
-                'order' => 10,
+                'order_position' => 10,
                 'permission' => null,
                 'is_active' => 1
             ],
             [
-                'name' => 'Módulos',
+                'title' => 'Módulos',
                 'slug' => 'modules',
                 'icon' => 'bi-puzzle',
-                'route' => '/admin/modules',
-                'parent_id' => 9, // Sistema
-                'order' => 1,
-                'permission' => 'modules.view',
+                'url' => '/admin/modules',
+                'parent_id' => 'system',
+                'order_position' => 1,
+                'permission' => 'modules.manage',
                 'is_active' => 1
             ],
             [
-                'name' => 'Configuración',
+                'title' => 'Configuración',
                 'slug' => 'settings',
                 'icon' => 'bi-sliders',
-                'route' => '/admin/settings',
-                'parent_id' => 9, // Sistema
-                'order' => 2,
+                'url' => '/admin/settings',
+                'parent_id' => 'system',
+                'order_position' => 2,
                 'permission' => 'settings.view',
                 'is_active' => 1
             ],
         ];
 
-        // Limpiar menús existentes primero si se desea un fresh seed
-        // $this->db->exec("DELETE FROM admin_menus");
+        // Insert menus in order (parents first)
+        $insertedIds = [];
 
         foreach ($menus as $menu) {
-            $this->insertIfNotExists($menu);
+            $parentSlug = $menu['parent_id'];
+
+            // If parent_id is a slug reference, resolve it
+            if (is_string($parentSlug) && isset($insertedIds[$parentSlug])) {
+                $menu['parent_id'] = $insertedIds[$parentSlug];
+            } elseif (is_string($parentSlug)) {
+                // Try to find parent by slug
+                $stmt = $this->db->prepare("SELECT id FROM admin_menus WHERE slug = ?");
+                $stmt->execute([$parentSlug]);
+                $parentId = $stmt->fetchColumn();
+                $menu['parent_id'] = $parentId ?: null;
+            }
+
+            $id = $this->insertIfNotExists($menu);
+            if ($id) {
+                $insertedIds[$menu['slug']] = $id;
+            }
         }
+
+        echo "    + Menús de administración creados\n";
     }
 
-    private function insertIfNotExists(array $data): void
+    private function insertIfNotExists(array $data): ?int
     {
-        $stmt = $this->db->prepare("SELECT COUNT(*) FROM admin_menus WHERE slug = ?");
+        $stmt = $this->db->prepare("SELECT id FROM admin_menus WHERE slug = ?");
         $stmt->execute([$data['slug']]);
+        $existing = $stmt->fetchColumn();
 
-        if ($stmt->fetchColumn() == 0) {
-            $columns = implode(', ', array_keys($data));
-            $placeholders = implode(', ', array_fill(0, count($data), '?'));
-            $stmt = $this->db->prepare("INSERT INTO admin_menus ({$columns}) VALUES ({$placeholders})");
-            $stmt->execute(array_values($data));
+        if ($existing) {
+            return (int)$existing;
         }
+
+        // Escape column names with backticks
+        $columns = implode(', ', array_map(fn($col) => "`{$col}`", array_keys($data)));
+        $placeholders = implode(', ', array_fill(0, count($data), '?'));
+        $stmt = $this->db->prepare("INSERT INTO admin_menus ({$columns}) VALUES ({$placeholders})");
+        $stmt->execute(array_values($data));
+
+        return (int)$this->db->lastInsertId();
     }
 }

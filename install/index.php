@@ -668,19 +668,21 @@ function runMigrations() {
  */
 function runSeeders() {
     try {
-        $seederPath = ROOT_PATH . '/database/seeders/DatabaseSeeder.php';
+        // Load all seeder files
+        $seederFiles = glob(ROOT_PATH . '/database/seeders/*.php');
+        foreach ($seederFiles as $file) {
+            require_once $file;
+        }
 
-        if (!file_exists($seederPath)) {
+        $seederClass = 'Screenart\\Musedock\\Database\\Seeders\\DatabaseSeeder';
+
+        if (!class_exists($seederClass)) {
             return ['success' => true, 'message' => 'No seeders found'];
         }
 
-        require_once $seederPath;
-
-        if (class_exists('DatabaseSeeder')) {
-            $seeder = new \DatabaseSeeder();
-            if (method_exists($seeder, 'run')) {
-                $seeder->run();
-            }
+        $seeder = new $seederClass();
+        if (method_exists($seeder, 'run')) {
+            $seeder->run();
         }
 
         return ['success' => true];

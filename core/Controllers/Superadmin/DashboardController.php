@@ -101,6 +101,17 @@ class DashboardController {
             ];
         }
 
+        // Verificar idiomas (LanguagesSeeder)
+        $stmt = $pdo->query("SELECT COUNT(*) FROM languages WHERE tenant_id IS NULL");
+        $languagesCount = (int)$stmt->fetchColumn();
+        if ($languagesCount < 2) {
+            $missing[] = [
+                'name' => 'LanguagesSeeder',
+                'description' => 'Idiomas del sistema (Español e Inglés)',
+                'key' => 'languages'
+            ];
+        }
+
         return $missing;
     }
 
@@ -188,6 +199,17 @@ class DashboardController {
                 $seeder = new \Screenart\Musedock\Database\Seeders\SuperadminMenuSeeder();
                 $seeder->run();
                 $results[] = 'SuperadminMenuSeeder ejecutado';
+            }
+
+            if ($seederKey === 'all' || $seederKey === 'languages') {
+                $file = $seederPath . 'LanguagesSeeder.php';
+                if (!file_exists($file)) {
+                    throw new \Exception("Archivo no encontrado: $file");
+                }
+                require_once $file;
+                $seeder = new \Screenart\Musedock\Database\Seeders\LanguagesSeeder();
+                $seeder->run();
+                $results[] = 'LanguagesSeeder ejecutado';
             }
 
             // Limpiar cualquier output capturado

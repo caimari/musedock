@@ -20,76 +20,84 @@ class ModulesSeeder
     {
         $modules = [
             [
-                'name' => 'blog',
-                'display_name' => 'Blog',
-                'description' => 'Sistema de blog con posts, categorías y tags',
+                'slug' => 'blog',
+                'name' => 'Blog',
+                'description' => 'Sistema de Blog completo con categorías, etiquetas y traducciones multiidioma para MuseDock CMS.',
                 'version' => '1.0.0',
-                'author' => 'MuseDock',
-                'status' => 'active',
-                'is_core' => 0,
-                'settings' => json_encode([
-                    'posts_per_page' => 10,
-                    'enable_comments' => true,
-                    'enable_revisions' => true
-                ])
+                'author' => 'MuseDock Team',
+                'active' => 1,
+                'public' => 0,
+                'cms_enabled' => 1,
+                'tenant_enabled_default' => 1
             ],
             [
-                'name' => 'media-manager',
-                'display_name' => 'Gestor de Medios',
-                'description' => 'Gestión de archivos multimedia',
+                'slug' => 'media-manager',
+                'name' => 'Media Manager',
+                'description' => 'Gestor de archivos y biblioteca de medios para MuseDock CMS.',
                 'version' => '1.0.0',
-                'author' => 'MuseDock',
-                'status' => 'active',
-                'is_core' => 1,
-                'settings' => json_encode([
-                    'max_upload_size' => 10485760,
-                    'allowed_types' => ['image', 'document', 'video']
-                ])
+                'author' => 'MuseDock Team',
+                'active' => 1,
+                'public' => 0,
+                'cms_enabled' => 1,
+                'tenant_enabled_default' => 1
             ],
             [
-                'name' => 'ai-writer',
-                'display_name' => 'AI Writer',
-                'description' => 'Generador de contenido con IA',
+                'slug' => 'ai-writer',
+                'name' => 'AI Writer',
+                'description' => 'Integración de IA con TinyMCE para generar y mejorar contenido',
                 'version' => '1.0.0',
                 'author' => 'MuseDock',
-                'status' => 'inactive',
-                'is_core' => 0,
-                'settings' => json_encode([
-                    'default_provider' => 'openai',
-                    'max_tokens' => 2000
-                ])
+                'active' => 0,
+                'public' => 0,
+                'cms_enabled' => 1,
+                'tenant_enabled_default' => 1
             ],
             [
-                'name' => 'custom-forms',
-                'display_name' => 'Formularios Personalizados',
-                'description' => 'Constructor de formularios drag & drop',
+                'slug' => 'react-sliders',
+                'name' => 'React Sliders',
+                'description' => 'Sistema moderno de sliders con React y Tailwind CSS',
                 'version' => '1.0.0',
                 'author' => 'MuseDock',
-                'status' => 'inactive',
-                'is_core' => 0,
-                'settings' => json_encode([])
+                'active' => 0,
+                'public' => 0,
+                'cms_enabled' => 1,
+                'tenant_enabled_default' => 1
             ],
             [
-                'name' => 'image-gallery',
-                'display_name' => 'Galería de Imágenes',
-                'description' => 'Galería de imágenes con álbumes',
+                'slug' => 'custom-forms',
+                'name' => 'Custom Forms',
+                'description' => 'Creador de formularios personalizados con drag & drop, múltiples tipos de campos y gestión de envíos',
                 'version' => '1.0.0',
                 'author' => 'MuseDock',
-                'status' => 'inactive',
-                'is_core' => 0,
-                'settings' => json_encode([])
+                'active' => 0,
+                'public' => 0,
+                'cms_enabled' => 1,
+                'tenant_enabled_default' => 1
+            ],
+            [
+                'slug' => 'image-gallery',
+                'name' => 'Image Gallery',
+                'description' => 'Módulo de galerías de imágenes con múltiples layouts, shortcodes y almacenamiento permanente',
+                'version' => '1.0.0',
+                'author' => 'MuseDock',
+                'active' => 0,
+                'public' => 0,
+                'cms_enabled' => 1,
+                'tenant_enabled_default' => 1
             ],
         ];
 
         foreach ($modules as $module) {
             $this->insertIfNotExists($module);
         }
+
+        echo "    + Módulos base creados\n";
     }
 
     private function insertIfNotExists(array $data): void
     {
-        $stmt = $this->db->prepare("SELECT COUNT(*) FROM modules WHERE name = ?");
-        $stmt->execute([$data['name']]);
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM modules WHERE slug = ?");
+        $stmt->execute([$data['slug']]);
 
         if ($stmt->fetchColumn() == 0) {
             $columns = implode(', ', array_keys($data));
