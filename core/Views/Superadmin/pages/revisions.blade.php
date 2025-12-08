@@ -22,7 +22,7 @@
 <td>{{ e($revision->user_name ?? 'Sistema') }}<small class="text-muted d-block">{{ e($revision->user_type) }}</small></td>
 <td>{!! e($revision->changes_summary)?:'<span class="text-muted">Sin descripción</span>' !!}</td>
 <td><div class="btn-group btn-group-sm"><a href="/musedock/pages/{{ $page->id }}/revisions/{{ $revision->id }}/preview" class="btn btn-outline-secondary" title="Vista previa"><i class="bi bi-eye"></i></a>
-<form method="POST" action="/musedock/pages/{{ $page->id }}/revisions/{{ $revision->id }}/restore" style="display:inline;" onsubmit="return confirm('¿Restaurar la página a esta versión?');"><input type="hidden" name="_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-outline-primary" title="Restaurar"><i class="bi bi-arrow-counterclockwise"></i></button></form></div></td>
+<button type="button" class="btn btn-outline-primary btn-restore" title="Restaurar" data-revision-id="{{ $revision->id }}" data-revision-date="{{ date('d/m/Y H:i', strtotime($revision->created_at)) }}"><i class="bi bi-arrow-counterclockwise"></i></button></div></td>
 </tr>
 @endforeach
 </tbody></table>@endif</div></div>
@@ -31,5 +31,40 @@
 let selectedRevisions=[];
 function toggleCompareButton(){const checkboxes=document.querySelectorAll('.compare-checkbox:checked');selectedRevisions=Array.from(checkboxes).map(cb=>cb.getAttribute('data-revision-id'));document.getElementById('compare-button-container').style.display=selectedRevisions.length===2?'block':'none';if(selectedRevisions.length===2){document.querySelectorAll('.compare-checkbox:not(:checked)').forEach(cb=>cb.disabled=true);}else{document.querySelectorAll('.compare-checkbox').forEach(cb=>cb.disabled=false);}}
 function compareSelected(){if(selectedRevisions.length===2){window.location.href=`/musedock/pages/{{ $page->id }}/revisions/${selectedRevisions[0]}/compare/${selectedRevisions[1]}`;}}
+
+// SweetAlert2 para restaurar revisión
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.btn-restore').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const revisionId = this.dataset.revisionId;
+      const revisionDate = this.dataset.revisionDate;
+
+      Swal.fire({
+        title: '¿Restaurar versión?',
+        html: `<p>La página volverá al estado del <strong>${revisionDate}</strong>.</p><p class="text-muted"><small>Se creará una nueva revisión con el estado actual antes de restaurar.</small></p>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#0d6efd',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-arrow-counterclockwise me-1"></i> Restaurar',
+        cancelButtonText: 'Cancelar',
+        focusCancel: true
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '/musedock/pages/{{ $page->id }}/revisions/' + revisionId + '/restore';
+          const csrfInput = document.createElement('input');
+          csrfInput.type = 'hidden';
+          csrfInput.name = '_token';
+          csrfInput.value = '{{ csrf_token() }}';
+          form.appendChild(csrfInput);
+          document.body.appendChild(form);
+          form.submit();
+        }
+      });
+    });
+  });
+});
 </script>
 @endsection
