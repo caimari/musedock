@@ -6,6 +6,9 @@
  * Supports both manual composer install and automatic installation.
  */
 
+// Start output buffering to catch any unexpected output
+ob_start();
+
 // Error reporting for installation
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -183,6 +186,10 @@ if ($installLockExists && $envExists) {
 
 // Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    // Clean any previous output and disable HTML error display for JSON responses
+    ob_end_clean();
+    ob_start();
+    ini_set('display_errors', 0);
     header('Content-Type: application/json');
 
     // Verify CSRF
@@ -1602,7 +1609,7 @@ $step = max(1, min(5, $step));
         function updateSummary() {
             const summary = document.getElementById('summary-content');
             summary.innerHTML = `
-                <div class="row">
+                <div class="row" style="color: #e5e7eb;">
                     <div class="col-md-6">
                         <p><strong>Site URL:</strong> ${installData.app_url || 'Not set'}</p>
                         <p><strong>Language:</strong> ${installData.default_lang || 'en'}</p>
