@@ -109,9 +109,9 @@ document.addEventListener('DOMContentLoaded', function() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRF-TOKEN': csrfToken
+                'X-Requested-With': 'XMLHttpRequest'
             },
-            body: 'seeder=' + encodeURIComponent(seederKey)
+            body: '_token=' + encodeURIComponent(csrfToken) + '&seeder=' + encodeURIComponent(seederKey)
         })
         .then(response => response.json())
         .then(data => {

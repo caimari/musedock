@@ -704,12 +704,29 @@ function runSeeders() {
             return ['success' => true, 'message' => 'No seeders found'];
         }
 
-        ob_start();
-        require_once $seederPath;
-        ob_end_clean();
+        // Cargar todos los seeders necesarios
+        $seedersDir = ROOT_PATH . '/database/seeders/';
+        $seederFiles = [
+            'RolesAndPermissionsSeeder.php',
+            'ModulesSeeder.php',
+            'ThemesSeeder.php',
+            'SuperadminMenuSeeder.php',
+            'AdminMenuSeeder.php',
+            'DatabaseSeeder.php'
+        ];
 
-        if (class_exists('DatabaseSeeder')) {
-            $seeder = new \DatabaseSeeder();
+        foreach ($seederFiles as $file) {
+            $filePath = $seedersDir . $file;
+            if (file_exists($filePath)) {
+                require_once $filePath;
+            }
+        }
+
+        // Usar el namespace correcto
+        $seederClass = 'Screenart\\Musedock\\Database\\Seeders\\DatabaseSeeder';
+
+        if (class_exists($seederClass)) {
+            $seeder = new $seederClass();
             if (method_exists($seeder, 'run')) {
                 ob_start();
                 $seeder->run();

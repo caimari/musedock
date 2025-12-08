@@ -108,53 +108,81 @@ class DashboardController {
      */
     public function runMissingSeeders()
     {
-        SessionSecurity::startSession();
-
-        // Verificar que sea superadmin
-        $auth = SessionSecurity::getAuthenticatedUser();
-        if (!$auth || $auth['type'] !== 'super_admin' || ($_SESSION['super_admin']['role'] ?? '') !== 'superadmin') {
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'No autorizado']);
-            exit;
-        }
-
+        // Establecer JSON como tipo de respuesta ANTES de todo
         header('Content-Type: application/json');
 
-        $seederKey = $_POST['seeder'] ?? 'all';
+        // Capturar cualquier output que pueda ocurrir antes
+        ob_start();
 
         try {
+            SessionSecurity::startSession();
+
+            // Verificar que sea superadmin
+            $auth = SessionSecurity::getAuthenticatedUser();
+            if (!$auth || $auth['type'] !== 'super_admin' || ($_SESSION['super_admin']['role'] ?? '') !== 'superadmin') {
+                ob_end_clean();
+                echo json_encode(['success' => false, 'error' => 'No autorizado']);
+                exit;
+            }
+
+            $seederKey = $_POST['seeder'] ?? 'all';
             $results = [];
 
-            // Cargar seeders
-            $seederPath = dirname(__DIR__, 2) . '/../database/seeders/';
+            // Cargar seeders - usar ruta absoluta
+            $seederPath = realpath(dirname(__DIR__, 2) . '/../database/seeders/');
+
+            if (!$seederPath || !is_dir($seederPath)) {
+                throw new \Exception('Directorio de seeders no encontrado: ' . dirname(__DIR__, 2) . '/../database/seeders/');
+            }
+
+            $seederPath .= '/';
 
             if ($seederKey === 'all' || $seederKey === 'roles_permissions') {
-                require_once $seederPath . 'RolesAndPermissionsSeeder.php';
+                $file = $seederPath . 'RolesAndPermissionsSeeder.php';
+                if (!file_exists($file)) {
+                    throw new \Exception("Archivo no encontrado: $file");
+                }
+                require_once $file;
                 $seeder = new \Screenart\Musedock\Database\Seeders\RolesAndPermissionsSeeder();
                 $seeder->run();
                 $results[] = 'RolesAndPermissionsSeeder ejecutado';
             }
 
             if ($seederKey === 'all' || $seederKey === 'modules') {
-                require_once $seederPath . 'ModulesSeeder.php';
+                $file = $seederPath . 'ModulesSeeder.php';
+                if (!file_exists($file)) {
+                    throw new \Exception("Archivo no encontrado: $file");
+                }
+                require_once $file;
                 $seeder = new \Screenart\Musedock\Database\Seeders\ModulesSeeder();
                 $seeder->run();
                 $results[] = 'ModulesSeeder ejecutado';
             }
 
             if ($seederKey === 'all' || $seederKey === 'themes') {
-                require_once $seederPath . 'ThemesSeeder.php';
+                $file = $seederPath . 'ThemesSeeder.php';
+                if (!file_exists($file)) {
+                    throw new \Exception("Archivo no encontrado: $file");
+                }
+                require_once $file;
                 $seeder = new \Screenart\Musedock\Database\Seeders\ThemesSeeder();
                 $seeder->run();
                 $results[] = 'ThemesSeeder ejecutado';
             }
 
             if ($seederKey === 'all' || $seederKey === 'superadmin_menus') {
-                require_once $seederPath . 'SuperadminMenuSeeder.php';
+                $file = $seederPath . 'SuperadminMenuSeeder.php';
+                if (!file_exists($file)) {
+                    throw new \Exception("Archivo no encontrado: $file");
+                }
+                require_once $file;
                 $seeder = new \Screenart\Musedock\Database\Seeders\SuperadminMenuSeeder();
                 $seeder->run();
                 $results[] = 'SuperadminMenuSeeder ejecutado';
             }
+
+            // Limpiar cualquier output capturado
+            ob_end_clean();
 
             echo json_encode([
                 'success' => true,
@@ -162,10 +190,15 @@ class DashboardController {
                 'results' => $results
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // Capturar cualquier error o excepción
+            $output = ob_get_clean();
             echo json_encode([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'output' => $output ? substr($output, 0, 500) : null
             ]);
         }
 
