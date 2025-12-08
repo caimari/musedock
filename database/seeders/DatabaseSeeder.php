@@ -29,6 +29,7 @@ class DatabaseSeeder
             RolesAndPermissionsSeeder::class,
             ModulesSeeder::class,
             ThemesSeeder::class,
+            LanguagesSeeder::class,      // Idiomas por defecto
             SuperadminMenuSeeder::class, // Menús del panel /musedock/
             AdminMenuSeeder::class,      // Menús del panel tenant /admin/
         ];
