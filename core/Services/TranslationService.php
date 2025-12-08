@@ -30,13 +30,16 @@ class TranslationService
             self::$translations[$locale] = json_decode($content, true) ?? [];
             error_log("TranslationService: Loaded {$locale} for {$context} - " . count(self::$translations[$locale]) . " keys");
         } else {
-            error_log("TranslationService: File not found: {$translationFile}");
+            // Solo loguear si parece un locale válido (2 caracteres)
+            if (strlen($locale) === 2) {
+                error_log("TranslationService: File not found: {$translationFile}");
+            }
             // Fallback al español
             $fallbackFile = __DIR__ . "/../../lang/{$context}/" . self::$fallbackLocale . ".json";
-            if (file_exists($fallbackFile)) {
+            if (file_exists($fallbackFile) && !isset(self::$translations[self::$fallbackLocale])) {
                 $content = file_get_contents($fallbackFile);
                 self::$translations[self::$fallbackLocale] = json_decode($content, true) ?? [];
-                error_log("TranslationService: Loaded fallback {$context}/{self::$fallbackLocale}");
+                error_log("TranslationService: Loaded fallback {$context}/" . self::$fallbackLocale);
             }
         }
     }

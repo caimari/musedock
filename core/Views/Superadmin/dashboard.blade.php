@@ -55,8 +55,8 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>Seeder</th>
-                                        <th>{{ __('roles.description', [], 'Descripción') }}</th>
-                                        <th class="text-center" style="width: 120px;">{{ __('common.actions', [], 'Acciones') }}</th>
+                                        <th>{{ __('common.description') }}</th>
+                                        <th class="text-center" style="width: 120px;">{{ __('common.actions') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>

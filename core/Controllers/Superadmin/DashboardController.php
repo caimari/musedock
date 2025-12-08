@@ -68,13 +68,13 @@ class DashboardController {
             ];
         }
 
-        // Verificar roles (RolesAndPermissionsSeeder)
-        $stmt = $pdo->query("SELECT COUNT(*) FROM roles");
-        $rolesCount = (int)$stmt->fetchColumn();
-        if ($rolesCount < 3) {
+        // Verificar permisos (RolesAndPermissionsSeeder)
+        $stmt = $pdo->query("SELECT COUNT(*) FROM permissions WHERE tenant_id IS NULL");
+        $permissionsCount = (int)$stmt->fetchColumn();
+        if ($permissionsCount < 30) {
             $missing[] = [
                 'name' => 'RolesAndPermissionsSeeder',
-                'description' => 'Roles y permisos del sistema',
+                'description' => 'Permisos base del sistema',
                 'key' => 'roles_permissions'
             ];
         }

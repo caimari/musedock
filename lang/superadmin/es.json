@@ -42,7 +42,9 @@
     "apply": "Aplicar",
     "close": "Cerrar",
     "select": "Seleccionar",
-    "show": "Mostrar"
+    "show": "Mostrar",
+    "description": "Descripción",
+    "name": "Nombre"
   },
   "menu": {
     "dashboard": "Panel de Control",

@@ -42,7 +42,9 @@
     "yes_set": "Yes, set",
     "yes_unset": "Yes, unset",
     "update": "Update",
-    "clear_filter": "Clear filter"
+    "clear_filter": "Clear filter",
+    "description": "Description",
+    "name": "Name"
   },
   "menu": {
     "dashboard": "Dashboard",
