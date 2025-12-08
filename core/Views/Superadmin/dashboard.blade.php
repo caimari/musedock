@@ -55,8 +55,8 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>Seeder</th>
-                                        <th>{{ __('common.description') ?? 'Descripción' }}</th>
-                                        <th class="text-center" style="width: 120px;">{{ __('common.actions') ?? 'Acción' }}</th>
+                                        <th>{{ __('roles.description', [], 'Descripción') }}</th>
+                                        <th class="text-center" style="width: 120px;">{{ __('common.actions', [], 'Acciones') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -113,7 +113,17 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: '_token=' + encodeURIComponent(csrfToken) + '&seeder=' + encodeURIComponent(seederKey)
         })
-        .then(response => response.json())
+        .then(response => {
+            // Guardar el texto de la respuesta para debug
+            return response.text().then(text => {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    // Si no es JSON, lanzar error con el contenido
+                    throw new Error('Respuesta no válida del servidor:\n\n' + text.substring(0, 500));
+                }
+            });
+        })
         .then(data => {
             if (data.success) {
                 // Mostrar mensaje de éxito
@@ -138,15 +148,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.querySelectorAll('.run-seeder-btn, #run-all-seeders').forEach(btn => btn.disabled = false);
                 button.innerHTML = originalText;
 
+                // Construir mensaje de error detallado
+                let errorMsg = data.error || 'Error desconocido';
+                if (data.file) errorMsg += '\n\nArchivo: ' + data.file;
+                if (data.line) errorMsg += '\nLínea: ' + data.line;
+                if (data.output) errorMsg += '\n\nOutput: ' + data.output;
+
                 // Mostrar error con SweetAlert si está disponible, sino alert normal
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         icon: 'error',
                         title: '{{ __('dashboard.seeders_error') }}',
-                        text: data.error || 'Error desconocido'
+                        html: '<pre style="text-align:left;font-size:12px;max-height:300px;overflow:auto;">' + errorMsg.replace(/</g, '&lt;') + '</pre>',
+                        width: 600
                     });
                 } else {
-                    alert('Error: ' + (data.error || 'Error desconocido'));
+                    alert('Error: ' + errorMsg);
                 }
             }
         })
@@ -158,7 +175,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error de conexión',
-                    text: error.message
+                    html: '<pre style="text-align:left;font-size:12px;max-height:300px;overflow:auto;">' + error.message.replace(/</g, '&lt;') + '</pre>',
+                    width: 600
                 });
             } else {
                 alert('Error de conexión: ' + error.message);
