@@ -161,6 +161,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (openCookieSettingsLink) {
         openCookieSettingsLink.addEventListener('click', (e) => {
             e.preventDefault();
+            e.stopPropagation();
+            // Evitar scroll cuando hay navbar fijo
+            if (window.scrollY > 0) {
+                window.scrollTo({ top: window.scrollY, behavior: 'instant' });
+            }
             showPreferencesModal();
         });
     }

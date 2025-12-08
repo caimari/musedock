@@ -3,6 +3,9 @@
     \Screenart\Musedock\Services\TranslationService::setContext('tenant');
     $currentLang = $_SESSION['lang'] ?? setting('language', 'es');
     \Screenart\Musedock\Services\TranslationService::load($currentLang, 'tenant');
+
+    // Verificar si mostrar logo (mismo setting que el header)
+    $showFooterLogo = setting('show_logo', '1') === '1';
 @endphp
 <footer>
     <!-- Footer Start -->
@@ -13,10 +16,12 @@
                 <div class="col-xl-4 col-lg-4 col-md-4 col-sm-6">
                    <div class="single-footer-caption mb-50">
                      <div class="single-footer-caption mb-30">
-                          <!-- logo -->
+                          <!-- logo (solo si show_logo está activo) -->
+                         @if($showFooterLogo)
                          <div class="footer-logo">
                              <a href="{{ url('/') }}"><img src="{{ asset('logo2_footer.png') }}" alt=""></a>
                          </div>
+                         @endif
                          <div class="footer-tittle">
                              <div class="footer-pera">
                                  <p>{{ setting('footer_short_description', '') }}</p>
@@ -24,7 +29,7 @@
 
                             <!-- Enlace configuración de cookies (RGPD) -->
                             <div class="cookie-settings-link my-2">
-                                <a href="#" id="open-cookie-settings" style="color: #999; font-size: 13px; text-decoration: underline;">
+                                <a href="javascript:void(0);" id="open-cookie-settings" style="color: #999; font-size: 13px; text-decoration: underline;">
                                     <i class="fas fa-cookie-bite me-1"></i>{{ __('footer.cookie_settings') }}
                                 </a>
                             </div>
@@ -188,8 +193,24 @@
                             }
                         @endphp
                         
-                        @if($hasFooter3Menu)
-                            {{-- Si tenemos un menú definido para footer3, mostrarlo --}}
+                        {{-- Sección de contacto - siempre mostrar si hay datos de contacto --}}
+                        @php
+                            $hasContactData = setting('contact_phone') || setting('contact_email') || setting('contact_address') || setting('contact_whatsapp');
+                        @endphp
+
+                        @if($hasContactData)
+                            {{-- Mostrar info de contacto si hay datos --}}
+                            <div class="footer-tittle">
+                                <h4>{{ setting('footer_col4_title', __('footer.contact')) }}</h4>
+                                <ul>
+                                    @if(setting('contact_phone'))<li><a href="tel:{{ setting('contact_phone') }}">{{ setting('contact_phone') }}</a></li>@endif
+                                    @if(setting('contact_email'))<li><a href="mailto:{{ setting('contact_email') }}">{{ setting('contact_email') }}</a></li>@endif
+                                    @if(setting('contact_address'))<li><a href="#">{{ setting('contact_address') }}</a></li>@endif
+                                    @if(setting('contact_whatsapp'))<li><a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', setting('contact_whatsapp')) }}"><i class="fab fa-whatsapp"></i> {{ setting('contact_whatsapp') }}</a></li>@endif
+                                </ul>
+                            </div>
+                        @elseif($hasFooter3Menu)
+                            {{-- Si no hay contacto pero hay menú para footer3, mostrarlo --}}
                             <div class="footer-tittle">
                                 @if($footer3Title)
                                     <h4>{{ $footer3Title }}</h4>
@@ -204,22 +225,6 @@
                         @elseif(isset($widgetContent) && isset($widgetContent['footer3']))
                             {{-- Si hay widgets para footer3, mostrarlos --}}
                             @include('partials.widget-renderer', ['areaSlug' => 'footer3'])
-                        @else
-                            {{-- Si no hay ni menú ni widgets, mostrar info de contacto solo si hay datos --}}
-                            @php
-                                $hasContactData = setting('contact_phone') || setting('contact_email') || setting('contact_address') || setting('contact_whatsapp');
-                            @endphp
-                            @if($hasContactData)
-                            <div class="footer-tittle">
-                                <h4>{{ setting('footer_col4_title', __('footer.contact')) }}</h4>
-                                <ul>
-                                    @if(setting('contact_phone'))<li><a href="tel:{{ setting('contact_phone') }}">{{ setting('contact_phone') }}</a></li>@endif
-                                    @if(setting('contact_email'))<li><a href="mailto:{{ setting('contact_email') }}">{{ setting('contact_email') }}</a></li>@endif
-                                    @if(setting('contact_address'))<li><a href="#">{{ setting('contact_address') }}</a></li>@endif
-                                    @if(setting('contact_whatsapp'))<li><a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', setting('contact_whatsapp')) }}"><i class="fab fa-whatsapp"></i> {{ setting('contact_whatsapp') }}</a></li>@endif
-                                </ul>
-                            </div>
-                            @endif
                         @endif
                     </div>
                 </div>

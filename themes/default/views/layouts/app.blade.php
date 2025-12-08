@@ -84,10 +84,12 @@
 	{{-- Swiper CSS local (DEBE cargarse ANTES de slider-themes.css para que nuestros estilos sobrescriban) --}}
 	<link rel="stylesheet" href="/assets/css/swiper-bundle.min.css">
 	<link rel="stylesheet" href="{{ asset('themes/default/css/slider-themes.css') }}">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick-theme.min.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css" />
+{{-- Slick Carousel CSS (local) --}}
+<link rel="stylesheet" href="{{ asset('assets/vendor/slick/slick.min.css') }}" />
+<link rel="stylesheet" href="{{ asset('assets/vendor/slick/slick-theme.min.css') }}" />
+{{-- Owl Carousel CSS (local) --}}
+<link rel="stylesheet" href="{{ asset('assets/vendor/owl-carousel/owl.carousel.min.css') }}" />
+<link rel="stylesheet" href="{{ asset('assets/vendor/owl-carousel/owl.theme.default.min.css') }}" />
 
 
 
@@ -926,11 +928,14 @@ body.mobile-menu-open {
             </div>
         </div>
 
+        {{-- Botón CTA móvil - usa la misma config que el navbar --}}
+        @if($ctaEnabled)
         <div class="mobile-cta">
-            <a href="{{ setting('header_button_url', '#') }}" class="header-btn">
-                {{ setting('header_button_text', 'Contact Now') }}
+            <a href="{{ $ctaUrl }}" class="header-btn">
+                {{ $ctaText }}
             </a>
         </div>
+        @endif
     </div>
 </div>
 
@@ -1131,28 +1136,7 @@ if (header && header.classList.contains('enable-sticky')) {
                     <p>{{ setting('cookies_cat_necessary_desc', 'Estas cookies son esenciales para el correcto funcionamiento de nuestro sitio web. Sin ellas, el sitio no funcionaría correctamente.') }}</p>
                 </div>
 
-                <!-- Targeting & Advertising Cookies -->
-                <div class="cookie-category">
-                    <div class="category-header">
-                        <h4>{{ setting('cookies_cat_targeting_title', 'Cookies de Publicidad y Seguimiento') }}</h4>
-                        <label class="switch">
-                            <input type="checkbox" id="cookie-pref-targeting" data-category="targeting">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                    <p>{{ setting('cookies_cat_targeting_desc', 'Estas cookies pueden ser establecidas a través de nuestro sitio por nuestros socios publicitarios. Pueden ser utilizadas por esas empresas para crear un perfil de tus intereses y mostrarte anuncios relevantes en otros sitios.') }}</p>
-                     @if(setting('cookies_show_details', '1') == '1')
-                     <div class="cookie-details">
-                         <h5>{{ setting('cookies_details_title', 'Cookies Utilizadas:') }}</h5>
-                         <table>
-                             <tbody>
-                                <tr><td>_fbp</td><td>Facebook Pixel</td><td>Cookie de seguimiento de Facebook.</td><td>90 días</td></tr>
-                                 <!-- Agrega más cookies si es necesario -->
-                             </tbody>
-                         </table>
-                     </div>
-                     @endif
-                </div>
+                {{-- Nota: La sección de cookies de publicidad/targeting se ha eliminado porque actualmente no usamos cookies de terceros --}}
 
             </div>
             <div class="modal-footer">
@@ -1186,8 +1170,10 @@ if (header && header.classList.contains('enable-sticky')) {
 
 	{{-- Swiper JS local (reemplaza CDN) --}}
 <script src="/assets/js/swiper-bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
+{{-- Slick Carousel JS (local) --}}
+<script src="{{ asset('assets/vendor/slick/slick.min.js') }}"></script>
+{{-- Owl Carousel JS (local) --}}
+<script src="{{ asset('assets/vendor/owl-carousel/owl.carousel.min.js') }}"></script>
 
 
 
