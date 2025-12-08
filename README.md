@@ -1,6 +1,6 @@
 # MuseDock CMS
 
-[English](README.en.md) | **Español**
+**Español**
 
 Sistema de Gestión de Contenidos moderno, modular y multi-tenant construido con PHP 8+ y un framework MVC personalizado.
 
@@ -220,10 +220,6 @@ Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](L
 
 - Documentación: [musedock.org](https://musedock.org)
 - Issues: [GitHub Issues](https://github.com/caimari/musedock/issues)
-
-## Capturas de Pantalla
-
-_(Puedes añadir capturas aquí más adelante)_
 
 ## Preguntas Frecuentes (FAQ)
 
