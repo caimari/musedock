@@ -1,287 +1,264 @@
 # MuseDock CMS
 
-**English** | [Español](README.es.md)
+[English](README.en.md) | **Español**
 
-A modern, modular, multi-tenant Content Management System built with PHP 8+ and a custom MVC framework.
+Sistema de Gestión de Contenidos moderno, modular y multi-tenant construido con PHP 8+ y un framework MVC personalizado.
 
 ![PHP Version](https://img.shields.io/badge/PHP-8.0+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0-orange.svg)
 
-## Features
+## Características
 
-- **Multi-Tenant Architecture** - Host multiple websites from a single installation
-- **Modular System** - Enable/disable features as needed (Blog, Galleries, Forms, etc.)
-- **AI Integration** - Built-in support for AI content generation (OpenAI, Anthropic)
-- **Modern Admin Panel** - Clean, responsive dashboard with Bootstrap 5
-- **Theme System** - Blade templating engine with customizable themes
-- **Media Manager** - Advanced file management with cloud storage support (S3, R2)
-- **Role-Based Access Control** - Granular permissions system
-- **SEO Optimized** - Meta tags, slugs, sitemaps
-- **Multi-Language** - Full i18n support
-- **Security First** - CSRF protection, rate limiting, 2FA, WAF
+- **Arquitectura Multi-Tenant** - Aloja múltiples sitios web desde una sola instalación
+- **Sistema Modular** - Habilita/deshabilita funcionalidades según necesites (Blog, Galerías, Formularios, etc.)
+- **Integración con IA** - Soporte integrado para generación de contenido con IA (OpenAI, Anthropic)
+- **Panel de Administración Moderno** - Dashboard limpio y responsive con Bootstrap 5
+- **Sistema de Temas** - Motor de plantillas Blade con temas personalizables
+- **Gestor de Medios** - Gestión avanzada de archivos con soporte para almacenamiento en la nube (S3, R2)
+- **Control de Acceso Basado en Roles** - Sistema de permisos granular
+- **Optimizado para SEO** - Meta tags, slugs, sitemaps
+- **Multi-Idioma** - Soporte completo de internacionalización
+- **Seguridad Primero** - Protección CSRF, limitación de peticiones, 2FA, WAF
 
-## Requirements
+## Requisitos
 
-- PHP 8.0 or higher
-- MySQL 5.7+ / MariaDB 10.3+ or PostgreSQL 12+
+- PHP 8.0 o superior
+- MySQL 5.7+ / MariaDB 10.3+ o PostgreSQL 12+
 - Composer
-- Extensions: pdo, pdo_mysql, json, mbstring, openssl, curl, fileinfo, gd
+- Extensiones: pdo, pdo_mysql, json, mbstring, openssl, curl, fileinfo, gd
 
-## Installation
+## Instalación
 
-### Option 1: FTP Installation (Shared Hosting - No SSH Required)
+### Opción 1: Instalación por FTP (Hosting Compartido - Sin SSH)
 
-**Perfect for shared hosting without SSH access.**
+**Perfecto para hosting compartido sin acceso SSH.**
 
-1. **Download production release**:
-   - Go to [GitHub Releases](https://github.com/caimari/musedock/releases)
-   - Download `musedock-vX.X.X-complete.zip` (includes all dependencies)
+1. **Descargar la versión de producción**:
+   - Ve a [GitHub Releases](https://github.com/caimari/musedock/releases)
+   - Descarga `musedock-vX.X.X-complete.zip` (incluye todas las dependencias)
 
-2. **Extract and upload**:
-   - Extract ZIP on your computer
-   - Upload all files via FTP to your hosting
+2. **Extraer y subir**:
+   - Extrae el ZIP en tu ordenador
+   - Sube todos los archivos vía FTP a tu hosting
 
-3. **Configure document root**:
-   - ⚠️ **IMPORTANT:** Point your web server to the `public/` folder
-   - Example: `public_html/musedock/public`
+3. **Configurar document root**:
+   - ⚠️ **IMPORTANTE:** Apunta tu servidor web a la carpeta `public/`
+   - Ejemplo: `public_html/musedock/public`
 
-4. **Open browser**:
+4. **Abrir navegador**:
    ```
-   http://your-domain.com/install/
+   http://tu-dominio.com/install/
    ```
 
-5. **Follow the wizard** - Database, admin account, done!
+5. **Seguir el asistente** - Base de datos, cuenta admin, ¡listo!
 
-📖 [Detailed FTP Installation Guide](INSTALL_FTP.md)
+📖 [Guía Detallada de Instalación FTP](INSTALL_FTP.md)
 
-### Option 2: Web Installer (VPS/Dedicated - With SSH)
+### Opción 2: Instalador Web (VPS/Dedicado - Con SSH)
 
-1. **Clone and install**:
+1. **Clonar e instalar**:
    ```bash
    git clone https://github.com/caimari/musedock.git
    cd musedock
    composer install --no-dev --optimize-autoloader
    ```
 
-2. **Open browser**:
+2. **Abrir navegador**:
    ```
-   http://your-domain.com/install/
+   http://tu-dominio.com/install/
    ```
 
-3. **Follow the wizard** to configure database and admin account.
+3. **Seguir el asistente** para configurar base de datos y cuenta de administrador.
 
-### Option 3: Composer Create-Project (Recommended for Developers)
+### Opción 3: Composer Create-Project (Recomendado para Desarrolladores)
 
-The quickest way to create a new project:
+La forma más rápida de crear un nuevo proyecto:
 
 ```bash
-composer create-project caimari/musedock my-project
-cd my-project
+composer create-project caimari/musedock mi-proyecto
+cd mi-proyecto
 ```
 
-Then open `http://your-domain.com/install/` in your browser.
+Luego abre `http://tu-dominio.com/install/` en tu navegador.
 
-**What does it do automatically?**
-- ✅ Downloads MuseDock CMS and all dependencies
-- ✅ Creates `.env` file from `.env.example`
-- ✅ Sets up optimized autoloader
-- ✅ Shows you the next steps
+**¿Qué hace automáticamente?**
+- ✅ Descarga MuseDock CMS y todas las dependencias
+- ✅ Crea el archivo `.env` desde `.env.example`
+- ✅ Configura el autoloader optimizado
+- ✅ Te muestra las instrucciones para el siguiente paso
 
-### Option 4: Manual CLI Installation
+### Opción 4: Instalación Manual CLI
 
-1. Clone and install dependencies:
+1. Clonar e instalar dependencias:
    ```bash
    git clone https://github.com/caimari/musedock.git
    cd musedock
    composer install --no-dev
    ```
 
-2. Copy environment file:
+2. Copiar archivo de entorno:
    ```bash
    cp .env.example .env
    ```
 
-3. Edit `.env` with your database credentials:
+3. Editar `.env` con tus credenciales de base de datos:
    ```env
    DB_HOST=localhost
-   DB_NAME=your_database
-   DB_USER=your_username
-   DB_PASS=your_password
+   DB_NAME=tu_base_datos
+   DB_USER=tu_usuario
+   DB_PASS=tu_contraseña
    ```
 
-4. Run migrations and seeders:
+4. Ejecutar migraciones y seeders:
    ```bash
    php migrate --seed
    ```
 
-5. Create your admin user via the database or use the seeder.
+5. Crear tu usuario administrador vía base de datos o usar el seeder.
 
-## Configuration
+## Configuración
 
-### Environment Variables
+### Variables de Entorno
 
-Key configuration options in `.env`:
+Opciones clave de configuración en `.env`:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `APP_ENV` | Environment (production/development) | production |
-| `APP_DEBUG` | Enable debug mode | false |
-| `APP_URL` | Your site URL | http://localhost |
-| `DB_DRIVER` | Database driver (mysql/pgsql) | mysql |
-| `MULTI_TENANT_ENABLED` | Enable multi-tenancy | false |
-| `REDIS_ENABLED` | Enable Redis caching | false |
+| Variable | Descripción | Por Defecto |
+|----------|-------------|-------------|
+| `APP_ENV` | Entorno (production/development) | production |
+| `APP_DEBUG` | Habilitar modo debug | false |
+| `APP_URL` | URL de tu sitio | http://localhost |
+| `DB_DRIVER` | Driver de base de datos (mysql/pgsql) | mysql |
+| `MULTI_TENANT_ENABLED` | Habilitar multi-tenancy | false |
+| `REDIS_ENABLED` | Habilitar caché Redis | false |
 
-### Directory Structure
+### Estructura de Directorios
 
 ```
 musedock/
-├── config/              # Configuration files
-├── core/                # Core framework classes
-│   ├── Controllers/     # Base controllers
-│   ├── Middlewares/     # Request middlewares
-│   ├── Models/          # Base models
-│   └── Views/           # Admin panel views
+├── config/              # Archivos de configuración
+├── core/                # Clases del framework core
+│   ├── Controllers/     # Controladores base
+│   ├── Middlewares/     # Middlewares de peticiones
+│   ├── Models/          # Modelos base
+│   └── Views/           # Vistas del panel admin
 ├── database/
-│   ├── migrations/      # Database migrations
-│   └── seeders/         # Data seeders
-├── install/             # Web installer
-├── modules/             # Installable modules
-├── public/              # Web root (POINT HERE)
-│   └── assets/          # CSS, JS, images
-├── routes/              # Route definitions
-├── storage/             # Logs, cache, uploads
-└── themes/              # Frontend themes
+│   ├── migrations/      # Migraciones de base de datos
+│   └── seeders/         # Seeders de datos
+├── install/             # Instalador web
+├── modules/             # Módulos instalables
+├── public/              # Raíz web (APUNTA AQUÍ)
+│   └── assets/          # CSS, JS, imágenes
+├── routes/              # Definiciones de rutas
+├── storage/             # Logs, caché, uploads
+└── themes/              # Temas del frontend
 ```
 
-## Available Modules
+## Módulos Disponibles
 
-| Module | Description |
+| Módulo | Descripción |
 |--------|-------------|
-| `blog` | Full-featured blog with categories and tags |
-| `media-manager` | File and image management |
-| `image-gallery` | Photo galleries |
-| `custom-forms` | Form builder |
-| `react-sliders` | Image sliders with React |
+| `blog` | Blog completo con categorías y etiquetas |
+| `media-manager` | Gestión de archivos e imágenes |
+| `image-gallery` | Galerías de fotos |
+| `custom-forms` | Constructor de formularios |
+| `react-sliders` | Sliders de imágenes con React |
 
-## CLI Commands
+## Comandos CLI
 
 ```bash
-# Migrations
-php migrate                     # Run pending migrations
-php migrate status              # Check migration status
-php migrate --seed              # Run migrations with seeders
-php migrate rollback            # Rollback last batch
-php migrate fresh --seed        # Fresh install with seeders
+# Migraciones
+php migrate                     # Ejecutar migraciones pendientes
+php migrate status              # Verificar estado de migraciones
+php migrate --seed              # Ejecutar migraciones con seeders
+php migrate rollback            # Revertir último lote
+php migrate fresh --seed        # Instalación limpia con seeders
 
-# Generate migrations from existing database
-php generate-migrations         # Generate all missing migrations
-php generate-migrations --list  # List tables without migrations
+# Generar migraciones desde base de datos existente
+php generate-migrations         # Generar todas las migraciones faltantes
+php generate-migrations --list  # Listar tablas sin migraciones
 ```
 
-## Admin Panel
+## Panel de Administración
 
-Access the admin panel at:
-- **Superadmin**: `https://your-domain.com/musedock/`
-- **Tenant Admin**: `https://your-domain.com/admin/`
+Accede al panel de administración en:
+- **Superadmin**: `https://tu-dominio.com/musedock/`
+- **Admin del Tenant**: `https://tu-dominio.com/admin/`
 
-## Security
+## Seguridad
 
-MuseDock includes built-in security features:
+MuseDock incluye características de seguridad integradas:
 
-- CSRF protection on all forms
-- Rate limiting for login attempts
-- Two-factor authentication (TOTP)
-- Password hashing with bcrypt
-- SQL injection prevention (PDO prepared statements)
-- XSS protection headers
+- Protección CSRF en todos los formularios
+- Limitación de peticiones para intentos de login
+- Autenticación de dos factores (TOTP)
+- Hash de contraseñas con bcrypt
+- Prevención de inyección SQL (PDO prepared statements)
+- Headers de protección XSS
 - Content Security Policy
-- IP blacklisting
+- Lista negra de IPs
 
-## Installing via Composer (Packagist)
+## Instalación vía Composer (Packagist)
 
-### To register your package on Packagist:
-
-1. **Go to [Packagist.org](https://packagist.org)**
-2. **Sign in** with your GitHub account
-3. **Click "Submit"**
-4. **Paste your repository URL**: `https://github.com/caimari/musedock`
-5. **Click "Check"** then **"Submit"**
-
-Once registered, anyone can install with:
 
 ```bash
-composer create-project caimari/musedock my-site
+composer create-project caimari/musedock mi-sitio
 ```
 
-### Automatic Updates
 
-Packagist automatically syncs with GitHub when you:
-- Create a new release
-- Push new commits
-- Create new tags
+## Licencia
 
-## Contributing
+Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Author
+## Autor
 
 **Antoni Caimari Caldes**
-- Website: [screenart.es](https://screenart.es)
+- Sitio web: [screenart.es](https://screenart.es)
 - GitHub: [@caimari](https://github.com/caimari)
 
-## Support
+## Soporte
 
-- Documentation: [musedock.org](https://musedock.org)
+- Documentación: [musedock.org](https://musedock.org)
 - Issues: [GitHub Issues](https://github.com/caimari/musedock/issues)
 
-## Screenshots
+## Capturas de Pantalla
 
-_(You can add screenshots here later)_
+_(Puedes añadir capturas aquí más adelante)_
 
-## FAQ
+## Preguntas Frecuentes (FAQ)
 
-### How do I install with Composer?
+### ¿Cómo instalo con Composer?
 
 ```bash
-composer create-project caimari/musedock project-name
-cd project-name
-# Visit http://your-domain.com/install/
+composer create-project caimari/musedock nombre-proyecto
+cd nombre-proyecto
+# Visita http://tu-dominio.com/install/
 ```
 
-### Do I need SSH access to install?
+### ¿Necesito acceso SSH para instalar?
 
-No. You can use **Option 1 (FTP)** by downloading the complete release from GitHub which already includes all dependencies.
+No. Puedes usar la **Opción 1 (FTP)** descargando el release completo desde GitHub que ya incluye todas las dependencias.
 
-### How do I update MuseDock?
+### ¿Cómo actualizo MuseDock?
 
-With Composer:
+Con Composer:
 ```bash
 composer update caimari/musedock
 ```
 
-Or download the new release and replace files (respecting `.env` and `storage/`).
+O descarga el nuevo release y reemplaza los archivos (respetando `.env` y `storage/`).
 
-### Can I use MuseDock on shared hosting?
+### ¿Puedo usar MuseDock en hosting compartido?
 
-Yes, use the FTP installation. You only need:
+Sí, usa la instalación por FTP. Solo necesitas:
 - PHP 8.0+
 - MySQL/MariaDB
-- Configure document root to the `public/` folder
+- Configurar el document root a la carpeta `public/`
 
-### Where is the complete documentation?
+### ¿Dónde está la documentación completa?
 
-Visit [musedock.org/docs](https://musedock.org/docs) (coming soon).
+Visita [musedock.org/docs](https://musedock.org/docs) (próximamente).
 
 ---
 
-**Build something amazing with MuseDock CMS! 🚀**
+**¡Construye algo increíble con MuseDock CMS! 🚀**
