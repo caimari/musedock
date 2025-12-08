@@ -450,6 +450,24 @@ function runInstallation($data) {
     $steps = [];
 
     try {
+        // Validate required data
+        $required = ['db_name', 'db_user', 'app_url', 'admin_email', 'admin_password'];
+        $missing = [];
+        foreach ($required as $field) {
+            if (empty($data[$field])) {
+                $missing[] = $field;
+            }
+        }
+
+        if (!empty($missing)) {
+            return [
+                'success' => false,
+                'error' => 'Missing required fields: ' . implode(', ', $missing) . '. Please go back and fill all required fields.',
+                'steps' => $steps,
+                'missing_fields' => $missing
+            ];
+        }
+
         // Step 1: Create .env file
         $steps[] = ['step' => 'Creating .env file', 'status' => 'running'];
         $envResult = createEnvFile($data);
@@ -573,6 +591,14 @@ function setupDatabase($data) {
     $name = $data['db_name'] ?? '';
     $user = $data['db_user'] ?? '';
     $pass = $data['db_pass'] ?? '';
+
+    // Validate required fields
+    if (empty($name)) {
+        return ['success' => false, 'error' => 'Database name is required'];
+    }
+    if (empty($user)) {
+        return ['success' => false, 'error' => 'Database user is required'];
+    }
 
     try {
         // Connect without database
@@ -1700,6 +1726,8 @@ $step = max(1, min(5, $step));
                 installData.action = 'run_installation';
                 installData.csrf_token = csrfToken;
 
+                console.log('Sending installation data:', installData);
+
                 const response = await fetch('', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -1773,8 +1801,52 @@ $step = max(1, min(5, $step));
             document.getElementById('btn-install').disabled = false;
         });
 
+        // Restore form data from sessionStorage
+        function restoreFormData() {
+            if (Object.keys(installData).length === 0) return;
+
+            // Restore database form
+            const dbForm = document.getElementById('database-form');
+            if (dbForm) {
+                for (const [key, value] of Object.entries(installData)) {
+                    const input = dbForm.querySelector(`[name="${key}"]`);
+                    if (input && value) {
+                        input.value = value;
+                    }
+                }
+            }
+
+            // Restore site form
+            const siteForm = document.getElementById('site-form');
+            if (siteForm) {
+                for (const [key, value] of Object.entries(installData)) {
+                    const input = siteForm.querySelector(`[name="${key}"]`);
+                    if (input && value) {
+                        input.value = value;
+                    }
+                }
+            }
+
+            // Restore admin form (except password)
+            const adminForm = document.getElementById('admin-form');
+            if (adminForm) {
+                for (const [key, value] of Object.entries(installData)) {
+                    if (key.includes('password')) continue; // Skip passwords for security
+                    const input = adminForm.querySelector(`[name="${key}"]`);
+                    if (input && value) {
+                        input.value = value;
+                    }
+                }
+            }
+
+            console.log('Restored form data from sessionStorage');
+        }
+
         // Initial check
         checkRequirements();
+
+        // Restore saved form data
+        setTimeout(restoreFormData, 100);
 
         // Language Selector Handler
         document.getElementById('languageSelector').addEventListener('change', function() {
