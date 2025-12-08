@@ -47,9 +47,40 @@
             </div>
             
             <div class="col-md-6">
-              <label class="form-label">URL de política de cookies</label>
-              <input type="text" name="cookies_policy_url" class="form-control" value="{{ $settings['cookies_policy_url'] ?? '/politica-cookies' }}">
-              <small class="text-muted">Ruta a la página de política de cookies</small>
+              <label class="form-label">Página de política de cookies</label>
+              @php
+                // Obtener páginas publicadas para el select
+                $pdo = \Screenart\Musedock\Database::connect();
+                $stmt = $pdo->prepare("
+                  SELECT p.id, p.title, s.slug, s.prefix
+                  FROM pages p
+                  LEFT JOIN slugs s ON s.reference_id = p.id AND s.module = 'pages'
+                  WHERE p.status = 'published' AND p.tenant_id IS NULL
+                  ORDER BY p.title ASC
+                ");
+                $stmt->execute();
+                $availablePages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                $currentPolicyUrl = $settings['cookies_policy_url'] ?? '/p/cookie-policy';
+              @endphp
+              <select name="cookies_policy_url" class="form-control">
+                <option value="">-- Seleccionar página --</option>
+                @foreach($availablePages as $pageItem)
+                  @php
+                    $pageUrl = '/' . ($pageItem['prefix'] ?: 'p') . '/' . $pageItem['slug'];
+                  @endphp
+                  <option value="{{ $pageUrl }}" {{ $currentPolicyUrl === $pageUrl ? 'selected' : '' }}>
+                    {{ $pageItem['title'] }} ({{ $pageUrl }})
+                  </option>
+                @endforeach
+                <option value="custom" {{ !empty($currentPolicyUrl) && !in_array($currentPolicyUrl, array_map(fn($p) => '/' . ($p['prefix'] ?: 'p') . '/' . $p['slug'], $availablePages)) ? 'selected' : '' }}>
+                  URL personalizada...
+                </option>
+              </select>
+              <input type="text" name="cookies_policy_url_custom" id="cookies_policy_url_custom" class="form-control mt-2"
+                     value="{{ $currentPolicyUrl }}"
+                     placeholder="/p/cookie-policy"
+                     style="{{ !empty($currentPolicyUrl) && !in_array($currentPolicyUrl, array_map(fn($p) => '/' . ($p['prefix'] ?: 'p') . '/' . $p['slug'], $availablePages)) ? '' : 'display:none;' }}">
+              <small class="text-muted">Selecciona una página existente o escribe una URL personalizada. Las páginas son multiidioma.</small>
             </div>
           </div>
         </div>
@@ -80,14 +111,14 @@
           
           <div class="alert alert-warning">
             <h5>Importante: Páginas de políticas</h5>
-            <p>Para cumplir con las regulaciones como GDPR, es necesario crear una página en <code>/politica-cookies</code> que explique detalladamente:</p>
+            <p>Para cumplir con las regulaciones como GDPR, es necesario crear una página (ej: <code>/p/cookie-policy</code>) que explique detalladamente:</p>
             <ul>
               <li>Qué son las cookies</li>
               <li>Qué tipos de cookies utiliza tu sitio</li>
               <li>Cómo se utilizan y con qué propósito</li>
               <li>Cómo el usuario puede gestionar sus cookies</li>
             </ul>
-            <p>Puedes crear esta página utilizando el editor de páginas del CMS.</p>
+            <p>Puedes crear esta página utilizando el editor de páginas del CMS. <strong>Las páginas soportan traducciones multiidioma</strong>, por lo que el contenido se mostrará en el idioma del visitante automáticamente.</p>
           </div>
         </div>
       </div>
@@ -101,3 +132,34 @@
   </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const policySelect = document.querySelector('select[name="cookies_policy_url"]');
+  const customInput = document.getElementById('cookies_policy_url_custom');
+
+  if (policySelect && customInput) {
+    policySelect.addEventListener('change', function() {
+      if (this.value === 'custom') {
+        customInput.style.display = 'block';
+        customInput.focus();
+      } else {
+        customInput.style.display = 'none';
+        customInput.value = this.value;
+      }
+    });
+
+    // Al enviar el form, si el select no es "custom", usar el valor del select
+    policySelect.closest('form').addEventListener('submit', function(e) {
+      if (policySelect.value !== 'custom') {
+        customInput.value = policySelect.value;
+      }
+      // Asegurar que el campo correcto se envía
+      customInput.name = 'cookies_policy_url';
+      policySelect.name = '';
+    });
+  }
+});
+</script>
+@endpush
