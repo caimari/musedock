@@ -4,6 +4,25 @@ use Screenart\Musedock\Database;
 use Screenart\Musedock\Models\Language;
 use Screenart\Musedock\Helpers\SliderHelper;
 
+if (!function_exists('debug_log')) {
+    /**
+     * Log de debug que solo escribe cuando APP_DEBUG=true
+     * Usar en lugar de error_log() para mensajes informativos
+     *
+     * @param string $message
+     * @return void
+     */
+    function debug_log(string $message): void {
+        static $debug = null;
+        if ($debug === null) {
+            $debug = \Screenart\Musedock\Env::get('APP_DEBUG', false);
+        }
+        if ($debug) {
+            error_log($message);
+        }
+    }
+}
+
 if (!function_exists('env')) {
     /**
      * Get environment variable value

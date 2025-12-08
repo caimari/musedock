@@ -24,7 +24,9 @@ require_once APP_ROOT . '/core/ModuleAutoloader.php';
 
 // Cargar Logger (requerido por Database)
 require_once APP_ROOT . '/core/Logger.php';
-\Screenart\Musedock\Logger::init();
+$debug = \Screenart\Musedock\Env::get('APP_DEBUG', false);
+$logLevel = $debug ? 'DEBUG' : 'ERROR';
+\Screenart\Musedock\Logger::init(null, $logLevel);
 
 // Cargar funciones helper globales
 require_once APP_ROOT . '/core/helpers.php';

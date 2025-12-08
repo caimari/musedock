@@ -39,9 +39,10 @@ require_once __DIR__ . '/../core/Helpers/hooks.php'; // Sistema de hooks para fi
 require_once __DIR__ . '/../core/Logger.php'; // Asegurar que la clase esté cargada
 use Screenart\Musedock\Logger;
 
-// Inicializar con nivel DEBUG y la ruta correcta
-// Si init() falla, se logueará a error_log de PHP y el logging de la app no funcionará.
-Logger::init($logFilePath, 'DEBUG');
+// Inicializar Logger: DEBUG si APP_DEBUG=true, ERROR si APP_DEBUG=false (producción)
+// Esto reduce drásticamente el volumen de logs en producción
+$logLevel = $debug ? 'DEBUG' : 'ERROR';
+Logger::init($logFilePath, $logLevel);
 
 // =========== MANEJO GLOBAL DE ERRORES/EXCEPCIONES (Refinado) ===========
 // Este manejador ahora SÓLO logueará. No enviará salida HTTP.

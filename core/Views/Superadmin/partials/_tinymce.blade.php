@@ -1,5 +1,5 @@
 {{-- Scripts y estilos necesarios --}}
-<script src="/vendor/tinymce/js/tinymce/tinymce.min.js"></script>
+<script src="/assets/vendor/tinymce/js/tinymce/tinymce.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" />
 
 <!-- Estilos actualizados para eliminar completamente el borde azul del editor TinyMCE -->

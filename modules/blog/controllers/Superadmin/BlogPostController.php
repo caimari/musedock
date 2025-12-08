@@ -122,6 +122,7 @@ class BlogPostController
 
     public function create()
     {
+        $this->checkPermission('blog.create');
         // Obtener todas las categorías disponibles
         $categories = BlogCategory::whereNull('tenant_id')->orderBy('name', 'ASC')->get();
 
@@ -140,6 +141,7 @@ class BlogPostController
 
     public function store()
     {
+        $this->checkPermission('blog.create');
         $data = $_POST;
         unset($data['_token'], $data['_csrf']);
 
@@ -259,6 +261,7 @@ class BlogPostController
 
     public function edit($id)
     {
+        $this->checkPermission('blog.edit');
         // Limpiar datos 'old' al inicio
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
         unset($_SESSION['_old_input']);
@@ -366,6 +369,7 @@ class BlogPostController
 
     public function update($id)
     {
+        $this->checkPermission('blog.edit');
         // Iniciar sesión si es necesario
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
@@ -850,6 +854,7 @@ class BlogPostController
 
     public function destroy($id)
     {
+        $this->checkPermission('blog.delete');
         // Verificar que el post existe
         $post = BlogPost::find($id);
         if (!$post) {
@@ -911,6 +916,7 @@ class BlogPostController
 
     public function bulk()
     {
+        $this->checkPermission('blog.edit');
         $action = $_POST['action'] ?? null;
         $selected = $_POST['selected'] ?? [];
 
@@ -1023,6 +1029,7 @@ class BlogPostController
 
     public function editTranslation($id, $locale)
     {
+        $this->checkPermission('blog.edit');
         $post = BlogPost::find($id);
         if (!$post) {
             flash('error', __('blog.post.error_base_post_not_found'));
@@ -1062,6 +1069,7 @@ class BlogPostController
 
     public function updateTranslation($id, $locale)
     {
+        $this->checkPermission('blog.edit');
         $post = BlogPost::find($id);
         if (!$post) {
             flash('error', __('blog.post.error_base_post_not_found'));
@@ -1215,6 +1223,7 @@ class BlogPostController
      */
     public function revisions($id)
     {
+        $this->checkPermission('blog.view');
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
         $post = BlogPost::find($id);
@@ -1239,6 +1248,7 @@ class BlogPostController
      */
     public function restoreRevision($postId, $revisionId)
     {
+        $this->checkPermission('blog.edit');
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
         $revision = \Blog\Models\BlogPostRevision::findWithTenant((int)$revisionId, null);
@@ -1264,6 +1274,7 @@ class BlogPostController
      */
     public function previewRevision($postId, $revisionId)
     {
+        $this->checkPermission('blog.view');
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
         $revision = \Blog\Models\BlogPostRevision::find((int)$revisionId);
@@ -1286,6 +1297,7 @@ class BlogPostController
      */
     public function compareRevisions($postId, $id1, $id2)
     {
+        $this->checkPermission('blog.view');
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
         $revision1 = \Blog\Models\BlogPostRevision::find((int)$id1);
@@ -1313,6 +1325,7 @@ class BlogPostController
      */
     public function trash()
     {
+        $this->checkPermission('blog.view');
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
         // Obtener posts en papelera
@@ -1342,6 +1355,7 @@ class BlogPostController
      */
     public function restoreFromTrash($id)
     {
+        $this->checkPermission('blog.edit');
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
         $pdo = Database::connect();
@@ -1382,6 +1396,7 @@ class BlogPostController
      */
     public function forceDelete($id)
     {
+        $this->checkPermission('blog.delete');
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
         $post = BlogPost::where('id', $id)
@@ -1435,6 +1450,7 @@ class BlogPostController
      */
     public function autosave($id)
     {
+        $this->checkPermission('blog.edit');
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
         header('Content-Type: application/json');
