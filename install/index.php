@@ -60,9 +60,112 @@ if ($installLockExists && $envExists) {
         $databaseConfigured = false;
     }
 
-    // Only redirect to home if everything is properly configured
+    // Only block access if everything is properly configured
     if ($databaseConfigured) {
-        header('Location: /');
+        http_response_code(403);
+        ?>
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Instalación Completada</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                }
+                .container {
+                    max-width: 700px;
+                    background: white;
+                    border-radius: 10px;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                    padding: 50px 40px;
+                    text-align: center;
+                }
+                .icon {
+                    font-size: 80px;
+                    margin-bottom: 20px;
+                }
+                h1 {
+                    color: #28a745;
+                    margin-bottom: 20px;
+                    font-size: 2em;
+                }
+                p {
+                    color: #666;
+                    line-height: 1.6;
+                    margin-bottom: 15px;
+                    font-size: 1.1em;
+                }
+                .warning {
+                    background: #fff3cd;
+                    border: 2px solid #ffc107;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin: 25px 0;
+                }
+                .warning h3 {
+                    color: #856404;
+                    margin-bottom: 10px;
+                }
+                .warning p {
+                    color: #856404;
+                    font-size: 0.95em;
+                }
+                code {
+                    background: #f8f9fa;
+                    padding: 3px 10px;
+                    border-radius: 4px;
+                    color: #dc3545;
+                    font-family: 'Courier New', monospace;
+                    font-weight: 600;
+                }
+                .btn {
+                    display: inline-block;
+                    background: #667eea;
+                    color: white;
+                    padding: 15px 40px;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    font-weight: 600;
+                    margin-top: 25px;
+                    transition: all 0.3s;
+                    font-size: 1.1em;
+                }
+                .btn:hover {
+                    background: #5568d3;
+                    transform: translateY(-2px);
+                    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="icon">✅</div>
+                <h1>Sistema Ya Instalado</h1>
+                <p>MuseDock CMS ya ha sido instalado correctamente en este servidor.</p>
+                <p>El instalador ha sido bloqueado por razones de seguridad.</p>
+
+                <div class="warning">
+                    <h3>⚠️ ¿Necesitas reinstalar?</h3>
+                    <p>Si deseas realizar una instalación limpia:</p>
+                    <p>1. Elimina el archivo <code>install.lock</code> del directorio raíz</p>
+                    <p>2. Opcionalmente, elimina el archivo <code>.env</code></p>
+                    <p>3. Recarga esta página</p>
+                </div>
+
+                <a href="/" class="btn">Ir al Sitio Web</a>
+            </div>
+        </body>
+        </html>
+        <?php
         exit;
     }
 }
