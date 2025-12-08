@@ -30,9 +30,8 @@ class CreateSlugsTable_2025_12_08_104752
                   UNIQUE KEY `unique_slug` (`module`,`reference_id`,`slug`,`tenant_id`,`prefix`),
                   KEY `idx_slugs_tenant` (`tenant_id`),
                   KEY `idx_slugs_module_reference` (`module`,`reference_id`),
-                  KEY `idx_slugs_slug` (`slug`),
-                  CONSTRAINT `fk_slugs_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-                ) ENGINE=InnoDB AUTO_INCREMENT=495 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci
+                  KEY `idx_slugs_slug` (`slug`)
+                ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             ");
         } else {
             // PostgreSQL version - needs manual adjustment

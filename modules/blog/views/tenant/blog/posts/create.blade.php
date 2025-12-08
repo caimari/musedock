@@ -89,8 +89,8 @@
               <div class="mb-3">
                 <label class="form-label">{{ __('blog.post.status') }}</label>
                 <select class="form-select @error('status') is-invalid @enderror" name="status" id="status-select">
-                  <option value="draft" @selected(old('status', 'draft') === 'draft')>{{ __('blog.post.draft') }}</option>
-                  <option value="published" @selected(old('status') === 'published')>{{ __('blog.post.published') }}</option>
+                  <option value="draft" @selected(old('status') === 'draft')>{{ __('blog.post.draft') }}</option>
+                  <option value="published" @selected(old('status', 'published') === 'published')>{{ __('blog.post.published') }}</option>
                 </select>
                 @error('status')
                   <div class="invalid-feedback">{{ $message }}</div>
