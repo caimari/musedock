@@ -4,6 +4,19 @@ use Screenart\Musedock\Database;
 use Screenart\Musedock\Models\Language;
 use Screenart\Musedock\Helpers\SliderHelper;
 
+if (!function_exists('env')) {
+    /**
+     * Get environment variable value
+     *
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
+     */
+    function env($key, $default = null) {
+        return \Screenart\Musedock\Env::get($key, $default);
+    }
+}
+
 if (!function_exists('dd')) {
     function dd($var) {
         echo "<pre>";
