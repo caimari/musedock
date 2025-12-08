@@ -186,7 +186,7 @@ class Create{$className}Table_{$timestamp}
         \$pdo = Database::connect();
         \$driver = Database::getDriver();
 
-        if (\$driver === 'mysql') {
+        if (\$driver->getDriverName() === 'mysql') {
             \$pdo->exec("
                 {$createStatement}
             ");
