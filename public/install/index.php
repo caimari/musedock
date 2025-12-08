@@ -17,6 +17,31 @@ ini_set('display_errors', 1);
 define('INSTALL_PATH', __DIR__);
 define('ROOT_PATH', dirname(dirname(__DIR__))); // public/install -> public -> root
 define('MIN_PHP_VERSION', '8.0.0');
+define('INSTALL_LOG', INSTALL_PATH . '/install.log');
+
+// Install logger function
+function logInstall($message, $level = 'INFO') {
+    $timestamp = date('Y-m-d H:i:s');
+    $logMessage = "[{$timestamp}] [{$level}] {$message}\n";
+
+    // Also log POST data for debugging (excluding sensitive info)
+    if ($level === 'ERROR' && !empty($_POST)) {
+        $sanitized = $_POST;
+        if (isset($sanitized['admin_password'])) $sanitized['admin_password'] = '***HIDDEN***';
+        if (isset($sanitized['db_pass'])) $sanitized['db_pass'] = '***HIDDEN***';
+        $logMessage .= "POST Data: " . json_encode($sanitized, JSON_PRETTY_PRINT) . "\n";
+    }
+
+    file_put_contents(INSTALL_LOG, $logMessage, FILE_APPEND);
+}
+
+// Clear old log at start
+if (file_exists(INSTALL_LOG)) {
+    @unlink(INSTALL_LOG);
+}
+logInstall('Installation wizard started');
+logInstall('PHP Version: ' . PHP_VERSION);
+logInstall('Server: ' . ($_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'));
 
 // Session for wizard steps
 session_start();
@@ -192,37 +217,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     ini_set('display_errors', 0);
     header('Content-Type: application/json');
 
-    // Verify CSRF
-    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        echo json_encode(['success' => false, 'error' => 'Invalid CSRF token']);
-        exit;
-    }
+    try {
+        // Verify CSRF
+        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+            logInstall('CSRF token validation failed', 'ERROR');
+            echo json_encode(['success' => false, 'error' => 'Invalid CSRF token']);
+            exit;
+        }
 
-    $action = $_POST['action'];
+        $action = $_POST['action'];
+        logInstall("AJAX action: {$action}");
 
-    switch ($action) {
-        case 'check_requirements':
-            echo json_encode(checkRequirements());
-            break;
+        switch ($action) {
+            case 'check_requirements':
+                $result = checkRequirements();
+                echo json_encode($result);
+                break;
 
-        case 'test_database':
-            echo json_encode(testDatabaseConnection($_POST));
-            break;
+            case 'test_database':
+                $result = testDatabaseConnection($_POST);
+                logInstall("Database test: " . ($result['success'] ? 'SUCCESS' : 'FAILED - ' . ($result['error'] ?? 'Unknown error')));
+                echo json_encode($result);
+                break;
 
-        case 'run_installation':
-            echo json_encode(runInstallation($_POST));
-            break;
+            case 'run_installation':
+                logInstall("Starting installation...");
+                $result = runInstallation($_POST);
+                logInstall("Installation result: " . ($result['success'] ? 'SUCCESS' : 'FAILED - ' . ($result['error'] ?? 'Unknown error')));
+                echo json_encode($result);
+                break;
 
-        case 'check_composer':
-            echo json_encode(checkComposerStatus());
-            break;
+            case 'check_composer':
+                echo json_encode(checkComposerStatus());
+                break;
 
-        case 'run_composer':
-            echo json_encode(runComposerInstall());
-            break;
+            case 'run_composer':
+                echo json_encode(runComposerInstall());
+                break;
 
-        default:
-            echo json_encode(['success' => false, 'error' => 'Unknown action']);
+            default:
+                logInstall("Unknown action: {$action}", 'ERROR');
+                echo json_encode(['success' => false, 'error' => 'Unknown action']);
+        }
+    } catch (Throwable $e) {
+        // Catch ALL errors including fatal errors
+        $errorMsg = 'PHP Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine();
+        logInstall($errorMsg, 'ERROR');
+        logInstall('Stack trace: ' . $e->getTraceAsString(), 'ERROR');
+
+        echo json_encode([
+            'success' => false,
+            'error' => 'PHP Error: ' . $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ]);
     }
     exit;
 }
@@ -470,18 +519,24 @@ function runInstallation($data) {
 
         // Step 1: Create .env file
         $steps[] = ['step' => 'Creating .env file', 'status' => 'running'];
+        logInstall('Creating .env file...');
         $envResult = createEnvFile($data);
         if (!$envResult['success']) {
+            logInstall('Failed to create .env: ' . $envResult['error'], 'ERROR');
             return ['success' => false, 'error' => $envResult['error'], 'steps' => $steps];
         }
+        logInstall('.env file created successfully');
         $steps[count($steps) - 1]['status'] = 'completed';
 
         // Step 2: Create database if not exists
         $steps[] = ['step' => 'Setting up database', 'status' => 'running'];
+        logInstall("Setting up database: {$data['db_name']} on {$data['db_host']}");
         $dbResult = setupDatabase($data);
         if (!$dbResult['success']) {
+            logInstall('Database setup failed: ' . $dbResult['error'], 'ERROR');
             return ['success' => false, 'error' => $dbResult['error'], 'steps' => $steps];
         }
+        logInstall('Database setup completed');
         $steps[count($steps) - 1]['status'] = 'completed';
 
         // Step 3: Run migrations
@@ -515,6 +570,13 @@ function runInstallation($data) {
         $steps[] = ['step' => 'Finalizing installation', 'status' => 'running'];
         file_put_contents(ROOT_PATH . '/install.lock', date('Y-m-d H:i:s') . "\nInstalled by: " . ($data['admin_email'] ?? 'Unknown'));
         $steps[count($steps) - 1]['status'] = 'completed';
+
+        // Log success and delete install.log
+        logInstall('Installation completed successfully!');
+        logInstall('Deleting install log...');
+        if (file_exists(INSTALL_LOG)) {
+            @unlink(INSTALL_LOG);
+        }
 
         // Clear session
         session_destroy();
@@ -1425,13 +1487,16 @@ $step = max(1, min(5, $step));
                             <h5><i class="bi bi-exclamation-octagon me-2"></i>Installation Failed</h5>
                             <p id="error-message"></p>
                         </div>
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 flex-wrap">
                             <button type="button" class="btn btn-outline-light" id="btn-retry-install">
                                 <i class="bi bi-arrow-clockwise me-2"></i>Retry Installation
                             </button>
                             <button type="button" class="btn btn-secondary" onclick="goToStep(2)">
                                 <i class="bi bi-arrow-left me-2"></i>Back to Database
                             </button>
+                            <a href="install.log" download="musedock-install.log" class="btn btn-info" id="btn-download-log" style="display:none">
+                                <i class="bi bi-download me-2"></i>Download Error Log
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -1783,13 +1848,31 @@ $step = max(1, min(5, $step));
                     document.getElementById('install-progress').style.display = 'none';
                     document.getElementById('install-error').style.display = 'block';
                     document.getElementById('error-message').innerHTML = errorHtml;
+
+                    // Show download log button
+                    checkLogFile();
                 }
             } catch (error) {
                 document.getElementById('install-progress').style.display = 'none';
                 document.getElementById('install-error').style.display = 'block';
                 document.getElementById('error-message').innerHTML = `<strong>Connection Error:</strong><br>${error.message}`;
+
+                // Show download log button
+                checkLogFile();
             }
         });
+
+        // Check if install.log exists and show download button
+        async function checkLogFile() {
+            try {
+                const response = await fetch('install.log', { method: 'HEAD' });
+                if (response.ok) {
+                    document.getElementById('btn-download-log').style.display = 'inline-block';
+                }
+            } catch (e) {
+                // Log doesn't exist, that's ok
+            }
+        }
 
         // Retry installation button
         document.getElementById('btn-retry-install').addEventListener('click', function() {
