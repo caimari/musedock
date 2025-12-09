@@ -16,17 +16,24 @@ class CreateSiteMenusTable_2025_12_08_104752
 
         if ($driver->getDriverName() === 'mysql') {
             $pdo->exec("
-                CREATE TABLE `site_menus` (
+                CREATE TABLE IF NOT EXISTS `site_menus` (
                   `id` int(11) NOT NULL AUTO_INCREMENT,
                   `title` varchar(255) DEFAULT NULL,
                   `location` varchar(255) DEFAULT NULL,
+                  `show_title` tinyint(1) NOT NULL DEFAULT 1,
                   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
                   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
                   `tenant_id` int(11) DEFAULT NULL,
                   PRIMARY KEY (`id`),
                   KEY `idx_tenant_id` (`tenant_id`)
-                ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
             ");
+
+            // Añadir columna show_title si la tabla ya existe pero no tiene la columna
+            $stmt = $pdo->query("SHOW COLUMNS FROM `site_menus` LIKE 'show_title'");
+            if ($stmt->rowCount() === 0) {
+                $pdo->exec("ALTER TABLE `site_menus` ADD COLUMN `show_title` tinyint(1) NOT NULL DEFAULT 1 AFTER `location`");
+            }
         } else {
             // PostgreSQL version - needs manual adjustment
             throw new \Exception('PostgreSQL schema not generated. Please create manually.');

@@ -242,16 +242,55 @@ public function edit($id)
     // Cargar las áreas de menú dinámicamente desde el tema activo
     $menuAreas = $this->getMenuAreasFromTheme();
 
+    // Cargar posts y categorías del blog si el módulo está activo
+    $blogPosts = [];
+    $blogCategories = [];
+
+    // Verificar si existe la tabla blog_posts (módulo de blog activo)
+    try {
+        $stmt = $pdo->query("SHOW TABLES LIKE 'blog_posts'");
+        if ($stmt->rowCount() > 0) {
+            // Obtener posts publicados
+            $stmt = $pdo->prepare("
+                SELECT bp.id, bpt.title, s.slug
+                FROM blog_posts bp
+                LEFT JOIN blog_post_translations bpt ON bp.id = bpt.post_id
+                LEFT JOIN slugs s ON s.reference_id = bp.id AND s.module = 'blog'
+                WHERE bp.status = 'published'
+                  AND bpt.locale = ?
+                  AND s.slug IS NOT NULL
+                ORDER BY bp.created_at DESC
+                LIMIT 20
+            ");
+            $stmt->execute([$currentLocale]);
+            $blogPosts = $stmt->fetchAll(\PDO::FETCH_OBJ);
+
+            // Obtener categorías
+            $stmt = $pdo->prepare("
+                SELECT bc.id, bc.name, bc.slug
+                FROM blog_categories bc
+                WHERE bc.active = 1
+                ORDER BY bc.name ASC
+            ");
+            $stmt->execute();
+            $blogCategories = $stmt->fetchAll(\PDO::FETCH_OBJ);
+        }
+    } catch (\Exception $e) {
+        // Módulo de blog no disponible
+    }
+
     return View::renderSuperadmin('menus.edit', [
-        'title'         => 'Editar Menú',
-        'menu'          => $menu,
-        'items'         => $items,
-        'recentPages'   => $recentPages,
-        'allPages'      => $allPages,
-        'tenantId'      => $tenantId,
-        'languages'     => $languages,
-        'currentLocale' => $currentLocale,
-        'menuAreas'     => $menuAreas
+        'title'          => 'Editar Menú',
+        'menu'           => $menu,
+        'items'          => $items,
+        'recentPages'    => $recentPages,
+        'allPages'       => $allPages,
+        'tenantId'       => $tenantId,
+        'languages'      => $languages,
+        'currentLocale'  => $currentLocale,
+        'menuAreas'      => $menuAreas,
+        'blogPosts'      => $blogPosts,
+        'blogCategories' => $blogCategories
     ]);
 }
 
@@ -267,90 +306,72 @@ private function getMenuAreasFromTheme()
     $stmt = $pdo->prepare("SELECT slug FROM themes WHERE active = 1 LIMIT 1");
     $stmt->execute();
     $activeTheme = $stmt->fetchColumn();
-    
+
     // Si no hay tema activo, usar el predeterminado
     if (!$activeTheme) {
         $activeTheme = 'default';
     }
-    
-    // Ruta al archivo theme.json
-    $themeJsonPath = __DIR__ . '/../../../../themes/' . $activeTheme . '/theme.json';
-    
-    // Verificar si la ruta es correcta
-    error_log("Buscando theme.json en: " . $themeJsonPath);
-    
+
     // Áreas de menú predeterminadas en caso de que no se encuentren en el tema
     $defaultAreas = [
         ['id' => 'nav', 'name' => 'Navegación principal'],
         ['id' => 'footer', 'name' => 'Footer'],
         ['id' => 'sidebar', 'name' => 'Sidebar']
     ];
-    
+
+    // Usar APP_ROOT si está definido, sino calcular desde __DIR__
+    if (defined('APP_ROOT')) {
+        $themeJsonPath = APP_ROOT . '/themes/' . $activeTheme . '/theme.json';
+    } else {
+        // Calcular ruta base del proyecto (4 niveles arriba desde Controllers/Superadmin)
+        $themeJsonPath = dirname(__DIR__, 3) . '/themes/' . $activeTheme . '/theme.json';
+    }
+
     // Verificar si existe el archivo theme.json
     if (!file_exists($themeJsonPath)) {
-        // Intentar con otra ruta relativa
-        $themeJsonPath = dirname(__DIR__, 4) . '/themes/' . $activeTheme . '/theme.json';
-        error_log("Intentando ruta alternativa: " . $themeJsonPath);
-        
-        if (!file_exists($themeJsonPath)) {
-            // Intentar con una ruta más común
-            $themeJsonPath = $_SERVER['DOCUMENT_ROOT'] . '/themes/' . $activeTheme . '/theme.json';
-            error_log("Intentando otra ruta alternativa: " . $themeJsonPath);
-            
-            if (!file_exists($themeJsonPath)) {
-                error_log("Archivo theme.json no encontrado en ninguna ruta");
-                return $defaultAreas;
-            }
-        }
+        return $defaultAreas;
     }
     
     // Leer el archivo theme.json
     try {
         $themeJsonContent = file_get_contents($themeJsonPath);
-        
+
         if (!$themeJsonContent) {
-            error_log("El contenido de theme.json está vacío");
             return $defaultAreas;
         }
-        
+
         $themeConfig = json_decode($themeJsonContent, true);
-        
+
         if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log("Error decodificando JSON: " . json_last_error_msg());
             return $defaultAreas;
         }
-        
+
         // Verificar si existen áreas de menú definidas
         if (isset($themeConfig['menu_areas']) && is_array($themeConfig['menu_areas'])) {
-            error_log("Áreas de menú encontradas: " . count($themeConfig['menu_areas']));
             return $themeConfig['menu_areas'];
-        } else {
-            // También verificar si hay 'content_areas' que soporten menús
-            if (isset($themeConfig['content_areas']) && is_array($themeConfig['content_areas'])) {
-                $menuAreas = [];
-                foreach ($themeConfig['content_areas'] as $area) {
-                    if (isset($area['supports']) && in_array('menu', $area['supports'])) {
-                        $menuAreas[] = [
-                            'id' => $area['id'],
-                            'name' => $area['name'],
-                            'description' => $area['description'] ?? ''
-                        ];
-                    }
-                }
-                
-                if (!empty($menuAreas)) {
-                    error_log("Áreas de contenido para menús encontradas: " . count($menuAreas));
-                    return $menuAreas;
+        }
+
+        // También verificar si hay 'content_areas' que soporten menús
+        if (isset($themeConfig['content_areas']) && is_array($themeConfig['content_areas'])) {
+            $menuAreas = [];
+            foreach ($themeConfig['content_areas'] as $area) {
+                if (isset($area['supports']) && in_array('menu', $area['supports'])) {
+                    $menuAreas[] = [
+                        'id' => $area['id'],
+                        'name' => $area['name'],
+                        'description' => $area['description'] ?? ''
+                    ];
                 }
             }
-            
-            error_log("No se encontraron áreas de menú en el archivo theme.json");
+
+            if (!empty($menuAreas)) {
+                return $menuAreas;
+            }
         }
     } catch (\Exception $e) {
         // En caso de error, devolver las áreas predeterminadas
-        error_log("Error al leer las áreas de menú: " . $e->getMessage());
     }
-    
+
     return $defaultAreas;
 }
 	
@@ -371,6 +392,7 @@ private function getMenuAreasFromTheme()
         $title = trim($_POST['title'] ?? '');
         $location = trim($_POST['location'] ?? '');
         $locale = trim($_POST['locale'] ?? setting('language', 'es'));
+        $showTitle = isset($_POST['show_title']) ? (int)$_POST['show_title'] : 1;
 
         if (empty($title)) {
             flash('error', 'El título del menú no puede estar vacío.');
@@ -383,13 +405,13 @@ private function getMenuAreasFromTheme()
         try {
             $pdo->beginTransaction();
 
-            // Actualizar el menú (ubicación)
+            // Actualizar el menú (ubicación y show_title)
             $stmt = $pdo->prepare("
-                UPDATE site_menus 
-                SET location = ?, updated_at = NOW() 
+                UPDATE site_menus
+                SET location = ?, show_title = ?, updated_at = NOW()
                 WHERE id = ?
             ");
-            $stmt->execute([$location, $id]);
+            $stmt->execute([$location, $showTitle, $id]);
 
             // Comprobar si existe una traducción para este idioma
             $stmt = $pdo->prepare("

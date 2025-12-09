@@ -8,20 +8,22 @@ $pdo = \Screenart\Musedock\Database::connect();
 $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
 
 // Verificar si existe un menú para esta ubicación
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM site_menus WHERE location = :location");
+$stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = :location LIMIT 1");
 $stmt->execute([':location' => $location]);
-$hasMenu = (int)$stmt->fetchColumn() > 0;
+$menuData = $stmt->fetch(\PDO::FETCH_ASSOC);
+$hasMenu = !empty($menuData);
 
 $menuTitle = '';
+$showMenuTitle = true;
 if ($hasMenu) {
+    $showMenuTitle = (bool)($menuData['show_title'] ?? 1);
     $stmt = $pdo->prepare("
         SELECT mt.title
-        FROM site_menus m
-        JOIN site_menu_translations mt ON m.id = mt.menu_id
-        WHERE m.location = :location AND mt.locale = :locale
+        FROM site_menu_translations mt
+        WHERE mt.menu_id = :menu_id AND mt.locale = :locale
         ORDER BY mt.id DESC LIMIT 1
     ");
-    $stmt->execute([':location' => $location, ':locale' => $currentLang]);
+    $stmt->execute([':menu_id' => $menuData['id'], ':locale' => $currentLang]);
     $menuTitle = $stmt->fetchColumn();
 }
 @endphp
@@ -29,7 +31,7 @@ if ($hasMenu) {
 @if($hasMenu)
     {{-- Si hay menú definido, mostrarlo --}}
     <div class="footer-menu-column">
-        @if($menuTitle)
+        @if($menuTitle && $showMenuTitle)
             <h4 class="text-lg font-bold mb-4 text-white">{{ $menuTitle }}</h4>
         @endif
 

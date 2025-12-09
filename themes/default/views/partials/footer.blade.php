@@ -95,28 +95,30 @@
                         @php
                             // Verificar si existe un menú para el área footer1
                             $pdo = \Screenart\Musedock\Database::connect();
-                            $stmt = $pdo->prepare("SELECT COUNT(*) FROM site_menus WHERE location = 'footer1'");
+                            $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer1' LIMIT 1");
                             $stmt->execute();
-                            $hasFooter1Menu = (int)$stmt->fetchColumn() > 0;
-                            
+                            $footer1Menu = $stmt->fetch(\PDO::FETCH_ASSOC);
+                            $hasFooter1Menu = !empty($footer1Menu);
+
                             $footer1Title = '';
+                            $showFooter1Title = true;
                             if ($hasFooter1Menu) {
+                                $showFooter1Title = (bool)($footer1Menu['show_title'] ?? 1);
                                 $stmt = $pdo->prepare("
                                     SELECT mt.title
-                                    FROM site_menus m
-                                    JOIN site_menu_translations mt ON m.id = mt.menu_id
-                                    WHERE m.location = 'footer1' AND mt.locale = ?
+                                    FROM site_menu_translations mt
+                                    WHERE mt.menu_id = ? AND mt.locale = ?
                                     ORDER BY mt.id DESC LIMIT 1
                                 ");
-                                $stmt->execute([setting('language', 'es')]);
+                                $stmt->execute([$footer1Menu['id'], $currentLang]);
                                 $footer1Title = $stmt->fetchColumn();
                             }
                         @endphp
-                        
+
                         @if($hasFooter1Menu)
                             {{-- Si tenemos un menú definido para footer1, mostrarlo --}}
                             <div class="footer-tittle">
-                                @if($footer1Title)
+                                @if($footer1Title && $showFooter1Title)
                                     <h4>{{ $footer1Title }}</h4>
                                 @endif
                                 @custommenu('footer1', null, [
@@ -138,28 +140,30 @@
                         @php
                             // Verificar si existe un menú para el área footer2
                             $pdo = \Screenart\Musedock\Database::connect();
-                            $stmt = $pdo->prepare("SELECT COUNT(*) FROM site_menus WHERE location = 'footer2'");
+                            $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer2' LIMIT 1");
                             $stmt->execute();
-                            $hasFooter2Menu = (int)$stmt->fetchColumn() > 0;
-                            
+                            $footer2Menu = $stmt->fetch(\PDO::FETCH_ASSOC);
+                            $hasFooter2Menu = !empty($footer2Menu);
+
                             $footer2Title = '';
+                            $showFooter2Title = true;
                             if ($hasFooter2Menu) {
+                                $showFooter2Title = (bool)($footer2Menu['show_title'] ?? 1);
                                 $stmt = $pdo->prepare("
                                     SELECT mt.title
-                                    FROM site_menus m
-                                    JOIN site_menu_translations mt ON m.id = mt.menu_id
-                                    WHERE m.location = 'footer2' AND mt.locale = ?
+                                    FROM site_menu_translations mt
+                                    WHERE mt.menu_id = ? AND mt.locale = ?
                                     ORDER BY mt.id DESC LIMIT 1
                                 ");
-                                $stmt->execute([setting('language', 'es')]);
+                                $stmt->execute([$footer2Menu['id'], $currentLang]);
                                 $footer2Title = $stmt->fetchColumn();
                             }
                         @endphp
-                        
+
                         @if($hasFooter2Menu)
                             {{-- Si tenemos un menú definido para footer2, mostrarlo --}}
                             <div class="footer-tittle">
-                                @if($footer2Title)
+                                @if($footer2Title && $showFooter2Title)
                                     <h4>{{ $footer2Title }}</h4>
                                 @endif
                                 @custommenu('footer2', null, [
@@ -181,44 +185,34 @@
                         @php
                             // Verificar si existe un menú para el área footer3
                             $pdo = \Screenart\Musedock\Database::connect();
-                            $stmt = $pdo->prepare("SELECT COUNT(*) FROM site_menus WHERE location = 'footer3'");
+                            $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer3' LIMIT 1");
                             $stmt->execute();
-                            $hasFooter3Menu = (int)$stmt->fetchColumn() > 0;
-                            
+                            $footer3Menu = $stmt->fetch(\PDO::FETCH_ASSOC);
+                            $hasFooter3Menu = !empty($footer3Menu);
+
                             $footer3Title = '';
+                            $showFooter3Title = true;
                             if ($hasFooter3Menu) {
+                                $showFooter3Title = (bool)($footer3Menu['show_title'] ?? 1);
                                 $stmt = $pdo->prepare("
                                     SELECT mt.title
-                                    FROM site_menus m
-                                    JOIN site_menu_translations mt ON m.id = mt.menu_id
-                                    WHERE m.location = 'footer3' AND mt.locale = ?
+                                    FROM site_menu_translations mt
+                                    WHERE mt.menu_id = ? AND mt.locale = ?
                                     ORDER BY mt.id DESC LIMIT 1
                                 ");
-                                $stmt->execute([setting('language', 'es')]);
+                                $stmt->execute([$footer3Menu['id'], $currentLang]);
                                 $footer3Title = $stmt->fetchColumn();
                             }
                         @endphp
-                        
-                        {{-- Sección de contacto - siempre mostrar si hay datos de contacto --}}
+
                         @php
                             $hasContactData = setting('contact_phone') || setting('contact_email') || setting('contact_address') || setting('contact_whatsapp');
                         @endphp
 
-                        @if($hasContactData)
-                            {{-- Mostrar info de contacto si hay datos --}}
+                        @if($hasFooter3Menu)
+                            {{-- Prioridad 1: Si hay menú asignado a footer3, mostrarlo --}}
                             <div class="footer-tittle">
-                                <h4>{{ setting('footer_col4_title', __('footer.contact')) }}</h4>
-                                <ul>
-                                    @if(setting('contact_phone'))<li><a href="tel:{{ setting('contact_phone') }}">{{ setting('contact_phone') }}</a></li>@endif
-                                    @if(setting('contact_email'))<li><a href="mailto:{{ setting('contact_email') }}">{{ setting('contact_email') }}</a></li>@endif
-                                    @if(setting('contact_address'))<li><a href="#">{{ setting('contact_address') }}</a></li>@endif
-                                    @if(setting('contact_whatsapp'))<li><a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', setting('contact_whatsapp')) }}"><i class="fab fa-whatsapp"></i> {{ setting('contact_whatsapp') }}</a></li>@endif
-                                </ul>
-                            </div>
-                        @elseif($hasFooter3Menu)
-                            {{-- Si no hay contacto pero hay menú para footer3, mostrarlo --}}
-                            <div class="footer-tittle">
-                                @if($footer3Title)
+                                @if($footer3Title && $showFooter3Title)
                                     <h4>{{ $footer3Title }}</h4>
                                 @endif
                                 @custommenu('footer3', null, [
@@ -228,8 +222,19 @@
                                     'submenu_class' => 'submenu'
                                 ])
                             </div>
-                        @elseif(isset($widgetContent) && isset($widgetContent['footer3']))
-                            {{-- Si hay widgets para footer3, mostrarlos --}}
+                        @elseif($hasContactData)
+                            {{-- Prioridad 2: Si no hay menú pero hay datos de contacto --}}
+                            <div class="footer-tittle">
+                                <h4>{{ setting('footer_col4_title', __('footer.contact')) }}</h4>
+                                <ul>
+                                    @if(setting('contact_phone'))<li><a href="tel:{{ setting('contact_phone') }}">{{ setting('contact_phone') }}</a></li>@endif
+                                    @if(setting('contact_email'))<li><a href="mailto:{{ setting('contact_email') }}">{{ setting('contact_email') }}</a></li>@endif
+                                    @if(setting('contact_address'))<li><a href="#">{{ setting('contact_address') }}</a></li>@endif
+                                    @if(setting('contact_whatsapp'))<li><a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', setting('contact_whatsapp')) }}"><i class="fab fa-whatsapp"></i> {{ setting('contact_whatsapp') }}</a></li>@endif
+                                </ul>
+                            </div>
+                        @else
+                            {{-- Prioridad 3: Si no hay menú ni contacto, mostrar widgets --}}
                             @include('partials.widget-renderer', ['areaSlug' => 'footer3'])
                         @endif
                     </div>

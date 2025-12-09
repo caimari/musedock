@@ -99,7 +99,7 @@
                     </div>
                 </div>
                 
-                <div class="card">
+                <div class="card mb-3">
                     <div class="card-header">Añadir Enlace Personalizado</div>
                     <div class="card-body">
                         <form id="addCustomLinkForm">
@@ -115,6 +115,48 @@
                         </form>
                     </div>
                 </div>
+
+                {{-- Panel de Blog (solo si el módulo está activo) --}}
+                @if(isset($blogPosts) && count($blogPosts) > 0)
+                <div class="card mb-3">
+                    <div class="card-header">Añadir Posts del Blog</div>
+                    <div class="card-body">
+                        <div class="item-list-body" style="max-height: 200px; overflow-y: auto;">
+                            @foreach ($blogPosts as $post)
+                                <div class="form-check">
+                                    <input class="form-check-input blog-post-select" type="checkbox"
+                                        value="{{ $post->id }}"
+                                        data-title="{{ $post->title }}"
+                                        data-link="/blog/{{ $post->slug }}">
+                                    <label class="form-check-label">{{ $post->title }}</label>
+                                </div>
+                            @endforeach
+                        </div>
+                        <button class="btn btn-primary w-100 mt-3" id="addSelectedPosts">Añadir Posts al Menú</button>
+                    </div>
+                </div>
+                @endif
+
+                {{-- Panel de Categorías del Blog --}}
+                @if(isset($blogCategories) && count($blogCategories) > 0)
+                <div class="card">
+                    <div class="card-header">Añadir Categorías del Blog</div>
+                    <div class="card-body">
+                        <div class="item-list-body" style="max-height: 200px; overflow-y: auto;">
+                            @foreach ($blogCategories as $category)
+                                <div class="form-check">
+                                    <input class="form-check-input blog-category-select" type="checkbox"
+                                        value="{{ $category->id }}"
+                                        data-title="{{ $category->name }}"
+                                        data-link="/blog/categoria/{{ $category->slug }}">
+                                    <label class="form-check-label">{{ $category->name }}</label>
+                                </div>
+                            @endforeach
+                        </div>
+                        <button class="btn btn-primary w-100 mt-3" id="addSelectedCategories">Añadir Categorías al Menú</button>
+                    </div>
+                </div>
+                @endif
             </div>
 
             <!-- Panel derecho - Estructura del menú -->
@@ -132,7 +174,11 @@
       {{ $area['name'] }}
     </option>
   @endforeach
-</select>    
+</select>
+<div class="form-check form-check-inline ms-2">
+  <input class="form-check-input" type="checkbox" id="show-title" {{ ($menu->show_title ?? 1) ? 'checked' : '' }}>
+  <label class="form-check-label" for="show-title">Mostrar título</label>
+</div>    
                             </div>
                         </div>
                     </div>
@@ -483,7 +529,8 @@ $(document).ready(function() {
             data: {
                 title: $('#menu-title').val(),
                 locale: $('#menu-locale').val(),
-                location: newLocation
+                location: newLocation,
+                show_title: $('#show-title').is(':checked') ? 1 : 0
             },
             success: function(response) {
                 Swal.fire({
@@ -502,6 +549,119 @@ $(document).ready(function() {
                     text: xhr.status === 419 ? 'Sesión expirada. Por favor, recargue la página.' : 'No se pudo cambiar la ubicación del menú'
                 });
             }
+        });
+    });
+
+    // ----------------------
+    // Checkbox mostrar título
+    // ----------------------
+
+    $('#show-title').change(function() {
+        const showTitle = $(this).is(':checked') ? 1 : 0;
+
+        $.ajax({
+            url: `/musedock/menus/${menuId}/update`,
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+            },
+            data: {
+                title: $('#menu-title').val(),
+                locale: $('#menu-locale').val(),
+                location: $('#menu-location').val(),
+                show_title: showTitle
+            },
+            success: function(response) {
+                Swal.fire({
+                    icon: 'success',
+                    title: showTitle ? 'Título visible' : 'Título oculto',
+                    text: showTitle ? 'El título del menú se mostrará en el frontend' : 'El título del menú no se mostrará en el frontend',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            },
+            error: function(xhr) {
+                console.error('Error al cambiar visibilidad del título:', xhr);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudo cambiar la visibilidad del título'
+                });
+            }
+        });
+    });
+
+    // ----------------------
+    // Añadir posts del blog
+    // ----------------------
+
+    $('#addSelectedPosts').on('click', function() {
+        const checkboxes = $('.blog-post-select:checked');
+
+        if (checkboxes.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Selección vacía',
+                text: 'Por favor, selecciona al menos un post para añadir al menú.'
+            });
+            return;
+        }
+
+        checkboxes.each(function() {
+            const title = $(this).data('title');
+            const link = $(this).data('link');
+            const newId = generateTempId();
+            const newItem = addMenuItem(newId, title, link, false, false, 'blog_post', $(this).val());
+            $('#menu-list').append(newItem);
+            $(this).prop('checked', false);
+        });
+
+        checkEmptyMenu();
+        initNestedSortable();
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Posts añadidos',
+            text: 'Los posts seleccionados se han añadido al menú.',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    });
+
+    // ----------------------
+    // Añadir categorías del blog
+    // ----------------------
+
+    $('#addSelectedCategories').on('click', function() {
+        const checkboxes = $('.blog-category-select:checked');
+
+        if (checkboxes.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Selección vacía',
+                text: 'Por favor, selecciona al menos una categoría para añadir al menú.'
+            });
+            return;
+        }
+
+        checkboxes.each(function() {
+            const title = $(this).data('title');
+            const link = $(this).data('link');
+            const newId = generateTempId();
+            const newItem = addMenuItem(newId, title, link, false, false, 'blog_category', $(this).val());
+            $('#menu-list').append(newItem);
+            $(this).prop('checked', false);
+        });
+
+        checkEmptyMenu();
+        initNestedSortable();
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Categorías añadidas',
+            text: 'Las categorías seleccionadas se han añadido al menú.',
+            timer: 1500,
+            showConfirmButton: false
         });
     });
 
