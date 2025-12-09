@@ -628,5 +628,24 @@
 
   "header": {
     "login_button": "Login"
+  },
+
+  "cookies": {
+    "title": "We use cookies",
+    "text": "This site uses cookies to improve your browsing experience. By continuing to browse, you accept their use.",
+    "manage_preferences": "Manage preferences",
+    "reject_all": "Reject all",
+    "accept_all": "Accept all",
+    "policy_link": "Cookie Policy",
+    "terms_link": "Terms and Conditions",
+    "modal_title": "Manage cookie preferences",
+    "modal_intro": "You can choose which types of cookies to allow. Strictly necessary cookies cannot be disabled.",
+    "cat_necessary_title": "Strictly necessary cookies",
+    "cat_necessary_desc": "These cookies are essential for the proper functioning of our website. Without them, the site would not work properly.",
+    "save_preferences": "Save preferences"
+  },
+
+  "mobile_menu": {
+    "select_language": "Select your language:"
   }
 }

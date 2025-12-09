@@ -628,5 +628,24 @@
 
   "header": {
     "login_button": "Iniciar sesión"
+  },
+
+  "cookies": {
+    "title": "Usamos cookies",
+    "text": "Este sitio utiliza cookies para mejorar tu experiencia de navegación. Al continuar navegando, aceptas su uso.",
+    "manage_preferences": "Gestionar preferencias",
+    "reject_all": "Rechazar todo",
+    "accept_all": "Aceptar todas",
+    "policy_link": "Política de Cookies",
+    "terms_link": "Términos y Condiciones",
+    "modal_title": "Gestionar preferencias de cookies",
+    "modal_intro": "Puedes elegir qué tipos de cookies permitir. Las cookies estrictamente necesarias no se pueden desactivar.",
+    "cat_necessary_title": "Cookies estrictamente necesarias",
+    "cat_necessary_desc": "Estas cookies son esenciales para el correcto funcionamiento de nuestro sitio web. Sin ellas, el sitio no funcionaría correctamente.",
+    "save_preferences": "Guardar preferencias"
+  },
+
+  "mobile_menu": {
+    "select_language": "Selecciona tu idioma:"
   }
 }

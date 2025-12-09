@@ -679,8 +679,13 @@ body.mobile-menu-open {
     @stack('styles')
 </head>
 <body>
+@php
+    // Cargar traducciones del tenant para el frontend
+    \Screenart\Musedock\Services\TranslationService::setContext('tenant');
+    $currentLangLayout = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
+    \Screenart\Musedock\Services\TranslationService::load($currentLangLayout, 'tenant');
+@endphp
 
- 
     <!-- Preloader Start -->
  <!--   <div id="preloader-active">
         <div class="preloader d-flex align-items-center justify-content-center">
@@ -918,7 +923,7 @@ body.mobile-menu-open {
 
         @if($showLangSelector)
         <div class="mobile-languages">
-            <h4>Selecciona tu idioma:</h4>
+            <h4>{{ __('mobile_menu.select_language') }}</h4>
             <div class="mobile-lang-select">
                 <select id="mobile-lang-switcher" onchange="window.location.href='?lang=' + this.value;">
                     @foreach($languages as $lang)
@@ -1101,18 +1106,17 @@ if (header && header.classList.contains('enable-sticky')) {
     @if(setting('cookies_enabled', '1') == '1')
         <!-- ===== Cookie Consent Popup (Card Style) ===== -->
         <div id="cookie-consent-popup" class="cookie-consent-popup" style="display: none;">
-        {{-- ... (Contenido HTML del popup de cookies SIN CAMBIOS) ... --}}
         <div class="cookie-popup-content">
-            <h4>{{ setting('cookies_popup_title', 'Usamos cookies') }}</h4>
-            <p>{{ setting('cookies_text', 'Este sitio utiliza cookies y tecnologías similares para personalizar contenido, proporcionar y mejorar funciones, y analizar el tráfico. Al hacer clic en Aceptar todo, aceptas nuestro uso de estas tecnologías.') }}</p>
+            <h4>{{ __('cookies.title') }}</h4>
+            <p>{{ __('cookies.text') }}</p>
             <div class="cookie-popup-actions">
-                <button id="cookie-manage-prefs" class="cookie-btn cookie-btn-manage">{{ setting('cookies_manage_btn', 'Gestionar preferencias') }}</button>
-                <button id="cookie-reject-all" class="cookie-btn cookie-btn-reject">{{ setting('cookies_reject_all', 'Rechazar todo') }}</button>
-                <button id="cookie-accept-all" class="cookie-btn cookie-btn-accept">{{ setting('cookies_accept_all', 'Aceptar todo') }}</button>
+                <button id="cookie-manage-prefs" class="cookie-btn cookie-btn-manage">{{ __('cookies.manage_preferences') }}</button>
+                <button id="cookie-reject-all" class="cookie-btn cookie-btn-reject">{{ __('cookies.reject_all') }}</button>
+                <button id="cookie-accept-all" class="cookie-btn cookie-btn-accept">{{ __('cookies.accept_all') }}</button>
             </div>
             <div class="cookie-popup-links">
-                <a href="{{ url(setting('cookies_policy_url', '/politica-cookies')) }}">{{ setting('cookies_policy_link', 'Política de Cookies') }}</a>
-                <a href="{{ url(setting('cookies_terms_url', '/terminos-y-condiciones')) }}">{{ setting('cookies_terms_link', 'Términos y Condiciones') }}</a>
+                <a href="{{ url(setting('cookies_policy_url', '/p/cookie-policy')) }}">{{ __('cookies.policy_link') }}</a>
+                <a href="{{ url(setting('cookies_terms_url', '/p/terms-and-conditions')) }}">{{ __('cookies.terms_link') }}</a>
             </div>
         </div>
     </div>
@@ -1121,31 +1125,28 @@ if (header && header.classList.contains('enable-sticky')) {
     <div id="cookie-preferences-modal" class="cookie-preferences-modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>{{ setting('cookies_modal_title', 'Gestionar preferencias de cookies') }}</h3>
+                <h3>{{ __('cookies.modal_title') }}</h3>
                 <button id="cookie-modal-close" class="modal-close-btn">×</button>
             </div>
             <div class="modal-body">
-                <p>{{ setting('cookies_modal_intro', 'Puedes elegir qué tipos de cookies permitir. Las cookies estrictamente necesarias no se pueden desactivar.') }}</p>
+                <p>{{ __('cookies.modal_intro') }}</p>
 
                 <!-- Strictly Necessary Cookies -->
                 <div class="cookie-category">
                     <div class="category-header">
-                        <h4>{{ setting('cookies_cat_necessary_title', 'Cookies estrictamente necesarias') }}</h4>
+                        <h4>{{ __('cookies.cat_necessary_title') }}</h4>
                         <label class="switch always-on">
                             <input type="checkbox" checked disabled>
                             <span class="slider round"></span>
                         </label>
                     </div>
-                    <p>{{ setting('cookies_cat_necessary_desc', 'Estas cookies son esenciales para el correcto funcionamiento de nuestro sitio web. Sin ellas, el sitio no funcionaría correctamente.') }}</p>
+                    <p>{{ __('cookies.cat_necessary_desc') }}</p>
                 </div>
-
-                {{-- Nota: La sección de cookies de publicidad/targeting se ha eliminado porque actualmente no usamos cookies de terceros --}}
-
             </div>
             <div class="modal-footer">
-                <button id="cookie-modal-reject-all" class="cookie-btn cookie-btn-reject">{{ setting('cookies_reject_all', 'Rechazar todo') }}</button>
-                <button id="cookie-modal-save" class="cookie-btn cookie-btn-manage">{{ setting('cookies_save_prefs_btn', 'Guardar preferencias') }}</button>
-                <button id="cookie-modal-accept-all" class="cookie-btn cookie-btn-accept">{{ setting('cookies_accept_all', 'Aceptar todo') }}</button>
+                <button id="cookie-modal-reject-all" class="cookie-btn cookie-btn-reject">{{ __('cookies.reject_all') }}</button>
+                <button id="cookie-modal-save" class="cookie-btn cookie-btn-manage">{{ __('cookies.save_preferences') }}</button>
+                <button id="cookie-modal-accept-all" class="cookie-btn cookie-btn-accept">{{ __('cookies.accept_all') }}</button>
             </div>
         </div>
     </div>
