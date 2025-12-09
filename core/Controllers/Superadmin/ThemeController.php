@@ -421,22 +421,60 @@ public function customize($slug)
 
     $editableFiles = [];
 
-    $candidatos = [
-        "{$themePath}/views/home.blade.php"           => 'Página de inicio',
-        "{$themePath}/views/layouts/app.blade.php"    => 'Layout principal',
-        "{$themePath}/views/layout.blade.php"         => 'Layout alternativo',
+    // Etiquetas amigables para archivos conocidos
+    $knownLabels = [
+        'home.blade.php' => 'Página de inicio',
+        'layouts/app.blade.php' => 'Layout principal',
+        'layout.blade.php' => 'Layout alternativo',
+        'partials/header.blade.php' => 'Header',
+        'partials/footer.blade.php' => 'Footer',
+        'partials/nav.blade.php' => 'Navegación',
+        'partials/sidebar.blade.php' => 'Barra lateral',
+        'pages/about.blade.php' => 'Página Sobre nosotros',
+        'pages/contact.blade.php' => 'Página de contacto',
+        'pages/services.blade.php' => 'Página de servicios',
+        'blog/index.blade.php' => 'Blog - Listado',
+        'blog/show.blade.php' => 'Blog - Artículo',
     ];
 
-    foreach ($candidatos as $file => $label) {
-        if (file_exists($file)) {
-            error_log("[CUSTOMIZE] Archivo editable encontrado: {$file}");
-            $editableFiles[] = [
-                'path' => $file,
-                'label' => $label,
-                'relative' => str_replace($themePath . '/views/', '', $file),
+    // Escanear recursivamente todos los archivos .blade.php del tema
+    $viewsPath = $themePath . '/views';
+    if (is_dir($viewsPath)) {
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($viewsPath, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
 
-            ];
+        foreach ($iterator as $file) {
+            if ($file->isFile() && str_ends_with($file->getFilename(), '.blade.php')) {
+                $fullPath = $file->getRealPath();
+                $relativePath = str_replace($viewsPath . '/', '', $fullPath);
+
+                // Usar etiqueta conocida o generar una a partir del nombre del archivo
+                $label = $knownLabels[$relativePath] ?? ucfirst(str_replace(['.blade.php', '/', '-', '_'], ['', ' > ', ' ', ' '], $relativePath));
+
+                $editableFiles[] = [
+                    'path' => $fullPath,
+                    'label' => $label,
+                    'relative' => $relativePath,
+                ];
+            }
         }
+
+        // Ordenar: primero los archivos principales, luego layouts, partials, etc.
+        usort($editableFiles, function($a, $b) {
+            $order = ['home.blade.php' => 0, 'layouts/' => 1, 'partials/' => 2, 'pages/' => 3, 'blog/' => 4, 'components/' => 5];
+            $aOrder = 99;
+            $bOrder = 99;
+
+            foreach ($order as $prefix => $pos) {
+                if (str_starts_with($a['relative'], $prefix) || $a['relative'] === $prefix) $aOrder = $pos;
+                if (str_starts_with($b['relative'], $prefix) || $b['relative'] === $prefix) $bOrder = $pos;
+            }
+
+            if ($aOrder !== $bOrder) return $aOrder - $bOrder;
+            return strcmp($a['relative'], $b['relative']);
+        });
     }
 
     return View::renderSuperadmin('themes.customize', [

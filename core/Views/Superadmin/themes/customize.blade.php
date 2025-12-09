@@ -10,10 +10,7 @@
         @forelse ($editableFiles as $file)
             <li class="list-group-item d-flex justify-content-between align-items-center">
                 <span>{{ $file['label'] }}</span>
-                <div class="d-flex gap-2">
-                    <a href="{{ url('/musedock/theme-editor/' . $theme['slug'] . '/edit?file=' . urlencode($file['relative'])) }}" class="btn btn-sm btn-outline-secondary">Editor de código</a>
-                    <a href="{{ url('/musedock/theme-editor/' . $theme['slug'] . '/builder?file=' . urlencode($file['relative'])) }}" class="btn btn-sm btn-outline-primary">Editor visual</a>
-                </div>
+                <a href="{{ url('/musedock/theme-editor/' . $theme['slug'] . '/edit?file=' . urlencode($file['relative'])) }}" class="btn btn-sm btn-outline-secondary">Editor de código</a>
             </li>
         @empty
             <li class="list-group-item text-muted">No se encontraron archivos editables en este tema.</li>

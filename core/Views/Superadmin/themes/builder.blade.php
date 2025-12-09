@@ -2,11 +2,11 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>Editor Visual</title>
+    <title>Editor Visual - GrapesJS</title>
 
-    <!-- GrapesJS + Bootstrap 4 -->
-    <link href="https://unpkg.com/grapesjs/dist/css/grapes.min.css" rel="stylesheet"/>
-    <link href="https://unpkg.com/grapesjs-blocks-bootstrap4/dist/grapesjs-blocks-bootstrap4.min.css" rel="stylesheet"/>
+    <!-- GrapesJS + Bootstrap 4 (archivos locales) -->
+    <link href="{{ asset('assets/vendor/grapesjs/css/grapes.min.css') }}" rel="stylesheet"/>
+    <link href="{{ asset('assets/vendor/grapesjs/css/grapesjs-blocks-bootstrap4.min.css') }}" rel="stylesheet"/>
 
     <style>
         html, body {
@@ -101,9 +101,9 @@
     <div id="gjs">{!! $html !!}</div>
 </div>
 
-<!-- Scripts -->
-<script src="https://unpkg.com/grapesjs"></script>
-<script src="https://unpkg.com/grapesjs-blocks-bootstrap4"></script>
+<!-- Scripts (archivos locales) -->
+<script src="{{ asset('assets/vendor/grapesjs/js/grapesjs.min.js') }}"></script>
+<script src="{{ asset('assets/vendor/grapesjs/js/grapesjs-blocks-bootstrap4.min.js') }}"></script>
 
 <script>
     const editor = grapesjs.init({
@@ -112,6 +112,8 @@
         height: '100%',
         width: '100%',
         storageManager: false,
+        // Deshabilitar telemetría para evitar errores de CSP
+        telemetry: false,
         plugins: ['grapesjs-blocks-bootstrap4'],
         pluginsOpts: {
             'grapesjs-blocks-bootstrap4': {}

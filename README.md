@@ -2,6 +2,12 @@
 
 **Español**
 
+
+Instalar en raíz:
+git clone https://github.com/caimari/musedock.git .
+Actualizar: git pull origin main
+
+
 Sistema de Gestión de Contenidos moderno, modular y multi-tenant construido con PHP 8+ y un framework MVC personalizado.
 
 ![PHP Version](https://img.shields.io/badge/PHP-8.0+-blue.svg)
