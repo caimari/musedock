@@ -5,7 +5,7 @@
  */
 
 $pdo = \Screenart\Musedock\Database::connect();
-$currentLang = $_SESSION['lang'] ?? setting('language', 'es');
+$currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
 
 // Verificar si existe un menú para esta ubicación
 $stmt = $pdo->prepare("SELECT COUNT(*) FROM site_menus WHERE location = :location");

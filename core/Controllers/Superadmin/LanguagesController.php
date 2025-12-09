@@ -16,12 +16,15 @@ class LanguagesController
         SessionSecurity::startSession();
         $this->checkPermission('languages.manage');
 
-        $languages = Database::table('languages')
-            ->select('languages.*, tenants.name as tenant_name, tenants.domain as tenant_domain')
-            ->leftJoin('tenants', 'languages.tenant_id', '=', 'tenants.id')
-            ->orderBy('languages.order_position')
-            ->orderBy('languages.id')
-            ->get();
+        // Usamos query raw para ORDER BY múltiple ya que QueryBuilder solo soporta un orderBy
+        $pdo = Database::connect();
+        $stmt = $pdo->query("
+            SELECT languages.*, tenants.name as tenant_name, tenants.domain as tenant_domain
+            FROM languages
+            LEFT JOIN tenants ON languages.tenant_id = tenants.id
+            ORDER BY languages.order_position ASC, languages.id ASC
+        ");
+        $languages = $stmt->fetchAll(\PDO::FETCH_OBJ);
 
         return View::renderSuperadmin('languages.index', [
             'title' => 'Gestión de Idiomas',
@@ -197,6 +200,59 @@ class LanguagesController
         }
 
         echo json_encode(['success' => true]);
+        exit;
+    }
+
+    /**
+     * Set the default/forced language for the site
+     */
+    public function setDefault()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('languages.manage');
+
+        $forceLang = $_POST['force_lang'] ?? '';
+
+        // Validar que el idioma exista si se ha seleccionado uno
+        if (!empty($forceLang)) {
+            $langExists = Database::table('languages')
+                ->where('code', $forceLang)
+                ->where('active', 1)
+                ->first();
+
+            if (!$langExists) {
+                flash('error', 'El idioma seleccionado no existe o no está activo.');
+                header('Location: /musedock/languages');
+                exit;
+            }
+        }
+
+        // Guardar o actualizar el setting force_lang
+        $existing = Database::table('settings')->where('key', 'force_lang')->first();
+
+        if ($existing) {
+            Database::table('settings')
+                ->where('key', 'force_lang')
+                ->update(['value' => $forceLang]);
+        } else {
+            Database::table('settings')->insert([
+                'key' => 'force_lang',
+                'value' => $forceLang
+            ]);
+        }
+
+        // Limpiar caché de settings si existe
+        if (function_exists('clear_settings_cache')) {
+            clear_settings_cache();
+        }
+
+        if (empty($forceLang)) {
+            flash('success', 'Detección automática de idioma activada.');
+        } else {
+            flash('success', 'Idioma del sitio forzado a: ' . strtoupper($forceLang));
+        }
+
+        header('Location: /musedock/languages');
         exit;
     }
 }

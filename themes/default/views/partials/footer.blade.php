@@ -1,7 +1,8 @@
 @php
     // Asegurar contexto tenant para traducciones del frontend
     \Screenart\Musedock\Services\TranslationService::setContext('tenant');
-    $currentLang = $_SESSION['lang'] ?? setting('language', 'es');
+    // Usar detectLanguage() que respeta force_lang
+    $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
     \Screenart\Musedock\Services\TranslationService::load($currentLang, 'tenant');
 
     // Verificar si mostrar logo (mismo setting que el header)
@@ -24,7 +25,7 @@
                          @endif
                          <div class="footer-tittle">
                              <div class="footer-pera">
-                                 <p>{{ setting('footer_short_description', '') }}</p>
+                                 <p>{{ translatable_setting('footer_short_description', '') }}</p>
                             </div>
 
                             <!-- Enlace configuración de cookies (RGPD) -->
@@ -34,14 +35,16 @@
                                 </a>
                             </div>
 
-                            <!-- Selector de idiomas como SELECT (solo si hay más de un idioma activo) -->
+                            <!-- Selector de idiomas como SELECT (solo si hay más de un idioma activo y no está forzado) -->
                             @php
                                 $pdo = \Screenart\Musedock\Database::connect();
                                 $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE active = 1 ORDER BY order_position ASC, id ASC");
                                 $stmt->execute();
                                 $activeLanguages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                                $currentLang = $_SESSION['lang'] ?? setting('language', 'es');
-                                $showFooterLangSelector = count($activeLanguages) > 1;
+                                $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
+                                // No mostrar selector si hay idioma forzado o solo hay un idioma
+                                $forceLang = setting('force_lang', '');
+                                $showFooterLangSelector = count($activeLanguages) > 1 && empty($forceLang);
                             @endphp
 
                             @if($showFooterLangSelector)

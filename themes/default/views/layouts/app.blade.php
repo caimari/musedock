@@ -815,7 +815,7 @@ body.mobile-menu-open {
                     // Obtener opciones del tema para header
                     $ctaEnabled = themeOption('header.header_cta_enabled', false);
                     // Obtener texto del botón según el idioma actual
-                    $currentLangCta = $_SESSION['lang'] ?? setting('language', 'es');
+                    $currentLangCta = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
                     $ctaTextEs = themeOption('header.header_cta_text_es', __('header.login_button'));
                     $ctaTextEn = themeOption('header.header_cta_text_en', 'Login');
                     $ctaText = ($currentLangCta === 'en') ? $ctaTextEn : $ctaTextEs;
@@ -844,7 +844,7 @@ body.mobile-menu-open {
                                 // Fallback por si falla la DB
                                 $languages = [['code' => 'es', 'name' => 'Español'], ['code' => 'en', 'name' => 'English']];
                             }
-                            $currentLang = $_SESSION['lang'] ?? setting('language', 'es');
+                            $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
                             $showLangSelector = count($languages) > 1;
                         @endphp
 
@@ -890,13 +890,13 @@ body.mobile-menu-open {
                      $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE active = 1 ORDER BY order_position ASC, id ASC");
                      $stmt->execute();
                      $languages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                     $currentLang = $_SESSION['lang'] ?? setting('language', 'es');
+                     $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
                      $showLangSelector = count($languages) > 1;
                  }
              } catch (\Exception $e) {
                  if (!isset($languages)) {
                      $languages = [['code' => 'es', 'name' => 'Español'], ['code' => 'en', 'name' => 'English']];
-                     $currentLang = $_SESSION['lang'] ?? setting('language', 'es');
+                     $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
                      $showLangSelector = true;
                  }
              }

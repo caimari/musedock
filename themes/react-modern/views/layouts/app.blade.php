@@ -60,7 +60,7 @@
     @php
         // Obtener menú de navegación principal
         $pdo = \Screenart\Musedock\Database::connect();
-        $currentLang = $_SESSION['lang'] ?? setting('language', 'es');
+        $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
 
         // Obtener tenant_id actual para filtrar correctamente
         $tenantData = tenant();
@@ -147,8 +147,8 @@
             'contact_address' => setting('contact_address', ''),
             'contact_whatsapp' => setting('contact_whatsapp', ''),
 
-            // Footer
-            'footer_short_description' => setting('footer_short_description', ''),
+            // Footer (usando translatable_setting para soporte multiidioma)
+            'footer_short_description' => translatable_setting('footer_short_description', ''),
             'footer_col4_title' => setting('footer_col4_title', 'Contacto'),
             'site_credit' => setting('site_credit', ''),
 

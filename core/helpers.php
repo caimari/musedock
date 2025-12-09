@@ -701,7 +701,13 @@ if (!function_exists('get_active_theme_slug')) {
 if (!function_exists('setting')) {
     function setting($key, $default = null) {
         static $settings = null;
-        
+
+        // Si se pasa null como key, limpiar caché
+        if ($key === null) {
+            $settings = null;
+            return null;
+        }
+
         // Cargar todos los settings una sola vez
         if ($settings === null) {
             try {
@@ -713,8 +719,49 @@ if (!function_exists('setting')) {
                 $settings = [];
             }
         }
-        
+
         return $settings[$key] ?? $default;
+    }
+}
+
+if (!function_exists('clear_settings_cache')) {
+    /**
+     * Limpia la caché de settings para forzar recarga desde BD
+     */
+    function clear_settings_cache() {
+        setting(null); // Esto limpia el static $settings
+    }
+}
+
+if (!function_exists('translatable_setting')) {
+    /**
+     * Obtiene un setting traducible según el idioma actual
+     * Busca primero {key}_{locale}, luego {key} como fallback
+     *
+     * @param string $key Clave base del setting (ej: 'footer_short_description')
+     * @param mixed $default Valor por defecto si no existe
+     * @return mixed
+     */
+    function translatable_setting(string $key, $default = null) {
+        // Obtener idioma actual (respeta force_lang)
+        $locale = function_exists('detectLanguage') ? detectLanguage() : 'es';
+
+        // Intentar obtener la versión traducida primero
+        $translatedKey = $key . '_' . $locale;
+        $value = setting($translatedKey);
+
+        // Si existe y no está vacío, devolver
+        if (!empty($value)) {
+            return $value;
+        }
+
+        // Fallback al valor base (sin sufijo de idioma)
+        $baseValue = setting($key);
+        if (!empty($baseValue)) {
+            return $baseValue;
+        }
+
+        return $default;
     }
 }
 
@@ -952,21 +999,55 @@ if (!function_exists('getAvailableLocales')) {
 }
 
 if (!function_exists('detectLanguage')) {
-    function detectLanguage(): string
+    /**
+     * Detecta el idioma actual del sitio
+     * Prioridad: force_lang > ?lang= URL > sesión > navegador > default
+     *
+     * @param bool $reset Si es true, resetea la caché interna
+     * @return string Código de idioma (ej: 'es', 'en')
+     */
+    function detectLanguage(bool $reset = false): string
     {
         static $lang = null;
+
+        // Permitir resetear la caché
+        if ($reset) {
+            $lang = null;
+        }
+
         if ($lang !== null) return $lang;
 
         if (session_status() !== PHP_SESSION_ACTIVE) {
             session_start();
         }
 
-        // Cargamos settings desde base de datos
-        $settings = \Screenart\Musedock\Database::table('settings')->pluck('value', 'key');
+        // Usar el helper setting() que ya tiene su propia caché y funciona correctamente
+        $forcedLang = setting('force_lang');
 
-        // Si existe 'force_lang', forzamos idioma
-        if (!empty($settings['force_lang'])) {
-            return $lang = $settings['force_lang'];
+        // Si existe 'force_lang', forzamos idioma y limpiamos cualquier preferencia anterior
+        if (!empty($forcedLang)) {
+
+            // Limpiar sesión si tiene un idioma diferente al forzado
+            if (isset($_SESSION['lang']) && $_SESSION['lang'] !== $forcedLang) {
+                unset($_SESSION['lang']);
+            }
+            if (isset($_SESSION['locale']) && $_SESSION['locale'] !== $forcedLang) {
+                unset($_SESSION['locale']);
+            }
+
+            // Limpiar cookies si tienen un idioma diferente (solo si headers no enviados)
+            if (!headers_sent()) {
+                if (isset($_COOKIE['lang']) && $_COOKIE['lang'] !== $forcedLang) {
+                    setcookie('lang', '', time() - 3600, '/');
+                    unset($_COOKIE['lang']);
+                }
+                if (isset($_COOKIE['locale']) && $_COOKIE['locale'] !== $forcedLang) {
+                    setcookie('locale', '', time() - 3600, '/');
+                    unset($_COOKIE['locale']);
+                }
+            }
+
+            return $lang = $forcedLang;
         }
 
         // Cargamos todos los idiomas activos

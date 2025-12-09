@@ -121,24 +121,14 @@
             @endif
 
             <div class="mb-3">
-              <label class="form-label">
-                {{ __('settings.site_language') }}
-                <small class="text-muted">({{ __('settings.manage_languages_link') }} <a href="{{ route('languages.index') }}">{{ __('menu.languages') }}</a>)</small>
-              </label>
-              <select name="force_lang" class="form-select">
-                <option value="">{{ __('settings.auto_detect_language') }}</option>
-                @php
-                  $languages = \Screenart\Musedock\Database::table('languages')->where('active', 1)->get();
-                @endphp
-                @foreach($languages as $lang)
-                  <option value="{{ $lang->code }}" {{ ($settings['force_lang'] ?? '') === $lang->code ? 'selected' : '' }}>
-                    {{ __('settings.force_language') }} {{ $lang->name }} ({{ $lang->code }})
-                  </option>
-                @endforeach
-              </select>
-              <small class="form-text text-muted">
-                {{ __('settings.force_language_help') }}
-              </small>
+              <label class="form-label">{{ __('settings.site_language') }}</label>
+              <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle me-1"></i>
+                La configuración del idioma del sitio se ha movido a la sección de
+                <a href="{{ route('languages.index') }}" class="alert-link">
+                  <i class="bi bi-globe me-1"></i>{{ __('menu.languages') }}
+                </a>
+              </div>
             </div>
 
             <button class="btn btn-primary">{{ __('common.save') }}</button>

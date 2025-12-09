@@ -115,10 +115,51 @@
         </div>
 
         <div class="card-body">
+          @php
+              // Obtener idiomas activos para campos traducibles
+              $activeLanguages = \Screenart\Musedock\Database::table('languages')
+                  ->where('active', 1)
+                  ->orderBy('order_position')
+                  ->get();
+          @endphp
+
           <div class="mb-3">
             <label class="form-label">Descripción corta del footer</label>
-            <textarea name="footer_short_description" class="form-control" rows="3" placeholder="Breve descripción que aparecerá en el pie de página">{{ $settings['footer_short_description'] ?? '' }}</textarea>
-            <small class="text-muted">Texto que se mostrará en la primera columna del footer</small>
+            <small class="text-muted d-block mb-2">Texto que se mostrará en la primera columna del footer (traducible por idioma)</small>
+
+            @if(count($activeLanguages) > 1)
+              {{-- Pestañas de idiomas --}}
+              <ul class="nav nav-tabs" id="footerDescTabs" role="tablist">
+                @foreach($activeLanguages as $index => $lang)
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link {{ $index === 0 ? 'active' : '' }}"
+                            id="footer-desc-{{ $lang->code }}-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#footer-desc-{{ $lang->code }}"
+                            type="button"
+                            role="tab">
+                      {{ strtoupper($lang->code) }} - {{ $lang->name }}
+                    </button>
+                  </li>
+                @endforeach
+              </ul>
+
+              <div class="tab-content border border-top-0 p-3 rounded-bottom" id="footerDescTabsContent">
+                @foreach($activeLanguages as $index => $lang)
+                  <div class="tab-pane fade {{ $index === 0 ? 'show active' : '' }}"
+                       id="footer-desc-{{ $lang->code }}"
+                       role="tabpanel">
+                    <textarea name="footer_short_description_{{ $lang->code }}"
+                              class="form-control"
+                              rows="3"
+                              placeholder="Descripción en {{ $lang->name }}">{{ $settings['footer_short_description_' . $lang->code] ?? ($index === 0 ? ($settings['footer_short_description'] ?? '') : '') }}</textarea>
+                  </div>
+                @endforeach
+              </div>
+            @else
+              {{-- Solo un idioma, mostrar textarea simple --}}
+              <textarea name="footer_short_description" class="form-control" rows="3" placeholder="Breve descripción que aparecerá en el pie de página">{{ $settings['footer_short_description'] ?? '' }}</textarea>
+            @endif
           </div>
 
           <div class="mb-3">

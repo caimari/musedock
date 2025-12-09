@@ -168,6 +168,7 @@ Route::get('/musedock/languages/{id}/edit', 'superadmin.LanguagesController@edit
 Route::post('/musedock/languages/{id}/update', 'superadmin.LanguagesController@update')->middleware('superadmin')->name('languages.update');
 Route::post('/musedock/languages/{id}/delete', 'superadmin.LanguagesController@delete')->middleware('superadmin')->name('languages.delete');
 Route::post('/musedock/languages/{id}/toggle', 'superadmin.LanguagesController@toggle')->middleware('superadmin')->name('languages.toggle');
+Route::post('/musedock/languages/set-default', 'superadmin.LanguagesController@setDefault')->middleware('superadmin')->name('languages.set-default');
 
 
 // Sesiones

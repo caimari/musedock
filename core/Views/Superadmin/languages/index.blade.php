@@ -4,7 +4,7 @@
 <div class="app-content">
   <div class="container-fluid">
     <h2 class="mb-4">{{ $title }}</h2>
-    @include('partials.alerts')
+    {{-- Los mensajes flash se muestran con SweetAlert2 al final del archivo --}}
 
     <div class="d-flex justify-content-between align-items-center mb-3">
       <a href="{{ route('languages.create') }}" class="btn btn-success">
@@ -80,8 +80,48 @@
       </div>
     </div>
 
+    {{-- Configuración de idioma predeterminado --}}
+    @php
+      $forceLang = setting('force_lang', '');
+      $activeLanguages = array_filter($languages, function($lang) {
+          return $lang->active == 1;
+      });
+    @endphp
     <div class="card mt-4">
-      <div class="card-header bg-info text-white">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-globe me-2"></i>Idioma del sitio</h5>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ route('languages.set-default') }}" id="default-lang-form">
+          {!! csrf_field() !!}
+          <div class="row align-items-end">
+            <div class="col-md-6">
+              <label class="form-label">Idioma predeterminado</label>
+              <select name="force_lang" class="form-select" id="force-lang-select">
+                <option value="">Automático (detectar por navegador)</option>
+                @foreach($activeLanguages as $lang)
+                  <option value="{{ $lang->code }}" {{ $forceLang === $lang->code ? 'selected' : '' }}>
+                    Forzar {{ $lang->name }} ({{ $lang->code }})
+                  </option>
+                @endforeach
+              </select>
+              <small class="form-text text-muted">
+                <strong>Automático:</strong> Detecta el idioma del navegador del visitante.<br>
+                <strong>Forzar:</strong> Todos los visitantes verán el sitio en el idioma seleccionado (ignora navegador y selectores).
+              </small>
+            </div>
+            <div class="col-md-6">
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg me-1"></i> Guardar configuración
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-header" style="background-color: #e7f1ff; color: #0d6efd;">
         <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Información</h5>
       </div>
       <div class="card-body">
@@ -89,6 +129,7 @@
           <li><strong>Orden de idiomas:</strong> El orden define cómo aparecen en los selectores del front-end y del panel de administración.</li>
           <li><strong>Idiomas activos:</strong> Solo los idiomas activos se muestran en los selectores. Debe haber al menos un idioma activo.</li>
           <li><strong>Idioma único:</strong> Si solo hay un idioma activo, los selectores de idioma se ocultan automáticamente.</li>
+          <li><strong>Idioma forzado:</strong> Si se fuerza un idioma, los visitantes no podrán cambiar de idioma aunque existan selectores.</li>
         </ul>
       </div>
     </div>
@@ -131,15 +172,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const rows = tbody.querySelectorAll('tr[data-id]');
         const order = Array.from(rows).map(row => row.dataset.id);
 
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
         fetch('{{ route("languages.update-order") }}', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken
           },
           body: JSON.stringify({ order: order })
         })
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Error HTTP: ' + response.status);
+          }
+          return response.json();
+        })
         .then(data => {
           if (data.success) {
             const toast = document.createElement('div');
@@ -154,9 +203,15 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 2000);
+          } else {
+            console.error('Error en respuesta:', data);
+            alert('Error al guardar el orden: ' + (data.error || 'Error desconocido'));
           }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error al guardar el orden. Comprueba la consola para más detalles.');
+        });
       }
     });
   }
@@ -220,5 +275,35 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 });
+
+// Mostrar mensajes flash con SweetAlert2
+@if(session('success'))
+  Swal.fire({
+    icon: 'success',
+    title: '¡Hecho!',
+    text: '{{ session('success') }}',
+    timer: 3000,
+    showConfirmButton: false,
+    toast: false
+  });
+@endif
+
+@if(session('error'))
+  Swal.fire({
+    icon: 'error',
+    title: 'Error',
+    text: '{{ session('error') }}',
+    confirmButtonColor: '#dc3545'
+  });
+@endif
+
+@if(session('warning'))
+  Swal.fire({
+    icon: 'warning',
+    title: 'Atención',
+    text: '{{ session('warning') }}',
+    confirmButtonColor: '#ffc107'
+  });
+@endif
 </script>
 @endpush

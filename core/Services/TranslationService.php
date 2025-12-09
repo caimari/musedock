@@ -49,7 +49,10 @@ class TranslationService
      */
     public static function get(string $key, array $replace = [], ?string $locale = null): string
     {
-        $locale = $locale ?? self::$currentLocale ?? self::$fallbackLocale;
+        // Si no se especifica locale, obtener el actual (respeta force_lang)
+        if ($locale === null) {
+            $locale = self::$currentLocale ?? self::getCurrentLocale();
+        }
 
         // Si no está cargado, cargar
         if (!isset(self::$translations[$locale])) {
@@ -99,31 +102,48 @@ class TranslationService
     }
 
     /**
-     * Obtener idioma actual desde sesión o navegador
+     * Obtener idioma actual desde configuración, sesión o navegador
      */
     public static function getCurrentLocale(): string
     {
-        // SIEMPRE verificar sesión primero, no usar cache de self::$currentLocale
-        // porque puede haber cambiado durante el request
+        // Usar detectLanguage() si está disponible, ya que maneja force_lang correctamente
+        if (function_exists('detectLanguage')) {
+            self::$currentLocale = detectLanguage();
+            return self::$currentLocale;
+        }
 
-        // 1. Verificar sesión
+        // Fallback manual si detectLanguage() no existe
         SessionSecurity::startSession();
+
+        // 1. Verificar force_lang en settings (MÁXIMA PRIORIDAD)
+        try {
+            $pdo = \Screenart\Musedock\Database::connect();
+            $stmt = $pdo->prepare("SELECT `value` FROM settings WHERE `key` = 'force_lang' LIMIT 1");
+            $stmt->execute();
+            $forceLang = $stmt->fetchColumn();
+
+            if (!empty($forceLang)) {
+                self::$currentLocale = $forceLang;
+                return self::$currentLocale;
+            }
+        } catch (\Exception $e) {
+            // Ignorar errores de DB
+        }
+
+        // 2. Verificar sesión
         if (isset($_SESSION['locale']) && in_array($_SESSION['locale'], ['es', 'en'])) {
             self::$currentLocale = $_SESSION['locale'];
-            error_log("TranslationService: Locale from session: " . self::$currentLocale);
             return self::$currentLocale;
         }
 
-        // 2. Verificar cookie
+        // 3. Verificar cookie
         if (isset($_COOKIE['locale']) && in_array($_COOKIE['locale'], ['es', 'en'])) {
             self::$currentLocale = $_COOKIE['locale'];
-            // Sincronizar con sesión
             $_SESSION['locale'] = self::$currentLocale;
-            error_log("TranslationService: Locale from cookie: " . self::$currentLocale);
             return self::$currentLocale;
         }
 
-        // 3. Detectar desde navegador
+        // 4. Detectar desde navegador
         $browserLang = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
         if (strpos($browserLang, 'en') !== false) {
             self::$currentLocale = 'en';
@@ -131,7 +151,6 @@ class TranslationService
             self::$currentLocale = self::$fallbackLocale;
         }
 
-        error_log("TranslationService: Locale from browser/fallback: " . self::$currentLocale);
         return self::$currentLocale;
     }
 

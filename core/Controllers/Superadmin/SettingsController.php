@@ -301,7 +301,7 @@ public function update()
         $_POST['site_favicon'] = setting('site_favicon');
     }
 
-    // Guardar ajustes
+    // Guardar ajustes básicos
     $this->saveSettings([
         'site_name', 'site_description', 'admin_email',
         'timezone', 'date_format', 'time_format',
@@ -309,6 +309,21 @@ public function update()
         'footer_short_description', 'contact_address', 'contact_email',
         'contact_phone', 'contact_whatsapp', 'footer_copyright'
     ]);
+
+    // Guardar traducciones de footer_short_description por idioma
+    $activeLanguages = Database::table('languages')->where('active', 1)->pluck('code');
+    foreach ($activeLanguages as $langCode) {
+        $key = 'footer_short_description_' . $langCode;
+        if (isset($_POST[$key])) {
+            Database::table('settings')->updateOrInsert(
+                ['key' => $key],
+                ['value' => $_POST[$key]]
+            );
+        }
+    }
+
+    // Limpiar caché de settings
+    setting(null);
 
     flash('success', 'Ajustes generales guardados correctamente.');
     header("Location: /musedock/settings");
