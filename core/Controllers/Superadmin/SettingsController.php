@@ -457,14 +457,18 @@ public function deleteFavicon()
 
         $this->saveSettings([
             'cookies_enabled', 'cookies_text', 'cookies_accept_basic',
-            'cookies_accept_all', 'cookies_more_info', 'cookies_policy_url'
+            'cookies_accept_all', 'cookies_more_info', 'cookies_policy_url',
+            'cookies_terms_text', 'cookies_terms_url'
         ]);
-        
+
         // Limpiar caché de helper
         if (class_exists('\\Screenart\\Musedock\\Helpers\\SiteHelper')) {
             \Screenart\Musedock\Helpers\SiteHelper::clearCache();
         }
-        
+
+        // Limpiar caché de settings
+        setting(null);
+
         flash('success', 'Configuración de cookies guardada correctamente.');
         header("Location: /musedock/settings/cookies");
         exit;

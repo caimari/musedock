@@ -1082,11 +1082,22 @@ if (!function_exists('detectLanguage')) {
 }
 
 if (!function_exists('format_date')) {
+    /**
+     * Formatea una fecha según las preferencias del sistema (date_format y timezone)
+     *
+     * @param string|DateTime $dateTime Fecha a formatear
+     * @return string Fecha formateada
+     */
     function format_date($dateTime)
     {
         try {
             $format = setting('date_format', 'd/m/Y');
-            return (new DateTime($dateTime))->format($format);
+            $timezone = setting('timezone', 'UTC');
+
+            $dt = $dateTime instanceof DateTime ? $dateTime : new DateTime($dateTime);
+            $dt->setTimezone(new DateTimeZone($timezone));
+
+            return $dt->format($format);
         } catch (Exception $e) {
             return $dateTime;
         }
@@ -1094,11 +1105,22 @@ if (!function_exists('format_date')) {
 }
 
 if (!function_exists('format_time')) {
+    /**
+     * Formatea una hora según las preferencias del sistema (time_format y timezone)
+     *
+     * @param string|DateTime $dateTime Fecha/hora a formatear
+     * @return string Hora formateada
+     */
     function format_time($dateTime)
     {
         try {
             $format = setting('time_format', 'H:i');
-            return (new DateTime($dateTime))->format($format);
+            $timezone = setting('timezone', 'UTC');
+
+            $dt = $dateTime instanceof DateTime ? $dateTime : new DateTime($dateTime);
+            $dt->setTimezone(new DateTimeZone($timezone));
+
+            return $dt->format($format);
         } catch (Exception $e) {
             return $dateTime;
         }
@@ -1106,12 +1128,23 @@ if (!function_exists('format_time')) {
 }
 
 if (!function_exists('format_datetime')) {
+    /**
+     * Formatea fecha y hora según las preferencias del sistema (date_format, time_format y timezone)
+     *
+     * @param string|DateTime $dateTime Fecha/hora a formatear
+     * @return string Fecha y hora formateadas
+     */
     function format_datetime($dateTime)
     {
         try {
             $dateFormat = setting('date_format', 'd/m/Y');
             $timeFormat = setting('time_format', 'H:i');
-            return (new DateTime($dateTime))->format("{$dateFormat} {$timeFormat}");
+            $timezone = setting('timezone', 'UTC');
+
+            $dt = $dateTime instanceof DateTime ? $dateTime : new DateTime($dateTime);
+            $dt->setTimezone(new DateTimeZone($timezone));
+
+            return $dt->format("{$dateFormat} {$timeFormat}");
         } catch (Exception $e) {
             return $dateTime;
         }

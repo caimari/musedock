@@ -46,8 +46,8 @@
             <td>{{ $s['email'] }}</td>
             <td>{{ $s['ip'] }}</td>
             <td>{{ $s['user_agent'] }}</td>
-            <td>{{ $s['created_at'] }}</td>
-            <td>{{ $s['expires_at'] }}</td>
+            <td>{{ format_datetime($s['created_at']) }}</td>
+            <td>{{ format_datetime($s['expires_at']) }}</td>
             <td>
               <form method="POST" action="/musedock/sessions/{{ $s['id'] }}/delete">
                 {!! csrf_field() !!}
@@ -81,7 +81,7 @@
             <td>{{ $s['email'] }}</td>
             <td>{{ $s['ip'] }}</td>
             <td>{{ $s['user_agent'] }}</td>
-            <td>{{ $s['last_active'] ?? 'N/A' }}</td>
+            <td>{{ $s['last_active'] ? format_datetime($s['last_active']) : 'N/A' }}</td>
           </tr>
         @empty
           <tr><td colspan="4">Sin usuarios activos.</td></tr>
@@ -111,8 +111,8 @@
             <td>{{ $s['tenant_name'] ?? 'N/A' }}</td>
             <td>{{ $s['ip'] }}</td>
             <td>{{ $s['user_agent'] }}</td>
-            <td>{{ $s['created_at'] }}</td>
-            <td>{{ $s['expires_at'] }}</td>
+            <td>{{ format_datetime($s['created_at']) }}</td>
+            <td>{{ format_datetime($s['expires_at']) }}</td>
             <td>
               <form method="POST" action="/musedock/sessions/{{ $s['id'] }}/delete">
                 {!! csrf_field() !!}
@@ -149,7 +149,7 @@
             <td>{{ $s['tenant_name'] ?? 'N/A' }}</td>
             <td>{{ $s['ip'] }}</td>
             <td>{{ $s['user_agent'] }}</td>
-            <td>{{ $s['last_active'] ?? 'N/A' }}</td>
+            <td>{{ $s['last_active'] ? format_datetime($s['last_active']) : 'N/A' }}</td>
           </tr>
         @empty
           <tr><td colspan="5">Sin usuarios activos.</td></tr>
@@ -180,8 +180,8 @@
             <td>{{ $s['tenant_name'] ?? 'N/A' }}</td>
             <td>{{ $s['ip'] }}</td>
             <td>{{ $s['user_agent'] }}</td>
-            <td>{{ $s['created_at'] }}</td>
-            <td>{{ $s['expires_at'] }}</td>
+            <td>{{ format_datetime($s['created_at']) }}</td>
+            <td>{{ format_datetime($s['expires_at']) }}</td>
             <td>
               <form method="POST" action="/musedock/sessions/{{ $s['id'] }}/delete">
                 {!! csrf_field() !!}
@@ -217,7 +217,7 @@
             <td>{{ $s['tenant_name'] ?? 'N/A' }}</td>
             <td>{{ $s['ip'] }}</td>
             <td>{{ $s['user_agent'] }}</td>
-            <td>{{ $s['last_active'] ?? 'N/A' }}</td>
+            <td>{{ $s['last_active'] ? format_datetime($s['last_active']) : 'N/A' }}</td>
           </tr>
         @empty
           <tr><td colspan="5">Sin usuarios activos.</td></tr>

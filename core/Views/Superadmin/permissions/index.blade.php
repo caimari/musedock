@@ -322,7 +322,7 @@
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td class="small">{{ $perm['created_at'] }}</td>
+                            <td class="small text-nowrap">{{ format_datetime($perm['created_at']) }}</td>
                             <td class="d-flex gap-2">
                                 <a href="/musedock/permissions/{{ $perm['id'] }}/edit" class="btn btn-sm btn-outline-secondary">
                                     Editar
@@ -397,7 +397,7 @@
                                     @endif
                                 </span>
                             </td>
-                            <td class="small">{{ $perm['created_at'] }}</td>
+                            <td class="small text-nowrap">{{ format_datetime($perm['created_at']) }}</td>
                             <td class="d-flex gap-2">
                                 <a href="/musedock/permissions/{{ $perm['id'] }}/edit" class="btn btn-sm btn-outline-secondary">
                                     Editar

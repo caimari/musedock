@@ -31,7 +31,7 @@
         <!-- Estadísticas de Papelera -->
         <div class="col-md-6 mb-3">
             <div class="card">
-                <div class="card-header bg-warning text-dark">
+                <div class="card-header" style="background-color: #fff3cd; color: #856404;">
                     <h5 class="mb-0"><i class="fas fa-trash"></i> Papelera (Trash)</h5>
                 </div>
                 <div class="card-body">
@@ -74,7 +74,7 @@
         <!-- Estadísticas de Revisiones -->
         <div class="col-md-6 mb-3">
             <div class="card">
-                <div class="card-header bg-info text-white">
+                <div class="card-header" style="background-color: #e7f1ff; color: #0d6efd;">
                     <h5 class="mb-0"><i class="fas fa-history"></i> Revisiones (Historial)</h5>
                 </div>
                 <div class="card-body">
@@ -121,7 +121,7 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <div class="card-header d-flex justify-content-between align-items-center" style="background-color: #cfe2ff; color: #084298;">
                     <h5 class="mb-0"><i class="fas fa-tasks"></i> Estado de Tareas Programadas</h5>
                     <form method="POST" action="/musedock/cron/run-manual" style="display: inline;">
                         @csrf
@@ -211,7 +211,7 @@
     <div class="row">
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-secondary text-white">
+                <div class="card-header" style="background-color: #e2e3e5; color: #41464b;">
                     <h5 class="mb-0"><i class="fas fa-info-circle"></i> Instrucciones de Configuración</h5>
                 </div>
                 <div class="card-body">

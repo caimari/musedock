@@ -96,15 +96,36 @@ class AdminMenu
                 }
                 unset($parentMenu); // Deshacer la referencia
             }
-            // Limpiar menús padres que quedaron sin hijos
-            foreach ($result as $parentSlug => $parentMenu) {
-                if (!empty($parentMenu['children']) || $parentMenu['url'] !== '#') {
-                    continue;
+        }
+
+        // Filtrar menús que requieren Marketplace si está deshabilitado
+        $marketplaceEnabled = \Screenart\Musedock\Env::get('MARKETPLACE_ENABLED', 'false');
+        $marketplaceEnabled = filter_var($marketplaceEnabled, FILTER_VALIDATE_BOOLEAN);
+
+        if (!$marketplaceEnabled) {
+            foreach (self::$marketplaceOnlyMenus as $menuSlug) {
+                // Eliminar menú padre si coincide
+                if (isset($result[$menuSlug])) {
+                    unset($result[$menuSlug]);
                 }
-                // Si es un menú padre con URL '#' y sin hijos, eliminarlo
-                if (empty($parentMenu['children'])) {
-                    unset($result[$parentSlug]);
+                // Eliminar submenú si coincide
+                foreach ($result as $parentSlug => &$parentMenu) {
+                    if (isset($parentMenu['children'][$menuSlug])) {
+                        unset($parentMenu['children'][$menuSlug]);
+                    }
                 }
+                unset($parentMenu); // Deshacer la referencia
+            }
+        }
+
+        // Limpiar menús padres que quedaron sin hijos
+        foreach ($result as $parentSlug => $parentMenu) {
+            if (!empty($parentMenu['children']) || $parentMenu['url'] !== '#') {
+                continue;
+            }
+            // Si es un menú padre con URL '#' y sin hijos, eliminarlo
+            if (empty($parentMenu['children'])) {
+                unset($result[$parentSlug]);
             }
         }
 
@@ -232,6 +253,14 @@ class AdminMenu
     ];
 
     /**
+     * Menús que requieren el Marketplace habilitado para ser visibles
+     * Si MARKETPLACE_ENABLED=false en .env, estos menús se ocultan
+     */
+    private static array $marketplaceOnlyMenus = [
+        'marketplace',       // Marketplace de módulos, plugins y temas
+    ];
+
+    /**
      * Obtener menús con personalizaciones aplicadas (para superadmin o tenant)
      * Este método aplica las personalizaciones de la tabla admin_menu_customizations
      */
@@ -339,15 +368,36 @@ class AdminMenu
                 }
                 unset($parentMenu); // Deshacer la referencia para evitar efectos secundarios
             }
-            // Limpiar menús padres que quedaron sin hijos
-            foreach ($result as $parentSlug => $parentMenu) {
-                if (!empty($parentMenu['children']) || $parentMenu['url'] !== '#') {
-                    continue;
+        }
+
+        // Filtrar menús que requieren Marketplace si está deshabilitado
+        $marketplaceEnabled = \Screenart\Musedock\Env::get('MARKETPLACE_ENABLED', 'false');
+        $marketplaceEnabled = filter_var($marketplaceEnabled, FILTER_VALIDATE_BOOLEAN);
+
+        if (!$marketplaceEnabled) {
+            foreach (self::$marketplaceOnlyMenus as $menuSlug) {
+                // Eliminar menú padre si coincide
+                if (isset($result[$menuSlug])) {
+                    unset($result[$menuSlug]);
                 }
-                // Si es un menú padre con URL '#' y sin hijos, eliminarlo
-                if (empty($parentMenu['children'])) {
-                    unset($result[$parentSlug]);
+                // Eliminar submenú si coincide
+                foreach ($result as $parentSlug => &$parentMenu) {
+                    if (isset($parentMenu['children'][$menuSlug])) {
+                        unset($parentMenu['children'][$menuSlug]);
+                    }
                 }
+                unset($parentMenu); // Deshacer la referencia para evitar efectos secundarios
+            }
+        }
+
+        // Limpiar menús padres que quedaron sin hijos
+        foreach ($result as $parentSlug => $parentMenu) {
+            if (!empty($parentMenu['children']) || $parentMenu['url'] !== '#') {
+                continue;
+            }
+            // Si es un menú padre con URL '#' y sin hijos, eliminarlo
+            if (empty($parentMenu['children'])) {
+                unset($result[$parentSlug]);
             }
         }
 

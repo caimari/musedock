@@ -39,30 +39,35 @@
             </div>
           </div>
           
+          @php
+            // Obtener páginas publicadas para los selects
+            $pdo = \Screenart\Musedock\Database::connect();
+            $stmt = $pdo->prepare("
+              SELECT p.id, p.title, s.slug, s.prefix
+              FROM pages p
+              LEFT JOIN slugs s ON s.reference_id = p.id AND s.module = 'pages'
+              WHERE p.status = 'published' AND p.tenant_id IS NULL
+              ORDER BY p.title ASC
+            ");
+            $stmt->execute();
+            $availablePages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $currentPolicyUrl = $settings['cookies_policy_url'] ?? '/p/cookie-policy';
+            $currentTermsUrl = $settings['cookies_terms_url'] ?? '';
+          @endphp
+
+          <hr class="my-4">
+          <h6 class="text-muted mb-3"><i class="fas fa-link me-2"></i>Enlaces legales en el banner</h6>
+
           <div class="row mb-3">
             <div class="col-md-6">
-              <label class="form-label">Enlace "Más información"</label>
+              <label class="form-label">Texto enlace "Más información"</label>
               <input type="text" name="cookies_more_info" class="form-control" value="{{ $settings['cookies_more_info'] ?? 'Más información' }}">
               <small class="text-muted">Texto para el enlace a la política de cookies</small>
             </div>
-            
+
             <div class="col-md-6">
               <label class="form-label">Página de política de cookies</label>
-              @php
-                // Obtener páginas publicadas para el select
-                $pdo = \Screenart\Musedock\Database::connect();
-                $stmt = $pdo->prepare("
-                  SELECT p.id, p.title, s.slug, s.prefix
-                  FROM pages p
-                  LEFT JOIN slugs s ON s.reference_id = p.id AND s.module = 'pages'
-                  WHERE p.status = 'published' AND p.tenant_id IS NULL
-                  ORDER BY p.title ASC
-                ");
-                $stmt->execute();
-                $availablePages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                $currentPolicyUrl = $settings['cookies_policy_url'] ?? '/p/cookie-policy';
-              @endphp
-              <select name="cookies_policy_url" class="form-control">
+              <select name="cookies_policy_url" class="form-control page-select" data-target="cookies_policy_url_custom">
                 <option value="">-- Seleccionar página --</option>
                 @foreach($availablePages as $pageItem)
                   @php
@@ -80,15 +85,46 @@
                      value="{{ $currentPolicyUrl }}"
                      placeholder="/p/cookie-policy"
                      style="{{ !empty($currentPolicyUrl) && !in_array($currentPolicyUrl, array_map(fn($p) => '/' . ($p['prefix'] ?: 'p') . '/' . $p['slug'], $availablePages)) ? '' : 'display:none;' }}">
-              <small class="text-muted">Selecciona una página existente o escribe una URL personalizada. Las páginas son multiidioma.</small>
+              <small class="text-muted">URL de la página de política de cookies</small>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Texto enlace "Términos y Servicios"</label>
+              <input type="text" name="cookies_terms_text" class="form-control" value="{{ $settings['cookies_terms_text'] ?? 'Términos y Servicios' }}">
+              <small class="text-muted">Texto para el enlace de términos (dejar vacío para ocultar)</small>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Página de términos y servicios</label>
+              <select name="cookies_terms_url" class="form-control page-select" data-target="cookies_terms_url_custom">
+                <option value="">-- No mostrar enlace --</option>
+                @foreach($availablePages as $pageItem)
+                  @php
+                    $pageUrl = '/' . ($pageItem['prefix'] ?: 'p') . '/' . $pageItem['slug'];
+                  @endphp
+                  <option value="{{ $pageUrl }}" {{ $currentTermsUrl === $pageUrl ? 'selected' : '' }}>
+                    {{ $pageItem['title'] }} ({{ $pageUrl }})
+                  </option>
+                @endforeach
+                <option value="custom" {{ !empty($currentTermsUrl) && !in_array($currentTermsUrl, array_map(fn($p) => '/' . ($p['prefix'] ?: 'p') . '/' . $p['slug'], $availablePages)) ? 'selected' : '' }}>
+                  URL personalizada...
+                </option>
+              </select>
+              <input type="text" name="cookies_terms_url_custom" id="cookies_terms_url_custom" class="form-control mt-2"
+                     value="{{ $currentTermsUrl }}"
+                     placeholder="/p/terms-of-service"
+                     style="{{ !empty($currentTermsUrl) && !in_array($currentTermsUrl, array_map(fn($p) => '/' . ($p['prefix'] ?: 'p') . '/' . $p['slug'], $availablePages)) ? '' : 'display:none;' }}">
+              <small class="text-muted">URL de la página de términos y servicios</small>
             </div>
           </div>
         </div>
       </div>
       
       <div class="card mb-4">
-        <div class="card-header bg-info text-white">
-          <h5 class="mb-0">Información sobre el sistema de cookies</h5>
+        <div class="card-header" style="background-color: #e7f1ff; color: #0d6efd;">
+          <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Información sobre el sistema de cookies</h5>
         </div>
         <div class="card-body">
           <div class="alert alert-info mb-4">
@@ -136,28 +172,42 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const policySelect = document.querySelector('select[name="cookies_policy_url"]');
-  const customInput = document.getElementById('cookies_policy_url_custom');
+  // Manejar todos los selects de páginas
+  document.querySelectorAll('.page-select').forEach(function(select) {
+    const targetId = select.dataset.target;
+    const customInput = document.getElementById(targetId);
 
-  if (policySelect && customInput) {
-    policySelect.addEventListener('change', function() {
-      if (this.value === 'custom') {
-        customInput.style.display = 'block';
-        customInput.focus();
-      } else {
-        customInput.style.display = 'none';
-        customInput.value = this.value;
-      }
-    });
+    if (customInput) {
+      select.addEventListener('change', function() {
+        if (this.value === 'custom') {
+          customInput.style.display = 'block';
+          customInput.focus();
+        } else {
+          customInput.style.display = 'none';
+          customInput.value = this.value;
+        }
+      });
+    }
+  });
 
-    // Al enviar el form, si el select no es "custom", usar el valor del select
-    policySelect.closest('form').addEventListener('submit', function(e) {
-      if (policySelect.value !== 'custom') {
-        customInput.value = policySelect.value;
-      }
-      // Asegurar que el campo correcto se envía
-      customInput.name = 'cookies_policy_url';
-      policySelect.name = '';
+  // Al enviar el form, asegurar que se envían los valores correctos
+  const form = document.querySelector('form');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      document.querySelectorAll('.page-select').forEach(function(select) {
+        const targetId = select.dataset.target;
+        const customInput = document.getElementById(targetId);
+
+        if (customInput) {
+          if (select.value !== 'custom' && select.value !== '') {
+            customInput.value = select.value;
+          }
+          // Renombrar para que solo se envíe el input
+          const baseName = select.name;
+          customInput.name = baseName;
+          select.name = '';
+        }
+      });
     });
   }
 });

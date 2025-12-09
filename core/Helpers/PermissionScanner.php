@@ -274,10 +274,13 @@ class PermissionScanner
                     }
                 }
 
+                // Generar descripción específica basada en el slug
+                $description = self::generateDescriptionFromSlug($slug);
+
                 Database::table('permissions')->insert([
                     'slug' => $slug,
                     'name' => $name,
-                    'description' => "Permiso detectado automáticamente desde el código",
+                    'description' => $description,
                     'category' => $category,
                     'tenant_id' => null,
                     'scope' => $scope,
@@ -359,6 +362,131 @@ class PermissionScanner
     }
 
     /**
+     * Genera una descripción específica basada en el slug del permiso
+     *
+     * @param string $slug Ej: "pages.create", "blog.edit.all"
+     * @return string Descripción específica del permiso
+     */
+    private static function generateDescriptionFromSlug(string $slug): string
+    {
+        $parts = explode('.', $slug);
+
+        // Descripciones para acciones comunes
+        $actionDescriptions = [
+            'view' => 'Ver y listar',
+            'create' => 'Crear nuevos registros de',
+            'edit' => 'Editar registros existentes de',
+            'delete' => 'Eliminar registros de',
+            'manage' => 'Gestión completa de',
+            'reply' => 'Responder a',
+            'update' => 'Actualizar registros de',
+            'list' => 'Listar',
+            'export' => 'Exportar datos de',
+            'import' => 'Importar datos a',
+            'publish' => 'Publicar contenido de',
+            'approve' => 'Aprobar elementos de',
+            'assign' => 'Asignar elementos en',
+        ];
+
+        // Nombres legibles de recursos
+        $resourceNames = [
+            'users' => 'usuarios',
+            'pages' => 'páginas',
+            'posts' => 'publicaciones del blog',
+            'blog' => 'blog',
+            'media' => 'archivos multimedia',
+            'settings' => 'configuración del sistema',
+            'tickets' => 'tickets de soporte',
+            'logs' => 'registros del sistema',
+            'modules' => 'módulos del sistema',
+            'languages' => 'idiomas',
+            'themes' => 'temas visuales',
+            'menus' => 'menús de navegación',
+            'appearance' => 'apariencia del sitio',
+            'advanced' => 'opciones avanzadas',
+            'dashboard' => 'panel de control',
+            'reports' => 'reportes y estadísticas',
+            'analytics' => 'analíticas',
+            'orders' => 'pedidos',
+            'products' => 'productos',
+            'customers' => 'clientes',
+            'invoices' => 'facturas',
+            'tenants' => 'inquilinos/organizaciones',
+            'roles' => 'roles de usuario',
+            'permissions' => 'permisos',
+            'custom_forms' => 'formularios personalizados',
+            'image_gallery' => 'galerías de imágenes',
+            'react_sliders' => 'sliders interactivos',
+            'sliders' => 'sliders',
+            'widgets' => 'widgets',
+            'categories' => 'categorías',
+            'tags' => 'etiquetas',
+            'comments' => 'comentarios',
+            'ai' => 'funcionalidades de IA',
+            'cron' => 'tareas programadas',
+            'audit' => 'auditoría',
+            'sessions' => 'sesiones de usuario',
+            'submissions' => 'envíos de formularios',
+        ];
+
+        // Descripciones especiales para slugs compuestos comunes
+        $specialDescriptions = [
+            'blog.edit.all' => 'Editar cualquier publicación del blog, incluyendo las de otros autores',
+            'blog.delete.all' => 'Eliminar cualquier publicación del blog, incluyendo las de otros autores',
+            'custom_forms.submissions.view' => 'Ver los envíos recibidos de formularios personalizados',
+            'custom_forms.submissions.delete' => 'Eliminar envíos de formularios personalizados',
+            'custom_forms.submissions.export' => 'Exportar envíos de formularios a CSV/Excel',
+        ];
+
+        // Verificar si hay una descripción especial para este slug exacto
+        if (isset($specialDescriptions[$slug])) {
+            return $specialDescriptions[$slug];
+        }
+
+        // Procesar slug con 2 partes: recurso.accion
+        if (count($parts) === 2) {
+            $resource = $parts[0];
+            $action = $parts[1];
+
+            $resourceName = $resourceNames[$resource] ?? str_replace('_', ' ', $resource);
+            $actionDesc = $actionDescriptions[$action] ?? ucfirst($action);
+
+            // Construir descripción natural
+            if (isset($actionDescriptions[$action])) {
+                return "{$actionDesc} {$resourceName}";
+            }
+
+            // Fallback para acciones desconocidas
+            return ucfirst($action) . ' ' . $resourceName;
+        }
+
+        // Procesar slug con 3+ partes: recurso.subrecurso.accion
+        if (count($parts) >= 3) {
+            $resource = $parts[0];
+            $subresource = $parts[1];
+            $action = $parts[count($parts) - 1];
+
+            $resourceName = $resourceNames[$resource] ?? str_replace('_', ' ', $resource);
+            $subresourceName = $resourceNames[$subresource] ?? str_replace('_', ' ', $subresource);
+
+            if (isset($actionDescriptions[$action])) {
+                return "{$actionDescriptions[$action]} {$subresourceName} de {$resourceName}";
+            }
+
+            return ucfirst($action) . " {$subresourceName} de {$resourceName}";
+        }
+
+        // Fallback para slugs de una sola parte
+        if (count($parts) === 1) {
+            $resourceName = $resourceNames[$parts[0]] ?? str_replace('_', ' ', $parts[0]);
+            return "Acceso a {$resourceName}";
+        }
+
+        // Fallback genérico
+        return 'Permiso para ' . str_replace('.', ' ', $slug);
+    }
+
+    /**
      * Adivina la categoría basándose en el slug
      *
      * @param string $slug
@@ -391,6 +519,61 @@ class PermissionScanner
 
         $firstPart = explode('.', $slug)[0];
         return $categoryMap[$firstPart] ?? 'General';
+    }
+
+    /**
+     * Actualiza las descripciones de permisos existentes que tienen la descripción genérica
+     * Esto permite mejorar las descripciones de permisos ya sincronizados
+     *
+     * @return array Resultado de la actualización [updated => [], errors => []]
+     */
+    public static function updateExistingDescriptions(): array
+    {
+        $updated = [];
+        $errors = [];
+
+        try {
+            // Obtener todos los permisos con descripción genérica
+            $permissions = Database::table('permissions')
+                ->where('description', 'Permiso detectado automáticamente desde el código')
+                ->get();
+
+            foreach ($permissions as $perm) {
+                $perm = (array) $perm;
+                $slug = $perm['slug'] ?? '';
+
+                if (empty($slug)) {
+                    continue;
+                }
+
+                try {
+                    $newDescription = self::generateDescriptionFromSlug($slug);
+
+                    Database::table('permissions')
+                        ->where('id', $perm['id'])
+                        ->update([
+                            'description' => $newDescription,
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]);
+
+                    $updated[] = [
+                        'slug' => $slug,
+                        'old' => $perm['description'],
+                        'new' => $newDescription
+                    ];
+                } catch (\Exception $e) {
+                    $errors[$slug] = $e->getMessage();
+                }
+            }
+        } catch (\Exception $e) {
+            $errors['_global'] = $e->getMessage();
+        }
+
+        return [
+            'updated' => $updated,
+            'errors' => $errors,
+            'count' => count($updated)
+        ];
     }
 
     /**

@@ -158,7 +158,7 @@
 
       <!-- Local Storage Info -->
       <div class="card mb-4 storage-config" id="config-local" style="{{ ($envConfig['FILESYSTEM_DISK'] ?? 'local') === 'local' ? '' : 'display:none;' }}">
-        <div class="card-header bg-success text-white">
+        <div class="card-header" style="background-color: #d4edda; color: #155724;">
           <h5 class="mb-0"><i class="bi bi-hdd me-2"></i>Almacenamiento Local</h5>
         </div>
         <div class="card-body">
@@ -171,8 +171,8 @@
       </div>
 
       <div class="card mb-4">
-        <div class="card-header bg-secondary text-white">
-          <h5 class="mb-0">Información sobre proveedores</h5>
+        <div class="card-header" style="background-color: #e7f1ff; color: #0d6efd;">
+          <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Información sobre proveedores</h5>
         </div>
         <div class="card-body">
           <div class="row">
