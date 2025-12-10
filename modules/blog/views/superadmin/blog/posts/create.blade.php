@@ -66,7 +66,7 @@
               {{-- Editor TinyMCE --}}
               <div class="mb-3">
                 <label for="content-editor" class="form-label">{{ __('blog.post.content') }}</label>
-                <textarea id="content-editor" name="content" class="@error('content') is-invalid @enderror">{{ old('content') }}</textarea>
+                <textarea id="content-editor" name="content" class="@error('content') is-invalid @enderror" style="display:none !important;">{{ old('content') }}</textarea>
                 @error('content')
                   <div class="invalid-feedback">{{ $message }}</div>
                 @enderror

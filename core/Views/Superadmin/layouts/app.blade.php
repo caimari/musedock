@@ -112,8 +112,30 @@
       .main > .content { flex-grow: 1; padding: 1.5rem !important; overflow-y: auto; width: 100%; }
       .main > footer.footer { width: 100% !important; flex-shrink: 0; padding: 1rem 1.5rem !important; background-color: #fff; border-top: 1px solid #dee2e6; }
 
-      /* Quitar foco azul */
-      .form-control:focus, .form-select:focus { outline: none !important; box-shadow: none !important; border-color: #ced4da !important; }
+      /* Quitar foco azul de Bootstrap en todos los elementos de formulario */
+      .form-control:focus,
+      .form-select:focus,
+      textarea:focus,
+      input:focus,
+      select:focus,
+      button:focus,
+      .btn:focus,
+      .input-group-text:focus,
+      [contenteditable]:focus,
+      textarea.form-control:focus,
+      input.form-control:focus {
+        outline: none !important;
+        box-shadow: none !important;
+        border-color: #ced4da !important;
+      }
+      /* También para focus-visible (navegadores modernos) */
+      .form-control:focus-visible,
+      textarea:focus-visible,
+      input:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
+        border-color: #ced4da !important;
+      }
 
       /* Overlay Móvil */
       #sidebar-overlay { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.3); z-index: 1034; opacity: 0; transition: opacity 0.25s ease-in-out; pointer-events: none; }
