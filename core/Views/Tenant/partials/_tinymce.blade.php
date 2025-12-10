@@ -134,7 +134,13 @@
   iframe#content-editor_ifr {
     outline: none !important;
   }
-  
+
+  /* Corregir la selección de imágenes en TinyMCE */
+  .tox .tox-edit-area__iframe img[data-mce-selected] {
+    outline: 2px solid #3b7ddd !important;
+    outline-offset: 2px;
+  }
+
   /* --- Estilos Opcionales --- */
   .tox .tox-tbtn--bespoke { background-color: #f8f9fa !important; }
   .tox-collection__item-label h1 { font-size: 2em !important; margin: 0 !important; }
@@ -178,7 +184,8 @@ $tinymce_toolbar_lines = [
     'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media codesample | code fullscreen | help'
 ];
 $tinymce_external_plugins = [];
-$tinymce_context_menu_items = ['cut', 'copy', 'paste', '|', 'link', 'image', 'table'];
+// El menú 'image' ya incluye opciones de imagen. 'customimage' añade nuestras opciones personalizadas
+$tinymce_context_menu_items = ['link', 'image', 'customimage', 'table'];
 
 // La configuración del plugin AIWriter se agregará mediante JavaScript
 // para evitar problemas si el plugin no está disponible
@@ -271,12 +278,140 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         // Desactivar las quickbars (barras flotantes)
         quickbars_selection_toolbar: false,
         quickbars_insert_toolbar: false,
-        
+
         entity_encoding: 'raw',
         convert_urls: false,
+
+        // Configuración para imágenes - menú contextual y selección
+        image_advtab: true,
+        image_title: true,
+        automatic_uploads: true,
+        object_resizing: true,
+        resize_img_proportional: true,
         
-        // Función Setup con solución para el borde azul
+        // Función Setup con solución para el borde azul y menú contextual de imágenes
         setup: function(editor) {
+            // === MENÚ CONTEXTUAL PERSONALIZADO PARA IMÁGENES ===
+
+            // Función para abrir diálogo de enlace de imagen
+            function openImageLinkDialog(img) {
+                const parentLink = img.closest('a');
+                const currentHref = parentLink ? parentLink.href : '';
+                const currentTarget = parentLink ? parentLink.target : '_self';
+
+                editor.windowManager.open({
+                    title: 'Enlace de imagen',
+                    body: {
+                        type: 'panel',
+                        items: [
+                            {
+                                type: 'input',
+                                name: 'url',
+                                label: 'URL de destino',
+                                placeholder: 'https://ejemplo.com'
+                            },
+                            {
+                                type: 'selectbox',
+                                name: 'target',
+                                label: 'Abrir en',
+                                items: [
+                                    { text: 'Misma ventana', value: '_self' },
+                                    { text: 'Nueva ventana', value: '_blank' }
+                                ]
+                            }
+                        ]
+                    },
+                    initialData: {
+                        url: currentHref,
+                        target: currentTarget
+                    },
+                    buttons: [
+                        { type: 'cancel', text: 'Cancelar' },
+                        { type: 'submit', text: 'Aplicar', primary: true }
+                    ],
+                    onSubmit: function(api) {
+                        const data = api.getData();
+                        if (data.url) {
+                            if (parentLink) {
+                                parentLink.href = data.url;
+                                parentLink.target = data.target;
+                            } else {
+                                const link = editor.dom.create('a', {
+                                    href: data.url,
+                                    target: data.target
+                                });
+                                img.parentNode.insertBefore(link, img);
+                                link.appendChild(img);
+                            }
+                        } else if (parentLink) {
+                            parentLink.parentNode.insertBefore(img, parentLink);
+                            parentLink.remove();
+                        }
+                        api.close();
+                        editor.nodeChanged();
+                    }
+                });
+            }
+
+            // Función para aplicar lightbox a imagen
+            function applyLightbox(img) {
+                const imgSrc = img.src;
+                const parentLink = img.closest('a');
+
+                if (parentLink) {
+                    parentLink.href = imgSrc;
+                    parentLink.setAttribute('data-lightbox', 'gallery');
+                    parentLink.removeAttribute('target');
+                } else {
+                    const link = editor.dom.create('a', {
+                        href: imgSrc,
+                        'data-lightbox': 'gallery'
+                    });
+                    img.parentNode.insertBefore(link, img);
+                    link.appendChild(img);
+                }
+                editor.nodeChanged();
+            }
+
+            // Registrar menú contextual personalizado para imágenes
+            editor.ui.registry.addContextMenu('customimage', {
+                update: function(element) {
+                    // Solo mostrar opciones si es una imagen
+                    if (element.nodeName !== 'IMG') {
+                        return '';
+                    }
+
+                    // Guardar referencia a la imagen para usarla en las acciones
+                    editor._contextMenuImage = element;
+
+                    return 'imagelink imagelightbox';
+                }
+            });
+
+            // Registrar item de menú para añadir enlace
+            editor.ui.registry.addMenuItem('imagelink', {
+                text: 'Añadir enlace a imagen',
+                icon: 'link',
+                onAction: function() {
+                    const img = editor._contextMenuImage || editor.selection.getNode();
+                    if (img && img.nodeName === 'IMG') {
+                        openImageLinkDialog(img);
+                    }
+                }
+            });
+
+            // Registrar item de menú para lightbox
+            editor.ui.registry.addMenuItem('imagelightbox', {
+                text: 'Abrir en Lightbox',
+                icon: 'browse',
+                onAction: function() {
+                    const img = editor._contextMenuImage || editor.selection.getNode();
+                    if (img && img.nodeName === 'IMG') {
+                        applyLightbox(img);
+                    }
+                }
+            });
+
             editor.on('init', function() {
                 console.log('TinyMCE inicializado para: #' + editor.id);
 
@@ -320,14 +455,46 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                                 box-shadow: none !important;
                                 border: none !important;
                             }
-                            *:focus, *:focus-visible {
-                                outline: none !important;
-                                box-shadow: none !important;
+                            /* Estilos para hacer imágenes más fáciles de seleccionar */
+                            img {
+                                cursor: pointer;
+                                transition: outline 0.15s ease;
+                            }
+                            img:hover {
+                                outline: 2px dashed #3b7ddd;
+                                outline-offset: 2px;
+                            }
+                            img[data-mce-selected] {
+                                outline: 2px solid #3b7ddd !important;
+                                outline-offset: 2px;
                             }
                         `;
-                        
+
                         iframeDoc.head.appendChild(styleElement);
-                        
+
+                        // Manejador de clic para gestionar la selección de imágenes
+                        iframeDoc.body.addEventListener('mousedown', function(e) {
+                            const clickedElement = e.target;
+
+                            // Si hacemos clic izquierdo en una imagen, seleccionarla
+                            if (e.button === 0 && clickedElement.tagName === 'IMG') {
+                                setTimeout(function() {
+                                    editor.selection.select(clickedElement);
+                                    editor.nodeChanged();
+                                }, 10);
+                            }
+                            // Si hacemos clic izquierdo FUERA de una imagen, deseleccionar imágenes
+                            else if (e.button === 0 && clickedElement.tagName !== 'IMG') {
+                                // Buscar todas las imágenes seleccionadas y quitar la selección visual
+                                const selectedImages = iframeDoc.querySelectorAll('img[data-mce-selected]');
+                                selectedImages.forEach(function(img) {
+                                    img.removeAttribute('data-mce-selected');
+                                });
+                                // Notificar a TinyMCE del cambio
+                                editor.nodeChanged();
+                            }
+                        });
+
                         // Eliminar el foco en todo el documento
                         iframeDoc.body.addEventListener('focus', function(e) {
                             this.style.outline = 'none';

@@ -149,7 +149,8 @@ $tinymce_toolbar_lines = [
     'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media codesample | code fullscreen | help'
 ];
 $tinymce_external_plugins = [];
-$tinymce_context_menu_items = ['link', 'image', 'customimage', '|', 'cut', 'copy', 'paste', '|', 'table'];
+// El menú 'image' ya incluye opciones de imagen. 'customimage' añade nuestras opciones personalizadas
+$tinymce_context_menu_items = ['link', 'image', 'customimage', 'table'];
 
 // La configuración del plugin AIWriter se agregará mediante JavaScript
 // para evitar problemas si el plugin no está disponible
@@ -247,6 +248,9 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; font-size: 16px; margin: 15px; }
             code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 4px; font-size: 90%; font-family: monospace; }
             pre > code { display: block; padding: 10px; background-color: #2d2d2d; color: #f1f1f1; border-radius: 5px; overflow-x: auto; }
+            img { max-width: 100%; height: auto; cursor: pointer; pointer-events: auto; user-select: auto; }
+            figure img { pointer-events: auto; }
+            .mce-content-body img[data-mce-selected] { outline: 2px solid #3b7ddd; outline-offset: 2px; }
         `,
         branding: false,
         promotion: false,
@@ -465,96 +469,51 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                 // Ocultar skeleton loader
                 hideSkeleton();
 
+                // === MANEJO DE DESELECCIÓN DE IMÁGENES ===
+                // Añadir listener en el iframe para deseleccionar imágenes al hacer clic fuera
+                try {
+                    const iframeEl = editor.iframeElement;
+                    if (iframeEl && iframeEl.contentDocument) {
+                        const iframeDoc = iframeEl.contentDocument;
+
+                        iframeDoc.addEventListener('mousedown', function(e) {
+                            const target = e.target;
+
+                            // Ignorar clics en los handlers/overlays de TinyMCE para no romper la selección nativa
+                            if (target.closest('.mce-resizehandle') || target.closest('.mce-resize-backdrop') || target.closest('.mce-clonedresizable')) {
+                                return;
+                            }
+
+                            // Seleccionar explícitamente la imagen si se hace clic sobre ella
+                            if (target.nodeName === 'IMG') {
+                                setTimeout(function() {
+                                    editor.selection.select(target);
+                                    editor.nodeChanged();
+                                }, 0);
+                                return;
+                            }
+
+                            // Si hicimos clic en algo que NO es una imagen, deseleccionar
+                            if (target.nodeName !== 'IMG' && !target.closest('figure')) {
+                                // Buscar si hay alguna imagen seleccionada
+                                const selectedImg = iframeDoc.querySelector('img[data-mce-selected]');
+                                if (selectedImg) {
+                                    // Usar setTimeout para no interferir con el evento actual
+                                    setTimeout(function() {
+                                        editor.selection.collapse(true);
+                                        editor.nodeChanged();
+                                    }, 0);
+                                }
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.warn('No se pudo añadir listener de deselección:', e);
+                }
+
                 // Hacer visible el contenedor del editor
                 const container = editor.getContainer();
                 if (container) container.style.visibility = 'visible';
-                
-                // ---- INICIO DE SOLUCIÓN PARA EL BORDE AZUL ----
-                
-                // 1. Aplicar estilos al contenedor principal de TinyMCE
-                const tinymceElement = document.querySelector('.tox.tox-tinymce');
-                if (tinymceElement) {
-                    tinymceElement.style.outline = 'none';
-                    tinymceElement.style.boxShadow = 'none';
-                }
-                
-                // 2. Aplicar estilos al iframe de edición
-                const iframeElement = document.getElementById('content-editor_ifr');
-                if (iframeElement) {
-                    // Quitar el borde del iframe mismo
-                    iframeElement.style.outline = 'none';
-                    iframeElement.style.boxShadow = 'none';
-                    
-                    // Acceder al documento dentro del iframe
-                    try {
-                        const iframeDoc = iframeElement.contentDocument || iframeElement.contentWindow.document;
-                        
-                        // Añadir estilos específicos al body del iframe
-                        const styleElement = iframeDoc.createElement('style');
-                        styleElement.textContent = `
-                            body.mce-content-body {
-                                outline: none !important;
-                                box-shadow: none !important;
-                            }
-                            body.mce-content-body:focus,
-                            body.mce-content-body:focus-visible {
-                                outline: none !important;
-                                box-shadow: none !important;
-                                border: none !important;
-                            }
-                            *:focus, *:focus-visible {
-                                outline: none !important;
-                                box-shadow: none !important;
-                            }
-                            /* Hacer imágenes más fáciles de seleccionar */
-                            img {
-                                cursor: pointer;
-                                transition: outline 0.15s ease;
-                            }
-                            img:hover {
-                                outline: 2px dashed #3b7ddd;
-                                outline-offset: 2px;
-                            }
-                            img[data-mce-selected] {
-                                outline: 2px solid #3b7ddd !important;
-                                outline-offset: 2px;
-                            }
-                        `;
-
-                        iframeDoc.head.appendChild(styleElement);
-
-                        // Manejador de clic para seleccionar imágenes fácilmente
-                        // Solo con click izquierdo (button === 0) y sin bloquear eventos
-                        iframeDoc.body.addEventListener('mousedown', function(e) {
-                            // Solo click izquierdo (no derecho para menú contextual)
-                            if (e.button === 0 && e.target.tagName === 'IMG') {
-                                // Pequeño delay para permitir que TinyMCE procese primero
-                                setTimeout(function() {
-                                    editor.selection.select(e.target);
-                                    editor.nodeChanged();
-                                }, 10);
-                            }
-                        });
-
-                        // Eliminar el foco en todo el documento
-                        iframeDoc.body.addEventListener('focus', function(e) {
-                            this.style.outline = 'none';
-                            e.target.style.outline = 'none';
-                        }, true);
-                    } catch (e) {
-                        console.error("Error al aplicar estilos al iframe:", e);
-                    }
-                }
-                
-                // 3. Desactivar la apariencia de foco para todo el contenedor de TinyMCE
-                document.querySelectorAll('.tox *').forEach(el => {
-                    el.style.outline = 'none';
-                    el.addEventListener('focus', function() {
-                        this.style.outline = 'none';
-                    });
-                });
-                
-                // ---- FIN DE SOLUCIÓN PARA EL BORDE AZUL ----
             });
         }
     };
