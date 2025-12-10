@@ -103,19 +103,44 @@ class TranslationService
 
     /**
      * Obtener idioma actual desde configuración, sesión o navegador
+     * NOTA: El panel superadmin NO se ve afectado por force_lang
      */
     public static function getCurrentLocale(): string
     {
-        // Usar detectLanguage() si está disponible, ya que maneja force_lang correctamente
+        SessionSecurity::startSession();
+
+        // Si estamos en contexto superadmin, usar superadmin_locale (ignora force_lang)
+        $isSuperadmin = self::$context === 'superadmin' ||
+                        strpos($_SERVER['REQUEST_URI'] ?? '', '/musedock') === 0;
+
+        if ($isSuperadmin) {
+            // Prioridad para superadmin: superadmin_locale > locale > lang > cookie
+            if (isset($_SESSION['superadmin_locale'])) {
+                self::$currentLocale = $_SESSION['superadmin_locale'];
+                return self::$currentLocale;
+            }
+            if (isset($_SESSION['locale'])) {
+                self::$currentLocale = $_SESSION['locale'];
+                return self::$currentLocale;
+            }
+            if (isset($_SESSION['lang'])) {
+                self::$currentLocale = $_SESSION['lang'];
+                return self::$currentLocale;
+            }
+            if (isset($_COOKIE['superadmin_locale'])) {
+                self::$currentLocale = $_COOKIE['superadmin_locale'];
+                return self::$currentLocale;
+            }
+        }
+
+        // Para frontend: usar detectLanguage() que maneja force_lang
         if (function_exists('detectLanguage')) {
             self::$currentLocale = detectLanguage();
             return self::$currentLocale;
         }
 
-        // Fallback manual si detectLanguage() no existe
-        SessionSecurity::startSession();
-
-        // 1. Verificar force_lang en settings (MÁXIMA PRIORIDAD)
+        // Fallback manual para frontend
+        // 1. Verificar force_lang en settings (solo para frontend)
         try {
             $pdo = \Screenart\Musedock\Database::connect();
             $stmt = $pdo->prepare("SELECT `value` FROM settings WHERE `key` = 'force_lang' LIMIT 1");
@@ -131,13 +156,17 @@ class TranslationService
         }
 
         // 2. Verificar sesión
-        if (isset($_SESSION['locale']) && in_array($_SESSION['locale'], ['es', 'en'])) {
+        if (isset($_SESSION['locale'])) {
             self::$currentLocale = $_SESSION['locale'];
+            return self::$currentLocale;
+        }
+        if (isset($_SESSION['lang'])) {
+            self::$currentLocale = $_SESSION['lang'];
             return self::$currentLocale;
         }
 
         // 3. Verificar cookie
-        if (isset($_COOKIE['locale']) && in_array($_COOKIE['locale'], ['es', 'en'])) {
+        if (isset($_COOKIE['locale'])) {
             self::$currentLocale = $_COOKIE['locale'];
             $_SESSION['locale'] = self::$currentLocale;
             return self::$currentLocale;
@@ -159,7 +188,18 @@ class TranslationService
      */
     public static function setLocale(string $locale): void
     {
-        if (!in_array($locale, ['es', 'en'])) {
+        // Obtener idiomas válidos
+        $validLocales = ['es', 'en'];
+        try {
+            $pdo = \Screenart\Musedock\Database::connect();
+            $stmt = $pdo->query("SELECT code FROM languages WHERE active = 1");
+            $dbLocales = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+            if (!empty($dbLocales)) {
+                $validLocales = $dbLocales;
+            }
+        } catch (\Exception $e) {}
+
+        if (!in_array($locale, $validLocales)) {
             $locale = self::$fallbackLocale;
         }
 
@@ -168,11 +208,19 @@ class TranslationService
         // Guardar en sesión
         SessionSecurity::startSession();
         $_SESSION['locale'] = $locale;
+        $_SESSION['lang'] = $locale; // Compatibilidad con detectLanguage()
+
+        // Si estamos en superadmin, guardar también en superadmin_locale
+        $isSuperadmin = self::$context === 'superadmin' ||
+                        strpos($_SERVER['REQUEST_URI'] ?? '', '/musedock') === 0;
+        if ($isSuperadmin) {
+            $_SESSION['superadmin_locale'] = $locale;
+        }
 
         // Guardar en cookie (30 días)
-        setcookie('locale', $locale, time() + (30 * 24 * 60 * 60), '/', '', false, true);
-
-        error_log("TranslationService: setLocale to {$locale} - Session: " . ($_SESSION['locale'] ?? 'NOT SET'));
+        if (!headers_sent()) {
+            setcookie('locale', $locale, time() + (30 * 24 * 60 * 60), '/', '', false, true);
+        }
     }
 
     /**

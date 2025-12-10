@@ -491,7 +491,18 @@
                         } catch (\Exception $e) {
                             $adminActiveLanguages = [['code' => 'es', 'name' => 'Español'], ['code' => 'en', 'name' => 'English']];
                         }
-                        $currentLocale = app_locale();
+
+                        // Obtener idioma del superadmin (independiente de force_lang del frontend)
+                        // Prioridad: superadmin_locale > locale > lang > cookie > default
+                        if (session_status() !== PHP_SESSION_ACTIVE) {
+                            \Screenart\Musedock\Security\SessionSecurity::startSession();
+                        }
+                        $currentLocale = $_SESSION['superadmin_locale']
+                            ?? $_SESSION['locale']
+                            ?? $_SESSION['lang']
+                            ?? $_COOKIE['superadmin_locale']
+                            ?? 'es';
+
                         $currentUrl = $_SERVER['REQUEST_URI'] ?? '/musedock/dashboard';
                         $showAdminLangSelector = count($adminActiveLanguages) > 1;
 
