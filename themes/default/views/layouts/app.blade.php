@@ -1217,7 +1217,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     var $ = jQuery;
-    var $links = $('a[data-lightbox], a.lightbox');
+    var $links = $('a[data-lightbox], a.lightbox').not('.md-mfp-bound');
     if ($links.length) {
         $links.magnificPopup({
             type: 'image',
@@ -1225,6 +1225,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 enabled: true
             }
         });
+        $links.addClass('md-mfp-bound');
     }
 });
 </script>

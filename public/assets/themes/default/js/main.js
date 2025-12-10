@@ -230,7 +230,7 @@
 
 
 // 12 Pop Up Img (incluye enlaces con data-lightbox o clase .lightbox)
-    var popUp = $('.single_gallery_part, .img-pop-up, a[data-lightbox], a.lightbox');
+    var popUp = $('.single_gallery_part, .img-pop-up, a[data-lightbox], a.lightbox').not('.md-mfp-bound');
     if(popUp.length){
       popUp.magnificPopup({
         type: 'image',
@@ -238,6 +238,7 @@
           enabled:true
         }
       });
+      popUp.addClass('md-mfp-bound');
     }
 
 
