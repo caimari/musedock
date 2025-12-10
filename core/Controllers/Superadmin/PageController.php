@@ -501,6 +501,50 @@ public function update($id)
         );
         $updateCurrentStmt->execute([$makeHomepage ? 1 : 0, $id]);
 
+        // === SINCRONIZACIÓN: Actualizar settings de lectura ===
+        if ($makeHomepage) {
+            // Si se marca como homepage, actualizar page_on_front
+            $updatePageOnFrontStmt = $pdo->prepare("
+                INSERT INTO settings (`key`, `value`) VALUES ('page_on_front', ?)
+                ON DUPLICATE KEY UPDATE `value` = ?
+            ");
+            $updatePageOnFrontStmt->execute([$id, $id]);
+
+            // Actualizar show_on_front
+            $updateShowOnFrontStmt = $pdo->prepare("
+                INSERT INTO settings (`key`, `value`) VALUES ('show_on_front', 'page')
+                ON DUPLICATE KEY UPDATE `value` = 'page'
+            ");
+            $updateShowOnFrontStmt->execute();
+
+            error_log("PageController: Sincronizados settings de lectura - page_on_front = {$id}, show_on_front = page");
+        } else {
+            // Si se desmarca como homepage, limpiar el setting si coincide con esta página
+            $checkSettingStmt = $pdo->prepare("SELECT `value` FROM settings WHERE `key` = 'page_on_front'");
+            $checkSettingStmt->execute();
+            $currentPageOnFront = $checkSettingStmt->fetchColumn();
+
+            if ($currentPageOnFront == $id) {
+                // Esta página era la homepage en settings, limpiarla y volver a posts
+                $updatePageOnFrontStmt = $pdo->prepare("
+                    INSERT INTO settings (`key`, `value`) VALUES ('page_on_front', '')
+                    ON DUPLICATE KEY UPDATE `value` = ''
+                ");
+                $updatePageOnFrontStmt->execute();
+
+                $updateShowOnFrontStmt = $pdo->prepare("
+                    INSERT INTO settings (`key`, `value`) VALUES ('show_on_front', 'posts')
+                    ON DUPLICATE KEY UPDATE `value` = 'posts'
+                ");
+                $updateShowOnFrontStmt->execute();
+
+                error_log("PageController: Desmarcada página {$id} como homepage en settings");
+            }
+        }
+        // Limpiar caché de settings
+        setting(null);
+        // ======================================================
+
         // 4. Actualizar slug
         $deleteSlugStmt = $pdo->prepare("DELETE FROM slugs WHERE module = 'pages' AND reference_id = ?");
         $deleteSlugStmt->execute([$id]);

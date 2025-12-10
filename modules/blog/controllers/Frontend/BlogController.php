@@ -17,7 +17,24 @@ class BlogController
     {
         $tenantId = TenantManager::currentTenantId();
 
-        // Obtener posts publicados
+        // Obtener número de posts por página desde settings
+        $postsPerPage = (int) setting('posts_per_page', 10);
+
+        // Obtener página actual
+        $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $offset = ($currentPage - 1) * $postsPerPage;
+
+        // Contar total de posts
+        $countQuery = BlogPost::where('status', 'published');
+        if ($tenantId !== null) {
+            $countQuery->where('tenant_id', $tenantId);
+        } else {
+            $countQuery->whereRaw('tenant_id IS NULL');
+        }
+        $totalPosts = $countQuery->count();
+        $totalPages = ceil($totalPosts / $postsPerPage);
+
+        // Obtener posts publicados con paginación
         $query = BlogPost::where('status', 'published')
             ->orderBy('published_at', 'DESC');
 
@@ -27,14 +44,24 @@ class BlogController
             $query->whereRaw('tenant_id IS NULL');
         }
 
-        $posts = $query->get();
+        // Aplicar límite y offset para paginación
+        $posts = $query->limit($postsPerPage)->offset($offset)->get();
 
         // Obtener categorías para sidebar
         $categories = BlogCategory::where('tenant_id', $tenantId)->get();
 
+        // Preparar datos de paginación
+        $pagination = [
+            'current_page' => $currentPage,
+            'total_pages' => $totalPages,
+            'total_posts' => $totalPosts,
+            'per_page' => $postsPerPage,
+        ];
+
         return View::renderTheme('blog/index', [
             'posts' => $posts,
-            'categories' => $categories
+            'categories' => $categories,
+            'pagination' => $pagination
         ]);
     }
 

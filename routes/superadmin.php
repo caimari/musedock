@@ -190,6 +190,10 @@ Route::post('/musedock/settings/seo', 'superadmin.SettingsController@updateSeo')
 Route::get('/musedock/settings/cookies', 'superadmin.SettingsController@cookies')->name('settings.cookies')->middleware('superadmin');
 Route::post('/musedock/settings/cookies', 'superadmin.SettingsController@updateCookies')->name('settings.cookies.update')->middleware('superadmin');
 
+// Settings - Reading
+Route::get('/musedock/settings/reading', 'superadmin.SettingsController@reading')->name('settings.reading')->middleware('superadmin');
+Route::post('/musedock/settings/reading', 'superadmin.SettingsController@updateReading')->name('settings.reading.update')->middleware('superadmin');
+
 // Settings - Advanced
 Route::get('/musedock/settings/advanced', 'superadmin.SettingsController@advanced')->name('settings.advanced')->middleware('superadmin');
 Route::post('/musedock/settings/advanced', 'superadmin.SettingsController@updateAdvanced')->name('settings.advanced.update')->middleware('superadmin');

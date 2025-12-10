@@ -18,6 +18,32 @@ class HomeController
     {
         error_log("HomeController: Accediendo a index()");
 
+        // Verificar configuración de lectura
+        $showOnFront = setting('show_on_front', 'posts');
+        $pageOnFront = setting('page_on_front', '');
+        $postOnFront = setting('post_on_front', '');
+
+        error_log("HomeController: show_on_front = {$showOnFront}, page_on_front = {$pageOnFront}, post_on_front = {$postOnFront}");
+
+        // Si está configurado para mostrar posts, redirigir al blog
+        if ($showOnFront === 'posts') {
+            error_log("HomeController: Mostrando últimas entradas del blog");
+            return $this->showLatestPosts();
+        }
+
+        // Si está configurado para mostrar una página estática
+        if ($showOnFront === 'page' && !empty($pageOnFront)) {
+            error_log("HomeController: Mostrando página estática ID: {$pageOnFront}");
+            return $this->showStaticPage($pageOnFront);
+        }
+
+        // Si está configurado para mostrar un post estático
+        if ($showOnFront === 'post' && !empty($postOnFront)) {
+            error_log("HomeController: Mostrando post estático ID: {$postOnFront}");
+            return $this->showStaticPost($postOnFront);
+        }
+
+        // Fallback: buscar página marcada como homepage (comportamiento legacy)
         $homepage = null;
         $homepageData = null;
 
@@ -185,5 +211,202 @@ class HomeController
         $customizations->content_class = PageMeta::getMeta($pageId, 'content_class', 'page-content-wrapper');
 
         return $customizations;
+    }
+
+    /**
+     * Muestra las últimas entradas del blog en la página de inicio
+     */
+    private function showLatestPosts()
+    {
+        // Obtener número de posts por página desde settings
+        $postsPerPage = (int) setting('posts_per_page', 10);
+
+        // Obtener página actual
+        $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $offset = ($currentPage - 1) * $postsPerPage;
+
+        // Obtener tenant actual
+        $tenantId = \Screenart\Musedock\Services\TenantManager::currentTenantId();
+
+        try {
+            $pdo = Database::connect();
+
+            // Contar total de posts
+            if ($tenantId !== null) {
+                $countStmt = $pdo->prepare("SELECT COUNT(*) FROM blog_posts WHERE status = 'published' AND tenant_id = ?");
+                $countStmt->execute([$tenantId]);
+            } else {
+                $countStmt = $pdo->prepare("SELECT COUNT(*) FROM blog_posts WHERE status = 'published' AND tenant_id IS NULL");
+                $countStmt->execute([]);
+            }
+            $totalPosts = $countStmt->fetchColumn();
+            $totalPages = ceil($totalPosts / $postsPerPage);
+
+            // Query para obtener posts publicados con paginación
+            if ($tenantId !== null) {
+                $stmt = $pdo->prepare("
+                    SELECT * FROM blog_posts
+                    WHERE status = 'published' AND tenant_id = ?
+                    ORDER BY published_at DESC
+                    LIMIT {$postsPerPage} OFFSET {$offset}
+                ");
+                $stmt->execute([$tenantId]);
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT * FROM blog_posts
+                    WHERE status = 'published' AND tenant_id IS NULL
+                    ORDER BY published_at DESC
+                    LIMIT {$postsPerPage} OFFSET {$offset}
+                ");
+                $stmt->execute([]);
+            }
+
+            $posts = $stmt->fetchAll(\PDO::FETCH_OBJ);
+
+            // Obtener categorías para el sidebar
+            $categoriesStmt = $pdo->query("SELECT * FROM blog_categories ORDER BY name ASC");
+            $categories = $categoriesStmt->fetchAll(\PDO::FETCH_OBJ);
+
+            // Preparar datos de paginación
+            $pagination = [
+                'current_page' => $currentPage,
+                'total_pages' => $totalPages,
+                'total_posts' => $totalPosts,
+                'per_page' => $postsPerPage,
+            ];
+
+            return View::renderTheme('blog.index', [
+                'posts' => $posts,
+                'categories' => $categories,
+                'pagination' => $pagination,
+            ]);
+
+        } catch (\Exception $e) {
+            error_log("HomeController: Error al cargar posts: " . $e->getMessage());
+            return "Error al cargar el blog.";
+        }
+    }
+
+    /**
+     * Muestra una página estática específica como página de inicio
+     */
+    private function showStaticPage($pageId)
+    {
+        try {
+            $page = Page::find($pageId);
+
+            if (!$page || $page->status !== 'published') {
+                error_log("HomeController: Página ID {$pageId} no encontrada o no publicada");
+                http_response_code(404);
+                return "Página no encontrada";
+            }
+
+            $currentLocale = detectLanguage();
+            $translation = $page->translation($currentLocale);
+
+            $displayData = new \stdClass();
+            $displayData->title = $translation->title ?? $page->title;
+            $displayData->content = $translation->content ?? $page->content ?? '';
+            $displayData->seo_title = $translation->seo_title ?? $page->seo_title;
+            $displayData->seo_description = $translation->seo_description ?? $page->seo_description;
+            $displayData->seo_keywords = $translation->seo_keywords ?? $page->seo_keywords;
+            $displayData->seo_image = $translation->seo_image ?? $page->seo_image;
+            $displayData->canonical_url = $translation->canonical_url ?? $page->canonical_url;
+            $displayData->robots_directive = $translation->robots_directive ?? $page->robots_directive;
+            $displayData->twitter_title = $translation->twitter_title ?? $page->twitter_title;
+            $displayData->twitter_description = $translation->twitter_description ?? $page->twitter_description;
+            $displayData->twitter_image = $translation->twitter_image ?? $page->twitter_image;
+
+            // Obtener plantilla asignada
+            $templateName = PageMeta::getMeta($page->id, 'page_template', 'page.blade.php');
+            $templateName = str_replace('.blade.php', '', $templateName);
+
+            // Cargar personalizaciones de página
+            $pageCustomizations = $this->loadPageCustomizations($page->id);
+
+            return View::renderTheme($templateName, [
+                'page' => $page,
+                'translation' => $displayData,
+                'customizations' => $pageCustomizations
+            ]);
+
+        } catch (\Exception $e) {
+            error_log("HomeController: Error al cargar página estática: " . $e->getMessage());
+            return "Error al cargar la página.";
+        }
+    }
+
+    /**
+     * Muestra un post de blog específico como página de inicio
+     */
+    private function showStaticPost($postId)
+    {
+        try {
+            $pdo = Database::connect();
+            $tenantId = \Screenart\Musedock\Services\TenantManager::currentTenantId();
+
+            // Obtener el post
+            $stmt = $pdo->prepare("SELECT * FROM blog_posts WHERE id = ? AND status = 'published'");
+            $stmt->execute([$postId]);
+            $post = $stmt->fetch(\PDO::FETCH_OBJ);
+
+            if (!$post) {
+                error_log("HomeController: Post ID {$postId} no encontrado o no publicado");
+                http_response_code(404);
+                return "Post no encontrado";
+            }
+
+            // Detectar idioma y cargar traducción si existe
+            $currentLocale = detectLanguage();
+            $translationStmt = $pdo->prepare("
+                SELECT * FROM blog_post_translations
+                WHERE post_id = ? AND locale = ?
+            ");
+            $translationStmt->execute([$post->id, $currentLocale]);
+            $translation = $translationStmt->fetch(\PDO::FETCH_OBJ);
+
+            // Preparar datos de visualización
+            $displayData = new \stdClass();
+            $displayData->title = $translation->title ?? $post->title;
+            $displayData->content = $translation->content ?? $post->content;
+            $displayData->excerpt = $translation->excerpt ?? $post->excerpt;
+            $displayData->seo_title = $translation->seo_title ?? $post->seo_title ?? $post->title;
+            $displayData->seo_description = $translation->seo_description ?? $post->seo_description ?? $post->excerpt;
+            $displayData->seo_keywords = $translation->seo_keywords ?? $post->seo_keywords;
+            $displayData->seo_image = $translation->seo_image ?? $post->seo_image ?? $post->featured_image;
+            $displayData->hide_featured_image = $post->hide_featured_image;
+            $displayData->featured_image = $post->featured_image;
+            $displayData->published_at = $post->published_at;
+
+            // Obtener categorías del post
+            $stmt = $pdo->prepare("
+                SELECT c.* FROM blog_categories c
+                INNER JOIN blog_post_categories pc ON c.id = pc.category_id
+                WHERE pc.post_id = ?
+            ");
+            $stmt->execute([$postId]);
+            $categories = $stmt->fetchAll(\PDO::FETCH_OBJ);
+
+            // Obtener la plantilla seleccionada o usar la predeterminada (page = ancho completo)
+            $template = $post->template ?? 'page';
+
+            // Determinar la ruta de la plantilla (igual lógica que BlogController)
+            if (strpos($template, 'template-sidebar-') === 0 || $template === 'page') {
+                $templatePath = $template;
+            } else {
+                $templatePath = 'blog/' . $template;
+            }
+
+            // Renderizar vista usando la misma lógica que el BlogController
+            return View::renderTheme($templatePath, [
+                'post' => $post,
+                'translation' => $displayData,
+                'categories' => $categories,
+            ]);
+
+        } catch (\Exception $e) {
+            error_log("HomeController: Error al cargar post estático: " . $e->getMessage());
+            return "Error al cargar el post.";
+        }
     }
 }

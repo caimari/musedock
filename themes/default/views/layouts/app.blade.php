@@ -37,6 +37,13 @@
         $ogDescription = \Screenart\Musedock\View::yieldSection('og_description') ?: setting('site_description', '');
         $siteName = setting('site_name', '');
         $robotsDirective = trim(\Screenart\Musedock\View::yieldSection('robots', ''));
+
+        // Verificar setting global de visibilidad en buscadores
+        $blogPublic = setting('blog_public', '1');
+        if ($blogPublic == '0' && empty($robotsDirective)) {
+            $robotsDirective = 'noindex, nofollow';
+        }
+
         $twitterTitle = \Screenart\Musedock\View::yieldSection('twitter_title') ?: setting('site_name', '');
         $twitterDescription = \Screenart\Musedock\View::yieldSection('twitter_description') ?: setting('site_description', '');
     @endphp

@@ -57,6 +57,83 @@ class SettingsController
         ]);
     }
 
+    public function reading()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.view');
+
+        $settings = $this->getSettings();
+        $pages = $this->getAllPages();
+        $blog_posts = $this->getAllBlogPosts();
+
+        return View::renderSuperadmin('settings.reading', [
+            'title' => 'Ajustes de lectura',
+            'settings' => $settings,
+            'pages' => $pages,
+            'blog_posts' => $blog_posts,
+        ]);
+    }
+
+    public function updateReading()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.edit');
+
+        try {
+            $pdo = Database::connect();
+            $pdo->beginTransaction();
+
+            // Actualizar solo los settings de lectura
+            $readingSettings = [
+                'show_on_front' => $_POST['show_on_front'] ?? 'posts',
+                'page_on_front' => $_POST['page_on_front'] ?? '',
+                'post_on_front' => $_POST['post_on_front'] ?? '',
+                'posts_per_page' => $_POST['posts_per_page'] ?? '10',
+                'posts_per_rss' => $_POST['posts_per_rss'] ?? '10',
+                'blog_public' => isset($_POST['blog_public']) ? '0' : '1', // 0 = no indexar, 1 = indexar (default)
+            ];
+
+            foreach ($readingSettings as $key => $value) {
+                $stmt = $pdo->prepare("
+                    INSERT INTO settings (`key`, `value`)
+                    VALUES (?, ?)
+                    ON DUPLICATE KEY UPDATE `value` = ?
+                ");
+                $stmt->execute([$key, $value, $value]);
+            }
+
+            // === SINCRONIZACIÓN: Actualizar is_homepage en la tabla pages ===
+            // Primero, desmarcar todas las páginas como homepage
+            $stmt = $pdo->prepare("UPDATE pages SET is_homepage = 0");
+            $stmt->execute();
+
+            // Si se seleccionó una página estática como homepage, marcarla
+            if ($readingSettings['show_on_front'] === 'page' && !empty($readingSettings['page_on_front'])) {
+                $stmt = $pdo->prepare("UPDATE pages SET is_homepage = 1 WHERE id = ?");
+                $stmt->execute([$readingSettings['page_on_front']]);
+                error_log("SettingsController: Página ID {$readingSettings['page_on_front']} marcada como homepage");
+            }
+
+            $pdo->commit();
+
+            // Limpiar caché de settings
+            setting(null);
+
+            flash('success', 'Ajustes de lectura guardados correctamente.');
+            header('Location: /musedock/settings/reading');
+            exit;
+
+        } catch (\Exception $e) {
+            if (isset($pdo)) {
+                $pdo->rollBack();
+            }
+            error_log("Error updating reading settings: " . $e->getMessage());
+            flash('error', 'Error al actualizar los ajustes de lectura.');
+            header('Location: /musedock/settings/reading');
+            exit;
+        }
+    }
+
     public function advanced()
     {
         SessionSecurity::startSession();
@@ -851,6 +928,49 @@ public function deleteFavicon()
         }
 
         return $config;
+    }
+
+    /**
+     * Obtener todas las páginas publicadas para selector
+     */
+    protected function getAllPages(): array
+    {
+        try {
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("
+                SELECT p.id, COALESCE(pt.title, p.title, p.slug) as title, p.slug
+                FROM pages p
+                LEFT JOIN page_translations pt ON p.id = pt.page_id AND pt.locale = ?
+                WHERE p.status = 'published'
+                ORDER BY COALESCE(pt.title, p.title, p.slug) ASC
+            ");
+            $stmt->execute([config('app.locale', 'es')]);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            error_log("Error getting pages: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener todos los posts de blog publicados para selector
+     */
+    protected function getAllBlogPosts(): array
+    {
+        try {
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("
+                SELECT id, title, slug
+                FROM blog_posts
+                WHERE status = 'published'
+                ORDER BY title ASC
+            ");
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            error_log("Error getting blog posts: " . $e->getMessage());
+            return [];
+        }
     }
 
     /**
