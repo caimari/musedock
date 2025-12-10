@@ -35,6 +35,14 @@ Route::delete('/musedock/custom-forms/{id}', 'CustomForms\Controllers\Superadmin
     ->name('custom-forms.destroy')
     ->middleware('superadmin');
 
+Route::post('/musedock/custom-forms/{id}/delete', 'CustomForms\Controllers\Superadmin\FormController@destroy')
+    ->name('custom-forms.delete')
+    ->middleware('superadmin');
+
+Route::get('/musedock/custom-forms/{id}/duplicate', 'CustomForms\Controllers\Superadmin\FormController@duplicate')
+    ->name('custom-forms.duplicate')
+    ->middleware('superadmin');
+
 // Form Fields API (AJAX)
 Route::post('/musedock/custom-forms/{formId}/fields', 'CustomForms\Controllers\Superadmin\FormController@addField')
     ->name('custom-forms.fields.add')
@@ -62,7 +70,7 @@ Route::get('/musedock/custom-forms/submissions', 'CustomForms\Controllers\Supera
     ->middleware('superadmin');
 
 Route::get('/musedock/custom-forms/{formId}/submissions', 'CustomForms\Controllers\Superadmin\SubmissionController@list')
-    ->name('custom-forms.submissions')
+    ->name('custom-forms.submissions.list')
     ->middleware('superadmin');
 
 Route::get('/musedock/custom-forms/submissions/{id}', 'CustomForms\Controllers\Superadmin\SubmissionController@view')

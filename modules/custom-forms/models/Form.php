@@ -135,16 +135,28 @@ class Form extends Model
      */
     public static function findBySlug(string $slug, ?int $tenantId = null): ?self
     {
-        $query = self::query()->where('slug', $slug);
+        $pdo = \Screenart\Musedock\Database::connect();
 
         if ($tenantId !== null) {
-            $query->where(function ($q) use ($tenantId) {
-                $q->where('tenant_id', $tenantId)
-                    ->orWhereNull('tenant_id');
-            });
+            // Buscar en tenant específico o globales
+            $stmt = $pdo->prepare("
+                SELECT * FROM " . static::$table . "
+                WHERE slug = ? AND (tenant_id = ? OR tenant_id IS NULL OR tenant_id = 0)
+                LIMIT 1
+            ");
+            $stmt->execute([$slug, $tenantId]);
+        } else {
+            // Buscar solo en globales
+            $stmt = $pdo->prepare("
+                SELECT * FROM " . static::$table . "
+                WHERE slug = ? AND (tenant_id IS NULL OR tenant_id = 0)
+                LIMIT 1
+            ");
+            $stmt->execute([$slug]);
         }
 
-        return $query->first();
+        $result = $stmt->fetch(\PDO::FETCH_OBJ);
+        return $result ? new static($result) : null;
     }
 
     /**
@@ -152,22 +164,38 @@ class Form extends Model
      */
     public static function getByTenant(?int $tenantId = null, bool $includeGlobal = true): array
     {
-        $query = self::query();
+        $pdo = \Screenart\Musedock\Database::connect();
 
         if ($tenantId !== null) {
             if ($includeGlobal) {
-                $query->where(function ($q) use ($tenantId) {
-                    $q->where('tenant_id', $tenantId)
-                        ->orWhereNull('tenant_id');
-                });
+                // Incluir formularios del tenant y globales
+                $stmt = $pdo->prepare("
+                    SELECT * FROM " . static::$table . "
+                    WHERE tenant_id = ? OR tenant_id IS NULL OR tenant_id = 0
+                    ORDER BY created_at DESC
+                ");
+                $stmt->execute([$tenantId]);
             } else {
-                $query->where('tenant_id', $tenantId);
+                // Solo formularios del tenant específico
+                $stmt = $pdo->prepare("
+                    SELECT * FROM " . static::$table . "
+                    WHERE tenant_id = ?
+                    ORDER BY created_at DESC
+                ");
+                $stmt->execute([$tenantId]);
             }
         } else {
-            $query->whereNull('tenant_id');
+            // Formularios globales: tenant_id NULL o 0
+            $stmt = $pdo->prepare("
+                SELECT * FROM " . static::$table . "
+                WHERE tenant_id IS NULL OR tenant_id = 0
+                ORDER BY created_at DESC
+            ");
+            $stmt->execute();
         }
 
-        return $query->orderBy('created_at', 'DESC')->get();
+        $results = $stmt->fetchAll(\PDO::FETCH_OBJ);
+        return array_map(fn($row) => new static($row), $results);
     }
 
     /**
@@ -175,16 +203,28 @@ class Form extends Model
      */
     public static function getActive(?int $tenantId = null): array
     {
-        $query = self::query()->where('is_active', 1);
+        $pdo = \Screenart\Musedock\Database::connect();
 
         if ($tenantId !== null) {
-            $query->where(function ($q) use ($tenantId) {
-                $q->where('tenant_id', $tenantId)
-                    ->orWhereNull('tenant_id');
-            });
+            // Incluir formularios del tenant y globales
+            $stmt = $pdo->prepare("
+                SELECT * FROM " . static::$table . "
+                WHERE is_active = 1 AND (tenant_id = ? OR tenant_id IS NULL OR tenant_id = 0)
+                ORDER BY name ASC
+            ");
+            $stmt->execute([$tenantId]);
+        } else {
+            // Solo formularios globales activos
+            $stmt = $pdo->prepare("
+                SELECT * FROM " . static::$table . "
+                WHERE is_active = 1 AND (tenant_id IS NULL OR tenant_id = 0)
+                ORDER BY name ASC
+            ");
+            $stmt->execute();
         }
 
-        return $query->orderBy('name', 'ASC')->get();
+        $results = $stmt->fetchAll(\PDO::FETCH_OBJ);
+        return array_map(fn($row) => new static($row), $results);
     }
 
     /**
@@ -209,19 +249,28 @@ class Form extends Model
      */
     public static function slugExists(string $slug, ?int $tenantId = null, ?int $excludeId = null): bool
     {
-        $query = self::query()->where('slug', $slug);
+        $pdo = \Screenart\Musedock\Database::connect();
+
+        $sql = "SELECT COUNT(*) as count FROM " . static::$table . " WHERE slug = ?";
+        $params = [$slug];
 
         if ($tenantId !== null) {
-            $query->where('tenant_id', $tenantId);
+            $sql .= " AND tenant_id = ?";
+            $params[] = $tenantId;
         } else {
-            $query->whereNull('tenant_id');
+            $sql .= " AND (tenant_id IS NULL OR tenant_id = 0)";
         }
 
         if ($excludeId !== null) {
-            $query->where('id', '!=', $excludeId);
+            $sql .= " AND id != ?";
+            $params[] = $excludeId;
         }
 
-        return $query->first() !== null;
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $result = $stmt->fetch(\PDO::FETCH_OBJ);
+
+        return $result->count > 0;
     }
 
     /**

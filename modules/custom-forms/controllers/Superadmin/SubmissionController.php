@@ -36,6 +36,14 @@ class SubmissionController
     }
 
     /**
+     * Lista submissions de un formulario específico (alias para listByForm)
+     */
+    public function list($formId)
+    {
+        return $this->listByForm($formId);
+    }
+
+    /**
      * Lista submissions de un formulario específico
      */
     public function listByForm($formId)

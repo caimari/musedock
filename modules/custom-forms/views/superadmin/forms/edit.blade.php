@@ -10,39 +10,21 @@
 @section('content')
 <div class="app-content">
     <div class="container-fluid">
-        <div class="mb-4">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-1">
-                    <li class="breadcrumb-item"><a href="{{ route('custom-forms.index') }}">{{ __forms('form.forms') }}</a></li>
-                    <li class="breadcrumb-item active">{{ $form->name }}</li>
-                </ol>
-            </nav>
-            <div class="d-flex justify-content-between align-items-center">
-                <h2 class="mb-0"><i class="bi bi-pencil-square me-2"></i>{{ $form->name }}</h2>
-                <div>
-                    <button type="button" class="btn btn-outline-secondary me-2" onclick="copyShortcode()">
-                        <i class="bi bi-clipboard me-1"></i> {{ __forms('form.copy_shortcode') }}
-                    </button>
-                    <a href="{{ route('custom-forms.submissions', $form->id) }}" class="btn btn-outline-info">
-                        <i class="bi bi-inbox me-1"></i> {{ __forms('form.submissions') }} ({{ $form->submission_count ?? 0 }})
-                    </a>
-                </div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="breadcrumb mb-0">
+                <a href="{{ route('custom-forms.index') }}">{{ __forms('form.forms') }}</a>
+                <span class="mx-2">/</span>
+                <span>Editando: {{ $form->name }}</span>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary" onclick="copyShortcode()">
+                    <i class="bi bi-clipboard me-1"></i> {{ __forms('form.copy_shortcode') }}
+                </button>
+                <a href="{{ route('custom-forms.submissions.list', ['formId' => $form->id]) }}" class="btn btn-outline-info">
+                    <i class="bi bi-inbox me-1"></i> {{ __forms('form.submissions') }} ({{ $form->submissionCount() ?? 0 }})
+                </a>
             </div>
         </div>
-
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show">
-                <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
-
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show">
-                <i class="bi bi-exclamation-triangle me-2"></i>{!! session('error') !!}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
 
         <div class="row g-4">
             <!-- Form Builder -->
@@ -85,7 +67,7 @@
                         </div>
                     </div>
                     <div class="card-footer">
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addFieldModal">
+                        <button type="button" class="btn btn-primary" onclick="showAddFieldModal()">
                             <i class="bi bi-plus-lg me-1"></i> {{ __forms('form.add_field') }}
                         </button>
                     </div>
@@ -225,86 +207,7 @@
     </div>
 </div>
 
-<!-- Add Field Modal -->
-<div class="modal fade" id="addFieldModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>{{ __forms('field.add_field') }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row g-3" id="fieldTypeSelector">
-                    @foreach(\CustomForms\Models\Form::getFieldTypes() as $key => $type)
-                    <div class="col-4 col-md-3">
-                        <button type="button" class="field-type-btn" data-type="{{ $key }}" onclick="selectFieldType('{{ $key }}')">
-                            <i class="bi bi-{{ $type['icon'] }}"></i>
-                            <span>{{ $type['label'] }}</span>
-                        </button>
-                    </div>
-                    @endforeach
-                </div>
-
-                <div id="fieldConfigForm" style="display: none;">
-                    <hr>
-                    <form id="addFieldForm">
-                        <input type="hidden" name="field_type" id="newFieldType">
-                        <input type="hidden" name="form_id" value="{{ $form->id }}">
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">{{ __forms('field.label') }} <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="field_label" id="newFieldLabel" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">{{ __forms('field.name') }} <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="field_name" id="newFieldName" pattern="[a-z0-9_]+" required>
-                                <div class="form-text">{{ __forms('field.name_help') }}</div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">{{ __forms('field.placeholder') }}</label>
-                            <input type="text" class="form-control" name="placeholder" id="newFieldPlaceholder">
-                        </div>
-
-                        <div class="mb-3" id="optionsContainer" style="display: none;">
-                            <label class="form-label">{{ __forms('field.options') }} <span class="text-danger">*</span></label>
-                            <textarea class="form-control" name="options" id="newFieldOptions" rows="3" placeholder="{{ __forms('field.options_placeholder') }}"></textarea>
-                            <div class="form-text">{{ __forms('field.options_help') }}</div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="is_required" id="newFieldRequired" value="1">
-                                    <label class="form-check-label" for="newFieldRequired">{{ __forms('field.required') }}</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row" id="validationRules">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">{{ __forms('field.min_length') }}</label>
-                                <input type="number" class="form-control" name="min_length" min="0">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">{{ __forms('field.max_length') }}</label>
-                                <input type="number" class="form-control" name="max_length" min="0">
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __forms('form.cancel') }}</button>
-                <button type="button" class="btn btn-primary" id="addFieldBtn" onclick="addField()" disabled>
-                    <i class="bi bi-plus-lg me-1"></i> {{ __forms('field.add_field') }}
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Modal de agregar campo ahora usa SweetAlert2 - Ver form-builder.js -->
 
 <!-- Edit Field Modal -->
 <div class="modal fade" id="editFieldModal" tabindex="-1">
@@ -400,35 +303,45 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-<script src="/modules/custom-forms/js/form-builder.js"></script>
 <script>
 // Field types configuration
 const fieldTypes = @json(\CustomForms\Models\Form::getFieldTypes());
 const formId = {{ $form->id }};
+</script>
+<script src="/modules/custom-forms/js/form-builder.js?v={{ time() }}"></script>
+<script>
 
 // Copy shortcode
 function copyShortcode() {
     const input = document.getElementById('shortcodeInput');
     input.select();
     document.execCommand('copy');
-    showToast('{{ __forms("form.shortcode_copied") }}', 'success');
+    Swal.fire({
+        icon: 'success',
+        title: '{{ __forms("form.shortcode_copied") }}',
+        timer: 2000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'bottom-end'
+    });
 }
 
-// Toast notification
+// Toast notification with SweetAlert2
 function showToast(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-white bg-${type} border-0 position-fixed bottom-0 end-0 m-3`;
-    toast.setAttribute('role', 'alert');
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">${message}</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    `;
-    document.body.appendChild(toast);
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
-    toast.addEventListener('hidden.bs.toast', () => toast.remove());
+    const iconMap = {
+        'success': 'success',
+        'danger': 'error',
+        'warning': 'warning',
+        'info': 'info'
+    };
+    Swal.fire({
+        icon: iconMap[type] || 'info',
+        title: message,
+        timer: 3000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'bottom-end'
+    });
 }
 
 // Auto-generate field name from label
@@ -447,5 +360,24 @@ document.getElementById('newFieldLabel')?.addEventListener('input', function() {
 document.getElementById('newFieldName')?.addEventListener('input', function() {
     this.dataset.manual = this.value.length > 0 ? '1' : '';
 });
+
+// Show flash messages with SweetAlert2
+@if(session('success'))
+Swal.fire({
+    icon: 'success',
+    title: 'Éxito',
+    text: '{{ session("success") }}',
+    confirmButtonText: 'OK'
+});
+@endif
+
+@if(session('error'))
+Swal.fire({
+    icon: 'error',
+    title: 'Error',
+    html: '{!! addslashes(session("error")) !!}',
+    confirmButtonText: 'OK'
+});
+@endif
 </script>
 @endpush

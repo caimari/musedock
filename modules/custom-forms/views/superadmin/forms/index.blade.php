@@ -19,20 +19,6 @@
             </a>
         </div>
 
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show">
-                <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
-
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show">
-                <i class="bi bi-exclamation-triangle me-2"></i>{!! session('error') !!}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
-
         @if(!empty($forms))
             <div class="card">
                 <div class="table-responsive">
@@ -58,7 +44,7 @@
                                         <span class="badge bg-light text-dark">{{ $form->fieldCount() }}</span>
                                     </td>
                                     <td class="text-center">
-                                        <a href="{{ route('custom-forms.submissions.list', ['form_id' => $form->id]) }}" class="text-decoration-none">
+                                        <a href="{{ route('custom-forms.submissions.list', ['formId' => $form->id]) }}" class="text-decoration-none">
                                             <span class="badge bg-primary">{{ $form->submissions_count ?? 0 }}</span>
                                             @if($form->unreadCount() > 0)
                                                 <span class="badge bg-danger">{{ $form->unreadCount() }} {{ __forms('submission.new') }}</span>
@@ -81,7 +67,7 @@
                                             <a href="{{ route('custom-forms.edit', ['id' => $form->id]) }}" class="btn btn-outline-primary" title="{{ __forms('form.edit') }}">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
-                                            <a href="{{ route('custom-forms.submissions.list', ['form_id' => $form->id]) }}" class="btn btn-outline-info" title="{{ __forms('submission.view') }}">
+                                            <a href="{{ route('custom-forms.submissions.list', ['formId' => $form->id]) }}" class="btn btn-outline-info" title="{{ __forms('submission.view') }}">
                                                 <i class="bi bi-inbox"></i>
                                             </a>
                                             <a href="{{ route('custom-forms.duplicate', ['id' => $form->id]) }}" class="btn btn-outline-secondary" title="{{ __forms('form.duplicate') }}">
@@ -135,57 +121,64 @@
         </div>
     </div>
 </div>
-
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">{{ __forms('form.confirm_delete') }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>{{ __forms('form.delete_warning') }}</p>
-                <p class="fw-bold" id="deleteFormName"></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __forms('form.cancel') }}</button>
-                <form id="deleteForm" method="POST" class="d-inline">
-                    @csrf
-                    <button type="submit" class="btn btn-danger">
-                        <i class="bi bi-trash me-1"></i>{{ __forms('form.delete') }}
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="toast-container position-fixed bottom-0 end-0 p-3">
-    <div id="copyToast" class="toast">
-        <div class="toast-header">
-            <i class="bi bi-check-circle text-success me-2"></i>
-            <strong class="me-auto">{{ __forms('form.copied') }}</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
-        </div>
-        <div class="toast-body" id="copyToastBody"></div>
-    </div>
-</div>
 @endsection
 
 @push('scripts')
 <script>
 function confirmDelete(id, name) {
-    document.getElementById('deleteFormName').textContent = name;
-    document.getElementById('deleteForm').action = '{{ route("custom-forms.index") }}/' + id + '/delete';
-    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    Swal.fire({
+        title: '{{ __forms("form.confirm_delete") }}',
+        html: `<p>{{ __forms("form.delete_warning") }}</p><p class="fw-bold">${name}</p>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-trash me-1"></i>{{ __forms("form.delete") }}',
+        cancelButtonText: '{{ __forms("form.cancel") }}'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route("custom-forms.index") }}/' + id + '/delete';
+            form.innerHTML = '@csrf';
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
 }
 
 function copyShortcode(id) {
     const shortcode = '[custom-form id=' + id + ']';
     navigator.clipboard.writeText(shortcode).then(function() {
-        document.getElementById('copyToastBody').textContent = shortcode;
-        new bootstrap.Toast(document.getElementById('copyToast')).show();
+        Swal.fire({
+            icon: 'success',
+            title: '{{ __forms("form.copied") }}',
+            text: shortcode,
+            timer: 2000,
+            showConfirmButton: false,
+            toast: true,
+            position: 'bottom-end'
+        });
     });
 }
+
+// Show flash messages with SweetAlert2
+@if(session('success'))
+Swal.fire({
+    icon: 'success',
+    title: 'Éxito',
+    text: '{{ session("success") }}',
+    confirmButtonText: 'OK'
+});
+@endif
+
+@if(session('error'))
+Swal.fire({
+    icon: 'error',
+    title: 'Error',
+    html: '{!! addslashes(session("error")) !!}',
+    confirmButtonText: 'OK'
+});
+@endif
 </script>
 @endpush

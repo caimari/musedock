@@ -9,22 +9,13 @@
 @section('content')
 <div class="app-content">
     <div class="container-fluid">
-        <div class="mb-4">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-1">
-                    <li class="breadcrumb-item"><a href="{{ route('custom-forms.index') }}">{{ __forms('form.forms') }}</a></li>
-                    <li class="breadcrumb-item active">{{ __forms('form.create') }}</li>
-                </ol>
-            </nav>
-            <h2 class="mb-0"><i class="bi bi-plus-circle me-2"></i>{{ $title ?? __forms('form.create') }}</h2>
-        </div>
-
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show">
-                <i class="bi bi-exclamation-triangle me-2"></i>{!! session('error') !!}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="breadcrumb mb-0">
+                <a href="{{ route('custom-forms.index') }}">{{ __forms('form.forms') }}</a>
+                <span class="mx-2">/</span>
+                <span>{{ __forms('form.create') }}</span>
             </div>
-        @endif
+        </div>
 
         <form action="{{ route('custom-forms.store') }}" method="POST">
             @csrf
@@ -159,5 +150,15 @@ document.getElementById('name').addEventListener('input', function() {
 document.getElementById('slug').addEventListener('input', function() {
     this.dataset.manual = this.value.length > 0 ? '1' : '';
 });
+
+// Show error flash message with SweetAlert2
+@if(session('error'))
+Swal.fire({
+    icon: 'error',
+    title: 'Error',
+    html: '{!! addslashes(session('error')) !!}',
+    confirmButtonText: 'OK'
+});
+@endif
 </script>
 @endpush

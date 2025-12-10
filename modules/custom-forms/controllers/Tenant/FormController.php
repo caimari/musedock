@@ -5,6 +5,7 @@ namespace CustomForms\Controllers\Tenant;
 use Screenart\Musedock\View;
 use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Services\TenantManager;
+use Screenart\Musedock\Traits\RequiresPermission;
 use CustomForms\Models\Form;
 use CustomForms\Models\FormField;
 use CustomForms\Models\FormSetting;
@@ -16,12 +17,15 @@ use CustomForms\Models\FormSetting;
  */
 class FormController
 {
+    use RequiresPermission;
+
     /**
      * Lista los formularios del tenant
      */
     public function index()
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.view');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -44,6 +48,7 @@ class FormController
     public function create()
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.create');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -65,6 +70,7 @@ class FormController
     public function store()
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.create');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -120,6 +126,7 @@ class FormController
     public function edit($id)
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.edit');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -156,6 +163,7 @@ class FormController
     public function update($id)
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.edit');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -206,6 +214,7 @@ class FormController
     public function destroy($id)
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.delete');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -235,6 +244,7 @@ class FormController
     public function selector()
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.view');
         $tenantId = TenantManager::currentTenantId();
 
         header('Content-Type: application/json');
@@ -262,6 +272,7 @@ class FormController
     public function addField($formId)
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.edit');
         $tenantId = TenantManager::currentTenantId();
 
         header('Content-Type: application/json');
@@ -309,6 +320,7 @@ class FormController
     public function updateField($fieldId)
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.edit');
         $tenantId = TenantManager::currentTenantId();
 
         header('Content-Type: application/json');
@@ -351,6 +363,7 @@ class FormController
     public function deleteField($fieldId)
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.edit');
         $tenantId = TenantManager::currentTenantId();
 
         header('Content-Type: application/json');
@@ -380,6 +393,7 @@ class FormController
     public function reorderFields($formId)
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.edit');
         $tenantId = TenantManager::currentTenantId();
 
         header('Content-Type: application/json');

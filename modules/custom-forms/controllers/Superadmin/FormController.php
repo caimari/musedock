@@ -76,28 +76,37 @@ class FormController
         $defaultSettings = FormSetting::getAll();
 
         // Crear formulario
-        $form = Form::create([
-            'tenant_id' => null, // Formulario global
-            'name' => trim($_POST['name']),
-            'slug' => $slug,
-            'description' => trim($_POST['description'] ?? ''),
-            'submit_button_text' => $_POST['submit_button_text'] ?? 'Enviar',
-            'success_message' => $_POST['success_message'] ?? $defaultSettings['default_success_message'] ?? '',
-            'error_message' => $_POST['error_message'] ?? $defaultSettings['default_error_message'] ?? '',
-            'redirect_url' => trim($_POST['redirect_url'] ?? ''),
-            'email_to' => trim($_POST['email_to'] ?? ''),
-            'email_subject' => $_POST['email_subject'] ?? '',
-            'email_from_name' => $_POST['email_from_name'] ?? '',
-            'email_from_email' => $_POST['email_from_email'] ?? '',
-            'store_submissions' => isset($_POST['store_submissions']),
-            'is_active' => isset($_POST['is_active'])
-        ]);
+        try {
+            $form = Form::create([
+                'tenant_id' => null, // Formulario global
+                'name' => trim($_POST['name']),
+                'slug' => $slug,
+                'description' => trim($_POST['description'] ?? ''),
+                'submit_button_text' => $_POST['submit_button_text'] ?? 'Enviar',
+                'success_message' => $_POST['success_message'] ?? $defaultSettings['default_success_message'] ?? '',
+                'error_message' => $_POST['error_message'] ?? $defaultSettings['default_error_message'] ?? '',
+                'redirect_url' => trim($_POST['redirect_url'] ?? ''),
+                'email_to' => trim($_POST['email_to'] ?? ''),
+                'email_subject' => $_POST['email_subject'] ?? '',
+                'email_from_name' => $_POST['email_from_name'] ?? '',
+                'email_from_email' => $_POST['email_from_email'] ?? '',
+                'store_submissions' => isset($_POST['store_submissions']) ? 1 : 0,
+                'is_active' => isset($_POST['is_active']) ? 1 : 0
+            ]);
 
-        if ($form) {
-            flash('success', __forms('form.created'));
-            header('Location: ' . route('custom-forms.edit', ['id' => $form->id]));
-        } else {
-            flash('error', __forms('form.error_creating'));
+            if ($form && $form->id) {
+                error_log("FormController: Formulario creado exitosamente - ID: {$form->id}, tenant_id: " . ($form->tenant_id ?? 'NULL'));
+                flash('success', __forms('form.created'));
+                header('Location: ' . route('custom-forms.edit', ['id' => $form->id]));
+            } else {
+                error_log("FormController: Error - Formulario no tiene ID después de crear");
+                flash('error', __forms('form.error_creating'));
+                $_SESSION['_old_input'] = $_POST;
+                header('Location: ' . route('custom-forms.create'));
+            }
+        } catch (\Exception $e) {
+            error_log("FormController: Excepción al crear formulario: " . $e->getMessage());
+            flash('error', __forms('form.error_creating') . ': ' . $e->getMessage());
             $_SESSION['_old_input'] = $_POST;
             header('Location: ' . route('custom-forms.create'));
         }
@@ -112,13 +121,25 @@ class FormController
         SessionSecurity::startSession();
         $this->checkPermission('custom_forms.edit');
 
+        error_log("FormController edit: Buscando formulario ID: $id");
         $form = Form::find((int) $id);
 
-        if (!$form || $form->tenant_id !== null) {
+        if (!$form) {
+            error_log("FormController edit: Formulario ID $id no encontrado en la base de datos");
             flash('error', __forms('form.not_found'));
             header('Location: ' . route('custom-forms.index'));
             exit;
         }
+
+        // Verificar que sea un formulario global (tenant_id NULL o 0)
+        if ($form->tenant_id !== null && $form->tenant_id !== 0) {
+            error_log("FormController edit: Formulario ID $id tiene tenant_id = {$form->tenant_id} (se esperaba NULL o 0 para superadmin)");
+            flash('error', __forms('form.not_found'));
+            header('Location: ' . route('custom-forms.index'));
+            exit;
+        }
+
+        error_log("FormController edit: Formulario ID $id cargado exitosamente - tenant_id: " . ($form->tenant_id ?? 'NULL'));
 
         $fields = $form->fields();
 
@@ -141,7 +162,8 @@ class FormController
 
         $form = Form::find((int) $id);
 
-        if (!$form || $form->tenant_id !== null) {
+        // Verificar que sea un formulario global (tenant_id NULL o 0)
+        if (!$form || ($form->tenant_id !== null && $form->tenant_id !== 0)) {
             flash('error', __forms('form.not_found'));
             header('Location: ' . route('custom-forms.index'));
             exit;
@@ -189,7 +211,8 @@ class FormController
 
         $form = Form::find((int) $id);
 
-        if (!$form || $form->tenant_id !== null) {
+        // Verificar que sea un formulario global (tenant_id NULL o 0)
+        if (!$form || ($form->tenant_id !== null && $form->tenant_id !== 0)) {
             flash('error', __forms('form.not_found'));
             header('Location: ' . route('custom-forms.index'));
             exit;
@@ -409,6 +432,27 @@ class FormController
             'success' => $success,
             'message' => $success ? __forms('field.reordered') : __forms('field.reorder_error')
         ]);
+        exit;
+    }
+
+    /**
+     * API: Obtiene un campo específico
+     */
+    public function getField($fieldId)
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.view');
+
+        header('Content-Type: application/json');
+
+        $field = FormField::find((int) $fieldId);
+
+        if (!$field) {
+            echo json_encode(['success' => false, 'error' => __forms('field.not_found')]);
+            exit;
+        }
+
+        echo json_encode(['success' => true, 'field' => $field->toArray()]);
         exit;
     }
 

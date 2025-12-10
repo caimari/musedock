@@ -145,7 +145,7 @@ abstract class Model
         }
 
         if ($castType === 'int') {
-            return (int) $value;
+            return $value === null ? null : (int) $value;
         }
 
         if ($castType === 'bool') {
@@ -171,7 +171,7 @@ abstract class Model
 	{
 		$value = $this->attributes[$key] ?? null;
 
-        if (!isset($this->casts[$key]) || $value === null) {
+        if (!isset($this->casts[$key])) {
             return $value;
         }
 
@@ -182,7 +182,7 @@ abstract class Model
         }
 
         if ($castType === 'int') {
-            return (int) $value;
+            return $value === null ? null : (int) $value;
         }
 
         if ($castType === 'bool') {

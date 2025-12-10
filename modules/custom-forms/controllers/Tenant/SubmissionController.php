@@ -5,6 +5,7 @@ namespace CustomForms\Controllers\Tenant;
 use Screenart\Musedock\View;
 use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Services\TenantManager;
+use Screenart\Musedock\Traits\RequiresPermission;
 use CustomForms\Models\Form;
 use CustomForms\Models\FormSubmission;
 use CustomForms\Models\FormSetting;
@@ -16,12 +17,15 @@ use CustomForms\Models\FormSetting;
  */
 class SubmissionController
 {
+    use RequiresPermission;
+
     /**
      * Lista general de submissions
      */
     public function index()
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.submissions.view');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -39,11 +43,20 @@ class SubmissionController
     }
 
     /**
+     * Lista submissions de un formulario específico (alias for list)
+     */
+    public function list($formId)
+    {
+        return $this->listByForm($formId);
+    }
+
+    /**
      * Lista submissions de un formulario específico
      */
     public function listByForm($formId)
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.submissions.view');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -89,6 +102,7 @@ class SubmissionController
     public function view($submissionId)
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.submissions.view');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -130,6 +144,7 @@ class SubmissionController
     public function toggleRead($submissionId)
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.submissions.view');
         $tenantId = TenantManager::currentTenantId();
 
         header('Content-Type: application/json');
@@ -153,6 +168,7 @@ class SubmissionController
     public function toggleStar($submissionId)
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.submissions.view');
         $tenantId = TenantManager::currentTenantId();
 
         header('Content-Type: application/json');
@@ -176,6 +192,7 @@ class SubmissionController
     public function destroy($submissionId)
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.submissions.delete');
         $tenantId = TenantManager::currentTenantId();
 
         $submission = FormSubmission::find((int) $submissionId);
@@ -211,6 +228,7 @@ class SubmissionController
     public function export($formId)
     {
         SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.submissions.export');
         $tenantId = TenantManager::currentTenantId();
 
         $form = Form::find((int) $formId);
