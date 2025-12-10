@@ -143,7 +143,7 @@
                 <!-- Mensaje inicial -->
                 <div class="text-center text-muted">
                     <i class="fas fa-search fa-3x mb-3"></i>
-                    <p>Introduce un término de búsqueda para encontrar páginas y artículos.</p>
+                    <p>Introduce un término de búsqueda para encontrar páginas y posts.</p>
                 </div>
             @endif
         </div>

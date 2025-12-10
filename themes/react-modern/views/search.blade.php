@@ -176,7 +176,7 @@
                     Comienza tu búsqueda
                 </h2>
                 <p class="text-lg text-gray-600 max-w-md mx-auto">
-                    Introduce un término de búsqueda para encontrar páginas y artículos.
+                    Introduce un término de búsqueda para encontrar páginas y posts.
                 </p>
             </div>
         @endif
