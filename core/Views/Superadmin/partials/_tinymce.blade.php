@@ -517,32 +517,191 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                 }
             }
 
+            /**
+             * Limpia enlaces vacíos (lightbox sin imagen)
+             */
             function unwrapEmptyAnchors(doc) {
-                const anchors = doc.querySelectorAll('a[data-lightbox]');
+                if (!doc) return;
+                const anchors = doc.querySelectorAll('a[data-lightbox], a.lightbox');
                 anchors.forEach(anchor => {
-                    if (!anchor.querySelector('img')) {
+                    const hasImg = !!anchor.querySelector('img');
+                    const text = (anchor.textContent || '').trim();
+                    if (!hasImg && text.length === 0) {
+                        anchor.remove();
+                    } else if (!hasImg) {
                         const parent = anchor.parentNode;
                         while (anchor.firstChild) {
                             parent.insertBefore(anchor.firstChild, anchor);
                         }
-                        parent.removeChild(anchor);
+                        if (parent) parent.removeChild(anchor);
                     }
                 });
             }
 
-            function deleteImageAndWrapper(node) {
-                if (!node) return false;
-                let removed = false;
-                if (node.nodeName === 'IMG') {
-                    const link = node.closest('a[data-lightbox]');
-                    if (link) {
-                        link.remove();
-                    } else {
-                        node.remove();
+            /**
+             * Limpieza profunda de elementos huérfanos tras borrar una imagen
+             * Elimina: figure vacíos, p vacíos, a sin contenido, elementos con data-mce-selected sin img
+             */
+            function deepCleanOrphanElements(doc) {
+                if (!doc) return;
+
+                // 1. Eliminar cualquier elemento con data-mce-selected que no tenga imagen
+                const selectedElements = doc.querySelectorAll('[data-mce-selected]');
+                selectedElements.forEach(el => {
+                    if (!el.querySelector('img') && el.nodeName !== 'IMG') {
+                        el.remove();
                     }
-                    removed = true;
+                });
+
+                // 2. Eliminar figure vacíos o con solo whitespace
+                const figures = doc.querySelectorAll('figure');
+                figures.forEach(fig => {
+                    if (!fig.querySelector('img') && !fig.textContent.trim()) {
+                        fig.remove();
+                    }
+                });
+
+                // 3. Eliminar enlaces vacíos (no solo lightbox)
+                const emptyLinks = doc.querySelectorAll('a:empty');
+                emptyLinks.forEach(a => a.remove());
+
+                // 4. Eliminar enlaces que solo tienen un br o whitespace
+                const allLinks = doc.querySelectorAll('a');
+                allLinks.forEach(a => {
+                    const hasImg = !!a.querySelector('img');
+                    const hasText = a.textContent.trim().length > 0;
+                    const hasOnlyBr = a.children.length === 1 && a.children[0].nodeName === 'BR';
+                    if (!hasImg && !hasText) {
+                        a.remove();
+                    } else if (!hasImg && hasOnlyBr) {
+                        a.remove();
+                    }
+                });
+
+                // 5. Eliminar p vacíos consecutivos (dejar máximo uno)
+                const paragraphs = doc.querySelectorAll('p');
+                let lastWasEmpty = false;
+                paragraphs.forEach(p => {
+                    const isEmpty = !p.textContent.trim() && !p.querySelector('img, video, iframe, table');
+                    if (isEmpty && lastWasEmpty) {
+                        p.remove();
+                    }
+                    lastWasEmpty = isEmpty;
+                });
+
+                // 6. Limpiar cualquier resto de resizer/backdrop de TinyMCE
+                const mceResizers = doc.querySelectorAll('.mce-resizehandle, .mce-resize-backdrop, .mce-clonedresizable');
+                mceResizers.forEach(el => {
+                    // Solo eliminar si no hay imagen seleccionada activamente
+                    const hasSelectedImg = doc.querySelector('img[data-mce-selected]');
+                    if (!hasSelectedImg) {
+                        el.remove();
+                    }
+                });
+            }
+
+            /**
+             * Elimina una imagen y todos sus wrappers (link, figure, etc.)
+             * Retorna true si se eliminó algo, false si no había nada que eliminar
+             */
+            function deleteImageAndWrapper(target) {
+                if (!target) return false;
+
+                let node = target;
+                let deleted = false;
+
+                // Si el target tiene data-mce-selected pero no es IMG, buscar la imagen
+                if (node.nodeName !== 'IMG') {
+                    // Buscar imagen dentro
+                    const innerImg = node.querySelector ? node.querySelector('img') : null;
+                    if (innerImg) {
+                        node = innerImg;
+                    } else {
+                        // Si es un contenedor vacío con data-mce-selected, eliminarlo
+                        if (node.hasAttribute && node.hasAttribute('data-mce-selected')) {
+                            node.remove();
+                            return true;
+                        }
+                        return false;
+                    }
                 }
-                return removed;
+
+                // Ahora node es IMG - buscar contenedores padre
+                const parentLink = node.closest('a');
+                const parentFigure = node.closest('figure');
+
+                // Determinar qué eliminar (de más externo a más interno)
+                if (parentFigure) {
+                    // Si está en figure, eliminar todo el figure
+                    parentFigure.remove();
+                    deleted = true;
+                } else if (parentLink) {
+                    // Si está en link (lightbox u otro), eliminar el link
+                    parentLink.remove();
+                    deleted = true;
+                } else {
+                    // Solo la imagen
+                    node.remove();
+                    deleted = true;
+                }
+
+                return deleted;
+            }
+
+            /**
+             * Maneja el borrado de imagen con limpieza completa
+             * Se llama desde keydown Delete/Backspace
+             */
+            function handleImageDeletion(e) {
+                const node = editor.selection.getNode();
+                const doc = editor.getDoc();
+
+                // Verificar si hay una imagen seleccionada (directamente o dentro del nodo)
+                let imgToDelete = null;
+
+                if (node.nodeName === 'IMG') {
+                    imgToDelete = node;
+                } else if (node.querySelector) {
+                    // Buscar imagen con data-mce-selected dentro del nodo
+                    imgToDelete = node.querySelector('img[data-mce-selected]') || node.querySelector('img');
+                }
+
+                // También verificar si hay imagen seleccionada en todo el documento
+                if (!imgToDelete && doc) {
+                    imgToDelete = doc.querySelector('img[data-mce-selected]');
+                }
+
+                if (imgToDelete) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // Guardar referencia al padre antes de eliminar
+                    const parentNode = imgToDelete.parentNode;
+
+                    // Eliminar imagen y wrappers
+                    deleteImageAndWrapper(imgToDelete);
+
+                    // Colapsar selección
+                    editor.selection.collapse(true);
+
+                    // Limpieza profunda inmediata
+                    setTimeout(() => {
+                        const body = editor.getBody();
+                        unwrapEmptyAnchors(body);
+                        deepCleanOrphanElements(body);
+                        editor.nodeChanged();
+
+                        // Segunda pasada de limpieza tras un pequeño delay
+                        setTimeout(() => {
+                            unwrapEmptyAnchors(body);
+                            deepCleanOrphanElements(body);
+                        }, 50);
+                    }, 0);
+
+                    return true;
+                }
+
+                return false;
             }
 
             // Registrar menú contextual personalizado para imágenes
@@ -658,6 +817,7 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                         iframeDoc.addEventListener('keyup', function(e) {
                             if (e.key === 'Delete' || e.key === 'Backspace') {
                                 unwrapEmptyAnchors(iframeDoc);
+                                deepCleanOrphanElements(iframeDoc);
                             }
                         });
 
@@ -667,8 +827,28 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
 
                         // También limpiar al perder/girar selección
                         editor.on('NodeChange', function() {
+                            // Solo hacer limpieza ligera en NodeChange para no afectar rendimiento
                             unwrapEmptyAnchors(iframeDoc);
                         });
+
+                        // Interceptar keydown en el iframe para capturar Delete/Backspace antes
+                        iframeDoc.addEventListener('keydown', function(e) {
+                            if (e.key === 'Delete' || e.key === 'Backspace') {
+                                // Verificar si hay imagen seleccionada
+                                const selectedImg = iframeDoc.querySelector('img[data-mce-selected]');
+                                if (selectedImg) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    deleteImageAndWrapper(selectedImg);
+                                    editor.selection.collapse(true);
+                                    setTimeout(() => {
+                                        unwrapEmptyAnchors(iframeDoc);
+                                        deepCleanOrphanElements(iframeDoc);
+                                        editor.nodeChanged();
+                                    }, 0);
+                                }
+                            }
+                        }, true); // Usar capture para interceptar antes
                     }
                 } catch (e) {
                     console.warn('No se pudo añadir listener de deselección:', e);
@@ -677,14 +857,33 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                 // Eliminar imagen (y wrapper lightbox) con Delete/Backspace cuando está seleccionada
                 editor.on('keydown', function(e) {
                     if (e.key === 'Delete' || e.key === 'Backspace') {
-                        const node = editor.selection.getNode();
-                        if (deleteImageAndWrapper(node)) {
-                            e.preventDefault();
-                            editor.selection.collapse(true);
-                            editor.nodeChanged();
-                            return;
+                        if (handleImageDeletion(e)) {
+                            return false; // Prevenir propagación adicional
                         }
                     }
+                });
+
+                // Limpieza adicional al hacer clic (por si quedaron restos)
+                editor.on('click', function() {
+                    const body = editor.getBody();
+                    // Solo limpiar si no hay imagen seleccionada actualmente
+                    if (!body.querySelector('img[data-mce-selected]')) {
+                        deepCleanOrphanElements(body);
+                    }
+                });
+
+                // Limpieza al cambiar de modo (visual/código)
+                editor.on('SwitchMode', function() {
+                    const body = editor.getBody();
+                    unwrapEmptyAnchors(body);
+                    deepCleanOrphanElements(body);
+                });
+
+                // Limpieza antes de guardar contenido
+                editor.on('BeforeGetContent', function() {
+                    const body = editor.getBody();
+                    unwrapEmptyAnchors(body);
+                    deepCleanOrphanElements(body);
                 });
 
                 // Hacer visible el contenedor del editor

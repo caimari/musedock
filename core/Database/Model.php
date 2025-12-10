@@ -213,6 +213,15 @@ abstract class Model
         $this->attributes[$key] = $value;
     }
 
+    /**
+     * Verifica si un atributo existe y no es null
+     * Necesario para que empty() funcione correctamente con propiedades mágicas
+     */
+    public function __isset($key)
+    {
+        return isset($this->attributes[$key]) && $this->attributes[$key] !== null;
+    }
+
     public function getKey()
     {
         return $this->attributes[static::$primaryKey] ?? null;

@@ -1,12 +1,8 @@
 # MuseDock CMS
 
-**Español**
-
-
-Instalar en raíz:
-git clone https://github.com/caimari/musedock.git .
+## Instalacion con Github
+Instalar en diretorio raíz: git clone https://github.com/caimari/musedock.git .
 Actualizar: git pull origin main
-
 
 Sistema de Gestión de Contenidos moderno, modular y multi-tenant construido con PHP 8+ y un framework MVC personalizado.
 
