@@ -517,6 +517,19 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                 }
             }
 
+            function unwrapEmptyAnchors(doc) {
+                const anchors = doc.querySelectorAll('a[data-lightbox]');
+                anchors.forEach(anchor => {
+                    if (!anchor.querySelector('img')) {
+                        const parent = anchor.parentNode;
+                        while (anchor.firstChild) {
+                            parent.insertBefore(anchor.firstChild, anchor);
+                        }
+                        parent.removeChild(anchor);
+                    }
+                });
+            }
+
             // Registrar menú contextual personalizado para imágenes
             editor.ui.registry.addContextMenu('customimage', {
                 update: function(element) {
@@ -624,6 +637,17 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                                     }
                                 }, 10);
                             }
+                        });
+
+                        // Limpiar enlaces vacíos tras borrar imágenes
+                        iframeDoc.addEventListener('keyup', function(e) {
+                            if (e.key === 'Delete' || e.key === 'Backspace') {
+                                unwrapEmptyAnchors(iframeDoc);
+                            }
+                        });
+
+                        iframeDoc.addEventListener('input', function() {
+                            unwrapEmptyAnchors(iframeDoc);
                         });
                     }
                 } catch (e) {

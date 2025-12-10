@@ -67,8 +67,15 @@ class Media extends Model
                     return '/media/t/' . $this->public_token;
 
                 case 'local':
+                    // Sistema legacy: puede usar SEO-friendly URL que redirige
+                    if ($seoFriendly && !empty($this->seo_filename)) {
+                        return $this->getSeoUrl();
+                    }
+                    // Fallback: archivos directamente en /public/
+                    return '/assets/uploads/' . $path;
+
                 default:
-                    // Sistema legacy: archivos directamente en /public/
+                    // Otros discos: URL directa
                     return '/assets/uploads/' . $path;
             }
 
@@ -81,32 +88,50 @@ class Media extends Model
 
     /**
      * Obtiene la URL SEO-friendly del archivo.
-     * Formato: /media/p/{folder-path}/{slug}-{token}.{ext}
+     * Formato: /media/p/{slug}-{token}/{ext}
+     * Ejemplo: /media/p/mi-imagen-aBcD1234EfGh5678/jpg
+     *
+     * Nota: No usamos extensión con punto (.jpg) porque nginx intercepta
+     * esas URLs como archivos estáticos. Usamos /ext al final.
      *
      * Esta URL es:
      * - SEO-friendly: contiene palabras clave descriptivas
      * - Segura: el token impide enumerar archivos
      * - Compartible: bonita para redes sociales
+     * - Compatible con nginx: no tiene extensión de archivo
      *
      * @return string
      */
     public function getSeoUrl(): string
     {
-        // Si no tiene seo_filename, generarlo
+        // Generar slug si no existe
+        if (empty($this->slug)) {
+            $this->slug = static::generateSlug($this->filename);
+        }
+
+        // Obtener extensión
+        $extension = strtolower(pathinfo($this->filename, PATHINFO_EXTENSION));
+
+        // Formato: /media/p/{slug}-{token}/{extension}
+        return '/media/p/' . $this->slug . '-' . $this->public_token . '/' . $extension;
+    }
+
+    /**
+     * Obtiene la URL SEO-friendly alternativa con extensión real (para sitemap/og:image)
+     * Formato: /media/p/{slug}-{token}.{ext}
+     *
+     * ADVERTENCIA: Esta URL puede no funcionar si nginx intercepta archivos estáticos.
+     * Usar getSeoUrl() para URLs que funcionan con nginx.
+     *
+     * @return string
+     */
+    public function getSeoUrlWithExtension(): string
+    {
         if (empty($this->seo_filename)) {
             $this->generateSeoFilename();
         }
 
-        // Obtener path de la carpeta (si existe)
-        $folderPath = '';
-        if ($this->folder_id) {
-            $folder = $this->folder();
-            if ($folder && $folder->slug && $folder->slug !== 'root') {
-                $folderPath = $folder->slug . '/';
-            }
-        }
-
-        return '/media/p/' . $folderPath . $this->seo_filename;
+        return '/media/p/' . $this->seo_filename;
     }
 
     /**

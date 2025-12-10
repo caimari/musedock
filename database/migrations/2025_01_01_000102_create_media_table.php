@@ -24,6 +24,8 @@ class CreateMediaTable_2025_12_08_104752
                   `disk` varchar(50) NOT NULL,
                   `path` text NOT NULL,
                   `public_token` varchar(32) DEFAULT NULL,
+                  `slug` varchar(255) DEFAULT NULL COMMENT 'SEO-friendly slug generado del filename',
+                  `seo_filename` varchar(255) DEFAULT NULL COMMENT 'Nombre SEO completo: slug-token.ext',
                   `filename` varchar(255) NOT NULL,
                   `mime_type` varchar(100) DEFAULT NULL,
                   `size` bigint(20) unsigned NOT NULL DEFAULT 0,
@@ -37,8 +39,9 @@ class CreateMediaTable_2025_12_08_104752
                   KEY `idx_media_user_id` (`user_id`),
                   KEY `idx_media_disk_path` (`disk`(10),`path`(191)),
                   KEY `idx_folder_id` (`folder_id`),
+                  KEY `idx_slug` (`slug`),
                   CONSTRAINT `media_ibfk_1` FOREIGN KEY (`folder_id`) REFERENCES `media_folders` (`id`) ON DELETE SET NULL
-                ) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             ");
         } else {
             // PostgreSQL version - needs manual adjustment

@@ -183,37 +183,50 @@ class MediaServeController
                 return $this->notFound('Archivo no especificado');
             }
 
-            // Extraer el seo_filename (última parte del path)
+            // Formato esperado: {slug}-{token}/{ext} o {slug}-{token}.{ext}
             $parts = explode('/', $path);
-            $seoFilename = end($parts);
+            $media = null;
+            $token = null;
 
-            if (empty($seoFilename)) {
-                return $this->notFound('Nombre de archivo no especificado');
+            // Caso 1: Formato nuevo sin punto: slug-token/ext (ej: mi-imagen-ABC123/jpg)
+            if (count($parts) >= 2) {
+                $slugToken = $parts[0]; // mi-imagen-ABC123
+                // Extraer token (últimos 16+ caracteres después del último guión)
+                if (preg_match('/^(.+)-([a-zA-Z0-9]{16,32})$/', $slugToken, $matches)) {
+                    $token = $matches[2];
+                    $media = Media::findByToken($token);
+                }
             }
 
-            // Buscar el media por su seo_filename (extrae el token internamente)
-            $media = Media::findBySeoFilename($seoFilename);
-
-            if (!$media) {
-                // Fallback: intentar extraer token directamente del filename
-                // Formato esperado: {slug}-{token}.{ext}
+            // Caso 2: Formato con punto: slug-token.ext (ej: mi-imagen-ABC123.jpg)
+            if (!$media && count($parts) >= 1) {
+                $seoFilename = end($parts);
                 if (preg_match('/^(.+)-([a-zA-Z0-9]{16,32})\.(\w+)$/', $seoFilename, $matches)) {
                     $token = $matches[2];
                     $media = Media::findByToken($token);
                 }
             }
 
+            // Caso 3: Solo token sin slug (compatibilidad)
+            if (!$media && count($parts) >= 1) {
+                $firstPart = $parts[0];
+                if (preg_match('/^[a-zA-Z0-9]{16,32}$/', $firstPart)) {
+                    $media = Media::findByToken($firstPart);
+                }
+            }
+
             if (!$media) {
-                Logger::warning('MediaServe: SEO filename no encontrado', [
+                Logger::warning('MediaServe: SEO path no encontrado', [
                     'path' => $path,
-                    'seo_filename' => $seoFilename
+                    'parts' => $parts
                 ]);
                 return $this->notFound('Archivo no encontrado');
             }
 
-            // Verificar que el path de carpeta coincide (si se especificó)
-            if (count($parts) > 1) {
-                $folderPath = implode('/', array_slice($parts, 0, -1));
+            // Verificación opcional de carpeta (si hay más partes)
+            if (count($parts) > 2) {
+                // Estructura: folder/slug-token/ext
+                $folderPath = implode('/', array_slice($parts, 0, -2));
 
                 // Obtener el folder del media
                 $expectedFolderSlug = '';

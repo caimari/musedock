@@ -5,19 +5,20 @@ use Screenart\Musedock\Route;
 // ========== PUBLIC MEDIA SERVE ROUTES (SIN AUTENTICACIÓN) ==========
 // Estas rutas sirven archivos públicos almacenados de forma segura fuera de /public/
 // Los archivos son accesibles públicamente pero no por URL directa al filesystem
+// NOTA: Se usa Route::any() para soportar GET y HEAD (necesario para Google Images)
 
 // Nueva ruta segura con token (imposible de enumerar)
-Route::get('media/t/{token}', 'MediaManager\Controllers\MediaServeController@serveByToken')->name('media.serve.token');
+Route::any('media/t/{token}', 'MediaManager\Controllers\MediaServeController@serveByToken')->name('media.serve.token');
 
 // Nueva ruta SEO-friendly (segura + indexable por Google)
-// Formato: /media/p/{folder-slug}/{filename-slug}-{token}.{ext}
-// Ejemplo: /media/p/galeria/mi-imagen-aBcD1234EfGh5678.jpg
-Route::get('media/p/{path:.*}', 'MediaManager\Controllers\MediaServeController@serveBySeoUrl')->name('media.serve.seo');
+// Formato: /media/p/{slug}-{token}.{ext} o /media/p/{slug}-{token}/{ext}
+// Ejemplo: /media/p/mi-imagen-aBcD1234EfGh5678.jpg
+Route::any('media/p/{path:.*}', 'MediaManager\Controllers\MediaServeController@serveBySeoUrl')->name('media.serve.seo');
 
 // Rutas legacy (mantener por compatibilidad, pero deprecadas)
-Route::get('media/file/{path:.*}', 'MediaManager\Controllers\MediaServeController@serve')->name('media.serve');
-Route::get('media/id/{id}', 'MediaManager\Controllers\MediaServeController@serveById')->name('media.serve.id');
-Route::get('media/thumb/{path:.*}', 'MediaManager\Controllers\MediaServeController@serveThumbnail')->name('media.serve.thumb');
+Route::any('media/file/{path:.*}', 'MediaManager\Controllers\MediaServeController@serve')->name('media.serve');
+Route::any('media/id/{id}', 'MediaManager\Controllers\MediaServeController@serveById')->name('media.serve.id');
+Route::any('media/thumb/{path:.*}', 'MediaManager\Controllers\MediaServeController@serveThumbnail')->name('media.serve.thumb');
 
 // ========== MEDIA ROUTES ==========
 Route::get('musedock/media', 'MediaManager\Controllers\MediaController@index')->name('superadmin.media.index')->middleware('superadmin');

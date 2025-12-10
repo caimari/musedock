@@ -1,10 +1,24 @@
 <?php
-file_put_contents(__DIR__ . '/../storage/logs/debug.log', 'Tenant: ' . json_encode($GLOBALS['tenant'] ?? null) . PHP_EOL, FILE_APPEND);
 
 use Screenart\Musedock\Route;
 use Screenart\Musedock\View;
 use Screenart\Musedock\Middlewares\TenantResolver;
 // use Screenart\Musedock\Controllers\frontend\HomeController;
+
+// ============================================================================
+// RUTAS DE MEDIA MANAGER (públicas, sin autenticación)
+// IMPORTANTE: Deben estar ANTES de cualquier ruta genérica para evitar conflictos
+// NOTA: Se usa Route::any() para soportar GET y HEAD (necesario para Google Images)
+// ============================================================================
+// Ruta SEO-friendly: /media/p/{slug}-{token}.{ext}
+Route::any('/media/p/{path:.*}', 'MediaManager\Controllers\MediaServeController@serveBySeoUrl')->name('media.serve.seo');
+// Ruta con token: /media/t/{token}
+Route::any('/media/t/{token}', 'MediaManager\Controllers\MediaServeController@serveByToken')->name('media.serve.token');
+// Rutas legacy
+Route::any('/media/file/{path:.*}', 'MediaManager\Controllers\MediaServeController@serve')->name('media.serve');
+Route::any('/media/id/{id}', 'MediaManager\Controllers\MediaServeController@serveById')->name('media.serve.id');
+Route::any('/media/thumb/{path:.*}', 'MediaManager\Controllers\MediaServeController@serveThumbnail')->name('media.serve.thumb');
+// ============================================================================
 
 // 1. Resolver tenant manualmente una vez
 $tenantResolved = (new TenantResolver())->handle();
