@@ -1210,6 +1210,25 @@ if (header && header.classList.contains('enable-sticky')) {
     <script src="{{ $fullJsUrl }}?t={{ $jsTimestamp }}"></script>
 @endif
 
+<script>
+// Forzar lightbox en enlaces con data-lightbox o clase .lightbox aunque no haya galería previa
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof jQuery === 'undefined' || !jQuery.fn.magnificPopup) {
+        return;
+    }
+    var $ = jQuery;
+    var $links = $('a[data-lightbox], a.lightbox');
+    if ($links.length) {
+        $links.magnificPopup({
+            type: 'image',
+            gallery: {
+                enabled: true
+            }
+        });
+    }
+});
+</script>
+
 
 	
 {{-- Scripts adicionales  --}}
