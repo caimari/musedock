@@ -486,12 +486,16 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
 
                 if (parentLink) {
                     parentLink.href = imgSrc;
-                    parentLink.setAttribute('data-lightbox', 'gallery');
+                    parentLink.setAttribute('data-lightbox', 'md-gallery');
+                    parentLink.classList.add('lightbox');
+                    parentLink.setAttribute('rel', 'lightbox');
                     parentLink.removeAttribute('target');
                 } else {
                     const link = editor.dom.create('a', {
                         href: imgSrc,
-                        'data-lightbox': 'gallery'
+                        'data-lightbox': 'md-gallery',
+                        'class': 'lightbox',
+                        'rel': 'lightbox'
                     });
                     img.parentNode.insertBefore(link, img);
                     link.appendChild(img);
@@ -501,12 +505,12 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
 
             function isLightboxActive(img) {
                 const parentLink = img.closest('a');
-                return !!(parentLink && parentLink.getAttribute('data-lightbox') === 'gallery');
+                return !!(parentLink && parentLink.getAttribute('data-lightbox'));
             }
 
             function removeLightbox(img) {
                 const parentLink = img.closest('a');
-                if (parentLink && parentLink.getAttribute('data-lightbox') === 'gallery') {
+                if (parentLink && parentLink.getAttribute('data-lightbox')) {
                     parentLink.parentNode.insertBefore(img, parentLink);
                     parentLink.remove();
                     editor.nodeChanged();
