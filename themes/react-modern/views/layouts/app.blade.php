@@ -9,9 +9,20 @@
     <title>{{ \Screenart\Musedock\View::yieldSection('title') ?: setting('site_name', 'MuseDock CMS') }}</title>
 
     {{-- Meta tags dinámicas --}}
-    <meta name="description" content="{{ \Screenart\Musedock\View::yieldSection('description') ?: setting('site_description', 'Tu gestor de contenidos moderno') }}">
-    <meta name="author" content="{{ setting('site_author', 'Autor del sitio') }}">
-    <meta name="keywords" content="{{ \Screenart\Musedock\View::yieldSection('keywords') ?: setting('site_keywords', 'React, TypeScript, Tailwind, CMS') }}">
+    @php
+        $metaDescription = \Screenart\Musedock\View::yieldSection('description') ?: setting('site_description', '');
+        $metaAuthor = setting('site_author', '');
+        $metaKeywords = \Screenart\Musedock\View::yieldSection('keywords') ?: setting('site_keywords', '');
+    @endphp
+    @if($metaDescription)
+    <meta name="description" content="{{ $metaDescription }}">
+    @endif
+    @if($metaAuthor)
+    <meta name="author" content="{{ $metaAuthor }}">
+    @endif
+    @if($metaKeywords)
+    <meta name="keywords" content="{{ $metaKeywords }}">
+    @endif
 
     {{-- Favicon --}}
     @if(setting('site_favicon'))
@@ -21,26 +32,46 @@
     @endif
 
     {{-- Open Graph --}}
-    <meta property="og:title" content="{{ \Screenart\Musedock\View::yieldSection('og_title') ?: setting('site_name', 'MuseDock') }}">
-    <meta property="og:description" content="{{ \Screenart\Musedock\View::yieldSection('og_description') ?: setting('site_description', '') }}">
+    @php
+        $ogTitle = \Screenart\Musedock\View::yieldSection('og_title') ?: setting('site_name', '');
+        $ogDescription = \Screenart\Musedock\View::yieldSection('og_description') ?: setting('site_description', '');
+        $siteName = setting('site_name', '');
+        $twitterTitle = \Screenart\Musedock\View::yieldSection('twitter_title') ?: setting('site_name', '');
+        $twitterDescription = \Screenart\Musedock\View::yieldSection('twitter_description') ?: setting('site_description', '');
+        $robotsDirective = trim(\Screenart\Musedock\View::yieldSection('robots', ''));
+    @endphp
+    @if($ogTitle)
+    <meta property="og:title" content="{{ $ogTitle }}">
+    @endif
+    @if($ogDescription)
+    <meta property="og:description" content="{{ $ogDescription }}">
+    @endif
     <meta property="og:url" content="{{ url($_SERVER['REQUEST_URI']) }}">
-    <meta property="og:site_name" content="{{ setting('site_name', 'MuseDock') }}">
+    @if($siteName)
+    <meta property="og:site_name" content="{{ $siteName }}">
+    @endif
     <meta property="og:type" content="website">
     @if(setting('og_image'))
-        <meta property="og:image" content="{{ asset(setting('og_image')) }}">
+    <meta property="og:image" content="{{ asset(setting('og_image')) }}">
     @endif
 
     {{-- Twitter Card --}}
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{{ \Screenart\Musedock\View::yieldSection('twitter_title') ?: setting('site_name', '') }}">
-    <meta name="twitter:description" content="{{ \Screenart\Musedock\View::yieldSection('twitter_description') ?: setting('site_description', '') }}">
+    @if($twitterTitle)
+    <meta name="twitter:title" content="{{ $twitterTitle }}">
+    @endif
+    @if($twitterDescription)
+    <meta name="twitter:description" content="{{ $twitterDescription }}">
+    @endif
     @if(setting('twitter_site'))
-        <meta name="twitter:site" content="{{ setting('twitter_site') }}">
+    <meta name="twitter:site" content="{{ setting('twitter_site') }}">
     @endif
 
     {{-- Canonical URL --}}
     <link rel="canonical" href="{{ url($_SERVER['REQUEST_URI']) }}">
-    <meta name="robots" content="{{ trim(\Screenart\Musedock\View::yieldSection('robots', 'index,follow')) }}">
+    @if($robotsDirective)
+    <meta name="robots" content="{{ $robotsDirective }}">
+    @endif
 
     {{-- Font Awesome para iconos --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">

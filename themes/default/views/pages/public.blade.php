@@ -5,7 +5,7 @@
 @endsection
 
 @section('keywords')
-    {{ $page->seo_keywords ?? setting('site_keywords', 'SEO, CMS, Web') }}
+    {{ $page->seo_keywords ?? setting('site_keywords', '') }}
 @endsection
 
 @section('og_title')
@@ -13,7 +13,7 @@
 @endsection
 
 @section('og_description')
-    {{ $page->seo_description ?? setting('site_description', 'Tu gestor de contenidos') }}
+    {{ $page->seo_description ?? setting('site_description', '') }}
 @endsection
 
 @section('og_url')
@@ -31,7 +31,7 @@
 @endsection
 
 @section('twitter_description')
-    {{ $page->twitter_description ?? $page->seo_description ?? setting('site_description', 'Tu gestor de contenidos') }}
+    {{ $page->twitter_description ?? $page->seo_description ?? setting('site_description', '') }}
 @endsection
 
 @section('twitter_image')

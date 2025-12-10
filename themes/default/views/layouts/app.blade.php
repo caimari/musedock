@@ -10,8 +10,16 @@
     <title>{{ \Screenart\Musedock\View::yieldSection('title') ?: setting('site_name', config('app_name', 'MuseDock CMS')) }}</title>
 
     {{-- Metas dinámicas del layout original --}}
-    <meta name="description" content="{{ \Screenart\Musedock\View::yieldSection('description') ?: setting('site_description', 'Tu gestor de contenidos') }}">
-    <meta name="author" content="{{ setting('site_author', 'Autor del sitio') }}">
+    @php
+        $metaDescription = \Screenart\Musedock\View::yieldSection('description') ?: setting('site_description', '');
+        $metaAuthor = setting('site_author', '');
+    @endphp
+    @if($metaDescription)
+    <meta name="description" content="{{ $metaDescription }}">
+    @endif
+    @if($metaAuthor)
+    <meta name="author" content="{{ $metaAuthor }}">
+    @endif
 
     <!-- Favicon dinámico -->
     @if(setting('site_favicon'))
@@ -22,28 +30,51 @@
         {{-- O mantener el original: <link rel="icon" type="image/x-icon" href="{{ asset('themes/default/favicon.ico') }}"> --}}
     @endif
 
-    <!-- SEO Meta Tags dinámicas  -->
-    <meta name="keywords" content="{{ \Screenart\Musedock\View::yieldSection('keywords') ?: setting('site_keywords', 'SEO, Web, CMS') }}">
-    <meta property="og:title" content="{{ \Screenart\Musedock\View::yieldSection('og_title') ?: setting('site_name', '') }}">
-    <meta property="og:description" content="{{ \Screenart\Musedock\View::yieldSection('og_description') ?: setting('site_description', '') }}">
+    <!-- SEO Meta Tags dinámicas -->
+    @php
+        $seoKeywords = \Screenart\Musedock\View::yieldSection('keywords') ?: setting('site_keywords', '');
+        $ogTitle = \Screenart\Musedock\View::yieldSection('og_title') ?: setting('site_name', '');
+        $ogDescription = \Screenart\Musedock\View::yieldSection('og_description') ?: setting('site_description', '');
+        $siteName = setting('site_name', '');
+        $robotsDirective = trim(\Screenart\Musedock\View::yieldSection('robots', ''));
+        $twitterTitle = \Screenart\Musedock\View::yieldSection('twitter_title') ?: setting('site_name', '');
+        $twitterDescription = \Screenart\Musedock\View::yieldSection('twitter_description') ?: setting('site_description', '');
+    @endphp
+    @if($seoKeywords)
+    <meta name="keywords" content="{{ $seoKeywords }}">
+    @endif
+    @if($ogTitle)
+    <meta property="og:title" content="{{ $ogTitle }}">
+    @endif
+    @if($ogDescription)
+    <meta property="og:description" content="{{ $ogDescription }}">
+    @endif
     <meta property="og:url" content="{{ url($_SERVER['REQUEST_URI']) }}">
-    <meta property="og:site_name" content="{{ setting('site_name', '') }}">
+    @if($siteName)
+    <meta property="og:site_name" content="{{ $siteName }}">
+    @endif
     <meta property="og:type" content="website">
     @if(setting('og_image'))
-        <meta property="og:image" content="{{ asset(setting('og_image')) }}">
+    <meta property="og:image" content="{{ asset(setting('og_image')) }}">
     @endif
     <link rel="canonical" href="{{ url($_SERVER['REQUEST_URI']) }}">
-    <meta name="robots" content="{{ trim(\Screenart\Musedock\View::yieldSection('robots', 'index,follow')) }}">
+    @if($robotsDirective)
+    <meta name="robots" content="{{ $robotsDirective }}">
+    @endif
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{{ \Screenart\Musedock\View::yieldSection('twitter_title') ?: setting('site_name', '') }}">
-    <meta name="twitter:description" content="{{ \Screenart\Musedock\View::yieldSection('twitter_description') ?: setting('site_description', 'Tu gestor de contenidos') }}">
+    @if($twitterTitle)
+    <meta name="twitter:title" content="{{ $twitterTitle }}">
+    @endif
+    @if($twitterDescription)
+    <meta name="twitter:description" content="{{ $twitterDescription }}">
+    @endif
     @if(setting('twitter_site'))
-        <meta name="twitter:site" content="{{ setting('twitter_site') }}">
+    <meta name="twitter:site" content="{{ setting('twitter_site') }}">
     @endif
     @if(setting('twitter_image'))
-        <meta name="twitter:image" content="{{ asset(setting('twitter_image')) }}">
+    <meta name="twitter:image" content="{{ asset(setting('twitter_image')) }}">
     @elseif(setting('og_image'))
-        <meta name="twitter:image" content="{{ asset(setting('og_image')) }}">
+    <meta name="twitter:image" content="{{ asset(setting('og_image')) }}">
     @endif
 
     <!-- Responsive (igual en ambos) -->
@@ -62,14 +93,8 @@
         }
     @endphp
 
-    @if ($bootstrap)
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-        {{-- $bootstrap es true:
-        <link rel="stylesheet" href="{{ asset('themes/default/css/bootstrap.min.css') }}">
-        --}}
-    @endif
-
-    <link rel="stylesheet" href="{{ asset('themes/default/css/bootstrap.min.css') }}"> 
+    {{-- Bootstrap CSS local --}}
+    <link rel="stylesheet" href="/assets/vendor/bootstrap/css/bootstrap.min.css"> 
 <!--    <link rel="stylesheet" href="{{ asset('themes/default/css/owl.carousel.min.css') }}"> -->
     <link rel="stylesheet" href="{{ asset('themes/default/css/slicknav.css') }}">
     <link rel="stylesheet" href="{{ asset('themes/default/css/animate.min.css') }}">
@@ -712,7 +737,7 @@ body.mobile-menu-open {
 
 @if($topbarEnabled)
     <div class="header-top top-bg d-none d-lg-block">
-   <div class="container-fluid">
+   <div class="container">
        <div class="row d-flex justify-content-between align-items-center">
            <div class="col-xl-6 col-lg-6">
                <div class="header-info-left">
@@ -769,7 +794,7 @@ body.mobile-menu-open {
 @endphp
 
     <header class="musedock-header {{ $headerSticky ? 'enable-sticky' : '' }}" id="main-header">
-    <div class="container-fluid">
+    <div class="container">
         <div class="header-container">
             <!-- Logo (Alineado a la Izquierda) -->
             <div class="header-logo">
