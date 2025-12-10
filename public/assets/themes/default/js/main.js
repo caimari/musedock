@@ -229,16 +229,16 @@
     mailChimp();
 
 
-// 12 Pop Up Img
-    var popUp = $('.single_gallery_part, .img-pop-up');
-      if(popUp.length){
-        popUp.magnificPopup({
-          type: 'image',
-          gallery:{
-            enabled:true
-          }
-        });
-      }
+// 12 Pop Up Img (incluye enlaces con data-lightbox o clase .lightbox)
+    var popUp = $('.single_gallery_part, .img-pop-up, a[data-lightbox], a.lightbox');
+    if(popUp.length){
+      popUp.magnificPopup({
+        type: 'image',
+        gallery:{
+          enabled:true
+        }
+      });
+    }
 
 
 
