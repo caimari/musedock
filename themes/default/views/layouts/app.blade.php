@@ -65,6 +65,7 @@
     <meta property="og:image" content="{{ asset(setting('og_image')) }}">
     @endif
     <link rel="canonical" href="{{ url($_SERVER['REQUEST_URI']) }}">
+    <link rel="alternate" type="application/rss+xml" title="{{ setting('site_name', 'MuseDock') }} RSS Feed" href="{{ url('/feed') }}">
     @if($robotsDirective)
     <meta name="robots" content="{{ $robotsDirective }}">
     @endif

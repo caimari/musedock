@@ -3,29 +3,29 @@
 return [
     // General
     'title' => 'Blog',
-    'posts' => 'Artículos',
+    'posts' => 'Posts',
     'categories' => 'Categorías',
     'tags' => 'Etiquetas',
 
     // Listado
-    'recent_posts' => 'Artículos Recientes',
+    'recent_posts' => 'Posts Recientes',
     'view_all' => 'Ver Todos',
     'read_more' => 'Leer Más',
-    'no_posts' => 'No hay artículos publicados.',
-    'no_posts_category' => 'No hay artículos en esta categoría.',
-    'back_to_all' => 'Volver a Todos los Artículos',
+    'no_posts' => 'No hay ningún post publicado.',
+    'no_posts_category' => 'No hay posts en esta categoría.',
+    'back_to_all' => 'Volver a Todos los Posts',
 
     // Single post
     'published_on' => 'Publicado el',
     'author' => 'Autor',
     'category' => 'Categoría',
     'share' => 'Compartir',
-    'related_posts' => 'Artículos Relacionados',
+    'related_posts' => 'Posts Relacionados',
 
     // Sidebar
     'search' => 'Buscar',
-    'search_placeholder' => 'Buscar artículos...',
-    'popular_posts' => 'Artículos Populares',
+    'search_placeholder' => 'Buscar posts...',
+    'popular_posts' => 'Posts Populares',
     'archives' => 'Archivo',
 
     // Comments (si se implementan)
