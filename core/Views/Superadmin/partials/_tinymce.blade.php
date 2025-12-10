@@ -241,6 +241,7 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         plugins: '{{ $pluginsString }}',
         toolbar: <?php echo json_encode($tinymce_toolbar_lines, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
         contextmenu: '{{ $contextmenuString }}',
+        contextmenu_never_use_native: true,
         
         // --- Otras configuraciones ---
         block_formats: 'Párrafo=p; Encabezado 1=h1; Encabezado 2=h2; Encabezado 3=h3; Encabezado 4=h4; Encabezado 5=h5; Encabezado 6=h6; Preformateado=pre; Bloque de Código=code',
@@ -250,7 +251,9 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
             pre > code { display: block; padding: 10px; background-color: #2d2d2d; color: #f1f1f1; border-radius: 5px; overflow-x: auto; }
             img { max-width: 100%; height: auto; cursor: pointer; pointer-events: auto; user-select: auto; }
             figure img { pointer-events: auto; }
-            .mce-content-body img[data-mce-selected] { outline: 2px solid #3b7ddd; outline-offset: 2px; }
+            .mce-content-body img[data-mce-selected] { outline: 2px solid rgba(59,125,221,0.35); outline-offset: 2px; box-shadow: 0 0 0 2px rgba(59,125,221,0.1); background-color: transparent; }
+            img::selection, figure::selection, a::selection { background: transparent !important; }
+            img::-moz-selection, figure::-moz-selection, a::-moz-selection { background: transparent !important; }
         `,
         branding: false,
         promotion: false,
@@ -273,6 +276,8 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
 
         entity_encoding: 'raw',
         convert_urls: false,
+        // Context menu nativo de TinyMCE: impedir nativo del navegador
+        contextmenu_never_use_native: true,
 
         // Habilitar el file picker para imágenes y medios
         file_picker_types: 'image media file',
@@ -338,6 +343,81 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         // Función Setup con solución para el borde azul
         setup: function(editor) {
             // === MENÚ CONTEXTUAL PERSONALIZADO PARA IMÁGENES ===
+            function showFallbackImageMenu(e, img) {
+                removeFallbackImageMenu();
+                const iframeRect = editor.iframeElement.getBoundingClientRect();
+                const left = iframeRect.left + e.clientX;
+                const top = iframeRect.top + e.clientY;
+
+                const menu = document.createElement('div');
+                menu.id = 'md-tiny-image-menu';
+                Object.assign(menu.style, {
+                    position: 'fixed',
+                    left: `${left}px`,
+                    top: `${top}px`,
+                    background: '#fff',
+                    border: '1px solid #ced4da',
+                    borderRadius: '4px',
+                    boxShadow: '0 8px 18px rgba(0,0,0,0.18)',
+                    padding: '6px 0',
+                    minWidth: '190px',
+                    zIndex: 99999,
+                    fontFamily: 'inherit',
+                    fontSize: '14px'
+                });
+                // Evitar que el click dentro cierre el menú antes de la acción
+                menu.addEventListener('mousedown', (ev) => ev.stopPropagation());
+                menu.addEventListener('contextmenu', (ev) => ev.preventDefault());
+
+                const items = [
+                    { text: 'Propiedades de imagen', action: () => { try { editor.execCommand('mceImage'); } catch (e) {} } },
+                    { text: 'Añadir enlace a imagen', action: () => openImageLinkDialog(img) },
+                    { text: (checked) => checked ? 'Quitar Lightbox' : 'Abrir en Lightbox',
+                      action: () => { isLightboxActive(img) ? removeLightbox(img) : applyLightbox(img); },
+                      isChecked: () => isLightboxActive(img)
+                    }
+                ];
+
+                items.forEach(item => {
+                    const btn = document.createElement('div');
+                    const checked = item.isChecked ? item.isChecked() : false;
+                    const label = typeof item.text === 'function' ? item.text(checked) : item.text;
+                    btn.textContent = checked ? `✔ ${label}` : label;
+                    Object.assign(btn.style, {
+                        padding: '8px 14px',
+                        cursor: 'pointer'
+                    });
+                    btn.addEventListener('mouseenter', () => { btn.style.background = '#f1f3f5'; });
+                    btn.addEventListener('mouseleave', () => { btn.style.background = 'transparent'; });
+                    btn.addEventListener('click', (evt) => {
+                        evt.preventDefault();
+                        evt.stopPropagation();
+                        removeFallbackImageMenu();
+                        editor.focus();
+                        editor.selection.select(img);
+                        editor.nodeChanged();
+                        // Pequeño delay para asegurar focus antes de abrir diálogos
+                        setTimeout(() => item.action(), 0);
+                    });
+                    menu.appendChild(btn);
+                });
+
+                document.body.appendChild(menu);
+
+                setTimeout(() => {
+                    document.addEventListener('mousedown', removeFallbackImageMenu, { once: true });
+                    document.addEventListener('scroll', removeFallbackImageMenu, { once: true, capture: true });
+                    const iframeEl = editor.iframeElement;
+                    if (iframeEl && iframeEl.contentDocument) {
+                        iframeEl.contentDocument.addEventListener('mousedown', removeFallbackImageMenu, { once: true });
+                    }
+                }, 0);
+            }
+
+            function removeFallbackImageMenu() {
+                const existing = document.getElementById('md-tiny-image-menu');
+                if (existing) existing.remove();
+            }
 
             // Función para abrir diálogo de enlace de imagen
             function openImageLinkDialog(img) {
@@ -417,6 +497,20 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                     link.appendChild(img);
                 }
                 editor.nodeChanged();
+            }
+
+            function isLightboxActive(img) {
+                const parentLink = img.closest('a');
+                return !!(parentLink && parentLink.getAttribute('data-lightbox') === 'gallery');
+            }
+
+            function removeLightbox(img) {
+                const parentLink = img.closest('a');
+                if (parentLink && parentLink.getAttribute('data-lightbox') === 'gallery') {
+                    parentLink.parentNode.insertBefore(img, parentLink);
+                    parentLink.remove();
+                    editor.nodeChanged();
+                }
             }
 
             // Registrar menú contextual personalizado para imágenes
@@ -504,6 +598,27 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                                         editor.nodeChanged();
                                     }, 0);
                                 }
+                            }
+                        });
+
+                        // Asegurar selección antes de abrir menú contextual con clic derecho
+                        iframeDoc.addEventListener('contextmenu', function(e) {
+                            const target = e.target;
+                            if (target.closest('.mce-resizehandle') || target.closest('.mce-resize-backdrop') || target.closest('.mce-clonedresizable')) {
+                                return;
+                            }
+                            const imgTarget = target.nodeName === 'IMG' ? target : target.closest('figure img');
+                            if (imgTarget) {
+                                e.preventDefault(); // Evita el menú del navegador
+                                editor.selection.select(imgTarget);
+                                editor.nodeChanged();
+                                // Intentar disparar menú nativo de TinyMCE; si no aparece, usar fallback manual
+                                setTimeout(() => {
+                                    const menuExists = document.querySelector('.tox-collection.tox-collection--list');
+                                    if (!menuExists) {
+                                        showFallbackImageMenu(e, imgTarget);
+                                    }
+                                }, 10);
                             }
                         });
                     }
