@@ -9,24 +9,21 @@
 @section('content')
 <div class="app-content">
     <div class="container-fluid">
-        <div class="mb-4">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-1">
-                    <li class="breadcrumb-item"><a href="{{ route('custom-forms.index') }}">{{ __forms('form.forms') }}</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('custom-forms.edit', $form->id) }}">{{ $form->name }}</a></li>
-                    <li class="breadcrumb-item active">{{ __forms('submission.submissions') }}</li>
-                </ol>
-            </nav>
-            <div class="d-flex justify-content-between align-items-center">
-                <h2 class="mb-0"><i class="bi bi-inbox me-2"></i>{{ __forms('submission.submissions') }}: {{ $form->name }}</h2>
-                <div>
-                    <a href="{{ route('custom-forms.submissions.export', $form->id) }}" class="btn btn-outline-success me-2">
-                        <i class="bi bi-download me-1"></i> {{ __forms('submission.export') }}
-                    </a>
-                    <a href="{{ route('custom-forms.edit', $form->id) }}" class="btn btn-outline-primary">
-                        <i class="bi bi-pencil me-1"></i> {{ __forms('form.edit') }}
-                    </a>
-                </div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="breadcrumb">
+                <a href="{{ route('custom-forms.index') }}">{{ __forms('form.forms') }}</a>
+                <span class="mx-2">/</span>
+                <a href="{{ route('custom-forms.edit', $form->id) }}">{{ $form->name }}</a>
+                <span class="mx-2">/</span>
+                <span>{{ __forms('submission.submissions') }}</span>
+            </div>
+            <div>
+                <a href="{{ route('custom-forms.submissions.export', ['formId' => $form->id]) }}" class="btn btn-sm btn-outline-success me-2">
+                    <i class="bi bi-download me-1"></i> {{ __forms('submission.export') }}
+                </a>
+                <a href="{{ route('custom-forms.edit', $form->id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil me-1"></i> {{ __forms('form.edit') }}
+                </a>
             </div>
         </div>
 
@@ -45,19 +42,19 @@
                         <label class="form-label">{{ __forms('submission.status') }}</label>
                         <select name="status" class="form-select">
                             <option value="">{{ __forms('submission.all') }}</option>
-                            <option value="unread" {{ request('status') == 'unread' ? 'selected' : '' }}>{{ __forms('submission.unread') }}</option>
-                            <option value="read" {{ request('status') == 'read' ? 'selected' : '' }}>{{ __forms('submission.read') }}</option>
-                            <option value="starred" {{ request('status') == 'starred' ? 'selected' : '' }}>{{ __forms('submission.starred') }}</option>
-                            <option value="spam" {{ request('status') == 'spam' ? 'selected' : '' }}>{{ __forms('submission.spam') }}</option>
+                            <option value="unread" {{ ($_GET['status'] ?? '') == 'unread' ? 'selected' : '' }}>{{ __forms('submission.unread') }}</option>
+                            <option value="read" {{ ($_GET['status'] ?? '') == 'read' ? 'selected' : '' }}>{{ __forms('submission.read') }}</option>
+                            <option value="starred" {{ ($_GET['status'] ?? '') == 'starred' ? 'selected' : '' }}>{{ __forms('submission.starred') }}</option>
+                            <option value="spam" {{ ($_GET['status'] ?? '') == 'spam' ? 'selected' : '' }}>{{ __forms('submission.spam') }}</option>
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">{{ __forms('submission.date_from') }}</label>
-                        <input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}">
+                        <input type="date" name="date_from" class="form-control" value="{{ $_GET['date_from'] ?? '' }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">{{ __forms('submission.date_to') }}</label>
-                        <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
+                        <input type="date" name="date_to" class="form-control" value="{{ $_GET['date_to'] ?? '' }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">&nbsp;</label>
@@ -153,7 +150,7 @@
                     </table>
                 </div>
             </div>
-            @if(isset($pagination) && $pagination['total_pages'] > 1)
+            @if(isset($pagination) && $pagination['last_page'] > 1)
             <div class="card-footer d-flex justify-content-between align-items-center">
                 <span class="text-muted">
                     {{ __forms('submission.showing', ['from' => $pagination['from'], 'to' => $pagination['to'], 'total' => $pagination['total']]) }}
@@ -165,12 +162,12 @@
                                 <a class="page-link" href="?page={{ $pagination['current_page'] - 1 }}">«</a>
                             </li>
                         @endif
-                        @for($i = 1; $i <= $pagination['total_pages']; $i++)
+                        @for($i = 1; $i <= $pagination['last_page']; $i++)
                             <li class="page-item {{ $i == $pagination['current_page'] ? 'active' : '' }}">
                                 <a class="page-link" href="?page={{ $i }}">{{ $i }}</a>
                             </li>
                         @endfor
-                        @if($pagination['current_page'] < $pagination['total_pages'])
+                        @if($pagination['current_page'] < $pagination['last_page'])
                             <li class="page-item">
                                 <a class="page-link" href="?page={{ $pagination['current_page'] + 1 }}">»</a>
                             </li>

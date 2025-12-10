@@ -19,6 +19,15 @@
             </a>
         </div>
 
+        <div class="alert alert-info d-flex align-items-start mb-4">
+            <i class="bi bi-info-circle-fill me-3 mt-1" style="font-size: 1.2rem;"></i>
+            <div>
+                <h5 class="alert-heading mb-2">{{ __forms('form.legal_notice_title') }}</h5>
+                <p class="mb-2">{{ __forms('form.legal_notice_intro') }}</p>
+                <p class="mb-0">{{ __forms('form.legal_notice_info') }}</p>
+            </div>
+        </div>
+
         @if(!empty($forms))
             <div class="card">
                 <div class="table-responsive">

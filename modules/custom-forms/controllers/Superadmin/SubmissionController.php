@@ -40,6 +40,9 @@ class SubmissionController
      */
     public function list($formId)
     {
+        SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.submissions.view');
+
         return $this->listByForm($formId);
     }
 
@@ -53,7 +56,8 @@ class SubmissionController
 
         $form = Form::find((int) $formId);
 
-        if (!$form || $form->tenant_id !== null) {
+        // Verificar que sea un formulario global (tenant_id NULL o 0)
+        if (!$form || ($form->tenant_id !== null && $form->tenant_id !== 0)) {
             flash('error', __forms('form.not_found'));
             header('Location: ' . route('custom-forms.submissions.index'));
             exit;
@@ -294,19 +298,14 @@ class SubmissionController
 
         $form = Form::find((int) $formId);
 
-        if (!$form) {
+        // Verificar que sea un formulario global (tenant_id NULL o 0)
+        if (!$form || ($form->tenant_id !== null && $form->tenant_id !== 0)) {
             flash('error', __forms('form.not_found'));
             header('Location: ' . route('custom-forms.submissions.index'));
             exit;
         }
 
         $submissions = FormSubmission::getByForm($form->id, ['is_spam' => false]);
-
-        if (empty($submissions)) {
-            flash('error', __forms('submission.no_submissions'));
-            header('Location: ' . route('custom-forms.submissions.list', ['form_id' => $formId]));
-            exit;
-        }
 
         // Obtener campos del formulario para headers
         $fields = $form->inputFields();
@@ -316,7 +315,7 @@ class SubmissionController
             $headers[] = $field->field_label;
         }
 
-        // Generar CSV
+        // Generar CSV (incluso si está vacío)
         $filename = 'submissions-' . $form->slug . '-' . date('Y-m-d') . '.csv';
 
         header('Content-Type: text/csv; charset=utf-8');
@@ -330,7 +329,7 @@ class SubmissionController
         // Headers
         fputcsv($output, $headers);
 
-        // Data
+        // Data (puede estar vacío)
         foreach ($submissions as $submission) {
             $row = [
                 $submission->id,

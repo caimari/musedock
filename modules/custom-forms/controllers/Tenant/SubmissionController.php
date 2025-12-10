@@ -47,6 +47,9 @@ class SubmissionController
      */
     public function list($formId)
     {
+        SessionSecurity::startSession();
+        $this->checkPermission('custom_forms.submissions.view');
+
         return $this->listByForm($formId);
     }
 

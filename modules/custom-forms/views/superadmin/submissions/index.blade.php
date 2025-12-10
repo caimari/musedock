@@ -39,7 +39,7 @@
                             <span class="text-muted">
                                 <i class="bi bi-envelope me-1"></i> {{ $form->submission_count ?? 0 }} {{ __forms('submission.total') }}
                             </span>
-                            <a href="{{ route('custom-forms.submissions', $form->id) }}" class="btn btn-sm btn-outline-primary">
+                            <a href="{{ route('custom-forms.submissions.list', ['formId' => $form->id]) }}" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-eye me-1"></i> {{ __forms('submission.view') }}
                             </a>
                         </div>

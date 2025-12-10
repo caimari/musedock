@@ -73,6 +73,9 @@
     "form.duplicate": "Duplicar",
     "form.created": "Formulario creado correctamente",
     "form.error_creating": "Error al crear el formulario",
+    "form.legal_notice_title": "Aviso Legal Importante sobre Protección de Datos",
+    "form.legal_notice_intro": "Cuando implementas formularios en tu web y recopilas datos personales (nombre, email, teléfono, etc.), tienes obligaciones legales bajo el RGPD.",
+    "form.legal_notice_info": "Debes incluir en tu Política de Privacidad información sobre: qué datos recoges, con qué finalidad, quién los gestiona, base legal del tratamiento, tiempo de conservación, derechos del usuario (acceso, rectificación, supresión, etc.), terceros con acceso a los datos, y cómo retirar el consentimiento. Además, junto al formulario debe aparecer una casilla de aceptación clara con enlace a tu Política de Privacidad.",
 
     "field.add_field": "Agregar Campo",
     "field.edit_field": "Editar Campo",
