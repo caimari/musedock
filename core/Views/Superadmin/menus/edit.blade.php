@@ -98,23 +98,6 @@
                         <button class="btn btn-primary w-100 mt-3" id="addSelectedPages">Añadir Páginas al Menú</button>
                     </div>
                 </div>
-                
-                <div class="card mb-3">
-                    <div class="card-header">Añadir Enlace Personalizado</div>
-                    <div class="card-body">
-                        <form id="addCustomLinkForm">
-                            <div class="mb-3">
-                                <label class="form-label">Texto del enlace</label>
-                                <input type="text" id="customLinkTitle" class="form-control" placeholder="Ej: Inicio" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">URL personalizada</label>
-                                <input type="text" id="customLinkUrl" class="form-control" placeholder="/ruta-o-url">
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100">Añadir Enlace</button>
-                        </form>
-                    </div>
-                </div>
 
                 {{-- Panel de Blog (solo si el módulo está activo) --}}
                 @if(isset($blogPosts) && count($blogPosts) > 0)
@@ -157,6 +140,45 @@
                     </div>
                 </div>
                 @endif
+
+                <!-- Bloque de Etiquetas del Blog -->
+                @if(isset($blogTags) && count($blogTags) > 0)
+                <div class="card mb-3">
+                    <div class="card-header">Añadir Etiquetas del Blog</div>
+                    <div class="card-body">
+                        <div class="item-list-body" style="max-height: 200px; overflow-y: auto;">
+                            @foreach ($blogTags as $tag)
+                                <div class="form-check">
+                                    <input class="form-check-input blog-tag-select" type="checkbox"
+                                        value="{{ $tag->id }}"
+                                        data-title="{{ $tag->name }}"
+                                        data-link="/blog/etiqueta/{{ $tag->slug }}">
+                                    <label class="form-check-label">{{ $tag->name }}</label>
+                                </div>
+                            @endforeach
+                        </div>
+                        <button class="btn btn-primary w-100 mt-3" id="addSelectedTags">Añadir Etiquetas al Menú</button>
+                    </div>
+                </div>
+                @endif
+
+                {{-- Enlace Personalizado - Al final --}}
+                <div class="card">
+                    <div class="card-header">Añadir Enlace Personalizado</div>
+                    <div class="card-body">
+                        <form id="addCustomLinkForm">
+                            <div class="mb-3">
+                                <label class="form-label">Texto del enlace</label>
+                                <input type="text" id="customLinkTitle" class="form-control" placeholder="Ej: Inicio" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">URL personalizada</label>
+                                <input type="text" id="customLinkUrl" class="form-control" placeholder="/ruta-o-url">
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Añadir Enlace</button>
+                        </form>
+                    </div>
+                </div>
             </div>
 
             <!-- Panel derecho - Estructura del menú -->
@@ -660,6 +682,40 @@ $(document).ready(function() {
             icon: 'success',
             title: 'Categorías añadidas',
             text: 'Las categorías seleccionadas se han añadido al menú.',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    });
+
+    // Añadir etiquetas del blog al menú
+    $('#addSelectedTags').on('click', function() {
+        const checkboxes = $('.blog-tag-select:checked');
+
+        if (checkboxes.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Selección vacía',
+                text: 'Por favor, selecciona al menos una etiqueta para añadir al menú.'
+            });
+            return;
+        }
+
+        checkboxes.each(function() {
+            const title = $(this).data('title');
+            const link = $(this).data('link');
+            const newId = generateTempId();
+            const newItem = addMenuItem(newId, title, link, false, false, 'blog_tag', $(this).val());
+            $('#menu-list').append(newItem);
+            $(this).prop('checked', false);
+        });
+
+        checkEmptyMenu();
+        initNestedSortable();
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Etiquetas añadidas',
+            text: 'Las etiquetas seleccionadas se han añadido al menú.',
             timer: 1500,
             showConfirmButton: false
         });

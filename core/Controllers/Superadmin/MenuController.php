@@ -245,6 +245,7 @@ public function edit($id)
     // Cargar posts y categorías del blog si el módulo está activo
     $blogPosts = [];
     $blogCategories = [];
+    $blogTags = [];
 
     // Verificar si existe la tabla blog_posts (módulo de blog activo)
     try {
@@ -252,28 +253,38 @@ public function edit($id)
         if ($stmt->rowCount() > 0) {
             // Obtener posts publicados
             $stmt = $pdo->prepare("
-                SELECT bp.id, bpt.title, s.slug
+                SELECT bp.id, bp.title, bp.slug
                 FROM blog_posts bp
-                LEFT JOIN blog_post_translations bpt ON bp.id = bpt.post_id
-                LEFT JOIN slugs s ON s.reference_id = bp.id AND s.module = 'blog'
                 WHERE bp.status = 'published'
-                  AND bpt.locale = ?
-                  AND s.slug IS NOT NULL
+                  AND bp.deleted_at IS NULL
+                  AND (bp.tenant_id IS NULL OR bp.tenant_id = 0)
                 ORDER BY bp.created_at DESC
                 LIMIT 20
             ");
-            $stmt->execute([$currentLocale]);
+            $stmt->execute();
             $blogPosts = $stmt->fetchAll(\PDO::FETCH_OBJ);
 
             // Obtener categorías
             $stmt = $pdo->prepare("
                 SELECT bc.id, bc.name, bc.slug
                 FROM blog_categories bc
-                WHERE bc.active = 1
+                WHERE bc.deleted_at IS NULL
+                AND (bc.tenant_id IS NULL OR bc.tenant_id = 0)
                 ORDER BY bc.name ASC
             ");
             $stmt->execute();
             $blogCategories = $stmt->fetchAll(\PDO::FETCH_OBJ);
+
+            // Obtener etiquetas/tags
+            $stmt = $pdo->prepare("
+                SELECT bt.id, bt.name, bt.slug
+                FROM blog_tags bt
+                WHERE bt.deleted_at IS NULL
+                AND (bt.tenant_id IS NULL OR bt.tenant_id = 0)
+                ORDER BY bt.name ASC
+            ");
+            $stmt->execute();
+            $blogTags = $stmt->fetchAll(\PDO::FETCH_OBJ);
         }
     } catch (\Exception $e) {
         // Módulo de blog no disponible
@@ -290,7 +301,8 @@ public function edit($id)
         'currentLocale'  => $currentLocale,
         'menuAreas'      => $menuAreas,
         'blogPosts'      => $blogPosts,
-        'blogCategories' => $blogCategories
+        'blogCategories' => $blogCategories,
+        'blogTags'       => $blogTags
     ]);
 }
 

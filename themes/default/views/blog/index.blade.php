@@ -12,13 +12,11 @@
 @section('content')
 
 <div class="container py-5">
-    <div class="row">
-        {{-- Contenido principal --}}
-        <div class="col-lg-8">
-            @if(!empty($posts) && count($posts) > 0)
-                <div class="row">
-                @foreach($posts as $post)
-                <div class="col-md-6 mb-4">
+    {{-- Contenido principal --}}
+    @if(!empty($posts) && count($posts) > 0)
+        <div class="row">
+        @foreach($posts as $post)
+        <div class="col-lg-4 col-md-6 mb-4">
                     <article class="card h-100 shadow-sm border-0">
                         {{-- Imagen destacada o imagen por defecto --}}
                         <a href="/blog/{{ $post->slug }}">
@@ -46,7 +44,7 @@
 
                             {{-- Meta información --}}
                             <div class="post-meta mb-3 text-muted small">
-                                <span><i class="far fa-calendar"></i> {{ date('d/m/Y', strtotime($post->published_at)) }}</span>
+                                <span><i class="far fa-calendar"></i> {{ $post->published_at ? date('d/m/Y', strtotime($post->published_at)) : date('d/m/Y', strtotime($post->created_at)) }}</span>
                             </div>
 
                             {{-- Excerpt --}}
@@ -61,14 +59,14 @@
                         </div>
                     </article>
                 </div>
-                @endforeach
-                </div>
+        @endforeach
+        </div>
 
-                {{-- Paginación (solo si hay más de 1 página) --}}
-                @if(!empty($pagination) && $pagination['total_pages'] > 1)
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <nav aria-label="Navegación de páginas">
+        {{-- Paginación (solo si hay más de 1 página) --}}
+        @if(!empty($pagination) && $pagination['total_pages'] > 1)
+        <div class="row mt-4">
+            <div class="col-12">
+                <nav aria-label="Navegación de páginas">
                             <ul class="pagination justify-content-center">
                                 {{-- Botón anterior --}}
                                 @if($pagination['current_page'] > 1)
@@ -109,29 +107,13 @@
                                 </li>
                                 @endif
                             </ul>
-                        </nav>
-                    </div>
-                </div>
-                @endif
-            @else
-                <p class="text-muted">{{ __('blog.no_posts') }}</p>
-            @endif
-        </div>
-
-        {{-- Sidebar --}}
-        <div class="col-lg-4">
-            @if(!empty($categories) && count($categories) > 0)
-            <div class="widget widget-categories mb-4">
-                <h4 class="widget-title">{{ __('blog.categories') }}</h4>
-                <ul class="list-unstyled">
-                    @foreach($categories as $cat)
-                    <li><a href="/blog/category/{{ $cat->slug }}">{{ $cat->name }}</a></li>
-                    @endforeach
-                </ul>
+                </nav>
             </div>
-            @endif
         </div>
-    </div>
+        @endif
+    @else
+        <p class="text-muted text-center">{{ __('blog.no_posts') }}</p>
+    @endif
 </div>
 
 @endsection
