@@ -17,7 +17,7 @@ class Media extends Model
 
     protected array $fillable = [
         'tenant_id', 'user_id', 'folder_id', 'disk', 'path', 'public_token',
-        'filename', 'mime_type', 'size', 'alt_text', 'caption', 'metadata'
+        'slug', 'seo_filename', 'filename', 'mime_type', 'size', 'alt_text', 'caption', 'metadata'
     ];
 
     protected array $casts = [
@@ -36,9 +36,10 @@ class Media extends Model
      * - 'r2': Cloudflare R2 CDN
      * - 's3': Amazon S3
      *
+     * @param bool $seoFriendly Si es true, devuelve URL SEO-friendly (default: true)
      * @return string
      */
-    public function getPublicUrl(): string
+    public function getPublicUrl(bool $seoFriendly = true): string
     {
         try {
             $path = ltrim($this->path, '/');
@@ -58,8 +59,11 @@ class Media extends Model
                     break;
 
                 case 'media':
-                    // Nuevo sistema: archivos servidos via controlador con token seguro
-                    // URL: /media/t/{token} - imposible de enumerar
+                    // Nuevo sistema con URLs SEO-friendly
+                    if ($seoFriendly && !empty($this->seo_filename)) {
+                        return $this->getSeoUrl();
+                    }
+                    // Fallback a URL con token (para compatibilidad)
                     return '/media/t/' . $this->public_token;
 
                 case 'local':
@@ -73,6 +77,129 @@ class Media extends Model
         }
 
         return '#error-url'; // URL inválida si falla
+    }
+
+    /**
+     * Obtiene la URL SEO-friendly del archivo.
+     * Formato: /media/p/{folder-path}/{slug}-{token}.{ext}
+     *
+     * Esta URL es:
+     * - SEO-friendly: contiene palabras clave descriptivas
+     * - Segura: el token impide enumerar archivos
+     * - Compartible: bonita para redes sociales
+     *
+     * @return string
+     */
+    public function getSeoUrl(): string
+    {
+        // Si no tiene seo_filename, generarlo
+        if (empty($this->seo_filename)) {
+            $this->generateSeoFilename();
+        }
+
+        // Obtener path de la carpeta (si existe)
+        $folderPath = '';
+        if ($this->folder_id) {
+            $folder = $this->folder();
+            if ($folder && $folder->slug && $folder->slug !== 'root') {
+                $folderPath = $folder->slug . '/';
+            }
+        }
+
+        return '/media/p/' . $folderPath . $this->seo_filename;
+    }
+
+    /**
+     * Genera un slug SEO-friendly a partir del nombre del archivo
+     *
+     * @param string|null $filename Nombre del archivo (usa $this->filename si no se proporciona)
+     * @return string
+     */
+    public static function generateSlug(?string $filename = null): string
+    {
+        if (empty($filename)) {
+            return '';
+        }
+
+        // Obtener nombre sin extensión
+        $baseName = pathinfo($filename, PATHINFO_FILENAME);
+
+        // Convertir a minúsculas
+        $slug = mb_strtolower($baseName, 'UTF-8');
+
+        // Transliterar caracteres especiales (ñ -> n, á -> a, etc.)
+        $transliterations = [
+            'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u',
+            'ä' => 'a', 'ë' => 'e', 'ï' => 'i', 'ö' => 'o', 'ü' => 'u',
+            'à' => 'a', 'è' => 'e', 'ì' => 'i', 'ò' => 'o', 'ù' => 'u',
+            'â' => 'a', 'ê' => 'e', 'î' => 'i', 'ô' => 'o', 'û' => 'u',
+            'ñ' => 'n', 'ç' => 'c', 'ß' => 'ss',
+        ];
+        $slug = strtr($slug, $transliterations);
+
+        // Reemplazar cualquier caracter no alfanumérico por guión
+        $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+
+        // Eliminar guiones múltiples
+        $slug = preg_replace('/-+/', '-', $slug);
+
+        // Eliminar guiones al inicio y final
+        $slug = trim($slug, '-');
+
+        // Limitar longitud
+        if (strlen($slug) > 100) {
+            $slug = substr($slug, 0, 100);
+            $slug = rtrim($slug, '-');
+        }
+
+        return $slug ?: 'file';
+    }
+
+    /**
+     * Genera el nombre de archivo SEO-friendly completo
+     * Formato: {slug}-{token}.{extension}
+     *
+     * @return string
+     */
+    public function generateSeoFilename(): string
+    {
+        // Generar slug si no existe
+        if (empty($this->slug)) {
+            $this->slug = static::generateSlug($this->filename);
+        }
+
+        // Obtener extensión
+        $extension = pathinfo($this->filename, PATHINFO_EXTENSION);
+        $extension = strtolower($extension);
+
+        // Construir seo_filename: slug-token.ext
+        $this->seo_filename = $this->slug . '-' . $this->public_token . '.' . $extension;
+
+        return $this->seo_filename;
+    }
+
+    /**
+     * Busca un media por su seo_filename (extrayendo el token)
+     *
+     * @param string $seoFilename Nombre SEO del archivo (ej: mi-imagen-aBcD1234EfGh5678.jpg)
+     * @return static|null
+     */
+    public static function findBySeoFilename(string $seoFilename): ?self
+    {
+        if (empty($seoFilename)) {
+            return null;
+        }
+
+        // Extraer token del seo_filename
+        // Formato: {slug}-{token}.{ext}
+        // El token son los últimos 16 caracteres antes del punto
+        if (!preg_match('/^(.+)-([a-zA-Z0-9]{16,32})\.(\w+)$/', $seoFilename, $matches)) {
+            return null;
+        }
+
+        $token = $matches[2];
+
+        return static::findByToken($token);
     }
 
     /**

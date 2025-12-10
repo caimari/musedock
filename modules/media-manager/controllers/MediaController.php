@@ -601,13 +601,20 @@ public function upload()
 
             // Guardar en la base de datos
             $userId = $_SESSION['super_admin']['id'] ?? ($_SESSION['admin']['id'] ?? null);
+            $publicToken = Media::generatePublicToken();
+            $slug = Media::generateSlug($file['name']);
+            $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $seoFilename = $slug . '-' . $publicToken . '.' . $extension;
+
             $media = Media::create([
                 'tenant_id'    => $tenantId,
                 'user_id'      => $userId,
                 'folder_id'    => $folderId,
                 'disk'         => $diskName, // Usar el disco determinado (media o local)
                 'path'         => $relativePath,
-                'public_token' => Media::generatePublicToken(), // Token seguro para URL pública
+                'public_token' => $publicToken, // Token seguro para URL pública
+                'slug'         => $slug, // Slug SEO-friendly del nombre
+                'seo_filename' => $seoFilename, // Filename completo para URL SEO
                 'filename'     => $file['name'],
                 'mime_type'    => $file['type'],
                 'size'         => $file['size'],

@@ -230,15 +230,18 @@
 
 
 // 12 Pop Up Img (incluye enlaces con data-lightbox o clase .lightbox)
-    var popUp = $('.single_gallery_part, .img-pop-up, a[data-lightbox], a.lightbox').not('.md-mfp-bound');
-    if(popUp.length){
-      popUp.magnificPopup({
-        type: 'image',
-        gallery:{
-          enabled:true
-        }
-      });
-      popUp.addClass('md-mfp-bound');
+    // Evitar doble lightbox si otro plugin (lightbox.js) ya está presente
+    if (!(window.lightbox || window.musedockGalleryLightbox)) {
+      var popUp = $('.single_gallery_part, .img-pop-up, a[data-lightbox]:not([data-lightbox^="gallery-"]), a.lightbox').not('.md-mfp-bound');
+      if(popUp.length){
+        popUp.magnificPopup({
+          type: 'image',
+          gallery:{
+            enabled:true
+          }
+        });
+        popUp.addClass('md-mfp-bound');
+      }
     }
 
 

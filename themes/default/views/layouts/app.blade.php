@@ -1213,11 +1213,12 @@ if (header && header.classList.contains('enable-sticky')) {
 <script>
 // Forzar lightbox en enlaces con data-lightbox o clase .lightbox aunque no haya galería previa
 document.addEventListener('DOMContentLoaded', function() {
-    if (typeof jQuery === 'undefined' || !jQuery.fn.magnificPopup) {
+    // Si ya existe lightbox.js (galleries) no aplicar Magnific para evitar duplicados
+    if (typeof jQuery === 'undefined' || !jQuery.fn.magnificPopup || window.lightbox || window.musedockGalleryLightbox) {
         return;
     }
     var $ = jQuery;
-    var $links = $('a[data-lightbox], a.lightbox').not('.md-mfp-bound');
+    var $links = $('a[data-lightbox]:not([data-lightbox^="gallery-"]), a.lightbox').not('.md-mfp-bound');
     if ($links.length) {
         $links.magnificPopup({
             type: 'image',

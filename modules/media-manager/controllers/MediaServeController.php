@@ -162,6 +162,106 @@ class MediaServeController
     }
 
     /**
+     * Sirve un archivo de media por su URL SEO-friendly (MÉTODO RECOMENDADO PARA SEO)
+     * URL: /media/p/{folder-slug}/{seo-filename}
+     * Ejemplo: /media/p/galeria/mi-imagen-aBcD1234EfGh5678.jpg
+     *
+     * Este método combina:
+     * - SEO: URLs descriptivas que Google puede indexar
+     * - Seguridad: El token en el filename impide enumerar archivos
+     * - Compatibilidad: Funciona con storage local y CDN
+     *
+     * @param string $path Path completo incluyendo folder y seo_filename
+     */
+    public function serveBySeoUrl($path = '')
+    {
+        try {
+            // Sanitizar path
+            $path = $this->sanitizePath($path);
+
+            if (empty($path)) {
+                return $this->notFound('Archivo no especificado');
+            }
+
+            // Extraer el seo_filename (última parte del path)
+            $parts = explode('/', $path);
+            $seoFilename = end($parts);
+
+            if (empty($seoFilename)) {
+                return $this->notFound('Nombre de archivo no especificado');
+            }
+
+            // Buscar el media por su seo_filename (extrae el token internamente)
+            $media = Media::findBySeoFilename($seoFilename);
+
+            if (!$media) {
+                // Fallback: intentar extraer token directamente del filename
+                // Formato esperado: {slug}-{token}.{ext}
+                if (preg_match('/^(.+)-([a-zA-Z0-9]{16,32})\.(\w+)$/', $seoFilename, $matches)) {
+                    $token = $matches[2];
+                    $media = Media::findByToken($token);
+                }
+            }
+
+            if (!$media) {
+                Logger::warning('MediaServe: SEO filename no encontrado', [
+                    'path' => $path,
+                    'seo_filename' => $seoFilename
+                ]);
+                return $this->notFound('Archivo no encontrado');
+            }
+
+            // Verificar que el path de carpeta coincide (si se especificó)
+            if (count($parts) > 1) {
+                $folderPath = implode('/', array_slice($parts, 0, -1));
+
+                // Obtener el folder del media
+                $expectedFolderSlug = '';
+                if ($media->folder_id) {
+                    $folder = $media->folder();
+                    if ($folder && $folder->slug && $folder->slug !== 'root') {
+                        $expectedFolderSlug = $folder->slug;
+                    }
+                }
+
+                // Si el folder path no coincide, es un intento de acceso inválido
+                // (pero permitimos acceso sin folder para compatibilidad)
+                if (!empty($folderPath) && $folderPath !== $expectedFolderSlug) {
+                    // Log pero permitir acceso (el token valida la autenticidad)
+                    Logger::info('MediaServe: Folder path no coincide', [
+                        'expected' => $expectedFolderSlug,
+                        'received' => $folderPath,
+                        'media_id' => $media->id
+                    ]);
+                }
+            }
+
+            // Si el archivo está en el disco 'media' (sistema seguro local)
+            if ($media->disk === 'media') {
+                return $this->serve($media->path);
+            }
+
+            // Si está en CDN (r2, s3), redirigir a la URL del CDN
+            if (in_array($media->disk, ['r2', 's3'])) {
+                $cdnUrl = $media->getPublicUrl(false); // false = sin SEO, URL directa del CDN
+                header('Location: ' . $cdnUrl, true, 301);
+                header('Cache-Control: public, max-age=31536000, immutable');
+                exit;
+            }
+
+            // Si está en el disco 'local' (sistema legacy en /public/)
+            // Redirigir a la URL pública directa
+            $publicUrl = '/assets/uploads/' . $media->path;
+            header('Location: ' . $publicUrl, true, 301);
+            exit;
+
+        } catch (\Exception $e) {
+            Logger::exception($e, 'ERROR', ['source' => 'MediaServeController::serveBySeoUrl']);
+            return $this->notFound('Error al servir archivo');
+        }
+    }
+
+    /**
      * Sirve un archivo de media por su token público (MÉTODO SEGURO RECOMENDADO)
      * URL: /media/t/{token}
      *

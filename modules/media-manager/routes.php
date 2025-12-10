@@ -9,6 +9,11 @@ use Screenart\Musedock\Route;
 // Nueva ruta segura con token (imposible de enumerar)
 Route::get('media/t/{token}', 'MediaManager\Controllers\MediaServeController@serveByToken')->name('media.serve.token');
 
+// Nueva ruta SEO-friendly (segura + indexable por Google)
+// Formato: /media/p/{folder-slug}/{filename-slug}-{token}.{ext}
+// Ejemplo: /media/p/galeria/mi-imagen-aBcD1234EfGh5678.jpg
+Route::get('media/p/{path:.*}', 'MediaManager\Controllers\MediaServeController@serveBySeoUrl')->name('media.serve.seo');
+
 // Rutas legacy (mantener por compatibilidad, pero deprecadas)
 Route::get('media/file/{path:.*}', 'MediaManager\Controllers\MediaServeController@serve')->name('media.serve');
 Route::get('media/id/{id}', 'MediaManager\Controllers\MediaServeController@serveById')->name('media.serve.id');
