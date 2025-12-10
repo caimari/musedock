@@ -35,6 +35,15 @@
     @if(!empty($translation->seo_image))
         <meta property="og:image" content="{{ $translation->seo_image }}" />
     @endif
+    @if(isset($post) && !empty($translation->featured_image))
+        @php
+            // Si la URL ya empieza con /media/ o es absoluta (http), usarla directamente
+            $ogImageUrl = (str_starts_with($translation->featured_image, '/media/') || str_starts_with($translation->featured_image, 'http'))
+                ? $translation->featured_image
+                : asset($translation->featured_image);
+        @endphp
+        <meta property="og:image" content="{{ $ogImageUrl }}" />
+    @endif
     {{-- Twitter Cards (Ejemplo básico) --}}
     <meta name="twitter:card" content="summary_large_image"> {{-- O 'summary' --}}
     @if(!empty($translation->twitter_title))
@@ -57,53 +66,75 @@
 
 @section('content')
 
-{{-- Depuración: Valores de las variables --}}
-<!-- 
-DEBUG: 
-show_slider: {{ var_export($customizations->show_slider, true) }}
-hide_title: {{ var_export($customizations->hide_title, true) }}
-is_homepage: {{ var_export($page->is_homepage, true) }}
--->
-
-{{-- Verificar si se debe mostrar la cabecera para esta página --}}
-@if($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")
-<!-- Cabecera Area Start-->
-<div class="slider-area">
-    <div class="single-slider slider-height2 d-flex align-items-center" 
-         data-background="{{ asset($customizations->slider_image ? $customizations->slider_image : 'themes/default/img/hero/contact_hero.jpg') }}">
-        <div class="container">
-            <div class="row">
-                <div class="col-xl-12">
-                    <div class="hero-cap text-center">
-                        <h2>{{ $customizations->slider_title ?? $translation->title }}</h2>
-                        @if(!empty($customizations->slider_content))
-                        <div class="hero-subtitle mt-3">
-                            {!! $customizations->slider_content !!}
+{{-- El slider/cabecera solo se muestra para páginas, no para posts de blog --}}
+@if(!isset($post) && isset($customizations))
+    {{-- Verificar si se debe mostrar la cabecera para esta página --}}
+    @if($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")
+    <!-- Cabecera Area Start-->
+    <div class="slider-area">
+        <div class="single-slider slider-height2 d-flex align-items-center"
+             data-background="{{ asset($customizations->slider_image ? $customizations->slider_image : 'themes/default/img/hero/contact_hero.jpg') }}">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-12">
+                        <div class="hero-cap text-center">
+                            <h2>{{ $customizations->slider_title ?? $translation->title }}</h2>
+                            @if(!empty($customizations->slider_content))
+                            <div class="hero-subtitle mt-3">
+                                {!! $customizations->slider_content !!}
+                            </div>
+                            @endif
                         </div>
-                        @endif
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-<!-- Cabecera Area End-->
-@else
-<!-- La cabecera NO se mostrará porque show_slider es: {{ var_export($customizations->show_slider, true) }} -->
+    <!-- Cabecera Area End-->
+    @endif
 @endif
 
 {{-- Contenido principal de la página --}}
-<div class="{{ $customizations->container_class ?? 'container py-4 page-container' }}">
-    <article class="{{ $customizations->content_class ?? 'page-content-wrapper' }}">
-        {{-- Mostrar el título solo si NO está oculto Y no es la página de inicio --}}
-        @if($customizations->hide_title !== true && !$page->is_homepage)
-            <h1 class="page-title">{{ $translation->title ?? '' }}</h1>
-        @endif
+<div class="{{ isset($post) ? 'container py-4' : ((isset($customizations) ? $customizations->container_class : null) ?? 'container py-4 page-container') }}">
+    <article class="{{ isset($post) ? 'blog-post-single' : ((isset($customizations) ? $customizations->content_class : null) ?? 'page-content-wrapper') }}">
+        @if(isset($post))
+            {{-- Es un post de blog - mostrar imagen destacada si no está oculta --}}
+            @if($translation->featured_image && !$post->hide_featured_image)
+            <div class="featured-image mb-4">
+                @php
+                    // Si la URL ya empieza con /media/ o es absoluta (http), usarla directamente
+                    $imageUrl = (str_starts_with($translation->featured_image, '/media/') || str_starts_with($translation->featured_image, 'http'))
+                        ? $translation->featured_image
+                        : asset($translation->featured_image);
+                @endphp
+                <img src="{{ $imageUrl }}" alt="{{ $translation->title }}" class="img-fluid rounded">
+            </div>
+            @endif
 
-        {{-- Renderizar el contenido HTML con filtros aplicados (shortcodes, etc.) --}}
-        <div class="page-body">
-             {!! apply_filters('the_content', $translation->content ?? '<p class="text-muted">Contenido no disponible.</p>') !!}
-        </div>
+            {{-- Título del post --}}
+            <h1 class="post-title mb-3">{{ $translation->title }}</h1>
+
+            {{-- Meta información del post --}}
+            <div class="post-meta mb-4 text-muted">
+                <span><i class="far fa-calendar"></i> {{ date('d/m/Y', strtotime($translation->published_at)) }}</span>
+            </div>
+
+            {{-- Contenido del post --}}
+            <div class="post-content">
+                {!! $translation->content ?? '<p class="text-muted">Contenido no disponible.</p>' !!}
+            </div>
+        @else
+            {{-- Es una página --}}
+            {{-- Mostrar el título solo si NO está oculto Y no es la página de inicio --}}
+            @if(isset($customizations) && $customizations->hide_title !== true && isset($page) && !$page->is_homepage)
+                <h1 class="page-title">{{ $translation->title ?? '' }}</h1>
+            @endif
+
+            {{-- Renderizar el contenido HTML con filtros aplicados (shortcodes, etc.) --}}
+            <div class="page-body">
+                 {!! apply_filters('the_content', $translation->content ?? '<p class="text-muted">Contenido no disponible.</p>') !!}
+            </div>
+        @endif
     </article>
 </div>
 @endsection

@@ -85,6 +85,15 @@ class SuperadminMenuSeeder
                 'is_active' => 1
             ],
             [
+                'title' => 'Plugins',
+                'slug' => 'plugins',
+                'url' => '{admin_path}/plugins',
+                'icon' => 'bi-plug',
+                'icon_type' => 'bi',
+                'order_position' => 8,
+                'is_active' => 1
+            ],
+            [
                 'title' => 'IA',
                 'slug' => 'ai',
                 'url' => '#',

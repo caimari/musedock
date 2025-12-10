@@ -140,4 +140,23 @@ if (blog_is_active()) {
 }
 */
 
+// Cargar traducciones del módulo
+if (blog_is_active()) {
+    $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? 'es');
+    $langFile = __DIR__ . '/lang/' . $currentLang . '.php';
+
+    if (file_exists($langFile)) {
+        $translations = require $langFile;
+        // Registrar traducciones bajo el namespace 'blog'
+        if (!isset($GLOBALS['translations'])) {
+            $GLOBALS['translations'] = [];
+        }
+        if (!isset($GLOBALS['translations'][$currentLang])) {
+            $GLOBALS['translations'][$currentLang] = [];
+        }
+        $GLOBALS['translations'][$currentLang]['blog'] = $translations;
+        Logger::debug("BLOG BOOTSTRAP: Traducciones cargadas para idioma {$currentLang}");
+    }
+}
+
 Logger::debug("BLOG BOOTSTRAP: Completado");

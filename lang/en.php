@@ -144,6 +144,8 @@ return [
     'blog.post.published_immediately' => 'Leave empty to publish immediately.',
     'blog.post.select_multiple' => 'Hold Ctrl (Cmd on Mac) to select multiple.',
     'blog.post.image_load_error' => 'Could not load image',
+    'blog.post.template' => 'Template',
+    'blog.post.template_help' => 'Select the layout template for this post.',
 
     // Blog - Categories
     'blog.categories' => 'Categories',
@@ -226,4 +228,30 @@ return [
     'blog.delete.confirm_delete_category' => 'This action will permanently delete the category <strong>":name"</strong> and cannot be undone.',
     'blog.delete.confirm_delete_tag' => 'This action will permanently delete the tag <strong>":name"</strong> and cannot be undone.',
     'blog.delete.form_not_found' => 'Delete form not found. Please reload the page.',
+
+    // Blog - Frontend Public
+    'blog.title' => 'Blog',
+    'blog.recent_posts' => 'Recent Posts',
+    'blog.view_all' => 'View All',
+    'blog.read_more' => 'Read More',
+    'blog.no_posts' => 'No posts published yet.',
+    'blog.no_posts_category' => 'No posts in this category.',
+    'blog.back_to_all' => 'Back to All Posts',
+    'blog.published_on' => 'Published on',
+    'blog.categories' => 'Categories',
+
+    // Blog - Frontend Widgets
+    'blog.popular_posts' => 'Popular Posts',
+    'blog.search' => 'Search',
+    'blog.search_placeholder' => 'Search posts...',
+    'blog.archives' => 'Archives',
+    'blog.tags' => 'Tags',
+    'blog.share' => 'Share',
+    'blog.related_posts' => 'Related Posts',
+    'blog.posted_in' => 'Posted in',
+    'blog.tagged' => 'Tagged',
+    'blog.by' => 'by',
+    'blog.comments' => 'Comments',
+    'blog.no_comments' => 'No comments yet.',
+    'blog.leave_comment' => 'Leave a Comment',
 ];

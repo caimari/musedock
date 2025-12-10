@@ -182,16 +182,33 @@
             <div class="card-body">
               <div class="mb-3">
                 <label for="featured_image" class="form-label">{{ __('blog.post.image_url') }}</label>
-                <input type="text" class="form-control @error('featured_image') is-invalid @enderror" name="featured_image" id="featured_image" value="{{ old('featured_image', $post->featured_image) }}" placeholder="{{ __('blog.post.image_placeholder') }}">
-                @error('featured_image')
-                  <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-                <small class="text-muted">{{ __('blog.post.image_help') }}</small>
+                <div class="input-group">
+                  <input type="text" class="form-control @error('featured_image') is-invalid @enderror" name="featured_image" id="featured_image" value="{{ old('featured_image', $post->featured_image) }}" placeholder="{{ __('blog.post.image_placeholder') }}">
+                  <button type="button" class="btn btn-outline-primary" id="select-featured-image-btn">
+                    <i class="bi bi-image"></i> {{ __('blog.post.select_image') }}
+                  </button>
+                  @error('featured_image')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                  @enderror
+                </div>
+                <small class="text-muted d-block mt-1">{{ __('blog.post.image_help') }}</small>
+                <small class="text-info d-block mt-1">
+                  <i class="bi bi-info-circle"></i> {{ __('blog.post.recommended_resolution') }}
+                </small>
               </div>
               <div id="featured-image-preview" class="mt-2">
                 @if($post->featured_image)
-                  <img src="{{ $post->featured_image }}" class="img-fluid rounded" alt="Preview">
+                  <img src="{{ $post->featured_image }}" class="img-fluid rounded" alt="Preview" style="max-height: 200px; object-fit: cover;">
                 @endif
+              </div>
+
+              {{-- Checkbox para ocultar imagen --}}
+              <div class="form-check form-switch mt-3">
+                <input class="form-check-input" type="checkbox" value="1" id="hide_featured_image" name="hide_featured_image" @checked(old('hide_featured_image', $post->hide_featured_image))>
+                <label class="form-check-label" for="hide_featured_image">
+                  {{ __('blog.post.hide_featured_image') }}
+                </label>
+                <small class="text-muted d-block">{{ __('blog.post.hide_featured_image_help') }}</small>
               </div>
             </div>
           </div>
@@ -214,6 +231,24 @@
                 <label class="form-check-label" for="allow_comments">
                   {{ __('blog.post.allow_comments') }}
                 </label>
+              </div>
+            </div>
+          </div>
+
+          {{-- Card Plantilla --}}
+          <div class="card mb-4">
+            <div class="card-header"><strong>{{ __('blog.post.template') }}</strong></div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label for="template_select" class="form-label">{{ __('blog.post.template') }}</label>
+                <select class="form-select" id="template_select" name="template">
+                  @foreach ($availableTemplates as $filename => $displayName)
+                    <option value="{{ $filename }}" @if(old('template', $currentTemplate) === $filename) selected @endif>
+                      {{ $displayName }}
+                    </option>
+                  @endforeach
+                </select>
+                <small class="text-muted">{{ __('blog.post.template_help') }}</small>
               </div>
             </div>
           </div>
@@ -388,9 +423,38 @@
           featuredImageInput.addEventListener('input', function() {
             const url = this.value.trim();
             if (url) {
-              featuredImagePreview.innerHTML = `<img src="${url}" class="img-fluid rounded" alt="Preview" onerror="this.parentElement.innerHTML='<p class=text-danger>No se pudo cargar la imagen</p>'">`;
+              featuredImagePreview.innerHTML = `<img src="${url}" class="img-fluid rounded" alt="Preview" style="max-height: 200px; object-fit: cover;" onerror="this.parentElement.innerHTML='<p class=text-danger><i class=bi bi-exclamation-triangle></i> No se pudo cargar la imagen</p>'">`;
             } else {
               featuredImagePreview.innerHTML = '';
+            }
+          });
+        }
+
+        // Botón para abrir el gestor de medios
+        const selectFeaturedImageBtn = document.getElementById('select-featured-image-btn');
+        if (selectFeaturedImageBtn) {
+          selectFeaturedImageBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Botón del gestor de medios clickeado');
+            console.log('window.openMediaManagerForTinyMCE disponible:', typeof window.openMediaManagerForTinyMCE);
+
+            // Verificar si el Media Manager está disponible en el momento del clic
+            if (typeof window.openMediaManagerForTinyMCE === 'function') {
+              console.log('Abriendo Media Manager...');
+              window.openMediaManagerForTinyMCE(function(url, meta) {
+                console.log('Imagen seleccionada:', url);
+                // Callback cuando se selecciona una imagen
+                if (featuredImageInput) {
+                  featuredImageInput.value = url;
+                  // Disparar evento input para actualizar el preview
+                  featuredImageInput.dispatchEvent(new Event('input'));
+                }
+              }, featuredImageInput.value, { filetype: 'image' });
+            } else {
+              // Mostrar alerta si el Media Manager no está disponible
+              console.error('window.openMediaManagerForTinyMCE no está disponible');
+              console.log('Funciones disponibles en window:', Object.keys(window).filter(k => k.includes('Media') || k.includes('media')));
+              alert('El gestor de medios aún no está disponible. Por favor, recarga la página e intenta de nuevo.');
             }
           });
         }

@@ -239,7 +239,18 @@
       "error_move_to_trash": "Error moving to trash",
       "error_update": "Error updating post",
       "error_delete": "Error deleting post",
-      "error_save_translation": "An error occurred while saving the translation"
+      "error_save_translation": "An error occurred while saving the translation",
+      "template": "Template",
+      "template_help": "Select the design template for this post",
+      "language": "Language",
+      "view_post": "View post",
+      "select_image": "Select image",
+      "recommended_resolution": "Recommended resolution: 1200x630px. This image is used as the post header and in article listings.",
+      "hide_featured_image": "Hide featured image on blog",
+      "hide_featured_image_help": "If checked, the image will not be displayed in the listing or individual post"
+    },
+    "bulk": {
+      "actions": "Bulk actions"
     },
     "category": {
       "title": "Categories",
@@ -314,7 +325,29 @@
       "error_tenant_not_identified": "Could not identify tenant",
       "error_update": "Error updating tag",
       "error_delete": "Error deleting tag"
-    }
+    },
+    "title": "Blog",
+    "recent_posts": "Recent Posts",
+    "view_all": "View All",
+    "read_more": "Read More",
+    "no_posts": "No posts published yet.",
+    "no_posts_category": "No posts in this category.",
+    "back_to_all": "Back to All Posts",
+    "published_on": "Published on",
+    "categories": "Categories",
+    "popular_posts": "Popular Posts",
+    "search": "Search",
+    "search_placeholder": "Search posts...",
+    "archives": "Archives",
+    "tags": "Tags",
+    "share": "Share",
+    "related_posts": "Related Posts",
+    "posted_in": "Posted in",
+    "tagged": "Tagged",
+    "by": "by",
+    "comments": "Comments",
+    "no_comments": "No comments yet.",
+    "leave_comment": "Leave a Comment"
   },
 
   "users": {

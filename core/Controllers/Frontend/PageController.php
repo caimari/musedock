@@ -47,8 +47,9 @@ class PageController
         // Verificar visibilidad y permisos
         if (!$this->canUserViewPage($page)) {
             http_response_code(403);
-            echo "No tienes permiso para ver esta página.";
-            return;
+            return View::renderTheme('403', [
+                'page' => $page
+            ]);
         }
         
         // Detectar idioma y cargar traducción
@@ -180,8 +181,9 @@ class PageController
         // Verificar visibilidad y permisos
         if (!$this->canUserViewPage($page)) {
             http_response_code(403);
-            echo "No tienes permiso para ver esta página.";
-            return;
+            return View::renderTheme('403', [
+                'page' => $page
+            ]);
         }
 
         // Detectar idioma y cargar traducción
@@ -545,14 +547,14 @@ class PageController
             return true;
         }
         
-        // Si la página es privada, verificar si el usuario actual es el creador
+        // Si la página es privada, verificar permisos
         if ($page->visibility === 'private') {
-            // Si es super_admin
-            if (isset($_SESSION['super_admin']) && $page->user_type === 'superadmin' && $page->user_id == $_SESSION['super_admin']['id']) {
+            // TODOS los super_admin pueden ver páginas privadas
+            if (isset($_SESSION['super_admin'])) {
                 return true;
             }
-            
-            // Si es usuario normal
+
+            // Si es usuario normal, solo puede ver si es el creador
             if (isset($_SESSION['user']) && $page->user_type === 'user' && $page->user_id == $_SESSION['user']['id']) {
                 return true;
             }

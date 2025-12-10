@@ -30,6 +30,7 @@ class BlogPost extends Model
         'excerpt',
         'content',
         'featured_image',
+        'hide_featured_image',
         'status',
         'visibility',
         'password',
@@ -39,6 +40,7 @@ class BlogPost extends Model
         'comment_count',
         'view_count',
         'featured',
+        'template',
         // --- Campos SEO ---
         'seo_title',
         'seo_description',
@@ -60,19 +62,20 @@ class BlogPost extends Model
      * Conversión de tipos para los atributos.
      */
     protected array $casts = [
-        'id'             => 'int',
-        'user_id'        => 'int',
-        'tenant_id'      => 'nullable',
-        'status'         => 'string',
-        'visibility'     => 'string',
-        'published_at'   => 'datetime',
-        'created_at'     => 'datetime',
-        'updated_at'     => 'datetime',
-        'allow_comments' => 'boolean',
-        'comment_count'  => 'int',
-        'view_count'     => 'int',
-        'featured'       => 'boolean',
-        'show_hero'      => 'boolean',
+        'id'                  => 'int',
+        'user_id'             => 'int',
+        'tenant_id'           => 'nullable',
+        'status'              => 'string',
+        'visibility'          => 'string',
+        'published_at'        => 'datetime',
+        'created_at'          => 'datetime',
+        'updated_at'          => 'datetime',
+        'allow_comments'      => 'boolean',
+        'comment_count'       => 'int',
+        'view_count'          => 'int',
+        'featured'            => 'boolean',
+        'hide_featured_image' => 'boolean',
+        'show_hero'           => 'boolean',
     ];
 
     /**

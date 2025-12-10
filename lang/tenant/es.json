@@ -239,7 +239,18 @@
       "error_move_to_trash": "Error al mover a papelera",
       "error_update": "Error al actualizar el post",
       "error_delete": "Error al eliminar el post",
-      "error_save_translation": "Ocurrió un error al guardar la traducción"
+      "error_save_translation": "Ocurrió un error al guardar la traducción",
+      "template": "Plantilla",
+      "template_help": "Selecciona la plantilla de diseño para este post",
+      "language": "Idioma",
+      "view_post": "Ver post",
+      "select_image": "Seleccionar imagen",
+      "recommended_resolution": "Resolución recomendada: 1200x630px. Esta imagen se utiliza como cabecera del post y en los listados de artículos.",
+      "hide_featured_image": "Ocultar imagen destacada en el blog",
+      "hide_featured_image_help": "Si está marcado, la imagen no se mostrará en el listado ni en el post individual"
+    },
+    "bulk": {
+      "actions": "Acciones masivas"
     },
     "category": {
       "title": "Categorías",
@@ -314,7 +325,27 @@
       "error_tenant_not_identified": "No se pudo identificar el tenant",
       "error_update": "Error al actualizar la etiqueta",
       "error_delete": "Error al eliminar la etiqueta"
-    }
+    },
+    "title": "Blog",
+    "recent_posts": "Artículos Recientes",
+    "view_all": "Ver Todos",
+    "read_more": "Leer Más",
+    "no_posts": "No hay artículos publicados.",
+    "no_posts_category": "No hay artículos en esta categoría.",
+    "back_to_all": "Volver a Todos los Artículos",
+    "published_on": "Publicado el",
+    "popular_posts": "Artículos Populares",
+    "search": "Buscar",
+    "search_placeholder": "Buscar artículos...",
+    "archives": "Archivo",
+    "share": "Compartir",
+    "related_posts": "Artículos Relacionados",
+    "posted_in": "Publicado en",
+    "tagged": "Etiquetado",
+    "by": "por",
+    "comments": "Comentarios",
+    "no_comments": "No hay comentarios todavía.",
+    "leave_comment": "Dejar un Comentario"
   },
 
   "users": {

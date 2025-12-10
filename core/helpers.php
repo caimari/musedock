@@ -1277,47 +1277,54 @@ if (!function_exists('get_page_templates')) {
         $templates = [];
         $themeSlug = setting('default_theme', 'default'); // Tema por defecto global
         $viewDir = 'views'; // Subdirectorio estándar para vistas dentro del tema
-        
+
+        // Plantillas excluidas (especiales, no para páginas normales)
+        $excludedTemplates = ['home.blade.php', 'search.blade.php', '403.blade.php', 'index.blade.php', 'category.blade.php', 'single.blade.php'];
+
         // Lógica Multi-Tenant (adaptada de tu View::renderTheme)
         $multiTenant = setting('multi_tenant_enabled', false);
         $tenant = tenant(); // Obtiene el tenant actual (si existe)
         $themeBasePath = null;
-        
+
         if ($multiTenant && $tenant && isset($tenant['id']) && isset($tenant['theme'])) {
             $tenantId = $tenant['id'];
             $themeSlug = $tenant['theme']; // Usa el tema del tenant
             // Ruta específica del tenant
             $themeBasePath = realpath(__DIR__ . "/../themes/tenant_{$tenantId}/{$themeSlug}/{$viewDir}");
         }
-        
+
         // Si no hay ruta de tenant o no existe, usar la ruta base del tema
         if (!$themeBasePath || !is_dir($themeBasePath)) {
             $themeBasePath = realpath(__DIR__ . "/../themes/{$themeSlug}/{$viewDir}");
         }
-        
+
         // Si ni siquiera la ruta base existe, retornar al menos las plantillas básicas
         if (!$themeBasePath || !is_dir($themeBasePath)) {
             error_log("Directorio de vistas no encontrado para el tema: {$themeSlug}");
             return [
-                'page.blade.php' => 'Plantilla Predeterminada',
-                'home.blade.php' => 'Plantilla de Inicio'
+                'page.blade.php' => 'Plantilla Predeterminada'
             ];
         }
-        
+
         // Añadir siempre la plantilla predeterminada
         $templates['page.blade.php'] = 'Plantilla Predeterminada';
-        
+
         // Buscar tanto los archivos template-*.blade.php como los *.blade.php generales
         $templateFiles = glob("{$themeBasePath}/template-*.blade.php");
         $regularFiles = glob("{$themeBasePath}/*.blade.php");
-        
+
         // Combinar ambos resultados
         $files = array_merge($templateFiles ?: [], $regularFiles ?: []);
-        
+
         if ($files) {
             foreach ($files as $file) {
                 $filename = basename($file);
-                
+
+                // Saltarse las plantillas excluidas (especiales)
+                if (in_array($filename, $excludedTemplates)) {
+                    continue;
+                }
+
                 // Saltarse las plantillas ya añadidas (como page.blade.php)
                 if (isset($templates[$filename])) {
                     continue;
@@ -1925,5 +1932,40 @@ if (!function_exists('cms_copyright')) {
         $yearRange = $createdYear == $currentYear ? $currentYear : "{$createdYear}-{$currentYear}";
 
         return "© {$yearRange}";
+    }
+}
+
+/**
+ * Obtiene las plantillas disponibles para blog posts del tema actual
+ *
+ * @return array Asociativo ['filename' => 'Display Name']
+ */
+if (!function_exists('get_blog_templates')) {
+    function get_blog_templates(): array
+    {
+        $templates = [];
+        $themeSlug = setting('default_theme', 'default');
+
+        // Plantillas excluidas (para listados, no para posts individuales)
+        $excludedTemplates = ['index', 'category', 'single'];
+
+        // Verificar si existen las plantillas de páginas en el tema principal
+        $mainViewsPath = realpath(__DIR__ . "/../themes/{$themeSlug}/views");
+        if ($mainViewsPath) {
+            // Plantilla predeterminada: página completa sin sidebar (igual que páginas)
+            if (file_exists("{$mainViewsPath}/page.blade.php")) {
+                $templates['page'] = 'Plantilla Predeterminada (Ancho Completo)';
+            }
+
+            // Plantillas con sidebar
+            if (file_exists("{$mainViewsPath}/template-sidebar-left.blade.php")) {
+                $templates['template-sidebar-left'] = 'Con Sidebar Izquierda';
+            }
+            if (file_exists("{$mainViewsPath}/template-sidebar-right.blade.php")) {
+                $templates['template-sidebar-right'] = 'Con Sidebar Derecha';
+            }
+        }
+
+        return $templates;
     }
 }

@@ -91,7 +91,7 @@
                 </div>
 
                 <div class="col-xl-2 col-lg-2 col-md-4 col-sm-5">
-                    <div class="single-footer-caption mb-50">
+                    <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterLogo ? '80px' : '0' }};">
                         @php
                             // Verificar si existe un menú para el área footer1
                             $pdo = \Screenart\Musedock\Database::connect();
@@ -136,7 +136,7 @@
                 </div>
 
                 <div class="col-xl-3 col-lg-3 col-md-4 col-sm-7">
-                    <div class="single-footer-caption mb-50">
+                    <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterLogo ? '80px' : '0' }};">
                         @php
                             // Verificar si existe un menú para el área footer2
                             $pdo = \Screenart\Musedock\Database::connect();
@@ -181,7 +181,7 @@
                 </div>
 
                 <div class="col-xl-3 col-lg-3 col-md-4 col-sm-5">
-                    <div class="single-footer-caption mb-50">
+                    <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterLogo ? '80px' : '0' }};">
                         @php
                             // Verificar si existe un menú para el área footer3
                             $pdo = \Screenart\Musedock\Database::connect();
@@ -227,10 +227,10 @@
                             <div class="footer-tittle">
                                 <h4>{{ setting('footer_col4_title', __('footer.contact')) }}</h4>
                                 <ul>
-                                    @if(setting('contact_phone'))<li><a href="tel:{{ setting('contact_phone') }}">{{ setting('contact_phone') }}</a></li>@endif
-                                    @if(setting('contact_email'))<li><a href="mailto:{{ setting('contact_email') }}">{{ setting('contact_email') }}</a></li>@endif
-                                    @if(setting('contact_address'))<li><a href="#">{{ setting('contact_address') }}</a></li>@endif
-                                    @if(setting('contact_whatsapp'))<li><a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', setting('contact_whatsapp')) }}"><i class="fab fa-whatsapp"></i> {{ setting('contact_whatsapp') }}</a></li>@endif
+                                    @if(setting('contact_phone'))<li><span>{{ setting('contact_phone') }}</span></li>@endif
+                                    @if(setting('contact_email'))<li><span>{{ setting('contact_email') }}</span></li>@endif
+                                    @if(setting('contact_address'))<li><span>{{ setting('contact_address') }}</span></li>@endif
+                                    @if(setting('contact_whatsapp'))<li><span><i class="fab fa-whatsapp"></i> {{ setting('contact_whatsapp') }}</span></li>@endif
                                 </ul>
                             </div>
                         @else

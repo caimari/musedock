@@ -129,6 +129,10 @@ class BlogPostController
         // Obtener todas las etiquetas disponibles
         $tags = BlogTag::whereNull('tenant_id')->orderBy('name', 'ASC')->get();
 
+        // Obtener plantillas disponibles
+        $availableTemplates = get_blog_templates();
+        $currentTemplate = 'single'; // Plantilla por defecto
+
         return View::renderSuperadmin('blog.posts.create', [
             'title' => 'Crear Post',
             'post'  => new BlogPost(),
@@ -136,6 +140,8 @@ class BlogPostController
             'tags' => $tags,
             'isNew' => true,
             'baseUrl' => $_SERVER['HTTP_HOST'],
+            'availableTemplates' => $availableTemplates,
+            'currentTemplate' => $currentTemplate,
         ]);
     }
 
@@ -156,6 +162,7 @@ class BlogPostController
         $data['show_hero'] = isset($data['show_hero']) ? 1 : 0;
         $data['allow_comments'] = isset($data['allow_comments']) ? 1 : 0;
         $data['featured'] = isset($data['featured']) ? 1 : 0;
+        $data['hide_featured_image'] = isset($data['hide_featured_image']) ? 1 : 0;
 
         // Manejo de visibilidad (con valor por defecto)
         $data['visibility'] = $data['visibility'] ?? 'public';
@@ -174,6 +181,12 @@ class BlogPostController
                 exit;
             }
             $data['featured_image'] = $uploadResult['path'];
+        } elseif (isset($data['featured_image']) && !empty($data['featured_image'])) {
+            // Si no hay archivo subido pero hay una URL en el campo (del gestor de medios), mantenerla
+            // El valor ya está en $data['featured_image'], no hacemos nada
+        } else {
+            // Si no hay archivo ni URL, establecer null
+            $data['featured_image'] = null;
         }
 
         // Procesar la subida de imagen hero si existe
@@ -351,6 +364,10 @@ class BlogPostController
         $postTags = $post->tags();
         $postTagIds = array_map(fn($tag) => $tag->id, $postTags);
 
+        // --- Obtener plantillas disponibles ---
+        $availableTemplates = get_blog_templates();
+        $currentTemplate = $post->template ?? 'single';
+
         // --- Renderizar vista ---
         return View::renderSuperadmin('blog.posts.edit', [
             'title'               => 'Editar post: ' . e($post->title),
@@ -361,6 +378,8 @@ class BlogPostController
             'categories'          => $allCategories,  // Cambio: la vista espera 'categories'
             'allCategories'       => $allCategories,
             'postCategoryIds'     => $postCategoryIds,
+            'availableTemplates'  => $availableTemplates,
+            'currentTemplate'     => $currentTemplate,
             'tags'                => $allTags,         // Cambio: la vista espera 'tags'
             'allTags'             => $allTags,
             'postTagIds'          => $postTagIds,
@@ -393,6 +412,7 @@ class BlogPostController
         $data['show_hero'] = isset($data['show_hero']) ? 1 : 0;
         $data['allow_comments'] = isset($data['allow_comments']) ? 1 : 0;
         $data['featured'] = isset($data['featured']) ? 1 : 0;
+        $data['hide_featured_image'] = isset($data['hide_featured_image']) ? 1 : 0;
 
         // Manejo de visibilidad
         $data['visibility'] = $data['visibility'] ?? 'public';
@@ -405,6 +425,7 @@ class BlogPostController
         // Procesar imagen destacada
         $currentFeaturedImage = $data['current_featured_image'] ?? null;
         $removeImage = $data['remove_featured_image'] ?? '0';
+        $featuredImageUrl = $data['featured_image'] ?? null; // URL del campo de texto (gestor de medios)
 
         // Eliminar estos campos para no guardarlos en la BD
         unset($data['current_featured_image'], $data['remove_featured_image']);
@@ -431,7 +452,9 @@ class BlogPostController
             }
             $data['featured_image'] = $uploadResult['path'];
         } elseif ($removeImage !== '1') {
-            $data['featured_image'] = $currentFeaturedImage;
+            // Si hay una URL en el campo de texto (del gestor de medios), usarla
+            // Si no, mantener la imagen actual
+            $data['featured_image'] = !empty($featuredImageUrl) ? $featuredImageUrl : $currentFeaturedImage;
         }
 
         // Procesar imagen hero de manera similar

@@ -141,6 +141,8 @@ return [
     'blog.post.published_immediately' => 'Dejar vacío para publicar inmediatamente.',
     'blog.post.select_multiple' => 'Mantén Ctrl (Cmd en Mac) para seleccionar múltiples.',
     'blog.post.image_load_error' => 'No se pudo cargar la imagen',
+    'blog.post.template' => 'Plantilla',
+    'blog.post.template_help' => 'Selecciona la plantilla de diseño para este post.',
 
     // Blog - Categories
     'blog.categories' => 'Categorías',
@@ -223,5 +225,31 @@ return [
     'blog.delete.confirm_delete_category' => 'Esta acción eliminará permanentemente la categoría <strong>":name"</strong> y no se puede deshacer.',
     'blog.delete.confirm_delete_tag' => 'Esta acción eliminará permanentemente la etiqueta <strong>":name"</strong> y no se puede deshacer.',
     'blog.delete.form_not_found' => 'No se encontró el formulario de eliminación. Recarga la página.',
+
+    // Blog - Frontend Public
+    'blog.title' => 'Blog',
+    'blog.recent_posts' => 'Artículos Recientes',
+    'blog.view_all' => 'Ver Todos',
+    'blog.read_more' => 'Leer Más',
+    'blog.no_posts' => 'No hay artículos publicados.',
+    'blog.no_posts_category' => 'No hay artículos en esta categoría.',
+    'blog.back_to_all' => 'Volver a Todos los Artículos',
+    'blog.published_on' => 'Publicado el',
+    'blog.categories' => 'Categorías',
+
+    // Blog - Frontend Widgets
+    'blog.popular_posts' => 'Artículos Populares',
+    'blog.search' => 'Buscar',
+    'blog.search_placeholder' => 'Buscar artículos...',
+    'blog.archives' => 'Archivo',
+    'blog.tags' => 'Etiquetas',
+    'blog.share' => 'Compartir',
+    'blog.related_posts' => 'Artículos Relacionados',
+    'blog.posted_in' => 'Publicado en',
+    'blog.tagged' => 'Etiquetado',
+    'blog.by' => 'por',
+    'blog.comments' => 'Comentarios',
+    'blog.no_comments' => 'No hay comentarios todavía.',
+    'blog.leave_comment' => 'Dejar un Comentario',
 
 ];

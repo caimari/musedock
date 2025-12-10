@@ -273,3 +273,17 @@ Route::delete("/{$adminPath}/blog/posts/{id}/force-delete", 'Blog\Controllers\Te
 Route::post("/{$adminPath}/blog/posts/{id}/autosave", 'Blog\Controllers\Tenant\BlogPostController@autosave')
     ->name('tenant.blog.posts.autosave')
     ->middleware('auth');
+
+// ========== FRONTEND PUBLIC BLOG ROUTES ==========
+
+// Listado de posts del blog
+Route::get('/blog', 'Blog\Controllers\Frontend\BlogController@index')
+    ->name('blog.index');
+
+// Post individual
+Route::get('/blog/{slug}', 'Blog\Controllers\Frontend\BlogController@show')
+    ->name('blog.show');
+
+// Posts por categoría
+Route::get('/blog/category/{slug}', 'Blog\Controllers\Frontend\BlogController@category')
+    ->name('blog.category');

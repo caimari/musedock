@@ -46,6 +46,12 @@
 
 <div class="container py-4 page-with-sidebar">
     <div class="row">
+        {{-- Sidebar izquierda --}}
+        <div class="col-md-4 col-lg-3">
+            {{-- Sidebar parcial (si existe) --}}
+            @include('partials.sidebar')
+        </div>
+
         {{-- Contenido principal --}}
         <div class="col-md-8 col-lg-9">
             <article class="@if(isset($post)) blog-post-single @else page-content-wrapper @endif">
@@ -76,12 +82,6 @@
                     {!! $translation->content ?? '<p class="text-muted">Contenido no disponible.</p>' !!}
                 </div>
             </article>
-        </div>
-
-        {{-- Sidebar derecha --}}
-        <div class="col-md-4 col-lg-3">
-            {{-- Sidebar parcial (si existe) --}}
-            @include('partials.sidebar')
         </div>
     </div>
 </div>
