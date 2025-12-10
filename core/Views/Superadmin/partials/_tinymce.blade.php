@@ -530,6 +530,21 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                 });
             }
 
+            function deleteImageAndWrapper(node) {
+                if (!node) return false;
+                let removed = false;
+                if (node.nodeName === 'IMG') {
+                    const link = node.closest('a[data-lightbox]');
+                    if (link) {
+                        link.remove();
+                    } else {
+                        node.remove();
+                    }
+                    removed = true;
+                }
+                return removed;
+            }
+
             // Registrar menú contextual personalizado para imágenes
             editor.ui.registry.addContextMenu('customimage', {
                 update: function(element) {
@@ -649,10 +664,28 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                         iframeDoc.addEventListener('input', function() {
                             unwrapEmptyAnchors(iframeDoc);
                         });
+
+                        // También limpiar al perder/girar selección
+                        editor.on('NodeChange', function() {
+                            unwrapEmptyAnchors(iframeDoc);
+                        });
                     }
                 } catch (e) {
                     console.warn('No se pudo añadir listener de deselección:', e);
                 }
+
+                // Eliminar imagen (y wrapper lightbox) con Delete/Backspace cuando está seleccionada
+                editor.on('keydown', function(e) {
+                    if (e.key === 'Delete' || e.key === 'Backspace') {
+                        const node = editor.selection.getNode();
+                        if (deleteImageAndWrapper(node)) {
+                            e.preventDefault();
+                            editor.selection.collapse(true);
+                            editor.nodeChanged();
+                            return;
+                        }
+                    }
+                });
 
                 // Hacer visible el contenedor del editor
                 const container = editor.getContainer();
