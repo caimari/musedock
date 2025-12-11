@@ -100,7 +100,19 @@
         {{-- PERMISOS DIRECTOS (solo para admins y users, no superadmins) --}}
         @if ($type !== 'superadmin')
             <div class="mb-4">
-                <h5 class="mb-3">Permisos Directos</h5>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Permisos Directos</h5>
+                    @if(!empty($groupedPermissions))
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-success" id="btnSelectAllPerms">
+                                <i class="bi bi-check-all me-1"></i> Seleccionar todos
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="btnDeselectAllPerms">
+                                <i class="bi bi-x-lg me-1"></i> Deseleccionar todos
+                            </button>
+                        </div>
+                    @endif
+                </div>
                 <p class="text-muted small">Selecciona los permisos específicos para este usuario. Los permisos directos se agregan a los heredados de roles.</p>
 
                 @if(!empty($groupedPermissions))
@@ -259,6 +271,56 @@ function enablePasswordChange(button) {
         }
     });
 }
+
+// ========== SELECCIONAR / DESELECCIONAR TODOS LOS PERMISOS ==========
+document.addEventListener('DOMContentLoaded', function() {
+    const btnSelectAll = document.getElementById('btnSelectAllPerms');
+    const btnDeselectAll = document.getElementById('btnDeselectAllPerms');
+
+    if (btnSelectAll) {
+        btnSelectAll.addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('input[name="permissions[]"]');
+            checkboxes.forEach(cb => cb.checked = true);
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Permisos seleccionados',
+                text: `Se han seleccionado ${checkboxes.length} permisos.`,
+                confirmButtonColor: '#0d6efd',
+                timer: 1500,
+                timerProgressBar: true
+            });
+        });
+    }
+
+    if (btnDeselectAll) {
+        btnDeselectAll.addEventListener('click', function() {
+            Swal.fire({
+                title: '<i class="bi bi-question-circle text-warning"></i> Confirmar',
+                text: '¿Deseas deseleccionar todos los permisos?',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, deseleccionar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#6c757d',
+                cancelButtonColor: '#0d6efd'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const checkboxes = document.querySelectorAll('input[name="permissions[]"]');
+                    checkboxes.forEach(cb => cb.checked = false);
+
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Permisos deseleccionados',
+                        text: 'Se han deseleccionado todos los permisos.',
+                        confirmButtonColor: '#0d6efd',
+                        timer: 1500,
+                        timerProgressBar: true
+                    });
+                }
+            });
+        });
+    }
+});
 </script>
 @endpush
 
