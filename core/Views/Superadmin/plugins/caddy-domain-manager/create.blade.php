@@ -144,8 +144,12 @@
                         <a href="/musedock/domain-manager" class="btn btn-outline-secondary">
                             <i class="bi bi-x-lg"></i> Cancelar
                         </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-lg"></i> Crear Tenant
+                        <button type="submit" class="btn btn-primary" id="btnSubmit">
+                            <span class="btn-text"><i class="bi bi-check-lg"></i> Crear Tenant</span>
+                            <span class="btn-loading d-none">
+                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                Configurando dominio...
+                            </span>
                         </button>
                     </div>
                 </form>
@@ -183,6 +187,18 @@ function generatePassword() {
     document.getElementById('togglePasswordIcon').classList.remove('bi-eye');
     document.getElementById('togglePasswordIcon').classList.add('bi-eye-slash');
 }
+
+// Spinner en el botón de submit
+document.querySelector('form').addEventListener('submit', function(e) {
+    const btn = document.getElementById('btnSubmit');
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoading = btn.querySelector('.btn-loading');
+
+    // Mostrar spinner
+    btnText.classList.add('d-none');
+    btnLoading.classList.remove('d-none');
+    btn.disabled = true;
+});
 </script>
 @endpush
 

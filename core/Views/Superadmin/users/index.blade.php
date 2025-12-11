@@ -80,7 +80,12 @@
                             @if($multiTenantEnabled)
                                 <td>Global</td>
                             @endif
-                            <td>{{ $user['created_at'] ?? '-' }}</td>
+                            <td>
+                                @php
+                                    $createdAt = !empty($user['created_at']) ? new DateTime($user['created_at']) : null;
+                                @endphp
+                                {{ $createdAt ? $createdAt->format($dateFormat . ' ' . $timeFormat) : '-' }}
+                            </td>
                             <td>
                                 <a href="/musedock/users/{{ $user['id'] }}/edit?type=superadmin" class="btn btn-sm btn-outline-secondary">Editar</a>
                             </td>
@@ -128,7 +133,12 @@
                                     Global
                                 @endif
                             </td>
-                            <td>{{ $user['created_at'] ?? '-' }}</td>
+                            <td>
+                                @php
+                                    $createdAt = !empty($user['created_at']) ? new DateTime($user['created_at']) : null;
+                                @endphp
+                                {{ $createdAt ? $createdAt->format($dateFormat . ' ' . $timeFormat) : '-' }}
+                            </td>
                             <td class="d-flex gap-2">
                                 <a href="/musedock/users/{{ $user['id'] }}/edit?type=admin" class="btn btn-sm btn-outline-secondary">Editar</a>
 
@@ -183,7 +193,12 @@
                                     Global
                                 @endif
                             </td>
-                            <td>{{ $user['created_at'] ?? '-' }}</td>
+                            <td>
+                                @php
+                                    $createdAt = !empty($user['created_at']) ? new DateTime($user['created_at']) : null;
+                                @endphp
+                                {{ $createdAt ? $createdAt->format($dateFormat . ' ' . $timeFormat) : '-' }}
+                            </td>
                             <td class="d-flex gap-2">
                                 <a href="/musedock/users/{{ $user['id'] }}/edit?type=user" class="btn btn-sm btn-outline-secondary">Editar</a>
 

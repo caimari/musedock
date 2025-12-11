@@ -70,11 +70,17 @@ class UsersController
             return $item;
         }, $users);
 
+        // Obtener formatos de fecha y hora de las preferencias del sistema
+        $dateFormat = setting('date_format', 'd/m/Y');
+        $timeFormat = setting('time_format', 'H:i');
+
         return View::renderSuperadmin('users.index', [
             'title' => 'Usuarios del sistema',
             'superAdmins' => $superAdmins,
             'admins' => $admins,
-            'users' => $users
+            'users' => $users,
+            'dateFormat' => $dateFormat,
+            'timeFormat' => $timeFormat
         ]);
     }
    public function edit($id)

@@ -29,7 +29,12 @@
                             <tr>
 							<td>{{ $tenant->name }}</td>
 							<td>{{ $tenant->domain }}</td>
-							<td>{{ $tenant->created_at }}</td>
+							<td>
+                                @php
+                                    $createdAt = $tenant->created_at ? new DateTime($tenant->created_at) : null;
+                                @endphp
+                                {{ $createdAt ? $createdAt->format($dateFormat . ' ' . $timeFormat) : '-' }}
+                            </td>
 							<td class="d-flex gap-1">
 								<a href="/musedock/tenants/{{ $tenant->id }}/edit" class="btn btn-sm btn-warning">
 									<i class="bi bi-pencil"></i> {{ __('common.edit') }}

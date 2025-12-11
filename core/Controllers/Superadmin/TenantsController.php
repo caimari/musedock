@@ -60,9 +60,15 @@ class TenantsController
 
         $tenants = Database::table('tenants')->get();
 
+        // Obtener formatos de fecha y hora de las preferencias del sistema
+        $dateFormat = setting('date_format', 'd/m/Y');
+        $timeFormat = setting('time_format', 'H:i');
+
         return View::renderSuperadmin('tenants.index', [
             'title' => __('tenants_title') ?? 'Tenants',
-            'tenants' => $tenants
+            'tenants' => $tenants,
+            'dateFormat' => $dateFormat,
+            'timeFormat' => $timeFormat
         ]);
     }
 

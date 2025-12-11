@@ -81,8 +81,12 @@
                                 <a href="/musedock/domain-manager" class="btn btn-outline-secondary">
                                     <i class="bi bi-x-lg"></i> Cancelar
                                 </a>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="bi bi-check-lg"></i> Guardar Cambios
+                                <button type="submit" class="btn btn-primary" id="btnSubmit">
+                                    <span class="btn-text"><i class="bi bi-check-lg"></i> Guardar Cambios</span>
+                                    <span class="btn-loading d-none">
+                                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                        Guardando...
+                                    </span>
                                 </button>
                             </div>
                         </form>
@@ -143,11 +147,18 @@
                         @if($caddyApiAvailable)
                             <hr>
                             <div class="d-grid gap-2">
-                                <button type="button" class="btn btn-outline-info btn-sm" onclick="checkStatus()">
-                                    <i class="bi bi-arrow-clockwise"></i> Verificar Estado
+                                <button type="button" class="btn btn-outline-info btn-sm" id="btnCheckStatus" onclick="checkStatus()">
+                                    <span class="btn-text"><i class="bi bi-arrow-clockwise"></i> Verificar Estado</span>
+                                    <span class="btn-loading d-none">
+                                        <span class="spinner-border spinner-border-sm" role="status"></span>
+                                    </span>
                                 </button>
-                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="reconfigure()">
-                                    <i class="bi bi-gear"></i> Reconfigurar en Caddy
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="btnReconfigure" onclick="reconfigure()">
+                                    <span class="btn-text"><i class="bi bi-gear"></i> Reconfigurar en Caddy</span>
+                                    <span class="btn-loading d-none">
+                                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                        Configurando...
+                                    </span>
                                 </button>
                             </div>
                         @endif
@@ -213,7 +224,31 @@
 <script>
 const statusModal = new bootstrap.Modal(document.getElementById('statusModal'));
 
+// Helper para toggle de spinner en botones
+function toggleBtnSpinner(btn, loading) {
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoading = btn.querySelector('.btn-loading');
+    if (loading) {
+        btnText.classList.add('d-none');
+        btnLoading.classList.remove('d-none');
+        btn.disabled = true;
+    } else {
+        btnText.classList.remove('d-none');
+        btnLoading.classList.add('d-none');
+        btn.disabled = false;
+    }
+}
+
+// Spinner en el formulario de guardar
+document.querySelector('form').addEventListener('submit', function(e) {
+    const btn = document.getElementById('btnSubmit');
+    toggleBtnSpinner(btn, true);
+});
+
 async function checkStatus() {
+    const btn = document.getElementById('btnCheckStatus');
+    toggleBtnSpinner(btn, true);
+
     document.getElementById('statusModalBody').innerHTML = `
         <div class="text-center py-4">
             <div class="spinner-border text-primary"></div>
@@ -264,11 +299,16 @@ async function checkStatus() {
                 <i class="bi bi-exclamation-circle"></i> Error de conexión
             </div>
         `;
+    } finally {
+        toggleBtnSpinner(btn, false);
     }
 }
 
 async function reconfigure() {
     if (!confirm('¿Reconfigurar este dominio en Caddy?')) return;
+
+    const btn = document.getElementById('btnReconfigure');
+    toggleBtnSpinner(btn, true);
 
     try {
         const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/reconfigure', {
@@ -284,9 +324,11 @@ async function reconfigure() {
             alert('Dominio reconfigurado correctamente');
             window.location.reload();
         } else {
+            toggleBtnSpinner(btn, false);
             alert('Error: ' + result.error);
         }
     } catch (error) {
+        toggleBtnSpinner(btn, false);
         alert('Error de conexión');
     }
 }
