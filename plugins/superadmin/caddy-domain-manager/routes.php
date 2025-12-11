@@ -67,6 +67,11 @@ Route::delete('/musedock/domain-manager/{id}', 'CaddyDomainManager\Controllers\D
     ->middleware('superadmin')
     ->name('superadmin.domain-manager.destroy');
 
+// Eliminar dominio con verificación de contraseña (AJAX)
+Route::post('/musedock/domain-manager/{id}/delete-secure', 'CaddyDomainManager\Controllers\DomainManagerController@destroyWithPassword')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.destroy.secure');
+
 // Reconfigurar en Caddy
 Route::post('/musedock/domain-manager/{id}/reconfigure', 'CaddyDomainManager\Controllers\DomainManagerController@reconfigure')
     ->middleware('superadmin')

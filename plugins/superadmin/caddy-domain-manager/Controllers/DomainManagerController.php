@@ -131,7 +131,7 @@ class DomainManagerController
         $this->checkPermission('tenants.manage');
 
         // Validar CSRF
-        if (!verify_csrf_token($_POST['_token'] ?? '')) {
+        if (!validate_csrf($_POST['_csrf'] ?? '')) {
             flash('error', 'Token de seguridad inválido.');
             header('Location: /musedock/domain-manager/create');
             exit;
@@ -255,7 +255,7 @@ class DomainManagerController
 
         // Obtener info de Caddy si existe route_id
         $caddyRouteInfo = null;
-        if ($tenant->caddy_route_id && $caddyApiAvailable) {
+        if (($tenant->caddy_route_id ?? null) && $caddyApiAvailable) {
             $caddyRouteInfo = $this->caddyService->getRoute($tenant->caddy_route_id);
         }
 
@@ -277,7 +277,7 @@ class DomainManagerController
         $this->checkPermission('tenants.manage');
 
         // Validar CSRF
-        if (!verify_csrf_token($_POST['_token'] ?? '')) {
+        if (!validate_csrf($_POST['_csrf'] ?? '')) {
             flash('error', 'Token de seguridad inválido.');
             header("Location: /musedock/domain-manager/{$id}/edit");
             exit;
@@ -316,8 +316,8 @@ class DomainManagerController
 
             // Si cambió include_www Y está configurado en Caddy, reconfigurar
             $needsCaddyUpdate = ($oldIncludeWww !== $newIncludeWww) &&
-                               $tenant->caddy_route_id &&
-                               in_array($tenant->caddy_status, ['active', 'error']);
+                               ($tenant->caddy_route_id ?? null) &&
+                               in_array($tenant->caddy_status ?? 'not_configured', ['active', 'error']);
 
             if ($needsCaddyUpdate && $this->caddyService->isApiAvailable()) {
                 // Primero eliminar la ruta antigua
@@ -372,7 +372,7 @@ class DomainManagerController
 
         try {
             // Intentar eliminar de Caddy primero si existe configuración
-            if ($tenant->caddy_route_id) {
+            if ($tenant->caddy_route_id ?? null) {
                 $caddyResult = $this->caddyService->removeDomain($tenant->caddy_route_id);
                 if (!$caddyResult['success']) {
                     // Guardar warning pero continuar con eliminación de BD
@@ -505,7 +505,7 @@ class DomainManagerController
         }
 
         // Si existe una ruta antigua, eliminarla primero
-        if ($tenant->caddy_route_id) {
+        if ($tenant->caddy_route_id ?? null) {
             $this->caddyService->removeDomain($tenant->caddy_route_id);
         }
 
@@ -552,7 +552,7 @@ class DomainManagerController
 
         // Verificar ruta en Caddy
         $routeExists = false;
-        if ($tenant->caddy_route_id) {
+        if ($tenant->caddy_route_id ?? null) {
             $routeExists = $this->caddyService->routeExists($tenant->caddy_route_id);
         }
 
@@ -827,6 +827,116 @@ class DomainManagerController
     {
         return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    }
+
+    /**
+     * Eliminar tenant con verificación de contraseña (AJAX)
+     */
+    public function destroyWithPassword($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        // Validar CSRF
+        $input = json_decode(file_get_contents('php://input'), true);
+        $csrfToken = $input['_csrf'] ?? $_POST['_csrf'] ?? '';
+
+        if (!validate_csrf($csrfToken)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido']);
+            exit;
+        }
+
+        $password = $input['password'] ?? $_POST['password'] ?? '';
+
+        if (empty($password)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'La contraseña es requerida']);
+            exit;
+        }
+
+        // Verificar contraseña del superadmin actual
+        $auth = $_SESSION['super_admin'] ?? null;
+        if (!$auth || empty($auth['id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Sesión no válida']);
+            exit;
+        }
+
+        // Obtener el hash de contraseña de la BD
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("SELECT password FROM super_admins WHERE id = ?");
+        $stmt->execute([$auth['id']]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$user || !password_verify($password, $user['password'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Contraseña incorrecta']);
+            exit;
+        }
+
+        // Proceder con la eliminación
+        $tenant = $this->getTenant($id);
+
+        if (!$tenant) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado']);
+            exit;
+        }
+
+        $caddyWarning = null;
+
+        try {
+            // Intentar eliminar de Caddy primero si existe configuración
+            if ($tenant->caddy_route_id ?? null) {
+                $caddyResult = $this->caddyService->removeDomain($tenant->caddy_route_id);
+                if (!$caddyResult['success']) {
+                    $caddyWarning = "La ruta '{$tenant->caddy_route_id}' podría seguir en Caddy.";
+                    Logger::log("[DomainManager] Warning eliminando de Caddy: " . ($caddyResult['error'] ?? 'Error desconocido'), 'WARNING');
+                } else {
+                    Logger::log("[DomainManager] Ruta eliminada de Caddy: {$tenant->caddy_route_id}", 'INFO');
+                }
+            }
+
+            // Eliminar tenant y datos relacionados de la BD
+            $pdo->beginTransaction();
+
+            try {
+                $pdo->prepare("DELETE FROM user_roles WHERE tenant_id = ?")->execute([$id]);
+                $pdo->prepare("DELETE FROM permissions WHERE tenant_id = ?")->execute([$id]);
+                $pdo->prepare("DELETE FROM roles WHERE tenant_id = ?")->execute([$id]);
+                $pdo->prepare("DELETE FROM admins WHERE tenant_id = ?")->execute([$id]);
+                $pdo->prepare("DELETE FROM tenants WHERE id = ?")->execute([$id]);
+
+                $pdo->commit();
+            } catch (\Exception $e) {
+                $pdo->rollBack();
+                throw $e;
+            }
+
+            Logger::log("[DomainManager] Tenant eliminado: {$tenant->domain} (ID: {$id})", 'INFO');
+
+            $message = "Tenant '{$tenant->name}' eliminado correctamente.";
+            if ($caddyWarning) {
+                $message .= " " . $caddyWarning;
+            }
+
+            echo json_encode([
+                'success' => true,
+                'message' => $message,
+                'caddy_warning' => $caddyWarning
+            ]);
+            exit;
+
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error eliminando tenant: " . $e->getMessage(), 'ERROR');
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Error al eliminar: ' . $e->getMessage()]);
+            exit;
+        }
     }
 
     /**

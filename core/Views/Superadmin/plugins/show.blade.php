@@ -4,14 +4,17 @@
 
 @section('content')
 <div class="container-fluid p-0">
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-3">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/musedock/dashboard">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="/musedock/plugins">Plugins</a></li>
-            <li class="breadcrumb-item active"><?= htmlspecialchars($plugin->name) ?></li>
-        </ol>
-    </nav>
+    <!-- Breadcrumb estilo sliders -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="breadcrumb mb-0">
+            <a href="/musedock/plugins">Plugins</a>
+            <span class="mx-2">/</span>
+            <span><?= htmlspecialchars($plugin->name) ?></span>
+        </div>
+        <a href="/musedock/plugins" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Volver al Listado
+        </a>
+    </div>
 
     <!-- Header -->
     <div class="row mb-4">
@@ -214,12 +217,11 @@
                 <div class="card-body">
                     <div class="d-grid gap-2">
                         <?php if ($plugin->is_active): ?>
-                            <form method="POST" action="/musedock/plugins/<?= $plugin->id ?>/deactivate">
-                                <?= csrf_field() ?>
-                                <button type="submit" class="btn btn-warning w-100" onclick="return confirm('¿Desactivar este plugin?')">
-                                    <i class="bi bi-pause-circle me-2"></i>Desactivar Plugin
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-warning w-100" id="btnDeactivatePlugin"
+                                    data-plugin-id="<?= $plugin->id ?>"
+                                    data-plugin-name="<?= htmlspecialchars($plugin->name) ?>">
+                                <i class="bi bi-pause-circle me-2"></i>Desactivar Plugin
+                            </button>
                         <?php else: ?>
                             <form method="POST" action="/musedock/plugins/<?= $plugin->id ?>/activate">
                                 <?= csrf_field() ?>
@@ -247,12 +249,11 @@
                         <p class="small text-muted mb-3">
                             Desinstalar este plugin eliminará todos sus datos y configuraciones.
                         </p>
-                        <form method="POST" action="/musedock/plugins/<?= $plugin->id ?>/uninstall">
-                            <?= csrf_field() ?>
-                            <button type="submit" class="btn btn-outline-danger btn-sm w-100" onclick="return confirm('¿Estás seguro de desinstalar este plugin? Esta acción no se puede deshacer.')">
-                                <i class="bi bi-trash me-2"></i>Desinstalar Plugin
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100" id="btnUninstallPlugin"
+                                data-plugin-id="<?= $plugin->id ?>"
+                                data-plugin-name="<?= htmlspecialchars($plugin->name) ?>">
+                            <i class="bi bi-trash me-2"></i>Desinstalar Plugin
+                        </button>
                     </div>
                 </div>
             <?php endif; ?>
@@ -260,3 +261,197 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = '<?= csrf_token() ?>';
+
+    // ========== DESACTIVAR PLUGIN con SweetAlert2 ==========
+    const btnDeactivate = document.getElementById('btnDeactivatePlugin');
+    if (btnDeactivate) {
+        btnDeactivate.addEventListener('click', function() {
+            const pluginId = this.dataset.pluginId;
+            const pluginName = this.dataset.pluginName;
+
+            Swal.fire({
+                title: '<i class="bi bi-shield-lock text-warning"></i> Confirmar Desactivación',
+                html: `
+                    <div class="text-start">
+                        <p class="mb-3">Estás a punto de desactivar el plugin <strong>${pluginName}</strong>.</p>
+                        <div class="alert alert-warning py-2 mb-3">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <small>El plugin dejará de funcionar pero permanecerá instalado.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Introduce tu contraseña para confirmar:</label>
+                            <input type="password" id="deactivatePassword" class="form-control" placeholder="Contraseña del superadmin" autocomplete="current-password">
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-pause-circle me-1"></i> Desactivar Plugin',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#ffc107',
+                cancelButtonColor: '#6c757d',
+                width: '450px',
+                focusConfirm: false,
+                didOpen: () => {
+                    document.getElementById('deactivatePassword').focus();
+                },
+                preConfirm: () => {
+                    const password = document.getElementById('deactivatePassword').value;
+                    if (!password) {
+                        Swal.showValidationMessage('La contraseña es requerida');
+                        return false;
+                    }
+                    return password;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Desactivando plugin...',
+                        html: '<p class="mb-0">Por favor espera...</p>',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => Swal.showLoading()
+                    });
+
+                    fetch(`/musedock/plugins/${pluginId}/deactivate-secure`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            _csrf: csrfToken,
+                            password: result.value
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Plugin Desactivado',
+                                text: data.message,
+                                confirmButtonColor: '#0d6efd'
+                            }).then(() => location.reload());
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message,
+                                confirmButtonColor: '#0d6efd'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error de conexión. Intenta de nuevo.',
+                            confirmButtonColor: '#0d6efd'
+                        });
+                    });
+                }
+            });
+        });
+    }
+
+    // ========== DESINSTALAR PLUGIN con SweetAlert2 ==========
+    const btnUninstall = document.getElementById('btnUninstallPlugin');
+    if (btnUninstall) {
+        btnUninstall.addEventListener('click', function() {
+            const pluginId = this.dataset.pluginId;
+            const pluginName = this.dataset.pluginName;
+
+            Swal.fire({
+                title: '<i class="bi bi-exclamation-triangle text-danger"></i> Confirmar Desinstalación',
+                html: `
+                    <div class="text-start">
+                        <p class="mb-3">Estás a punto de desinstalar el plugin <strong>${pluginName}</strong>.</p>
+                        <div class="alert alert-danger py-2 mb-3">
+                            <i class="bi bi-trash me-2"></i>
+                            <small><strong>Esta acción no se puede deshacer.</strong> Se eliminarán todos los datos y configuraciones del plugin.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Introduce tu contraseña para confirmar:</label>
+                            <input type="password" id="uninstallPassword" class="form-control" placeholder="Contraseña del superadmin" autocomplete="current-password">
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-trash me-1"></i> Desinstalar Plugin',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                width: '450px',
+                focusConfirm: false,
+                didOpen: () => {
+                    document.getElementById('uninstallPassword').focus();
+                },
+                preConfirm: () => {
+                    const password = document.getElementById('uninstallPassword').value;
+                    if (!password) {
+                        Swal.showValidationMessage('La contraseña es requerida');
+                        return false;
+                    }
+                    return password;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Desinstalando plugin...',
+                        html: '<p class="mb-0">Por favor espera...</p>',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => Swal.showLoading()
+                    });
+
+                    fetch(`/musedock/plugins/${pluginId}/uninstall-secure`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            _csrf: csrfToken,
+                            password: result.value
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Plugin Desinstalado',
+                                text: data.message,
+                                confirmButtonColor: '#0d6efd'
+                            }).then(() => window.location.href = '/musedock/plugins');
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message,
+                                confirmButtonColor: '#0d6efd'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error de conexión. Intenta de nuevo.',
+                            confirmButtonColor: '#0d6efd'
+                        });
+                    });
+                }
+            });
+        });
+    }
+});
+</script>
+@endpush

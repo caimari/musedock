@@ -579,8 +579,14 @@ Route::post('/musedock/plugins/{id}/activate', 'superadmin.PluginsController@act
 Route::post('/musedock/plugins/{id}/deactivate', 'superadmin.PluginsController@deactivate')
     ->name('superadmin.plugins.deactivate')->middleware('superadmin');
 
+Route::post('/musedock/plugins/{id}/deactivate-secure', 'superadmin.PluginsController@deactivateWithPassword')
+    ->name('superadmin.plugins.deactivate.secure')->middleware('superadmin');
+
 Route::post('/musedock/plugins/{id}/uninstall', 'superadmin.PluginsController@uninstall')
     ->name('superadmin.plugins.uninstall')->middleware('superadmin');
+
+Route::post('/musedock/plugins/{id}/uninstall-secure', 'superadmin.PluginsController@uninstallWithPassword')
+    ->name('superadmin.plugins.uninstall.secure')->middleware('superadmin');
 
 Route::post('/musedock/plugins/upload', 'superadmin.PluginsController@upload')
     ->name('superadmin.plugins.upload')->middleware('superadmin');

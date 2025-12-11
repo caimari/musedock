@@ -107,7 +107,7 @@
                                             'pending_dns' => 'warning',
                                             'error' => 'danger',
                                             'suspended' => 'secondary',
-                                            default => 'light'
+                                            default => 'dark'
                                         };
                                         $statusText = match($tenant->caddy_status ?? 'not_configured') {
                                             'active' => 'Activo',
@@ -189,103 +189,111 @@
     </div>
 </div>
 
-<!-- Modal de confirmación de eliminación -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Confirmar Eliminación</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>¿Estás seguro de eliminar el tenant con dominio <strong id="deleteDomainName"></strong>?</p>
-                <p class="text-danger small mb-0">
-                    <i class="bi bi-exclamation-circle"></i>
-                    Esta acción eliminará también la configuración de Caddy y todos los datos asociados.
-                </p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
-                    <i class="bi bi-trash"></i> Eliminar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal de estado -->
-<div class="modal fade" id="statusModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-info-circle"></i> Estado del Dominio</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="statusModalBody">
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary"></div>
-                    <p class="mt-2 mb-0">Verificando...</p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 @push('scripts')
 <script>
-let deleteId = null;
-const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-const statusModal = new bootstrap.Modal(document.getElementById('statusModal'));
+const csrfToken = '<?= csrf_token() ?>';
 
+// ========== ELIMINAR TENANT con SweetAlert2 y verificación de contraseña ==========
 function confirmDelete(id, domain) {
-    deleteId = id;
-    document.getElementById('deleteDomainName').textContent = domain;
-    deleteModal.show();
+    Swal.fire({
+        title: '<i class="bi bi-exclamation-triangle text-danger"></i> Confirmar Eliminación',
+        html: `
+            <div class="text-start">
+                <p class="mb-3">¿Estás seguro de eliminar el tenant con dominio <strong>${domain}</strong>?</p>
+                <div class="alert alert-danger py-2 mb-3">
+                    <i class="bi bi-trash me-2"></i>
+                    <small><strong>Esta acción no se puede deshacer.</strong> Se eliminará la configuración de Caddy y todos los datos asociados.</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Introduce tu contraseña para confirmar:</label>
+                    <input type="password" id="deletePassword" class="form-control" placeholder="Contraseña del superadmin" autocomplete="current-password">
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-trash me-1"></i> Eliminar Tenant',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        width: '450px',
+        focusConfirm: false,
+        didOpen: () => {
+            document.getElementById('deletePassword').focus();
+        },
+        preConfirm: () => {
+            const password = document.getElementById('deletePassword').value;
+            if (!password) {
+                Swal.showValidationMessage('La contraseña es requerida');
+                return false;
+            }
+            return password;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Eliminando tenant...',
+                html: '<p class="mb-0">Por favor espera...</p>',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            fetch(`/musedock/domain-manager/${id}/delete-secure`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    _csrf: csrfToken,
+                    password: result.value
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Tenant Eliminado',
+                        text: data.message,
+                        confirmButtonColor: '#0d6efd'
+                    }).then(() => location.reload());
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message,
+                        confirmButtonColor: '#0d6efd'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error de conexión. Intenta de nuevo.',
+                    confirmButtonColor: '#0d6efd'
+                });
+            });
+        }
+    });
 }
 
-document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
-    if (!deleteId) return;
-
-    this.disabled = true;
-    this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Eliminando...';
-
-    try {
-        const response = await fetch(`/musedock/domain-manager/${deleteId}`, {
-            method: 'DELETE',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Content-Type': 'application/json'
-            }
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            window.location.reload();
-        } else {
-            alert('Error: ' + result.message);
-            this.disabled = false;
-            this.innerHTML = '<i class="bi bi-trash"></i> Eliminar';
-        }
-    } catch (error) {
-        alert('Error de conexión');
-        this.disabled = false;
-        this.innerHTML = '<i class="bi bi-trash"></i> Eliminar';
-    }
-});
-
+// ========== VERIFICAR ESTADO con SweetAlert2 ==========
 async function checkStatus(id) {
-    document.getElementById('statusModalBody').innerHTML = `
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary"></div>
-            <p class="mt-2 mb-0">Verificando...</p>
-        </div>
-    `;
-    statusModal.show();
+    Swal.fire({
+        title: '<i class="bi bi-info-circle text-info"></i> Estado del Dominio',
+        html: `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary"></div>
+                <p class="mt-2 mb-0">Verificando...</p>
+            </div>
+        `,
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        width: '500px'
+    });
 
     try {
         const response = await fetch(`/musedock/domain-manager/${id}/status`, {
@@ -306,34 +314,64 @@ async function checkStatus(id) {
                 ? '<span class="text-success"><i class="bi bi-check-circle"></i> Existe</span>'
                 : '<span class="text-warning"><i class="bi bi-x-circle"></i> No existe</span>';
 
-            document.getElementById('statusModalBody').innerHTML = `
-                <table class="table table-sm mb-0">
-                    <tr><th>Dominio</th><td>${data.domain}</td></tr>
-                    <tr><th>Estado Caddy</th><td><span class="badge bg-info">${data.caddy_status}</span></td></tr>
-                    <tr><th>Ruta en Caddy</th><td>${routeStatus}</td></tr>
-                    <tr><th>Respuesta HTTPS</th><td>${domainStatus}</td></tr>
-                    <tr><th>Certificado SSL</th><td>${sslStatus}</td></tr>
-                    ${data.http_code ? `<tr><th>Código HTTP</th><td>${data.http_code}</td></tr>` : ''}
-                </table>
-            `;
+            Swal.fire({
+                title: '<i class="bi bi-info-circle text-info"></i> Estado del Dominio',
+                html: `
+                    <div class="text-start">
+                        <table class="table table-sm mb-0">
+                            <tr><th style="width:40%">Dominio</th><td>${data.domain}</td></tr>
+                            <tr><th>Estado Caddy</th><td><span class="badge bg-info">${data.caddy_status}</span></td></tr>
+                            <tr><th>Ruta en Caddy</th><td>${routeStatus}</td></tr>
+                            <tr><th>Respuesta HTTPS</th><td>${domainStatus}</td></tr>
+                            <tr><th>Certificado SSL</th><td>${sslStatus}</td></tr>
+                            ${data.http_code ? `<tr><th>Código HTTP</th><td>${data.http_code}</td></tr>` : ''}
+                        </table>
+                    </div>
+                `,
+                confirmButtonText: 'Cerrar',
+                confirmButtonColor: '#6c757d',
+                width: '500px'
+            });
         } else {
-            document.getElementById('statusModalBody').innerHTML = `
-                <div class="alert alert-danger mb-0">
-                    <i class="bi bi-exclamation-circle"></i> ${data.message}
-                </div>
-            `;
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.message,
+                confirmButtonColor: '#0d6efd'
+            });
         }
     } catch (error) {
-        document.getElementById('statusModalBody').innerHTML = `
-            <div class="alert alert-danger mb-0">
-                <i class="bi bi-exclamation-circle"></i> Error de conexión
-            </div>
-        `;
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'No se pudo verificar el estado del dominio.',
+            confirmButtonColor: '#0d6efd'
+        });
     }
 }
 
+// ========== RECONFIGURAR con SweetAlert2 ==========
 async function reconfigure(id) {
-    if (!confirm('¿Reconfigurar este dominio en Caddy?')) return;
+    const result = await Swal.fire({
+        title: '<i class="bi bi-gear text-primary"></i> Reconfigurar en Caddy',
+        html: '<p>¿Deseas reconfigurar este dominio en Caddy?</p><p class="text-muted small">Esto actualizará la configuración SSL y las rutas.</p>',
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-gear me-1"></i> Reconfigurar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#0d6efd',
+        cancelButtonColor: '#6c757d'
+    });
+
+    if (!result.isConfirmed) return;
+
+    Swal.fire({
+        title: 'Reconfigurando...',
+        html: '<p class="mb-0">Por favor espera...</p>',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading()
+    });
 
     try {
         const response = await fetch(`/musedock/domain-manager/${id}/reconfigure`, {
@@ -343,16 +381,30 @@ async function reconfigure(id) {
                 'Content-Type': 'application/json'
             }
         });
-        const result = await response.json();
+        const data = await response.json();
 
-        if (result.success) {
-            alert('Dominio reconfigurado correctamente');
-            window.location.reload();
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Reconfigurado',
+                text: 'El dominio ha sido reconfigurado correctamente en Caddy.',
+                confirmButtonColor: '#0d6efd'
+            }).then(() => location.reload());
         } else {
-            alert('Error: ' + result.error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error || 'No se pudo reconfigurar el dominio.',
+                confirmButtonColor: '#0d6efd'
+            });
         }
     } catch (error) {
-        alert('Error de conexión');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'No se pudo completar la operación.',
+            confirmButtonColor: '#0d6efd'
+        });
     }
 }
 </script>
