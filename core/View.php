@@ -248,10 +248,14 @@ class View
     }
 
     $viewPath = $themeBase . '/views';
-    $cache = __DIR__ . '/../storage/cache/themes';
+
+    // Usar directorio de caché separado por tema para evitar conflictos
+    $cache = __DIR__ . '/../storage/cache/themes/' . $themeSlug;
 
     if (!file_exists("{$viewPath}/" . str_replace('.', '/', $template) . '.blade.php')) {
         $viewPath = __DIR__ . '/../themes/default/views';
+        // Si usamos fallback a default, también usar su caché
+        $cache = __DIR__ . '/../storage/cache/themes/default';
     }
 
     if (!is_dir($cache)) mkdir($cache, 0775, true);
