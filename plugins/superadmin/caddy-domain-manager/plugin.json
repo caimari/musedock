@@ -7,7 +7,7 @@
     "author_url": "https://musedock.com",
     "plugin_url": "https://musedock.com/plugins/caddy-domain-manager",
     "requires_php": "8.0",
-    "requires_musedock": null,
+    "requires_musedock": "2.0.0",
     "namespace": "CaddyDomainManager",
     "main_file": "caddy-domain-manager.php",
     "auto_activate": false,

@@ -300,7 +300,7 @@ class SuperadminPlugin
 
         // Verificar versión de MuseDock
         if ($this->requires_musedock) {
-            $musedockVersion = defined('MUSEDOCK_VERSION') ? MUSEDOCK_VERSION : '1.0.0';
+            $musedockVersion = self::getMusedockVersion();
             if (version_compare($musedockVersion, $this->requires_musedock, '<')) {
                 $errors[] = "Requiere MuseDock {$this->requires_musedock} o superior. Actual: {$musedockVersion}";
             }
@@ -322,6 +322,30 @@ class SuperadminPlugin
         }
 
         return $errors;
+    }
+
+    /**
+     * Obtener la versión de MuseDock desde composer.json
+     */
+    private static function getMusedockVersion(): string
+    {
+        // Primero verificar constante definida
+        if (defined('MUSEDOCK_VERSION')) {
+            return MUSEDOCK_VERSION;
+        }
+
+        // Leer desde composer.json como fuente de verdad
+        $composerFile = defined('APP_ROOT') ? APP_ROOT . '/composer.json' : dirname(__DIR__, 2) . '/composer.json';
+
+        if (file_exists($composerFile)) {
+            $composer = json_decode(file_get_contents($composerFile), true);
+            if (isset($composer['version'])) {
+                return $composer['version'];
+            }
+        }
+
+        // Fallback
+        return '1.0.0';
     }
 
     /**
