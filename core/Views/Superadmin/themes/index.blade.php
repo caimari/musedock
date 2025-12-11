@@ -69,11 +69,13 @@
                         @if ($theme['slug'] === $currentTheme)
                             <span class="badge bg-success">Activo</span>
                         @else
-                            <form action="{{ route('themes.activate') }}" method="POST" class="d-inline">
-                                @csrf
-                                <input type="hidden" name="theme" value="{{ $theme['slug'] }}">
-                                <button class="btn btn-sm btn-outline-primary">Activar</button>
-                            </form>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-primary btn-activate-theme"
+                                    data-theme-slug="{{ $theme['slug'] }}"
+                                    data-theme-name="{{ ucfirst($theme['name']) }}"
+                                    data-activate-url="{{ route('themes.activate') }}">
+                                Activar
+                            </button>
                         @endif
                     </td>
 
@@ -132,6 +134,12 @@
         @csrf
         @method('DELETE')
         <input type="hidden" name="password" id="deleteThemePassword">
+    </form>
+
+    {{-- Formulario oculto para activar tema --}}
+    <form id="activateThemeForm" method="POST" action="" style="display: none;">
+        @csrf
+        <input type="hidden" name="theme" id="activateThemeSlug">
     </form>
 
 </div>
@@ -351,6 +359,69 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     form.setAttribute('action', deleteUrl);
                     passwordField.value = result.value;
+                    form.submit();
+                }
+            });
+        });
+    });
+
+    // ========== ACTIVAR TEMA con SweetAlert2 ==========
+    document.querySelectorAll('.btn-activate-theme').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const slug = this.dataset.themeSlug;
+            const name = this.dataset.themeName || slug;
+            const activateUrl = this.dataset.activateUrl;
+
+            Swal.fire({
+                title: '<i class="bi bi-palette-fill text-primary"></i>',
+                html: `
+                    <div class="text-center mb-3">
+                        <h4 class="text-primary mb-2">Activar Tema</h4>
+                        <p class="text-muted mb-0">Estás a punto de activar el tema:</p>
+                        <h5 class="mt-2 mb-3"><span class="badge bg-primary fs-6">${name}</span></h5>
+                    </div>
+                    <div class="alert alert-info py-2 mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Este tema se aplicará a todo el sitio web inmediatamente.
+                    </div>
+                `,
+                icon: null,
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-check-circle me-1"></i> Activar Tema',
+                cancelButtonText: '<i class="bi bi-x-lg me-1"></i> Cancelar',
+                confirmButtonColor: '#0d6efd',
+                cancelButtonColor: '#6c757d',
+                width: '450px',
+                customClass: {
+                    popup: 'swal-activate-theme',
+                    confirmButton: 'btn btn-primary px-4',
+                    cancelButton: 'btn btn-secondary px-4'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Mostrar loading mientras se procesa
+                    Swal.fire({
+                        title: '<i class="bi bi-hourglass-split text-primary"></i>',
+                        html: `
+                            <h5 class="mb-3">Activando tema...</h5>
+                            <p class="text-muted mb-0">Por favor espera mientras se aplica el nuevo tema.</p>
+                            <div class="progress mt-3" style="height: 6px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                            </div>
+                        `,
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false
+                    });
+
+                    // Configurar y enviar el formulario
+                    const form = document.getElementById('activateThemeForm');
+                    const themeSlugField = document.getElementById('activateThemeSlug');
+
+                    form.setAttribute('action', activateUrl);
+                    themeSlugField.value = slug;
                     form.submit();
                 }
             });

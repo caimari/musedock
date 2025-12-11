@@ -12,9 +12,9 @@
     <!-- Footer Start -->
     <div class="footer-area footer-padding">
         <div class="container">
-            <div class="row d-flex justify-content-between">
+            <div class="row">
 
-                <div class="col-xl-4 col-lg-4 col-md-4 col-sm-6">
+                <div class="col-xl-4 col-lg-4 col-md-6 col-sm-12">
                    <div class="single-footer-caption mb-50">
                      <div class="single-footer-caption mb-30">
                           <!-- logo (solo si show_logo está activo) -->
@@ -90,7 +90,7 @@
                    </div>
                 </div>
 
-                <div class="col-xl-2 col-lg-2 col-md-4 col-sm-5">
+                <div class="col-xl-2 col-lg-2 col-md-4 col-sm-6">
                     <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterLogo ? '80px' : '0' }};">
                         @php
                             // Verificar si existe un menú para el área footer1
@@ -135,7 +135,7 @@
                     </div>
                 </div>
 
-                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-7">
+                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
                     <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterLogo ? '80px' : '0' }};">
                         @php
                             // Verificar si existe un menú para el área footer2
@@ -180,7 +180,7 @@
                     </div>
                 </div>
 
-                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-5">
+                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
                     <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterLogo ? '80px' : '0' }};">
                         @php
                             // Verificar si existe un menú para el área footer3
@@ -225,7 +225,7 @@
                         @elseif($hasContactData)
                             {{-- Prioridad 2: Si no hay menú pero hay datos de contacto --}}
                             <div class="footer-tittle">
-                                <h4>{{ setting('footer_col4_title', __('footer.contact')) }}</h4>
+                                <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #333;">{{ setting('footer_col4_title', __('footer.contact')) }}</h4>
                                 <ul>
                                     @if(setting('contact_phone'))<li><span>{{ setting('contact_phone') }}</span></li>@endif
                                     @if(setting('contact_email'))<li><span>{{ setting('contact_email') }}</span></li>@endif

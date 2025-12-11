@@ -233,6 +233,7 @@ return [
     'blog.read_more' => 'Leer Más',
     'blog.no_posts' => 'No hay posts publicados.',
     'blog.no_posts_category' => 'No hay posts en esta categoría.',
+    'blog.no_posts_tag' => 'No hay posts con esta etiqueta.',
     'blog.back_to_all' => 'Volver a Todos los Posts',
     'blog.published_on' => 'Publicado el',
     'blog.categories' => 'Categorías',

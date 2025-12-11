@@ -13,6 +13,7 @@ return [
     'read_more' => 'Read More',
     'no_posts' => 'No posts published yet.',
     'no_posts_category' => 'No posts in this category.',
+    'no_posts_tag' => 'No posts with this tag.',
     'back_to_all' => 'Back to All Posts',
 
     // Single post

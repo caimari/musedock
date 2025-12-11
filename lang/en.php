@@ -236,6 +236,7 @@ return [
     'blog.read_more' => 'Read More',
     'blog.no_posts' => 'No posts published yet.',
     'blog.no_posts_category' => 'No posts in this category.',
+    'blog.no_posts_tag' => 'No posts with this tag.',
     'blog.back_to_all' => 'Back to All Posts',
     'blog.published_on' => 'Published on',
     'blog.categories' => 'Categories',

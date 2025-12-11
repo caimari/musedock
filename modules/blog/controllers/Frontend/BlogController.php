@@ -145,29 +145,167 @@ class BlogController
         $tenantId = TenantManager::currentTenantId();
 
         // Buscar categoría
-        $category = BlogCategory::where('slug', $slug)
-            ->where('tenant_id', $tenantId)
-            ->first();
+        $categoryQuery = BlogCategory::where('slug', $slug);
+        if ($tenantId !== null) {
+            $categoryQuery->where('tenant_id', $tenantId);
+        } else {
+            $categoryQuery->whereRaw('tenant_id IS NULL');
+        }
+        $category = $categoryQuery->first();
 
         if (!$category) {
             http_response_code(404);
             return View::renderTheme('404', []);
         }
 
-        // Obtener posts de esta categoría
-        $posts = BlogPost::where('status', 'published')
-            ->where('category_id', $category->id)
-            ->where('tenant_id', $tenantId)
-            ->orderBy('published_at', 'DESC')
-            ->get();
+        // Obtener número de posts por página desde settings
+        $postsPerPage = (int) setting('posts_per_page', 10);
+        $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $offset = ($currentPage - 1) * $postsPerPage;
 
-        // Obtener todas las categorías para sidebar
-        $categories = BlogCategory::where('tenant_id', $tenantId)->get();
+        // Obtener posts de esta categoría mediante la tabla pivot
+        $pdo = \Screenart\Musedock\Database::connect();
+
+        // Contar total de posts en esta categoría
+        $countSql = "SELECT COUNT(DISTINCT p.id) as total
+                     FROM blog_posts p
+                     INNER JOIN blog_post_categories pc ON p.id = pc.post_id
+                     WHERE pc.category_id = ? AND p.status = 'published' AND p.deleted_at IS NULL";
+        if ($tenantId !== null) {
+            $countSql .= " AND p.tenant_id = ?";
+            $countStmt = $pdo->prepare($countSql);
+            $countStmt->execute([$category->id, $tenantId]);
+        } else {
+            $countSql .= " AND p.tenant_id IS NULL";
+            $countStmt = $pdo->prepare($countSql);
+            $countStmt->execute([$category->id]);
+        }
+        $totalPosts = (int)$countStmt->fetchColumn();
+        $totalPages = ceil($totalPosts / $postsPerPage);
+
+        // Obtener posts con paginación
+        $sql = "SELECT p.*,
+                       COALESCE(pt.title, p.title) as title,
+                       COALESCE(pt.excerpt, p.excerpt) as excerpt,
+                       COALESCE(pt.content, p.content) as content
+                FROM blog_posts p
+                INNER JOIN blog_post_categories pc ON p.id = pc.post_id
+                LEFT JOIN blog_post_translations pt ON p.id = pt.post_id AND pt.locale = ?
+                WHERE pc.category_id = ? AND p.status = 'published' AND p.deleted_at IS NULL";
+        if ($tenantId !== null) {
+            $sql .= " AND p.tenant_id = ?";
+        } else {
+            $sql .= " AND p.tenant_id IS NULL";
+        }
+        $sql .= " GROUP BY p.id ORDER BY p.published_at DESC LIMIT " . (int)$postsPerPage . " OFFSET " . (int)$offset;
+
+        $currentLang = detectLanguage();
+        $stmt = $pdo->prepare($sql);
+        if ($tenantId !== null) {
+            $stmt->execute([$currentLang, $category->id, $tenantId]);
+        } else {
+            $stmt->execute([$currentLang, $category->id]);
+        }
+        $posts = $stmt->fetchAll(\PDO::FETCH_OBJ);
+
+        // Preparar datos de paginación
+        $pagination = [
+            'current_page' => $currentPage,
+            'total_pages' => $totalPages,
+            'total_posts' => $totalPosts,
+            'per_page' => $postsPerPage,
+        ];
 
         return View::renderTheme('blog/category', [
             'category' => $category,
             'posts' => $posts,
-            'categories' => $categories
+            'pagination' => $pagination
+        ]);
+    }
+
+    /**
+     * Posts por etiqueta
+     */
+    public function tag($slug)
+    {
+        $tenantId = TenantManager::currentTenantId();
+
+        // Buscar etiqueta
+        $tagQuery = BlogTag::where('slug', $slug);
+        if ($tenantId !== null) {
+            $tagQuery->where('tenant_id', $tenantId);
+        } else {
+            $tagQuery->whereRaw('tenant_id IS NULL');
+        }
+        $tag = $tagQuery->first();
+
+        if (!$tag) {
+            http_response_code(404);
+            return View::renderTheme('404', []);
+        }
+
+        // Obtener número de posts por página desde settings
+        $postsPerPage = (int) setting('posts_per_page', 10);
+        $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $offset = ($currentPage - 1) * $postsPerPage;
+
+        // Obtener posts con esta etiqueta mediante la tabla pivot
+        $pdo = \Screenart\Musedock\Database::connect();
+
+        // Contar total de posts con esta etiqueta
+        $countSql = "SELECT COUNT(DISTINCT p.id) as total
+                     FROM blog_posts p
+                     INNER JOIN blog_post_tags pt ON p.id = pt.post_id
+                     WHERE pt.tag_id = ? AND p.status = 'published' AND p.deleted_at IS NULL";
+        if ($tenantId !== null) {
+            $countSql .= " AND p.tenant_id = ?";
+            $countStmt = $pdo->prepare($countSql);
+            $countStmt->execute([$tag->id, $tenantId]);
+        } else {
+            $countSql .= " AND p.tenant_id IS NULL";
+            $countStmt = $pdo->prepare($countSql);
+            $countStmt->execute([$tag->id]);
+        }
+        $totalPosts = (int)$countStmt->fetchColumn();
+        $totalPages = ceil($totalPosts / $postsPerPage);
+
+        // Obtener posts con paginación
+        $sql = "SELECT p.*,
+                       COALESCE(ptr.title, p.title) as title,
+                       COALESCE(ptr.excerpt, p.excerpt) as excerpt,
+                       COALESCE(ptr.content, p.content) as content
+                FROM blog_posts p
+                INNER JOIN blog_post_tags ppt ON p.id = ppt.post_id
+                LEFT JOIN blog_post_translations ptr ON p.id = ptr.post_id AND ptr.locale = ?
+                WHERE ppt.tag_id = ? AND p.status = 'published' AND p.deleted_at IS NULL";
+        if ($tenantId !== null) {
+            $sql .= " AND p.tenant_id = ?";
+        } else {
+            $sql .= " AND p.tenant_id IS NULL";
+        }
+        $sql .= " GROUP BY p.id ORDER BY p.published_at DESC LIMIT " . (int)$postsPerPage . " OFFSET " . (int)$offset;
+
+        $currentLang = detectLanguage();
+        $stmt = $pdo->prepare($sql);
+        if ($tenantId !== null) {
+            $stmt->execute([$currentLang, $tag->id, $tenantId]);
+        } else {
+            $stmt->execute([$currentLang, $tag->id]);
+        }
+        $posts = $stmt->fetchAll(\PDO::FETCH_OBJ);
+
+        // Preparar datos de paginación
+        $pagination = [
+            'current_page' => $currentPage,
+            'total_pages' => $totalPages,
+            'total_posts' => $totalPosts,
+            'per_page' => $postsPerPage,
+        ];
+
+        return View::renderTheme('blog/tag', [
+            'tag' => $tag,
+            'posts' => $posts,
+            'pagination' => $pagination
         ]);
     }
 }

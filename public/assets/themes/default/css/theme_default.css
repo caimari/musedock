@@ -246,6 +246,20 @@ body.has-sticky-header {
     color: var(--footer-link-hover-color);
 }
 
+/* Footer column spacing - acercar columna 2 al logo */
+.footer-area.footer-padding .row > .col-xl-2 {
+    padding-left: 0px !important;
+    padding-right: 0px !important;
+    position: relative !important;
+    left: -35px !important;
+}
+
+/* Scroll to top button - quitar decoración de link */
+#scrollUp {
+    text-decoration: none !important;
+    border-bottom: none !important;
+}
+
 /* El slider-active dentro de slider-area */
 .slider-area .slider-active,
 .slider-area .single-slider {

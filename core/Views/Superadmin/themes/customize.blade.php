@@ -2,6 +2,15 @@
 
 @section('content')
 <div class="container">
+    {{-- Breadcrumb --}}
+    <div class="breadcrumb mb-3">
+        <a href="{{ url('/musedock') }}">Panel</a>
+        <span class="mx-2">/</span>
+        <a href="{{ url('/musedock/themes') }}">Temas</a>
+        <span class="mx-2">/</span>
+        <span>{{ ucfirst($theme['name'] ?? $theme['slug']) }}</span>
+    </div>
+
     <h1 class="mb-4">Editor de Tema: {{ ucfirst($theme['name'] ?? $theme['slug']) }}</h1>
 
     <p class="text-muted">Puedes editar los siguientes archivos del tema:</p>

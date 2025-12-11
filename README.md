@@ -15,6 +15,9 @@ CMS modular con framework MVC propio basado en Blade One. Arquitectura multi-ten
 ```bash
 # Instalar
 git clone https://github.com/caimari/musedock.git .
+composer update
+
+Después de instalar, visita `http://tu-dominio.com/install/` para el asistente de configuración (crea base de datos, usuario superadmin y contraseña).
 
 # Actualizar
 git pull origin main

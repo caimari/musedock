@@ -291,3 +291,7 @@ Route::get('/blog/{slug}', 'Blog\Controllers\Frontend\BlogController@show')
 // Posts por categoría
 Route::get('/blog/category/{slug}', 'Blog\Controllers\Frontend\BlogController@category')
     ->name('blog.category');
+
+// Posts por etiqueta
+Route::get('/blog/tag/{slug}', 'Blog\Controllers\Frontend\BlogController@tag')
+    ->name('blog.tag');

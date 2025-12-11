@@ -108,8 +108,6 @@ class SearchWidget extends WidgetBase
         // Extraer configuración
         $title = $config['title'] ?? 'Buscar';
         $placeholder = $config['placeholder'] ?? 'Buscar en el sitio...';
-        $buttonText = $config['button_text'] ?? 'Buscar';
-        $showIcon = $config['show_icon'] ?? true;
         $searchPages = $config['search_pages'] ?? true;
         $searchPosts = $config['search_posts'] ?? true;
 
@@ -122,30 +120,37 @@ class SearchWidget extends WidgetBase
         } elseif ($searchPosts) {
             $searchType = 'posts';
         } else {
-            // Si no hay ninguno seleccionado, buscar en todo
             $searchType = 'all';
         }
 
-        // Estructura del widget en el frontend
-        $output = '<div class="widget widget-search">';
+        // Estructura del widget con margen superior e inferior para separación
+        $output = '<div class="widget widget-search" style="margin-top: 30px; margin-bottom: 50px;">';
 
         if (!empty($title)) {
-            $output .= '<h4 class="widget-title">' . $this->e($title) . '</h4>';
+            $output .= '<h5 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #333;">' . $this->e($title) . '</h5>';
         }
 
+        // Obtener texto del botón de la configuración
+        $buttonText = $config['button_text'] ?? 'Buscar';
+
         $output .= '<div class="widget-content">
-            <form method="get" action="/search" class="search-form">
-                <div class="input-group">
-                    <input type="text" name="q" class="form-control"
-                           placeholder="' . $this->e($placeholder) . '"
-                           aria-label="' . $this->e($placeholder) . '"
-                           required>
-                    <input type="hidden" name="type" value="' . $this->e($searchType) . '">
-                    <button class="btn btn-primary" type="submit">
-                        ' . ($showIcon ? '<i class="bi bi-search"></i> ' : '') .
-                        (!empty($buttonText) ? $this->e($buttonText) : '') . '
-                    </button>
-                </div>
+            <form method="get" action="/search">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 0; padding-right: 8px;">
+                            <input type="text" name="q"
+                                   placeholder="' . $this->e($placeholder) . '"
+                                   required
+                                   style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+                        </td>
+                        <td style="padding: 0; width: 1px; white-space: nowrap;">
+                            <button type="submit" style="background: #ff656a; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; white-space: nowrap;">
+                                <i class="bi bi-search"></i>' . (!empty($buttonText) ? ' ' . $this->e($buttonText) : '') . '
+                            </button>
+                        </td>
+                    </tr>
+                </table>
+                <input type="hidden" name="type" value="' . $this->e($searchType) . '">
             </form>
         </div>';
 

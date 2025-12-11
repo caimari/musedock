@@ -1,8 +1,18 @@
 @php
-    $success = consume_flash('success');
-    $error = consume_flash('error');
-    $warning = consume_flash('warning');
-    $info = consume_flash('info');
+    // Función helper para limpiar entidades HTML de los mensajes flash
+    function cleanFlashMessage($message) {
+        if (!$message) return null;
+        // Decodificar entidades HTML (&quot;, &#039;, etc.)
+        $message = html_entity_decode($message, ENT_QUOTES, 'UTF-8');
+        // Escapar para JavaScript pero mantener comillas legibles
+        $message = addslashes($message);
+        return $message;
+    }
+
+    $success = cleanFlashMessage(consume_flash('success'));
+    $error = cleanFlashMessage(consume_flash('error'));
+    $warning = cleanFlashMessage(consume_flash('warning'));
+    $info = cleanFlashMessage(consume_flash('info'));
 @endphp
 
 @if ($success)
@@ -11,7 +21,7 @@
             Swal.fire({
                 icon: 'success',
                 title: '¡Éxito!',
-                text: '{{ $success }}',
+                text: '{!! $success !!}',
                 confirmButtonText: 'Aceptar',
                 timer: 3000,
                 timerProgressBar: true
@@ -26,7 +36,7 @@
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: '{{ $error }}',
+                text: '{!! $error !!}',
                 confirmButtonText: 'Aceptar'
             });
         });
@@ -39,7 +49,7 @@
             Swal.fire({
                 icon: 'warning',
                 title: 'Atención',
-                text: '{{ $warning }}',
+                text: '{!! $warning !!}',
                 confirmButtonText: 'Aceptar'
             });
         });
@@ -52,7 +62,7 @@
             Swal.fire({
                 icon: 'info',
                 title: 'Información',
-                text: '{{ $info }}',
+                text: '{!! $info !!}',
                 confirmButtonText: 'Aceptar'
             });
         });

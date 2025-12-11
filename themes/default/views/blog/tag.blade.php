@@ -2,28 +2,28 @@
 
 {{-- SEO --}}
 @section('title')
-    {{ $category->name . ' | ' . __('blog.title') . ' | ' . setting('site_name', 'MuseDock CMS') }}
+    {{ $tag->name . ' | ' . __('blog.title') . ' | ' . setting('site_name', 'MuseDock CMS') }}
 @endsection
 
 @section('description')
-    {{ $category->description ?? setting('site_description', '') }}
+    {{ $tag->description ?? setting('site_description', '') }}
 @endsection
 
 @section('content')
 
 <div class="container py-5">
-    {{-- Cabecera de categoría --}}
-    <div class="category-header mb-4 pb-3 border-bottom">
+    {{-- Cabecera de etiqueta --}}
+    <div class="tag-header mb-4 pb-3 border-bottom">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-2" style="background: transparent; padding-left: 0;">
                 <li class="breadcrumb-item"><a href="/" style="color: #333;">{{ __('common.home') }}</a></li>
                 <li class="breadcrumb-item"><a href="/blog" style="color: #333;">{{ __('blog.title') }}</a></li>
-                <li class="breadcrumb-item active" aria-current="page" style="color: #666;">{{ $category->name }}</li>
+                <li class="breadcrumb-item active" aria-current="page" style="color: #666;">{{ $tag->name }}</li>
             </ol>
         </nav>
-        <h1 class="mb-2" style="font-size: 1.75rem; margin-top: 0;">{{ $category->name }}</h1>
-        @if($category->description)
-        <p class="text-muted mb-0">{{ $category->description }}</p>
+        <h1 class="mb-2" style="font-size: 1.75rem; margin-top: 0;">{{ $tag->name }}</h1>
+        @if($tag->description)
+        <p class="text-muted mb-0">{{ $tag->description }}</p>
         @endif
     </div>
 
@@ -47,12 +47,12 @@
                 </a>
 
                 <div class="card-body d-flex flex-column">
-                    {{-- Título --}}
+                    {{-- Titulo --}}
                     <h2 class="card-title h5 mb-2">
                         <a href="/blog/{{ $post->slug }}" class="text-decoration-none text-dark">{{ $post->title }}</a>
                     </h2>
 
-                    {{-- Meta información --}}
+                    {{-- Meta informacion --}}
                     <div class="post-meta mb-3 text-muted small">
                         <span><i class="far fa-calendar"></i> {{ $post->published_at ? date('d/m/Y', strtotime($post->published_at)) : date('d/m/Y', strtotime($post->created_at)) }}</span>
                     </div>
@@ -62,7 +62,7 @@
                     <p class="card-text text-muted mb-3 flex-grow-1">{{ mb_strlen($post->excerpt) > 120 ? mb_substr($post->excerpt, 0, 120) . '...' : $post->excerpt }}</p>
                     @endif
 
-                    {{-- Leer más --}}
+                    {{-- Leer mas --}}
                     <div class="mt-auto">
                         <a href="/blog/{{ $post->slug }}" class="btn btn-primary px-4 py-2" style="font-size: 0.875rem;">{{ __('blog.read_more') }}</a>
                     </div>
@@ -72,11 +72,11 @@
         @endforeach
         </div>
 
-        {{-- Paginación --}}
+        {{-- Paginacion --}}
         @if(!empty($pagination) && $pagination['total_pages'] > 1)
         <div class="row mt-4">
             <div class="col-12">
-                <nav aria-label="Navegación de páginas">
+                <nav aria-label="Navegacion de paginas">
                     <ul class="pagination justify-content-center">
                         @if($pagination['current_page'] > 1)
                         <li class="page-item">
@@ -122,12 +122,12 @@
         <div class="text-center py-5">
             <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
             @php
-                $noPostsCatText = __('blog.no_posts_category');
-                if ($noPostsCatText === 'blog.no_posts_category') {
-                    $noPostsCatText = detectLanguage() === 'es' ? 'No hay posts en esta categoria.' : 'No posts in this category.';
+                $noPostsTagText = __('blog.no_posts_tag');
+                if ($noPostsTagText === 'blog.no_posts_tag') {
+                    $noPostsTagText = detectLanguage() === 'es' ? 'No hay posts con esta etiqueta.' : 'No posts with this tag.';
                 }
             @endphp
-            <p class="text-muted mt-3">{{ $noPostsCatText }}</p>
+            <p class="text-muted mt-3">{{ $noPostsTagText }}</p>
             <a href="/blog" class="btn btn-outline-primary mt-2">{{ __('blog.view_all') }}</a>
         </div>
     @endif

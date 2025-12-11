@@ -13,6 +13,7 @@ return [
     'read_more' => 'Leer Más',
     'no_posts' => 'No hay ningún post publicado.',
     'no_posts_category' => 'No hay posts en esta categoría.',
+    'no_posts_tag' => 'No hay posts con esta etiqueta.',
     'back_to_all' => 'Volver a Todos los Posts',
 
     // Single post

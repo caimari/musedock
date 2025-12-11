@@ -305,11 +305,52 @@ function checkRequirements() {
 }
 
 /**
+ * Check if exec() function is available
+ */
+function isExecAvailable() {
+    // Check if function exists
+    if (!function_exists('exec')) {
+        return false;
+    }
+
+    // Check if it's disabled
+    $disabled = explode(',', ini_get('disable_functions'));
+    $disabled = array_map('trim', $disabled);
+
+    if (in_array('exec', $disabled)) {
+        return false;
+    }
+
+    // Try a simple test
+    $output = [];
+    $returnCode = -1;
+    @exec('echo test 2>&1', $output, $returnCode);
+
+    return $returnCode === 0;
+}
+
+/**
  * Check composer status
  */
 function checkComposerStatus() {
     $composerExists = file_exists(ROOT_PATH . '/composer.json');
     $vendorExists = file_exists(ROOT_PATH . '/vendor/autoload.php');
+
+    // First check if exec() is available
+    $execAvailable = isExecAvailable();
+
+    if (!$execAvailable) {
+        return [
+            'success' => true,
+            'composer_json_exists' => $composerExists,
+            'vendor_exists' => $vendorExists,
+            'composer_available' => false,
+            'composer_command' => null,
+            'composer_version' => null,
+            'exec_disabled' => true,
+            'exec_error' => 'La función exec() está deshabilitada en este servidor. Debes instalar Composer manualmente vía SSH o panel de control.'
+        ];
+    }
 
     // Check if composer command is available
     $composerCommand = null;
@@ -319,7 +360,7 @@ function checkComposerStatus() {
     // Try different composer locations
     $composerPaths = ['composer', 'composer.phar', '/usr/local/bin/composer', '/usr/bin/composer'];
     foreach ($composerPaths as $path) {
-        exec("{$path} --version 2>&1", $output, $returnCode);
+        @exec("{$path} --version 2>&1", $output, $returnCode);
         if ($returnCode === 0) {
             $composerCommand = $path;
             break;
@@ -333,7 +374,8 @@ function checkComposerStatus() {
         'vendor_exists' => $vendorExists,
         'composer_available' => $composerCommand !== null,
         'composer_command' => $composerCommand,
-        'composer_version' => $composerCommand ? trim(implode("\n", $output)) : null
+        'composer_version' => $composerCommand ? trim(implode("\n", $output)) : null,
+        'exec_disabled' => false
     ];
 }
 
@@ -343,10 +385,20 @@ function checkComposerStatus() {
 function runComposerInstall() {
     $status = checkComposerStatus();
 
+    // Check if exec() is disabled
+    if (!empty($status['exec_disabled'])) {
+        return [
+            'success' => false,
+            'error' => $status['exec_error'],
+            'manual_required' => true,
+            'exec_disabled' => true
+        ];
+    }
+
     if (!$status['composer_available']) {
         return [
             'success' => false,
-            'error' => 'Composer is not available on this server. Please run "composer install" manually via SSH.',
+            'error' => 'Composer no está disponible en este servidor. Por favor ejecuta "composer install" manualmente vía SSH.',
             'manual_required' => true
         ];
     }
@@ -357,12 +409,12 @@ function runComposerInstall() {
 
     // Change to root directory and run composer
     $cmd = "cd " . escapeshellarg(ROOT_PATH) . " && {$composerCommand} install --no-dev --optimize-autoloader 2>&1";
-    exec($cmd, $output, $returnCode);
+    @exec($cmd, $output, $returnCode);
 
     if ($returnCode !== 0) {
         return [
             'success' => false,
-            'error' => 'Composer install failed',
+            'error' => 'Error al ejecutar Composer install',
             'output' => implode("\n", $output),
             'manual_required' => true
         ];
@@ -370,7 +422,7 @@ function runComposerInstall() {
 
     return [
         'success' => true,
-        'message' => 'Composer dependencies installed successfully',
+        'message' => 'Dependencias de Composer instaladas correctamente',
         'output' => implode("\n", $output)
     ];
 }
@@ -1072,23 +1124,42 @@ $step = max(1, min(5, $step));
 
                     <div id="composer-section" class="mt-4" style="display:none">
                         <div class="alert alert-warning">
-                            <h5><i class="bi bi-exclamation-triangle me-2"></i>Composer Dependencies Required</h5>
-                            <p class="mb-3">Composer dependencies are not installed. You have two options:</p>
+                            <h5><i class="bi bi-exclamation-triangle me-2"></i>Dependencias de Composer Requeridas</h5>
+                            <p class="mb-3">Las dependencias de Composer no están instaladas. Tienes dos opciones:</p>
 
                             <div class="d-flex gap-3 flex-wrap">
                                 <button type="button" class="btn btn-primary" id="btn-auto-composer">
-                                    <i class="bi bi-magic me-2"></i>Auto Install (if available)
+                                    <i class="bi bi-magic me-2"></i>Instalar Automáticamente
                                 </button>
                                 <button type="button" class="btn btn-outline-light" data-bs-toggle="collapse" data-bs-target="#manual-composer">
-                                    <i class="bi bi-terminal me-2"></i>Manual Instructions
+                                    <i class="bi bi-terminal me-2"></i>Instrucciones Manuales
                                 </button>
+                            </div>
+
+                            <div id="composer-error" class="alert alert-danger mt-3" style="display:none">
+                                <i class="bi bi-x-circle me-2"></i>
+                                <span id="composer-error-text"></span>
                             </div>
 
                             <div class="collapse mt-3" id="manual-composer">
                                 <div class="bg-dark p-3 rounded">
-                                    <p class="mb-2">Connect via SSH and run:</p>
-                                    <code class="text-warning">cd <?= ROOT_PATH ?> && composer install --no-dev</code>
-                                    <p class="mt-2 mb-0 small text-muted">Then refresh this page.</p>
+                                    <p class="mb-2"><strong>Opción 1:</strong> Conecta vía SSH y ejecuta:</p>
+                                    <code class="text-warning d-block mb-3">cd <?= ROOT_PATH ?> && composer install --no-dev</code>
+
+                                    <p class="mb-2"><strong>Opción 2:</strong> Desde el panel de control de Plesk:</p>
+                                    <ol class="small text-muted mb-2">
+                                        <li>Ve a "Sitios web y dominios" → Tu dominio</li>
+                                        <li>Busca "Composer" en las herramientas</li>
+                                        <li>Ejecuta <code>install --no-dev</code></li>
+                                    </ol>
+
+                                    <p class="mb-2"><strong>Opción 3:</strong> Sube la carpeta vendor/ manualmente:</p>
+                                    <ol class="small text-muted mb-0">
+                                        <li>Instala las dependencias en tu máquina local con <code>composer install --no-dev</code></li>
+                                        <li>Sube la carpeta <code>vendor/</code> completa al servidor vía FTP/SFTP</li>
+                                    </ol>
+
+                                    <p class="mt-3 mb-0 text-info"><i class="bi bi-arrow-clockwise me-1"></i> Después de instalar, recarga esta página.</p>
                                 </div>
                             </div>
                         </div>
@@ -1455,7 +1526,11 @@ $step = max(1, min(5, $step));
         // Auto composer install
         document.getElementById('btn-auto-composer').addEventListener('click', async function() {
             this.disabled = true;
-            this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Installing...';
+            this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Instalando...';
+
+            const errorDiv = document.getElementById('composer-error');
+            const errorText = document.getElementById('composer-error-text');
+            errorDiv.style.display = 'none';
 
             try {
                 const response = await fetch('', {
@@ -1469,14 +1544,26 @@ $step = max(1, min(5, $step));
                 if (data.success) {
                     location.reload();
                 } else {
-                    alert(data.error || 'Composer install failed. Please install manually.');
+                    // Show error message in the UI instead of alert
+                    errorText.textContent = data.error || 'Error al instalar Composer. Por favor instala manualmente.';
+                    errorDiv.style.display = 'block';
+
+                    // If exec is disabled, expand manual instructions
+                    if (data.exec_disabled || data.manual_required) {
+                        const manualCollapse = document.getElementById('manual-composer');
+                        if (manualCollapse && !manualCollapse.classList.contains('show')) {
+                            new bootstrap.Collapse(manualCollapse, { toggle: true });
+                        }
+                    }
+
                     this.disabled = false;
-                    this.innerHTML = '<i class="bi bi-magic me-2"></i>Auto Install';
+                    this.innerHTML = '<i class="bi bi-magic me-2"></i>Instalar Automáticamente';
                 }
             } catch (error) {
-                alert('Error: ' + error.message);
+                errorText.textContent = 'Error de conexión: ' + error.message;
+                errorDiv.style.display = 'block';
                 this.disabled = false;
-                this.innerHTML = '<i class="bi bi-magic me-2"></i>Auto Install';
+                this.innerHTML = '<i class="bi bi-magic me-2"></i>Instalar Automáticamente';
             }
         });
 

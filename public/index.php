@@ -1,8 +1,42 @@
 <?php
-// public/index.php 
+// public/index.php
 if (!defined('APP_ROOT')) {
     define('APP_ROOT', realpath(__DIR__ . '/../')); // httpdocs (RAÍZ del proyecto)
 }
+
+// =========== VERIFICACIÓN TEMPRANA DE INSTALACIÓN ===========
+// Antes de cargar NADA, verificar si el sistema está instalado
+// Esto previene errores fatales cuando vendor/ no existe
+$installLockExists = file_exists(__DIR__ . '/../install.lock');
+$envExists = file_exists(__DIR__ . '/../.env');
+$vendorExists = file_exists(__DIR__ . '/../vendor/autoload.php');
+
+// Si no hay .env O no hay vendor, redirigir al instalador
+if (!$envExists || !$vendorExists) {
+    // Verificar si el instalador existe
+    if (file_exists(__DIR__ . '/../install/index.php')) {
+        header('Location: /install/');
+        exit;
+    }
+
+    // Fallback al instalador legacy
+    if (file_exists(__DIR__ . '/../core/install.php')) {
+        require_once __DIR__ . '/../core/install.php';
+        exit;
+    }
+
+    // No hay instalador disponible
+    http_response_code(500);
+    echo '<!DOCTYPE html><html><head><title>Installation Required</title></head><body>';
+    echo '<h1>Installation Required</h1>';
+    echo '<p>MuseDock CMS is not installed. Please ensure the installer is available at <code>/install/</code></p>';
+    if (!$vendorExists) {
+        echo '<p><strong>Note:</strong> Composer dependencies are not installed. Run <code>composer install</code> first.</p>';
+    }
+    echo '</body></html>';
+    exit;
+}
+
 // =========== CARGAR CONFIGURACIÓN ===========
 require_once __DIR__ . '/../core/Env.php';
 \Screenart\Musedock\Env::load();
@@ -109,16 +143,12 @@ try {
 }
 
 
-// =========== INSTALADOR ===========
-// Triple verification: install.lock + .env + database connection
-$installLockExists = file_exists(__DIR__ . '/../install.lock');
-$envExists = file_exists(__DIR__ . '/../.env');
-$installRequired = false;
-
-if (!$installLockExists || !$envExists) {
-    $installRequired = true;
-} else {
-    // Verify database connection
+// =========== VERIFICACIÓN DE INSTALACIÓN COMPLETA ===========
+// La verificación básica (env + vendor) ya se hizo al inicio del archivo
+// Aquí solo verificamos install.lock y conexión a BD para reinstalaciones parciales
+if (!file_exists(__DIR__ . '/../install.lock')) {
+    // Verificar si la BD está configurada correctamente
+    $installRequired = false;
     try {
         $dbHost = \Screenart\Musedock\Env::get('DB_HOST');
         $dbName = \Screenart\Musedock\Env::get('DB_NAME');
@@ -130,27 +160,14 @@ if (!$installLockExists || !$envExists) {
     } catch (\Throwable $e) {
         $installRequired = true;
     }
-}
 
-if ($installRequired) {
-    Logger::info("Installation required. Redirecting to installer.");
-
-    // Check if new installer exists
-    if (file_exists(__DIR__ . '/../install/index.php')) {
-        header('Location: /install/');
-        exit;
+    if ($installRequired) {
+        Logger::info("Installation required. Redirecting to installer.");
+        if (file_exists(__DIR__ . '/../install/index.php')) {
+            header('Location: /install/');
+            exit;
+        }
     }
-
-    // Fallback to legacy installer
-    if (file_exists(__DIR__ . '/../core/install.php')) {
-        require_once __DIR__ . '/../core/install.php';
-        exit;
-    }
-
-    // No installer found
-    http_response_code(500);
-    echo '<h1>Installation Required</h1><p>Please run the installer or configure the system manually.</p>';
-    exit;
 }
 
 // =========== CONFIG Y RUTAS ===========

@@ -145,8 +145,8 @@ class GalleryWidget extends WidgetBase
         // Generar ID único para este widget
         $widgetId = 'gallery-widget-' . uniqid();
 
-        // Estructura del widget
-        $output = '<div class="widget widget-gallery" id="' . $widgetId . '">';
+        // Estructura del widget con margen inferior
+        $output = '<div class="widget widget-gallery" id="' . $widgetId . '" style="margin-bottom: 20px;">';
 
         if (!empty($title)) {
             $output .= '<h4 class="widget-title">' . $this->e($title) . '</h4>';
