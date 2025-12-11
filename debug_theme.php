@@ -69,6 +69,36 @@ try {
     $activeTheme = \Screenart\Musedock\Theme::getActiveSlug();
     echo "Resultado: {$activeTheme}\n";
 
+    // 7. Probar get_active_theme_slug() (helper function)
+    echo "\n--- get_active_theme_slug() ---\n";
+    require_once __DIR__ . '/core/helpers.php';
+    $helperTheme = get_active_theme_slug();
+    echo "Resultado: {$helperTheme}\n";
+
+    // 8. Probar Database::table('themes')->where('active', 1)->first()
+    echo "\n--- QueryBuilder: Database::table('themes')->where('active', 1)->first() ---\n";
+    $row = Database::table('themes')->where('active', 1)->first();
+    echo "Resultado: ";
+    print_r($row);
+
+    // 9. Verificar SQL generado por QueryBuilder
+    echo "\n--- SQL Query directo con prepared statement ---\n";
+    $stmt = $pdo->prepare("SELECT * FROM themes WHERE active = :active LIMIT 1");
+    $stmt->execute([':active' => 1]);
+    $preparedResult = $stmt->fetch(PDO::FETCH_ASSOC);
+    echo "Resultado: ";
+    print_r($preparedResult);
+
+    // 10. Probar setting('default_theme')
+    echo "\n--- setting('default_theme') ---\n";
+    $settingTheme = setting('default_theme', 'NO_EXISTE');
+    echo "Resultado: {$settingTheme}\n";
+
+    // 11. Ver config('default_theme')
+    echo "\n--- config('default_theme') ---\n";
+    $configTheme = config('default_theme', 'NO_EXISTE');
+    echo "Resultado: {$configTheme}\n";
+
 } catch (Exception $e) {
     echo "ERROR: " . $e->getMessage() . "\n";
     echo $e->getTraceAsString();
