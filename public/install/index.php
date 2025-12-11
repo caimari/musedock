@@ -362,19 +362,36 @@ function testDatabaseConnection($data) {
     }
 
     try {
-        // First try to connect without database (to check credentials)
-        $dsn = "{$driver}:host={$host};port={$port}";
-        $pdo = new PDO($dsn, $user, $pass, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-        ]);
+        if ($driver === 'pgsql') {
+            // PostgreSQL: connect to 'postgres' database first to check credentials
+            $dsn = "pgsql:host={$host};port={$port};dbname=postgres";
+            $pdo = new PDO($dsn, $user, $pass, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+            ]);
 
-        // Check if database exists
-        $stmt = $pdo->query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = " . $pdo->quote($name));
-        $dbExists = $stmt->fetch() !== false;
+            // Check if database exists using pg_database catalog
+            $stmt = $pdo->prepare("SELECT 1 FROM pg_database WHERE datname = ?");
+            $stmt->execute([$name]);
+            $dbExists = $stmt->fetch() !== false;
+        } else {
+            // MySQL: connect without database
+            $dsn = "{$driver}:host={$host};port={$port}";
+            $pdo = new PDO($dsn, $user, $pass, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+            ]);
+
+            // Check if database exists
+            $stmt = $pdo->query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = " . $pdo->quote($name));
+            $dbExists = $stmt->fetch() !== false;
+        }
 
         // Try to connect to specific database if it exists
         if ($dbExists) {
-            $dsn = "{$driver}:host={$host};port={$port};dbname={$name}";
+            if ($driver === 'pgsql') {
+                $dsn = "pgsql:host={$host};port={$port};dbname={$name}";
+            } else {
+                $dsn = "{$driver}:host={$host};port={$port};dbname={$name}";
+            }
             $pdo = new PDO($dsn, $user, $pass, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
             ]);
@@ -567,21 +584,29 @@ function setupDatabase($data) {
     }
 
     try {
-        // Connect without database
-        $dsn = "{$driver}:host={$host};port={$port}";
-        $pdo = new PDO($dsn, $user, $pass, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-        ]);
+        if ($driver === 'pgsql') {
+            // PostgreSQL: must connect to an existing database (postgres) first
+            $dsn = "pgsql:host={$host};port={$port};dbname=postgres";
+            $pdo = new PDO($dsn, $user, $pass, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+            ]);
 
-        // Create database if not exists
-        if ($driver === 'mysql') {
-            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-        } else {
-            // PostgreSQL
-            $stmt = $pdo->query("SELECT 1 FROM pg_database WHERE datname = " . $pdo->quote($name));
+            // Check if database exists
+            $stmt = $pdo->prepare("SELECT 1 FROM pg_database WHERE datname = ?");
+            $stmt->execute([$name]);
             if (!$stmt->fetch()) {
-                $pdo->exec("CREATE DATABASE \"{$name}\" ENCODING 'UTF8'");
+                // Create database - PostgreSQL requires closing connections before CREATE DATABASE
+                $pdo->exec("CREATE DATABASE \"{$name}\" ENCODING 'UTF8' LC_COLLATE 'en_US.UTF-8' LC_CTYPE 'en_US.UTF-8' TEMPLATE template0");
             }
+        } else {
+            // MySQL: connect without database
+            $dsn = "{$driver}:host={$host};port={$port}";
+            $pdo = new PDO($dsn, $user, $pass, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+            ]);
+
+            // Create database if not exists
+            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         }
 
         return ['success' => true];
@@ -609,17 +634,31 @@ function runMigrations() {
         ob_end_clean();
 
         $pdo = \Screenart\Musedock\Database::connect();
+        $driver = \Screenart\Musedock\Env::get('DB_DRIVER', 'mysql');
 
-        // Create migrations table
-        $pdo->exec("
-            CREATE TABLE IF NOT EXISTS `migrations` (
-                `id` INT AUTO_INCREMENT PRIMARY KEY,
-                `migration` VARCHAR(255) NOT NULL UNIQUE,
-                `batch` INT NOT NULL,
-                `executed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_batch (batch)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        ");
+        // Create migrations table with driver-specific syntax
+        if ($driver === 'pgsql') {
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS migrations (
+                    id SERIAL PRIMARY KEY,
+                    migration VARCHAR(255) NOT NULL UNIQUE,
+                    batch INTEGER NOT NULL,
+                    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ");
+            // Create index separately for PostgreSQL
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_migrations_batch ON migrations(batch)");
+        } else {
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `migrations` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `migration` VARCHAR(255) NOT NULL UNIQUE,
+                    `batch` INT NOT NULL,
+                    `executed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_batch (batch)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+        }
 
         // Get already run migrations
         $stmt = $pdo->query("SELECT migration FROM migrations");
@@ -747,6 +786,7 @@ function runSeeders() {
 function createAdminUser($data) {
     try {
         $pdo = \Screenart\Musedock\Database::connect();
+        $driver = \Screenart\Musedock\Env::get('DB_DRIVER', 'mysql');
 
         $email = $data['admin_email'] ?? '';
         $password = $data['admin_password'] ?? '';
@@ -763,11 +803,21 @@ function createAdminUser($data) {
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
         // Insert into super_admins with role 'superadmin'
-        $stmt = $pdo->prepare("
-            INSERT INTO super_admins (name, email, password, role, is_root, created_at)
-            VALUES (?, ?, ?, 'superadmin', 1, NOW())
-            ON DUPLICATE KEY UPDATE password = VALUES(password), role = 'superadmin'
-        ");
+        if ($driver === 'pgsql') {
+            // PostgreSQL: use ON CONFLICT (upsert)
+            $stmt = $pdo->prepare("
+                INSERT INTO super_admins (name, email, password, role, is_root, created_at)
+                VALUES (?, ?, ?, 'superadmin', true, NOW())
+                ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, role = 'superadmin'
+            ");
+        } else {
+            // MySQL: use ON DUPLICATE KEY UPDATE
+            $stmt = $pdo->prepare("
+                INSERT INTO super_admins (name, email, password, role, is_root, created_at)
+                VALUES (?, ?, ?, 'superadmin', 1, NOW())
+                ON DUPLICATE KEY UPDATE password = VALUES(password), role = 'superadmin'
+            ");
+        }
         $stmt->execute([$name, $email, $hashedPassword]);
 
         return ['success' => true];
