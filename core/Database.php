@@ -95,4 +95,51 @@ class Database
 	{
 		return new QueryBuilder($tableName);
 	}
+
+    /**
+     * Escapa un nombre de columna/identificador según el driver de BD
+     * MySQL usa backticks: `key`
+     * PostgreSQL usa comillas dobles: "key"
+     *
+     * @param string $identifier Nombre de columna o tabla
+     * @return string Identificador escapado
+     */
+    public static function quoteIdentifier(string $identifier): string
+    {
+        $pdo = self::connect();
+        $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+        if ($driver === 'mysql') {
+            return '`' . str_replace('`', '``', $identifier) . '`';
+        } else {
+            // PostgreSQL y otros
+            return '"' . str_replace('"', '""', $identifier) . '"';
+        }
+    }
+
+    /**
+     * Alias corto para quoteIdentifier
+     */
+    public static function qi(string $identifier): string
+    {
+        return self::quoteIdentifier($identifier);
+    }
+
+    /**
+     * Verifica si el driver actual es MySQL
+     */
+    public static function isMySQL(): bool
+    {
+        $pdo = self::connect();
+        return $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql';
+    }
+
+    /**
+     * Verifica si el driver actual es PostgreSQL
+     */
+    public static function isPostgreSQL(): bool
+    {
+        $pdo = self::connect();
+        return $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'pgsql';
+    }
 }

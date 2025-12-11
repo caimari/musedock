@@ -712,7 +712,8 @@ if (!function_exists('setting')) {
         if ($settings === null) {
             try {
                 $pdo = \Screenart\Musedock\Database::connect();
-                $stmt = $pdo->query("SELECT \"key\", value FROM settings");
+                $keyCol = \Screenart\Musedock\Database::qi('key');
+                $stmt = $pdo->query("SELECT {$keyCol}, value FROM settings");
                 $settings = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
             } catch (\Exception $e) {
                 \Screenart\Musedock\Logger::log("Error cargando settings: " . $e->getMessage(), 'ERROR');

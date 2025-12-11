@@ -473,7 +473,8 @@ protected function flashError($message)
 
     // Borrar la referencia en la base de datos
     $pdo = \Screenart\Musedock\Database::connect();
-    $stmt = $pdo->prepare("UPDATE settings SET value = '' WHERE \"key\" = 'site_logo'");
+    $keyCol = \Screenart\Musedock\Database::qi('key');
+    $stmt = $pdo->prepare("UPDATE settings SET value = '' WHERE {$keyCol} = 'site_logo'");
     $stmt->execute();
 
     flash('success', 'Logotipo eliminado correctamente.');
@@ -493,7 +494,8 @@ public function deleteFavicon()
 
     // Borrar la referencia en la base de datos
     $pdo = \Screenart\Musedock\Database::connect();
-    $stmt = $pdo->prepare("UPDATE settings SET value = '' WHERE \"key\" = 'site_favicon'");
+    $keyCol = \Screenart\Musedock\Database::qi('key');
+    $stmt = $pdo->prepare("UPDATE settings SET value = '' WHERE {$keyCol} = 'site_favicon'");
     $stmt->execute();
 
     flash('success', 'Favicon eliminado correctamente.');

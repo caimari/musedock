@@ -143,7 +143,8 @@ class TranslationService
         // 1. Verificar force_lang en settings (solo para frontend)
         try {
             $pdo = \Screenart\Musedock\Database::connect();
-            $stmt = $pdo->prepare("SELECT value FROM settings WHERE \"key\" = 'force_lang' LIMIT 1");
+            $keyCol = \Screenart\Musedock\Database::qi('key');
+            $stmt = $pdo->prepare("SELECT value FROM settings WHERE {$keyCol} = 'force_lang' LIMIT 1");
             $stmt->execute();
             $forceLang = $stmt->fetchColumn();
 

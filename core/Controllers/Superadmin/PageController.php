@@ -522,7 +522,8 @@ public function update($id)
             error_log("PageController: Sincronizados settings de lectura - page_on_front = {$id}, show_on_front = page");
         } else {
             // Si se desmarca como homepage, limpiar el setting si coincide con esta página
-            $checkSettingStmt = $pdo->prepare("SELECT value FROM settings WHERE \"key\" = 'page_on_front'");
+            $keyCol = \Screenart\Musedock\Database::qi('key');
+            $checkSettingStmt = $pdo->prepare("SELECT value FROM settings WHERE {$keyCol} = 'page_on_front'");
             $checkSettingStmt->execute();
             $currentPageOnFront = $checkSettingStmt->fetchColumn();
 
