@@ -172,8 +172,8 @@ class AdminMenuSeeder
             return (int)$existing;
         }
 
-        // Escape column names with backticks
-        $columns = implode(', ', array_map(fn($col) => "`{$col}`", array_keys($data)));
+        // Column names without quotes (compatible with both MySQL and PostgreSQL)
+        $columns = implode(', ', array_keys($data));
         $placeholders = implode(', ', array_fill(0, count($data), '?'));
         $stmt = $this->db->prepare("INSERT INTO admin_menus ({$columns}) VALUES ({$placeholders})");
         $stmt->execute(array_values($data));
