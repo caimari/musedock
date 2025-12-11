@@ -52,6 +52,11 @@ class SuperadminPlugin
         $dependencies = isset($data['dependencies']) ? json_encode($data['dependencies']) : null;
         $settings = isset($data['settings']) ? json_encode($data['settings']) : null;
 
+        // Convertir booleanos a enteros para compatibilidad PostgreSQL
+        $isActive = isset($data['is_active']) ? ($data['is_active'] ? 1 : 0) : 0;
+        $isInstalled = isset($data['is_installed']) ? ($data['is_installed'] ? 1 : 0) : 0;
+        $autoActivate = isset($data['auto_activate']) ? ($data['auto_activate'] ? 1 : 0) : 0;
+
         $params = [
             'slug' => $data['slug'],
             'name' => $data['name'],
@@ -63,9 +68,9 @@ class SuperadminPlugin
             'path' => $data['path'],
             'main_file' => $data['main_file'],
             'namespace' => $data['namespace'] ?? null,
-            'is_active' => $data['is_active'] ?? false,
-            'is_installed' => $data['is_installed'] ?? false,
-            'auto_activate' => $data['auto_activate'] ?? false,
+            'is_active' => $isActive,
+            'is_installed' => $isInstalled,
+            'auto_activate' => $autoActivate,
             'requires_php' => $data['requires_php'] ?? null,
             'requires_musedock' => $data['requires_musedock'] ?? null,
             'dependencies' => $dependencies,
@@ -183,9 +188,17 @@ class SuperadminPlugin
         $fields = [];
         $params = ['id' => $this->id];
 
+        // Campos booleanos que deben convertirse a enteros para PostgreSQL
+        $booleanFields = ['is_active', 'is_installed', 'auto_activate'];
+
         foreach ($data as $key => $value) {
             if (in_array($key, ['dependencies', 'settings']) && is_array($value)) {
                 $value = json_encode($value);
+            }
+
+            // Convertir booleanos a enteros para compatibilidad PostgreSQL
+            if (in_array($key, $booleanFields)) {
+                $value = $value ? 1 : 0;
             }
 
             $fields[] = "$key = :$key";
