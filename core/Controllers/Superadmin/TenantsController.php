@@ -354,6 +354,198 @@ public function destroy($id)
     exit;
 }
 
-	
+    /**
+     * Eliminar tenant con verificación de contraseña (AJAX)
+     */
+    public function destroyWithPassword($id)
+    {
+        $this->checkMultitenancyEnabled();
+        SessionSecurity::startSession();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        // Validar CSRF
+        $input = json_decode(file_get_contents('php://input'), true);
+        $csrfToken = $input['_csrf'] ?? $_POST['_csrf'] ?? '';
+
+        if (!validate_csrf($csrfToken)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido']);
+            exit;
+        }
+
+        $password = $input['password'] ?? $_POST['password'] ?? '';
+
+        if (empty($password)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'La contraseña es requerida']);
+            exit;
+        }
+
+        // Verificar contraseña del superadmin actual
+        $auth = $_SESSION['super_admin'] ?? null;
+        if (!$auth || empty($auth['id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Sesión no válida']);
+            exit;
+        }
+
+        // Obtener el hash de contraseña de la BD
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("SELECT password FROM super_admins WHERE id = ?");
+        $stmt->execute([$auth['id']]);
+        $user = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$user || !password_verify($password, $user['password'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Contraseña incorrecta']);
+            exit;
+        }
+
+        // Verificar que el tenant exista
+        $tenant = Database::table('tenants')->where('id', $id)->first();
+        if (!$tenant) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado']);
+            exit;
+        }
+
+        Logger::log("Eliminando tenant con ID: $id (con verificación de contraseña)", 'DEBUG');
+
+        try {
+            // Eliminar en orden de dependencias
+            Database::table('permissions')->where('tenant_id', $id)->delete();
+            Database::table('user_roles')->where('tenant_id', $id)->delete();
+            Database::table('roles')->where('tenant_id', $id)->delete();
+            Database::table('admins')->where('tenant_id', $id)->delete();
+            Database::table('tenants')->where('id', $id)->delete();
+
+            Logger::log("Tenant eliminado: {$tenant->name} (ID: {$id})", 'INFO');
+
+            echo json_encode([
+                'success' => true,
+                'message' => "Tenant '{$tenant->name}' eliminado correctamente."
+            ]);
+            exit;
+
+        } catch (\PDOException $e) {
+            Logger::log("Error al eliminar tenant: " . $e->getMessage(), 'ERROR');
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Error al eliminar el tenant: ' . $e->getMessage()]);
+            exit;
+        }
+    }
+
+    /**
+     * Actualizar tenant con verificación de contraseña (AJAX)
+     */
+    public function updateWithPassword($id)
+    {
+        $this->checkMultitenancyEnabled();
+        SessionSecurity::startSession();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        // Validar CSRF
+        $input = json_decode(file_get_contents('php://input'), true);
+        $csrfToken = $input['_csrf'] ?? $_POST['_csrf'] ?? '';
+
+        if (!validate_csrf($csrfToken)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido']);
+            exit;
+        }
+
+        $password = $input['password'] ?? '';
+        $name = trim($input['name'] ?? '');
+        $domain = trim($input['domain'] ?? '');
+        $status = trim($input['status'] ?? 'active');
+
+        if (empty($password)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'La contraseña es requerida']);
+            exit;
+        }
+
+        // Validaciones de datos
+        if (empty($name) || empty($domain)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'El nombre y dominio son obligatorios']);
+            exit;
+        }
+
+        if (!filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'El dominio no es válido']);
+            exit;
+        }
+
+        // Verificar contraseña del superadmin actual
+        $auth = $_SESSION['super_admin'] ?? null;
+        if (!$auth || empty($auth['id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Sesión no válida']);
+            exit;
+        }
+
+        // Obtener el hash de contraseña de la BD
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("SELECT password FROM super_admins WHERE id = ?");
+        $stmt->execute([$auth['id']]);
+        $user = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$user || !password_verify($password, $user['password'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Contraseña incorrecta']);
+            exit;
+        }
+
+        // Verificar que el tenant exista
+        $tenant = Database::table('tenants')->where('id', $id)->first();
+        if (!$tenant) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado']);
+            exit;
+        }
+
+        // Verificar que el dominio no esté en uso por otro tenant
+        $existingDomain = Database::table('tenants')
+            ->where('domain', $domain)
+            ->where('id', '!=', $id)
+            ->first();
+
+        if ($existingDomain) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'El dominio ya está en uso por otro tenant']);
+            exit;
+        }
+
+        try {
+            Database::table('tenants')
+                ->where('id', $id)
+                ->update([
+                    'name' => htmlspecialchars($name, ENT_QUOTES, 'UTF-8'),
+                    'domain' => $domain,
+                    'status' => $status,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+
+            Logger::log("Tenant actualizado: {$name} (ID: {$id})", 'INFO');
+
+            echo json_encode([
+                'success' => true,
+                'message' => "Tenant '{$name}' actualizado correctamente."
+            ]);
+            exit;
+
+        } catch (\PDOException $e) {
+            Logger::log("Error al actualizar tenant: " . $e->getMessage(), 'ERROR');
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Error al actualizar el tenant']);
+            exit;
+        }
+    }
 
 }

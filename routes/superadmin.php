@@ -147,6 +147,15 @@ Route::post('/musedock/tenants/{id}/delete', 'superadmin.TenantsController@destr
     ->middleware('superadmin')
     ->name('superadmin.tenants.destroy');
 
+// Eliminar tenant con verificación de contraseña (AJAX)
+Route::post('/musedock/tenants/{id}/delete-secure', 'superadmin.TenantsController@destroyWithPassword')
+    ->middleware('superadmin')
+    ->name('superadmin.tenants.destroy.secure');
+
+// Actualizar tenant con verificación de contraseña (AJAX)
+Route::post('/musedock/tenants/{id}/update-secure', 'superadmin.TenantsController@updateWithPassword')
+    ->middleware('superadmin')
+    ->name('superadmin.tenants.update.secure');
 
 // Gestión de Modulos
 //Route::get('/musedock/modules', 'superadmin.ModulesController@index')->middleware('superadmin');

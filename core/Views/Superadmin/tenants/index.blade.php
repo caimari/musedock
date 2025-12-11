@@ -35,14 +35,11 @@
 									<i class="bi bi-pencil"></i> {{ __('common.edit') }}
 								</a>
 
-								<form method="POST" action="{{ route('superadmin.tenants.destroy', $tenant->id) }}" onsubmit="return confirmDelete(this);" class="d-inline">
-									{!! csrf_field() !!}
-									@method('DELETE')
-									<button type="submit" class="btn btn-sm btn-danger">
-										<i class="bi bi-trash"></i> {{ __('common.delete') }}
-									</button>
-								</form>
-
+								<button type="button" class="btn btn-sm btn-danger btn-delete-tenant"
+									data-tenant-id="{{ $tenant->id }}"
+									data-tenant-name="{{ $tenant->name }}">
+									<i class="bi bi-trash"></i> {{ __('common.delete') }}
+								</button>
                                 </td>
                             </tr>
                         @endforeach
@@ -54,56 +51,113 @@
     </div>
 </div>
 
-<!-- Modal de confirmación -->
-<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title" id="deleteConfirmLabel">{{ __('messages.confirm_delete_title') }}</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('common.cancel') }}"></button>
-      </div>
-      <div class="modal-body">
-        {{ __('messages.confirm_delete_text') }}
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('common.cancel') }}</button>
-        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">{{ __('common.delete') }}</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 @push('scripts')
 <script>
-    let formToDelete = null;
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = '<?= csrf_token() ?>';
 
-    function confirmDelete(form) {
-        formToDelete = form;
-        const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
-        modal.show();
-        return false;
-    }
+    // ========== ELIMINAR TENANT con SweetAlert2 y verificación de contraseña ==========
+    document.querySelectorAll('.btn-delete-tenant').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tenantId = this.dataset.tenantId;
+            const tenantName = this.dataset.tenantName;
 
-    document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
-            if (formToDelete) {
-                formToDelete.submit();
-            }
+            Swal.fire({
+                title: '<i class="bi bi-exclamation-triangle text-danger"></i> Confirmar Eliminación',
+                html: `
+                    <div class="text-start">
+                        <p class="mb-3">¿Estás seguro de eliminar el tenant <strong>${tenantName}</strong>?</p>
+                        <div class="alert alert-danger py-2 mb-3">
+                            <i class="bi bi-trash me-2"></i>
+                            <small><strong>Esta acción no se puede deshacer.</strong> Se eliminarán todos los usuarios, roles, permisos y datos asociados.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Introduce tu contraseña para confirmar:</label>
+                            <input type="password" id="deletePassword" class="form-control" placeholder="Contraseña del superadmin" autocomplete="current-password">
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-trash me-1"></i> Eliminar Tenant',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                width: '450px',
+                focusConfirm: false,
+                didOpen: () => {
+                    document.getElementById('deletePassword').focus();
+                },
+                preConfirm: () => {
+                    const password = document.getElementById('deletePassword').value;
+                    if (!password) {
+                        Swal.showValidationMessage('La contraseña es requerida');
+                        return false;
+                    }
+                    return password;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Eliminando tenant...',
+                        html: '<p class="mb-0">Por favor espera...</p>',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => Swal.showLoading()
+                    });
+
+                    fetch(`/musedock/tenants/${tenantId}/delete-secure`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            _csrf: csrfToken,
+                            password: result.value
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Tenant Eliminado',
+                                text: data.message,
+                                confirmButtonColor: '#0d6efd'
+                            }).then(() => location.reload());
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message,
+                                confirmButtonColor: '#0d6efd'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error de conexión. Intenta de nuevo.',
+                            confirmButtonColor: '#0d6efd'
+                        });
+                    });
+                }
+            });
         });
     });
-</script>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
+
+    // Auto-cerrar alertas
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {
-      setTimeout(() => {
-        alert.classList.add('fade');
-        setTimeout(() => alert.remove(), 300); // tras la animación se elimina del DOM
-      }, 3000); // 3 segundos visible
+        setTimeout(() => {
+            alert.classList.add('fade');
+            setTimeout(() => alert.remove(), 300);
+        }, 3000);
     });
-  });
+});
 </script>
 @endpush
 
 @endsection
-

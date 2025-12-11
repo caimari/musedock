@@ -224,6 +224,7 @@ class CaddyService
 
     /**
      * Genera la configuración JSON para Caddy API
+     * Configuración completa idéntica a musedock.com
      */
     private function generateCaddyConfig(string $domain, bool $includeWww, string $routeId): array
     {
@@ -239,30 +240,226 @@ class CaddyService
                     'host' => $hosts
                 ]
             ],
+            'terminal' => true,
             'handle' => [
                 [
                     'handler' => 'subroute',
                     'routes' => [
+                        // 1. Variables y Headers de seguridad
                         [
                             'handle' => [
                                 [
+                                    'handler' => 'vars',
+                                    'root' => $this->documentRoot
+                                ],
+                                [
+                                    'handler' => 'headers',
+                                    'response' => [
+                                        'deferred' => true,
+                                        'delete' => ['Server', 'X-Powered-By'],
+                                        'set' => [
+                                            'Referrer-Policy' => ['strict-origin-when-cross-origin'],
+                                            'Strict-Transport-Security' => ['max-age=31536000; includeSubDomains; preload'],
+                                            'X-Content-Type-Options' => ['nosniff'],
+                                            'X-Frame-Options' => ['SAMEORIGIN'],
+                                            'X-Xss-Protection' => ['1; mode=block']
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        // 2. Rewrite para archivos estáticos existentes (group0)
+                        [
+                            'group' => 'group0',
+                            'match' => [
+                                [
+                                    'file' => [
+                                        'try_files' => ['{http.request.uri.path}', '{http.request.uri.path}/']
+                                    ]
+                                ]
+                            ],
+                            'handle' => [
+                                [
+                                    'handler' => 'rewrite',
+                                    'uri' => '{http.matchers.file.relative}'
+                                ]
+                            ]
+                        ],
+                        // 3. Rewrite fallback a index.php (group0)
+                        [
+                            'group' => 'group0',
+                            'match' => [
+                                [
+                                    'file' => [
+                                        'try_files' => ['/index.php']
+                                    ]
+                                ]
+                            ],
+                            'handle' => [
+                                [
+                                    'handler' => 'rewrite',
+                                    'uri' => '{http.matchers.file.relative}?{http.request.uri.query}'
+                                ]
+                            ]
+                        ],
+                        // 4. Encoding (gzip/zstd)
+                        [
+                            'handle' => [
+                                [
+                                    'handler' => 'encode',
+                                    'encodings' => [
+                                        'gzip' => (object)[],
+                                        'zstd' => (object)[]
+                                    ],
+                                    'prefer' => ['gzip', 'zstd']
+                                ]
+                            ]
+                        ],
+                        // 5. Bloquear archivos sensibles (403)
+                        [
+                            'match' => [
+                                [
+                                    'path' => [
+                                        '*.env',
+                                        '*.htaccess',
+                                        '*.htpasswd',
+                                        '*.log',
+                                        '*.ini',
+                                        '*.json',
+                                        '*.lock',
+                                        '*.sql',
+                                        '*.md',
+                                        '*.sh',
+                                        '*.bak',
+                                        '*.old',
+                                        '*.backup',
+                                        '*.swp',
+                                        '*.dist',
+                                        '*.yml',
+                                        '*.yaml',
+                                        'composer.json',
+                                        'composer.lock',
+                                        'package.json',
+                                        'package-lock.json'
+                                    ],
+                                    'path_regexp' => [
+                                        'name' => 'git',
+                                        'pattern' => '/\\.git'
+                                    ]
+                                ]
+                            ],
+                            'handle' => [
+                                [
+                                    'handler' => 'static_response',
+                                    'status_code' => 403
+                                ]
+                            ]
+                        ],
+                        // 6. Bloquear archivos ocultos (403)
+                        [
+                            'match' => [
+                                [
+                                    'path_regexp' => [
+                                        'name' => 'hidden',
+                                        'pattern' => '/\\..+'
+                                    ]
+                                ]
+                            ],
+                            'handle' => [
+                                [
+                                    'handler' => 'static_response',
+                                    'status_code' => 403
+                                ]
+                            ]
+                        ],
+                        // 7. Redirección 308 para directorios sin /
+                        [
+                            'match' => [
+                                [
+                                    'file' => [
+                                        'try_files' => ['{http.request.uri.path}/index.php']
+                                    ],
+                                    'not' => [
+                                        [
+                                            'path' => ['*/']
+                                        ]
+                                    ]
+                                ]
+                            ],
+                            'handle' => [
+                                [
+                                    'handler' => 'static_response',
+                                    'status_code' => 308,
+                                    'headers' => [
+                                        'Location' => ['{http.request.orig_uri.path}/{http.request.orig_uri.prefixed_query}']
+                                    ]
+                                ]
+                            ]
+                        ],
+                        // 8. Rewrite PHP con try_files
+                        [
+                            'match' => [
+                                [
+                                    'file' => [
+                                        'split_path' => ['.php'],
+                                        'try_files' => [
+                                            '{http.request.uri.path}',
+                                            '{http.request.uri.path}/index.php',
+                                            'index.php'
+                                        ],
+                                        'try_policy' => 'first_exist_fallback'
+                                    ]
+                                ]
+                            ],
+                            'handle' => [
+                                [
+                                    'handler' => 'rewrite',
+                                    'uri' => '{http.matchers.file.relative}'
+                                ]
+                            ]
+                        ],
+                        // 9. Reverse Proxy a PHP-FPM (solo para .php)
+                        [
+                            'match' => [
+                                [
+                                    'path' => ['*.php']
+                                ]
+                            ],
+                            'handle' => [
+                                [
                                     'handler' => 'reverse_proxy',
+                                    'transport' => [
+                                        'protocol' => 'fastcgi',
+                                        'split_path' => ['.php'],
+                                        'env' => [
+                                            'APP_ENV' => 'production'
+                                        ]
+                                    ],
                                     'upstreams' => [
                                         [
                                             'dial' => $this->phpFpmSocket
                                         ]
-                                    ],
-                                    'transport' => [
-                                        'protocol' => 'fastcgi',
-                                        'root' => $this->documentRoot
+                                    ]
+                                ]
+                            ]
+                        ],
+                        // 10. File server para archivos estáticos
+                        [
+                            'handle' => [
+                                [
+                                    'handler' => 'file_server',
+                                    'hide' => [
+                                        '.git',
+                                        '.env',
+                                        '.htaccess',
+                                        '/etc/caddy/Caddyfile'
                                     ]
                                 ]
                             ]
                         ]
                     ]
                 ]
-            ],
-            'terminal' => true
+            ]
         ];
     }
 

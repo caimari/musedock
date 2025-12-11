@@ -87,6 +87,30 @@ class CsrfMiddleware
             return $_SERVER['HTTP_X_XSRF_TOKEN'];
         }
 
+        // 3. Buscar en body JSON (para peticiones AJAX con Content-Type: application/json)
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        if (strpos($contentType, 'application/json') !== false) {
+            $input = file_get_contents('php://input');
+            if ($input) {
+                $json = json_decode($input, true);
+                if (is_array($json)) {
+                    // Guardar el JSON parseado para que los controladores puedan reutilizarlo
+                    // ya que php://input solo puede leerse una vez
+                    $GLOBALS['_JSON_INPUT'] = $json;
+
+                    if (isset($json['_csrf'])) {
+                        return $json['_csrf'];
+                    }
+                    if (isset($json['_token'])) {
+                        return $json['_token'];
+                    }
+                    if (isset($json['csrf_token'])) {
+                        return $json['csrf_token'];
+                    }
+                }
+            }
+        }
+
         // ELIMINADO: CSRF tokens en GET por razones de seguridad
         // Los tokens CSRF nunca deben enviarse en la URL ya que pueden:
         // - Aparecer en logs del servidor

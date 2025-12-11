@@ -840,8 +840,10 @@ class DomainManagerController
 
         header('Content-Type: application/json');
 
+        // Obtener input JSON (puede venir del middleware CSRF o leerlo directamente)
+        $input = $GLOBALS['_JSON_INPUT'] ?? json_decode(file_get_contents('php://input'), true) ?? [];
+
         // Validar CSRF
-        $input = json_decode(file_get_contents('php://input'), true);
         $csrfToken = $input['_csrf'] ?? $_POST['_csrf'] ?? '';
 
         if (!validate_csrf($csrfToken)) {
