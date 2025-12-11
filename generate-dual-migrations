@@ -158,6 +158,51 @@ function getTableIndexes($pdo, $table) {
     return $indexes;
 }
 
+// PostgreSQL reserved words that need to be quoted
+function getPgReservedWords() {
+    return [
+        'order', 'user', 'group', 'check', 'primary', 'key', 'index', 'value',
+        'type', 'default', 'table', 'column', 'constraint', 'references', 'foreign',
+        'select', 'insert', 'update', 'delete', 'from', 'where', 'join', 'left',
+        'right', 'inner', 'outer', 'on', 'and', 'or', 'not', 'null', 'true', 'false',
+        'limit', 'offset', 'having', 'union', 'except', 'intersect', 'all', 'any',
+        'as', 'asc', 'desc', 'between', 'case', 'when', 'then', 'else', 'end',
+        'create', 'alter', 'drop', 'grant', 'revoke', 'abort', 'access', 'action',
+        'add', 'admin', 'after', 'aggregate', 'analyse', 'analyze', 'array', 'both',
+        'cast', 'collate', 'current', 'data', 'deferrable', 'deferred', 'distinct',
+        'do', 'each', 'exclude', 'exists', 'extract', 'fetch', 'filter', 'first',
+        'following', 'full', 'function', 'global', 'ilike', 'immediate', 'in',
+        'initially', 'isolation', 'last', 'lateral', 'leading', 'level', 'like',
+        'local', 'localtime', 'localtimestamp', 'mode', 'move', 'natural', 'new',
+        'next', 'no', 'none', 'normalize', 'nothing', 'nowait', 'nulls', 'of', 'old',
+        'only', 'operator', 'option', 'options', 'others', 'over', 'overlay', 'own',
+        'partial', 'partition', 'passing', 'placing', 'position', 'precision',
+        'preceding', 'preserve', 'prior', 'privileges', 'procedure', 'range', 'read',
+        'recursive', 'ref', 'release', 'repeatable', 'restart', 'return', 'returning',
+        'rollback', 'row', 'rows', 'rule', 'savepoint', 'schema', 'scroll', 'search',
+        'second', 'security', 'sequence', 'serializable', 'server', 'session', 'set',
+        'share', 'show', 'similar', 'simple', 'skip', 'some', 'sql', 'stable',
+        'start', 'statement', 'storage', 'strict', 'substring', 'symmetric', 'system',
+        'temp', 'temporary', 'ties', 'time', 'timestamp', 'to', 'trailing', 'transaction',
+        'treat', 'trigger', 'trim', 'uncommitted', 'unique', 'unknown', 'until',
+        'using', 'vacuum', 'valid', 'validate', 'variadic', 'verbose', 'version',
+        'view', 'volatile', 'with', 'within', 'without', 'work', 'write', 'year', 'zone'
+    ];
+}
+
+// Escape PostgreSQL column name if it's a reserved word
+function pgEscapeColumnName($columnName, $forPhpString = false) {
+    $reserved = getPgReservedWords();
+    if (in_array(strtolower($columnName), $reserved)) {
+        // If for PHP string context, escape the double quotes
+        if ($forPhpString) {
+            return '\\"' . $columnName . '\\"';
+        }
+        return '"' . $columnName . '"';
+    }
+    return $columnName;
+}
+
 // Convert MySQL type to PostgreSQL
 function mysqlTypeToPostgres($mysqlType, $columnName) {
     $mysqlType = strtolower($mysqlType);
@@ -270,13 +315,14 @@ function generateDualMigration($pdo, $table, $database) {
     foreach ($columns as $col) {
         $colName = $col['Field'];
         $colType = $col['Type'];
+        $pgColName = pgEscapeColumnName($colName); // Escape reserved words
 
         // Check for ENUM
         if (preg_match("/enum\('(.+)'\)/", $colType, $matches)) {
             $enumValues = explode("','", $matches[1]);
             $pgType = 'VARCHAR(20)';
             $checkValues = "'" . implode("', '", $enumValues) . "'";
-            $enumChecks[] = "  CHECK ({$colName} IN ({$checkValues}))";
+            $enumChecks[] = "  CHECK ({$pgColName} IN ({$checkValues}))";
         } else {
             $pgType = mysqlTypeToPostgres($colType, $colName);
         }
@@ -284,7 +330,7 @@ function generateDualMigration($pdo, $table, $database) {
         // Handle AUTO_INCREMENT as SERIAL
         if (preg_match('/auto_increment/', $col['Extra']) && $colName === $primaryKey) {
             $pgType = 'SERIAL PRIMARY KEY';
-            $pgCols[] = "  {$colName} {$pgType}";
+            $pgCols[] = "  {$pgColName} {$pgType}";
             continue;
         }
 
@@ -299,21 +345,27 @@ function generateDualMigration($pdo, $table, $database) {
             }
         }
 
-        $pgCols[] = "  {$colName} {$pgType}{$null}{$default}";
+        $pgCols[] = "  {$pgColName} {$pgType}{$null}{$default}";
     }
 
     // Add UNIQUE constraints
     foreach ($indexes as $index) {
         if ($index['primary'] || $index['name'] === $primaryKey) continue;
 
-        $cols = implode(', ', $index['columns']);
+        // Escape column names in indexes (for CREATE TABLE context - no PHP escaping needed)
+        $escapedCols = array_map('pgEscapeColumnName', $index['columns']);
+        $cols = implode(', ', $escapedCols);
         if ($index['unique']) {
             $pgConstraints[] = "  UNIQUE ({$cols})";
         } else {
             // Non-unique indexes created separately
             // PostgreSQL requires globally unique index names, so prefix with table name
             $pgIndexName = "{$table}_{$index['name']}";
-            $pgIndexes[] = "CREATE INDEX {$pgIndexName} ON {$table}(" . implode(', ', $index['columns']) . ")";
+            // For indexes in $pdo->exec("...") context, need PHP string escaping
+            $escapedColsForPhp = array_map(function($col) {
+                return pgEscapeColumnName($col, true);
+            }, $index['columns']);
+            $pgIndexes[] = "CREATE INDEX {$pgIndexName} ON {$table}(" . implode(', ', $escapedColsForPhp) . ")";
         }
     }
 
@@ -321,11 +373,12 @@ function generateDualMigration($pdo, $table, $database) {
     $pgCreate .= implode(",\n", array_merge($pgCols, $enumChecks, $pgConstraints));
     $pgCreate .= "\n)";
 
-    // Add comments for PostgreSQL
+    // Add comments for PostgreSQL (need PHP string escaping for $pdo->exec context)
     $pgComments = [];
     foreach ($columns as $col) {
         if ($col['Comment']) {
-            $pgComments[] = "COMMENT ON COLUMN {$table}.{$col['Field']} IS '" . addslashes($col['Comment']) . "'";
+            $pgColName = pgEscapeColumnName($col['Field'], true);
+            $pgComments[] = "COMMENT ON COLUMN {$table}.{$pgColName} IS '" . addslashes($col['Comment']) . "'";
         }
     }
 
