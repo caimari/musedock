@@ -13,6 +13,7 @@ use Screenart\Musedock\View;
 use Screenart\Musedock\Logger;
 use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Traits\RequiresPermission;
+use Screenart\Musedock\Mail\Mailer;
 use CaddyDomainManager\Services\CaddyService;
 use PDO;
 
@@ -144,6 +145,7 @@ class DomainManagerController
         $adminEmail = trim($_POST['admin_email'] ?? '');
         $adminName = trim($_POST['admin_name'] ?? '');
         $adminPassword = $_POST['admin_password'] ?? '';
+        $sendWelcomeEmail = isset($_POST['send_welcome_email']);
 
         // Validaciones
         $errors = $this->validateInput($name, $domain, $adminEmail, $adminName, $adminPassword);
@@ -196,17 +198,29 @@ class DomainManagerController
             $pdo->commit();
 
             // Configurar en Caddy si se solicitó
+            $caddyMessage = '';
             if ($configureInCaddy) {
                 $caddyResult = $this->configureDomainInCaddy($tenantId, $domain, $includeWww);
 
                 if ($caddyResult['success']) {
-                    flash('success', "Tenant '{$name}' creado y dominio '{$domain}' configurado en Caddy correctamente.");
+                    $caddyMessage = " Dominio configurado en Caddy.";
                 } else {
-                    flash('warning', "Tenant '{$name}' creado, pero hubo un error al configurar Caddy: " . $caddyResult['error']);
+                    $caddyMessage = " Error al configurar Caddy: " . $caddyResult['error'];
                 }
-            } else {
-                flash('success', "Tenant '{$name}' creado correctamente. El dominio no se ha configurado en Caddy.");
             }
+
+            // Enviar email de bienvenida si se solicitó
+            $emailMessage = '';
+            if ($sendWelcomeEmail) {
+                $emailSent = $this->sendWelcomeEmail($adminEmail, $adminName, $adminPassword, $domain, $name);
+                if ($emailSent) {
+                    $emailMessage = " Email de bienvenida enviado.";
+                } else {
+                    $emailMessage = " No se pudo enviar el email de bienvenida.";
+                }
+            }
+
+            flash('success', "Tenant '{$name}' creado correctamente.{$caddyMessage}{$emailMessage}");
 
             header('Location: /musedock/domain-manager');
             exit;
@@ -813,5 +827,198 @@ class DomainManagerController
     {
         return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    }
+
+    /**
+     * Envía email de bienvenida al administrador del nuevo tenant
+     */
+    private function sendWelcomeEmail(
+        string $email,
+        string $name,
+        string $password,
+        string $domain,
+        string $tenantName
+    ): bool {
+        try {
+            $appName = getenv('APP_NAME') ?: 'MuseDock CMS';
+            $loginUrl = "https://{$domain}/admin/login";
+
+            $subject = "Bienvenido a {$tenantName} - Datos de acceso";
+
+            $htmlBody = $this->getWelcomeEmailTemplate($name, $email, $password, $domain, $tenantName, $loginUrl);
+            $textBody = $this->getWelcomeEmailTextTemplate($name, $email, $password, $domain, $tenantName, $loginUrl);
+
+            $sent = Mailer::send($email, $subject, $htmlBody, $textBody);
+
+            if ($sent) {
+                Logger::log("[DomainManager] Email de bienvenida enviado a: {$email}", 'INFO');
+            } else {
+                Logger::log("[DomainManager] Error enviando email de bienvenida a: {$email}", 'WARNING');
+            }
+
+            return $sent;
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Excepción enviando email: " . $e->getMessage(), 'ERROR');
+            return false;
+        }
+    }
+
+    /**
+     * Genera el HTML del email de bienvenida
+     */
+    private function getWelcomeEmailTemplate(
+        string $name,
+        string $email,
+        string $password,
+        string $domain,
+        string $tenantName,
+        string $loginUrl
+    ): string {
+        $appName = getenv('APP_NAME') ?: 'MuseDock CMS';
+        $year = date('Y');
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenido a {$tenantName}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f3f4f6;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 600px; max-width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 8px 8px 0 0;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
+                                Bienvenido a {$tenantName}
+                            </h1>
+                        </td>
+                    </tr>
+
+                    <!-- Contenido -->
+                    <tr>
+                        <td style="padding: 40px;">
+                            <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
+                                Hola <strong>{$name}</strong>,
+                            </p>
+
+                            <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
+                                Tu cuenta de administrador ha sido creada exitosamente. A continuación encontrarás tus datos de acceso:
+                            </p>
+
+                            <!-- Datos de acceso -->
+                            <div style="margin: 30px 0; padding: 24px; background-color: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                <h3 style="margin: 0 0 16px; font-size: 16px; color: #374151;">
+                                    <strong>Datos de acceso</strong>
+                                </h3>
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 100px;">Dominio:</td>
+                                        <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: 600;">{$domain}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Email:</td>
+                                        <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: 600;">{$email}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Contraseña:</td>
+                                        <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: 600; font-family: monospace; background-color: #fef3c7; padding: 4px 8px; border-radius: 4px;">{$password}</td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <!-- Botón de acceso -->
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{$loginUrl}"
+                                           style="display: inline-block; padding: 16px 32px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
+                                            Acceder al Panel de Administración
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- URL alternativa -->
+                            <p style="margin: 20px 0; font-size: 14px; line-height: 1.6; color: #6b7280;">
+                                Si el botón no funciona, copia y pega esta URL en tu navegador:
+                            </p>
+                            <p style="margin: 0 0 20px; font-size: 13px; line-height: 1.6; color: #10b981; word-break: break-all; background-color: #f9fafb; padding: 12px; border-radius: 4px; border: 1px solid #e5e7eb;">
+                                {$loginUrl}
+                            </p>
+
+                            <!-- Advertencia de seguridad -->
+                            <div style="margin: 30px 0; padding: 16px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
+                                <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #92400e;">
+                                    <strong>Importante:</strong> Por seguridad, te recomendamos cambiar tu contraseña después del primer inicio de sesión.
+                                </p>
+                            </div>
+
+                            <p style="margin: 20px 0 0; font-size: 14px; line-height: 1.6; color: #6b7280;">
+                                Si tienes alguna pregunta, no dudes en contactarnos.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 8px 8px; border-top: 1px solid #e5e7eb;">
+                            <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #9ca3af; text-align: center;">
+                                Este correo fue enviado por <strong>{$appName}</strong><br>
+                                <a href="https://{$domain}" style="color: #10b981; text-decoration: none;">{$domain}</a>
+                            </p>
+                            <p style="margin: 15px 0 0; font-size: 12px; line-height: 1.6; color: #9ca3af; text-align: center;">
+                                © {$year} {$tenantName}. Todos los derechos reservados.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+HTML;
+    }
+
+    /**
+     * Genera el texto plano del email de bienvenida
+     */
+    private function getWelcomeEmailTextTemplate(
+        string $name,
+        string $email,
+        string $password,
+        string $domain,
+        string $tenantName,
+        string $loginUrl
+    ): string {
+        $year = date('Y');
+
+        return <<<TEXT
+Bienvenido a {$tenantName}
+
+Hola {$name},
+
+Tu cuenta de administrador ha sido creada exitosamente.
+
+DATOS DE ACCESO
+---------------
+Dominio: {$domain}
+Email: {$email}
+Contraseña: {$password}
+
+URL de acceso: {$loginUrl}
+
+IMPORTANTE: Por seguridad, te recomendamos cambiar tu contraseña después del primer inicio de sesión.
+
+Si tienes alguna pregunta, no dudes en contactarnos.
+
+---
+© {$year} {$tenantName}
+TEXT;
     }
 }

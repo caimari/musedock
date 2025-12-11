@@ -114,6 +114,16 @@
                                     </button>
                                 </div>
                             </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="send_welcome_email" name="send_welcome_email" checked>
+                                    <label class="form-check-label" for="send_welcome_email">
+                                        <i class="bi bi-envelope"></i> Enviar email de bienvenida
+                                    </label>
+                                    <div class="form-text">Se enviará un email al administrador con los datos de acceso</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
