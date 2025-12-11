@@ -15,6 +15,11 @@ return [
 
     // Fallbacks si falla la DB
     'multi_tenant_enabled' => \Screenart\Musedock\Env::get('MULTI_TENANT_ENABLED', true),
+
+    // Configuración de multitenancy (estructura anidada para compatibilidad)
+    'multi_tenant' => [
+        'enabled' => \Screenart\Musedock\Env::get('MULTI_TENANT_ENABLED', true),
+    ],
     'default_theme' => \Screenart\Musedock\Env::get('DEFAULT_THEME', 'default'),
     'enable_multilang' => false,
     'force_lang' => false,
