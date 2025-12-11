@@ -2,64 +2,77 @@
 /**
  * Routes for Caddy Domain Manager plugin
  *
- * Este archivo se carga automáticamente cuando se accede a rutas /musedock/domain-manager
+ * Este archivo se carga desde routes/superadmin.php para plugins activos
  */
-
-namespace CaddyDomainManager;
 
 // Verificar contexto de ejecución
 if (!defined('APP_ROOT')) {
     exit('No direct access allowed');
 }
 
-use CaddyDomainManager\Controllers\DomainManagerController;
+use Screenart\Musedock\Route;
 
-// Cargar controlador
-require_once __DIR__ . '/Controllers/DomainManagerController.php';
+// Registrar autoloader del plugin si no está cargado
+spl_autoload_register(function ($class) {
+    $prefix = 'CaddyDomainManager\\';
+    $baseDir = __DIR__ . '/';
 
-$controller = new DomainManagerController();
-$method = $_SERVER['REQUEST_METHOD'];
-$uri = $_SERVER['REQUEST_URI'];
-$path = parse_url($uri, PHP_URL_PATH);
-
-// Router simple para el plugin
-$routes = [
-    'GET' => [
-        '#^/musedock/domain-manager$#' => 'index',
-        '#^/musedock/domain-manager/create$#' => 'create',
-        '#^/musedock/domain-manager/(\d+)/edit$#' => 'edit',
-        '#^/musedock/domain-manager/(\d+)/status$#' => 'checkStatus',
-    ],
-    'POST' => [
-        '#^/musedock/domain-manager$#' => 'store',
-        '#^/musedock/domain-manager/(\d+)/reconfigure$#' => 'reconfigure',
-    ],
-    'PUT' => [
-        '#^/musedock/domain-manager/(\d+)$#' => 'update',
-    ],
-    'DELETE' => [
-        '#^/musedock/domain-manager/(\d+)$#' => 'destroy',
-    ],
-];
-
-// Procesar rutas
-if (isset($routes[$method])) {
-    foreach ($routes[$method] as $pattern => $action) {
-        if (preg_match($pattern, $path, $matches)) {
-            // Eliminar el match completo
-            array_shift($matches);
-
-            // Llamar al método del controlador
-            if (!empty($matches)) {
-                $controller->$action(...$matches);
-            } else {
-                $controller->$action();
-            }
-            exit;
-        }
+    $len = strlen($prefix);
+    if (strncmp($prefix, $class, $len) !== 0) {
+        return;
     }
-}
 
-// Si no coincide ninguna ruta, redirigir a index
-header('Location: /musedock/domain-manager');
-exit;
+    $relativeClass = substr($class, $len);
+    $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
+
+    if (file_exists($file)) {
+        require $file;
+    }
+});
+
+// ============================================
+// CADDY DOMAIN MANAGER ROUTES
+// ============================================
+
+// Listar dominios
+Route::get('/musedock/domain-manager', 'CaddyDomainManager\Controllers\DomainManagerController@index')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.index');
+
+// Crear nuevo dominio
+Route::get('/musedock/domain-manager/create', 'CaddyDomainManager\Controllers\DomainManagerController@create')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.create');
+
+Route::post('/musedock/domain-manager', 'CaddyDomainManager\Controllers\DomainManagerController@store')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.store');
+
+// Editar dominio
+Route::get('/musedock/domain-manager/{id}/edit', 'CaddyDomainManager\Controllers\DomainManagerController@edit')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.edit');
+
+Route::put('/musedock/domain-manager/{id}', 'CaddyDomainManager\Controllers\DomainManagerController@update')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.update');
+
+// Ruta POST alternativa para update (compatibilidad con formularios HTML)
+Route::post('/musedock/domain-manager/{id}/update', 'CaddyDomainManager\Controllers\DomainManagerController@update')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.update.post');
+
+// Eliminar dominio
+Route::delete('/musedock/domain-manager/{id}', 'CaddyDomainManager\Controllers\DomainManagerController@destroy')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.destroy');
+
+// Reconfigurar en Caddy
+Route::post('/musedock/domain-manager/{id}/reconfigure', 'CaddyDomainManager\Controllers\DomainManagerController@reconfigure')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.reconfigure');
+
+// Verificar estado (AJAX)
+Route::get('/musedock/domain-manager/{id}/status', 'CaddyDomainManager\Controllers\DomainManagerController@checkStatus')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.status');

@@ -670,3 +670,24 @@ Route::get('/musedock/login/2fa', 'superadmin.TwoFactorController@verify')
 
 Route::post('/musedock/login/2fa', 'superadmin.TwoFactorController@verifyCode')
     ->name('superadmin.2fa.verify.post');
+
+// ============================================
+// PLUGIN ROUTES LOADER
+// ============================================
+// Cargar rutas de plugins activos
+$pluginRoutesDir = APP_ROOT . '/plugins/superadmin';
+if (is_dir($pluginRoutesDir)) {
+    // Obtener plugins activos desde la BD
+    try {
+        $activePlugins = \Screenart\Musedock\Models\SuperadminPlugin::getActive();
+        foreach ($activePlugins as $plugin) {
+            $routesFile = $plugin->path . '/routes.php';
+            if (file_exists($routesFile)) {
+                require_once $routesFile;
+            }
+        }
+    } catch (\Exception $e) {
+        // Silenciar errores si la tabla no existe aún
+        error_log("Plugin routes loader error: " . $e->getMessage());
+    }
+}

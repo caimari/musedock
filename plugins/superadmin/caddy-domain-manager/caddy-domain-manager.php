@@ -5,7 +5,7 @@
  * Version: 1.0.0
  * Author: MuseDock
  * Author URI: https://musedock.com
- * Requires PHP: 8.1
+ * Requires PHP: 8.0
  * Requires MuseDock: 2.0.0
  * Namespace: CaddyDomainManager
  */
@@ -38,44 +38,6 @@ spl_autoload_register(function ($class) {
     if (file_exists($file)) {
         require $file;
     }
-});
-
-// Cargar servicios
-require_once __DIR__ . '/Services/CaddyService.php';
-
-// Registrar rutas del plugin
-add_action('init', function() {
-    // Solo cargar en rutas de superadmin
-    $requestUri = $_SERVER['REQUEST_URI'] ?? '';
-
-    if (str_starts_with($requestUri, '/musedock/domain-manager')) {
-        require_once __DIR__ . '/routes.php';
-    }
-});
-
-// Registrar el controlador para las rutas
-$GLOBALS['CDM_ROUTES'] = [
-    'GET' => [
-        '/musedock/domain-manager' => ['CaddyDomainManager\\Controllers\\DomainManagerController', 'index'],
-        '/musedock/domain-manager/create' => ['CaddyDomainManager\\Controllers\\DomainManagerController', 'create'],
-        '/musedock/domain-manager/{id}/edit' => ['CaddyDomainManager\\Controllers\\DomainManagerController', 'edit'],
-        '/musedock/domain-manager/{id}/status' => ['CaddyDomainManager\\Controllers\\DomainManagerController', 'checkStatus'],
-    ],
-    'POST' => [
-        '/musedock/domain-manager' => ['CaddyDomainManager\\Controllers\\DomainManagerController', 'store'],
-        '/musedock/domain-manager/{id}/reconfigure' => ['CaddyDomainManager\\Controllers\\DomainManagerController', 'reconfigure'],
-    ],
-    'PUT' => [
-        '/musedock/domain-manager/{id}' => ['CaddyDomainManager\\Controllers\\DomainManagerController', 'update'],
-    ],
-    'DELETE' => [
-        '/musedock/domain-manager/{id}' => ['CaddyDomainManager\\Controllers\\DomainManagerController', 'destroy'],
-    ],
-];
-
-// Hook para registrar rutas en el router principal
-add_filter('superadmin_routes', function($routes) {
-    return array_merge_recursive($routes, $GLOBALS['CDM_ROUTES']);
 });
 
 // Log de carga
