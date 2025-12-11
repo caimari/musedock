@@ -1,0 +1,15 @@
+{
+    "slug": "caddy-domain-manager",
+    "name": "Caddy Domain Manager",
+    "description": "Gestiona dominios custom de tenants e integra automáticamente con Caddy Server para SSL y routing",
+    "version": "1.0.0",
+    "author": "MuseDock",
+    "author_url": "https://musedock.com",
+    "plugin_url": "https://musedock.com/plugins/caddy-domain-manager",
+    "requires_php": "8.1",
+    "requires_musedock": "2.0.0",
+    "namespace": "CaddyDomainManager",
+    "main_file": "caddy-domain-manager.php",
+    "auto_activate": false,
+    "dependencies": {}
+}

@@ -1,0 +1,365 @@
+<?php
+/**
+ * CaddyService - Gestiona la comunicación con la API de Caddy Server
+ *
+ * Caddy API: http://localhost:2019
+ * Documentación: https://caddyserver.com/docs/api
+ */
+
+namespace CaddyDomainManager\Services;
+
+use Screenart\Musedock\Logger;
+
+class CaddyService
+{
+    private string $caddyApiUrl;
+    private string $phpFpmSocket;
+    private string $documentRoot;
+    private int $timeout;
+
+    public function __construct()
+    {
+        // Configuración por defecto - puede sobreescribirse via .env
+        $this->caddyApiUrl = \Screenart\Musedock\Env::get('CADDY_API_URL', 'http://localhost:2019');
+        $this->phpFpmSocket = \Screenart\Musedock\Env::get('PHP_FPM_SOCKET', 'unix//run/php/php8.3-fpm-musedock.sock');
+        $this->documentRoot = \Screenart\Musedock\Env::get('CADDY_DOCUMENT_ROOT', '/var/www/vhosts/musedock.com/httpdocs/public');
+        $this->timeout = 30;
+    }
+
+    /**
+     * Añade un dominio a Caddy
+     *
+     * @param string $domain Dominio (ej: cliente.com)
+     * @param bool $includeWww Si incluir www.dominio.com
+     * @return array ['success' => bool, 'route_id' => string|null, 'error' => string|null]
+     */
+    public function addDomain(string $domain, bool $includeWww = true): array
+    {
+        $domain = $this->sanitizeDomain($domain);
+        $routeId = $this->generateRouteId($domain);
+
+        // Verificar si ya existe
+        if ($this->routeExists($routeId)) {
+            return [
+                'success' => false,
+                'route_id' => $routeId,
+                'error' => "El dominio '{$domain}' ya está configurado en Caddy con ID: {$routeId}"
+            ];
+        }
+
+        // Generar configuración
+        $config = $this->generateCaddyConfig($domain, $includeWww, $routeId);
+
+        // Llamar a la API de Caddy
+        $response = $this->apiRequest(
+            'POST',
+            '/config/apps/http/servers/srv0/routes',
+            $config
+        );
+
+        if ($response['success']) {
+            Logger::log("[CaddyService] Dominio añadido: {$domain} (route_id: {$routeId})", 'INFO');
+            return [
+                'success' => true,
+                'route_id' => $routeId,
+                'error' => null
+            ];
+        }
+
+        Logger::log("[CaddyService] Error añadiendo dominio {$domain}: " . $response['error'], 'ERROR');
+        return [
+            'success' => false,
+            'route_id' => null,
+            'error' => $response['error']
+        ];
+    }
+
+    /**
+     * Elimina un dominio de Caddy
+     *
+     * @param string $routeId ID de la ruta (ej: route_cliente_com)
+     * @return array ['success' => bool, 'error' => string|null]
+     */
+    public function removeDomain(string $routeId): array
+    {
+        if (!$this->routeExists($routeId)) {
+            return [
+                'success' => true,
+                'error' => null
+            ];
+        }
+
+        $response = $this->apiRequest(
+            'DELETE',
+            "/id/{$routeId}"
+        );
+
+        if ($response['success']) {
+            Logger::log("[CaddyService] Dominio eliminado: {$routeId}", 'INFO');
+            return [
+                'success' => true,
+                'error' => null
+            ];
+        }
+
+        Logger::log("[CaddyService] Error eliminando dominio {$routeId}: " . $response['error'], 'ERROR');
+        return [
+            'success' => false,
+            'error' => $response['error']
+        ];
+    }
+
+    /**
+     * Verifica si un dominio responde correctamente (HTTPS)
+     *
+     * @param string $domain
+     * @return array ['success' => bool, 'ssl_valid' => bool, 'error' => string|null]
+     */
+    public function verifyDomain(string $domain): array
+    {
+        $domain = $this->sanitizeDomain($domain);
+        $url = "https://{$domain}";
+
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_NOBODY => true, // Solo HEAD request
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $sslVerifyResult = curl_getinfo($ch, CURLINFO_SSL_VERIFYRESULT);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        // SSL válido si verify result es 0
+        $sslValid = ($sslVerifyResult === 0);
+
+        if ($httpCode >= 200 && $httpCode < 500) {
+            return [
+                'success' => true,
+                'ssl_valid' => $sslValid,
+                'http_code' => $httpCode,
+                'error' => null
+            ];
+        }
+
+        return [
+            'success' => false,
+            'ssl_valid' => $sslValid,
+            'http_code' => $httpCode,
+            'error' => $error ?: "HTTP {$httpCode}"
+        ];
+    }
+
+    /**
+     * Verifica si una ruta existe en Caddy
+     */
+    public function routeExists(string $routeId): bool
+    {
+        $response = $this->apiRequest('GET', "/id/{$routeId}");
+        return $response['success'] && !empty($response['data']);
+    }
+
+    /**
+     * Obtiene información de una ruta específica
+     */
+    public function getRoute(string $routeId): ?array
+    {
+        $response = $this->apiRequest('GET', "/id/{$routeId}");
+
+        if ($response['success'] && !empty($response['data'])) {
+            return $response['data'];
+        }
+
+        return null;
+    }
+
+    /**
+     * Lista todas las rutas configuradas
+     */
+    public function listRoutes(): array
+    {
+        $response = $this->apiRequest('GET', '/config/apps/http/servers/srv0/routes');
+
+        if ($response['success'] && is_array($response['data'])) {
+            return $response['data'];
+        }
+
+        return [];
+    }
+
+    /**
+     * Genera un route_id único desde el dominio
+     * cliente.com -> route_cliente_com
+     */
+    public function generateRouteId(string $domain): string
+    {
+        $sanitized = preg_replace('/[^a-z0-9]/', '_', strtolower($domain));
+        return 'route_' . $sanitized;
+    }
+
+    /**
+     * Sanitiza un dominio (elimina protocolo, www, paths)
+     */
+    private function sanitizeDomain(string $domain): string
+    {
+        // Eliminar protocolo
+        $domain = preg_replace('#^https?://#', '', $domain);
+
+        // Eliminar path y query string
+        $domain = explode('/', $domain)[0];
+        $domain = explode('?', $domain)[0];
+
+        // Eliminar www. inicial si existe
+        $domain = preg_replace('/^www\./', '', $domain);
+
+        return strtolower(trim($domain));
+    }
+
+    /**
+     * Genera la configuración JSON para Caddy API
+     */
+    private function generateCaddyConfig(string $domain, bool $includeWww, string $routeId): array
+    {
+        $hosts = [$domain];
+        if ($includeWww) {
+            $hosts[] = 'www.' . $domain;
+        }
+
+        return [
+            '@id' => $routeId,
+            'match' => [
+                [
+                    'host' => $hosts
+                ]
+            ],
+            'handle' => [
+                [
+                    'handler' => 'subroute',
+                    'routes' => [
+                        [
+                            'handle' => [
+                                [
+                                    'handler' => 'reverse_proxy',
+                                    'upstreams' => [
+                                        [
+                                            'dial' => $this->phpFpmSocket
+                                        ]
+                                    ],
+                                    'transport' => [
+                                        'protocol' => 'fastcgi',
+                                        'root' => $this->documentRoot
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            'terminal' => true
+        ];
+    }
+
+    /**
+     * Realiza una petición a la API de Caddy
+     */
+    private function apiRequest(string $method, string $endpoint, ?array $data = null): array
+    {
+        $url = rtrim($this->caddyApiUrl, '/') . $endpoint;
+
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => $this->timeout,
+            CURLOPT_CUSTOMREQUEST => $method,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Accept: application/json'
+            ],
+        ]);
+
+        if ($data !== null && in_array($method, ['POST', 'PUT', 'PATCH'])) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        }
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        $errno = curl_errno($ch);
+        curl_close($ch);
+
+        // Log de la petición
+        Logger::log("[CaddyService] {$method} {$endpoint} -> HTTP {$httpCode}", 'DEBUG');
+
+        // Error de conexión
+        if ($errno) {
+            return [
+                'success' => false,
+                'data' => null,
+                'error' => "Error de conexión a Caddy API: {$error} (errno: {$errno})",
+                'http_code' => 0
+            ];
+        }
+
+        // Parsear respuesta JSON
+        $responseData = null;
+        if ($response) {
+            $responseData = json_decode($response, true);
+        }
+
+        // HTTP 2xx = éxito
+        if ($httpCode >= 200 && $httpCode < 300) {
+            return [
+                'success' => true,
+                'data' => $responseData,
+                'error' => null,
+                'http_code' => $httpCode
+            ];
+        }
+
+        // Error HTTP
+        $errorMessage = "HTTP {$httpCode}";
+        if ($responseData && isset($responseData['error'])) {
+            $errorMessage .= ": " . $responseData['error'];
+        } elseif ($response) {
+            $errorMessage .= ": " . substr($response, 0, 200);
+        }
+
+        return [
+            'success' => false,
+            'data' => $responseData,
+            'error' => $errorMessage,
+            'http_code' => $httpCode
+        ];
+    }
+
+    /**
+     * Verifica si Caddy API está disponible
+     */
+    public function isApiAvailable(): bool
+    {
+        $response = $this->apiRequest('GET', '/config/');
+        return $response['success'] || $response['http_code'] > 0;
+    }
+
+    /**
+     * Obtiene la configuración actual de Caddy
+     */
+    public function getConfig(): ?array
+    {
+        $response = $this->apiRequest('GET', '/config/');
+
+        if ($response['success']) {
+            return $response['data'];
+        }
+
+        return null;
+    }
+}
