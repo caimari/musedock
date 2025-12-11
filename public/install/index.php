@@ -819,10 +819,10 @@ function createAdminUser($data) {
 
         // Insert into super_admins with role 'superadmin'
         if ($driver === 'pgsql') {
-            // PostgreSQL: use ON CONFLICT (upsert)
+            // PostgreSQL: use ON CONFLICT (upsert) - is_root is SMALLINT, use 1 not true
             $stmt = $pdo->prepare("
                 INSERT INTO super_admins (name, email, password, role, is_root, created_at)
-                VALUES (?, ?, ?, 'superadmin', true, NOW())
+                VALUES (?, ?, ?, 'superadmin', 1, NOW())
                 ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, role = 'superadmin'
             ");
         } else {
@@ -852,6 +852,10 @@ $step = max(1, min(5, $step));
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Install MuseDock CMS</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link href="/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="/assets/vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
     <style>
