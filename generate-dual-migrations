@@ -311,7 +311,9 @@ function generateDualMigration($pdo, $table, $database) {
             $pgConstraints[] = "  UNIQUE ({$cols})";
         } else {
             // Non-unique indexes created separately
-            $pgIndexes[] = "CREATE INDEX {$index['name']} ON {$table}(" . implode(', ', $index['columns']) . ")";
+            // PostgreSQL requires globally unique index names, so prefix with table name
+            $pgIndexName = "{$table}_{$index['name']}";
+            $pgIndexes[] = "CREATE INDEX {$pgIndexName} ON {$table}(" . implode(', ', $index['columns']) . ")";
         }
     }
 
