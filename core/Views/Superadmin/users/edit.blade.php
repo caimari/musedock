@@ -153,56 +153,114 @@
         <input type="hidden" name="redirect_to_index" value="1">
     </form>
 </div>
+@push('scripts')
 <script>
 function enableEmailChange(button) {
-    var emailDisplay = document.getElementById('email_display');
-    var hiddenEmail = document.getElementById('email');
-    var inputGroup = button.parentNode;
+    Swal.fire({
+        title: '<i class="bi bi-envelope-exclamation text-warning"></i> Cambiar Email',
+        html: `
+            <div class="text-start">
+                <div class="alert alert-warning py-2 mb-3">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>ATENCIÓN:</strong> Cambiar el correo electrónico puede afectar el acceso del usuario.
+                </div>
+                <p>¿Estás seguro de que deseas habilitar el cambio de email?</p>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-check-lg me-1"></i> Sí, activar cambio',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d',
+        width: '450px'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            var emailDisplay = document.getElementById('email_display');
+            var hiddenEmail = document.getElementById('email');
+            var inputGroup = button.parentNode;
 
-    // Creamos el nuevo input editable
-    var newInput = document.createElement('input');
-    newInput.type = 'email';
-    newInput.name = 'email';
-    newInput.id = 'email';
-    newInput.value = hiddenEmail.value; // Copiamos el valor actual
-    newInput.className = 'form-control';
-    newInput.required = true;
+            // Creamos el nuevo input editable
+            var newInput = document.createElement('input');
+            newInput.type = 'email';
+            newInput.name = 'email';
+            newInput.id = 'email';
+            newInput.value = hiddenEmail.value;
+            newInput.className = 'form-control';
+            newInput.required = true;
 
-    // Eliminamos el campo de visualización y el hidden antiguo
-    if (emailDisplay) {
-        inputGroup.removeChild(emailDisplay);
-    }
-    if (hiddenEmail) {
-        inputGroup.removeChild(hiddenEmail);
-    }
+            // Eliminamos el campo de visualización y el hidden antiguo
+            if (emailDisplay) {
+                inputGroup.removeChild(emailDisplay);
+            }
+            if (hiddenEmail) {
+                inputGroup.removeChild(hiddenEmail);
+            }
 
-    // Insertamos el nuevo input editable antes del botón
-    inputGroup.insertBefore(newInput, button);
+            // Insertamos el nuevo input editable antes del botón
+            inputGroup.insertBefore(newInput, button);
 
-    // Modificamos el botón
-    button.disabled = true;
-    button.classList.remove('btn-outline-warning');
-    button.classList.add('btn-outline-danger');
-    button.textContent = 'Cambio activado';
+            // Modificamos el botón
+            button.disabled = true;
+            button.classList.remove('btn-outline-warning');
+            button.classList.add('btn-outline-danger');
+            button.textContent = 'Cambio activado';
 
-    // Mostramos advertencia
-    if (confirm('ATENCIÓN: Cambiar el correo electrónico puede afectar el acceso del usuario. ¿Estás seguro?')) {
-        newInput.focus();
-    } else {
-        location.reload(); // Si cancela, recargamos la página para no romper el formulario
-    }
+            newInput.focus();
+
+            Swal.fire({
+                icon: 'info',
+                title: 'Cambio de email activado',
+                text: 'Ahora puedes modificar el correo electrónico.',
+                confirmButtonColor: '#0d6efd',
+                timer: 2000,
+                timerProgressBar: true
+            });
+        }
+    });
 }
 
 function enablePasswordChange(button) {
-    var passwordField = document.getElementById('password');
-    passwordField.disabled = false;
-    button.disabled = true;
-    button.classList.remove('btn-outline-warning');
-    button.classList.add('btn-outline-danger');
-    button.textContent = 'Cambio activado';
-    passwordField.focus();
+    Swal.fire({
+        title: '<i class="bi bi-key text-warning"></i> Cambiar Contraseña',
+        html: `
+            <div class="text-start">
+                <div class="alert alert-warning py-2 mb-3">
+                    <i class="bi bi-shield-lock me-2"></i>
+                    <strong>Seguridad:</strong> La nueva contraseña reemplazará la actual del usuario.
+                </div>
+                <p>¿Deseas habilitar el cambio de contraseña?</p>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-check-lg me-1"></i> Sí, activar cambio',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d',
+        width: '450px'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            var passwordField = document.getElementById('password');
+            passwordField.disabled = false;
+            passwordField.placeholder = 'Introduce la nueva contraseña';
+            button.disabled = true;
+            button.classList.remove('btn-outline-warning');
+            button.classList.add('btn-outline-danger');
+            button.textContent = 'Cambio activado';
+            passwordField.focus();
+
+            Swal.fire({
+                icon: 'info',
+                title: 'Cambio de contraseña activado',
+                text: 'Ahora puedes introducir la nueva contraseña.',
+                confirmButtonColor: '#0d6efd',
+                timer: 2000,
+                timerProgressBar: true
+            });
+        }
+    });
 }
 </script>
+@endpush
 
 
 @endsection

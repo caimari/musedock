@@ -190,10 +190,16 @@ class DomainManagerController
             $tenantId = $pdo->lastInsertId();
 
             // Crear admin del tenant
-            $this->createTenantAdmin($pdo, $tenantId, $adminEmail, $adminName, $adminPassword);
+            $adminId = $this->createTenantAdmin($pdo, $tenantId, $adminEmail, $adminName, $adminPassword);
 
             // Crear permisos y roles por defecto
-            $this->createDefaultPermissionsAndRoles($pdo, $tenantId);
+            $adminRoleId = $this->createDefaultPermissionsAndRoles($pdo, $tenantId);
+
+            // Asignar rol admin al usuario creado
+            $this->assignRoleToAdmin($pdo, $adminId, $adminRoleId, $tenantId);
+
+            // Crear menús por defecto para el tenant
+            $this->createDefaultTenantMenus($pdo, $tenantId);
 
             $pdo->commit();
 
@@ -767,24 +773,51 @@ class DomainManagerController
     /**
      * Crea permisos y roles por defecto para el tenant
      * Evita duplicados verificando existencia antes de insertar
+     * @return int ID del rol admin creado
      */
-    private function createDefaultPermissionsAndRoles(PDO $pdo, int $tenantId): void
+    private function createDefaultPermissionsAndRoles(PDO $pdo, int $tenantId): int
     {
-        // Permisos por defecto
+        // Permisos por defecto - todos los permisos que un admin necesita
         $permissions = [
+            // Acceso general
             ['name' => 'admin.access', 'description' => 'Acceder al panel de administración', 'category' => 'admin'],
             ['name' => 'admin.dashboard', 'description' => 'Ver el dashboard', 'category' => 'admin'],
+            ['name' => 'admin.settings', 'description' => 'Gestionar configuración', 'category' => 'admin'],
+            // Usuarios
             ['name' => 'users.view', 'description' => 'Ver usuarios', 'category' => 'users'],
             ['name' => 'users.create', 'description' => 'Crear usuarios', 'category' => 'users'],
             ['name' => 'users.edit', 'description' => 'Editar usuarios', 'category' => 'users'],
             ['name' => 'users.delete', 'description' => 'Eliminar usuarios', 'category' => 'users'],
+            // Contenido
             ['name' => 'content.view', 'description' => 'Ver contenido', 'category' => 'content'],
             ['name' => 'content.create', 'description' => 'Crear contenido', 'category' => 'content'],
             ['name' => 'content.edit', 'description' => 'Editar contenido', 'category' => 'content'],
             ['name' => 'content.delete', 'description' => 'Eliminar contenido', 'category' => 'content'],
+            // Páginas
+            ['name' => 'pages.view', 'description' => 'Ver páginas', 'category' => 'pages'],
+            ['name' => 'pages.create', 'description' => 'Crear páginas', 'category' => 'pages'],
+            ['name' => 'pages.edit', 'description' => 'Editar páginas', 'category' => 'pages'],
+            ['name' => 'pages.delete', 'description' => 'Eliminar páginas', 'category' => 'pages'],
+            // Menús
+            ['name' => 'menus.view', 'description' => 'Ver menús', 'category' => 'menus'],
+            ['name' => 'menus.manage', 'description' => 'Gestionar menús', 'category' => 'menus'],
+            // Media
+            ['name' => 'media.view', 'description' => 'Ver media', 'category' => 'media'],
+            ['name' => 'media.upload', 'description' => 'Subir archivos', 'category' => 'media'],
+            ['name' => 'media.delete', 'description' => 'Eliminar archivos', 'category' => 'media'],
+            // Módulos
+            ['name' => 'modules.view', 'description' => 'Ver módulos', 'category' => 'modules'],
+            ['name' => 'modules.manage', 'description' => 'Gestionar módulos', 'category' => 'modules'],
+            // Plugins
+            ['name' => 'plugins.view', 'description' => 'Ver plugins', 'category' => 'plugins'],
+            ['name' => 'plugins.manage', 'description' => 'Gestionar plugins', 'category' => 'plugins'],
+            // Temas
+            ['name' => 'themes.view', 'description' => 'Ver temas', 'category' => 'themes'],
+            ['name' => 'themes.manage', 'description' => 'Gestionar temas', 'category' => 'themes'],
         ];
 
-        // Preparar statements para evitar duplicados
+        // Insertar permisos y guardar IDs
+        $permissionIds = [];
         $checkPermStmt = $pdo->prepare("SELECT id FROM permissions WHERE name = ? AND tenant_id = ?");
         $insertPermStmt = $pdo->prepare("
             INSERT INTO permissions (name, description, category, tenant_id, created_at, updated_at)
@@ -793,8 +826,13 @@ class DomainManagerController
 
         foreach ($permissions as $perm) {
             $checkPermStmt->execute([$perm['name'], $tenantId]);
-            if (!$checkPermStmt->fetch()) {
+            $existing = $checkPermStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($existing) {
+                $permissionIds[] = $existing['id'];
+            } else {
                 $insertPermStmt->execute([$perm['name'], $perm['description'], $perm['category'], $tenantId]);
+                $permissionIds[] = $pdo->lastInsertId();
             }
         }
 
@@ -805,7 +843,7 @@ class DomainManagerController
             ['name' => 'viewer', 'description' => 'Solo lectura'],
         ];
 
-        // Preparar statements para evitar duplicados
+        $adminRoleId = null;
         $checkRoleStmt = $pdo->prepare("SELECT id FROM roles WHERE name = ? AND tenant_id = ?");
         $insertRoleStmt = $pdo->prepare("
             INSERT INTO roles (name, description, tenant_id, is_system, created_at, updated_at)
@@ -814,10 +852,139 @@ class DomainManagerController
 
         foreach ($roles as $role) {
             $checkRoleStmt->execute([$role['name'], $tenantId]);
-            if (!$checkRoleStmt->fetch()) {
+            $existing = $checkRoleStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($existing) {
+                $roleId = $existing['id'];
+            } else {
                 $insertRoleStmt->execute([$role['name'], $role['description'], $tenantId]);
+                $roleId = $pdo->lastInsertId();
+            }
+
+            // Guardar ID del rol admin
+            if ($role['name'] === 'admin') {
+                $adminRoleId = $roleId;
             }
         }
+
+        // Asignar TODOS los permisos al rol admin
+        if ($adminRoleId && !empty($permissionIds)) {
+            $checkRolePermStmt = $pdo->prepare("SELECT 1 FROM role_permissions WHERE role_id = ? AND permission_id = ? AND tenant_id = ?");
+            $insertRolePermStmt = $pdo->prepare("
+                INSERT INTO role_permissions (role_id, permission_id, tenant_id, created_at)
+                VALUES (?, ?, ?, NOW())
+            ");
+
+            foreach ($permissionIds as $permId) {
+                $checkRolePermStmt->execute([$adminRoleId, $permId, $tenantId]);
+                if (!$checkRolePermStmt->fetch()) {
+                    $insertRolePermStmt->execute([$adminRoleId, $permId, $tenantId]);
+                }
+            }
+        }
+
+        return (int)$adminRoleId;
+    }
+
+    /**
+     * Asigna un rol a un admin del tenant
+     */
+    private function assignRoleToAdmin(PDO $pdo, int $adminId, int $roleId, int $tenantId): void
+    {
+        // Verificar si ya existe la asignación
+        $checkStmt = $pdo->prepare("SELECT 1 FROM user_roles WHERE user_id = ? AND role_id = ? AND tenant_id = ?");
+        $checkStmt->execute([$adminId, $roleId, $tenantId]);
+
+        if (!$checkStmt->fetch()) {
+            $stmt = $pdo->prepare("
+                INSERT INTO user_roles (user_id, user_type, role_id, tenant_id, created_at)
+                VALUES (?, 'admin', ?, ?, NOW())
+            ");
+            $stmt->execute([$adminId, $roleId, $tenantId]);
+        }
+    }
+
+    /**
+     * Crea los menús por defecto para el tenant copiando de admin_menus
+     */
+    private function createDefaultTenantMenus(PDO $pdo, int $tenantId): void
+    {
+        // Verificar si el tenant ya tiene menús
+        $checkStmt = $pdo->prepare("SELECT COUNT(*) as count FROM tenant_menus WHERE tenant_id = ?");
+        $checkStmt->execute([$tenantId]);
+        $result = $checkStmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($result['count'] > 0) {
+            return; // Ya tiene menús
+        }
+
+        // Obtener todos los menús de admin_menus
+        $stmt = $pdo->query("
+            SELECT id, parent_id, module_id, title, slug, url, icon, icon_type,
+                   order_position, permission, is_active
+            FROM admin_menus
+            ORDER BY parent_id IS NULL DESC, parent_id, order_position
+        ");
+        $adminMenus = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        if (empty($adminMenus)) {
+            return; // No hay menús base
+        }
+
+        // Mapeo de IDs antiguos a nuevos para mantener la jerarquía
+        $idMap = [];
+
+        $insertStmt = $pdo->prepare("
+            INSERT INTO tenant_menus
+            (tenant_id, parent_id, module_id, title, slug, url, icon, icon_type,
+             order_position, permission, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        ");
+
+        // Primero insertar menús padres (parent_id IS NULL)
+        foreach ($adminMenus as $menu) {
+            if ($menu['parent_id'] === null) {
+                $insertStmt->execute([
+                    $tenantId,
+                    null,
+                    $menu['module_id'],
+                    $menu['title'],
+                    $menu['slug'],
+                    $menu['url'],
+                    $menu['icon'],
+                    $menu['icon_type'],
+                    $menu['order_position'],
+                    $menu['permission'],
+                    $menu['is_active']
+                ]);
+                $idMap[$menu['id']] = $pdo->lastInsertId();
+            }
+        }
+
+        // Luego insertar menús hijos
+        foreach ($adminMenus as $menu) {
+            if ($menu['parent_id'] !== null) {
+                $newParentId = $idMap[$menu['parent_id']] ?? null;
+                if ($newParentId) {
+                    $insertStmt->execute([
+                        $tenantId,
+                        $newParentId,
+                        $menu['module_id'],
+                        $menu['title'],
+                        $menu['slug'],
+                        $menu['url'],
+                        $menu['icon'],
+                        $menu['icon_type'],
+                        $menu['order_position'],
+                        $menu['permission'],
+                        $menu['is_active']
+                    ]);
+                    $idMap[$menu['id']] = $pdo->lastInsertId();
+                }
+            }
+        }
+
+        Logger::log("[DomainManager] Menús creados para tenant {$tenantId}: " . count($idMap) . " items", 'INFO');
     }
 
     /**
