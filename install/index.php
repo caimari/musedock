@@ -473,22 +473,52 @@ function testDatabaseConnection($data) {
     }
 
     try {
-        // First try to connect without database (to check credentials)
-        $dsn = "{$driver}:host={$host};port={$port}";
-        $pdo = new PDO($dsn, $user, $pass, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-        ]);
+        // For PostgreSQL, we need to connect to a default database first (postgres or template1)
+        if ($driver === 'pgsql') {
+            // Try to connect to postgres database first to check credentials
+            $dsn = "{$driver}:host={$host};port={$port};dbname=postgres";
+            try {
+                $pdo = new PDO($dsn, $user, $pass, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                ]);
+            } catch (PDOException $e) {
+                // If postgres database doesn't work, try template1
+                $dsn = "{$driver}:host={$host};port={$port};dbname=template1";
+                $pdo = new PDO($dsn, $user, $pass, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                ]);
+            }
 
-        // Check if database exists
-        $stmt = $pdo->query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = " . $pdo->quote($name));
-        $dbExists = $stmt->fetch() !== false;
+            // Check if database exists using PostgreSQL syntax
+            $stmt = $pdo->prepare("SELECT 1 FROM pg_database WHERE datname = ?");
+            $stmt->execute([$name]);
+            $dbExists = $stmt->fetch() !== false;
 
-        // Try to connect to specific database if it exists
-        if ($dbExists) {
-            $dsn = "{$driver}:host={$host};port={$port};dbname={$name}";
+            // Try to connect to the specific database if it exists
+            if ($dbExists) {
+                $dsn = "{$driver}:host={$host};port={$port};dbname={$name}";
+                $pdo = new PDO($dsn, $user, $pass, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                ]);
+            }
+        } else {
+            // MySQL/MariaDB: First try to connect without database (to check credentials)
+            $dsn = "{$driver}:host={$host};port={$port}";
             $pdo = new PDO($dsn, $user, $pass, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
             ]);
+
+            // Check if database exists using MySQL syntax
+            $stmt = $pdo->query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = " . $pdo->quote($name));
+            $dbExists = $stmt->fetch() !== false;
+
+            // Try to connect to specific database if it exists
+            if ($dbExists) {
+                $dsn = "{$driver}:host={$host};port={$port};dbname={$name}";
+                $pdo = new PDO($dsn, $user, $pass, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                ]);
+            }
         }
 
         return [
@@ -639,20 +669,36 @@ function setupDatabase($data) {
     $pass = $data['db_pass'] ?? '';
 
     try {
-        // Connect without database
-        $dsn = "{$driver}:host={$host};port={$port}";
-        $pdo = new PDO($dsn, $user, $pass, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-        ]);
-
-        // Create database if not exists
         if ($driver === 'mysql') {
+            // MySQL: Connect without database
+            $dsn = "{$driver}:host={$host};port={$port}";
+            $pdo = new PDO($dsn, $user, $pass, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+            ]);
+
+            // Create database if not exists
             $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         } else {
-            // PostgreSQL
-            $stmt = $pdo->query("SELECT 1 FROM pg_database WHERE datname = " . $pdo->quote($name));
+            // PostgreSQL: Need to connect to an existing database first
+            $dsn = "{$driver}:host={$host};port={$port};dbname=postgres";
+            try {
+                $pdo = new PDO($dsn, $user, $pass, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                ]);
+            } catch (PDOException $e) {
+                // If postgres database doesn't work, try template1
+                $dsn = "{$driver}:host={$host};port={$port};dbname=template1";
+                $pdo = new PDO($dsn, $user, $pass, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                ]);
+            }
+
+            // Check if database exists
+            $stmt = $pdo->prepare("SELECT 1 FROM pg_database WHERE datname = ?");
+            $stmt->execute([$name]);
             if (!$stmt->fetch()) {
-                $pdo->exec("CREATE DATABASE \"{$name}\" ENCODING 'UTF8'");
+                // Create database (can't use prepared statements for DDL)
+                $pdo->exec("CREATE DATABASE \"" . addslashes($name) . "\" ENCODING 'UTF8'");
             }
         }
 
@@ -676,17 +722,31 @@ function runMigrations() {
 
     try {
         $pdo = \Screenart\Musedock\Database::connect();
+        $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
 
-        // Create migrations table
-        $pdo->exec("
-            CREATE TABLE IF NOT EXISTS `migrations` (
-                `id` INT AUTO_INCREMENT PRIMARY KEY,
-                `migration` VARCHAR(255) NOT NULL UNIQUE,
-                `batch` INT NOT NULL,
-                `executed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_batch (batch)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        ");
+        // Create migrations table (compatible with both MySQL and PostgreSQL)
+        if ($driver === 'mysql') {
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `migrations` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `migration` VARCHAR(255) NOT NULL UNIQUE,
+                    `batch` INT NOT NULL,
+                    `executed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_batch (batch)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+        } else {
+            // PostgreSQL
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS migrations (
+                    id SERIAL PRIMARY KEY,
+                    migration VARCHAR(255) NOT NULL UNIQUE,
+                    batch INTEGER NOT NULL,
+                    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ");
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_batch ON migrations(batch)");
+        }
 
         // Get already run migrations
         $stmt = $pdo->query("SELECT migration FROM migrations");

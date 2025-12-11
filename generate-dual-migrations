@@ -1,0 +1,477 @@
+#!/usr/bin/env php
+<?php
+/**
+ * MuseDock CMS - Dual Database Migration Generator
+ *
+ * Generates migration files compatible with BOTH MySQL/MariaDB AND PostgreSQL
+ * from existing MySQL database tables.
+ *
+ * Features:
+ * - Backs up existing migrations
+ * - Generates dual-compatible migrations
+ * - Converts TINYINT(1) to INTEGER for booleans (0/1)
+ * - Converts ENUM to VARCHAR with CHECK constraints
+ * - Handles AUTO_INCREMENT vs SERIAL
+ *
+ * Usage:
+ *   php generate-dual-migrations                # Backup & regenerate all
+ *   php generate-dual-migrations --backup-only  # Only backup existing
+ *   php generate-dual-migrations --dry-run      # Preview without changes
+ */
+
+define('BASE_PATH', __DIR__);
+
+// Load environment
+require_once __DIR__ . '/core/Env.php';
+\Screenart\Musedock\Env::load(__DIR__ . '/.env');
+
+// Database connection
+$driver = \Screenart\Musedock\Env::get('DB_DRIVER', 'mysql');
+$host = \Screenart\Musedock\Env::get('DB_HOST', 'localhost');
+$port = \Screenart\Musedock\Env::get('DB_PORT', '3306');
+$database = \Screenart\Musedock\Env::get('DB_NAME');
+$username = \Screenart\Musedock\Env::get('DB_USER');
+$password = \Screenart\Musedock\Env::get('DB_PASS');
+
+try {
+    $dsn = "{$driver}:host={$host};port={$port};dbname={$database};charset=utf8mb4";
+    $pdo = new PDO($dsn, $username, $password, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+    ]);
+} catch (PDOException $e) {
+    die("❌ Database connection failed: " . $e->getMessage() . "\n");
+}
+
+// Parse arguments
+$args = array_slice($argv, 1);
+$options = [
+    'backup-only' => false,
+    'dry-run' => false,
+    'force' => false
+];
+
+foreach ($args as $arg) {
+    if ($arg === '--backup-only') {
+        $options['backup-only'] = true;
+    } elseif ($arg === '--dry-run') {
+        $options['dry-run'] = true;
+    } elseif ($arg === '--force') {
+        $options['force'] = true;
+    } elseif ($arg === '--help' || $arg === '-h') {
+        showHelp();
+        exit(0);
+    }
+}
+
+function showHelp() {
+    echo <<<HELP
+MuseDock Dual Migration Generator
+==================================
+
+Generates MySQL/MariaDB + PostgreSQL compatible migrations.
+
+Usage:
+  php generate-dual-migrations [options]
+
+Options:
+  --backup-only   Only backup existing migrations, don't regenerate
+  --dry-run       Preview changes without creating files
+  --force         Overwrite existing migrations (dangerous!)
+  --help, -h      Show this help message
+
+Examples:
+  php generate-dual-migrations            # Full backup + regenerate
+  php generate-dual-migrations --dry-run  # Preview mode
+  php generate-dual-migrations --backup-only  # Backup only
+
+HELP;
+}
+
+// Backup existing migrations
+function backupMigrations($dryRun = false) {
+    $migrationPath = BASE_PATH . '/database/migrations';
+    $backupPath = BASE_PATH . '/database/migrations_backup_' . date('Y-m-d_His');
+
+    if (!is_dir($migrationPath)) {
+        echo "⚠️  No migrations directory found.\n";
+        return false;
+    }
+
+    $files = glob($migrationPath . '/*.php');
+    if (empty($files)) {
+        echo "⚠️  No migration files to backup.\n";
+        return false;
+    }
+
+    echo "\n📦 Backing up " . count($files) . " migration files...\n";
+
+    if ($dryRun) {
+        echo "   DRY RUN: Would create backup at: {$backupPath}\n";
+        return true;
+    }
+
+    if (!mkdir($backupPath, 0755, true)) {
+        die("❌ Failed to create backup directory.\n");
+    }
+
+    foreach ($files as $file) {
+        $filename = basename($file);
+        copy($file, $backupPath . '/' . $filename);
+    }
+
+    echo "✓ Backed up to: {$backupPath}\n\n";
+    return $backupPath;
+}
+
+// Get all tables
+function getAllTables($pdo) {
+    $stmt = $pdo->query("SHOW TABLES");
+    return $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
+
+// Get table columns
+function getTableColumns($pdo, $table) {
+    $stmt = $pdo->query("SHOW FULL COLUMNS FROM `{$table}`");
+    return $stmt->fetchAll();
+}
+
+// Get table indexes
+function getTableIndexes($pdo, $table) {
+    $indexes = [];
+    $stmt = $pdo->query("SHOW INDEX FROM `{$table}`");
+    $rows = $stmt->fetchAll();
+
+    foreach ($rows as $row) {
+        $keyName = $row['Key_name'];
+        if (!isset($indexes[$keyName])) {
+            $indexes[$keyName] = [
+                'name' => $keyName,
+                'unique' => !$row['Non_unique'],
+                'primary' => $keyName === 'PRIMARY',
+                'columns' => []
+            ];
+        }
+        $indexes[$keyName]['columns'][] = $row['Column_name'];
+    }
+
+    return $indexes;
+}
+
+// Convert MySQL type to PostgreSQL
+function mysqlTypeToPostgres($mysqlType, $columnName) {
+    $mysqlType = strtolower($mysqlType);
+
+    // Handle TINYINT(1) as INTEGER for booleans
+    if (preg_match('/tinyint\(1\)/', $mysqlType)) {
+        return 'SMALLINT'; // 0 or 1
+    }
+
+    // INT with AUTO_INCREMENT becomes SERIAL
+    if (preg_match('/int\(?\d*\)?/', $mysqlType)) {
+        return 'INTEGER';
+    }
+
+    if (preg_match('/bigint/', $mysqlType)) {
+        return 'BIGINT';
+    }
+
+    if (preg_match('/varchar\((\d+)\)/', $mysqlType, $matches)) {
+        return 'VARCHAR(' . $matches[1] . ')';
+    }
+
+    if (preg_match('/text/', $mysqlType)) {
+        return 'TEXT';
+    }
+
+    if (preg_match('/datetime/', $mysqlType) || preg_match('/timestamp/', $mysqlType)) {
+        return 'TIMESTAMP';
+    }
+
+    if (preg_match('/date/', $mysqlType)) {
+        return 'DATE';
+    }
+
+    if (preg_match('/decimal\((\d+),(\d+)\)/', $mysqlType, $matches)) {
+        return 'DECIMAL(' . $matches[1] . ',' . $matches[2] . ')';
+    }
+
+    return 'TEXT'; // fallback
+}
+
+// Generate dual-compatible migration
+function generateDualMigration($pdo, $table, $database) {
+    $columns = getTableColumns($pdo, $table);
+    $indexes = getTableIndexes($pdo, $table);
+    $className = str_replace(' ', '', ucwords(str_replace('_', ' ', $table)));
+    $timestamp = date('Y_m_d_His');
+
+    // Build MySQL CREATE TABLE
+    $mysqlCols = [];
+    $mysqlKeys = [];
+    $primaryKey = null;
+    $autoIncrement = false;
+
+    foreach ($columns as $col) {
+        $colName = $col['Field'];
+        $colType = $col['Type'];
+        $null = $col['Null'] === 'YES' ? '' : ' NOT NULL';
+        $default = '';
+
+        if ($col['Default'] !== null) {
+            if ($col['Default'] === 'current_timestamp()' || $col['Default'] === 'CURRENT_TIMESTAMP') {
+                $default = ' DEFAULT CURRENT_TIMESTAMP';
+            } else {
+                $default = " DEFAULT '" . addslashes($col['Default']) . "'";
+            }
+        } elseif ($col['Null'] === 'YES' && $col['Default'] === null && !preg_match('/auto_increment/', $col['Extra'])) {
+            $default = ' DEFAULT NULL';
+        }
+
+        $extra = '';
+        if (preg_match('/auto_increment/', $col['Extra'])) {
+            $extra = ' AUTO_INCREMENT';
+            $autoIncrement = true;
+            $primaryKey = $colName;
+        }
+
+        $comment = $col['Comment'] ? " COMMENT '" . addslashes($col['Comment']) . "'" : '';
+
+        $mysqlCols[] = "  `{$colName}` {$colType}{$null}{$default}{$extra}{$comment}";
+    }
+
+    // Add PRIMARY KEY
+    if ($primaryKey) {
+        $mysqlKeys[] = "  PRIMARY KEY (`{$primaryKey}`)";
+    }
+
+    // Add other indexes
+    foreach ($indexes as $index) {
+        if ($index['primary']) continue;
+
+        $cols = '`' . implode('`, `', $index['columns']) . '`';
+        if ($index['unique']) {
+            $mysqlKeys[] = "  UNIQUE KEY `{$index['name']}` ({$cols})";
+        } else {
+            $mysqlKeys[] = "  KEY `{$index['name']}` ({$cols})";
+        }
+    }
+
+    $mysqlCreate = "CREATE TABLE `{$table}` (\n";
+    $mysqlCreate .= implode(",\n", array_merge($mysqlCols, $mysqlKeys));
+    $mysqlCreate .= "\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Build PostgreSQL CREATE TABLE
+    $pgCols = [];
+    $pgConstraints = [];
+    $pgIndexes = [];
+    $enumChecks = [];
+
+    foreach ($columns as $col) {
+        $colName = $col['Field'];
+        $colType = $col['Type'];
+
+        // Check for ENUM
+        if (preg_match("/enum\('(.+)'\)/", $colType, $matches)) {
+            $enumValues = explode("','", $matches[1]);
+            $pgType = 'VARCHAR(20)';
+            $checkValues = "'" . implode("', '", $enumValues) . "'";
+            $enumChecks[] = "  CHECK ({$colName} IN ({$checkValues}))";
+        } else {
+            $pgType = mysqlTypeToPostgres($colType, $colName);
+        }
+
+        // Handle AUTO_INCREMENT as SERIAL
+        if (preg_match('/auto_increment/', $col['Extra']) && $colName === $primaryKey) {
+            $pgType = 'SERIAL PRIMARY KEY';
+            $pgCols[] = "  {$colName} {$pgType}";
+            continue;
+        }
+
+        $null = $col['Null'] === 'YES' ? '' : ' NOT NULL';
+        $default = '';
+
+        if ($col['Default'] !== null) {
+            if ($col['Default'] === 'current_timestamp()' || $col['Default'] === 'CURRENT_TIMESTAMP') {
+                $default = ' DEFAULT CURRENT_TIMESTAMP';
+            } else {
+                $default = " DEFAULT '" . addslashes($col['Default']) . "'";
+            }
+        }
+
+        $pgCols[] = "  {$colName} {$pgType}{$null}{$default}";
+    }
+
+    // Add UNIQUE constraints
+    foreach ($indexes as $index) {
+        if ($index['primary'] || $index['name'] === $primaryKey) continue;
+
+        $cols = implode(', ', $index['columns']);
+        if ($index['unique']) {
+            $pgConstraints[] = "  UNIQUE ({$cols})";
+        } else {
+            // Non-unique indexes created separately
+            $pgIndexes[] = "CREATE INDEX {$index['name']} ON {$table}(" . implode(', ', $index['columns']) . ")";
+        }
+    }
+
+    $pgCreate = "CREATE TABLE {$table} (\n";
+    $pgCreate .= implode(",\n", array_merge($pgCols, $enumChecks, $pgConstraints));
+    $pgCreate .= "\n)";
+
+    // Add comments for PostgreSQL
+    $pgComments = [];
+    foreach ($columns as $col) {
+        if ($col['Comment']) {
+            $pgComments[] = "COMMENT ON COLUMN {$table}.{$col['Field']} IS '" . addslashes($col['Comment']) . "'";
+        }
+    }
+
+    // Generate migration file
+    $migration = <<<PHP
+<?php
+/**
+ * Migration: Create {$table} table
+ * Generated by MuseDock Dual Migration Generator
+ * Generated at: {$timestamp}
+ * Compatible with: MySQL/MariaDB + PostgreSQL
+ */
+
+use Screenart\Musedock\Database;
+
+class Create{$className}Table_{$timestamp}
+{
+    public function up()
+    {
+        \$pdo = Database::connect();
+        \$driver = \$pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+        if (\$driver === 'mysql') {
+            \$pdo->exec("
+                {$mysqlCreate}
+            ");
+        } else {
+            // PostgreSQL
+            \$pdo->exec("
+                {$pgCreate}
+            ");
+
+PHP;
+
+    // Add PostgreSQL indexes
+    if (!empty($pgIndexes)) {
+        $migration .= "\n            // Create indexes\n";
+        foreach ($pgIndexes as $idx) {
+            $migration .= "            \$pdo->exec(\"{$idx}\");\n";
+        }
+    }
+
+    // Add PostgreSQL comments
+    if (!empty($pgComments)) {
+        $migration .= "\n            // Add comments\n";
+        foreach ($pgComments as $comment) {
+            $migration .= "            \$pdo->exec(\"{$comment}\");\n";
+        }
+    }
+
+    $migration .= <<<PHP
+        }
+
+        echo "✓ Table {$table} created\\n";
+    }
+
+    public function down()
+    {
+        \$pdo = Database::connect();
+        \$driver = \$pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+        if (\$driver === 'mysql') {
+            \$pdo->exec("DROP TABLE IF EXISTS `{$table}`");
+        } else {
+            \$pdo->exec("DROP TABLE IF EXISTS {$table}");
+        }
+
+        echo "✓ Table {$table} dropped\\n";
+    }
+}
+
+PHP;
+
+    return [
+        'timestamp' => $timestamp,
+        'filename' => "{$timestamp}_create_{$table}_table.php",
+        'content' => $migration
+    ];
+}
+
+// ====================================
+// MAIN EXECUTION
+// ====================================
+
+echo "\n";
+echo "╔══════════════════════════════════════════╗\n";
+echo "║  MuseDock Dual Migration Generator       ║\n";
+echo "║  MySQL/MariaDB + PostgreSQL              ║\n";
+echo "╚══════════════════════════════════════════╝\n";
+
+// Step 1: Backup
+$backupPath = backupMigrations($options['dry-run']);
+
+if ($options['backup-only']) {
+    echo "✓ Backup complete. Exiting.\n\n";
+    exit(0);
+}
+
+// Step 2: Get all tables
+$allTables = getAllTables($pdo);
+$skipTables = ['migrations', 'v_active_users']; // Skip system tables
+$tablesToGenerate = array_diff($allTables, $skipTables);
+
+echo "🔄 Regenerating " . count($tablesToGenerate) . " tables...\n";
+echo str_repeat("-", 50) . "\n\n";
+
+$migrationPath = BASE_PATH . '/database/migrations';
+$generated = [];
+$baseTimestamp = strtotime('2025-01-01 00:00:00');
+$counter = 0;
+
+foreach ($tablesToGenerate as $table) {
+    $timestamp = date('Y_m_d_His', $baseTimestamp + ($counter * 2));
+    $migration = generateDualMigration($pdo, $table, $database);
+
+    // Override timestamp for ordering
+    $migration['timestamp'] = $timestamp;
+    $migration['filename'] = "{$timestamp}_create_{$table}_table.php";
+    $migration['content'] = str_replace($migration['timestamp'], $timestamp, $migration['content']);
+
+    $filePath = $migrationPath . '/' . $migration['filename'];
+
+    echo "  [" . str_pad($counter, 2, '0', STR_PAD_LEFT) . "] {$table}";
+
+    if ($options['dry-run']) {
+        echo " → Would create: {$migration['filename']}\n";
+    } else {
+        file_put_contents($filePath, $migration['content']);
+        echo " → ✓ Generated\n";
+    }
+
+    $generated[] = $migration;
+    $counter++;
+}
+
+echo "\n" . str_repeat("-", 50) . "\n";
+
+if ($options['dry-run']) {
+    echo "DRY RUN: Would generate " . count($generated) . " migration files.\n";
+} else {
+    echo "✓ Generated " . count($generated) . " dual-compatible migrations.\n";
+    if ($backupPath) {
+        echo "✓ Original migrations backed up to: " . basename($backupPath) . "\n";
+    }
+}
+
+echo "\n📝 Next steps:\n";
+echo "  1. Review generated migrations in database/migrations/\n";
+echo "  2. Test with MySQL: php migrate\n";
+echo "  3. Test with PostgreSQL: Update .env and run php migrate\n";
+echo "  4. If issues occur, restore from: {$backupPath}\n\n";
