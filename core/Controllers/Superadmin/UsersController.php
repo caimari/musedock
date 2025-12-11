@@ -438,4 +438,93 @@ public function destroy($id)
         header('Location: /musedock/users');
         exit;
     }
+
+    /**
+     * Eliminar usuario con verificación de contraseña (AJAX)
+     */
+    public function destroyWithPassword($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('users.manage');
+
+        header('Content-Type: application/json');
+
+        // Obtener input JSON (puede venir del middleware CSRF o leerlo directamente)
+        $input = $GLOBALS['_JSON_INPUT'] ?? json_decode(file_get_contents('php://input'), true) ?? [];
+
+        // Validar CSRF
+        $csrfToken = $input['_csrf'] ?? $_POST['_csrf'] ?? '';
+
+        if (!validate_csrf($csrfToken)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido']);
+            exit;
+        }
+
+        $password = $input['password'] ?? '';
+        $type = $input['type'] ?? 'user';
+
+        if (empty($password)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'La contraseña es requerida']);
+            exit;
+        }
+
+        if ($type === 'superadmin') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'No puedes eliminar superadmins desde el panel']);
+            exit;
+        }
+
+        // Verificar contraseña del superadmin actual
+        $auth = $_SESSION['super_admin'] ?? null;
+        if (!$auth || empty($auth['id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Sesión no válida']);
+            exit;
+        }
+
+        // Obtener el hash de contraseña de la BD
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("SELECT password FROM super_admins WHERE id = ?");
+        $stmt->execute([$auth['id']]);
+        $superadmin = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$superadmin || !password_verify($password, $superadmin['password'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Contraseña incorrecta']);
+            exit;
+        }
+
+        // Buscar el usuario a eliminar
+        $table = $type === 'admin' ? 'admins' : 'users';
+        $user = Database::table($table)->where('id', $id)->first();
+
+        if (!$user) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Usuario no encontrado']);
+            exit;
+        }
+
+        $userName = is_object($user) ? $user->name : $user['name'];
+
+        try {
+            Database::table($table)->where('id', $id)->delete();
+            Database::table('user_roles')->where('user_id', $id)->where('user_type', $type)->delete();
+
+            Logger::log("Usuario eliminado: {$userName} (ID: {$id}, tipo: {$type})", 'INFO');
+
+            echo json_encode([
+                'success' => true,
+                'message' => "Usuario '{$userName}' eliminado correctamente."
+            ]);
+            exit;
+
+        } catch (\Exception $e) {
+            Logger::log("Error al eliminar usuario: " . $e->getMessage(), 'ERROR');
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Error al eliminar el usuario']);
+            exit;
+        }
+    }
 }

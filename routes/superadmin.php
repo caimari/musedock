@@ -115,6 +115,7 @@ Route::post('/musedock/users/{id}/update', 'superadmin.UsersController@update')-
 Route::get('/musedock/users/create', 'superadmin.UsersController@create')->middleware('superadmin');
 Route::post('/musedock/users/store', 'superadmin.UsersController@store')->middleware('superadmin');
 Route::post('/musedock/users/{id}/delete', 'superadmin.UsersController@destroy')->middleware('superadmin');
+Route::post('/musedock/users/{id}/delete-secure', 'superadmin.UsersController@destroyWithPassword')->middleware('superadmin');
 
 // Roles
 Route::get('/musedock/roles', 'superadmin.RoleController@index')->middleware(['superadmin', new PermissionMiddleware('roles.view')]);

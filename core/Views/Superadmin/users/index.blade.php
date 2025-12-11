@@ -143,11 +143,12 @@
                                 <a href="/musedock/users/{{ $user['id'] }}/edit?type=admin" class="btn btn-sm btn-outline-secondary">Editar</a>
 
                                 @if ($isSuperadmin)
-                                    <form method="POST" action="/musedock/users/{{ $user['id'] }}/delete" onsubmit="return confirm('¿Eliminar este usuario?')">
-                                        {!! csrf_field() !!}
-                                        <input type="hidden" name="type" value="admin">
-                                        <button class="btn btn-sm btn-outline-danger">Eliminar</button>
-                                    </form>
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-user"
+                                        data-user-id="{{ $user['id'] }}"
+                                        data-user-name="{{ $user['name'] }}"
+                                        data-user-type="admin">
+                                        Eliminar
+                                    </button>
                                 @endif
                             </td>
                         </tr>
@@ -203,11 +204,12 @@
                                 <a href="/musedock/users/{{ $user['id'] }}/edit?type=user" class="btn btn-sm btn-outline-secondary">Editar</a>
 
                                 @if ($isSuperadmin)
-                                    <form method="POST" action="/musedock/users/{{ $user['id'] }}/delete" onsubmit="return confirm('¿Eliminar este usuario?')">
-                                        {!! csrf_field() !!}
-                                        <input type="hidden" name="type" value="user">
-                                        <button class="btn btn-sm btn-outline-danger">Eliminar</button>
-                                    </form>
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-user"
+                                        data-user-id="{{ $user['id'] }}"
+                                        data-user-name="{{ $user['name'] }}"
+                                        data-user-type="user">
+                                        Eliminar
+                                    </button>
                                 @endif
                             </td>
                         </tr>
@@ -220,4 +222,107 @@
     </div>
     @endif
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = '<?= csrf_token() ?>';
+
+    // ========== ELIMINAR USUARIO con SweetAlert2 y verificación de contraseña ==========
+    document.querySelectorAll('.btn-delete-user').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            const userName = this.dataset.userName;
+            const userType = this.dataset.userType;
+
+            Swal.fire({
+                title: '<i class="bi bi-exclamation-triangle text-danger"></i> Confirmar Eliminación',
+                html: `
+                    <div class="text-start">
+                        <p class="mb-3">¿Estás seguro de eliminar el usuario <strong>${userName}</strong>?</p>
+                        <div class="alert alert-danger py-2 mb-3">
+                            <i class="bi bi-trash me-2"></i>
+                            <small><strong>Esta acción no se puede deshacer.</strong> Se eliminarán todos los roles y permisos asociados.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Introduce tu contraseña para confirmar:</label>
+                            <input type="password" id="deletePassword" class="form-control" placeholder="Contraseña del superadmin" autocomplete="current-password">
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-trash me-1"></i> Eliminar Usuario',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                width: '450px',
+                focusConfirm: false,
+                didOpen: () => {
+                    document.getElementById('deletePassword').focus();
+                },
+                preConfirm: () => {
+                    const password = document.getElementById('deletePassword').value;
+                    if (!password) {
+                        Swal.showValidationMessage('La contraseña es requerida');
+                        return false;
+                    }
+                    return password;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Eliminando usuario...',
+                        html: '<p class="mb-0">Por favor espera...</p>',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => Swal.showLoading()
+                    });
+
+                    fetch(`/musedock/users/${userId}/delete-secure`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            _csrf: csrfToken,
+                            password: result.value,
+                            type: userType
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Usuario Eliminado',
+                                text: data.message,
+                                confirmButtonColor: '#0d6efd'
+                            }).then(() => location.reload());
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message,
+                                confirmButtonColor: '#0d6efd'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error de conexión. Intenta de nuevo.',
+                            confirmButtonColor: '#0d6efd'
+                        });
+                    });
+                }
+            });
+        });
+    });
+});
+</script>
+@endpush
+
 @endsection
