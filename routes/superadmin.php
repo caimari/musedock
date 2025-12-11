@@ -218,6 +218,9 @@ Route::post('/musedock/settings/email', 'superadmin.SettingsController@updateEma
 Route::get('/musedock/settings/storage', 'superadmin.SettingsController@storage')->name('settings.storage')->middleware('superadmin');
 Route::post('/musedock/settings/storage', 'superadmin.SettingsController@updateStorage')->name('settings.storage.update')->middleware('superadmin');
 
+// Settings - Tenant Defaults (Configuración por defecto para nuevos tenants)
+Route::get('/musedock/settings/tenant-defaults', 'superadmin.TenantDefaultsController@index')->name('tenant-defaults.index')->middleware('superadmin');
+Route::post('/musedock/settings/tenant-defaults', 'superadmin.TenantDefaultsController@update')->name('tenant-defaults.update')->middleware('superadmin');
 
 Route::get('/musedock/settings/advanced/clear-blade-cache', 'superadmin.SettingsController@clearBladeCache')->name('settings.advanced.clearBladeCache')->middleware('superadmin');
 

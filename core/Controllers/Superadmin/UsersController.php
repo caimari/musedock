@@ -158,8 +158,10 @@ class UsersController
         $groupedPermissions = \Screenart\Musedock\Helpers\PermissionHelper::getPermissionsGroupedByCategory();
 
         // Obtener permisos actuales del usuario
+        // Asegurar tipos correctos para PostgreSQL compatibility
         $userTenantId = is_object($user) ? ($user->tenant_id ?? null) : ($user['tenant_id'] ?? null);
-        $userPermissions = \Screenart\Musedock\Helpers\PermissionHelper::getUserPermissions($id, $userTenantId);
+        $userTenantId = ($userTenantId !== null && $userTenantId !== '') ? (int)$userTenantId : null;
+        $userPermissions = \Screenart\Musedock\Helpers\PermissionHelper::getUserPermissions((int)$id, $userTenantId);
 
         return View::renderSuperadmin('users.edit', [
             'user'       => $user,
@@ -291,12 +293,13 @@ class UsersController
 
             // Actualizar permisos directos (solo para admins y users, no super_admins)
             if ($type !== 'superadmin') {
-                $tenantIdForPermissions = $tenant_id !== '' ? $tenant_id : null;
+                // Asegurar tipos correctos para PostgreSQL compatibility
+                $tenantIdForPermissions = ($tenant_id !== '' && $tenant_id !== null) ? (int)$tenant_id : null;
                 \Screenart\Musedock\Helpers\PermissionHelper::assignPermissionsToUser(
-                    $id,
+                    (int)$id,
                     $permissionSlugs,
                     $tenantIdForPermissions,
-                    $userId // Quién otorga los permisos
+                    (int)$userId // Quién otorga los permisos
                 );
             }
         }

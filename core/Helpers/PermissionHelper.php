@@ -62,14 +62,26 @@ class PermissionHelper
 
             // 2. Verificar permisos directos (user_permissions)
             // La tabla user_permissions almacena permisos para admins, no para users
-            $stmt = $pdo->prepare("
-                SELECT id FROM user_permissions
-                WHERE user_id = ?
-                AND permission_slug = ?
-                AND (tenant_id = ? OR tenant_id IS NULL)
-                LIMIT 1
-            ");
-            $stmt->execute([$userId, $permissionSlug, $tenantId]);
+            // Compatible con MySQL y PostgreSQL
+            if ($tenantId === null) {
+                $stmt = $pdo->prepare("
+                    SELECT id FROM user_permissions
+                    WHERE user_id = ?
+                    AND permission_slug = ?
+                    AND tenant_id IS NULL
+                    LIMIT 1
+                ");
+                $stmt->execute([$userId, $permissionSlug]);
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT id FROM user_permissions
+                    WHERE user_id = ?
+                    AND permission_slug = ?
+                    AND (tenant_id = ? OR tenant_id IS NULL)
+                    LIMIT 1
+                ");
+                $stmt->execute([$userId, $permissionSlug, $tenantId]);
+            }
 
             if ($stmt->fetch()) {
                 self::$permissionCache[$cacheKey] = true;
@@ -77,17 +89,32 @@ class PermissionHelper
             }
 
             // 3. Verificar permisos heredados de roles (compatibilidad)
-            $stmt = $pdo->prepare("
-                SELECT p.id
-                FROM permissions p
-                INNER JOIN role_permissions rp ON rp.permission_id = p.id
-                INNER JOIN user_roles ur ON ur.role_id = rp.role_id
-                WHERE ur.user_id = ?
-                AND p.slug = ?
-                AND (p.tenant_id = ? OR p.tenant_id IS NULL)
-                LIMIT 1
-            ");
-            $stmt->execute([$userId, $permissionSlug, $tenantId]);
+            // Compatible con MySQL y PostgreSQL
+            if ($tenantId === null) {
+                $stmt = $pdo->prepare("
+                    SELECT p.id
+                    FROM permissions p
+                    INNER JOIN role_permissions rp ON rp.permission_id = p.id
+                    INNER JOIN user_roles ur ON ur.role_id = rp.role_id
+                    WHERE ur.user_id = ?
+                    AND p.slug = ?
+                    AND p.tenant_id IS NULL
+                    LIMIT 1
+                ");
+                $stmt->execute([$userId, $permissionSlug]);
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT p.id
+                    FROM permissions p
+                    INNER JOIN role_permissions rp ON rp.permission_id = p.id
+                    INNER JOIN user_roles ur ON ur.role_id = rp.role_id
+                    WHERE ur.user_id = ?
+                    AND p.slug = ?
+                    AND (p.tenant_id = ? OR p.tenant_id IS NULL)
+                    LIMIT 1
+                ");
+                $stmt->execute([$userId, $permissionSlug, $tenantId]);
+            }
 
             $result = (bool) $stmt->fetch();
             self::$permissionCache[$cacheKey] = $result;
@@ -234,29 +261,51 @@ class PermissionHelper
 
             $permissions = [];
 
-            // 1. Permisos directos
-            $stmt = $pdo->prepare("
-                SELECT permission_slug
-                FROM user_permissions
-                WHERE user_id = ?
-                AND (tenant_id = ? OR tenant_id IS NULL)
-            ");
-            $stmt->execute([$userId, $tenantId]);
+            // 1. Permisos directos - Compatible con MySQL y PostgreSQL
+            if ($tenantId === null) {
+                $stmt = $pdo->prepare("
+                    SELECT permission_slug
+                    FROM user_permissions
+                    WHERE user_id = ?
+                    AND tenant_id IS NULL
+                ");
+                $stmt->execute([$userId]);
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT permission_slug
+                    FROM user_permissions
+                    WHERE user_id = ?
+                    AND (tenant_id = ? OR tenant_id IS NULL)
+                ");
+                $stmt->execute([$userId, $tenantId]);
+            }
 
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $permissions[] = $row['permission_slug'];
             }
 
-            // 2. Permisos de roles (compatibilidad)
-            $stmt = $pdo->prepare("
-                SELECT DISTINCT p.slug
-                FROM permissions p
-                INNER JOIN role_permissions rp ON rp.permission_id = p.id
-                INNER JOIN user_roles ur ON ur.role_id = rp.role_id
-                WHERE ur.user_id = ?
-                AND (p.tenant_id = ? OR p.tenant_id IS NULL)
-            ");
-            $stmt->execute([$userId, $tenantId]);
+            // 2. Permisos de roles (compatibilidad) - Compatible con MySQL y PostgreSQL
+            if ($tenantId === null) {
+                $stmt = $pdo->prepare("
+                    SELECT DISTINCT p.slug
+                    FROM permissions p
+                    INNER JOIN role_permissions rp ON rp.permission_id = p.id
+                    INNER JOIN user_roles ur ON ur.role_id = rp.role_id
+                    WHERE ur.user_id = ?
+                    AND p.tenant_id IS NULL
+                ");
+                $stmt->execute([$userId]);
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT DISTINCT p.slug
+                    FROM permissions p
+                    INNER JOIN role_permissions rp ON rp.permission_id = p.id
+                    INNER JOIN user_roles ur ON ur.role_id = rp.role_id
+                    WHERE ur.user_id = ?
+                    AND (p.tenant_id = ? OR p.tenant_id IS NULL)
+                ");
+                $stmt->execute([$userId, $tenantId]);
+            }
 
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 if (!in_array($row['slug'], $permissions)) {
@@ -287,12 +336,22 @@ class PermissionHelper
             $pdo = Database::connect();
 
             // Eliminar permisos anteriores del usuario
-            $stmt = $pdo->prepare("
-                DELETE FROM user_permissions
-                WHERE user_id = ?
-                AND (tenant_id = ? OR (tenant_id IS NULL AND ? IS NULL))
-            ");
-            $stmt->execute([$userId, $tenantId, $tenantId]);
+            // Compatible con MySQL y PostgreSQL
+            if ($tenantId === null) {
+                $stmt = $pdo->prepare("
+                    DELETE FROM user_permissions
+                    WHERE user_id = ?
+                    AND tenant_id IS NULL
+                ");
+                $stmt->execute([$userId]);
+            } else {
+                $stmt = $pdo->prepare("
+                    DELETE FROM user_permissions
+                    WHERE user_id = ?
+                    AND tenant_id = ?
+                ");
+                $stmt->execute([$userId, $tenantId]);
+            }
 
             // Insertar nuevos permisos
             if (!empty($permissionSlugs)) {

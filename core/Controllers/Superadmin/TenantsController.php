@@ -7,6 +7,7 @@ use Screenart\Musedock\Database;
 use Screenart\Musedock\Logger;
 use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Traits\RequiresPermission;
+use Screenart\Musedock\Services\TenantCreationService;
 
 class TenantsController
 {
@@ -85,9 +86,9 @@ class TenantsController
 
 public function store()
 {
-        $this->checkMultitenancyEnabled();
-        SessionSecurity::startSession();
-        $this->checkPermission('tenants.manage');
+    $this->checkMultitenancyEnabled();
+    SessionSecurity::startSession();
+    $this->checkPermission('tenants.manage');
 
     if (!$this->validateTenantInput($name, $domain, $status)) {
         header('Location: /musedock/tenants/create');
@@ -119,123 +120,48 @@ public function store()
         exit;
     }
 
-    // Generar slug
-    $slug = strtolower(trim(preg_replace('/[^a-z0-9]+/', '-', $name), '-'));
-
     try {
-        // Insertar tenant
-        Database::table('tenants')->insert([
-            'name' => $name,
-            'slug' => $slug,
-            'domain' => $domain,
-            'status' => $status,
-            'created_at' => date('Y-m-d H:i:s')
-        ]);
+        // Usar TenantCreationService como única fuente de verdad
+        $tenantService = new TenantCreationService();
 
-        $tenantId = Database::connect()->lastInsertId();
+        $result = $tenantService->createTenant(
+            [
+                'name' => $name,
+                'domain' => $domain,
+                'admin_path' => 'admin',
+                'is_active' => $status === 'active' ? 1 : 0
+            ],
+            [
+                'email' => $adminEmail,
+                'name' => $adminName,
+                'password' => $adminPassword
+            ]
+        );
 
-        // Permisos por defecto
-        $defaultPermissions = [
-            ['name' => 'admin.access', 'description' => 'Acceder al panel de administración', 'category' => 'admin'],
-            ['name' => 'admin.dashboard', 'description' => 'Ver el dashboard de administración', 'category' => 'admin'],
-            ['name' => 'admin.settings', 'description' => 'Administrar configuración del sitio', 'category' => 'admin'],
-            ['name' => 'users.view', 'description' => 'Ver lista de usuarios', 'category' => 'users'],
-            ['name' => 'users.create', 'description' => 'Crear nuevos usuarios', 'category' => 'users'],
-            ['name' => 'users.edit', 'description' => 'Editar usuarios existentes', 'category' => 'users'],
-            ['name' => 'users.delete', 'description' => 'Eliminar usuarios', 'category' => 'users'],
-            ['name' => 'roles.view', 'description' => 'Ver roles', 'category' => 'roles'],
-            ['name' => 'roles.create', 'description' => 'Crear roles', 'category' => 'roles'],
-            ['name' => 'roles.edit', 'description' => 'Editar roles', 'category' => 'roles'],
-            ['name' => 'roles.delete', 'description' => 'Eliminar roles', 'category' => 'roles'],
-            ['name' => 'roles.assign', 'description' => 'Asignar roles a usuarios', 'category' => 'roles'],
-            ['name' => 'content.view', 'description' => 'Ver contenido', 'category' => 'content'],
-            ['name' => 'content.create', 'description' => 'Crear contenido', 'category' => 'content'],
-            ['name' => 'content.edit', 'description' => 'Editar contenido', 'category' => 'content'],
-            ['name' => 'content.delete', 'description' => 'Eliminar contenido', 'category' => 'content'],
-            ['name' => 'content.publish', 'description' => 'Publicar contenido', 'category' => 'content'],
-            ['name' => 'modules.view', 'description' => 'Ver módulos', 'category' => 'modules'],
-            ['name' => 'modules.activate', 'description' => 'Activar módulos', 'category' => 'modules'],
-            ['name' => 'modules.configure', 'description' => 'Configurar módulos', 'category' => 'modules'],
-        ];
-
-        foreach ($defaultPermissions as $perm) {
-            Database::table('permissions')->insert([
-                'name' => $perm['name'],
-                'description' => $perm['description'],
-                'category' => $perm['category'],
-                'tenant_id' => $tenantId,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
+        if (!$result['success']) {
+            throw new \Exception($result['error'] ?? 'Error desconocido');
         }
 
-        // Crear roles por defecto
-        $roles = [
-            ['name' => 'admin', 'description' => 'Administrador con acceso completo'],
-            ['name' => 'editor', 'description' => 'Editor de contenido con permisos limitados'],
-            ['name' => 'viewer', 'description' => 'Solo puede ver contenido'],
-        ];
+        $tenantId = $result['tenant_id'];
 
-        foreach ($roles as $role) {
-            Database::table('roles')->insert([
-                'name' => $role['name'],
-                'description' => $role['description'],
-                'tenant_id' => $tenantId,
-                'is_system' => 1,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
+        // Crear carpeta de tema del tenant
+        $tenantThemePath = __DIR__ . '/../../../themes/tenant_' . $tenantId . '/default';
+
+        if (!is_dir($tenantThemePath)) {
+            mkdir($tenantThemePath, 0755, true);
+
+            // Copiar la plantilla base
+            $sourcePath = __DIR__ . '/../../../themes/shared/default';
+            $this->copyDirectory($sourcePath, $tenantThemePath);
         }
-
-        // Crear usuario administrador
-        $hashedPassword = password_hash($adminPassword, PASSWORD_BCRYPT);
-
-        Database::table('admins')->insert([
-            'tenant_id' => $tenantId,
-            'email' => $adminEmail,
-            'name' => $adminName,
-            'password' => $hashedPassword,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
-
-        $adminId = Database::connect()->lastInsertId();
-
-        // Asignar rol admin al usuario
-        $adminRole = Database::table('roles')
-            ->where('tenant_id', $tenantId)
-            ->where('name', 'admin')
-            ->first();
-
-        if ($adminRole) {
-            Database::table('user_roles')->insert([
-                'user_id' => $adminId,
-                'role_id' => $adminRole->id,
-                'tenant_id' => $tenantId,
-                'created_at' => date('Y-m-d H:i:s'),
-            ]);
-        }
-		
-		// Crear carpeta de tema del tenant
-$tenantThemePath = __DIR__ . '/../../../themes/tenant_' . $tenantId . '/default';
-
-if (!is_dir($tenantThemePath)) {
-    mkdir($tenantThemePath, 0755, true); // Crear carpetas recursivamente
-
-    // Copiar la plantilla base
-    $sourcePath = __DIR__ . '/../../../themes/shared/default';
-
-    $this->copyDirectory($sourcePath, $tenantThemePath);
-	}
-
 
         flash('success', 'Tenant y administrador creados correctamente.');
         header('Location: /musedock/tenants');
         exit;
 
-    } catch (\PDOException $e) {
+    } catch (\Exception $e) {
         Logger::log("Error al insertar tenant: " . $e->getMessage(), 'ERROR');
-        flash('error', 'Error al guardar en la base de datos.');
+        flash('error', 'Error al guardar en la base de datos: ' . $e->getMessage());
         header('Location: /musedock/tenants/create');
         exit;
     }

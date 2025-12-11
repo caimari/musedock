@@ -14,6 +14,7 @@ use Screenart\Musedock\Logger;
 use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Traits\RequiresPermission;
 use Screenart\Musedock\Mail\Mailer;
+use Screenart\Musedock\Services\TenantCreationService;
 use CaddyDomainManager\Services\CaddyService;
 use PDO;
 
@@ -171,8 +172,6 @@ class DomainManagerController
         }
 
         try {
-            $pdo->beginTransaction();
-
             // Generar slug
             $slug = $this->generateSlug($name);
 
@@ -180,28 +179,36 @@ class DomainManagerController
             $caddyStatus = $configureInCaddy ? 'pending_dns' : 'not_configured';
             $caddyRouteId = $configureInCaddy ? $this->caddyService->generateRouteId($domain) : null;
 
-            // Insertar tenant
+            // Usar TenantCreationService como única fuente de verdad
+            $tenantService = new TenantCreationService($pdo);
+
+            $result = $tenantService->createTenant(
+                [
+                    'name' => $name,
+                    'domain' => $domain,
+                    'admin_path' => 'admin',
+                    'is_active' => 1
+                ],
+                [
+                    'email' => $adminEmail,
+                    'name' => $adminName,
+                    'password' => $adminPassword
+                ]
+            );
+
+            if (!$result['success']) {
+                throw new \Exception($result['error'] ?? 'Error desconocido al crear tenant');
+            }
+
+            $tenantId = $result['tenant_id'];
+
+            // Actualizar campos específicos de Caddy (el Service no maneja esto)
             $stmt = $pdo->prepare("
-                INSERT INTO tenants (name, slug, domain, status, include_www, caddy_status, caddy_route_id, created_at)
-                VALUES (?, ?, ?, 'active', ?, ?, ?, NOW())
+                UPDATE tenants
+                SET slug = ?, include_www = ?, caddy_status = ?, caddy_route_id = ?
+                WHERE id = ?
             ");
-            $stmt->execute([$name, $slug, $domain, $includeWww ? 1 : 0, $caddyStatus, $caddyRouteId]);
-
-            $tenantId = $pdo->lastInsertId();
-
-            // Crear admin del tenant
-            $adminId = $this->createTenantAdmin($pdo, $tenantId, $adminEmail, $adminName, $adminPassword);
-
-            // Crear permisos y roles por defecto
-            $adminRoleId = $this->createDefaultPermissionsAndRoles($pdo, $tenantId);
-
-            // Asignar rol admin al usuario creado
-            $this->assignRoleToAdmin($pdo, $adminId, $adminRoleId, $tenantId);
-
-            // Crear menús por defecto para el tenant
-            $this->createDefaultTenantMenus($pdo, $tenantId);
-
-            $pdo->commit();
+            $stmt->execute([$slug, $includeWww ? 1 : 0, $caddyStatus, $caddyRouteId, $tenantId]);
 
             // Configurar en Caddy si se solicitó
             $caddyMessage = '';
