@@ -300,6 +300,16 @@ class SuperadminMenuSeeder
             ]);
             $this->insertMenu([
                 'parent_id' => $settingsId,
+                'title' => 'Tickets',
+                'slug' => 'tickets',
+                'url' => '{admin_path}/tickets',
+                'icon' => 'bi-ticket-detailed',
+                'icon_type' => 'bi',
+                'order_position' => 5,
+                'is_active' => 1
+            ]);
+            $this->insertMenu([
+                'parent_id' => $settingsId,
                 'title' => 'Logs',
                 'slug' => 'logs',
                 'url' => '{admin_path}/logs',
