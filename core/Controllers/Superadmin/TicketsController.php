@@ -322,6 +322,11 @@ class TicketsController
      */
     private function isMultiTenantEnabled(): bool
     {
+        // Primero verificar .env, luego settings DB, luego config
+        $envValue = \Screenart\Musedock\Env::get('MULTI_TENANT_ENABLED', null);
+        if ($envValue !== null) {
+            return filter_var($envValue, FILTER_VALIDATE_BOOLEAN);
+        }
         return setting('multi_tenant_enabled', config('multi_tenant_enabled', false));
     }
 }
