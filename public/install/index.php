@@ -685,6 +685,8 @@ function runMigrations() {
                 continue;
             }
 
+            logInstall("Running migration: {$filename}");
+
             // Start output buffering for this migration to catch any errors
             ob_start();
             try {
@@ -709,6 +711,7 @@ function runMigrations() {
                     $stmt->execute([$filename, $batch]);
 
                     $migrated++;
+                    logInstall("✓ Migration {$filename} completed");
                 } else {
                     throw new Exception("Class {$className} not found in {$filename}");
                 }
@@ -716,6 +719,9 @@ function runMigrations() {
                 // Clear the buffer if successful
                 ob_end_clean();
             } catch (Exception $e) {
+                // Log detailed error info
+                logInstall("✗ Migration {$filename} FAILED: " . $e->getMessage(), 'ERROR');
+                logInstall("  File: " . $e->getFile() . ":" . $e->getLine(), 'ERROR');
                 // Clean buffer and re-throw
                 ob_end_clean();
                 throw new Exception("Migration {$filename} failed: " . $e->getMessage());
@@ -737,9 +743,11 @@ function runMigrations() {
  */
 function runSeeders() {
     try {
+        logInstall("Starting seeders...");
         $seederPath = ROOT_PATH . '/database/seeders/DatabaseSeeder.php';
 
         if (!file_exists($seederPath)) {
+            logInstall("No seeders found at: {$seederPath}");
             return ['success' => true, 'message' => 'No seeders found'];
         }
 
@@ -757,6 +765,7 @@ function runSeeders() {
         foreach ($seederFiles as $file) {
             $filePath = $seedersDir . $file;
             if (file_exists($filePath)) {
+                logInstall("Loading seeder: {$file}");
                 require_once $filePath;
             }
         }
@@ -765,17 +774,23 @@ function runSeeders() {
         $seederClass = 'Screenart\\Musedock\\Database\\Seeders\\DatabaseSeeder';
 
         if (class_exists($seederClass)) {
+            logInstall("Running DatabaseSeeder...");
             $seeder = new $seederClass();
             if (method_exists($seeder, 'run')) {
                 ob_start();
                 $seeder->run();
                 ob_end_clean();
             }
+            logInstall("✓ Seeders completed");
+        } else {
+            logInstall("Seeder class not found: {$seederClass}", 'WARNING');
         }
 
         return ['success' => true];
 
     } catch (Exception $e) {
+        logInstall("✗ Seeder FAILED: " . $e->getMessage(), 'ERROR');
+        logInstall("  File: " . $e->getFile() . ":" . $e->getLine(), 'ERROR');
         return ['success' => false, 'error' => 'Seeder failed: ' . $e->getMessage()];
     }
 }

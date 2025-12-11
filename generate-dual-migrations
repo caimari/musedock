@@ -382,6 +382,9 @@ function generateDualMigration($pdo, $table, $database) {
         }
     }
 
+    // Escape double quotes in PostgreSQL CREATE for PHP string context
+    $pgCreateEscaped = str_replace('"', '\\"', $pgCreate);
+
     // Generate migration file
     $migration = <<<PHP
 <?php
@@ -408,7 +411,7 @@ class Create{$className}Table_{$timestamp}
         } else {
             // PostgreSQL
             \$pdo->exec("
-                {$pgCreate}
+                {$pgCreateEscaped}
             ");
 
 PHP;
