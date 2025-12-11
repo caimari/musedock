@@ -115,10 +115,24 @@ public function activate()
     $stmt = $pdo->prepare("UPDATE themes SET active = 1 WHERE slug = ?");
     $stmt->execute([$slug]);
 
-    // Actualizar en settings
+    // Actualizar en settings (compatible MySQL/PostgreSQL)
     $keyCol = Database::qi('key');
-    $stmt = $pdo->prepare("UPDATE settings SET value = ? WHERE {$keyCol} = 'default_theme'");
-    $stmt->execute([$slug]);
+    $valueCol = Database::qi('value');
+
+    // Primero verificar si existe
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM settings WHERE {$keyCol} = 'default_theme'");
+    $stmt->execute();
+    $exists = $stmt->fetchColumn() > 0;
+
+    if ($exists) {
+        // Actualizar
+        $stmt = $pdo->prepare("UPDATE settings SET {$valueCol} = ? WHERE {$keyCol} = 'default_theme'");
+        $stmt->execute([$slug]);
+    } else {
+        // Insertar
+        $stmt = $pdo->prepare("INSERT INTO settings ({$keyCol}, {$valueCol}) VALUES ('default_theme', ?)");
+        $stmt->execute([$slug]);
+    }
 
     flash('success', "Tema '{$slug}' activado correctamente.");
     header('Location: /musedock/themes');
