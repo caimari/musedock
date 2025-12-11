@@ -11,8 +11,8 @@ $installLockExists = file_exists(__DIR__ . '/../install.lock');
 $envExists = file_exists(__DIR__ . '/../.env');
 $vendorExists = file_exists(__DIR__ . '/../vendor/autoload.php');
 
-// Si no hay .env O no hay vendor, redirigir al instalador
-if (!$envExists || !$vendorExists) {
+// Si no hay .env, redirigir al instalador (instalación nueva)
+if (!$envExists) {
     // Verificar si el instalador existe
     if (file_exists(__DIR__ . '/../install/index.php')) {
         header('Location: /install/');
@@ -30,9 +30,18 @@ if (!$envExists || !$vendorExists) {
     echo '<!DOCTYPE html><html><head><title>Installation Required</title></head><body>';
     echo '<h1>Installation Required</h1>';
     echo '<p>MuseDock CMS is not installed. Please ensure the installer is available at <code>/install/</code></p>';
-    if (!$vendorExists) {
-        echo '<p><strong>Note:</strong> Composer dependencies are not installed. Run <code>composer install</code> first.</p>';
-    }
+    echo '</body></html>';
+    exit;
+}
+
+// Si existe .env pero NO existe vendor/, mostrar error (por seguridad, no redirigir a instalador)
+if (!$vendorExists) {
+    http_response_code(500);
+    echo '<!DOCTYPE html><html><head><title>Composer Dependencies Missing</title></head><body>';
+    echo '<h1>Composer Dependencies Missing</h1>';
+    echo '<p>The system is configured (.env file exists) but Composer dependencies are not installed.</p>';
+    echo '<p><strong>Solution:</strong> Run <code>composer install --no-dev</code> via SSH or from your control panel.</p>';
+    echo '<p style="color: red;"><strong>Security Note:</strong> The installer is not accessible when .env exists to prevent unauthorized reinstallation.</p>';
     echo '</body></html>';
     exit;
 }

@@ -9,7 +9,7 @@ return [
         'step_requirements' => 'Requirements',
         'step_database' => 'Database',
         'step_site' => 'Site Setup',
-        'step_admin' => 'Admin Account',
+        'step_admin' => 'Admin',
         'step_install' => 'Install',
 
         // Step 1
@@ -17,12 +17,24 @@ return [
         'checking_requirements' => 'Checking requirements...',
         'composer_required' => 'Composer Dependencies Required',
         'composer_desc' => 'Composer dependencies are not installed. You have two options:',
-        'auto_install' => 'Auto Install (if available)',
+        'auto_install' => 'Install Automatically',
         'manual_instructions' => 'Manual Instructions',
-        'manual_desc' => 'Connect via SSH and run:',
-        'then_refresh' => 'Then refresh this page.',
         'recheck' => 'Re-check',
         'continue' => 'Continue',
+
+        // Composer manual instructions
+        'composer_option1_title' => 'Option 1: Via SSH (requires Composer installed on server)',
+        'composer_option1_desc' => 'Connect via SSH and run:',
+        'composer_option2_title' => 'Option 2: From Plesk Control Panel',
+        'composer_option2_step1' => 'Go to "Websites & Domains" → Your domain',
+        'composer_option2_step2' => 'Look for "Composer" in the tools',
+        'composer_option2_step3' => 'Run',
+        'composer_option3_title' => 'Option 3: Upload vendor/ folder manually',
+        'composer_option3_step1' => 'Install dependencies on your local machine with',
+        'composer_option3_step2' => 'Upload the complete <code>vendor/</code> folder to the server via FTP/SFTP',
+        'composer_refresh' => 'After installing, refresh this page.',
+        'composer_note' => 'Note: If you don\'t have Composer on the server, use Option 2 or 3.',
+        'installing' => 'Installing...',
 
         // Step 2
         'database_configuration' => 'Database Configuration',
@@ -33,6 +45,7 @@ return [
         'database_user' => 'Database User',
         'database_password' => 'Database Password',
         'test_connection' => 'Test Connection',
+        'testing' => 'Testing...',
         'back' => 'Back',
 
         // Step 3
@@ -61,33 +74,52 @@ return [
         'admin_password' => 'Admin Password',
         'admin_password_desc' => 'Minimum 8 characters',
         'confirm_password' => 'Confirm Password',
+        'password_min_length' => 'Password must be at least 8 characters.',
+        'passwords_not_match' => 'Passwords do not match.',
 
         // Step 5
-        'installation' => 'Installation',
+        'install_musedock' => 'Install MuseDock CMS',
         'installation_summary' => 'Installation Summary',
-        'installation_desc' => 'Review your configuration before installing:',
-        'ready_to_install' => 'Ready to install? Click the button below.',
         'install_now' => 'Install Now',
-        'installation_progress' => 'Installation Progress',
-        'please_wait' => 'Please wait, this may take a few moments...',
+        'installing_title' => 'Installing...',
         'installation_complete' => 'Installation Complete!',
         'installation_complete_desc' => 'MuseDock CMS has been successfully installed.',
         'goto_admin' => 'Go to Admin Panel',
         'installation_failed' => 'Installation Failed',
+        'try_again' => 'Try Again',
 
         // Progress steps
         'creating_env' => 'Creating .env file',
-        'testing_database' => 'Testing database connection',
+        'setting_up_database' => 'Setting up database',
         'running_migrations' => 'Running migrations',
-        'creating_admin' => 'Creating administrator account',
-        'creating_lock' => 'Creating installation lock',
+        'seeding_database' => 'Seeding database',
+        'creating_admin' => 'Creating admin user',
+        'finalizing' => 'Finalizing installation',
 
         // Common
         'required' => 'Required',
         'current' => 'Current',
-        'passed' => 'Passed',
-        'failed' => 'Failed',
-        'optional' => 'Optional',
+        'enabled' => 'Enabled',
+        'not_installed' => 'Not installed',
+        'recommended' => 'Recommended',
+        'writable' => 'Writable',
+        'not_writable' => 'Not writable',
+        'exists' => 'Exists',
+        'found' => 'Found',
+        'missing' => 'Missing',
+        'installed' => 'Installed',
+        'language' => 'Language',
+        'documentation' => 'Documentation',
+
+        // Already installed page
+        'already_installed' => 'System Already Installed',
+        'already_installed_desc' => 'MuseDock CMS has already been installed correctly on this server.',
+        'installer_blocked' => 'The installer has been blocked for security reasons.',
+        'need_reinstall' => 'Need to reinstall?',
+        'reinstall_step1' => 'Delete the <code>install.lock</code> file from the root directory',
+        'reinstall_step2' => 'Optionally, delete the <code>.env</code> file',
+        'reinstall_step3' => 'Reload this page',
+        'goto_website' => 'Go to Website',
     ],
 
     'es' => [
@@ -95,7 +127,7 @@ return [
         'step_requirements' => 'Requisitos',
         'step_database' => 'Base de Datos',
         'step_site' => 'Configuración',
-        'step_admin' => 'Administrador',
+        'step_admin' => 'Admin',
         'step_install' => 'Instalar',
 
         // Step 1
@@ -103,12 +135,24 @@ return [
         'checking_requirements' => 'Verificando requisitos...',
         'composer_required' => 'Dependencias de Composer Requeridas',
         'composer_desc' => 'Las dependencias de Composer no están instaladas. Tienes dos opciones:',
-        'auto_install' => 'Instalación Automática (si está disponible)',
+        'auto_install' => 'Instalar Automáticamente',
         'manual_instructions' => 'Instrucciones Manuales',
-        'manual_desc' => 'Conéctate vía SSH y ejecuta:',
-        'then_refresh' => 'Luego actualiza esta página.',
-        'recheck' => 'Volver a verificar',
+        'recheck' => 'Verificar de nuevo',
         'continue' => 'Continuar',
+
+        // Composer manual instructions
+        'composer_option1_title' => 'Opción 1: Vía SSH (requiere Composer instalado en el servidor)',
+        'composer_option1_desc' => 'Conecta vía SSH y ejecuta:',
+        'composer_option2_title' => 'Opción 2: Desde el panel de control de Plesk',
+        'composer_option2_step1' => 'Ve a "Sitios web y dominios" → Tu dominio',
+        'composer_option2_step2' => 'Busca "Composer" en las herramientas',
+        'composer_option2_step3' => 'Ejecuta',
+        'composer_option3_title' => 'Opción 3: Sube la carpeta vendor/ manualmente',
+        'composer_option3_step1' => 'Instala las dependencias en tu máquina local con',
+        'composer_option3_step2' => 'Sube la carpeta <code>vendor/</code> completa al servidor vía FTP/SFTP',
+        'composer_refresh' => 'Después de instalar, recarga esta página.',
+        'composer_note' => 'Nota: Si no tienes Composer en el servidor, usa la Opción 2 o 3.',
+        'installing' => 'Instalando...',
 
         // Step 2
         'database_configuration' => 'Configuración de Base de Datos',
@@ -119,6 +163,7 @@ return [
         'database_user' => 'Usuario de Base de Datos',
         'database_password' => 'Contraseña de Base de Datos',
         'test_connection' => 'Probar Conexión',
+        'testing' => 'Probando...',
         'back' => 'Atrás',
 
         // Step 3
@@ -135,9 +180,9 @@ return [
         'production' => 'Producción',
         'development' => 'Desarrollo',
         'email_configuration' => 'Configuración de Email',
-        'email_from_address' => 'Dirección Email De',
+        'email_from_address' => 'Dirección Email Remitente',
         'email_from_address_desc' => 'Dirección de email usada para notificaciones del sistema (reseteo de contraseñas, alertas, etc.)',
-        'email_from_name' => 'Nombre Email De',
+        'email_from_name' => 'Nombre Email Remitente',
         'email_from_name_desc' => 'Nombre que aparece en los emails salientes',
 
         // Step 4
@@ -147,32 +192,51 @@ return [
         'admin_password' => 'Contraseña del Administrador',
         'admin_password_desc' => 'Mínimo 8 caracteres',
         'confirm_password' => 'Confirmar Contraseña',
+        'password_min_length' => 'La contraseña debe tener al menos 8 caracteres.',
+        'passwords_not_match' => 'Las contraseñas no coinciden.',
 
         // Step 5
-        'installation' => 'Instalación',
+        'install_musedock' => 'Instalar MuseDock CMS',
         'installation_summary' => 'Resumen de Instalación',
-        'installation_desc' => 'Revisa tu configuración antes de instalar:',
-        'ready_to_install' => '¿Listo para instalar? Haz clic en el botón de abajo.',
         'install_now' => 'Instalar Ahora',
-        'installation_progress' => 'Progreso de Instalación',
-        'please_wait' => 'Por favor espera, esto puede tomar unos momentos...',
+        'installing_title' => 'Instalando...',
         'installation_complete' => '¡Instalación Completa!',
         'installation_complete_desc' => 'MuseDock CMS ha sido instalado exitosamente.',
         'goto_admin' => 'Ir al Panel de Administración',
         'installation_failed' => 'Instalación Fallida',
+        'try_again' => 'Intentar de Nuevo',
 
         // Progress steps
         'creating_env' => 'Creando archivo .env',
-        'testing_database' => 'Probando conexión a base de datos',
+        'setting_up_database' => 'Configurando base de datos',
         'running_migrations' => 'Ejecutando migraciones',
-        'creating_admin' => 'Creando cuenta de administrador',
-        'creating_lock' => 'Creando bloqueo de instalación',
+        'seeding_database' => 'Poblando base de datos',
+        'creating_admin' => 'Creando usuario administrador',
+        'finalizing' => 'Finalizando instalación',
 
         // Common
         'required' => 'Requerido',
         'current' => 'Actual',
-        'passed' => 'Aprobado',
-        'failed' => 'Fallido',
-        'optional' => 'Opcional',
+        'enabled' => 'Habilitado',
+        'not_installed' => 'No instalado',
+        'recommended' => 'Recomendado',
+        'writable' => 'Escribible',
+        'not_writable' => 'No escribible',
+        'exists' => 'Existe',
+        'found' => 'Encontrado',
+        'missing' => 'Faltante',
+        'installed' => 'Instalado',
+        'language' => 'Idioma',
+        'documentation' => 'Documentación',
+
+        // Already installed page
+        'already_installed' => 'Sistema Ya Instalado',
+        'already_installed_desc' => 'MuseDock CMS ya ha sido instalado correctamente en este servidor.',
+        'installer_blocked' => 'El instalador ha sido bloqueado por razones de seguridad.',
+        'need_reinstall' => '¿Necesitas reinstalar?',
+        'reinstall_step1' => 'Elimina el archivo <code>install.lock</code> del directorio raíz',
+        'reinstall_step2' => 'Opcionalmente, elimina el archivo <code>.env</code>',
+        'reinstall_step3' => 'Recarga esta página',
+        'goto_website' => 'Ir al Sitio Web',
     ]
 ];

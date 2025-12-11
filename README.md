@@ -1,5 +1,7 @@
 # MuseDock CMS
 
+Version 2.0.0 (CMS Estable) - Multitenant en proceso.
+
 CMS modular con framework MVC propio basado en Blade One. Arquitectura multi-tenant experimental para alojar múltiples dominios. Sistema de módulos base (compartidos) y plugins independientes por tenant. Almacenamiento seguro en storage/ (no public/) con soporte S3/R2. Multi-idioma integrado.
 
 ![PHP Version](https://img.shields.io/badge/PHP-8.0+-blue.svg)
@@ -15,7 +17,7 @@ CMS modular con framework MVC propio basado en Blade One. Arquitectura multi-ten
 ```bash
 # Instalar
 git clone https://github.com/caimari/musedock.git .
-composer update
+composer install --no-dev --no-progress
 
 Después de instalar, visita `http://tu-dominio.com/install/` para el asistente de configuración (crea base de datos, usuario superadmin y contraseña).
 
