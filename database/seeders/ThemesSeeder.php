@@ -18,22 +18,22 @@ class ThemesSeeder
 
     public function run(): void
     {
+        // Table structure: id, name, slug, active, installed_at, tenant_id, config
         $themes = [
             [
                 'name' => 'default',
-                'display_name' => 'Default Theme',
-                'description' => 'Tema por defecto de MuseDock - limpio y moderno',
-                'version' => '1.0.0',
-                'author' => 'MuseDock',
-                'status' => 'active',
-                'is_default' => 1,
-                'settings' => json_encode([
+                'slug' => 'default',
+                'active' => 1,
+                'config' => json_encode([
+                    'display_name' => 'Default Theme',
+                    'description' => 'Tema por defecto de MuseDock - limpio y moderno',
+                    'version' => '1.0.0',
+                    'author' => 'MuseDock',
                     'primary_color' => '#3b82f6',
                     'secondary_color' => '#64748b',
                     'font_family' => 'Inter, sans-serif'
                 ])
             ],
-
         ];
 
         foreach ($themes as $theme) {

@@ -757,6 +757,7 @@ function runSeeders() {
             'RolesAndPermissionsSeeder.php',
             'ModulesSeeder.php',
             'ThemesSeeder.php',
+            'LanguagesSeeder.php',
             'SuperadminMenuSeeder.php',
             'AdminMenuSeeder.php',
             'DatabaseSeeder.php'
