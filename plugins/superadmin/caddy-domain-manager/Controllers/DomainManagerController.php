@@ -279,8 +279,11 @@ class DomainManagerController
 
         $name = trim($_POST['name'] ?? '');
         $status = trim($_POST['status'] ?? 'active');
-        $includeWww = isset($_POST['include_www']);
+        $newIncludeWww = isset($_POST['include_www']);
         $caddyStatus = trim($_POST['caddy_status'] ?? $tenant->caddy_status);
+
+        // Guardar estado anterior para detectar cambios
+        $oldIncludeWww = (bool)($tenant->include_www ?? false);
 
         if (empty($name)) {
             flash('error', 'El nombre es obligatorio.');
@@ -295,9 +298,29 @@ class DomainManagerController
                 SET name = ?, status = ?, include_www = ?, caddy_status = ?, updated_at = NOW()
                 WHERE id = ?
             ");
-            $stmt->execute([$name, $status, $includeWww ? 1 : 0, $caddyStatus, $id]);
+            $stmt->execute([$name, $status, $newIncludeWww ? 1 : 0, $caddyStatus, $id]);
 
-            flash('success', 'Tenant actualizado correctamente.');
+            // Si cambió include_www Y está configurado en Caddy, reconfigurar
+            $needsCaddyUpdate = ($oldIncludeWww !== $newIncludeWww) &&
+                               $tenant->caddy_route_id &&
+                               in_array($tenant->caddy_status, ['active', 'error']);
+
+            if ($needsCaddyUpdate && $this->caddyService->isApiAvailable()) {
+                // Primero eliminar la ruta antigua
+                $this->caddyService->removeDomain($tenant->caddy_route_id);
+
+                // Reconfigurar con nuevo valor de www
+                $result = $this->configureDomainInCaddy($id, $tenant->domain, $newIncludeWww);
+
+                if ($result['success']) {
+                    flash('success', "Tenant actualizado y reconfigurado en Caddy con " . ($newIncludeWww ? 'www incluido' : 'sin www') . ".");
+                } else {
+                    flash('warning', "Tenant actualizado, pero error al reconfigurar Caddy: " . $result['error']);
+                }
+            } else {
+                flash('success', 'Tenant actualizado correctamente.');
+            }
+
             header('Location: /musedock/domain-manager');
             exit;
 
@@ -331,34 +354,62 @@ class DomainManagerController
             exit;
         }
 
+        $caddyWarning = null;
+
         try {
-            // Eliminar de Caddy primero si existe configuración
+            // Intentar eliminar de Caddy primero si existe configuración
             if ($tenant->caddy_route_id) {
                 $caddyResult = $this->caddyService->removeDomain($tenant->caddy_route_id);
                 if (!$caddyResult['success']) {
-                    Logger::log("[DomainManager] Warning: No se pudo eliminar de Caddy: " . $caddyResult['error'], 'WARNING');
+                    // Guardar warning pero continuar con eliminación de BD
+                    $caddyWarning = "La ruta '{$tenant->caddy_route_id}' podría seguir en Caddy. Error: " . $caddyResult['error'];
+                    Logger::log("[DomainManager] Warning eliminando de Caddy: " . $caddyWarning, 'WARNING');
+                } else {
+                    Logger::log("[DomainManager] Ruta eliminada de Caddy: {$tenant->caddy_route_id}", 'INFO');
                 }
             }
 
             // Eliminar tenant y datos relacionados de la BD
             $pdo = Database::connect();
+            $pdo->beginTransaction();
 
-            // Eliminar en orden de dependencias
-            $pdo->prepare("DELETE FROM user_roles WHERE tenant_id = ?")->execute([$id]);
-            $pdo->prepare("DELETE FROM permissions WHERE tenant_id = ?")->execute([$id]);
-            $pdo->prepare("DELETE FROM roles WHERE tenant_id = ?")->execute([$id]);
-            $pdo->prepare("DELETE FROM admins WHERE tenant_id = ?")->execute([$id]);
-            $pdo->prepare("DELETE FROM tenants WHERE id = ?")->execute([$id]);
+            try {
+                // Eliminar en orden de dependencias
+                $pdo->prepare("DELETE FROM user_roles WHERE tenant_id = ?")->execute([$id]);
+                $pdo->prepare("DELETE FROM permissions WHERE tenant_id = ?")->execute([$id]);
+                $pdo->prepare("DELETE FROM roles WHERE tenant_id = ?")->execute([$id]);
+                $pdo->prepare("DELETE FROM admins WHERE tenant_id = ?")->execute([$id]);
+                $pdo->prepare("DELETE FROM tenants WHERE id = ?")->execute([$id]);
+
+                $pdo->commit();
+            } catch (\Exception $e) {
+                $pdo->rollBack();
+                throw $e;
+            }
 
             Logger::log("[DomainManager] Tenant eliminado: {$tenant->domain} (ID: {$id})", 'INFO');
 
+            // Preparar mensaje según resultado de Caddy
+            $message = "Tenant '{$tenant->name}' eliminado correctamente.";
+            if ($caddyWarning) {
+                $message .= " Advertencia: " . $caddyWarning;
+            }
+
             if ($this->isAjaxRequest()) {
                 header('Content-Type: application/json');
-                echo json_encode(['success' => true, 'message' => 'Tenant eliminado correctamente']);
+                echo json_encode([
+                    'success' => true,
+                    'message' => $message,
+                    'caddy_warning' => $caddyWarning
+                ]);
                 exit;
             }
 
-            flash('success', "Tenant '{$tenant->name}' eliminado correctamente.");
+            if ($caddyWarning) {
+                flash('warning', $message);
+            } else {
+                flash('success', $message);
+            }
             header('Location: /musedock/domain-manager');
             exit;
 
@@ -371,7 +422,7 @@ class DomainManagerController
                 exit;
             }
 
-            flash('error', 'Error al eliminar el tenant.');
+            flash('error', 'Error al eliminar el tenant: ' . $e->getMessage());
             header('Location: /musedock/domain-manager');
             exit;
         }
@@ -399,7 +450,53 @@ class DomainManagerController
             exit;
         }
 
-        $result = $this->configureDomainInCaddy($id, $tenant->domain, (bool)$tenant->include_www);
+        // Validar que tenga sentido reconfigurar
+        $caddyStatus = $tenant->caddy_status ?? 'not_configured';
+
+        // Si ya está activo Y tiene SSL verificado, preguntar confirmación
+        if ($caddyStatus === 'active' && !($tenant->caddy_error_log ?? '')) {
+            // Verificar si realmente está funcionando
+            $verification = $this->caddyService->verifyDomain($tenant->domain);
+
+            if ($verification['success'] && ($verification['ssl_valid'] ?? false)) {
+                if ($this->isAjaxRequest()) {
+                    header('Content-Type: application/json');
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'El dominio ya está activo y funcionando correctamente. No necesita reconfiguración.',
+                        'status' => 'already_active'
+                    ]);
+                    exit;
+                }
+                flash('info', "El dominio '{$tenant->domain}' ya está activo y funcionando correctamente.");
+                header('Location: /musedock/domain-manager');
+                exit;
+            }
+        }
+
+        // Si está en estado 'configuring', no permitir otra configuración
+        if ($caddyStatus === 'configuring') {
+            if ($this->isAjaxRequest()) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'El dominio está siendo configurado actualmente. Por favor espere.',
+                    'status' => 'in_progress'
+                ]);
+                exit;
+            }
+            flash('warning', 'El dominio está siendo configurado actualmente. Por favor espere.');
+            header('Location: /musedock/domain-manager');
+            exit;
+        }
+
+        // Si existe una ruta antigua, eliminarla primero
+        if ($tenant->caddy_route_id) {
+            $this->caddyService->removeDomain($tenant->caddy_route_id);
+        }
+
+        // Proceder con la reconfiguración
+        $result = $this->configureDomainInCaddy($id, $tenant->domain, (bool)($tenant->include_www ?? true));
 
         if ($this->isAjaxRequest()) {
             header('Content-Type: application/json');
@@ -408,7 +505,8 @@ class DomainManagerController
         }
 
         if ($result['success']) {
-            flash('success', "Dominio '{$tenant->domain}' reconfigurado en Caddy correctamente.");
+            $sslMsg = ($result['ssl_verified'] ?? false) ? ' con SSL activo' : '. SSL se está generando.';
+            flash('success', "Dominio '{$tenant->domain}' reconfigurado en Caddy{$sslMsg}");
         } else {
             flash('error', "Error al reconfigurar dominio: " . $result['error']);
         }
@@ -458,6 +556,7 @@ class DomainManagerController
 
     /**
      * Configura un dominio en Caddy y actualiza BD
+     * Incluye verificación de SSL con espera asíncrona
      */
     private function configureDomainInCaddy(int $tenantId, string $domain, bool $includeWww): array
     {
@@ -471,26 +570,74 @@ class DomainManagerController
         $result = $this->caddyService->addDomain($domain, $includeWww);
 
         if ($result['success']) {
-            // Éxito - actualizar BD
+            // Caddy aceptó la ruta, pero el certificado SSL puede tardar
             $stmt = $pdo->prepare("
                 UPDATE tenants
-                SET caddy_status = 'active',
+                SET caddy_status = 'configuring',
                     caddy_route_id = ?,
                     caddy_configured_at = NOW(),
-                    caddy_error_log = NULL
+                    caddy_error_log = 'Esperando certificado SSL...'
                 WHERE id = ?
             ");
             $stmt->execute([$result['route_id'], $tenantId]);
 
-            Logger::log("[DomainManager] Dominio configurado en Caddy: {$domain}", 'INFO');
+            Logger::log("[DomainManager] Ruta añadida en Caddy: {$domain}, esperando SSL...", 'INFO');
 
-            return [
-                'success' => true,
-                'route_id' => $result['route_id'],
-                'message' => 'Dominio configurado correctamente'
-            ];
+            // Esperar y verificar SSL (máx 20 segundos)
+            $sslVerified = false;
+            $maxAttempts = 4;
+            $waitTime = 5; // segundos entre intentos
+
+            for ($i = 0; $i < $maxAttempts; $i++) {
+                sleep($waitTime);
+
+                $verification = $this->caddyService->verifyDomain($domain);
+
+                if ($verification['success'] && ($verification['ssl_valid'] ?? false)) {
+                    $sslVerified = true;
+                    break;
+                }
+            }
+
+            if ($sslVerified) {
+                // SSL verificado - estado activo
+                $stmt = $pdo->prepare("
+                    UPDATE tenants
+                    SET caddy_status = 'active',
+                        caddy_error_log = NULL
+                    WHERE id = ?
+                ");
+                $stmt->execute([$tenantId]);
+
+                Logger::log("[DomainManager] Dominio configurado con SSL: {$domain}", 'INFO');
+
+                return [
+                    'success' => true,
+                    'route_id' => $result['route_id'],
+                    'ssl_verified' => true,
+                    'message' => 'Dominio configurado con SSL activo'
+                ];
+            } else {
+                // Ruta configurada pero SSL pendiente
+                $stmt = $pdo->prepare("
+                    UPDATE tenants
+                    SET caddy_status = 'active',
+                        caddy_error_log = 'SSL pendiente de verificación. Let''s Encrypt puede tardar hasta 60s.'
+                    WHERE id = ?
+                ");
+                $stmt->execute([$tenantId]);
+
+                Logger::log("[DomainManager] Dominio configurado, SSL pendiente: {$domain}", 'WARNING');
+
+                return [
+                    'success' => true,
+                    'route_id' => $result['route_id'],
+                    'ssl_verified' => false,
+                    'message' => 'Dominio configurado. El certificado SSL se está generando (puede tardar hasta 60s).'
+                ];
+            }
         } else {
-            // Error - actualizar BD con error
+            // Error al añadir ruta en Caddy
             $stmt = $pdo->prepare("
                 UPDATE tenants
                 SET caddy_status = 'error',
@@ -605,6 +752,7 @@ class DomainManagerController
 
     /**
      * Crea permisos y roles por defecto para el tenant
+     * Evita duplicados verificando existencia antes de insertar
      */
     private function createDefaultPermissionsAndRoles(PDO $pdo, int $tenantId): void
     {
@@ -622,12 +770,18 @@ class DomainManagerController
             ['name' => 'content.delete', 'description' => 'Eliminar contenido', 'category' => 'content'],
         ];
 
+        // Preparar statements para evitar duplicados
+        $checkPermStmt = $pdo->prepare("SELECT id FROM permissions WHERE name = ? AND tenant_id = ?");
+        $insertPermStmt = $pdo->prepare("
+            INSERT INTO permissions (name, description, category, tenant_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, NOW(), NOW())
+        ");
+
         foreach ($permissions as $perm) {
-            $stmt = $pdo->prepare("
-                INSERT INTO permissions (name, description, category, tenant_id, created_at, updated_at)
-                VALUES (?, ?, ?, ?, NOW(), NOW())
-            ");
-            $stmt->execute([$perm['name'], $perm['description'], $perm['category'], $tenantId]);
+            $checkPermStmt->execute([$perm['name'], $tenantId]);
+            if (!$checkPermStmt->fetch()) {
+                $insertPermStmt->execute([$perm['name'], $perm['description'], $perm['category'], $tenantId]);
+            }
         }
 
         // Roles por defecto
@@ -637,12 +791,18 @@ class DomainManagerController
             ['name' => 'viewer', 'description' => 'Solo lectura'],
         ];
 
+        // Preparar statements para evitar duplicados
+        $checkRoleStmt = $pdo->prepare("SELECT id FROM roles WHERE name = ? AND tenant_id = ?");
+        $insertRoleStmt = $pdo->prepare("
+            INSERT INTO roles (name, description, tenant_id, is_system, created_at, updated_at)
+            VALUES (?, ?, ?, 1, NOW(), NOW())
+        ");
+
         foreach ($roles as $role) {
-            $stmt = $pdo->prepare("
-                INSERT INTO roles (name, description, tenant_id, is_system, created_at, updated_at)
-                VALUES (?, ?, ?, 1, NOW(), NOW())
-            ");
-            $stmt->execute([$role['name'], $role['description'], $tenantId]);
+            $checkRoleStmt->execute([$role['name'], $tenantId]);
+            if (!$checkRoleStmt->fetch()) {
+                $insertRoleStmt->execute([$role['name'], $role['description'], $tenantId]);
+            }
         }
     }
 
