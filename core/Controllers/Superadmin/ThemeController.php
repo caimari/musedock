@@ -28,7 +28,7 @@ public function index()
     $availableThemes = [];
 
     // Tema activo actual
-    $stmt = $pdo->query("SELECT value FROM settings WHERE `key` = 'default_theme' LIMIT 1");
+    $stmt = $pdo->query("SELECT value FROM settings WHERE \"key\" = 'default_theme' LIMIT 1");
     $currentTheme = $stmt->fetchColumn();
 
     foreach ($folders as $folderPath) {
@@ -115,7 +115,7 @@ public function activate()
     $stmt->execute([$slug]);
 
     // Actualizar en settings
-    $stmt = $pdo->prepare("UPDATE settings SET value = ? WHERE `key` = 'default_theme'");
+    $stmt = $pdo->prepare("UPDATE settings SET value = ? WHERE \"key\" = 'default_theme'");
     $stmt->execute([$slug]);
 
     flash('success', "Tema '{$slug}' activado correctamente.");
@@ -367,7 +367,7 @@ public function activate()
         }
 
         $pdo = Database::connect();
-        $stmt = $pdo->query("SELECT value FROM settings WHERE `key` = 'default_theme' LIMIT 1");
+        $stmt = $pdo->query("SELECT value FROM settings WHERE \"key\" = 'default_theme' LIMIT 1");
         $currentTheme = $stmt->fetchColumn();
 
         if ($slug === $currentTheme) {

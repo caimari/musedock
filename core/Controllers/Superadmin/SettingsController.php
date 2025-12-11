@@ -93,13 +93,15 @@ class SettingsController
                 'blog_public' => isset($_POST['blog_public']) ? '0' : '1', // 0 = no indexar, 1 = indexar (default)
             ];
 
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
             foreach ($readingSettings as $key => $value) {
-                $stmt = $pdo->prepare("
-                    INSERT INTO settings (`key`, `value`)
-                    VALUES (?, ?)
-                    ON DUPLICATE KEY UPDATE `value` = ?
-                ");
-                $stmt->execute([$key, $value, $value]);
+                if ($driver === 'mysql') {
+                    $stmt = $pdo->prepare("INSERT INTO settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = ?");
+                    $stmt->execute([$key, $value, $value]);
+                } else {
+                    $stmt = $pdo->prepare("INSERT INTO settings (\"key\", value) VALUES (?, ?) ON CONFLICT (\"key\") DO UPDATE SET value = EXCLUDED.value");
+                    $stmt->execute([$key, $value]);
+                }
             }
 
             // === SINCRONIZACIÓN: Actualizar is_homepage en la tabla pages ===
@@ -471,7 +473,7 @@ protected function flashError($message)
 
     // Borrar la referencia en la base de datos
     $pdo = \Screenart\Musedock\Database::connect();
-    $stmt = $pdo->prepare("UPDATE settings SET value = '' WHERE `key` = 'site_logo'");
+    $stmt = $pdo->prepare("UPDATE settings SET value = '' WHERE \"key\" = 'site_logo'");
     $stmt->execute();
 
     flash('success', 'Logotipo eliminado correctamente.');
@@ -491,7 +493,7 @@ public function deleteFavicon()
 
     // Borrar la referencia en la base de datos
     $pdo = \Screenart\Musedock\Database::connect();
-    $stmt = $pdo->prepare("UPDATE settings SET value = '' WHERE `key` = 'site_favicon'");
+    $stmt = $pdo->prepare("UPDATE settings SET value = '' WHERE \"key\" = 'site_favicon'");
     $stmt->execute();
 
     flash('success', 'Favicon eliminado correctamente.');

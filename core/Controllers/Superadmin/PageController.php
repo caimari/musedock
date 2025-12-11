@@ -502,41 +502,34 @@ public function update($id)
         $updateCurrentStmt->execute([$makeHomepage ? 1 : 0, $id]);
 
         // === SINCRONIZACIÓN: Actualizar settings de lectura ===
+        // Función helper para upsert compatible con MySQL y PostgreSQL
+        $upsertSetting = function($pdo, $key, $value) {
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            if ($driver === 'mysql') {
+                $stmt = $pdo->prepare("INSERT INTO settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = ?");
+                $stmt->execute([$key, $value, $value]);
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO settings (\"key\", value) VALUES (?, ?) ON CONFLICT (\"key\") DO UPDATE SET value = EXCLUDED.value");
+                $stmt->execute([$key, $value]);
+            }
+        };
+
         if ($makeHomepage) {
             // Si se marca como homepage, actualizar page_on_front
-            $updatePageOnFrontStmt = $pdo->prepare("
-                INSERT INTO settings (`key`, `value`) VALUES ('page_on_front', ?)
-                ON DUPLICATE KEY UPDATE `value` = ?
-            ");
-            $updatePageOnFrontStmt->execute([$id, $id]);
-
-            // Actualizar show_on_front
-            $updateShowOnFrontStmt = $pdo->prepare("
-                INSERT INTO settings (`key`, `value`) VALUES ('show_on_front', 'page')
-                ON DUPLICATE KEY UPDATE `value` = 'page'
-            ");
-            $updateShowOnFrontStmt->execute();
+            $upsertSetting($pdo, 'page_on_front', $id);
+            $upsertSetting($pdo, 'show_on_front', 'page');
 
             error_log("PageController: Sincronizados settings de lectura - page_on_front = {$id}, show_on_front = page");
         } else {
             // Si se desmarca como homepage, limpiar el setting si coincide con esta página
-            $checkSettingStmt = $pdo->prepare("SELECT `value` FROM settings WHERE `key` = 'page_on_front'");
+            $checkSettingStmt = $pdo->prepare("SELECT value FROM settings WHERE \"key\" = 'page_on_front'");
             $checkSettingStmt->execute();
             $currentPageOnFront = $checkSettingStmt->fetchColumn();
 
             if ($currentPageOnFront == $id) {
                 // Esta página era la homepage en settings, limpiarla y volver a posts
-                $updatePageOnFrontStmt = $pdo->prepare("
-                    INSERT INTO settings (`key`, `value`) VALUES ('page_on_front', '')
-                    ON DUPLICATE KEY UPDATE `value` = ''
-                ");
-                $updatePageOnFrontStmt->execute();
-
-                $updateShowOnFrontStmt = $pdo->prepare("
-                    INSERT INTO settings (`key`, `value`) VALUES ('show_on_front', 'posts')
-                    ON DUPLICATE KEY UPDATE `value` = 'posts'
-                ");
-                $updateShowOnFrontStmt->execute();
+                $upsertSetting($pdo, 'page_on_front', '');
+                $upsertSetting($pdo, 'show_on_front', 'posts');
 
                 error_log("PageController: Desmarcada página {$id} como homepage en settings");
             }

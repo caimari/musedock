@@ -18,7 +18,7 @@ class SiteHelper
         if (self::$settingsCache === null) {
             try {
                 $pdo = Database::connect();
-                $stmt = $pdo->query("SELECT `key`, `value` FROM settings");
+                $stmt = $pdo->query("SELECT \"key\", value FROM settings");
                 self::$settingsCache = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
             } catch (\Exception $e) {
                 \Screenart\Musedock\Logger::log("Error cargando settings: " . $e->getMessage(), 'ERROR');
