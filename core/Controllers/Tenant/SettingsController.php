@@ -5,22 +5,18 @@ use Screenart\Musedock\Database;
 use Screenart\Musedock\View;
 use Screenart\Musedock\Models\Language;
 use Screenart\Musedock\Security\SessionSecurity;
+use Screenart\Musedock\Traits\RequiresPermission;
 
 class SettingsController
 {
+    use RequiresPermission;
     /**
      * Muestra la página de ajustes del tenant
      */
     public function index()
     {
         SessionSecurity::startSession();
-
-        // Verificar autenticación
-        $admin = $_SESSION['admin'] ?? null;
-        if (!$admin) {
-            header('Location: /' . admin_path() . '/login');
-            exit;
-        }
+        $this->checkPermission('settings.view');
 
         $tenantId = tenant_id();
         if (!$tenantId) {
@@ -45,12 +41,7 @@ class SettingsController
     public function update()
     {
         SessionSecurity::startSession();
-
-        $admin = $_SESSION['admin'] ?? null;
-        if (!$admin) {
-            header('Location: /' . admin_path() . '/login');
-            exit;
-        }
+        $this->checkPermission('settings.edit');
 
         $tenantId = tenant_id();
         if (!$tenantId) {
@@ -140,12 +131,7 @@ class SettingsController
     public function deleteLogo()
     {
         SessionSecurity::startSession();
-
-        $admin = $_SESSION['admin'] ?? null;
-        if (!$admin) {
-            header('Location: /' . admin_path() . '/login');
-            exit;
-        }
+        $this->checkPermission('settings.edit');
 
         $tenantId = tenant_id();
         if (!$tenantId) {
