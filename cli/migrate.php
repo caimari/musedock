@@ -8,6 +8,7 @@
  *   php cli/migrate.php                        - Ejecutar migraciones pendientes
  *   php cli/migrate.php --status               - Ver estado de migraciones
  *   php cli/migrate.php --run=FILENAME         - Ejecutar una migración específica
+ *   php cli/migrate.php --rerun=FILENAME       - Re-ejecutar migración (rollback + run)
  *   php cli/migrate.php --rollback=FILENAME    - Revertir una migración específica
  *   php cli/migrate.php --rollback-last        - Revertir última batch
  *   php cli/migrate.php --fresh                - Revertir todas y ejecutar de nuevo
@@ -255,6 +256,53 @@ class MigrationRunner
 
         } catch (\Exception $e) {
             $this->error("Error revirtiendo {$matchedName}: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function rerunMigration(string $filename): bool
+    {
+        $files = $this->getMigrationFiles();
+        $matchedFile = null;
+        $matchedName = null;
+
+        foreach ($files as $name => $path) {
+            if ($name === $filename || strpos($name, $filename) !== false) {
+                $matchedFile = $path;
+                $matchedName = $name;
+                break;
+            }
+        }
+
+        if (!$matchedFile) {
+            $this->error("Migración no encontrada: {$filename}");
+            return false;
+        }
+
+        $executed = $this->getExecutedMigrations();
+
+        $this->info("Re-ejecutando migración: {$matchedName}\n");
+
+        // Si está ejecutada, hacer rollback primero
+        if (in_array($matchedName, $executed)) {
+            $this->info("Paso 1/2: Revirtiendo migración...");
+            if (!$this->rollbackMigrationDirect($matchedName, $matchedFile)) {
+                $this->error("No se pudo revertir la migración");
+                return false;
+            }
+            echo "\n";
+        } else {
+            $this->info("La migración no estaba ejecutada, ejecutando directamente...\n");
+        }
+
+        // Ejecutar la migración
+        $this->info("Paso 2/2: Ejecutando migración...");
+        if ($this->executeMigration($matchedName, $matchedFile)) {
+            echo "\n";
+            $this->success("✓ Migración re-ejecutada exitosamente: {$matchedName}");
+            return true;
+        } else {
+            $this->error("No se pudo ejecutar la migración");
             return false;
         }
     }
@@ -686,6 +734,7 @@ function showHelp() {
     echo "  php cli/migrate.php                        Ejecutar pendientes\n";
     echo "  php cli/migrate.php --status               Ver estado\n";
     echo "  php cli/migrate.php --run=NOMBRE           Ejecutar una específica\n";
+    echo "  php cli/migrate.php --rerun=NOMBRE         Re-ejecutar (rollback + run)\n";
     echo "  php cli/migrate.php --rollback=NOMBRE      Revertir una específica\n";
     echo "  php cli/migrate.php --rollback-last        Revertir última batch\n";
     echo "  php cli/migrate.php --fresh                Revertir todas + ejecutar\n";
@@ -786,6 +835,8 @@ if (isset($options['status'])) {
     $runner->showMigrationStatus($modulePath);
 } elseif (isset($options['run'])) {
     $runner->runMigration($options['run']);
+} elseif (isset($options['rerun'])) {
+    $runner->rerunMigration($options['rerun']);
 } elseif (isset($options['rollback'])) {
     $runner->rollbackMigration($options['rollback']);
 } elseif (isset($options['rollback-last'])) {
