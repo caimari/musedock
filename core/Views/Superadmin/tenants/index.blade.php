@@ -8,7 +8,14 @@
 
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h2>{{ __('tenants.title') }}</h2>
-            <a href="/musedock/tenants/create" class="btn btn-primary">{{ __('tenants.create') }}</a>
+            <div class="d-flex gap-2">
+                <a href="/musedock/settings/tenant-defaults" class="btn btn-outline-secondary">
+                    <i class="bi bi-gear-wide-connected"></i> Configurar Defaults
+                </a>
+                <a href="/musedock/tenants/create" class="btn btn-primary">
+                    <i class="bi bi-plus-lg"></i> {{ __('tenants.create') }}
+                </a>
+            </div>
         </div>
 
         @include('partials.alerts')
