@@ -5,11 +5,21 @@ use Screenart\Musedock\View;
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Security\RateLimiter;
-use Screenart\Musedock\Traits\HasPermissions;
 
 class SecurityController
 {
-    use HasPermissions;
+    /**
+     * Verificar si el usuario actual tiene un permiso específico
+     * Si no lo tiene, redirige con mensaje de error
+     */
+    private function checkPermission(string $permission): void
+    {
+        if (!userCan($permission)) {
+            flash('error', 'No tienes permisos para acceder a esta sección.');
+            header('Location: /musedock/dashboard');
+            exit;
+        }
+    }
     /**
      * Dashboard de Seguridad - Muestra intentos fallidos y estadísticas
      */
