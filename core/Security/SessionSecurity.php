@@ -11,12 +11,27 @@ class SessionSecurity
     
     /**
      * Obtiene la conexión a la base de datos
-     * 
+     *
      * @return \PDO
      */
     private static function getDatabase()
     {
         return Database::connect();
+    }
+
+    /**
+     * Detecta si el driver de base de datos es PostgreSQL
+     *
+     * @return bool
+     */
+    private static function isPostgreSQL(): bool
+    {
+        try {
+            $db = self::getDatabase();
+            return $db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'pgsql';
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 
     /**
@@ -109,35 +124,47 @@ class SessionSecurity
         $_SESSION['last_active'] = time();
 		
 		
-		 // Prueba directa para registrar actividad
-    if (isset($_SESSION['super_admin'])) {
-        try {
-            $db = self::getDatabase();
-            $superAdminId = (int)$_SESSION['super_admin']['id'];
-            $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-            $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
-            
-            $stmt = $db->prepare("
-                INSERT INTO super_admin_activity 
-                (super_admin_id, last_active, ip, user_agent) 
-                VALUES (:id, NOW(), :ip, :user_agent)
-                ON DUPLICATE KEY UPDATE 
-                    last_active = NOW(),
-                    ip = :ip,
-                    user_agent = :user_agent
-            ");
-            
-            $stmt->execute([
-                'id' => $superAdminId,
-                'ip' => $ip,
-                'user_agent' => $userAgent
-            ]);
-            
-            error_log("Actividad de super_admin {$superAdminId} registrada directamente");
-        } catch (\Exception $e) {
-            error_log("Error al registrar actividad directamente: " . $e->getMessage());
+        // Prueba directa para registrar actividad
+        if (isset($_SESSION['super_admin'])) {
+            try {
+                $db = self::getDatabase();
+                $superAdminId = (int)$_SESSION['super_admin']['id'];
+                $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+                $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
+
+                if (self::isPostgreSQL()) {
+                    $stmt = $db->prepare("
+                        INSERT INTO super_admin_activity
+                        (super_admin_id, last_active, ip, user_agent)
+                        VALUES (:id, NOW(), :ip, :user_agent)
+                        ON CONFLICT (super_admin_id) DO UPDATE SET
+                            last_active = NOW(),
+                            ip = EXCLUDED.ip,
+                            user_agent = EXCLUDED.user_agent
+                    ");
+                } else {
+                    $stmt = $db->prepare("
+                        INSERT INTO super_admin_activity
+                        (super_admin_id, last_active, ip, user_agent)
+                        VALUES (:id, NOW(), :ip, :user_agent)
+                        ON DUPLICATE KEY UPDATE
+                            last_active = NOW(),
+                            ip = VALUES(ip),
+                            user_agent = VALUES(user_agent)
+                    ");
+                }
+
+                $stmt->execute([
+                    'id' => $superAdminId,
+                    'ip' => $ip,
+                    'user_agent' => $userAgent
+                ]);
+
+                error_log("Actividad de super_admin {$superAdminId} registrada directamente");
+            } catch (\Exception $e) {
+                error_log("Error al registrar actividad directamente: " . $e->getMessage());
+            }
         }
-    }
         
         // Actualizar registro de actividad solo la primera vez que se llama a startSession()
         if ($sessionStarted) {
@@ -191,107 +218,147 @@ class SessionSecurity
         return null;
     }
 
- /**
- * Actualiza el registro de actividad del usuario en la base de datos
- * Utiliza tablas específicas según el tipo de usuario
- */
-private static function updateUserActivity()
-{
-    // Verificar si hay un usuario autenticado
-    if (!isset($_SESSION['super_admin']) && !isset($_SESSION['admin']) && !isset($_SESSION['user'])) {
-        return;
+    /**
+     * Actualiza el registro de actividad del usuario en la base de datos
+     * Utiliza tablas específicas según el tipo de usuario
+     * Compatible con MySQL y PostgreSQL
+     */
+    private static function updateUserActivity()
+    {
+        // Verificar si hay un usuario autenticado
+        if (!isset($_SESSION['super_admin']) && !isset($_SESSION['admin']) && !isset($_SESSION['user'])) {
+            return;
+        }
+
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
+        $db = self::getDatabase();
+        $isPgsql = self::isPostgreSQL();
+
+        try {
+            // Super Admin
+            if (isset($_SESSION['super_admin'])) {
+                $superAdminId = (int)$_SESSION['super_admin']['id'];
+
+                if ($isPgsql) {
+                    $stmt = $db->prepare("
+                        INSERT INTO super_admin_activity
+                        (super_admin_id, last_active, ip, user_agent)
+                        VALUES (:id, NOW(), :ip, :user_agent)
+                        ON CONFLICT (super_admin_id) DO UPDATE SET
+                            last_active = NOW(),
+                            ip = EXCLUDED.ip,
+                            user_agent = EXCLUDED.user_agent
+                    ");
+                } else {
+                    $stmt = $db->prepare("
+                        INSERT INTO super_admin_activity
+                        (super_admin_id, last_active, ip, user_agent)
+                        VALUES (:id, NOW(), :ip, :user_agent)
+                        ON DUPLICATE KEY UPDATE
+                            last_active = NOW(),
+                            ip = VALUES(ip),
+                            user_agent = VALUES(user_agent)
+                    ");
+                }
+
+                $stmt->execute([
+                    'id' => $superAdminId,
+                    'ip' => $ip,
+                    'user_agent' => $userAgent
+                ]);
+
+                error_log("SessionSecurity - Actividad actualizada para super_admin {$superAdminId}");
+            }
+
+            // Admin
+            elseif (isset($_SESSION['admin'])) {
+                $adminId = (int)$_SESSION['admin']['id'];
+                $tenantId = $_SESSION['admin']['tenant_id'] ?? null;
+
+                if ($isPgsql) {
+                    $stmt = $db->prepare("
+                        INSERT INTO admin_activity
+                        (admin_id, tenant_id, last_active, ip, user_agent)
+                        VALUES (:id, :tenant_id, NOW(), :ip, :user_agent)
+                        ON CONFLICT (admin_id) DO UPDATE SET
+                            last_active = NOW(),
+                            tenant_id = EXCLUDED.tenant_id,
+                            ip = EXCLUDED.ip,
+                            user_agent = EXCLUDED.user_agent
+                    ");
+                } else {
+                    $stmt = $db->prepare("
+                        INSERT INTO admin_activity
+                        (admin_id, tenant_id, last_active, ip, user_agent)
+                        VALUES (:id, :tenant_id, NOW(), :ip, :user_agent)
+                        ON DUPLICATE KEY UPDATE
+                            last_active = NOW(),
+                            tenant_id = VALUES(tenant_id),
+                            ip = VALUES(ip),
+                            user_agent = VALUES(user_agent)
+                    ");
+                }
+
+                $stmt->execute([
+                    'id' => $adminId,
+                    'tenant_id' => $tenantId,
+                    'ip' => $ip,
+                    'user_agent' => $userAgent
+                ]);
+
+                error_log("SessionSecurity - Actividad actualizada para admin {$adminId}");
+            }
+
+            // Usuario normal
+            elseif (isset($_SESSION['user'])) {
+                $userId = (int)$_SESSION['user']['id'];
+                $tenantId = $_SESSION['user']['tenant_id'] ?? null;
+
+                if ($isPgsql) {
+                    $stmt = $db->prepare("
+                        INSERT INTO user_activity
+                        (user_id, tenant_id, last_active, ip, user_agent)
+                        VALUES (:id, :tenant_id, NOW(), :ip, :user_agent)
+                        ON CONFLICT (user_id) DO UPDATE SET
+                            last_active = NOW(),
+                            tenant_id = EXCLUDED.tenant_id,
+                            ip = EXCLUDED.ip,
+                            user_agent = EXCLUDED.user_agent
+                    ");
+                } else {
+                    $stmt = $db->prepare("
+                        INSERT INTO user_activity
+                        (user_id, tenant_id, last_active, ip, user_agent)
+                        VALUES (:id, :tenant_id, NOW(), :ip, :user_agent)
+                        ON DUPLICATE KEY UPDATE
+                            last_active = NOW(),
+                            tenant_id = VALUES(tenant_id),
+                            ip = VALUES(ip),
+                            user_agent = VALUES(user_agent)
+                    ");
+                }
+
+                $stmt->execute([
+                    'id' => $userId,
+                    'tenant_id' => $tenantId,
+                    'ip' => $ip,
+                    'user_agent' => $userAgent
+                ]);
+
+                error_log("SessionSecurity - Actividad actualizada para user {$userId}");
+            }
+        } catch (\Exception $e) {
+            $userType = isset($_SESSION['super_admin']) ? 'super_admin' :
+                       (isset($_SESSION['admin']) ? 'admin' :
+                       (isset($_SESSION['user']) ? 'user' : 'unknown'));
+            $userId = isset($_SESSION['super_admin']) ? $_SESSION['super_admin']['id'] :
+                    (isset($_SESSION['admin']) ? $_SESSION['admin']['id'] :
+                    (isset($_SESSION['user']) ? $_SESSION['user']['id'] : 0));
+
+            error_log("Error al actualizar actividad de {$userType} {$userId}: " . $e->getMessage());
+        }
     }
-    
-    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
-    $db = self::getDatabase();
-        
-    try {
-        // Super Admin
-        if (isset($_SESSION['super_admin'])) {
-            $superAdminId = (int)$_SESSION['super_admin']['id'];
-            
-            $stmt = $db->prepare("
-                INSERT INTO super_admin_activity 
-                (super_admin_id, last_active, ip, user_agent) 
-                VALUES (:id, NOW(), :ip, :user_agent)
-                ON DUPLICATE KEY UPDATE 
-                    last_active = NOW(),
-                    ip = :ip,
-                    user_agent = :user_agent
-            ");
-            
-            $stmt->execute([
-                'id' => $superAdminId,
-                'ip' => $ip,
-                'user_agent' => $userAgent
-            ]);
-            
-            error_log("SessionSecurity - Actividad actualizada para super_admin {$superAdminId}");
-        }
-        
-        // Admin
-        elseif (isset($_SESSION['admin'])) {
-            $adminId = (int)$_SESSION['admin']['id'];
-            $tenantId = $_SESSION['admin']['tenant_id'] ?? null;
-            
-            $stmt = $db->prepare("
-                INSERT INTO admin_activity 
-                (admin_id, tenant_id, last_active, ip, user_agent) 
-                VALUES (:id, :tenant_id, NOW(), :ip, :user_agent)
-                ON DUPLICATE KEY UPDATE 
-                    last_active = NOW(),
-                    tenant_id = :tenant_id,
-                    ip = :ip,
-                    user_agent = :user_agent
-            ");
-            
-            $stmt->execute([
-                'id' => $adminId,
-                'tenant_id' => $tenantId,
-                'ip' => $ip,
-                'user_agent' => $userAgent
-            ]);
-            
-            error_log("SessionSecurity - Actividad actualizada para admin {$adminId}");
-        }
-        
-        // Usuario normal
-        elseif (isset($_SESSION['user'])) {
-            $userId = (int)$_SESSION['user']['id'];
-            $tenantId = $_SESSION['user']['tenant_id'] ?? null;
-            
-            $stmt = $db->prepare("
-                INSERT INTO user_activity 
-                (user_id, tenant_id, last_active, ip, user_agent) 
-                VALUES (:id, :tenant_id, NOW(), :ip, :user_agent)
-                ON DUPLICATE KEY UPDATE 
-                    last_active = NOW(),
-                    tenant_id = :tenant_id,
-                    ip = :ip,
-                    user_agent = :user_agent
-            ");
-            
-            $stmt->execute([
-                'id' => $userId,
-                'tenant_id' => $tenantId,
-                'ip' => $ip,
-                'user_agent' => $userAgent
-            ]);
-            
-            error_log("SessionSecurity - Actividad actualizada para user {$userId}");
-        }
-    } catch (\Exception $e) {
-        $userType = isset($_SESSION['super_admin']) ? 'super_admin' : 
-                   (isset($_SESSION['admin']) ? 'admin' : 
-                   (isset($_SESSION['user']) ? 'user' : 'unknown'));
-        $userId = isset($_SESSION['super_admin']) ? $_SESSION['super_admin']['id'] : 
-                (isset($_SESSION['admin']) ? $_SESSION['admin']['id'] : 
-                (isset($_SESSION['user']) ? $_SESSION['user']['id'] : 0));
-        
-        error_log("Error al actualizar actividad de {$userType} {$userId}: " . $e->getMessage());
-    }
-}
     /**
      * Regenera el ID de sesión, manteniendo los datos
      */
@@ -359,7 +426,7 @@ private static function updateUserActivity()
 
     /**
      * Crea un token "recordarme" para un super_admin
-     * 
+     *
      * @param int $userId ID del super_admin
      * @return bool
      */
@@ -370,30 +437,46 @@ private static function updateUserActivity()
 
         try {
             $db = self::getDatabase();
-            
+            $isPgsql = self::isPostgreSQL();
+
             // Eliminar tokens antiguos primero
             $stmt = $db->prepare("DELETE FROM super_admin_session_tokens WHERE super_admin_id = :id");
             $stmt->execute(['id' => $userId]);
-            
-            // Crear nuevo token
-            $stmt = $db->prepare("
-                INSERT INTO super_admin_session_tokens 
-                (super_admin_id, token, ip, user_agent, persistent, created_at, expires_at, last_used_at)
-                VALUES 
-                (:id, :token, :ip, :agent, 1, NOW(), DATE_ADD(NOW(), INTERVAL :days DAY), NOW())
-            ");
 
-            $stmt->execute([
-                'id' => $userId,
-                'token' => $hash,
-                'ip' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0',
-                'agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
-                'days' => self::PERSISTENT_DAYS
-            ]);
+            // Crear nuevo token - sintaxis diferente para MySQL vs PostgreSQL
+            if ($isPgsql) {
+                $days = self::PERSISTENT_DAYS;
+                $stmt = $db->prepare("
+                    INSERT INTO super_admin_session_tokens
+                    (super_admin_id, token, ip, user_agent, persistent, created_at, expires_at, last_used_at)
+                    VALUES
+                    (:id, :token, :ip, :agent, 1, NOW(), NOW() + INTERVAL '{$days} days', NOW())
+                ");
+                $stmt->execute([
+                    'id' => $userId,
+                    'token' => $hash,
+                    'ip' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0',
+                    'agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+                ]);
+            } else {
+                $stmt = $db->prepare("
+                    INSERT INTO super_admin_session_tokens
+                    (super_admin_id, token, ip, user_agent, persistent, created_at, expires_at, last_used_at)
+                    VALUES
+                    (:id, :token, :ip, :agent, 1, NOW(), DATE_ADD(NOW(), INTERVAL :days DAY), NOW())
+                ");
+                $stmt->execute([
+                    'id' => $userId,
+                    'token' => $hash,
+                    'ip' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0',
+                    'agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
+                    'days' => self::PERSISTENT_DAYS
+                ]);
+            }
 
             setcookie(
-                'remember_token', 
-                $token, 
+                'remember_token',
+                $token,
                 [
                     'expires' => time() + (86400 * self::PERSISTENT_DAYS),
                     'path' => '/',
@@ -402,7 +485,7 @@ private static function updateUserActivity()
                     'samesite' => 'Lax'
                 ]
             );
-            
+
             error_log("Token remember creado para super_admin {$userId}");
             return true;
         } catch (\Exception $e) {
@@ -413,7 +496,7 @@ private static function updateUserActivity()
     
     /**
      * Crea un token "recordarme" para un admin
-     * 
+     *
      * @param int $userId ID del admin
      * @return bool
      */
@@ -424,30 +507,46 @@ private static function updateUserActivity()
 
         try {
             $db = self::getDatabase();
-            
+            $isPgsql = self::isPostgreSQL();
+
             // Eliminar tokens antiguos primero
             $stmt = $db->prepare("DELETE FROM admin_session_tokens WHERE admin_id = :id");
             $stmt->execute(['id' => $userId]);
-            
-            // Crear nuevo token
-            $stmt = $db->prepare("
-                INSERT INTO admin_session_tokens 
-                (admin_id, token, ip, user_agent, persistent, created_at, expires_at, last_used_at)
-                VALUES 
-                (:id, :token, :ip, :agent, 1, NOW(), DATE_ADD(NOW(), INTERVAL :days DAY), NOW())
-            ");
 
-            $stmt->execute([
-                'id' => $userId,
-                'token' => $hash,
-                'ip' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0',
-                'agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
-                'days' => self::PERSISTENT_DAYS
-            ]);
+            // Crear nuevo token - sintaxis diferente para MySQL vs PostgreSQL
+            if ($isPgsql) {
+                $days = self::PERSISTENT_DAYS;
+                $stmt = $db->prepare("
+                    INSERT INTO admin_session_tokens
+                    (admin_id, token, ip, user_agent, persistent, created_at, expires_at, last_used_at)
+                    VALUES
+                    (:id, :token, :ip, :agent, 1, NOW(), NOW() + INTERVAL '{$days} days', NOW())
+                ");
+                $stmt->execute([
+                    'id' => $userId,
+                    'token' => $hash,
+                    'ip' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0',
+                    'agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+                ]);
+            } else {
+                $stmt = $db->prepare("
+                    INSERT INTO admin_session_tokens
+                    (admin_id, token, ip, user_agent, persistent, created_at, expires_at, last_used_at)
+                    VALUES
+                    (:id, :token, :ip, :agent, 1, NOW(), DATE_ADD(NOW(), INTERVAL :days DAY), NOW())
+                ");
+                $stmt->execute([
+                    'id' => $userId,
+                    'token' => $hash,
+                    'ip' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0',
+                    'agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
+                    'days' => self::PERSISTENT_DAYS
+                ]);
+            }
 
             setcookie(
-                'remember_token', 
-                $token, 
+                'remember_token',
+                $token,
                 [
                     'expires' => time() + (86400 * self::PERSISTENT_DAYS),
                     'path' => '/',
@@ -456,7 +555,7 @@ private static function updateUserActivity()
                     'samesite' => 'Lax'
                 ]
             );
-            
+
             error_log("Token remember creado para admin {$userId}");
             return true;
         } catch (\Exception $e) {
@@ -467,7 +566,7 @@ private static function updateUserActivity()
     
     /**
      * Crea un token "recordarme" para un usuario normal
-     * 
+     *
      * @param int $userId ID del usuario
      * @return bool
      */
@@ -478,30 +577,46 @@ private static function updateUserActivity()
 
         try {
             $db = self::getDatabase();
-            
+            $isPgsql = self::isPostgreSQL();
+
             // Eliminar tokens antiguos primero
             $stmt = $db->prepare("DELETE FROM user_session_tokens WHERE user_id = :id");
             $stmt->execute(['id' => $userId]);
-            
-            // Crear nuevo token
-            $stmt = $db->prepare("
-                INSERT INTO user_session_tokens 
-                (user_id, token, ip, user_agent, persistent, created_at, expires_at, last_used_at)
-                VALUES 
-                (:id, :token, :ip, :agent, 1, NOW(), DATE_ADD(NOW(), INTERVAL :days DAY), NOW())
-            ");
 
-            $stmt->execute([
-                'id' => $userId,
-                'token' => $hash,
-                'ip' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0',
-                'agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
-                'days' => self::PERSISTENT_DAYS
-            ]);
+            // Crear nuevo token - sintaxis diferente para MySQL vs PostgreSQL
+            if ($isPgsql) {
+                $days = self::PERSISTENT_DAYS;
+                $stmt = $db->prepare("
+                    INSERT INTO user_session_tokens
+                    (user_id, token, ip, user_agent, persistent, created_at, expires_at, last_used_at)
+                    VALUES
+                    (:id, :token, :ip, :agent, 1, NOW(), NOW() + INTERVAL '{$days} days', NOW())
+                ");
+                $stmt->execute([
+                    'id' => $userId,
+                    'token' => $hash,
+                    'ip' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0',
+                    'agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+                ]);
+            } else {
+                $stmt = $db->prepare("
+                    INSERT INTO user_session_tokens
+                    (user_id, token, ip, user_agent, persistent, created_at, expires_at, last_used_at)
+                    VALUES
+                    (:id, :token, :ip, :agent, 1, NOW(), DATE_ADD(NOW(), INTERVAL :days DAY), NOW())
+                ");
+                $stmt->execute([
+                    'id' => $userId,
+                    'token' => $hash,
+                    'ip' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0',
+                    'agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
+                    'days' => self::PERSISTENT_DAYS
+                ]);
+            }
 
             setcookie(
-                'remember_token', 
-                $token, 
+                'remember_token',
+                $token,
                 [
                     'expires' => time() + (86400 * self::PERSISTENT_DAYS),
                     'path' => '/',
@@ -510,7 +625,7 @@ private static function updateUserActivity()
                     'samesite' => 'Lax'
                 ]
             );
-            
+
             error_log("Token remember creado para user {$userId}");
             return true;
         } catch (\Exception $e) {
@@ -703,25 +818,36 @@ private static function updateUserActivity()
     
     /**
      * Refresca el token de super_admin si está próximo a expirar
-     * 
+     *
      * @param int $userId ID del super_admin
      */
     private static function refreshSuperAdminToken($userId)
     {
         try {
             $db = self::getDatabase();
-            $stmt = $db->prepare("
-                UPDATE super_admin_session_tokens
-                SET expires_at = DATE_ADD(NOW(), INTERVAL :days DAY)
-                WHERE super_admin_id = :id 
-                AND expires_at < DATE_ADD(NOW(), INTERVAL 7 DAY)
-            ");
-            
-            $stmt->execute([
-                'id' => $userId,
-                'days' => self::PERSISTENT_DAYS
-            ]);
-            
+            $days = self::PERSISTENT_DAYS;
+
+            if (self::isPostgreSQL()) {
+                $stmt = $db->prepare("
+                    UPDATE super_admin_session_tokens
+                    SET expires_at = NOW() + INTERVAL '{$days} days'
+                    WHERE super_admin_id = :id
+                    AND expires_at < NOW() + INTERVAL '7 days'
+                ");
+                $stmt->execute(['id' => $userId]);
+            } else {
+                $stmt = $db->prepare("
+                    UPDATE super_admin_session_tokens
+                    SET expires_at = DATE_ADD(NOW(), INTERVAL :days DAY)
+                    WHERE super_admin_id = :id
+                    AND expires_at < DATE_ADD(NOW(), INTERVAL 7 DAY)
+                ");
+                $stmt->execute([
+                    'id' => $userId,
+                    'days' => $days
+                ]);
+            }
+
             if ($stmt->rowCount() > 0) {
                 error_log("Token remember refrescado para super_admin {$userId}");
             }
@@ -729,28 +855,39 @@ private static function updateUserActivity()
             error_log("Error al refrescar token remember de super_admin: " . $e->getMessage());
         }
     }
-    
+
     /**
      * Refresca el token de admin si está próximo a expirar
-     * 
+     *
      * @param int $userId ID del admin
      */
     private static function refreshAdminToken($userId)
     {
         try {
             $db = self::getDatabase();
-            $stmt = $db->prepare("
-                UPDATE admin_session_tokens
-                SET expires_at = DATE_ADD(NOW(), INTERVAL :days DAY)
-                WHERE admin_id = :id 
-                AND expires_at < DATE_ADD(NOW(), INTERVAL 7 DAY)
-            ");
-            
-            $stmt->execute([
-                'id' => $userId,
-                'days' => self::PERSISTENT_DAYS
-            ]);
-            
+            $days = self::PERSISTENT_DAYS;
+
+            if (self::isPostgreSQL()) {
+                $stmt = $db->prepare("
+                    UPDATE admin_session_tokens
+                    SET expires_at = NOW() + INTERVAL '{$days} days'
+                    WHERE admin_id = :id
+                    AND expires_at < NOW() + INTERVAL '7 days'
+                ");
+                $stmt->execute(['id' => $userId]);
+            } else {
+                $stmt = $db->prepare("
+                    UPDATE admin_session_tokens
+                    SET expires_at = DATE_ADD(NOW(), INTERVAL :days DAY)
+                    WHERE admin_id = :id
+                    AND expires_at < DATE_ADD(NOW(), INTERVAL 7 DAY)
+                ");
+                $stmt->execute([
+                    'id' => $userId,
+                    'days' => $days
+                ]);
+            }
+
             if ($stmt->rowCount() > 0) {
                 error_log("Token remember refrescado para admin {$userId}");
             }
@@ -758,28 +895,39 @@ private static function updateUserActivity()
             error_log("Error al refrescar token remember de admin: " . $e->getMessage());
         }
     }
-    
+
     /**
      * Refresca el token de usuario si está próximo a expirar
-     * 
+     *
      * @param int $userId ID del usuario
      */
     private static function refreshUserToken($userId)
     {
         try {
             $db = self::getDatabase();
-            $stmt = $db->prepare("
-                UPDATE user_session_tokens
-                SET expires_at = DATE_ADD(NOW(), INTERVAL :days DAY)
-                WHERE user_id = :id 
-                AND expires_at < DATE_ADD(NOW(), INTERVAL 7 DAY)
-            ");
-            
-            $stmt->execute([
-                'id' => $userId,
-                'days' => self::PERSISTENT_DAYS
-            ]);
-            
+            $days = self::PERSISTENT_DAYS;
+
+            if (self::isPostgreSQL()) {
+                $stmt = $db->prepare("
+                    UPDATE user_session_tokens
+                    SET expires_at = NOW() + INTERVAL '{$days} days'
+                    WHERE user_id = :id
+                    AND expires_at < NOW() + INTERVAL '7 days'
+                ");
+                $stmt->execute(['id' => $userId]);
+            } else {
+                $stmt = $db->prepare("
+                    UPDATE user_session_tokens
+                    SET expires_at = DATE_ADD(NOW(), INTERVAL :days DAY)
+                    WHERE user_id = :id
+                    AND expires_at < DATE_ADD(NOW(), INTERVAL 7 DAY)
+                ");
+                $stmt->execute([
+                    'id' => $userId,
+                    'days' => $days
+                ]);
+            }
+
             if ($stmt->rowCount() > 0) {
                 error_log("Token remember refrescado para user {$userId}");
             }
