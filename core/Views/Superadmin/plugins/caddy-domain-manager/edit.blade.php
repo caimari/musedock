@@ -190,6 +190,35 @@
                     </div>
                 @endif
 
+                <!-- Gestión del Tenant -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-shield-lock"></i> Gestión del Tenant</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-outline-warning btn-sm" id="btnRegeneratePermissions" onclick="regeneratePermissions()">
+                                <span class="btn-text"><i class="bi bi-key"></i> Regenerar Permisos</span>
+                                <span class="btn-loading d-none">
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    Regenerando...
+                                </span>
+                            </button>
+                            <button type="button" class="btn btn-outline-info btn-sm" id="btnRegenerateMenus" onclick="regenerateMenus()">
+                                <span class="btn-text"><i class="bi bi-list-nested"></i> Regenerar Menús</span>
+                                <span class="btn-loading d-none">
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    Regenerando...
+                                </span>
+                            </button>
+                        </div>
+                        <div class="form-text mt-2 small">
+                            Aplica la configuración de <a href="/musedock/settings/tenant-defaults">tenant-defaults</a> a este tenant.
+                            <br><strong>No afecta contraseñas</strong> de usuarios existentes.
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Acciones rápidas -->
                 <div class="card">
                     <div class="card-header">
@@ -386,6 +415,166 @@ async function reconfigure() {
             text: 'No se pudo conectar con el servidor.',
             confirmButtonColor: '#0d6efd'
         });
+    }
+}
+
+async function regeneratePermissions() {
+    const result = await Swal.fire({
+        title: '<i class="bi bi-key text-warning"></i> Regenerar Permisos',
+        html: `
+            <div class="text-start">
+                <p>¿Deseas regenerar los permisos de este tenant?</p>
+                <div class="alert alert-info py-2 mb-2">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <small><strong>Esto hará lo siguiente:</strong></small>
+                    <ul class="mb-0 small mt-1">
+                        <li>Eliminar los permisos actuales del tenant</li>
+                        <li>Crear nuevos permisos según <a href="/musedock/settings/tenant-defaults" target="_blank">tenant-defaults</a></li>
+                        <li>Asignar todos los permisos al rol Admin</li>
+                    </ul>
+                </div>
+                <div class="alert alert-success py-2 mb-0">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <small><strong>NO</strong> afecta las contraseñas de los usuarios existentes.</small>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-key me-1"></i> Regenerar Permisos',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d',
+        width: '500px'
+    });
+
+    if (!result.isConfirmed) return;
+
+    const btn = document.getElementById('btnRegeneratePermissions');
+    toggleBtnSpinner(btn, true);
+
+    Swal.fire({
+        title: 'Regenerando permisos...',
+        html: '<p class="mb-0">Por favor espera...</p>',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/regenerate-permissions', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Permisos Regenerados',
+                html: `<p>${data.message}</p>`,
+                confirmButtonColor: '#0d6efd'
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.message || 'No se pudieron regenerar los permisos.',
+                confirmButtonColor: '#0d6efd'
+            });
+        }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'No se pudo conectar con el servidor.',
+            confirmButtonColor: '#0d6efd'
+        });
+    } finally {
+        toggleBtnSpinner(btn, false);
+    }
+}
+
+async function regenerateMenus() {
+    const result = await Swal.fire({
+        title: '<i class="bi bi-list-nested text-info"></i> Regenerar Menús',
+        html: `
+            <div class="text-start">
+                <p>¿Deseas regenerar los menús del sidebar de este tenant?</p>
+                <div class="alert alert-info py-2 mb-2">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <small><strong>Esto hará lo siguiente:</strong></small>
+                    <ul class="mb-0 small mt-1">
+                        <li>Eliminar todos los menús actuales del tenant</li>
+                        <li>Copiar los menús desde <code>admin_menus</code> (panel principal)</li>
+                        <li>Mantener la jerarquía de submenús</li>
+                    </ul>
+                </div>
+                <div class="alert alert-warning py-2 mb-0">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <small>Las personalizaciones de menús del tenant se perderán.</small>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-list-nested me-1"></i> Regenerar Menús',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#0dcaf0',
+        cancelButtonColor: '#6c757d',
+        width: '500px'
+    });
+
+    if (!result.isConfirmed) return;
+
+    const btn = document.getElementById('btnRegenerateMenus');
+    toggleBtnSpinner(btn, true);
+
+    Swal.fire({
+        title: 'Regenerando menús...',
+        html: '<p class="mb-0">Por favor espera...</p>',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/regenerate-menus', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Menús Regenerados',
+                html: `<p>${data.message}</p>`,
+                confirmButtonColor: '#0d6efd'
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.message || 'No se pudieron regenerar los menús.',
+                confirmButtonColor: '#0d6efd'
+            });
+        }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'No se pudo conectar con el servidor.',
+            confirmButtonColor: '#0d6efd'
+        });
+    } finally {
+        toggleBtnSpinner(btn, false);
     }
 }
 </script>

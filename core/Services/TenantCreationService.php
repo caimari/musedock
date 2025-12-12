@@ -221,15 +221,20 @@ class TenantCreationService
 
     /**
      * Crear administrador del tenant
+     *
+     * @param int $tenantId ID del tenant
+     * @param array $adminData Datos del admin (email, name, password)
+     * @param bool $isRootAdmin Si es el admin root del tenant (true) o adicional (false)
      */
-    private function createTenantAdmin(int $tenantId, array $adminData): ?int
+    private function createTenantAdmin(int $tenantId, array $adminData, bool $isRootAdmin = true): ?int
     {
-        $sql = "INSERT INTO admins (tenant_id, email, name, password, is_active, created_at, updated_at)
-                VALUES (:tenant_id, :email, :name, :password, 1, NOW(), NOW())";
+        $sql = "INSERT INTO admins (tenant_id, is_root_admin, email, name, password, is_active, created_at, updated_at)
+                VALUES (:tenant_id, :is_root_admin, :email, :name, :password, 1, NOW(), NOW())";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
             'tenant_id' => $tenantId,
+            'is_root_admin' => $isRootAdmin ? 1 : 0,
             'email' => $adminData['email'],
             'name' => $adminData['name'],
             'password' => password_hash($adminData['password'], PASSWORD_DEFAULT)
@@ -445,5 +450,171 @@ class TenantCreationService
             'manage_logs' => 'Gestionar Logs',
             'view_logs' => 'Ver Logs'
         ];
+    }
+
+    /**
+     * Regenerar permisos para un tenant
+     *
+     * Elimina los permisos y role_permissions actuales del rol Admin
+     * y los recrea según la configuración de tenant_default_settings.
+     * NO afecta a los usuarios ni a sus contraseñas.
+     *
+     * @param int $tenantId ID del tenant
+     * @return array ['success' => bool, 'permissions_count' => int, 'error' => string|null]
+     */
+    public function regeneratePermissions(int $tenantId): array
+    {
+        try {
+            $this->pdo->beginTransaction();
+
+            // 1. Obtener el rol Admin del tenant
+            $stmt = $this->pdo->prepare("SELECT id FROM roles WHERE tenant_id = :tenant_id AND slug = 'admin'");
+            $stmt->execute(['tenant_id' => $tenantId]);
+            $adminRole = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$adminRole) {
+                throw new \Exception('No se encontró el rol Admin para este tenant');
+            }
+
+            $adminRoleId = $adminRole['id'];
+
+            // 2. Eliminar role_permissions existentes para el rol Admin
+            $stmt = $this->pdo->prepare("DELETE FROM role_permissions WHERE role_id = :role_id AND tenant_id = :tenant_id");
+            $stmt->execute(['role_id' => $adminRoleId, 'tenant_id' => $tenantId]);
+
+            // 3. Eliminar permisos existentes del tenant
+            $stmt = $this->pdo->prepare("DELETE FROM permissions WHERE tenant_id = :tenant_id");
+            $stmt->execute(['tenant_id' => $tenantId]);
+
+            // 4. Obtener permisos por defecto de la configuración
+            $permissions = $this->getSetting('default_permissions', []);
+
+            // 5. Crear nuevos permisos
+            $permissionIds = [];
+            $stmtPerm = $this->pdo->prepare(
+                "INSERT INTO permissions (name, slug, tenant_id, created_at) VALUES (:name, :slug, :tenant_id, NOW())"
+            );
+
+            foreach ($permissions as $permSlug) {
+                $permName = ucwords(str_replace('_', ' ', $permSlug));
+                $stmtPerm->execute([
+                    'name' => $permName,
+                    'slug' => $permSlug,
+                    'tenant_id' => $tenantId
+                ]);
+                $permissionIds[] = (int) $this->pdo->lastInsertId();
+            }
+
+            // 6. Asignar permisos al rol Admin
+            $stmtRolePerm = $this->pdo->prepare(
+                "INSERT INTO role_permissions (role_id, permission_id, tenant_id, created_at) VALUES (:role_id, :permission_id, :tenant_id, NOW())"
+            );
+
+            foreach ($permissionIds as $permId) {
+                $stmtRolePerm->execute([
+                    'role_id' => $adminRoleId,
+                    'permission_id' => $permId,
+                    'tenant_id' => $tenantId
+                ]);
+            }
+
+            $this->pdo->commit();
+
+            return [
+                'success' => true,
+                'permissions_count' => count($permissionIds),
+                'error' => null
+            ];
+
+        } catch (\Exception $e) {
+            $this->pdo->rollBack();
+            return [
+                'success' => false,
+                'permissions_count' => 0,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Regenerar menús para un tenant
+     *
+     * Elimina todos los menús actuales del tenant y los recrea
+     * copiando desde admin_menus según la configuración actual.
+     *
+     * @param int $tenantId ID del tenant
+     * @return array ['success' => bool, 'menus_count' => int, 'error' => string|null]
+     */
+    public function regenerateMenus(int $tenantId): array
+    {
+        try {
+            $this->pdo->beginTransaction();
+
+            // 1. Eliminar menús actuales del tenant
+            $stmt = $this->pdo->prepare("DELETE FROM tenant_menus WHERE tenant_id = :tenant_id");
+            $stmt->execute(['tenant_id' => $tenantId]);
+
+            // 2. Copiar menús frescos desde admin_menus
+            $this->createDefaultTenantMenus($tenantId);
+
+            // 3. Contar menús creados
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM tenant_menus WHERE tenant_id = :tenant_id");
+            $stmt->execute(['tenant_id' => $tenantId]);
+            $menusCount = (int) $stmt->fetchColumn();
+
+            $this->pdo->commit();
+
+            return [
+                'success' => true,
+                'menus_count' => $menusCount,
+                'error' => null
+            ];
+
+        } catch (\Exception $e) {
+            $this->pdo->rollBack();
+            return [
+                'success' => false,
+                'menus_count' => 0,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Obtener información del admin root de un tenant
+     *
+     * @param int $tenantId ID del tenant
+     * @return array|null Datos del admin root o null si no existe
+     */
+    public function getRootAdmin(int $tenantId): ?array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT id, email, name, is_root_admin, created_at
+            FROM admins
+            WHERE tenant_id = :tenant_id AND is_root_admin = 1
+            LIMIT 1
+        ");
+        $stmt->execute(['tenant_id' => $tenantId]);
+        $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $admin ?: null;
+    }
+
+    /**
+     * Obtener todos los admins de un tenant
+     *
+     * @param int $tenantId ID del tenant
+     * @return array Lista de admins
+     */
+    public function getTenantAdmins(int $tenantId): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT id, email, name, is_root_admin, is_active, created_at
+            FROM admins
+            WHERE tenant_id = :tenant_id
+            ORDER BY is_root_admin DESC, created_at ASC
+        ");
+        $stmt->execute(['tenant_id' => $tenantId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

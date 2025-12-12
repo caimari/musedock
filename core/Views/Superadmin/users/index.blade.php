@@ -110,6 +110,7 @@
                     <tr>
                         <th>Nombre</th>
                         <th>Email</th>
+                        <th>Tipo</th>
                         <th>Tenant</th>
                         <th>Creado</th>
                         <th>Acciones</th>
@@ -120,6 +121,17 @@
                         <tr>
                             <td>{{ $user['name'] }}</td>
                             <td>{{ $user['email'] }}</td>
+                            <td>
+                                @if(!empty($user['is_root_admin']))
+                                    <span class="badge bg-warning text-dark" title="Admin principal del tenant con acceso completo">
+                                        <i class="bi bi-star-fill me-1"></i> Root Admin
+                                    </span>
+                                @else
+                                    <span class="badge bg-info" title="Admin adicional con permisos basados en roles">
+                                        <i class="bi bi-person-badge me-1"></i> Admin
+                                    </span>
+                                @endif
+                            </td>
                             <td>
                                 @if(isset($user['tenant_id']) && !empty($user['tenant_id']))
                                     @if(isset($user['tenant_name']))
@@ -153,7 +165,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5">No hay admins</td></tr>
+                        <tr><td colspan="6">No hay admins</td></tr>
                     @endforelse
                 </tbody>
             </table>

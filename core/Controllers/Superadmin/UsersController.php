@@ -410,6 +410,12 @@ class UsersController
             'created_at' => date('Y-m-d H:i:s')
         ];
 
+        // Los admins creados manualmente desde aquí NO son root del tenant
+        // Solo el admin creado al crear el tenant es root (is_root_admin = 1)
+        if ($type === 'admin') {
+            $data['is_root_admin'] = 0;
+        }
+
         try {
             $table = $type === 'admin' ? 'admins' : 'users';
             $userId = Database::table($table)->insertGetId($data);

@@ -81,3 +81,13 @@ Route::post('/musedock/domain-manager/{id}/reconfigure', 'CaddyDomainManager\Con
 Route::get('/musedock/domain-manager/{id}/status', 'CaddyDomainManager\Controllers\DomainManagerController@checkStatus')
     ->middleware('superadmin')
     ->name('superadmin.domain-manager.status');
+
+// Regenerar permisos del tenant (AJAX)
+Route::post('/musedock/domain-manager/{id}/regenerate-permissions', 'CaddyDomainManager\Controllers\DomainManagerController@regeneratePermissions')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.regenerate-permissions');
+
+// Regenerar menús del tenant (AJAX)
+Route::post('/musedock/domain-manager/{id}/regenerate-menus', 'CaddyDomainManager\Controllers\DomainManagerController@regenerateMenus')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.regenerate-menus');

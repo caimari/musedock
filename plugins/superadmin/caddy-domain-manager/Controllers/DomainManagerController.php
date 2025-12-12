@@ -684,6 +684,106 @@ class DomainManagerController
     }
 
     /**
+     * Regenerar permisos del tenant (AJAX)
+     *
+     * Regenera los permisos del rol Admin del tenant según la configuración
+     * de tenant_default_settings. NO afecta contraseñas ni usuarios.
+     */
+    public function regeneratePermissions($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $tenant = $this->getTenant($id);
+
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado']);
+            exit;
+        }
+
+        try {
+            $tenantService = new TenantCreationService();
+            $result = $tenantService->regeneratePermissions($tenant->id);
+
+            if ($result['success']) {
+                Logger::log("[DomainManager] Permisos regenerados para tenant {$tenant->id}: {$result['permissions_count']} permisos", 'INFO');
+                echo json_encode([
+                    'success' => true,
+                    'message' => "Se han regenerado {$result['permissions_count']} permisos correctamente.",
+                    'permissions_count' => $result['permissions_count']
+                ]);
+            } else {
+                Logger::log("[DomainManager] Error regenerando permisos tenant {$tenant->id}: " . $result['error'], 'ERROR');
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Error al regenerar permisos: ' . $result['error']
+                ]);
+            }
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Excepción regenerando permisos: " . $e->getMessage(), 'ERROR');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error interno: ' . $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
+     * Regenerar menús del tenant (AJAX)
+     *
+     * Elimina todos los menús del tenant y los recrea copiando
+     * desde admin_menus según la configuración actual.
+     */
+    public function regenerateMenus($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $tenant = $this->getTenant($id);
+
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado']);
+            exit;
+        }
+
+        try {
+            $tenantService = new TenantCreationService();
+            $result = $tenantService->regenerateMenus($tenant->id);
+
+            if ($result['success']) {
+                Logger::log("[DomainManager] Menús regenerados para tenant {$tenant->id}: {$result['menus_count']} items", 'INFO');
+                echo json_encode([
+                    'success' => true,
+                    'message' => "Se han regenerado {$result['menus_count']} items de menú correctamente.",
+                    'menus_count' => $result['menus_count']
+                ]);
+            } else {
+                Logger::log("[DomainManager] Error regenerando menús tenant {$tenant->id}: " . $result['error'], 'ERROR');
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Error al regenerar menús: ' . $result['error']
+                ]);
+            }
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Excepción regenerando menús: " . $e->getMessage(), 'ERROR');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error interno: ' . $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
      * Obtiene un tenant por ID
      */
     private function getTenant(int $id): ?object
