@@ -52,6 +52,11 @@
                                     <option value="inactive" {{ $tenant->status === 'inactive' ? 'selected' : '' }}>Inactivo</option>
                                     <option value="suspended" {{ $tenant->status === 'suspended' ? 'selected' : '' }}>Suspendido</option>
                                 </select>
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle text-info"></i>
+                                    <strong>Solo afecta al CMS:</strong> Desactivar el tenant impide el acceso al panel /admin/, pero <strong>NO</strong> afecta a Caddy.
+                                    El dominio seguira respondiendo si esta configurado en Caddy.
+                                </div>
                             </div>
 
                             <div class="mb-3">
@@ -61,6 +66,11 @@
                                     <label class="form-check-label" for="include_www">
                                         Incluir www.{{ $tenant->domain }}
                                     </label>
+                                </div>
+                                <div class="form-text">
+                                    <i class="bi bi-exclamation-triangle text-warning"></i>
+                                    <strong>Requiere reconfigurar Caddy:</strong> Si cambias esta opcion, el sistema intentara reconfigurar automaticamente.
+                                    Tambien puedes usar el boton "Reconfigurar en Caddy" del panel lateral para regenerar la ruta y el certificado SSL.
                                 </div>
                             </div>
 
@@ -160,6 +170,9 @@
                                         Configurando...
                                     </span>
                                 </button>
+                                <div class="form-text mt-2 small text-muted">
+                                    <i class="bi bi-shield-lock"></i> Regenera la ruta y solicita nuevo certificado SSL de Let's Encrypt.
+                                </div>
                             </div>
                         @endif
                     </div>
@@ -302,9 +315,18 @@ async function reconfigure() {
         html: `
             <div class="text-start">
                 <p>¿Deseas reconfigurar este dominio en Caddy?</p>
-                <div class="alert alert-info py-2 mb-0">
+                <div class="alert alert-info py-2 mb-2">
                     <i class="bi bi-info-circle me-2"></i>
-                    <small>Esto regenerará la configuración del dominio en el servidor.</small>
+                    <small><strong>Esto hara lo siguiente:</strong></small>
+                    <ul class="mb-0 small mt-1">
+                        <li>Eliminar la ruta actual de Caddy</li>
+                        <li>Crear una nueva ruta con la configuracion actual (incluir www o no)</li>
+                        <li>Solicitar un nuevo certificado SSL de Let's Encrypt</li>
+                    </ul>
+                </div>
+                <div class="alert alert-warning py-2 mb-0">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <small>El proceso puede tardar hasta 60 segundos mientras se genera el certificado.</small>
                 </div>
             </div>
         `,
@@ -313,7 +335,7 @@ async function reconfigure() {
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#0d6efd',
         cancelButtonColor: '#6c757d',
-        width: '450px'
+        width: '500px'
     });
 
     if (!result.isConfirmed) return;

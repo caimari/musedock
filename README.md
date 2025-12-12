@@ -111,40 +111,40 @@ DEFAULT_LANG=es
 Los dominios de tenants se configuran desde el panel Superadmin.
 
 
-## Script de migración CLI (Tablas)
+# Script de migración CLI (Tablas)
 
 Archivo: cli/migrate.php Script completo compatible con MySQL y PostgreSQL:
 
-# Ver estado de migraciones
+## Ver estado de migraciones
 php cli/migrate.php --status
 
-# Ejecutar todas las pendientes
+## Ejecutar todas las pendientes
 php cli/migrate.php
 
-# Ejecutar una migración específica (búsqueda parcial)
+## Ejecutar una migración específica (búsqueda parcial)
 php cli/migrate.php --run=000240_create_tenant_default
 
-# Revertir una migración específica
+## Revertir una migración específica
 php cli/migrate.php --rollback=000240_create_tenant_default
 
-# Fresh: revertir todas y ejecutar de nuevo
+## Fresh: revertir todas y ejecutar de nuevo
 php cli/migrate.php --fresh
 
-## Seeders
+# Seeders
 
-# Ejecutar pendientes
+## Ejecutar pendientes
 php cli/migrate.php seed                   
 
-# Ver estado
+## Ver estado
 php cli/migrate.php seed --status          
 
-# Ejecutar uno específico
+## Ejecutar uno específico
 php cli/migrate.php seed --run=NOMBRE      
 
-# Re-ejecutar (forzar)
+## Re-ejecutar (forzar)
 php cli/migrate.php seed --rerun=NOMBRE    
 
-# Marcar como no ejecutado
+## Marcar como no ejecutado
 php cli/migrate.php seed --rollback=NOMBRE 
 
 
