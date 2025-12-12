@@ -23,14 +23,30 @@ class SuperadminMenuSeeder
         $tenantMode = strtolower(getenv('MULTI_TENANT_ENABLED') ?: 'false') === 'true';
 
         // Menús principales (sin parent_id)
-        $mainMenus = [
+        $mainMenus = [];
+
+        // Si el modo tenant está activo, añadir "Tickets de Soporte" después de Dashboard
+        if ($tenantMode) {
+            $mainMenus[] = [
+                'title' => 'Tickets de Soporte',
+                'slug' => 'tickets-support',
+                'url' => '{admin_path}/tickets',
+                'icon' => 'bi-ticket-detailed',
+                'icon_type' => 'bi',
+                'order_position' => 2,
+                'is_active' => 1
+            ];
+        }
+
+        // Continuar con el resto de menús principales
+        $mainMenus = array_merge($mainMenus, [
             [
                 'title' => 'Páginas',
                 'slug' => 'pages',
                 'url' => '{admin_path}/pages',
                 'icon' => 'bi-file-text',
                 'icon_type' => 'bi',
-                'order_position' => 1,
+                'order_position' => $tenantMode ? 3 : 1,
                 'is_active' => 1
             ],
             [
@@ -39,7 +55,7 @@ class SuperadminMenuSeeder
                 'url' => '{admin_path}/blog',
                 'icon' => 'bi-book',
                 'icon_type' => 'bi',
-                'order_position' => 2,
+                'order_position' => $tenantMode ? 4 : 2,
                 'is_active' => 1
             ],
             [
@@ -48,33 +64,16 @@ class SuperadminMenuSeeder
                 'url' => '{admin_path}/media',
                 'icon' => 'bi-images',
                 'icon_type' => 'bi',
-                'order_position' => 3,
+                'order_position' => $tenantMode ? 5 : 3,
                 'is_active' => 1
             ],
-        ];
-
-        // Si el modo tenant está activo, añadir "Tickets de Soporte" como menú principal
-        if ($tenantMode) {
-            $mainMenus[] = [
-                'title' => 'Tickets de Soporte',
-                'slug' => 'tickets-support',
-                'url' => '{admin_path}/tickets',
-                'icon' => 'bi-ticket-detailed',
-                'icon_type' => 'bi',
-                'order_position' => 4,
-                'is_active' => 1
-            ];
-        }
-
-        // Continuar con el resto de menús principales
-        $mainMenus = array_merge($mainMenus, [
             [
                 'title' => 'Apariencia',
                 'slug' => 'appearance',
                 'url' => '#',
                 'icon' => 'bi-palette',
                 'icon_type' => 'bi',
-                'order_position' => $tenantMode ? 5 : 4,
+                'order_position' => $tenantMode ? 6 : 4,
                 'is_active' => 1
             ],
             [
@@ -83,7 +82,7 @@ class SuperadminMenuSeeder
                 'url' => '#',
                 'icon' => 'bi-people',
                 'icon_type' => 'bi',
-                'order_position' => $tenantMode ? 6 : 5,
+                'order_position' => $tenantMode ? 7 : 5,
                 'is_active' => 1
             ],
             [
@@ -92,7 +91,7 @@ class SuperadminMenuSeeder
                 'url' => '#',
                 'icon' => 'bi-sliders',
                 'icon_type' => 'bi',
-                'order_position' => $tenantMode ? 7 : 6,
+                'order_position' => $tenantMode ? 8 : 6,
                 'is_active' => 1
             ],
             [
@@ -101,7 +100,7 @@ class SuperadminMenuSeeder
                 'url' => '{admin_path}/modules',
                 'icon' => 'bi-puzzle',
                 'icon_type' => 'bi',
-                'order_position' => $tenantMode ? 8 : 7,
+                'order_position' => $tenantMode ? 9 : 7,
                 'is_active' => 1
             ],
             [
@@ -110,7 +109,7 @@ class SuperadminMenuSeeder
                 'url' => '{admin_path}/plugins',
                 'icon' => 'bi-plug',
                 'icon_type' => 'bi',
-                'order_position' => $tenantMode ? 9 : 8,
+                'order_position' => $tenantMode ? 10 : 8,
                 'is_active' => 1
             ],
             [
@@ -119,7 +118,7 @@ class SuperadminMenuSeeder
                 'url' => '#',
                 'icon' => 'bi-cpu',
                 'icon_type' => 'bi',
-                'order_position' => $tenantMode ? 10 : 9,
+                'order_position' => $tenantMode ? 11 : 9,
                 'is_active' => 1
             ],
         ]);
