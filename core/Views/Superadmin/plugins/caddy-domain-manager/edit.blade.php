@@ -243,6 +243,9 @@
 
 @push('scripts')
 <script>
+// Token CSRF para peticiones AJAX
+const csrfToken = '<?= csrf_token() ?>';
+
 // Helper para toggle de spinner en botones
 function toggleBtnSpinner(btn, loading) {
     const btnText = btn.querySelector('.btn-text');
@@ -387,7 +390,8 @@ async function reconfigure() {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({ _csrf: csrfToken })
         });
         const data = await response.json();
 
@@ -467,7 +471,8 @@ async function regeneratePermissions() {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({ _csrf: csrfToken })
         });
         const data = await response.json();
 
@@ -547,7 +552,8 @@ async function regenerateMenus() {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({ _csrf: csrfToken })
         });
         const data = await response.json();
 
