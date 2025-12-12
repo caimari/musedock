@@ -687,7 +687,13 @@
     "account_temporarily_locked": "This account has been temporarily locked for security. Please try again in :minutes minutes",
     "account_under_attack": "⚠️ Warning: Multiple access attempts detected from different locations. If you don't recognize this activity, consider changing your password",
     "password_reset_sent": "A password reset link has been sent",
-    "password_reset_success": "Password reset successfully"
+    "password_reset_success": "Password reset successfully",
+    "captcha_label": "Verification code",
+    "captcha_placeholder": "Enter the code",
+    "captcha_help": "Enter the characters you see in the image",
+    "captcha_refresh": "Generate new code",
+    "captcha_required": "Please complete the verification code",
+    "captcha_invalid": "Incorrect verification code"
   },
   "languages": {
     "title": "Languages",

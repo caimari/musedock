@@ -83,6 +83,24 @@
                     </button>
                 </div>
 
+                @php
+                    $showCaptcha = \Screenart\Musedock\Security\Captcha::shouldShow();
+                @endphp
+
+                @if($showCaptcha)
+                    <div class="mb-3">
+                        <label class="form-label">{{ __('auth.captcha_label') ?? 'Código de verificación' }}</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <img src="/musedock/captcha?t={{ time() }}" alt="CAPTCHA" class="border rounded" style="height: 60px;" id="captchaImage">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshCaptcha" title="{{ __('auth.captcha_refresh') ?? 'Generar nuevo código' }}">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                        <input type="text" name="captcha" class="form-control mt-2" placeholder="{{ __('auth.captcha_placeholder') ?? 'Ingresa el código' }}" required autocomplete="off">
+                        <small class="text-muted">{{ __('auth.captcha_help') ?? 'Ingresa los caracteres que ves en la imagen' }}</small>
+                    </div>
+                @endif
+
                 <div class="form-check mb-3">
                     <input type="checkbox" name="remember" class="form-check-input" id="remember">
                     <label class="form-check-label" for="remember">{{ __('auth.remember_me') }}</label>
@@ -131,6 +149,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 eyeIcon.classList.remove('bi-eye');
                 eyeIcon.classList.add('bi-eye-slash');
             }
+        });
+    }
+
+    // Refresh CAPTCHA
+    const refreshCaptcha = document.getElementById('refreshCaptcha');
+    const captchaImage = document.getElementById('captchaImage');
+
+    if (refreshCaptcha && captchaImage) {
+        refreshCaptcha.addEventListener('click', function() {
+            captchaImage.src = '/musedock/captcha?t=' + new Date().getTime();
         });
     }
 });

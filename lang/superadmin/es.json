@@ -687,7 +687,13 @@
     "account_temporarily_locked": "Esta cuenta ha sido bloqueada temporalmente por seguridad. Intenta de nuevo en :minutes minutos",
     "account_under_attack": "⚠️ Advertencia: Se han detectado múltiples intentos de acceso desde diferentes ubicaciones. Si no reconoces esta actividad, considera cambiar tu contraseña",
     "password_reset_sent": "Se ha enviado un enlace de restablecimiento de contraseña",
-    "password_reset_success": "Contraseña restablecida exitosamente"
+    "password_reset_success": "Contraseña restablecida exitosamente",
+    "captcha_label": "Código de verificación",
+    "captcha_placeholder": "Ingresa el código",
+    "captcha_help": "Ingresa los caracteres que ves en la imagen",
+    "captcha_refresh": "Generar nuevo código",
+    "captcha_required": "Por favor completa el código de verificación",
+    "captcha_invalid": "Código de verificación incorrecto"
   },
   "languages": {
     "title": "Idiomas",

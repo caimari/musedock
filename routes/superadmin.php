@@ -36,6 +36,10 @@ require_once __DIR__ . '/../core/modules_loader.php'; // Opcional
 // Login del superadmin
 Route::get('/musedock/login', 'superadmin.AuthController@login')->name('superadmin.login');
 Route::post('/musedock/login', 'superadmin.AuthController@authenticate');
+Route::get('/musedock/captcha', function() {
+    \Screenart\Musedock\Security\SessionSecurity::startSession();
+    \Screenart\Musedock\Security\Captcha::generate();
+});
 
 // Password Reset (Recuperación de contraseña)
 Route::get('/musedock/password/forgot', 'superadmin.PasswordResetController@showForgotForm')->name('superadmin.password.request');
@@ -48,6 +52,11 @@ Route::get('/musedock', 'superadmin.MusedockController@index')->middleware('supe
 Route::get('/musedock/dashboard', 'superadmin.DashboardController@index')->middleware('superadmin');
 Route::post('/musedock/run-seeders', 'superadmin.DashboardController@runMissingSeeders')->middleware('superadmin')->name('dashboard.run-seeders');
 Route::get('/musedock/logout', 'superadmin.AuthController@logout')->middleware('superadmin');
+
+// Security Dashboard
+Route::get('/musedock/audit-logs', 'superadmin.SecurityController@auditLogs')->middleware('superadmin')->name('security.audit-logs');
+Route::post('/musedock/security/trusted-ip/add', 'superadmin.SecurityController@addTrustedIP')->middleware('superadmin')->name('security.add-trusted-ip');
+Route::post('/musedock/security/trusted-ip/remove', 'superadmin.SecurityController@removeTrustedIP')->middleware('superadmin')->name('security.remove-trusted-ip');
 
 // Perfil de usuario
 Route::get('/musedock/profile', 'superadmin.ProfileController@index')->middleware('superadmin')->name('profile.index');

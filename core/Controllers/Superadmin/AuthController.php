@@ -56,6 +56,25 @@ class AuthController
         if ($rateCheck['reason'] === 'under_attack') {
             flash('warning', __('auth.account_under_attack'));
         }
+
+        // Verificar si quedan pocos intentos y activar CAPTCHA
+        $remaining = \Screenart\Musedock\Security\RateLimiter::remaining($identifier);
+        if ($remaining <= 2 && $remaining > 0) {
+            \Screenart\Musedock\Security\Captcha::enable();
+
+            // Verificar CAPTCHA si está activado
+            if (isset($_POST['captcha'])) {
+                if (!\Screenart\Musedock\Security\Captcha::verify($_POST['captcha'])) {
+                    flash('error', __('auth.captcha_invalid') ?? 'Código de verificación incorrecto');
+                    header('Location: /musedock/login');
+                    exit;
+                }
+            } else {
+                flash('error', __('auth.captcha_required') ?? 'Por favor completa el código de verificación');
+                header('Location: /musedock/login');
+                exit;
+            }
+        }
         // ----------------------
 
         // 🔒 SECURITY: Hash email antes de loguear para prevenir information disclosure
