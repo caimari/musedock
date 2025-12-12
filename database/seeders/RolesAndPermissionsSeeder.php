@@ -94,6 +94,10 @@ class RolesAndPermissionsSeeder
             // Seguridad
             ['slug' => 'security-dashboard', 'name' => 'Ver Security Dashboard', 'description' => 'Ver dashboard de seguridad con intentos fallidos, rate limiting y estadísticas', 'category' => 'Seguridad', 'scope' => 'global'],
             ['slug' => 'security-manage-trusted-ips', 'name' => 'Gestionar IPs de confianza', 'description' => 'Añadir y eliminar IPs de confianza (whitelist) para bypass de rate limiting', 'category' => 'Seguridad', 'scope' => 'global'],
+
+            // Analytics
+            ['slug' => 'analytics-view', 'name' => 'Ver Analytics', 'description' => 'Ver dashboard de Web Analytics con estadísticas de visitas, visitantes y tráfico del sitio', 'category' => 'Analytics', 'scope' => 'global'],
+            ['slug' => 'analytics-export', 'name' => 'Exportar Analytics', 'description' => 'Exportar datos de analytics a CSV/Excel para análisis externo', 'category' => 'Analytics', 'scope' => 'global'],
         ];
 
         foreach ($permissions as $permission) {

@@ -54,4 +54,24 @@ return [
         'allowed_document_mimes' => explode(',', \Screenart\Musedock\Env::get('ALLOWED_DOCUMENT_MIMES', 'application/pdf')),
         'allowed_extensions' => explode(',', \Screenart\Musedock\Env::get('ALLOWED_EXTENSIONS', 'jpg,jpeg,png,gif,webp,pdf')),
     ],
+
+    // Configuración de Web Analytics
+    'analytics' => [
+        'enabled' => \Screenart\Musedock\Env::get('ANALYTICS_ENABLED', true),
+        'in_dev' => \Screenart\Musedock\Env::get('ANALYTICS_IN_DEV', false), // Tracking en desarrollo
+        'track_admins' => \Screenart\Musedock\Env::get('ANALYTICS_TRACK_ADMINS', false), // Rastrear administradores
+        'cookie_lifetime' => \Screenart\Musedock\Env::get('ANALYTICS_COOKIE_LIFETIME', 365), // Días
+        'session_timeout' => \Screenart\Musedock\Env::get('ANALYTICS_SESSION_TIMEOUT', 30), // Minutos
+        'anonymize_ip' => \Screenart\Musedock\Env::get('ANALYTICS_ANONYMIZE_IP', true), // GDPR
+        'respect_dnt' => \Screenart\Musedock\Env::get('ANALYTICS_RESPECT_DNT', true), // Do Not Track
+    ],
+
+    // Configuración de Cookies y GDPR
+    'cookies' => [
+        'enabled' => \Screenart\Musedock\Env::get('COOKIE_BANNER_ENABLED', true),
+        'require_consent' => \Screenart\Musedock\Env::get('COOKIE_REQUIRE_CONSENT', true),
+        'consent_lifetime' => \Screenart\Musedock\Env::get('COOKIE_CONSENT_LIFETIME', 365), // Días
+        'privacy_policy_url' => \Screenart\Musedock\Env::get('PRIVACY_POLICY_URL', '/privacy'),
+        'cookie_policy_url' => \Screenart\Musedock\Env::get('COOKIE_POLICY_URL', '/cookies'),
+    ],
 ];

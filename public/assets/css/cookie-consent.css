@@ -1,0 +1,326 @@
+/**
+ * MuseDock Cookie Consent Banner Styles
+ * Diseño moderno y responsive compatible con GDPR
+ */
+
+.musedock-cookie-banner {
+    position: fixed;
+    left: 0;
+    right: 0;
+    z-index: 999999;
+    padding: 1.5rem;
+    box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    transform: translateY(100%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.musedock-cookie-banner.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.musedock-cookie-banner.bottom {
+    bottom: 0;
+}
+
+.musedock-cookie-banner.top {
+    top: 0;
+    transform: translateY(-100%);
+}
+
+.musedock-cookie-banner.top.show {
+    transform: translateY(0);
+}
+
+/* Temas */
+.musedock-cookie-banner.light {
+    background: #ffffff;
+    color: #333333;
+    border-top: 1px solid #e5e5e5;
+}
+
+.musedock-cookie-banner.dark {
+    background: #1a1a1a;
+    color: #ffffff;
+    border-top: 1px solid #333333;
+}
+
+/* Contenido del banner */
+.cookie-banner-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.cookie-banner-text {
+    flex: 1;
+}
+
+.cookie-banner-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cookie-banner-title svg {
+    flex-shrink: 0;
+}
+
+.cookie-banner-description {
+    margin: 0 0 0.5rem 0;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.cookie-banner-links {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.cookie-banner-links a {
+    font-size: 13px;
+    text-decoration: underline;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.musedock-cookie-banner.light .cookie-banner-links a {
+    color: #0066cc;
+}
+
+.musedock-cookie-banner.dark .cookie-banner-links a {
+    color: #66b3ff;
+}
+
+.cookie-banner-links a:hover {
+    opacity: 1;
+}
+
+/* Acciones */
+.cookie-banner-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.cookie-btn {
+    padding: 0.625rem 1.25rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cookie-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.cookie-btn-accept {
+    background: #0066cc;
+    color: #ffffff;
+}
+
+.cookie-btn-accept:hover {
+    background: #0052a3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 102, 204, 0.3);
+}
+
+.cookie-btn-reject {
+    background: transparent;
+    color: #666666;
+    border: 1px solid #cccccc;
+}
+
+.musedock-cookie-banner.dark .cookie-btn-reject {
+    color: #999999;
+    border-color: #444444;
+}
+
+.cookie-btn-reject:hover {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: #999999;
+}
+
+.musedock-cookie-banner.dark .cookie-btn-reject:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: #666666;
+}
+
+.cookie-btn-settings {
+    background: transparent;
+    color: #666666;
+    border: 1px solid #cccccc;
+}
+
+.musedock-cookie-banner.dark .cookie-btn-settings {
+    color: #999999;
+    border-color: #444444;
+}
+
+.cookie-btn-settings:hover {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: #999999;
+}
+
+.musedock-cookie-banner.dark .cookie-btn-settings:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: #666666;
+}
+
+/* Preferencias de cookies */
+.cookie-preferences {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.cookie-preference-item {
+    padding: 1rem;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.musedock-cookie-banner.dark .cookie-preference-item {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+.cookie-preference-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.cookie-preference-header label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    margin: 0;
+    font-weight: 500;
+}
+
+.cookie-preference-header input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #0066cc;
+}
+
+.cookie-preference-header input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.cookie-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cookie-badge.required {
+    background: #e8f4fd;
+    color: #0066cc;
+}
+
+.musedock-cookie-banner.dark .cookie-badge.required {
+    background: rgba(0, 102, 204, 0.2);
+    color: #66b3ff;
+}
+
+.cookie-preference-description {
+    margin: 0;
+    font-size: 13px;
+    opacity: 0.8;
+    line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .musedock-cookie-banner {
+        padding: 1rem;
+    }
+
+    .cookie-banner-content {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .cookie-banner-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .cookie-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .cookie-banner-title {
+        font-size: 16px;
+    }
+
+    .cookie-banner-description {
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 480px) {
+    .musedock-cookie-banner {
+        padding: 0.75rem;
+    }
+
+    .cookie-banner-links {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* Accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+    .musedock-cookie-banner {
+        transition: none;
+    }
+
+    .cookie-btn {
+        transition: none;
+    }
+}
+
+/* Focus states para accesibilidad */
+.cookie-btn:focus-visible {
+    outline: 2px solid #0066cc;
+    outline-offset: 2px;
+}
+
+.cookie-preference-header input[type="checkbox"]:focus-visible {
+    outline: 2px solid #0066cc;
+    outline-offset: 2px;
+}

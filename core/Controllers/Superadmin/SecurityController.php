@@ -5,6 +5,7 @@ use Screenart\Musedock\View;
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Security\RateLimiter;
+use Screenart\Musedock\Security\IPHelper;
 
 class SecurityController
 {
@@ -144,7 +145,7 @@ class SecurityController
             'ipStats' => array_slice($ipStats, 0, 10, true), // Top 10
             'totalRecords' => count($processedLimits),
             'trustedIPs' => $trustedIPs,
-            'currentIP' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0',
+            'currentIP' => IPHelper::getRealIP(), // IP real (compatible con Cloudflare)
             'dateTimeFormat' => $dateTimeFormat
         ]);
     }

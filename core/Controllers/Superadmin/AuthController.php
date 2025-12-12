@@ -3,6 +3,7 @@ namespace Screenart\Musedock\Controllers\Superadmin;
 use Screenart\Musedock\View;
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Security\SessionSecurity;
+use Screenart\Musedock\Security\IPHelper;
 
 class AuthController
 {
@@ -33,7 +34,7 @@ class AuthController
         $email = trim($_POST['email'] ?? '');
         $password = trim($_POST['password'] ?? '');
         $rememberMe = isset($_POST['remember']); // Verificar si se marcó "Recordarme"
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $ip = IPHelper::getRealIP(); // Obtener IP real (compatible con Cloudflare)
 
         // Validar que se hayan enviado credenciales
         if (empty($email) || empty($password)) {

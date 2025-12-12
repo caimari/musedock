@@ -350,12 +350,22 @@ class SuperadminMenuSeeder
             ]);
             $this->insertMenu([
                 'parent_id' => $settingsId,
+                'title' => 'Analytics',
+                'slug' => 'analytics',
+                'url' => '{admin_path}/analytics',
+                'icon' => 'bi-graph-up-arrow',
+                'icon_type' => 'bi',
+                'order_position' => 9,
+                'is_active' => 1
+            ]);
+            $this->insertMenu([
+                'parent_id' => $settingsId,
                 'title' => 'Admin Menus',
                 'slug' => 'admin-menus',
                 'url' => '{admin_path}/admin-menus',
                 'icon' => 'bi-menu-app',
                 'icon_type' => 'bi',
-                'order_position' => 9,
+                'order_position' => 10,
                 'is_active' => 1
             ]);
             $this->insertMenu([
@@ -365,7 +375,7 @@ class SuperadminMenuSeeder
                 'url' => '{admin_path}/settings/email',
                 'icon' => 'bi-envelope',
                 'icon_type' => 'bi',
-                'order_position' => 10,
+                'order_position' => 11,
                 'is_active' => 1
             ]);
             $this->insertMenu([
@@ -375,7 +385,7 @@ class SuperadminMenuSeeder
                 'url' => '{admin_path}/settings/storage',
                 'icon' => 'bi-hdd',
                 'icon_type' => 'bi',
-                'order_position' => 11,
+                'order_position' => 12,
                 'is_active' => 1
             ]);
         }

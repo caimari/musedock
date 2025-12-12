@@ -546,6 +546,38 @@ Route::get('/musedock/audit-logs/export', 'superadmin.AuditLogController@export'
 Route::get('/musedock/audit-logs/{id}', 'superadmin.AuditLogController@show')
     ->name('audit-logs.show')->middleware('superadmin');
 
+// ========== WEB ANALYTICS ROUTES ==========
+Route::get('/musedock/analytics', 'superadmin.AnalyticsController@index')
+    ->name('analytics.dashboard')->middleware('superadmin');
+
+Route::get('/musedock/analytics/realtime-api', 'superadmin.AnalyticsController@realtimeApi')
+    ->name('analytics.realtime')->middleware('superadmin');
+
+// API endpoint para tracking (público, sin middleware superadmin)
+Route::post('/api/analytics/track', function() {
+    try {
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        if (!$data) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid data']);
+            exit;
+        }
+
+        // Rastrear usando WebAnalytics
+        $tracked = \Screenart\Musedock\Services\WebAnalytics::track($data);
+
+        http_response_code($tracked ? 200 : 204);
+        echo json_encode(['success' => $tracked]);
+        exit;
+
+    } catch (\Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Tracking failed']);
+        exit;
+    }
+})->name('analytics.track');
+
 // ========== CRON/SCHEDULED TASKS ROUTES ==========
 Route::get('/musedock/cron/status', 'superadmin.CronStatusController@index')
     ->name('cron.status')->middleware('superadmin');
