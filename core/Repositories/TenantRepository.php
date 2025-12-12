@@ -17,6 +17,12 @@ class TenantRepository
             return null;
         }
 
+        // Si ya es un Tenant, devolverlo directamente
+        if ($data instanceof Tenant) {
+            return $data;
+        }
+
+        // Si es stdClass u otro tipo, convertir a Tenant
         return new Tenant((array) $data);
     }
 
@@ -31,6 +37,12 @@ class TenantRepository
             return null;
         }
 
+        // Si ya es un Tenant, devolverlo directamente
+        if ($data instanceof Tenant) {
+            return $data;
+        }
+
+        // Si es stdClass u otro tipo, convertir a Tenant
         return new Tenant((array) $data);
     }
 }

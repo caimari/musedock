@@ -61,8 +61,25 @@ class TenantService
 
         // Si el tenant existe pero no está activo
         if (!$tenant->isActive() && !$allowInactiveOnMainDomain) {
+            // Debug: mostrar info del tenant para diagnosticar
+            error_log("TenantService DEBUG - Tenant encontrado para $domain:");
+            error_log("TenantService DEBUG - status value: '" . ($tenant->status ?? 'NULL') . "'");
+            error_log("TenantService DEBUG - status type: " . gettype($tenant->status));
+            error_log("TenantService DEBUG - isActive(): " . ($tenant->isActive() ? 'true' : 'false'));
+            error_log("TenantService DEBUG - id: " . ($tenant->id ?? 'NULL'));
+            error_log("TenantService DEBUG - name: " . ($tenant->name ?? 'NULL'));
+
             http_response_code(403);
-            echo "Acceso denegado. Tenant inactivo para el dominio: $domain";
+            // Debug temporal - mostrar info en la página de error
+            echo "<h1>Acceso denegado. Tenant inactivo para el dominio: $domain</h1>";
+            echo "<h3>Debug info:</h3>";
+            echo "<pre>";
+            echo "status value: '" . ($tenant->status ?? 'NULL') . "'\n";
+            echo "status type: " . gettype($tenant->status) . "\n";
+            echo "isActive(): " . ($tenant->isActive() ? 'true' : 'false') . "\n";
+            echo "id: " . ($tenant->id ?? 'NULL') . "\n";
+            echo "name: " . ($tenant->name ?? 'NULL') . "\n";
+            echo "</pre>";
             exit;
         }
 

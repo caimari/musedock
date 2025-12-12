@@ -256,11 +256,29 @@ public static function resolve() {
     error_log("ROUTE: Método final para routing: {$method}");
 
     if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'])) {
-        $middlewareRegistry = require __DIR__ . '/MiddlewareRegistry.php';
-        if (isset($middlewareRegistry['csrf'])) {
-            $csrfMiddleware = new $middlewareRegistry['csrf']();
-            if (!$csrfMiddleware->handle()) {
-                return; // CSRF falló, el middleware ya manejó la respuesta
+        // Rutas excluidas de CSRF (APIs públicas)
+        $csrfExcludedRoutes = [
+            '/api/analytics/track',
+            '/api/webhooks/',  // Para futuros webhooks
+        ];
+
+        $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';
+        $skipCsrf = false;
+
+        foreach ($csrfExcludedRoutes as $excludedRoute) {
+            if (strpos($currentUri, $excludedRoute) === 0) {
+                $skipCsrf = true;
+                break;
+            }
+        }
+
+        if (!$skipCsrf) {
+            $middlewareRegistry = require __DIR__ . '/MiddlewareRegistry.php';
+            if (isset($middlewareRegistry['csrf'])) {
+                $csrfMiddleware = new $middlewareRegistry['csrf']();
+                if (!$csrfMiddleware->handle()) {
+                    return; // CSRF falló, el middleware ya manejó la respuesta
+                }
             }
         }
     }
