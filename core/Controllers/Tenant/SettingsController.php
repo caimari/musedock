@@ -170,12 +170,7 @@ class SettingsController
     public function deleteFavicon()
     {
         SessionSecurity::startSession();
-
-        $admin = $_SESSION['admin'] ?? null;
-        if (!$admin) {
-            header('Location: /' . admin_path() . '/login');
-            exit;
-        }
+        $this->checkPermission('settings.edit');
 
         $tenantId = tenant_id();
         if (!$tenantId) {
