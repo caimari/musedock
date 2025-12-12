@@ -2,8 +2,13 @@
 @section('title', 'Editar Usuario')
 @section('content')
 <div class="container-fluid">
-    <h2 class="mb-4">Editar Usuario</h2>
-    @include('partials.alerts')
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Editar Usuario</h2>
+        <a href="/musedock/users" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Volver a Usuarios
+        </a>
+    </div>
+    @include('partials.alerts-sweetalert2')
     
     <form method="POST" action="/musedock/users/{{ is_object($user) ? $user->id : $user['id'] }}/update?type={{ $type }}">
         {!! csrf_field() !!}
@@ -161,8 +166,8 @@
             <button type="submit" class="btn btn-primary">Guardar cambios</button>
         </div>
         
-        <!-- Campo oculto para redirección tras guardar -->
-        <input type="hidden" name="redirect_to_index" value="1">
+        <!-- Campo oculto para redirección tras guardar (0 = quedarse en edit, 1 = volver a index) -->
+        <input type="hidden" name="redirect_to_index" value="0">
     </form>
 </div>
 @push('scripts')

@@ -1,6 +1,6 @@
 # MuseDock CMS
 
-Version 2.0.0 (CMS Estable) - Multitenant en proceso.
+Version 2.0.0 (CMS Estable) - Panel secundario de los Admins de los Multitenant en proceso.
 
 CMS modular con framework MVC propio basado en Blade One. Arquitectura multi-tenant experimental para alojar múltiples dominios. Sistema de módulos base (compartidos) y plugins independientes por tenant. Almacenamiento seguro en storage/ (no public/) con soporte S3/R2. Multi-idioma integrado.
 
@@ -110,13 +110,55 @@ DEFAULT_LANG=es
 
 Los dominios de tenants se configuran desde el panel Superadmin.
 
-## Comandos
 
-```bash
-php migrate              # Ejecutar migraciones
-php migrate --seed       # Con seeders
-php migrate fresh --seed # Reinstalar
-```
+## Script de migración CLI (Tablas)
+
+Archivo: cli/migrate.php Script completo compatible con MySQL y PostgreSQL:
+
+# Ver estado de migraciones
+php cli/migrate.php --status
+
+# Ejecutar todas las pendientes
+php cli/migrate.php
+
+# Ejecutar una migración específica (búsqueda parcial)
+php cli/migrate.php --run=000240_create_tenant_default
+
+# Revertir una migración específica
+php cli/migrate.php --rollback=000240_create_tenant_default
+
+# Fresh: revertir todas y ejecutar de nuevo
+php cli/migrate.php --fresh
+
+## Seeders
+
+# Ejecutar pendientes
+php cli/migrate.php seed                   
+
+# Ver estado
+php cli/migrate.php seed --status          
+
+# Ejecutar uno específico
+php cli/migrate.php seed --run=NOMBRE      
+
+# Re-ejecutar (forzar)
+php cli/migrate.php seed --rerun=NOMBRE    
+
+# Marcar como no ejecutado
+php cli/migrate.php seed --rollback=NOMBRE 
+
+
+
+# Ayuda
+php cli/migrate.php --help
+Características:
+Detecta automáticamente el driver (MySQL/PostgreSQL)
+Tabla migrations para tracking de migraciones ejecutadas
+Búsqueda parcial de nombres de migración
+Soporte para up() y down()
+Output con colores para mejor legibilidad
+Sistema de batch para agrupar migraciones
+
 
 ## Licencia
 

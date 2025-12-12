@@ -352,6 +352,28 @@ class UsersController
         ]);
     }
 
+    /**
+     * Almacena un nuevo usuario (admin o user)
+     *
+     * NOTA IMPORTANTE sobre permisos por defecto:
+     * --------------------------------------------
+     * Este método NO aplica automáticamente los permisos de /musedock/settings/tenant-defaults
+     * cuando se crea un usuario aquí. Los permisos por defecto (tenant_default_settings)
+     * SOLO se aplican cuando:
+     *   - Se crea un NUEVO TENANT desde /musedock/tenants/create
+     *   - Se crea un NUEVO TENANT desde /musedock/domain-manager/create
+     *
+     * Razón: Un usuario creado aquí puede ser:
+     *   - Usuario global (sin tenant) → No aplican defaults de tenant
+     *   - Usuario de tipo 'user' (no admin) → Permisos más limitados
+     *   - Admin adicional de un tenant existente → El superadmin decide qué permisos darle
+     *
+     * Si se desea aplicar permisos por defecto a admins de tenant, se podría usar:
+     *   TenantCreationService::setupExistingTenant($tenantId, $adminId)
+     *
+     * @see TenantCreationService para la lógica de permisos por defecto
+     * @see /musedock/settings/tenant-defaults para configurar los defaults
+     */
     public function store()
     {
         SessionSecurity::startSession();

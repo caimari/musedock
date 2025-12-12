@@ -16,7 +16,7 @@
             </a>
         </div>
 
-        @include('partials.alerts')
+        @include('partials.alerts-sweetalert2')
 
         @if(!$caddyApiAvailable)
             <div class="alert alert-warning">

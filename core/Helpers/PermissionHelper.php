@@ -45,14 +45,12 @@ class PermissionHelper
         try {
             $pdo = Database::connect();
 
-            // 1. Verificar si es super admin buscando en users Y en super_admins
+            // 1. Verificar si es super admin buscando solo en super_admins
+            // La tabla users NO tiene columna 'type'
             $stmt = $pdo->prepare("
-                SELECT 'super_admin' as type FROM users WHERE id = ? AND type = 'super_admin'
-                UNION
-                SELECT 'super_admin' as type FROM super_admins WHERE id = ?
-                LIMIT 1
+                SELECT id FROM super_admins WHERE id = ? LIMIT 1
             ");
-            $stmt->execute([$userId, $userId]);
+            $stmt->execute([$userId]);
             $isSuperAdmin = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if ($isSuperAdmin) {
@@ -245,14 +243,12 @@ class PermissionHelper
         try {
             $pdo = Database::connect();
 
-            // Verificar si es super admin buscando en users Y en super_admins
+            // Verificar si es super admin buscando solo en super_admins
+            // La tabla users NO tiene columna 'type', así que no la verificamos
             $stmt = $pdo->prepare("
-                SELECT 'super_admin' as type FROM users WHERE id = ? AND type = 'super_admin'
-                UNION
-                SELECT 'super_admin' as type FROM super_admins WHERE id = ?
-                LIMIT 1
+                SELECT id FROM super_admins WHERE id = ? LIMIT 1
             ");
-            $stmt->execute([$userId, $userId]);
+            $stmt->execute([$userId]);
             $isSuperAdmin = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if ($isSuperAdmin) {

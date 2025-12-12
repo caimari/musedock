@@ -3,7 +3,7 @@
 @section('content')
 <div class="container-fluid">
     <h2 class="mb-4">Crear nuevo usuario</h2>
-    @include('partials.alerts')
+    @include('partials.alerts-sweetalert2')
 
     @if(!($multi_tenant_enabled ?? false))
     <div class="alert alert-info mb-4">
@@ -83,6 +83,13 @@
             <button type="submit" class="btn btn-primary">Crear usuario</button>
         </div>
     </form>
+
+    <div class="alert alert-warning mt-4">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>Nota sobre permisos:</strong><br>
+        Los permisos y roles seleccionados aquí son asignados manualmente por el superadmin.<br>
+        Los <a href="/musedock/settings/tenant-defaults">valores por defecto de tenant</a> <strong>NO</strong> se aplican a usuarios creados desde esta pantalla; esos defaults solo se usan al crear nuevos tenants.
+    </div>
 </div>
 
 <script>

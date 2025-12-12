@@ -16,7 +16,7 @@
             </a>
         </div>
 
-        @include('partials.alerts')
+        @include('partials.alerts-sweetalert2')
 
         <div class="row">
             <!-- Formulario de edición -->
@@ -199,31 +199,8 @@
     </div>
 </div>
 
-<!-- Modal de estado -->
-<div class="modal fade" id="statusModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-info-circle"></i> Estado del Dominio</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="statusModalBody">
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary"></div>
-                    <p class="mt-2 mb-0">Verificando...</p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 @push('scripts')
 <script>
-const statusModal = new bootstrap.Modal(document.getElementById('statusModal'));
-
 // Helper para toggle de spinner en botones
 function toggleBtnSpinner(btn, loading) {
     const btnText = btn.querySelector('.btn-text');
@@ -249,13 +226,20 @@ async function checkStatus() {
     const btn = document.getElementById('btnCheckStatus');
     toggleBtnSpinner(btn, true);
 
-    document.getElementById('statusModalBody').innerHTML = `
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary"></div>
-            <p class="mt-2 mb-0">Verificando...</p>
-        </div>
-    `;
-    statusModal.show();
+    // Mostrar modal de SweetAlert2 con loading
+    Swal.fire({
+        title: '<i class="bi bi-info-circle text-primary"></i> Estado del Dominio',
+        html: `
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary"></div>
+                <p class="mt-2 mb-0">Verificando...</p>
+            </div>
+        `,
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        width: '500px'
+    });
 
     try {
         const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/status', {
@@ -276,39 +260,75 @@ async function checkStatus() {
                 ? '<span class="text-success"><i class="bi bi-check-circle"></i> Existe</span>'
                 : '<span class="text-warning"><i class="bi bi-x-circle"></i> No existe</span>';
 
-            document.getElementById('statusModalBody').innerHTML = `
-                <table class="table table-sm mb-0">
-                    <tr><th>Dominio</th><td>${data.domain}</td></tr>
-                    <tr><th>Estado Caddy</th><td><span class="badge bg-info">${data.caddy_status}</span></td></tr>
-                    <tr><th>Ruta en Caddy</th><td>${routeStatus}</td></tr>
-                    <tr><th>Respuesta HTTPS</th><td>${domainStatus}</td></tr>
-                    <tr><th>Certificado SSL</th><td>${sslStatus}</td></tr>
-                    ${data.http_code ? `<tr><th>Código HTTP</th><td>${data.http_code}</td></tr>` : ''}
-                </table>
-            `;
+            Swal.fire({
+                title: '<i class="bi bi-info-circle text-primary"></i> Estado del Dominio',
+                html: `
+                    <table class="table table-sm mb-0 text-start">
+                        <tr><th>Dominio</th><td>${data.domain}</td></tr>
+                        <tr><th>Estado Caddy</th><td><span class="badge bg-info">${data.caddy_status}</span></td></tr>
+                        <tr><th>Ruta en Caddy</th><td>${routeStatus}</td></tr>
+                        <tr><th>Respuesta HTTPS</th><td>${domainStatus}</td></tr>
+                        <tr><th>Certificado SSL</th><td>${sslStatus}</td></tr>
+                        ${data.http_code ? `<tr><th>Código HTTP</th><td>${data.http_code}</td></tr>` : ''}
+                    </table>
+                `,
+                confirmButtonText: 'Cerrar',
+                confirmButtonColor: '#0d6efd',
+                width: '500px'
+            });
         } else {
-            document.getElementById('statusModalBody').innerHTML = `
-                <div class="alert alert-danger mb-0">
-                    <i class="bi bi-exclamation-circle"></i> ${data.message}
-                </div>
-            `;
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.message,
+                confirmButtonColor: '#0d6efd'
+            });
         }
     } catch (error) {
-        document.getElementById('statusModalBody').innerHTML = `
-            <div class="alert alert-danger mb-0">
-                <i class="bi bi-exclamation-circle"></i> Error de conexión
-            </div>
-        `;
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'No se pudo verificar el estado del dominio.',
+            confirmButtonColor: '#0d6efd'
+        });
     } finally {
         toggleBtnSpinner(btn, false);
     }
 }
 
 async function reconfigure() {
-    if (!confirm('¿Reconfigurar este dominio en Caddy?')) return;
+    const result = await Swal.fire({
+        title: '<i class="bi bi-gear text-primary"></i> Reconfigurar Dominio',
+        html: `
+            <div class="text-start">
+                <p>¿Deseas reconfigurar este dominio en Caddy?</p>
+                <div class="alert alert-info py-2 mb-0">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <small>Esto regenerará la configuración del dominio en el servidor.</small>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-gear me-1"></i> Reconfigurar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#0d6efd',
+        cancelButtonColor: '#6c757d',
+        width: '450px'
+    });
+
+    if (!result.isConfirmed) return;
 
     const btn = document.getElementById('btnReconfigure');
     toggleBtnSpinner(btn, true);
+
+    Swal.fire({
+        title: 'Reconfigurando...',
+        html: '<p class="mb-0">Por favor espera...</p>',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading()
+    });
 
     try {
         const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/reconfigure', {
@@ -318,18 +338,32 @@ async function reconfigure() {
                 'Content-Type': 'application/json'
             }
         });
-        const result = await response.json();
+        const data = await response.json();
 
-        if (result.success) {
-            alert('Dominio reconfigurado correctamente');
-            window.location.reload();
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Dominio Reconfigurado',
+                text: 'El dominio se ha reconfigurado correctamente en Caddy.',
+                confirmButtonColor: '#0d6efd'
+            }).then(() => window.location.reload());
         } else {
             toggleBtnSpinner(btn, false);
-            alert('Error: ' + result.error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error || 'No se pudo reconfigurar el dominio.',
+                confirmButtonColor: '#0d6efd'
+            });
         }
     } catch (error) {
         toggleBtnSpinner(btn, false);
-        alert('Error de conexión');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'No se pudo conectar con el servidor.',
+            confirmButtonColor: '#0d6efd'
+        });
     }
 }
 </script>

@@ -23,7 +23,7 @@
             </div>
         </div>
 
-        @include('partials.alerts')
+        @include('partials.alerts-sweetalert2')
 
         <!-- Filtros -->
         <div class="card mb-3">
