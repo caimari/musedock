@@ -766,6 +766,184 @@ if (!function_exists('translatable_setting')) {
     }
 }
 
+if (!function_exists('tenant_setting')) {
+    /**
+     * Obtiene un setting específico del tenant actual.
+     * NO hace fallback a settings globales - los tenants son independientes.
+     *
+     * @param string|null $key Clave del setting (null para limpiar caché)
+     * @param mixed $default Valor por defecto si no existe
+     * @return mixed
+     */
+    function tenant_setting($key, $default = null) {
+        static $tenantSettings = [];
+
+        // Si se pasa null como key, limpiar caché
+        if ($key === null) {
+            $tenantSettings = [];
+            return null;
+        }
+
+        // Obtener el tenant_id actual
+        $tenantId = tenant_id();
+
+        // Si no hay tenant activo, devolver el default
+        if ($tenantId === null) {
+            return $default;
+        }
+
+        // Cargar settings del tenant si no están en caché
+        if (!isset($tenantSettings[$tenantId])) {
+            try {
+                $pdo = \Screenart\Musedock\Database::connect();
+                $keyCol = \Screenart\Musedock\Database::qi('key');
+                $stmt = $pdo->prepare("SELECT {$keyCol}, value FROM tenant_settings WHERE tenant_id = ?");
+                $stmt->execute([$tenantId]);
+                $tenantSettings[$tenantId] = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+            } catch (\Exception $e) {
+                \Screenart\Musedock\Logger::log("Error cargando tenant_settings para tenant {$tenantId}: " . $e->getMessage(), 'ERROR');
+                $tenantSettings[$tenantId] = [];
+            }
+        }
+
+        return $tenantSettings[$tenantId][$key] ?? $default;
+    }
+}
+
+if (!function_exists('clear_tenant_settings_cache')) {
+    /**
+     * Limpia la caché de tenant settings
+     */
+    function clear_tenant_settings_cache() {
+        tenant_setting(null);
+    }
+}
+
+if (!function_exists('set_tenant_setting')) {
+    /**
+     * Guarda un setting para el tenant actual.
+     *
+     * @param string $key Clave del setting
+     * @param mixed $value Valor a guardar
+     * @return bool
+     */
+    function set_tenant_setting(string $key, $value): bool {
+        $tenantId = tenant_id();
+
+        if ($tenantId === null) {
+            return false;
+        }
+
+        try {
+            $pdo = \Screenart\Musedock\Database::connect();
+            $keyCol = \Screenart\Musedock\Database::qi('key');
+
+            // Usar INSERT ... ON DUPLICATE KEY UPDATE (MySQL) / ON CONFLICT (PostgreSQL)
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+            if ($driver === 'mysql') {
+                $stmt = $pdo->prepare("
+                    INSERT INTO tenant_settings (tenant_id, {$keyCol}, value)
+                    VALUES (?, ?, ?)
+                    ON DUPLICATE KEY UPDATE value = VALUES(value)
+                ");
+            } else {
+                // PostgreSQL
+                $stmt = $pdo->prepare("
+                    INSERT INTO tenant_settings (tenant_id, {$keyCol}, value)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT (tenant_id, {$keyCol}) DO UPDATE SET value = EXCLUDED.value
+                ");
+            }
+
+            $result = $stmt->execute([$tenantId, $key, $value]);
+
+            // Limpiar caché para forzar recarga
+            clear_tenant_settings_cache();
+
+            return $result;
+        } catch (\Exception $e) {
+            \Screenart\Musedock\Logger::log("Error guardando tenant_setting {$key} para tenant {$tenantId}: " . $e->getMessage(), 'ERROR');
+            return false;
+        }
+    }
+}
+
+if (!function_exists('translatable_tenant_setting')) {
+    /**
+     * Obtiene un setting traducible del tenant según el idioma actual.
+     * NO hace fallback a settings globales.
+     *
+     * @param string $key Clave base del setting
+     * @param mixed $default Valor por defecto si no existe
+     * @return mixed
+     */
+    function translatable_tenant_setting(string $key, $default = null) {
+        $locale = function_exists('detectLanguage') ? detectLanguage() : 'es';
+
+        // Intentar obtener la versión traducida primero
+        $translatedKey = $key . '_' . $locale;
+        $value = tenant_setting($translatedKey);
+
+        if (!empty($value)) {
+            return $value;
+        }
+
+        // Fallback al valor base del tenant (sin sufijo de idioma)
+        $baseValue = tenant_setting($key);
+        if (!empty($baseValue)) {
+            return $baseValue;
+        }
+
+        return $default;
+    }
+}
+
+if (!function_exists('site_setting')) {
+    /**
+     * Obtiene un setting del sitio, usando tenant_setting si hay tenant activo,
+     * o setting global si no hay tenant.
+     * Esta es la funcion recomendada para usar en los temas.
+     *
+     * @param string $key Clave del setting
+     * @param mixed $default Valor por defecto si no existe
+     * @return mixed
+     */
+    function site_setting($key, $default = null) {
+        $tenantId = tenant_id();
+
+        // Si hay tenant activo, usar tenant_setting (sin fallback)
+        if ($tenantId !== null) {
+            return tenant_setting($key, $default);
+        }
+
+        // Si no hay tenant, usar setting global
+        return setting($key, $default);
+    }
+}
+
+if (!function_exists('translatable_site_setting')) {
+    /**
+     * Obtiene un setting traducible del sitio, usando tenant o global segun contexto.
+     * Esta es la funcion recomendada para usar en los temas para textos traducibles.
+     *
+     * @param string $key Clave base del setting
+     * @param mixed $default Valor por defecto si no existe
+     * @return mixed
+     */
+    function translatable_site_setting(string $key, $default = null) {
+        $tenantId = tenant_id();
+
+        // Si hay tenant activo, usar translatable_tenant_setting
+        if ($tenantId !== null) {
+            return translatable_tenant_setting($key, $default);
+        }
+
+        // Si no hay tenant, usar translatable_setting global
+        return translatable_setting($key, $default);
+    }
+}
+
 if (!function_exists('hasComponentPermission')) {
     function hasComponentPermission($componentId, $userId = null, $userType = null, $tenantId = null)
     {
@@ -823,7 +1001,7 @@ if (!function_exists('asset')) {
 
 if (!function_exists('e')) {
     function e($value) {
-        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+        return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
     }
 }
 

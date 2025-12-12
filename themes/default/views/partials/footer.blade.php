@@ -2,11 +2,12 @@
     // Asegurar contexto tenant para traducciones del frontend
     \Screenart\Musedock\Services\TranslationService::setContext('tenant');
     // Usar detectLanguage() que respeta force_lang
-    $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
+    $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? site_setting('language', 'es'));
     \Screenart\Musedock\Services\TranslationService::load($currentLang, 'tenant');
 
     // Verificar si mostrar logo (mismo setting que el header)
-    $showFooterLogo = setting('show_logo', '1') === '1';
+    // Usa site_setting() que automaticamente usa tenant_setting si hay tenant activo
+    $showFooterLogo = site_setting('show_logo', '1') === '1';
 @endphp
 <footer>
     <!-- Footer Start -->
@@ -25,7 +26,7 @@
                          @endif
                          <div class="footer-tittle">
                              <div class="footer-pera">
-                                 <p>{{ translatable_setting('footer_short_description', '') }}</p>
+                                 <p>{{ translatable_site_setting('footer_short_description', '') }}</p>
                             </div>
 
                             <!-- Enlace configuración de cookies (RGPD) -->
@@ -41,9 +42,9 @@
                                 $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE active = 1 ORDER BY order_position ASC, id ASC");
                                 $stmt->execute();
                                 $activeLanguages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                                $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
+                                $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? site_setting('language', 'es'));
                                 // No mostrar selector si hay idioma forzado o solo hay un idioma
-                                $forceLang = setting('force_lang', '');
+                                $forceLang = site_setting('force_lang', '');
                                 $showFooterLangSelector = count($activeLanguages) > 1 && empty($forceLang);
                             @endphp
 
@@ -64,26 +65,26 @@
                          
                          <!-- social -->
                          <div class="footer-social">
-                            @if(setting('social_facebook', ''))
-                                <a href="{{ setting('social_facebook') }}" target="_blank"><i class="fab fa-facebook-square"></i></a>
+                            @if(site_setting('social_facebook', ''))
+                                <a href="{{ site_setting('social_facebook') }}" target="_blank"><i class="fab fa-facebook-square"></i></a>
                             @endif
-                            @if(setting('social_twitter', ''))
-                                <a href="{{ setting('social_twitter') }}" target="_blank"><i class="fab fa-twitter-square"></i></a>
+                            @if(site_setting('social_twitter', ''))
+                                <a href="{{ site_setting('social_twitter') }}" target="_blank"><i class="fab fa-twitter-square"></i></a>
                             @endif
-                            @if(setting('social_instagram', ''))
-                                <a href="{{ setting('social_instagram') }}" target="_blank"><i class="fab fa-instagram"></i></a>
+                            @if(site_setting('social_instagram', ''))
+                                <a href="{{ site_setting('social_instagram') }}" target="_blank"><i class="fab fa-instagram"></i></a>
                             @endif
-                            @if(setting('social_linkedin', ''))
-                                <a href="{{ setting('social_linkedin') }}" target="_blank"><i class="fab fa-linkedin"></i></a>
+                            @if(site_setting('social_linkedin', ''))
+                                <a href="{{ site_setting('social_linkedin') }}" target="_blank"><i class="fab fa-linkedin"></i></a>
                             @endif
-                            @if(setting('social_pinterest', ''))
-                                <a href="{{ setting('social_pinterest') }}" target="_blank"><i class="fab fa-pinterest-square"></i></a>
+                            @if(site_setting('social_pinterest', ''))
+                                <a href="{{ site_setting('social_pinterest') }}" target="_blank"><i class="fab fa-pinterest-square"></i></a>
                             @endif
-                            @if(setting('social_youtube', ''))
-                                <a href="{{ setting('social_youtube') }}" target="_blank"><i class="fab fa-youtube"></i></a>
+                            @if(site_setting('social_youtube', ''))
+                                <a href="{{ site_setting('social_youtube') }}" target="_blank"><i class="fab fa-youtube"></i></a>
                             @endif
-                            @if(setting('social_google_plus', ''))
-                                <a href="{{ setting('social_google_plus') }}" target="_blank"><i class="fab fa-google-plus-g"></i></a>
+                            @if(site_setting('social_tiktok', ''))
+                                <a href="{{ site_setting('social_tiktok') }}" target="_blank"><i class="fab fa-tiktok"></i></a>
                             @endif
                         </div>
                      </div>
@@ -206,7 +207,7 @@
                         @endphp
 
                         @php
-                            $hasContactData = setting('contact_phone') || setting('contact_email') || setting('contact_address') || setting('contact_whatsapp');
+                            $hasContactData = site_setting('contact_phone') || site_setting('contact_email') || site_setting('contact_address') || site_setting('contact_whatsapp');
                         @endphp
 
                         @if($hasFooter3Menu)
@@ -225,12 +226,12 @@
                         @elseif($hasContactData)
                             {{-- Prioridad 2: Si no hay menú pero hay datos de contacto --}}
                             <div class="footer-tittle">
-                                <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #333;">{{ setting('footer_col4_title', __('footer.contact')) }}</h4>
+                                <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #333;">{{ site_setting('footer_col4_title', __('footer.contact')) }}</h4>
                                 <ul>
-                                    @if(setting('contact_phone'))<li><span>{{ setting('contact_phone') }}</span></li>@endif
-                                    @if(setting('contact_email'))<li><span>{{ setting('contact_email') }}</span></li>@endif
-                                    @if(setting('contact_address'))<li><span>{{ setting('contact_address') }}</span></li>@endif
-                                    @if(setting('contact_whatsapp'))<li><span><i class="fab fa-whatsapp"></i> {{ setting('contact_whatsapp') }}</span></li>@endif
+                                    @if(site_setting('contact_phone'))<li><span>{{ site_setting('contact_phone') }}</span></li>@endif
+                                    @if(site_setting('contact_email'))<li><span>{{ site_setting('contact_email') }}</span></li>@endif
+                                    @if(site_setting('contact_address'))<li><span>{{ site_setting('contact_address') }}</span></li>@endif
+                                    @if(site_setting('contact_whatsapp'))<li><span><i class="fab fa-whatsapp"></i> {{ site_setting('contact_whatsapp') }}</span></li>@endif
                                 </ul>
                             </div>
                         @else
@@ -251,7 +252,7 @@
                     <div class="col-xl-12 ">
                         <div class="footer-copy-right text-center">
                             <p>
-                                {!! setting('footer_copyright', '© Copyright MuseDock ' . date('Y') . '.') !!}
+                                {!! site_setting('footer_copyright', '© Copyright ' . site_setting('site_name', 'MuseDock') . ' ' . date('Y') . '.') !!}
                             </p>
                         </div>
                     </div>

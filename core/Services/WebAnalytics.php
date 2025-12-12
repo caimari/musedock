@@ -62,13 +62,13 @@ class WebAnalytics
      */
     private static function hasUserConsent(): bool
     {
-        // Si no hay sesión de cookies iniciada, asumir consentimiento por defecto
-        // (esto se puede cambiar según la política GDPR)
-        if (!isset($_COOKIE['cookie_consent'])) {
-            return true; // O false si quieres opt-in estricto
+        // Verificar si el usuario aceptó cookies de analytics
+        // Usamos el nombre de cookie correcto del banner GDPR
+        if (!isset($_COOKIE['musedock_cookie_analytics'])) {
+            return true; // Asumir consentimiento si no ha visto el banner aún
         }
 
-        return $_COOKIE['cookie_consent'] === 'accepted';
+        return $_COOKIE['musedock_cookie_analytics'] === 'true';
     }
 
     /**
@@ -102,19 +102,19 @@ class WebAnalytics
         $ip = IPHelper::getRealIP();
         $ipHash = hash('sha256', $ip . date('Y-m-d')); // Anonimizar IP con salt diario (GDPR)
 
-        // Obtener/crear IDs de sesión y visitante
-        $sessionId = self::getSessionId();
-        $visitorId = self::getVisitorId();
+        // Usar IDs enviados desde JavaScript o crear nuevos
+        $sessionId = $customData['session_id'] ?? self::getSessionId();
+        $visitorId = $customData['visitor_id'] ?? self::getVisitorId();
 
-        // Detectar referrer
-        $referrer = $_SERVER['HTTP_REFERER'] ?? null;
+        // Detectar referrer (priorizar el enviado desde JS)
+        $referrer = $customData['referrer'] ?? $_SERVER['HTTP_REFERER'] ?? null;
         $referrerInfo = self::analyzeReferrer($referrer);
 
         // Detectar dispositivo
         $deviceInfo = self::detectDevice();
 
-        // URL actual
-        $pageUrl = $_SERVER['REQUEST_URI'] ?? '/';
+        // URL actual (priorizar la enviada desde JS)
+        $pageUrl = $customData['page_url'] ?? $_SERVER['REQUEST_URI'] ?? '/';
         $pageTitle = $customData['page_title'] ?? null;
 
         // Tenant ID (si aplica)
@@ -137,10 +137,10 @@ class WebAnalytics
             'device_type' => $deviceInfo['type'],
             'browser' => $deviceInfo['browser'],
             'os' => $deviceInfo['os'],
-            'language' => $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? null,
+            'language' => $customData['language'] ?? $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? null,
             'screen_resolution' => $customData['screen_resolution'] ?? null,
             'is_bot' => false, // Ya filtrado antes
-            'is_returning' => self::isReturningVisitor($visitorId),
+            'is_returning' => $customData['is_returning'] ?? self::isReturningVisitor($visitorId),
             'tracking_enabled' => true,
             'cf_ray' => $_SERVER['HTTP_CF_RAY'] ?? null,
         ];

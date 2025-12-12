@@ -54,7 +54,11 @@
 
                     {{-- Meta información --}}
                     <div class="post-meta mb-3 text-muted small">
-                        <span><i class="far fa-calendar"></i> {{ $post->published_at ? date('d/m/Y', strtotime($post->published_at)) : date('d/m/Y', strtotime($post->created_at)) }}</span>
+                        @php
+                            $dateVal = $post->published_at ?? $post->created_at;
+                            $dateStr = $dateVal instanceof \DateTime ? $dateVal->format('d/m/Y') : date('d/m/Y', strtotime($dateVal));
+                        @endphp
+                        <span><i class="far fa-calendar"></i> {{ $dateStr }}</span>
                     </div>
 
                     {{-- Excerpt --}}

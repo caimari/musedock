@@ -111,6 +111,13 @@ Route::get("$adminPath/users", 'tenant.UserController@index')
 
 Route::get("$adminPath/settings", 'tenant.SettingsController@index')
      ->middleware(['auth', 'role:admin']);
+Route::post("$adminPath/settings", 'tenant.SettingsController@update')
+     ->middleware(['auth', 'role:admin']);
+Route::get("$adminPath/settings/delete-logo", 'tenant.SettingsController@deleteLogo')
+     ->middleware(['auth', 'role:admin']);
+Route::get("$adminPath/settings/delete-favicon", 'tenant.SettingsController@deleteFavicon')
+     ->middleware(['auth', 'role:admin']);
+
 // Roles
 Route::get("$adminPath/roles/permissions", 'tenant.RoleController@permissionsPanel')
      ->middleware(['auth', 'permission:roles.assign']);

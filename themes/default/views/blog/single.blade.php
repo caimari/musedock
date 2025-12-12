@@ -31,7 +31,11 @@
 
                 {{-- Meta información --}}
                 <div class="post-meta mb-4 text-muted">
-                    <span><i class="far fa-calendar"></i> {{ $post->published_at ? date('d/m/Y', strtotime($post->published_at)) : date('d/m/Y', strtotime($post->created_at)) }}</span>
+                    @php
+                        $dateVal = $post->published_at ?? $post->created_at;
+                        $dateStr = $dateVal instanceof \DateTime ? $dateVal->format('d/m/Y') : date('d/m/Y', strtotime($dateVal));
+                    @endphp
+                    <span><i class="far fa-calendar"></i> {{ $dateStr }}</span>
                     @if($post->view_count > 0)
                         <span class="ms-3"><i class="far fa-eye"></i> {{ $post->view_count }} {{ __('blog.views') }}</span>
                     @endif
@@ -104,36 +108,7 @@
 
         {{-- Sidebar --}}
         <div class="col-lg-4">
-            {{-- Categorías --}}
-            @if(!empty($categories) && count($categories) > 0)
-            <div class="widget widget-categories mb-4">
-                <h4 class="widget-title">{{ __('blog.categories') }}</h4>
-                <ul class="list-unstyled">
-                    @foreach($categories as $cat)
-                    <li><a href="/blog/categoria/{{ $cat->slug }}">{{ $cat->name }}</a></li>
-                    @endforeach
-                </ul>
-            </div>
-            @endif
-
-            {{-- Posts recientes --}}
-            @if(!empty($recentPosts) && count($recentPosts) > 0)
-            <div class="widget widget-recent-posts mb-4">
-                <h4 class="widget-title">{{ __('blog.recent_posts') }}</h4>
-                <ul class="list-unstyled">
-                    @foreach($recentPosts as $recentPost)
-                    <li class="mb-3">
-                        <a href="/blog/{{ $recentPost->slug }}" class="text-decoration-none">
-                            <strong>{{ $recentPost->title }}</strong>
-                        </a>
-                        <small class="d-block text-muted">
-                            {{ $recentPost->published_at ? date('d/m/Y', strtotime($recentPost->published_at)) : date('d/m/Y', strtotime($recentPost->created_at)) }}
-                        </small>
-                    </li>
-                    @endforeach
-                </ul>
-            </div>
-            @endif
+            @include('partials.sidebar')
         </div>
     </div>
 </div>

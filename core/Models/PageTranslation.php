@@ -21,15 +21,22 @@ class PageTranslation extends Model
 
     public static function query(): QueryBuilder
     {
-        return new QueryBuilder(static::$table); // ⚠️ Aquí pasamos el nombre de tabla, no la clase
+        $qb = new QueryBuilder(static::$table);
+        $qb->setModelClass(static::class); // Configurar la clase del modelo para hidratación
+        return $qb;
     }
 
-    public static function where($column, $operator = null, $value = null, $boolean = 'and'): QueryBuilder
+    public static function where($column, $operator = null, $value = null): QueryBuilder
     {
-        return static::query()->where($column, $operator, $value, $boolean);
+        // Si solo hay 2 argumentos (column, value), pasar solo 2
+        if (func_num_args() === 2) {
+            return static::query()->where($column, $operator);
+        }
+        // Si hay 3 argumentos (column, operator, value), pasar los 3
+        return static::query()->where($column, $operator, $value);
     }
 
-    public function page(): Page
+    public function page(): ?Page
     {
         return Page::find($this->page_id);
     }

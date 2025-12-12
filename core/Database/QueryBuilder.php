@@ -17,6 +17,7 @@ class QueryBuilder
     protected $limit = null;
     protected $offset = null;
     protected $joins = [];
+    protected $modelClass = null; // Clase del modelo para hidratación
 
 
     public function __construct($table)
@@ -24,6 +25,15 @@ class QueryBuilder
         $this->pdo = Database::connect();
         $this->driver = Database::getDriver();
         $this->table = $table; // no escapar aquí
+    }
+
+    /**
+     * Establece la clase del modelo para hidratar resultados
+     */
+    public function setModelClass(?string $modelClass): self
+    {
+        $this->modelClass = $modelClass;
+        return $this;
     }
     
     public function select($columns)
@@ -54,15 +64,28 @@ class QueryBuilder
 
     public function where(string $column, $operator = null, $value = null)
     {
+        // Contar cuántos argumentos se pasaron realmente (sin contar null por defecto)
+        $numArgs = func_num_args();
+
+        if ($numArgs < 2) {
+            throw new \InvalidArgumentException("El método where() requiere al menos 2 argumentos: columna y valor, o 3: columna, operador y valor");
+        }
+
         // Si solo se pasan 2 argumentos (columna, valor), el operador es '='
-        if ($value === null && $operator !== null) {
+        if ($numArgs === 2) {
             $value = $operator;
             $operator = '=';
         }
 
-        // Si $operator sigue siendo null, significa que solo se pasó la columna (error)
-        if ($operator === null || $value === null) {
-            throw new \InvalidArgumentException("El método where() requiere al menos 2 argumentos: columna y valor, o 3: columna, operador y valor");
+        // Manejar búsqueda IS NULL o IS NOT NULL
+        if ($value === null) {
+            $this->wheres[] = [
+                'column' => $column,
+                'operator' => $operator === '=' ? 'IS' : 'IS NOT',
+                'value' => null,
+                'placeholder' => null
+            ];
+            return $this;
         }
 
         $placeholder = ":where_" . count($this->bindings);
@@ -306,7 +329,35 @@ public function get()
     $stmt = $this->pdo->prepare($sql);
     $stmt->execute($this->bindings);
 
-    return $stmt->fetchAll(PDO::FETCH_OBJ);
+    $results = $stmt->fetchAll(PDO::FETCH_OBJ);
+
+    // Si hay una clase de modelo configurada, hidratar los resultados
+    if ($this->modelClass) {
+        return array_map(function($row) {
+            return $this->hydrateModel($row);
+        }, $results);
+    }
+
+    return $results;
+}
+
+/**
+ * Hidrata un objeto stdClass a una instancia del modelo
+ */
+protected function hydrateModel($row)
+{
+    if (!$this->modelClass || !class_exists($this->modelClass)) {
+        return $row;
+    }
+
+    $model = new $this->modelClass();
+
+    // Copiar todas las propiedades del stdClass al modelo
+    foreach ($row as $key => $value) {
+        $model->$key = $value;
+    }
+
+    return $model;
 }
 	/**
  * Crea una cláusula GROUP BY

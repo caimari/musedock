@@ -100,21 +100,21 @@ class BlogCategoriesWidget extends WidgetBase
         }
 
         // Estructura del widget con margen
-        $output = '<div class="widget widget-blog-categories" style="margin-bottom: 30px;">';
+        $output = '<div class="widget widget-blog-categories" style="margin-bottom: 15px;">';
 
         if (!empty($title)) {
-            $output .= '<h5 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #333;">' . $this->e($title) . '</h5>';
+            $output .= '<h5 style="font-size: 14px !important; font-weight: 600; margin-bottom: 12px; color: #000 !important;">' . $this->e($title) . '</h5>';
         }
 
         $output .= '<div class="widget-content">
             <ul style="list-style: none; margin: 0; padding: 0;">';
 
         foreach ($categories as $category) {
-            $count = $showCount ? ' <span style="color: #999; font-size: 12px;">(' . (int)$category['post_count'] . ')</span>' : '';
+            $count = $showCount ? ' <span style="color: #666 !important; font-size: 12px;">(' . (int)$category['post_count'] . ')</span>' : '';
             $output .= '<li style="padding: 6px 0; border-bottom: 1px solid #eee;">
                 <a href="/blog/category/' . $this->e($category['slug']) . '"
-                   style="color: #333; text-decoration: none; font-size: 14px; display: flex; justify-content: space-between; align-items: center;">
-                    <span><i class="bi bi-folder" style="margin-right: 8px; color: #ff656a;"></i>' . $this->e($category['name']) . '</span>
+                   style="color: #000 !important; text-decoration: none; font-size: 14px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #000 !important;"><i class="bi bi-folder" style="margin-right: 8px; color: #ff656a;"></i>' . $this->e($category['name']) . '</span>
                     ' . $count . '
                 </a>
             </li>';

@@ -281,17 +281,19 @@ abstract class Model
 	
 	public static function where($column, $operator = null, $value = null)
 {
+    $query = Database::table(static::$table)->setModelClass(static::class);
+
     // Si se pasan 3 argumentos (columna, operador, valor), usar whereOp
     if ($value !== null) {
-        return Database::table(static::$table)->whereOp($column, $operator, $value);
+        return $query->whereOp($column, $operator, $value);
     }
     // Si se pasan 2 argumentos (columna, valor), usar where normal
-    return Database::table(static::$table)->where($column, $operator);
+    return $query->where($column, $operator);
 }
 
 public static function first()
 {
-    return Database::table(static::$table)->first();
+    return Database::table(static::$table)->setModelClass(static::class)->first();
 }
 
 public static function exists(): bool
@@ -301,22 +303,24 @@ public static function exists(): bool
 
 public static function whereRaw(string $raw)
 {
-    return Database::table(static::$table)->whereRaw($raw);
+    return Database::table(static::$table)->setModelClass(static::class)->whereRaw($raw);
 }
 
 public static function whereNull(string $column)
 {
-    return Database::table(static::$table)->whereNull($column);
+    return Database::table(static::$table)->setModelClass(static::class)->whereNull($column);
 }
 
 public static function whereNotNull(string $column)
 {
-    return Database::table(static::$table)->whereNotNull($column);
+    return Database::table(static::$table)->setModelClass(static::class)->whereNotNull($column);
 }
 
 public static function query()
 {
-    return new \Screenart\Musedock\Database\QueryBuilder(static::$table);
+    $qb = new \Screenart\Musedock\Database\QueryBuilder(static::$table);
+    $qb->setModelClass(static::class); // Configurar para que devuelva instancias del modelo
+    return $qb;
 }
 
     /**

@@ -90,8 +90,8 @@ public function index()
         $pdo = \Screenart\Musedock\Database::connect();
         
         foreach ($pages as $pageData) {
-            // Crear el objeto Page
-            $page = new Page((array) $pageData);
+            // Crear el objeto Page (verificar si ya es instancia de Page)
+            $page = ($pageData instanceof Page) ? $pageData : new Page((array) $pageData);
             
             // Cargar visibilidad
             $stmt = $pdo->prepare("SELECT visibility FROM pages WHERE id = ? LIMIT 1");
@@ -117,7 +117,7 @@ public function index()
     } catch (\Exception $e) {
         // Si falla la consulta, usar los datos originales
         error_log("Error al cargar datos adicionales: " . $e->getMessage());
-        $processedPages = array_map(fn($row) => new Page((array) $row), $pages);
+        $processedPages = array_map(fn($row) => ($row instanceof Page) ? $row : new Page((array) $row), $pages);
     }
     
     // Precargamos autores

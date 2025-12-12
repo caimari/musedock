@@ -677,6 +677,8 @@
     "modal_intro": "Puedes elegir qué tipos de cookies permitir. Las cookies estrictamente necesarias no se pueden desactivar.",
     "cat_necessary_title": "Cookies estrictamente necesarias",
     "cat_necessary_desc": "Estas cookies son esenciales para el correcto funcionamiento de nuestro sitio web. Sin ellas, el sitio no funcionaría correctamente.",
+    "cat_analytics_title": "Cookies de analítica",
+    "cat_analytics_desc": "Nos permiten medir el tráfico y analizar tu comportamiento para mejorar nuestro servicio.",
     "save_preferences": "Guardar preferencias"
   },
 

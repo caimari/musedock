@@ -27,6 +27,12 @@
          * Inicializar analytics
          */
         init: function() {
+            // No trackear páginas de administración
+            const path = window.location.pathname;
+            if (path.startsWith('/musedock') || path.startsWith('/admin')) {
+                return;
+            }
+
             // Verificar consentimiento de cookies
             if (!this.hasConsent()) {
                 console.log('Analytics: User has not accepted cookies');
@@ -55,7 +61,10 @@
          * Verificar si el usuario ha dado consentimiento
          */
         hasConsent: function() {
-            return this.getCookie(this.config.cookieConsent) === 'true';
+            // Verificar tanto la cookie general como la específica de analytics
+            const generalConsent = this.getCookie(this.config.cookieConsent) === 'true';
+            const analyticsConsent = this.getCookie('musedock_cookie_analytics') === 'true';
+            return generalConsent && analyticsConsent;
         },
 
         /**
@@ -235,15 +244,20 @@
         }
     };
 
-    // Auto-inicializar cuando el DOM esté listo
+    // Exportar para uso externo
+    window.MuseDockAnalytics = MuseDockAnalytics;
+
+    // Auto-inicializar solo si ya hay consentimiento previo
+    // Si no hay consentimiento, se inicializará cuando el usuario acepte desde cookie-consent.js
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
-            MuseDockAnalytics.init();
+            if (MuseDockAnalytics.hasConsent()) {
+                MuseDockAnalytics.init();
+            }
         });
     } else {
-        MuseDockAnalytics.init();
+        if (MuseDockAnalytics.hasConsent()) {
+            MuseDockAnalytics.init();
+        }
     }
-
-    // Exportar para uso manual si es necesario
-    window.MuseDockAnalytics = MuseDockAnalytics;
 })();

@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const rejectAllBtnModal = document.getElementById('cookie-modal-reject-all');
 
     const targetingToggle = document.getElementById('cookie-pref-targeting');
+    const analyticsToggle = document.getElementById('cookie-pref-analytics');
 
     const COOKIE_CONSENT_KEY = 'cookie_consent_preferences';
     const CONSENT_GIVEN_KEY = 'cookie_consent_given';
@@ -26,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (typeof parsed === 'object' && parsed !== null) {
                     return {
                         necessary: true,
+                        analytics: !!parsed.analytics,
                         targeting: !!parsed.targeting
                     };
                 }
@@ -33,20 +35,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error("Error parsing saved cookie preferences:", e);
             }
         }
-        return { necessary: true, targeting: false };
+        return { necessary: true, analytics: false, targeting: false };
     }
 
     function saveConsentPreferences(prefs) {
         const prefsToSave = {
             necessary: true,
+            analytics: !!prefs.analytics,
             targeting: !!prefs.targeting
         };
         localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(prefsToSave));
         localStorage.setItem(CONSENT_GIVEN_KEY, 'true');
+        // Guardar cookies para que PHP pueda leerlas
+        setCookie('musedock_cookies_accepted', 'true', 365);
+        setCookie('musedock_cookie_analytics', prefs.analytics ? 'true' : 'false', 365);
         applyConsentPreferences(prefsToSave);
     }
 
+    function setCookie(name, value, days) {
+        const expires = new Date();
+        expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+        document.cookie = name + '=' + value + ';expires=' + expires.toUTCString() + ';path=/;SameSite=Lax';
+    }
+
     function applyConsentPreferences(prefs) {
+        // Analytics cookies
+        if (prefs.analytics && typeof window.MuseDockAnalytics !== 'undefined') {
+            window.MuseDockAnalytics.init();
+        }
         // Targeting cookies (marketing, redes sociales, etc.)
         if (prefs.targeting) {
             // Aqui se pueden cargar scripts de marketing si se configuran
@@ -66,6 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function showPreferencesModal() {
         const currentPrefs = getConsentPreferences();
+        if (analyticsToggle) analyticsToggle.checked = currentPrefs.analytics;
         if (targetingToggle) targetingToggle.checked = currentPrefs.targeting;
         if (preferencesModal) preferencesModal.style.display = 'flex';
     }
@@ -88,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (acceptAllBtnPopup) {
         acceptAllBtnPopup.addEventListener('click', () => {
-            const prefs = { necessary: true, targeting: true };
+            const prefs = { necessary: true, analytics: true, targeting: true };
             saveConsentPreferences(prefs);
             hideConsentPopup();
         });
@@ -96,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (rejectAllBtnPopup) {
         rejectAllBtnPopup.addEventListener('click', () => {
-            const prefs = { necessary: true, targeting: false };
+            const prefs = { necessary: true, analytics: false, targeting: false };
             saveConsentPreferences(prefs);
             hideConsentPopup();
         });
@@ -133,6 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
         savePrefsBtnModal.addEventListener('click', () => {
             const prefs = {
                 necessary: true,
+                analytics: analyticsToggle ? analyticsToggle.checked : false,
                 targeting: targetingToggle ? targetingToggle.checked : false
             };
             saveConsentPreferences(prefs);
@@ -142,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (acceptAllBtnModal) {
         acceptAllBtnModal.addEventListener('click', () => {
-            const prefs = { necessary: true, targeting: true };
+            const prefs = { necessary: true, analytics: true, targeting: true };
             saveConsentPreferences(prefs);
             hidePreferencesModal();
         });
@@ -150,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (rejectAllBtnModal) {
         rejectAllBtnModal.addEventListener('click', () => {
-            const prefs = { necessary: true, targeting: false };
+            const prefs = { necessary: true, analytics: false, targeting: false };
             saveConsentPreferences(prefs);
             hidePreferencesModal();
         });

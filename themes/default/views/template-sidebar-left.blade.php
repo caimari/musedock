@@ -74,7 +74,11 @@
 
                     {{-- Meta información del post --}}
                     <div class="post-meta mb-4 text-muted">
-                        <span><i class="far fa-calendar"></i> {{ date('d/m/Y', strtotime($translation->published_at)) }}</span>
+                        @php
+                            $dateVal = $translation->published_at;
+                            $dateStr = $dateVal instanceof \DateTime ? $dateVal->format('d/m/Y') : date('d/m/Y', strtotime($dateVal));
+                        @endphp
+                        <span><i class="far fa-calendar"></i> {{ $dateStr }}</span>
                     </div>
                 @endif
 

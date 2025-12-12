@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{ setting('language', 'es') }}" class="no-js">
+<html lang="{{ site_setting('language', 'es') }}" class="no-js">
 
 <head>
     <!-- Configuración básica -->
@@ -7,12 +7,12 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
 
     {{-- Título dinámico del layout original --}}
-    <title>{{ \Screenart\Musedock\View::yieldSection('title') ?: setting('site_name', config('app_name', 'MuseDock CMS')) }}</title>
+    <title>{{ \Screenart\Musedock\View::yieldSection('title') ?: site_setting('site_name', config('app_name', 'MuseDock CMS')) }}</title>
 
     {{-- Metas dinámicas del layout original --}}
     @php
-        $metaDescription = \Screenart\Musedock\View::yieldSection('description') ?: setting('site_description', '');
-        $metaAuthor = setting('site_author', '');
+        $metaDescription = \Screenart\Musedock\View::yieldSection('description') ?: site_setting('site_description', '');
+        $metaAuthor = site_setting('site_author', '');
     @endphp
     @if($metaDescription)
     <meta name="description" content="{{ $metaDescription }}">
@@ -22,8 +22,8 @@
     @endif
 
     <!-- Favicon dinámico -->
-    @if(setting('site_favicon'))
-        <link rel="icon" type="image/x-icon" href="{{ asset(ltrim(setting('site_favicon'), '/')) }}">
+    @if(site_setting('site_favicon'))
+        <link rel="icon" type="image/x-icon" href="{{ asset(ltrim(site_setting('site_favicon'), '/')) }}">
     @else
         <!-- Fallback favicon -->
         <link rel="shortcut icon" type="image/x-icon" href="{{ asset('img/favicon.png') }}">
@@ -32,20 +32,20 @@
 
     <!-- SEO Meta Tags dinámicas -->
     @php
-        $seoKeywords = \Screenart\Musedock\View::yieldSection('keywords') ?: setting('site_keywords', '');
-        $ogTitle = \Screenart\Musedock\View::yieldSection('og_title') ?: setting('site_name', '');
-        $ogDescription = \Screenart\Musedock\View::yieldSection('og_description') ?: setting('site_description', '');
-        $siteName = setting('site_name', '');
+        $seoKeywords = \Screenart\Musedock\View::yieldSection('keywords') ?: site_setting('site_keywords', '');
+        $ogTitle = \Screenart\Musedock\View::yieldSection('og_title') ?: site_setting('site_name', '');
+        $ogDescription = \Screenart\Musedock\View::yieldSection('og_description') ?: site_setting('site_description', '');
+        $siteName = site_setting('site_name', '');
         $robotsDirective = trim(\Screenart\Musedock\View::yieldSection('robots', ''));
 
         // Verificar setting global de visibilidad en buscadores
-        $blogPublic = setting('blog_public', '1');
+        $blogPublic = site_setting('blog_public', '1');
         if ($blogPublic == '0' && empty($robotsDirective)) {
             $robotsDirective = 'noindex, nofollow';
         }
 
-        $twitterTitle = \Screenart\Musedock\View::yieldSection('twitter_title') ?: setting('site_name', '');
-        $twitterDescription = \Screenart\Musedock\View::yieldSection('twitter_description') ?: setting('site_description', '');
+        $twitterTitle = \Screenart\Musedock\View::yieldSection('twitter_title') ?: site_setting('site_name', '');
+        $twitterDescription = \Screenart\Musedock\View::yieldSection('twitter_description') ?: site_setting('site_description', '');
     @endphp
     @if($seoKeywords)
     <meta name="keywords" content="{{ $seoKeywords }}">
@@ -61,11 +61,11 @@
     <meta property="og:site_name" content="{{ $siteName }}">
     @endif
     <meta property="og:type" content="website">
-    @if(setting('og_image'))
-    <meta property="og:image" content="{{ asset(setting('og_image')) }}">
+    @if(site_setting('og_image'))
+    <meta property="og:image" content="{{ asset(site_setting('og_image')) }}">
     @endif
     <link rel="canonical" href="{{ url($_SERVER['REQUEST_URI']) }}">
-    <link rel="alternate" type="application/rss+xml" title="{{ setting('site_name', 'MuseDock') }} RSS Feed" href="{{ url('/feed') }}">
+    <link rel="alternate" type="application/rss+xml" title="{{ site_setting('site_name', 'MuseDock') }} RSS Feed" href="{{ url('/feed') }}">
     @if($robotsDirective)
     <meta name="robots" content="{{ $robotsDirective }}">
     @endif
@@ -76,13 +76,13 @@
     @if($twitterDescription)
     <meta name="twitter:description" content="{{ $twitterDescription }}">
     @endif
-    @if(setting('twitter_site'))
-    <meta name="twitter:site" content="{{ setting('twitter_site') }}">
+    @if(site_setting('twitter_site'))
+    <meta name="twitter:site" content="{{ site_setting('twitter_site') }}">
     @endif
-    @if(setting('twitter_image'))
-    <meta name="twitter:image" content="{{ asset(setting('twitter_image')) }}">
-    @elseif(setting('og_image'))
-    <meta name="twitter:image" content="{{ asset(setting('og_image')) }}">
+    @if(site_setting('twitter_image'))
+    <meta name="twitter:image" content="{{ asset(site_setting('twitter_image')) }}">
+    @elseif(site_setting('og_image'))
+    <meta name="twitter:image" content="{{ asset(site_setting('og_image')) }}">
     @endif
 
     <!-- Responsive (igual en ambos) -->
@@ -715,7 +715,7 @@ body.mobile-menu-open {
 @php
     // Cargar traducciones del tenant para el frontend
     \Screenart\Musedock\Services\TranslationService::setContext('tenant');
-    $currentLangLayout = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
+    $currentLangLayout = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? site_setting('language', 'es'));
     \Screenart\Musedock\Services\TranslationService::load($currentLangLayout, 'tenant');
 @endphp
 
@@ -750,14 +750,14 @@ body.mobile-menu-open {
            <div class="col-xl-6 col-lg-6">
                <div class="header-info-left">
                    <ul>
-                       @if($showAddress && setting('contact_address', ''))
-                           <li><i class="fas fa-map-marker-alt"></i>{{ setting('contact_address') }}</li>
+                       @if($showAddress && site_setting('contact_address', ''))
+                           <li><i class="fas fa-map-marker-alt"></i>{{ site_setting('contact_address') }}</li>
                        @endif
-                       @if($showEmail && setting('contact_email', ''))
-                           <li><i class="fas fa-envelope"></i>{{ setting('admin_email') }}</li>
+                       @if($showEmail && site_setting('contact_email', ''))
+                           <li><i class="fas fa-envelope"></i>{{ site_setting('contact_email') }}</li>
                        @endif
-                       @if($showWhatsapp && setting('contact_whatsapp', ''))
-                           <li><i class="fab fa-{{ $whatsappIcon == 'whatsapp' ? 'whatsapp' : 'phone' }}"></i>{{ setting('contact_whatsapp') }}</li>
+                       @if($showWhatsapp && site_setting('contact_whatsapp', ''))
+                           <li><i class="fab fa-{{ $whatsappIcon == 'whatsapp' ? 'whatsapp' : 'phone' }}"></i>{{ site_setting('contact_whatsapp') }}</li>
                        @endif
                    </ul>
                </div>
@@ -765,26 +765,26 @@ body.mobile-menu-open {
            <div class="col-xl-6 col-lg-6">
                <div class="header-info-right text-right">
                <ul class="header-social d-flex justify-content-end">
-                    @if(setting('social_linkedin', ''))
-                        <li><a href="{{ setting('social_linkedin') }}" target="_blank"><i class="fab fa-linkedin-in"></i></a></li>
+                    @if(site_setting('social_linkedin', ''))
+                        <li><a href="{{ site_setting('social_linkedin') }}" target="_blank"><i class="fab fa-linkedin-in"></i></a></li>
                     @endif
-                    @if(setting('social_twitter', ''))
-                        <li><a href="{{ setting('social_twitter') }}" target="_blank"><i class="fab fa-twitter"></i></a></li>
+                    @if(site_setting('social_twitter', ''))
+                        <li><a href="{{ site_setting('social_twitter') }}" target="_blank"><i class="fab fa-twitter"></i></a></li>
                     @endif
-                    @if(setting('social_facebook', ''))
-                        <li><a href="{{ setting('social_facebook') }}" target="_blank"><i class="fab fa-facebook-f"></i></a></li>
+                    @if(site_setting('social_facebook', ''))
+                        <li><a href="{{ site_setting('social_facebook') }}" target="_blank"><i class="fab fa-facebook-f"></i></a></li>
                     @endif
-                    @if(setting('social_instagram', ''))
-                        <li><a href="{{ setting('social_instagram') }}" target="_blank"><i class="fab fa-instagram"></i></a></li>
+                    @if(site_setting('social_instagram', ''))
+                        <li><a href="{{ site_setting('social_instagram') }}" target="_blank"><i class="fab fa-instagram"></i></a></li>
                     @endif
-                    @if(setting('social_pinterest', ''))
-                        <li><a href="{{ setting('social_pinterest') }}" target="_blank"><i class="fab fa-pinterest"></i></a></li>
+                    @if(site_setting('social_pinterest', ''))
+                        <li><a href="{{ site_setting('social_pinterest') }}" target="_blank"><i class="fab fa-pinterest"></i></a></li>
                     @endif
-                    @if(setting('social_youtube', ''))
-                        <li><a href="{{ setting('social_youtube') }}" target="_blank"><i class="fab fa-youtube"></i></a></li>
+                    @if(site_setting('social_youtube', ''))
+                        <li><a href="{{ site_setting('social_youtube') }}" target="_blank"><i class="fab fa-youtube"></i></a></li>
                     @endif
-                    @if(setting('social_google_plus', ''))
-                        <li><a href="{{ setting('social_google_plus') }}" target="_blank"><i class="fab fa-google-plus-g"></i></a></li>
+                    @if(site_setting('social_tiktok', ''))
+                        <li><a href="{{ site_setting('social_tiktok') }}" target="_blank"><i class="fab fa-tiktok"></i></a></li>
                     @endif
                 </ul>
                </div>
@@ -809,10 +809,10 @@ body.mobile-menu-open {
                 <a href="{{ url('/') }}" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
                     @php
                         // Configuraciones de logo y título
-                        $showLogo = setting('show_logo', '1') === '1';
-                        $showTitle = setting('show_title', '0') === '1';
-                        $siteName = setting('site_name', '');
-                        $logoPath = setting('site_logo', '');
+                        $showLogo = site_setting('show_logo', '1') === '1';
+                        $showTitle = site_setting('show_title', '0') === '1';
+                        $siteName = site_setting('site_name', '');
+                        $logoPath = site_setting('site_logo', '');
                         $defaultLogo = asset('themes/default/img/logo/logo.png');
                     @endphp
 
@@ -853,7 +853,7 @@ body.mobile-menu-open {
                     // Obtener opciones del tema para header
                     $ctaEnabled = themeOption('header.header_cta_enabled', false);
                     // Obtener texto del botón según el idioma actual
-                    $currentLangCta = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
+                    $currentLangCta = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? site_setting('language', 'es'));
                     $ctaTextEs = themeOption('header.header_cta_text_es', __('header.login_button'));
                     $ctaTextEn = themeOption('header.header_cta_text_en', 'Login');
                     $ctaText = ($currentLangCta === 'en') ? $ctaTextEn : $ctaTextEs;
@@ -928,13 +928,13 @@ body.mobile-menu-open {
                      $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE active = 1 ORDER BY order_position ASC, id ASC");
                      $stmt->execute();
                      $languages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                     $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
+                     $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? site_setting('language', 'es'));
                      $showLangSelector = count($languages) > 1;
                  }
              } catch (\Exception $e) {
                  if (!isset($languages)) {
                      $languages = [['code' => 'es', 'name' => 'Español'], ['code' => 'en', 'name' => 'English']];
-                     $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
+                     $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? site_setting('language', 'es'));
                      $showLangSelector = true;
                  }
              }
@@ -1136,7 +1136,7 @@ if (header && header.classList.contains('enable-sticky')) {
     @include('partials.footer')
     
     {{-- COOKIES  --}}
-    @if(setting('cookies_enabled', '1') == '1')
+    @if(site_setting('cookies_enabled', '1') == '1')
         <!-- ===== Cookie Consent Popup (Card Style) ===== -->
         <div id="cookie-consent-popup" class="cookie-consent-popup" style="display: none;">
         <div class="cookie-popup-content">
@@ -1148,8 +1148,8 @@ if (header && header.classList.contains('enable-sticky')) {
                 <button id="cookie-accept-all" class="cookie-btn cookie-btn-accept">{{ __('cookies.accept_all') }}</button>
             </div>
             <div class="cookie-popup-links">
-                <a href="{{ url(setting('cookies_policy_url', '/p/cookie-policy')) }}">{{ __('cookies.policy_link') }}</a>
-                <a href="{{ url(setting('cookies_terms_url', '/p/terms-and-conditions')) }}">{{ __('cookies.terms_link') }}</a>
+                <a href="{{ url(site_setting('cookies_policy_url', '/p/cookie-policy')) }}">{{ __('cookies.policy_link') }}</a>
+                <a href="{{ url(site_setting('cookies_terms_url', '/p/terms-and-conditions')) }}">{{ __('cookies.terms_link') }}</a>
             </div>
         </div>
     </div>
@@ -1174,6 +1174,18 @@ if (header && header.classList.contains('enable-sticky')) {
                         </label>
                     </div>
                     <p>{{ __('cookies.cat_necessary_desc') }}</p>
+                </div>
+
+                <!-- Analytics Cookies -->
+                <div class="cookie-category">
+                    <div class="category-header">
+                        <h4>{{ __('cookies.cat_analytics_title') ?: 'Cookies de Analítica' }}</h4>
+                        <label class="switch">
+                            <input type="checkbox" id="cookie-pref-analytics">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <p>{{ __('cookies.cat_analytics_desc') ?: 'Nos permiten medir el tráfico y analizar tu comportamiento para mejorar nuestro servicio.' }}</p>
                 </div>
             </div>
             <div class="modal-footer">
@@ -1217,7 +1229,10 @@ if (header && header.classList.contains('enable-sticky')) {
 
 	
 	
-@if(setting('cookies_enabled', '1') == '1')
+{{-- Web Analytics - debe cargarse ANTES que cookie-consent para que window.MuseDockAnalytics exista --}}
+<script src="{{ asset('assets/js/analytics.js') }}"></script>
+
+@if(site_setting('cookies_enabled', '1') == '1')
 <script src="{{ asset('themes/default/js/cookie-consent.js') }}?v={{ filemtime(public_path('assets/themes/default/js/cookie-consent.js')) ?: time() }}"></script>
 @endif
 	

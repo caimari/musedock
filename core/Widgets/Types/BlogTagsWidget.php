@@ -110,10 +110,10 @@ class BlogTagsWidget extends WidgetBase
         }
 
         // Estructura del widget con margen
-        $output = '<div class="widget widget-blog-tags" style="margin-bottom: 30px;">';
+        $output = '<div class="widget widget-blog-tags" style="margin-bottom: 15px;">';
 
         if (!empty($title)) {
-            $output .= '<h5 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #333;">' . $this->e($title) . '</h5>';
+            $output .= '<h5 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #333;">' . $this->e($title) . '</h5>';
         }
 
         $output .= '<div class="widget-content">';

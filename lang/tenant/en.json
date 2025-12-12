@@ -679,6 +679,8 @@
     "modal_intro": "You can choose which types of cookies to allow. Strictly necessary cookies cannot be disabled.",
     "cat_necessary_title": "Strictly necessary cookies",
     "cat_necessary_desc": "These cookies are essential for the proper functioning of our website. Without them, the site would not work properly.",
+    "cat_analytics_title": "Analytics cookies",
+    "cat_analytics_desc": "Allow us to measure traffic and analyze your behavior to improve our service.",
     "save_preferences": "Save preferences"
   },
 

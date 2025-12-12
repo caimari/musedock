@@ -124,10 +124,10 @@ class SearchWidget extends WidgetBase
         }
 
         // Estructura del widget con margen superior e inferior para separación
-        $output = '<div class="widget widget-search" style="margin-top: 30px; margin-bottom: 50px;">';
+        $output = '<div class="widget widget-search" style="margin-bottom: 15px;">';
 
         if (!empty($title)) {
-            $output .= '<h5 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #333;">' . $this->e($title) . '</h5>';
+            $output .= '<h5 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #333;">' . $this->e($title) . '</h5>';
         }
 
         // Obtener texto del botón de la configuración

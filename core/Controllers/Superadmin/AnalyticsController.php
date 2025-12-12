@@ -67,7 +67,7 @@ class AnalyticsController
         // Obtener lista de tenants para el filtro
         $tenants = [];
         if (getenv('MULTI_TENANT_ENABLED') === 'true') {
-            $stmt = $db->query("SELECT id, name, domain FROM tenants WHERE is_active = 1 ORDER BY name");
+            $stmt = $db->query("SELECT id, name, domain FROM tenants WHERE status = 'active' ORDER BY name");
             $tenants = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         }
 

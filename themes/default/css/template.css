@@ -7,3 +7,28 @@
 .header-bottom {
   background-color: var(--header-bg-color);
 }
+
+/* Estilos para widget de categorías - forzar color negro en todos los estados */
+.widget-blog-categories a,
+.widget-blog-categories a:link,
+.widget-blog-categories a:visited,
+.widget-blog-categories a:hover,
+.widget-blog-categories a:active {
+  color: #000 !important;
+}
+
+.widget-blog-categories h5 {
+  color: #000 !important;
+  font-size: 14px !important;
+}
+
+/* Reducir espacio entre widgets del sidebar */
+.sidebar .widget,
+.sidebar [class*="widget"] {
+  margin-bottom: 15px !important;
+}
+
+.sidebar .widget:last-child,
+.sidebar [class*="widget"]:last-child {
+  margin-bottom: 0 !important;
+}
