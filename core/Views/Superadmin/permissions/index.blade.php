@@ -195,12 +195,28 @@
             $multiTenantEnabled = setting('multi_tenant_enabled', false);
         }
 
-        // Separar permisos globales y de tenant
+        // Separar permisos globales y de tenant específico
         $globalPermissions = array_filter($permissions, function($perm) {
             return empty($perm['tenant_id']);
         });
-        $tenantPermissions = array_filter($permissions, function($perm) {
+        $tenantSpecificPermissions = array_filter($permissions, function($perm) {
             return !empty($perm['tenant_id']);
+        });
+
+        // Obtener permisos agrupados por tipo de controlador
+        $permissionsByType = \Screenart\Musedock\Helpers\PermissionScanner::getPermissionsByType();
+
+        // Permisos usados en controladores de Tenant (aunque sean globales)
+        $tenantControllerSlugs = array_keys($permissionsByType['tenant'] ?? []);
+
+        // Filtrar permisos globales que se usan en controllers de tenant
+        $tenantUsedPermissions = array_filter($globalPermissions, function($perm) use ($tenantControllerSlugs) {
+            return in_array($perm['slug'] ?? '', $tenantControllerSlugs);
+        });
+
+        // Permisos globales que NO se usan en tenant (solo superadmin/modules)
+        $nonTenantGlobalPermissions = array_filter($globalPermissions, function($perm) use ($tenantControllerSlugs) {
+            return !in_array($perm['slug'] ?? '', $tenantControllerSlugs);
         });
     @endphp
 
@@ -289,12 +305,92 @@
         </div>
     </div>
 
-    {{-- PERMISOS GLOBALES --}}
+    {{-- PERMISOS USADOS EN TENANT CONTROLLERS --}}
+    @if($multiTenantEnabled && count($tenantUsedPermissions) > 0)
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+            <strong><i class="bi bi-building me-2"></i>Permisos para Paneles de Tenant</strong>
+            <span class="badge bg-light text-dark">{{ count($tenantUsedPermissions) }}</span>
+        </div>
+        <div class="card-body p-3 bg-light">
+            <p class="small text-muted mb-3">
+                <i class="bi bi-info-circle me-1"></i>
+                Estos permisos se usan en <code>Controllers/Tenant/</code> y son los que debes asignar a los roles admin de cada tenant.
+                Son permisos globales (sin tenant_id específico) pero aplicables a todos los tenants.
+            </p>
+        </div>
+        <div class="card-body table-responsive p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Slug</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Categoría</th>
+                        <th>Usado en</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($tenantUsedPermissions as $perm)
+                        @php
+                            $slugInfo = $permissionsByType['tenant'][$perm['slug']] ?? null;
+                            $files = $slugInfo ? array_filter($slugInfo['files'], fn($f) => str_contains($f, 'Tenant')) : [];
+                        @endphp
+                        <tr>
+                            <td>{{ $perm['id'] }}</td>
+                            <td><code class="text-info">{{ $perm['slug'] ?? '-' }}</code></td>
+                            <td>{{ $perm['name'] }}</td>
+                            <td class="text-muted small">{{ $perm['description'] }}</td>
+                            <td>
+                                @if(!empty($perm['category']))
+                                    <span class="badge bg-secondary">{{ $perm['category'] }}</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td class="small">
+                                @if(!empty($files))
+                                    <span class="text-muted" title="{{ implode(', ', array_slice($files, 0, 5)) }}">
+                                        {{ count($files) }} archivo(s)
+                                    </span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td class="d-flex gap-2">
+                                <a href="/musedock/permissions/{{ $perm['id'] }}/edit" class="btn btn-sm btn-outline-secondary">
+                                    Editar
+                                </a>
+                                <form method="POST" action="/musedock/permissions/{{ $perm['id'] }}/delete" onsubmit="return confirm('¿Eliminar este permiso? Se eliminará de todos los roles.')">
+                                    {!! csrf_field() !!}
+                                    <button class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
+
+    {{-- PERMISOS GLOBALES (Solo Superadmin/Módulos) --}}
     <div class="card mb-4">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <strong><i class="bi bi-globe me-2"></i>Permisos Globales</strong>
-            <span class="badge bg-light text-dark">{{ count($globalPermissions) }}</span>
+            <strong><i class="bi bi-globe me-2"></i>Permisos Globales (Superadmin/Módulos)</strong>
+            <span class="badge bg-light text-dark">{{ count($nonTenantGlobalPermissions) }}</span>
         </div>
+        @if($multiTenantEnabled)
+        <div class="card-body p-3 bg-light">
+            <p class="small text-muted mb-0">
+                <i class="bi bi-info-circle me-1"></i>
+                Estos permisos se usan solo en el panel Superadmin (<code>/musedock</code>) y módulos globales.
+                No aplican a los paneles de administración de tenants.
+            </p>
+        </div>
+        @endif
         <div class="card-body table-responsive p-0">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
@@ -309,7 +405,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($globalPermissions as $perm)
+                    @forelse ($nonTenantGlobalPermissions as $perm)
                         <tr>
                             <td>{{ $perm['id'] }}</td>
                             <td><code class="text-primary">{{ $perm['slug'] ?? '-' }}</code></td>
@@ -337,7 +433,7 @@
                         <tr>
                             <td colspan="7" class="text-center py-4">
                                 <i class="bi bi-inbox text-muted d-block" style="font-size: 2rem;"></i>
-                                <p class="text-muted mb-0">No hay permisos globales creados.</p>
+                                <p class="text-muted mb-0">No hay permisos globales de superadmin/módulos.</p>
                                 @if(!empty($permsMissingInDb))
                                     <p class="text-muted small">Usa "Sincronizar" para crear los permisos del código automáticamente.</p>
                                 @else
@@ -351,12 +447,20 @@
         </div>
     </div>
 
-    {{-- PERMISOS DE TENANT (solo si multitenencia está activada) --}}
+    {{-- PERMISOS ESPECÍFICOS DE TENANT (permisos personalizados para un tenant concreto) --}}
     @if($multiTenantEnabled)
     <div class="card">
         <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-            <strong><i class="bi bi-building me-2"></i>Permisos por Tenant</strong>
-            <span class="badge bg-light text-dark">{{ count($tenantPermissions) }}</span>
+            <strong><i class="bi bi-building-gear me-2"></i>Permisos Específicos por Tenant</strong>
+            <span class="badge bg-light text-dark">{{ count($tenantSpecificPermissions) }}</span>
+        </div>
+        <div class="card-body p-3 bg-light">
+            <p class="small text-muted mb-0">
+                <i class="bi bi-info-circle me-1"></i>
+                Estos son permisos <strong>personalizados</strong> creados específicamente para un tenant individual.
+                Solo aplican a usuarios de ese tenant concreto. Normalmente no necesitas crear permisos aquí;
+                los permisos de la sección "Paneles de Tenant" son suficientes para la mayoría de casos.
+            </p>
         </div>
         <div class="card-body table-responsive p-0">
             <table class="table table-hover align-middle mb-0">
@@ -373,10 +477,10 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($tenantPermissions as $perm)
+                    @forelse ($tenantSpecificPermissions as $perm)
                         <tr>
                             <td>{{ $perm['id'] }}</td>
-                            <td><code class="text-primary">{{ $perm['slug'] ?? '-' }}</code></td>
+                            <td><code class="text-secondary">{{ $perm['slug'] ?? '-' }}</code></td>
                             <td>{{ $perm['name'] }}</td>
                             <td class="text-muted small">{{ $perm['description'] }}</td>
                             <td>
@@ -387,7 +491,7 @@
                                 @endif
                             </td>
                             <td>
-                                <span class="badge bg-info">
+                                <span class="badge bg-warning text-dark">
                                     @if(!empty($perm['tenant_domain']))
                                         {{ $perm['tenant_domain'] }}
                                     @elseif(!empty($perm['tenant_name']))
@@ -411,9 +515,9 @@
                     @empty
                         <tr>
                             <td colspan="8" class="text-center py-4">
-                                <i class="bi bi-building text-muted d-block" style="font-size: 2rem;"></i>
-                                <p class="text-muted mb-0">No hay permisos específicos de tenant.</p>
-                                <small class="text-muted">Los permisos de tenant solo aplican a usuarios de ese tenant específico.</small>
+                                <i class="bi bi-check-circle text-success d-block" style="font-size: 2rem;"></i>
+                                <p class="text-muted mb-0">No hay permisos personalizados por tenant.</p>
+                                <small class="text-muted">Esto es normal. Usa los permisos globales de "Paneles de Tenant" para gestionar accesos.</small>
                             </td>
                         </tr>
                     @endforelse
@@ -421,11 +525,11 @@
             </table>
         </div>
     </div>
-    @elseif(count($tenantPermissions) > 0)
+    @elseif(count($tenantSpecificPermissions) > 0)
     {{-- Mostrar advertencia si hay permisos de tenant pero multitenencia está desactivada --}}
     <div class="alert alert-warning">
         <i class="bi bi-exclamation-triangle me-2"></i>
-        <strong>Nota:</strong> Existen {{ count($tenantPermissions) }} permiso(s) asignados a tenants específicos, pero la multitenencia está desactivada.
+        <strong>Nota:</strong> Existen {{ count($tenantSpecificPermissions) }} permiso(s) asignados a tenants específicos, pero la multitenencia está desactivada.
         Estos permisos no estarán activos hasta que se reactive la multitenencia en <code>.env</code> (MULTI_TENANT_ENABLED=true).
     </div>
     @endif
