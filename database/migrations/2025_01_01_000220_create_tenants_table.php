@@ -28,6 +28,7 @@ class CreateTenantsTable_2025_12_11_104034
   `theme` varchar(255) DEFAULT 'default',
   `theme_type` enum('global','custom') NOT NULL DEFAULT 'global' COMMENT 'Tipo de tema: global (del sistema) o custom (personalizado)',
   `custom_theme_slug` varchar(100) DEFAULT NULL COMMENT 'Slug del tema personalizado si theme_type=custom',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `domain` (`domain`),
   UNIQUE KEY `slug` (`slug`),
@@ -51,6 +52,7 @@ class CreateTenantsTable_2025_12_11_104034
   theme VARCHAR(255) DEFAULT 'default',
   theme_type VARCHAR(20) NOT NULL DEFAULT 'global',
   custom_theme_slug VARCHAR(100),
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CHECK (theme_type IN ('global', 'custom')),
   UNIQUE (domain),
   UNIQUE (slug)
