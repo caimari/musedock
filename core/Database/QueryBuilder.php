@@ -52,10 +52,26 @@ class QueryBuilder
         return $this;
     }
 
-    public function where(string $column, $value)
+    public function where(string $column, $operator = null, $value = null)
     {
+        // Si solo se pasan 2 argumentos (columna, valor), el operador es '='
+        if ($value === null && $operator !== null) {
+            $value = $operator;
+            $operator = '=';
+        }
+
+        // Si $operator sigue siendo null, significa que solo se pasó la columna (error)
+        if ($operator === null || $value === null) {
+            throw new \InvalidArgumentException("El método where() requiere al menos 2 argumentos: columna y valor, o 3: columna, operador y valor");
+        }
+
         $placeholder = ":where_" . count($this->bindings);
-        $this->wheres[] = $this->escapeColumn($column) . " = {$placeholder}";
+        $this->wheres[] = [
+            'column' => $column,
+            'operator' => $operator,
+            'value' => $value,
+            'placeholder' => $placeholder
+        ];
         $this->bindings[$placeholder] = $value;
         return $this;
     }

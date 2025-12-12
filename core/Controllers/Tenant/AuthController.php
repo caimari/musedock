@@ -39,16 +39,19 @@ class AuthController
         $adminPath = '/' . admin_path();
         $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
-        // --- RATE LIMITING ---
+        // --- RATE LIMITING CON DOBLE BLOQUEO ---
         $identifier = $email . '|' . $tenantId . '|' . $ip;
+        $rateCheck = \Screenart\Musedock\Security\RateLimiter::checkDual($identifier, $email);
 
-        if (!\Screenart\Musedock\Security\RateLimiter::check($identifier)) {
-            $info = \Screenart\Musedock\Security\RateLimiter::info($identifier);
-            $minutesLeft = $info ? $info['minutes_left'] : 15;
-
-            flash('error', "Demasiados intentos fallidos. Por favor, intenta de nuevo en {$minutesLeft} minutos.");
+        if (!$rateCheck['allowed']) {
+            flash('error', $rateCheck['message']);
             header("Location: {$adminPath}/login");
             exit;
+        }
+
+        // Si detectamos ataque distribuido, mostrar advertencia pero permitir login
+        if ($rateCheck['reason'] === 'under_attack') {
+            flash('warning', __('auth.account_under_attack'));
         }
         // ----------------------
 
@@ -79,8 +82,8 @@ class AuthController
                 error_log("Verificación de contraseña para admin (hash: {$emailHash}): " . ($passwordValid ? 'OK' : 'FALLO'));
 
                 if ($passwordValid) {
-                    // Limpiar intentos fallidos
-                    \Screenart\Musedock\Security\RateLimiter::clear($identifier);
+                    // Limpiar intentos fallidos (específico + global)
+                    \Screenart\Musedock\Security\RateLimiter::clearDual($identifier, $email);
                     // Guardar datos en sesión antes de regenerar
                     $_SESSION['admin'] = [
                         'id'         => $admin['id'],
@@ -144,8 +147,8 @@ class AuthController
                 error_log("Verificación de contraseña para usuario (hash: {$emailHash}): " . ($passwordValid ? 'OK' : 'FALLO'));
 
                 if ($passwordValid) {
-                    // Limpiar intentos fallidos
-                    \Screenart\Musedock\Security\RateLimiter::clear($identifier);
+                    // Limpiar intentos fallidos (específico + global)
+                    \Screenart\Musedock\Security\RateLimiter::clearDual($identifier, $email);
                     // Guardar datos en sesión antes de regenerar
                     $_SESSION['user'] = [
                         'id'         => $user['id'],
@@ -198,17 +201,17 @@ class AuthController
             }
         }
 
-        // Fallo de autenticación - Incrementar contador
-        \Screenart\Musedock\Security\RateLimiter::increment($identifier);
+        // Fallo de autenticación - Incrementar contador (específico + global)
+        $attempts = \Screenart\Musedock\Security\RateLimiter::incrementDual($identifier, $email);
         $remaining = \Screenart\Musedock\Security\RateLimiter::remaining($identifier);
 
         // 🔒 SECURITY: No loguear email completo
-        error_log("Login fallido (hash: {$emailHash}). Intentos restantes: {$remaining}");
+        error_log("Login fallido (hash: {$emailHash}). Intentos restantes: {$remaining}, Global: {$attempts['global_attempts']}");
 
         if ($remaining > 0) {
-            flash('error', "Credenciales incorrectas. Te quedan {$remaining} intentos.");
+            flash('error', __('auth.invalid_credentials_attempts', ['attempts' => $remaining]) ?? "Credenciales incorrectas. Te quedan {$remaining} intentos.");
         } else {
-            flash('error', __('invalid_credentials') ?? 'Credenciales incorrectas');
+            flash('error', __('auth.invalid_credentials') ?? 'Credenciales incorrectas');
         }
 
         header("Location: {$adminPath}/login");

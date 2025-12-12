@@ -214,4 +214,148 @@ class RateLimiter
             return 0;
         }
     }
+
+    /**
+     * Verifica si un email está bajo ataque (intentos desde múltiples IPs)
+     *
+     * @param string $email Email a verificar
+     * @param int $minIPs Número mínimo de IPs diferentes para considerar ataque (default: 3)
+     * @return bool True si está bajo ataque
+     */
+    public static function isUnderAttack($email, $minIPs = 3)
+    {
+        try {
+            $db = Database::connect();
+
+            // Buscar todos los intentos activos que contengan este email
+            $stmt = $db->prepare("
+                SELECT identifier
+                FROM rate_limits
+                WHERE identifier LIKE :email_pattern
+                AND expires_at > NOW()
+                AND attempts > 0
+            ");
+            $stmt->execute(['email_pattern' => $email . '|%']);
+            $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Contar IPs diferentes
+            $uniqueIPs = [];
+            foreach ($results as $row) {
+                // Extraer IP del identifier (formato: email|tenant|IP o email|IP)
+                $parts = explode('|', $row['identifier']);
+                $ip = end($parts); // Última parte siempre es la IP
+                $uniqueIPs[$ip] = true;
+            }
+
+            $ipCount = count($uniqueIPs);
+
+            if ($ipCount >= $minIPs) {
+                Logger::log("Email under attack detected: {$email} ({$ipCount} different IPs)", 'WARNING');
+                return true;
+            }
+
+            return false;
+        } catch (\Exception $e) {
+            Logger::exception($e, 'ERROR', ['source' => 'RateLimiter::isUnderAttack']);
+            return false;
+        }
+    }
+
+    /**
+     * Verifica usando doble bloqueo: por identificador específico Y por email global
+     * Evita ataques distribuidos desde múltiples IPs
+     *
+     * @param string $identifier Identificador específico (email|IP o email|tenant|IP)
+     * @param string $email Email a verificar globalmente
+     * @param int|null $maxAttempts Intentos máximos
+     * @param int|null $decayMinutes Minutos de decay
+     * @param int $globalMultiplier Multiplicador de intentos globales (default: 3x)
+     * @return array ['allowed' => bool, 'reason' => string, 'info' => array]
+     */
+    public static function checkDual($identifier, $email, $maxAttempts = null, $decayMinutes = null, $globalMultiplier = 3)
+    {
+        $config = require __DIR__ . '/../../config/config.php';
+        $maxAttempts = $maxAttempts ?? ($config['security']['rate_limit_attempts'] ?? 5);
+        $globalMaxAttempts = $maxAttempts * $globalMultiplier; // 15 intentos globales por defecto
+
+        // 1. Verificar bloqueo específico (email|IP)
+        if (!self::check($identifier, $maxAttempts, $decayMinutes)) {
+            $info = self::info($identifier);
+            return [
+                'allowed' => false,
+                'reason' => 'specific_block',
+                'info' => $info,
+                'message' => __('auth.too_many_attempts', ['minutes' => $info['minutes_left'] ?? 15])
+            ];
+        }
+
+        // 2. Verificar bloqueo global por email (suma de todos los intentos)
+        $globalIdentifier = "global_email:{$email}";
+        if (!self::check($globalIdentifier, $globalMaxAttempts, $decayMinutes)) {
+            $info = self::info($globalIdentifier);
+
+            // Log de posible ataque
+            Logger::log("Global rate limit exceeded for email: {$email}. Possible distributed attack.", 'SECURITY');
+
+            return [
+                'allowed' => false,
+                'reason' => 'global_block',
+                'info' => $info,
+                'message' => __('auth.account_temporarily_locked', ['minutes' => $info['minutes_left'] ?? 15])
+            ];
+        }
+
+        // 3. Detectar ataques distribuidos
+        if (self::isUnderAttack($email, 3)) {
+            return [
+                'allowed' => true, // Permitir pero alertar
+                'reason' => 'under_attack',
+                'info' => ['warning' => 'Account under distributed attack'],
+                'message' => null
+            ];
+        }
+
+        return [
+            'allowed' => true,
+            'reason' => 'ok',
+            'info' => null,
+            'message' => null
+        ];
+    }
+
+    /**
+     * Incrementa contador usando doble tracking (específico + global)
+     *
+     * @param string $identifier Identificador específico
+     * @param string $email Email para tracking global
+     * @param int|null $decayMinutes Minutos de decay
+     * @return array ['specific_attempts' => int, 'global_attempts' => int]
+     */
+    public static function incrementDual($identifier, $email, $decayMinutes = null)
+    {
+        $specificAttempts = self::increment($identifier, $decayMinutes);
+        $globalIdentifier = "global_email:{$email}";
+        $globalAttempts = self::increment($globalIdentifier, $decayMinutes);
+
+        return [
+            'specific_attempts' => $specificAttempts,
+            'global_attempts' => $globalAttempts
+        ];
+    }
+
+    /**
+     * Limpia ambos contadores (específico + global)
+     *
+     * @param string $identifier Identificador específico
+     * @param string $email Email para tracking global
+     * @return bool
+     */
+    public static function clearDual($identifier, $email)
+    {
+        $result1 = self::clear($identifier);
+        $globalIdentifier = "global_email:{$email}";
+        $result2 = self::clear($globalIdentifier);
+
+        return $result1 && $result2;
+    }
 }

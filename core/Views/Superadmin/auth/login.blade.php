@@ -75,7 +75,14 @@
             <form method="POST" action="/musedock/login">
                 {!! csrf_field() !!}
                 <input type="email" name="email" placeholder="{{ __('auth.email') }}" class="form-control mb-3" required>
-                <input type="password" name="password" placeholder="{{ __('auth.password') }}" class="form-control mb-3" required>
+
+                <div class="input-group mb-3">
+                    <input type="password" id="password" name="password" placeholder="{{ __('auth.password') }}" class="form-control" required>
+                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                        <i class="bi bi-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
+
                 <div class="form-check mb-3">
                     <input type="checkbox" name="remember" class="form-check-input" id="remember">
                     <label class="form-check-label" for="remember">{{ __('auth.remember_me') }}</label>
@@ -105,6 +112,27 @@ document.addEventListener('DOMContentLoaded', function() {
             bsAlert.close();
         }, 2000);
     });
+
+    // Toggle password visibility
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+    const eyeIcon = document.getElementById('eyeIcon');
+
+    if (togglePassword && passwordInput && eyeIcon) {
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+
+            // Toggle icon
+            if (type === 'password') {
+                eyeIcon.classList.remove('bi-eye-slash');
+                eyeIcon.classList.add('bi-eye');
+            } else {
+                eyeIcon.classList.remove('bi-eye');
+                eyeIcon.classList.add('bi-eye-slash');
+            }
+        });
+    }
 });
 </script>
 @endpush

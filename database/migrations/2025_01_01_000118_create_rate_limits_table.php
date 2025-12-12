@@ -22,14 +22,15 @@ class CreateRateLimitsTable_2025_12_11_104033
   `attempts` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'Número de intentos',
   `expires_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha de expiración del bloqueo',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha de creación',
+  PRIMARY KEY (`identifier`),
   KEY `idx_expires_at` (`expires_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Control de rate limiting para prevenir fuerza bruta'
             ");
         } else {
             // PostgreSQL
             $pdo->exec("
                 CREATE TABLE rate_limits (
-  identifier VARCHAR(255) NOT NULL,
+  identifier VARCHAR(255) NOT NULL PRIMARY KEY,
   attempts INTEGER NOT NULL DEFAULT '0',
   expires_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -39,7 +40,10 @@ class CreateRateLimitsTable_2025_12_11_104033
             // Create indexes
             $pdo->exec("CREATE INDEX rate_limits_idx_expires_at ON rate_limits(expires_at)");
 
-            // Add comments
+            // Add table comment
+            $pdo->exec("COMMENT ON TABLE rate_limits IS 'Control de rate limiting para prevenir fuerza bruta'");
+
+            // Add column comments
             $pdo->exec("COMMENT ON COLUMN rate_limits.identifier IS 'Identificador único (email|tenant|IP)'");
             $pdo->exec("COMMENT ON COLUMN rate_limits.attempts IS 'Número de intentos'");
             $pdo->exec("COMMENT ON COLUMN rate_limits.expires_at IS 'Fecha de expiración del bloqueo'");

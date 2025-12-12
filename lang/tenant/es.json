@@ -618,6 +618,8 @@
     "invalid_credentials_attempts": "Correo o contraseña incorrectos. Te quedan :attempts intentos",
     "please_enter_credentials": "Por favor, ingresa tu correo y contraseña",
     "too_many_attempts": "Demasiados intentos fallidos. Por favor, intenta de nuevo en :minutes minutos",
+    "account_temporarily_locked": "Esta cuenta ha sido bloqueada temporalmente por seguridad. Intenta de nuevo en :minutes minutos",
+    "account_under_attack": "⚠️ Advertencia: Se han detectado múltiples intentos de acceso desde diferentes ubicaciones. Si no reconoces esta actividad, considera cambiar tu contraseña",
     "password_reset_sent": "Se ha enviado un enlace de restablecimiento de contraseña",
     "password_reset_success": "Contraseña restablecida exitosamente"
   },
