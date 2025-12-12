@@ -90,6 +90,10 @@ class RolesAndPermissionsSeeder
 
             // Soporte
             ['slug' => 'tickets.manage', 'name' => 'Gestionar tickets', 'description' => 'Gestión completa de tickets de soporte', 'category' => 'Soporte', 'scope' => 'global'],
+
+            // Seguridad
+            ['slug' => 'security-dashboard', 'name' => 'Ver Security Dashboard', 'description' => 'Ver dashboard de seguridad con intentos fallidos, rate limiting y estadísticas', 'category' => 'Seguridad', 'scope' => 'global'],
+            ['slug' => 'security-manage-trusted-ips', 'name' => 'Gestionar IPs de confianza', 'description' => 'Añadir y eliminar IPs de confianza (whitelist) para bypass de rate limiting', 'category' => 'Seguridad', 'scope' => 'global'],
         ];
 
         foreach ($permissions as $permission) {

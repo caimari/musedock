@@ -5,9 +5,11 @@ use Screenart\Musedock\View;
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Security\RateLimiter;
+use Screenart\Musedock\Traits\HasPermissions;
 
 class SecurityController
 {
+    use HasPermissions;
     /**
      * Dashboard de Seguridad - Muestra intentos fallidos y estadísticas
      */
@@ -20,6 +22,9 @@ class SecurityController
             header('Location: /musedock/login');
             exit;
         }
+
+        // Verificar permiso
+        $this->checkPermission('security-dashboard');
 
         $db = Database::connect();
 
@@ -140,8 +145,11 @@ class SecurityController
             exit;
         }
 
+        // Verificar permiso
+        $this->checkPermission('security-manage-trusted-ips');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: /musedock/audit-logs');
+            header('Location: /musedock/security');
             exit;
         }
 
@@ -151,14 +159,14 @@ class SecurityController
 
         if (empty($ip)) {
             flash('error', 'La dirección IP es requerida');
-            header('Location: /musedock/audit-logs');
+            header('Location: /musedock/security');
             exit;
         }
 
         // Validar formato IP
         if (!filter_var($ip, FILTER_VALIDATE_IP)) {
             flash('error', 'Dirección IP inválida');
-            header('Location: /musedock/audit-logs');
+            header('Location: /musedock/security');
             exit;
         }
 
@@ -168,7 +176,7 @@ class SecurityController
             flash('error', 'Error al añadir la IP a la whitelist');
         }
 
-        header('Location: /musedock/audit-logs');
+        header('Location: /musedock/security');
         exit;
     }
 
@@ -184,8 +192,11 @@ class SecurityController
             exit;
         }
 
+        // Verificar permiso
+        $this->checkPermission('security-manage-trusted-ips');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: /musedock/audit-logs');
+            header('Location: /musedock/security');
             exit;
         }
 
@@ -193,7 +204,7 @@ class SecurityController
 
         if ($trustedIpId <= 0) {
             flash('error', 'ID de IP inválido');
-            header('Location: /musedock/audit-logs');
+            header('Location: /musedock/security');
             exit;
         }
 
@@ -203,7 +214,7 @@ class SecurityController
             flash('error', 'Error al eliminar la IP de la whitelist');
         }
 
-        header('Location: /musedock/audit-logs');
+        header('Location: /musedock/security');
         exit;
     }
 }
