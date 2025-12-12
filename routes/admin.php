@@ -110,13 +110,13 @@ Route::get("$adminPath/users", 'tenant.UserController@index')
      ->middleware(['auth', 'permission:users.view']);
 
 Route::get("$adminPath/settings", 'tenant.SettingsController@index')
-     ->middleware(['auth', 'role:admin']);
+     ->middleware(['auth', 'permission:settings.view']);
 Route::post("$adminPath/settings", 'tenant.SettingsController@update')
-     ->middleware(['auth', 'role:admin']);
+     ->middleware(['auth', 'permission:settings.edit']);
 Route::get("$adminPath/settings/delete-logo", 'tenant.SettingsController@deleteLogo')
-     ->middleware(['auth', 'role:admin']);
+     ->middleware(['auth', 'permission:settings.edit']);
 Route::get("$adminPath/settings/delete-favicon", 'tenant.SettingsController@deleteFavicon')
-     ->middleware(['auth', 'role:admin']);
+     ->middleware(['auth', 'permission:settings.edit']);
 
 // Roles
 Route::get("$adminPath/roles/permissions", 'tenant.RoleController@permissionsPanel')

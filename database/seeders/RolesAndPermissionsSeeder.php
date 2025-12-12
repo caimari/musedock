@@ -171,5 +171,67 @@ class RolesAndPermissionsSeeder
                 ]);
             }
         }
+
+        // Assign default permissions to admin role
+        self::assignDefaultPermissionsToAdminRole($db, $tenantId);
+    }
+
+    /**
+     * Assign default permissions to the admin role of a tenant
+     */
+    private static function assignDefaultPermissionsToAdminRole(\PDO $db, int $tenantId): void
+    {
+        // Permisos por defecto para el rol admin de tenant
+        $adminPermissions = [
+            // Configuración
+            'settings.view',
+            'settings.edit',
+            'languages.manage',
+            // Apariencia
+            'appearance.themes',
+            'appearance.menus',
+            // Contenido
+            'pages.view',
+            'pages.create',
+            'pages.edit',
+            'pages.delete',
+            // Sistema
+            'modules.manage',
+            'logs.view',
+            // Usuarios
+            'users.manage',
+            // Roles
+            'roles.view',
+            'roles.create',
+            'roles.edit',
+            'roles.delete',
+            'roles.assign',
+            // Media
+            'media.manage',
+        ];
+
+        // Get admin role ID for this tenant
+        $stmt = $db->prepare("SELECT id FROM roles WHERE name = 'admin' AND tenant_id = ?");
+        $stmt->execute([$tenantId]);
+        $adminRoleId = $stmt->fetchColumn();
+
+        if (!$adminRoleId) {
+            return;
+        }
+
+        // Get permission IDs
+        $placeholders = str_repeat('?,', count($adminPermissions) - 1) . '?';
+        $stmt = $db->prepare("SELECT id, slug FROM permissions WHERE slug IN ($placeholders)");
+        $stmt->execute($adminPermissions);
+        $permissions = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+
+        // Insert role_permissions
+        foreach ($permissions as $permissionId => $slug) {
+            $stmt = $db->prepare("
+                INSERT IGNORE INTO role_permissions (role_id, permission_id)
+                VALUES (?, ?)
+            ");
+            $stmt->execute([$adminRoleId, $permissionId]);
+        }
     }
 }
