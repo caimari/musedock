@@ -53,8 +53,8 @@ Route::get('/musedock/dashboard', 'superadmin.DashboardController@index')->middl
 Route::post('/musedock/run-seeders', 'superadmin.DashboardController@runMissingSeeders')->middleware('superadmin')->name('dashboard.run-seeders');
 Route::get('/musedock/logout', 'superadmin.AuthController@logout')->middleware('superadmin');
 
-// Security Dashboard
-Route::get('/musedock/audit-logs', 'superadmin.SecurityController@auditLogs')->middleware('superadmin')->name('security.audit-logs');
+// Security Dashboard (Rate Limiting & IP Whitelist)
+Route::get('/musedock/security', 'superadmin.SecurityController@auditLogs')->middleware('superadmin')->name('security.dashboard');
 Route::post('/musedock/security/trusted-ip/add', 'superadmin.SecurityController@addTrustedIP')->middleware('superadmin')->name('security.add-trusted-ip');
 Route::post('/musedock/security/trusted-ip/remove', 'superadmin.SecurityController@removeTrustedIP')->middleware('superadmin')->name('security.remove-trusted-ip');
 

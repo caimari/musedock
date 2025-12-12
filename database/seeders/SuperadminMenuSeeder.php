@@ -330,6 +330,16 @@ class SuperadminMenuSeeder
             ]);
             $this->insertMenu([
                 'parent_id' => $settingsId,
+                'title' => 'Security',
+                'slug' => 'security',
+                'url' => '{admin_path}/security',
+                'icon' => 'bi-shield-lock',
+                'icon_type' => 'bi',
+                'order_position' => 8,
+                'is_active' => 1
+            ]);
+            $this->insertMenu([
+                'parent_id' => $settingsId,
                 'title' => 'Admin Menus',
                 'slug' => 'admin-menus',
                 'url' => '{admin_path}/admin-menus',
