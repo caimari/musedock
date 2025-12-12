@@ -20,13 +20,15 @@ class CreateRolesTable_2025_12_11_104033
                 CREATE TABLE `roles` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
+  `slug` varchar(100) DEFAULT NULL,
   `description` text DEFAULT NULL,
   `tenant_id` int(11) DEFAULT NULL,
   `is_system` tinyint(1) DEFAULT '0',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_role_per_tenant` (`name`, `tenant_id`)
+  UNIQUE KEY `unique_role_per_tenant` (`name`, `tenant_id`),
+  KEY `idx_roles_slug` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             ");
         } else {
@@ -35,6 +37,7 @@ class CreateRolesTable_2025_12_11_104033
                 CREATE TABLE roles (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
+  slug VARCHAR(100),
   description TEXT,
   tenant_id INTEGER,
   is_system SMALLINT DEFAULT '0',
@@ -43,6 +46,7 @@ class CreateRolesTable_2025_12_11_104033
   UNIQUE (name, tenant_id)
 )
             ");
+            $pdo->exec("CREATE INDEX idx_roles_slug ON roles(slug)");
         }
 
         echo "✓ Table roles created\n";

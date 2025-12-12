@@ -467,8 +467,8 @@ class TenantCreationService
         try {
             $this->pdo->beginTransaction();
 
-            // 1. Obtener el rol Admin del tenant
-            $stmt = $this->pdo->prepare("SELECT id FROM roles WHERE tenant_id = :tenant_id AND slug = 'admin'");
+            // 1. Obtener el rol Admin del tenant (buscar por slug o name)
+            $stmt = $this->pdo->prepare("SELECT id FROM roles WHERE tenant_id = :tenant_id AND (slug = 'admin' OR name = 'Admin')");
             $stmt->execute(['tenant_id' => $tenantId]);
             $adminRole = $stmt->fetch(PDO::FETCH_ASSOC);
 
