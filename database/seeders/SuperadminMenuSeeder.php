@@ -19,6 +19,9 @@ class SuperadminMenuSeeder
 
     public function run(): void
     {
+        // Verificar si el modo multi-tenant está activo
+        $tenantMode = strtolower(getenv('MULTI_TENANT_ENABLED') ?: 'false') === 'true';
+
         // Menús principales (sin parent_id)
         $mainMenus = [
             [
@@ -48,13 +51,30 @@ class SuperadminMenuSeeder
                 'order_position' => 3,
                 'is_active' => 1
             ],
+        ];
+
+        // Si el modo tenant está activo, añadir "Tickets de Soporte" como menú principal
+        if ($tenantMode) {
+            $mainMenus[] = [
+                'title' => 'Tickets de Soporte',
+                'slug' => 'tickets-support',
+                'url' => '{admin_path}/tickets',
+                'icon' => 'bi-ticket-detailed',
+                'icon_type' => 'bi',
+                'order_position' => 4,
+                'is_active' => 1
+            ];
+        }
+
+        // Continuar con el resto de menús principales
+        $mainMenus = array_merge($mainMenus, [
             [
                 'title' => 'Apariencia',
                 'slug' => 'appearance',
                 'url' => '#',
                 'icon' => 'bi-palette',
                 'icon_type' => 'bi',
-                'order_position' => 4,
+                'order_position' => $tenantMode ? 5 : 4,
                 'is_active' => 1
             ],
             [
@@ -63,7 +83,7 @@ class SuperadminMenuSeeder
                 'url' => '#',
                 'icon' => 'bi-people',
                 'icon_type' => 'bi',
-                'order_position' => 5,
+                'order_position' => $tenantMode ? 6 : 5,
                 'is_active' => 1
             ],
             [
@@ -72,7 +92,7 @@ class SuperadminMenuSeeder
                 'url' => '#',
                 'icon' => 'bi-sliders',
                 'icon_type' => 'bi',
-                'order_position' => 6,
+                'order_position' => $tenantMode ? 7 : 6,
                 'is_active' => 1
             ],
             [
@@ -81,7 +101,7 @@ class SuperadminMenuSeeder
                 'url' => '{admin_path}/modules',
                 'icon' => 'bi-puzzle',
                 'icon_type' => 'bi',
-                'order_position' => 7,
+                'order_position' => $tenantMode ? 8 : 7,
                 'is_active' => 1
             ],
             [
@@ -90,7 +110,7 @@ class SuperadminMenuSeeder
                 'url' => '{admin_path}/plugins',
                 'icon' => 'bi-plug',
                 'icon_type' => 'bi',
-                'order_position' => 8,
+                'order_position' => $tenantMode ? 9 : 8,
                 'is_active' => 1
             ],
             [
@@ -99,10 +119,10 @@ class SuperadminMenuSeeder
                 'url' => '#',
                 'icon' => 'bi-cpu',
                 'icon_type' => 'bi',
-                'order_position' => 9,
+                'order_position' => $tenantMode ? 10 : 9,
                 'is_active' => 1
             ],
-        ];
+        ]);
 
         // Insertar menús principales y guardar sus IDs
         $menuIds = [];
@@ -298,16 +318,7 @@ class SuperadminMenuSeeder
                 'order_position' => 5,
                 'is_active' => 1
             ]);
-            $this->insertMenu([
-                'parent_id' => $settingsId,
-                'title' => 'Tickets',
-                'slug' => 'tickets',
-                'url' => '{admin_path}/tickets',
-                'icon' => 'bi-ticket-detailed',
-                'icon_type' => 'bi',
-                'order_position' => 5,
-                'is_active' => 1
-            ]);
+
             $this->insertMenu([
                 'parent_id' => $settingsId,
                 'title' => 'Logs',

@@ -132,6 +132,11 @@ class SecurityController
             $trustedIPs = RateLimiter::getTrustedIPs($_SESSION['super_admin']['id']);
         }
 
+        // Obtener formatos de fecha y hora configurados
+        $dateFormat = setting('date_format', 'd/m/Y');
+        $timeFormat = setting('time_format', 'H:i');
+        $dateTimeFormat = "{$dateFormat} {$timeFormat}";
+
         return View::renderSuperadmin('security.audit-logs', [
             'title' => 'Security Dashboard',
             'rateLimits' => $processedLimits,
@@ -139,7 +144,8 @@ class SecurityController
             'ipStats' => array_slice($ipStats, 0, 10, true), // Top 10
             'totalRecords' => count($processedLimits),
             'trustedIPs' => $trustedIPs,
-            'currentIP' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'
+            'currentIP' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0',
+            'dateTimeFormat' => $dateTimeFormat
         ]);
     }
 

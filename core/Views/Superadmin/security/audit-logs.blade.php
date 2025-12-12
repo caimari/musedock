@@ -152,7 +152,7 @@
                                                 @endif
                                             </td>
                                             <td>{{ $trustedIP['description'] ?? '-' }}</td>
-                                            <td class="text-muted small">{{ date('Y-m-d H:i', strtotime($trustedIP['created_at'])) }}</td>
+                                            <td class="text-muted small">{{ date($dateTimeFormat, strtotime($trustedIP['created_at'])) }}</td>
                                             <td>
                                                 <form method="POST" action="{{ route('security.remove-trusted-ip') }}" class="d-inline" onsubmit="return confirm('¿Eliminar esta IP de la whitelist?')">
                                                     {!! csrf_field() !!}
@@ -337,7 +337,7 @@
                                                 @endif
                                             </td>
                                             <td class="text-muted small">
-                                                {{ date('Y-m-d H:i', strtotime($limit['created_at'])) }}
+                                                {{ date($dateTimeFormat, strtotime($limit['created_at'])) }}
                                             </td>
                                         </tr>
                                     @endforeach
