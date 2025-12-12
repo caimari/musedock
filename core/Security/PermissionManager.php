@@ -25,7 +25,7 @@ class PermissionManager
         return (int)$stmt->fetchColumn() > 0;
     }
 
-public static function userHasPermission(?int $userId, string $permissionName, ?int $tenantId): bool
+public static function userHasPermission(?int $userId, string $permissionSlug, ?int $tenantId): bool
 {
     if (is_null($userId)) {
         error_log("userHasPermission() llamado con userId = null");
@@ -33,19 +33,51 @@ public static function userHasPermission(?int $userId, string $permissionName, ?
     }
 
     $db = Database::connect();
+
+    // 1. Verificar permisos directos del usuario (user_permissions)
+    if ($tenantId === null) {
+        $stmt = $db->prepare("
+            SELECT COUNT(*) FROM user_permissions
+            WHERE user_id = :user_id
+            AND permission_slug = :permission_slug
+            AND tenant_id IS NULL
+        ");
+        $stmt->execute([
+            'user_id' => $userId,
+            'permission_slug' => $permissionSlug
+        ]);
+    } else {
+        $stmt = $db->prepare("
+            SELECT COUNT(*) FROM user_permissions
+            WHERE user_id = :user_id
+            AND permission_slug = :permission_slug
+            AND (tenant_id = :tenant_id OR tenant_id IS NULL)
+        ");
+        $stmt->execute([
+            'user_id' => $userId,
+            'permission_slug' => $permissionSlug,
+            'tenant_id' => $tenantId
+        ]);
+    }
+
+    if ((int)$stmt->fetchColumn() > 0) {
+        return true;
+    }
+
+    // 2. Verificar permisos heredados de roles (buscar por SLUG)
     $stmt = $db->prepare("
         SELECT COUNT(*) FROM user_roles ur
         JOIN roles r ON ur.role_id = r.id
         JOIN role_permissions rp ON rp.role_id = r.id
         JOIN permissions p ON rp.permission_id = p.id
-        WHERE ur.user_id = :user_id 
-        AND p.name = :permission_name
+        WHERE ur.user_id = :user_id
+        AND p.slug = :permission_slug
         AND (r.tenant_id = :tenant_id OR r.tenant_id IS NULL)
     ");
 
     $stmt->execute([
         'user_id' => $userId,
-        'permission_name' => $permissionName,
+        'permission_slug' => $permissionSlug,
         'tenant_id' => $tenantId
     ]);
 
@@ -57,8 +89,27 @@ public static function userHasPermission(?int $userId, string $permissionName, ?
     public static function getUserPermissions(int $userId, ?int $tenantId): array
     {
         $db = Database::connect();
+        $permissions = [];
+
+        // 1. Permisos directos del usuario
+        if ($tenantId === null) {
+            $stmt = $db->prepare("
+                SELECT DISTINCT permission_slug FROM user_permissions
+                WHERE user_id = :user_id AND tenant_id IS NULL
+            ");
+            $stmt->execute(['user_id' => $userId]);
+        } else {
+            $stmt = $db->prepare("
+                SELECT DISTINCT permission_slug FROM user_permissions
+                WHERE user_id = :user_id AND (tenant_id = :tenant_id OR tenant_id IS NULL)
+            ");
+            $stmt->execute(['user_id' => $userId, 'tenant_id' => $tenantId]);
+        }
+        $permissions = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+
+        // 2. Permisos heredados de roles (devolver SLUG)
         $stmt = $db->prepare("
-            SELECT DISTINCT p.name FROM permissions p
+            SELECT DISTINCT p.slug FROM permissions p
             JOIN role_permissions rp ON p.id = rp.permission_id
             JOIN roles r ON rp.role_id = r.id
             JOIN user_roles ur ON r.id = ur.role_id
@@ -71,7 +122,9 @@ public static function userHasPermission(?int $userId, string $permissionName, ?
             'tenant_id' => $tenantId
         ]);
 
-        return $stmt->fetchAll(\PDO::FETCH_COLUMN);
+        $rolePermissions = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+
+        return array_unique(array_merge($permissions, $rolePermissions));
     }
 
     public static function getUserRoles(int $userId, ?int $tenantId): array
@@ -251,8 +304,27 @@ public static function userHasPermission(?int $userId, string $permissionName, ?
 public static function getUserPermissionsWithType(int $userId, string $userType, ?int $tenantId): array
 {
     $db = Database::connect();
+    $permissions = [];
+
+    // 1. Permisos directos del usuario
+    if ($tenantId === null) {
+        $stmt = $db->prepare("
+            SELECT DISTINCT permission_slug FROM user_permissions
+            WHERE user_id = :user_id AND tenant_id IS NULL
+        ");
+        $stmt->execute(['user_id' => $userId]);
+    } else {
+        $stmt = $db->prepare("
+            SELECT DISTINCT permission_slug FROM user_permissions
+            WHERE user_id = :user_id AND (tenant_id = :tenant_id OR tenant_id IS NULL)
+        ");
+        $stmt->execute(['user_id' => $userId, 'tenant_id' => $tenantId]);
+    }
+    $permissions = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+
+    // 2. Permisos heredados de roles (devolver SLUG)
     $stmt = $db->prepare("
-        SELECT DISTINCT p.name 
+        SELECT DISTINCT p.slug
         FROM permissions p
         JOIN role_permissions rp ON p.id = rp.permission_id
         JOIN roles r ON rp.role_id = r.id
@@ -268,27 +340,61 @@ public static function getUserPermissionsWithType(int $userId, string $userType,
         'tenant_id' => $tenantId
     ]);
 
-    return $stmt->fetchAll(\PDO::FETCH_COLUMN);
+    $rolePermissions = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+
+    return array_unique(array_merge($permissions, $rolePermissions));
 }
-public static function userHasPermissionWithType(int $userId, string $userType, string $permissionName, ?int $tenantId): bool
+public static function userHasPermissionWithType(int $userId, string $userType, string $permissionSlug, ?int $tenantId): bool
 {
     $db = Database::connect();
+
+    // 1. Verificar permisos directos del usuario (user_permissions)
+    if ($tenantId === null) {
+        $stmt = $db->prepare("
+            SELECT COUNT(*) FROM user_permissions
+            WHERE user_id = :user_id
+            AND permission_slug = :permission_slug
+            AND tenant_id IS NULL
+        ");
+        $stmt->execute([
+            'user_id' => $userId,
+            'permission_slug' => $permissionSlug
+        ]);
+    } else {
+        $stmt = $db->prepare("
+            SELECT COUNT(*) FROM user_permissions
+            WHERE user_id = :user_id
+            AND permission_slug = :permission_slug
+            AND (tenant_id = :tenant_id OR tenant_id IS NULL)
+        ");
+        $stmt->execute([
+            'user_id' => $userId,
+            'permission_slug' => $permissionSlug,
+            'tenant_id' => $tenantId
+        ]);
+    }
+
+    if ((int)$stmt->fetchColumn() > 0) {
+        return true;
+    }
+
+    // 2. Verificar permisos heredados de roles (buscar por SLUG, no por name)
     $stmt = $db->prepare("
-        SELECT COUNT(*) 
+        SELECT COUNT(*)
         FROM user_roles ur
         JOIN roles r ON ur.role_id = r.id
         JOIN role_permissions rp ON rp.role_id = r.id
         JOIN permissions p ON rp.permission_id = p.id
-        WHERE ur.user_id = :user_id 
+        WHERE ur.user_id = :user_id
         AND ur.user_type = :user_type
-        AND p.name = :permission_name
+        AND p.slug = :permission_slug
         AND (r.tenant_id = :tenant_id OR r.tenant_id IS NULL)
     ");
 
     $stmt->execute([
         'user_id' => $userId,
         'user_type' => $userType,
-        'permission_name' => $permissionName,
+        'permission_slug' => $permissionSlug,
         'tenant_id' => $tenantId
     ]);
 
