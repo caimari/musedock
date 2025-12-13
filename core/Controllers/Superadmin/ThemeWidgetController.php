@@ -23,7 +23,10 @@ class ThemeWidgetController
         $this->checkPermission('appearance.themes');
     // --- Permisos ---
     // ...
-    
+
+    // --- Cargar lista de temas disponibles ---
+    $availableThemes = $this->getAvailableThemes();
+
     // --- Cargar Configuración del Tema (theme.json) ---
     $themeConfig = $this->getThemeConfig($slug, $tenantId);
     if (!$themeConfig) {
@@ -122,10 +125,12 @@ class ThemeWidgetController
     return View::renderSuperadmin('widgets.index', [
         'title'            => 'Gestionar Widgets: ' . ($themeConfig['name'] ?? $slug) . ($tenantId ? " (Tenant #{$tenantId})" : " (Global)"),
         'themeSlug'        => $slug,
+        'themeConfig'      => $themeConfig,       // Configuración completa del tema
         'tenantId'         => $tenantId,
         'widgetAreas'      => $widgetAreas,       // Definiciones de las áreas desde theme.json
         'availableWidgets' => $availableWidgets,  // Tipos de widgets disponibles ['slug'=>['name', 'desc']]
-        'assignedWidgets'  => $assignedWidgets    // Widgets asignados por área ['area_slug'=>[widget1, widget2]]
+        'assignedWidgets'  => $assignedWidgets,   // Widgets asignados por área ['area_slug'=>[widget1, widget2]]
+        'availableThemes'  => $availableThemes    // Lista de temas disponibles para el selector
     ]);
 }
 
@@ -457,5 +462,54 @@ public function save($slug, $tenantId = null)
             'data' => $data
         ]);
         exit;
+    }
+
+    /**
+     * Helper para obtener la lista de temas disponibles con soporte de widgets
+     */
+    protected function getAvailableThemes(): array
+    {
+        $themes = [];
+        $themesPath = APP_ROOT . '/themes';
+
+        if (!is_dir($themesPath)) {
+            return $themes;
+        }
+
+        $dirs = scandir($themesPath);
+        foreach ($dirs as $dir) {
+            // Ignorar directorios especiales y de tenants
+            if ($dir === '.' || $dir === '..' || strpos($dir, 'tenant_') === 0) {
+                continue;
+            }
+
+            $themePath = $themesPath . '/' . $dir;
+            $configFile = $themePath . '/theme.json';
+
+            if (is_dir($themePath) && file_exists($configFile)) {
+                $config = json_decode(file_get_contents($configFile), true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($config)) {
+                    // Verificar si el tema tiene áreas con soporte de widgets
+                    $hasWidgetSupport = false;
+                    foreach ($config['content_areas'] ?? ($config['widget_areas'] ?? []) as $area) {
+                        if (isset($area['supports']) && is_array($area['supports']) && in_array('widget', $area['supports'])) {
+                            $hasWidgetSupport = true;
+                            break;
+                        }
+                    }
+
+                    // Solo incluir temas con soporte de widgets
+                    if ($hasWidgetSupport) {
+                        $themes[$dir] = [
+                            'slug' => $config['slug'] ?? $dir,
+                            'name' => $config['name'] ?? $dir,
+                            'version' => $config['version'] ?? '1.0.0'
+                        ];
+                    }
+                }
+            }
+        }
+
+        return $themes;
     }
 }

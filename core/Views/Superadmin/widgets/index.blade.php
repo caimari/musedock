@@ -304,9 +304,22 @@
                     <small>{{ $tenantId ? 'Tenant #' . $tenantId : 'CMS Principal (Global)' }}</small>
                 </p>
             </div>
-            <button type="button" id="saveWidgetsBtn" class="btn btn-primary">
-                <i class="bi bi-save me-2"></i> Guardar Cambios
-            </button>
+            <div class="d-flex align-items-center gap-3">
+                {{-- Selector de Temas --}}
+                @if(!empty($availableThemes) && count($availableThemes) > 1)
+                <label for="themeSelector" class="form-label small text-muted mb-0 me-2">Seleccionar Tema:</label>
+                <select id="themeSelector" class="form-select form-select-sm" style="width: auto;" onchange="window.location.href='/musedock/widgets/' + this.value">
+                    @foreach($availableThemes as $slug => $theme)
+                        <option value="{{ $slug }}" {{ $slug === $themeSlug ? 'selected' : '' }}>
+                            {{ e($theme['name']) }} (v{{ e($theme['version']) }})
+                        </option>
+                    @endforeach
+                </select>
+                @endif
+                <button type="button" id="saveWidgetsBtn" class="btn btn-primary">
+                    <i class="bi bi-save me-2"></i> Guardar Cambios
+                </button>
+            </div>
         </div>
 
         @include('partials.alerts-sweetalert2')

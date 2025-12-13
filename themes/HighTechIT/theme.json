@@ -1,0 +1,120 @@
+{
+    "name": "HighTech IT",
+    "slug": "HighTechIT",
+    "version": "1.0.0",
+    "description": "Modern IT Solutions website template with Bootstrap 5. Perfect for technology companies, digital agencies, and IT service providers.",
+    "author": "HTML Codex / Adapted for MuseDock",
+    "author_uri": "https://htmlcodex.com",
+    "license": "https://htmlcodex.com/license",
+    "bootstrap": true,
+    "bootstrap_version": "5.0",
+    "supports": {
+        "menus": true,
+        "widgets": true,
+        "customizer": true,
+        "multi_language": true,
+        "seo": true,
+        "blog": true
+    },
+    "content_areas": [
+        {
+            "id": "main",
+            "name": "Navegación Principal",
+            "description": "Menú de navegación en la cabecera del sitio",
+            "supports": ["menu"]
+        },
+        {
+            "id": "footer-links",
+            "name": "Footer - Quick Links",
+            "description": "Segunda columna del footer - Enlaces rápidos",
+            "supports": ["menu", "widget"]
+        },
+        {
+            "id": "footer-help",
+            "name": "Footer - Help",
+            "description": "Tercera columna del footer - Ayuda",
+            "supports": ["menu", "widget"]
+        },
+        {
+            "id": "sidebar",
+            "name": "Barra Lateral",
+            "description": "Widgets de barra lateral (para plantillas de blog)",
+            "supports": ["widget"]
+        }
+    ],
+    "menu_areas": [
+        {
+            "id": "main",
+            "name": "Navegación Principal",
+            "description": "Menú de navegación en la cabecera del sitio"
+        },
+        {
+            "id": "footer-links",
+            "name": "Footer - Quick Links",
+            "description": "Segunda columna del footer - Enlaces rápidos"
+        },
+        {
+            "id": "footer-help",
+            "name": "Footer - Help",
+            "description": "Tercera columna del footer - Ayuda"
+        }
+    ],
+    "customizable_options": {
+        "colors": {
+            "primary_color": {
+                "type": "color",
+                "label": "Primary Color",
+                "default": "#0d6efd"
+            },
+            "secondary_color": {
+                "type": "color",
+                "label": "Secondary Color",
+                "default": "#6c757d"
+            }
+        },
+        "branding": {
+            "logo_text": {
+                "type": "text",
+                "label": "Logo Text",
+                "default": "High Tech",
+                "description": "Text displayed in the logo. Separate words with space - first word will be in white, rest in secondary color."
+            }
+        },
+        "header": {
+            "topbar_note": {
+                "type": "text",
+                "label": "Topbar Note",
+                "default": "Note : We help you to Grow your Business"
+            }
+        },
+        "footer": {
+            "copyright_text": {
+                "type": "text",
+                "label": "Copyright Text",
+                "default": "Your Site Name"
+            }
+        },
+        "homepage": {
+            "home_carousel_slides": {
+                "type": "json",
+                "label": "Homepage Carousel Slides",
+                "description": "Array of slide objects with image, subtitle, title, description, btn1_text, btn1_url, btn2_text, btn2_url",
+                "default": []
+            }
+        }
+    },
+    "required_settings": [
+        "site_name",
+        "site_description",
+        "contact_email",
+        "contact_phone",
+        "contact_address",
+        "social_facebook",
+        "social_twitter",
+        "social_instagram",
+        "social_linkedin"
+    ],
+    "screenshots": {
+        "main": "it-solutions-website-template.jpg"
+    }
+}
