@@ -44,6 +44,7 @@ Route::post('musedock/media/copy', 'MediaManager\Controllers\MediaController@cop
 Route::get('admin/media', 'MediaManager\Controllers\MediaController@index')->name('tenant.media.index');
 Route::get('admin/media/data', 'MediaManager\Controllers\MediaController@getMediaData')->name('tenant.media.data');
 Route::get('admin/media/disks', 'MediaManager\Controllers\MediaController@getAvailableDisksApi')->name('tenant.media.disks');
+Route::get('admin/media/quota', 'MediaManager\Controllers\MediaController@getStorageQuotaApi')->name('tenant.media.quota');
 Route::post('admin/media/upload', 'MediaManager\Controllers\MediaController@upload')->name('tenant.media.upload');
 Route::post('admin/media/{id}/delete', 'MediaManager\Controllers\MediaController@delete')->name('tenant.media.delete');
 Route::post('admin/media/{id}/update', 'MediaManager\Controllers\MediaController@updateMeta')->name('tenant.media.update');

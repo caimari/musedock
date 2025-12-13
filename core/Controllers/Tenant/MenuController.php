@@ -394,8 +394,9 @@ class MenuController
             exit;
         }
 
-        // 🔒 SECURITY: Verificar CSRF token
-        if (!isset($_POST['_csrf']) || !verify_csrf_token($_POST['_csrf'])) {
+        // 🔒 SECURITY: Verificar CSRF token (desde POST o header)
+        $csrfToken = $_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (empty($csrfToken) || !verify_csrf_token($csrfToken)) {
             http_response_code(403);
             flash('error', 'Token CSRF inválido');
             header('Location: ' . '/' . admin_path() . '/menus');
@@ -587,8 +588,9 @@ class MenuController
             return json_encode(['error' => 'Método no permitido']);
         }
 
-        // 🔒 SECURITY: Verificar CSRF token
-        if (!isset($_POST['_csrf']) || !verify_csrf_token($_POST['_csrf'])) {
+        // 🔒 SECURITY: Verificar CSRF token (desde POST o header)
+        $csrfToken = $_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (empty($csrfToken) || !verify_csrf_token($csrfToken)) {
             http_response_code(403);
             return json_encode(['error' => 'Token CSRF inválido']);
         }

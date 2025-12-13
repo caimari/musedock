@@ -204,8 +204,11 @@ class TenantCreationService
     {
         $theme = $data['theme'] ?? $this->getSetting('default_theme', 'default');
 
-        $sql = "INSERT INTO tenants (name, domain, admin_path, theme, is_active, created_at, updated_at)
-                VALUES (:name, :domain, :admin_path, :theme, :is_active, NOW(), NOW())";
+        // Cuota de almacenamiento por defecto desde .env (1024 MB = 1GB)
+        $defaultStorageQuota = (int) \Screenart\Musedock\Env::get('TENANT_DEFAULT_STORAGE_QUOTA_MB', 1024);
+
+        $sql = "INSERT INTO tenants (name, domain, admin_path, theme, is_active, storage_quota_mb, storage_used_bytes, created_at, updated_at)
+                VALUES (:name, :domain, :admin_path, :theme, :is_active, :storage_quota_mb, 0, NOW(), NOW())";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
@@ -213,7 +216,8 @@ class TenantCreationService
             'domain' => $data['domain'],
             'admin_path' => $data['admin_path'] ?? 'admin',
             'theme' => $theme,
-            'is_active' => $data['is_active'] ?? 1
+            'is_active' => $data['is_active'] ?? 1,
+            'storage_quota_mb' => $data['storage_quota_mb'] ?? $defaultStorageQuota
         ]);
 
         return (int) $this->pdo->lastInsertId() ?: null;

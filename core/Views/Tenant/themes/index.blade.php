@@ -84,9 +84,14 @@
 
                     <div class="card-footer bg-white">
                         @if($tenant['theme_type'] === 'global' && $tenant['theme'] === $theme['slug'])
-                            <span class="badge bg-primary w-100">
-                                <i class="fas fa-check"></i> ACTIVO
-                            </span>
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-primary flex-grow-1 text-center py-2">
+                                    <i class="fas fa-check"></i> ACTIVO
+                                </span>
+                                <a href="/{{ admin_path() }}/widgets/{{ $theme['slug'] }}" class="btn btn-info btn-sm" title="Gestionar Widgets">
+                                    <i class="fas fa-th-large"></i>
+                                </a>
+                            </div>
                         @else
                             <form action="{{ admin_url('themes/activate-global/' . $theme['slug']) }}" method="POST">
                                 {!! csrf_field() !!}
@@ -186,6 +191,9 @@
                                     <span class="badge bg-primary flex-grow-1 text-center py-2">
                                         <i class="fas fa-check"></i> ACTIVO
                                     </span>
+                                    <a href="/{{ admin_path() }}/widgets/{{ $theme['slug'] }}" class="btn btn-info btn-sm" title="Gestionar Widgets">
+                                        <i class="fas fa-th-large"></i>
+                                    </a>
                                 @elseif($theme['validated'])
                                     <form action="{{ admin_url('themes/activate-custom/' . $theme['slug']) }}" method="POST" class="flex-grow-1">
                                         {!! csrf_field() !!}

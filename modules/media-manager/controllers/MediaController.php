@@ -28,6 +28,127 @@ if (!function_exists('slugify')) {
 
 class MediaController
 {
+    /**
+     * Obtiene la información de cuota de almacenamiento del tenant actual
+     * @return array ['quota_mb' => int, 'used_bytes' => int, 'available_bytes' => int, 'percentage' => float]
+     */
+    private function getTenantStorageInfo(): array
+    {
+        $tenantId = function_exists('tenant_id') ? tenant_id() : null;
+
+        if (!$tenantId) {
+            // Superadmin: sin límite
+            return [
+                'quota_mb' => 0, // 0 = ilimitado
+                'used_bytes' => 0,
+                'available_bytes' => PHP_INT_MAX,
+                'percentage' => 0,
+                'unlimited' => true
+            ];
+        }
+
+        try {
+            $tenant = Database::table('tenants')->where('id', $tenantId)->first();
+
+            if (!$tenant) {
+                return [
+                    'quota_mb' => 1024,
+                    'used_bytes' => 0,
+                    'available_bytes' => 1024 * 1024 * 1024,
+                    'percentage' => 0,
+                    'unlimited' => false
+                ];
+            }
+
+            $quotaMb = is_array($tenant) ? ($tenant['storage_quota_mb'] ?? 1024) : ($tenant->storage_quota_mb ?? 1024);
+            $usedBytes = is_array($tenant) ? ($tenant['storage_used_bytes'] ?? 0) : ($tenant->storage_used_bytes ?? 0);
+            $quotaBytes = $quotaMb * 1024 * 1024;
+            $availableBytes = max(0, $quotaBytes - $usedBytes);
+            $percentage = $quotaBytes > 0 ? round(($usedBytes / $quotaBytes) * 100, 2) : 0;
+
+            return [
+                'quota_mb' => $quotaMb,
+                'used_bytes' => $usedBytes,
+                'available_bytes' => $availableBytes,
+                'percentage' => $percentage,
+                'unlimited' => false
+            ];
+        } catch (\Exception $e) {
+            Logger::error("Error getting tenant storage info: " . $e->getMessage());
+            return [
+                'quota_mb' => 1024,
+                'used_bytes' => 0,
+                'available_bytes' => 1024 * 1024 * 1024,
+                'percentage' => 0,
+                'unlimited' => false
+            ];
+        }
+    }
+
+    /**
+     * Actualiza el espacio usado por el tenant
+     * @param int $bytesChange Cambio en bytes (positivo para añadir, negativo para eliminar)
+     */
+    private function updateTenantStorageUsed(int $bytesChange): bool
+    {
+        $tenantId = function_exists('tenant_id') ? tenant_id() : null;
+
+        if (!$tenantId) {
+            return true; // Superadmin no tiene tracking
+        }
+
+        try {
+            // Usar SQL directo para operación atómica
+            $pdo = Database::connect();
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+            if ($driver === 'mysql') {
+                // MySQL: usar GREATEST para evitar valores negativos
+                $sql = "UPDATE tenants SET storage_used_bytes = GREATEST(0, storage_used_bytes + :change) WHERE id = :tenant_id";
+            } else {
+                // PostgreSQL
+                $sql = "UPDATE tenants SET storage_used_bytes = GREATEST(0, storage_used_bytes + :change) WHERE id = :tenant_id";
+            }
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                'change' => $bytesChange,
+                'tenant_id' => $tenantId
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            Logger::error("Error updating tenant storage: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Verifica si el tenant tiene espacio suficiente para un archivo
+     * @param int $fileSize Tamaño del archivo en bytes
+     * @return array ['allowed' => bool, 'message' => string]
+     */
+    private function checkStorageQuota(int $fileSize): array
+    {
+        $storageInfo = $this->getTenantStorageInfo();
+
+        if ($storageInfo['unlimited']) {
+            return ['allowed' => true, 'message' => ''];
+        }
+
+        if ($fileSize > $storageInfo['available_bytes']) {
+            $availableMb = round($storageInfo['available_bytes'] / (1024 * 1024), 2);
+            $fileSizeMb = round($fileSize / (1024 * 1024), 2);
+
+            return [
+                'allowed' => false,
+                'message' => "Cuota de almacenamiento excedida. Disponible: {$availableMb} MB, Archivo: {$fileSizeMb} MB"
+            ];
+        }
+
+        return ['allowed' => true, 'message' => ''];
+    }
+
     public function index()
     {
         SessionSecurity::startSession();
@@ -67,35 +188,55 @@ class MediaController
 
     /**
      * Obtiene los discos disponibles para el Media Manager
-     * Solo muestra discos que están configurados y tienen credenciales válidas
+     * Solo muestra discos que están configurados, tienen credenciales válidas,
+     * y están habilitados según el contexto (tenant vs superadmin)
      */
     private function getAvailableDisks(): array
     {
         $disks = [];
         $filesystemsConfig = config('filesystems.disks', []);
+        $isTenant = $this->isTenantContext();
 
-        // Disco 'media' (local seguro) - siempre disponible
+        // Disco 'media' (local seguro)
         if (isset($filesystemsConfig['media'])) {
-            $disks['media'] = [
-                'name' => 'Local (Seguro)',
-                'icon' => 'bi-hdd',
-                'description' => 'Almacenamiento local seguro'
-            ];
+            // Para tenants: verificar si está habilitado en .env
+            $enabled = $isTenant
+                ? \Screenart\Musedock\Env::get('TENANT_DISK_MEDIA_ENABLED', true)
+                : true; // Superadmin siempre tiene acceso
+
+            if ($enabled) {
+                $disks['media'] = [
+                    'name' => 'Local (Seguro)',
+                    'icon' => 'bi-hdd',
+                    'description' => 'Almacenamiento local seguro'
+                ];
+            }
         }
 
-        // Disco 'local' (legacy) - siempre disponible para ver archivos antiguos
+        // Disco 'local' (legacy) - para ver archivos antiguos
         if (isset($filesystemsConfig['local'])) {
-            $disks['local'] = [
-                'name' => 'Local (Legacy)',
-                'icon' => 'bi-folder',
-                'description' => 'Archivos públicos antiguos'
-            ];
+            $enabled = $isTenant
+                ? \Screenart\Musedock\Env::get('TENANT_DISK_LOCAL_ENABLED', false)
+                : true;
+
+            if ($enabled) {
+                $disks['local'] = [
+                    'name' => 'Local (Legacy)',
+                    'icon' => 'bi-folder',
+                    'description' => 'Archivos públicos antiguos'
+                ];
+            }
         }
 
-        // Disco R2 (Cloudflare) - solo si está configurado
+        // Disco R2 (Cloudflare) - solo si está configurado y habilitado
         if (isset($filesystemsConfig['r2'])) {
             $r2Config = $filesystemsConfig['r2'];
-            if (!empty($r2Config['key']) && !empty($r2Config['secret']) && !empty($r2Config['bucket'])) {
+            $hasCredentials = !empty($r2Config['key']) && !empty($r2Config['secret']) && !empty($r2Config['bucket']);
+            $enabled = $isTenant
+                ? \Screenart\Musedock\Env::get('TENANT_DISK_R2_ENABLED', true)
+                : true;
+
+            if ($hasCredentials && $enabled) {
                 $disks['r2'] = [
                     'name' => 'Cloudflare R2 (CDN)',
                     'icon' => 'bi-cloud',
@@ -104,10 +245,15 @@ class MediaController
             }
         }
 
-        // Disco S3 (Amazon) - solo si está configurado
+        // Disco S3 (Amazon) - solo si está configurado y habilitado
         if (isset($filesystemsConfig['s3'])) {
             $s3Config = $filesystemsConfig['s3'];
-            if (!empty($s3Config['key']) && !empty($s3Config['secret']) && !empty($s3Config['bucket'])) {
+            $hasCredentials = !empty($s3Config['key']) && !empty($s3Config['secret']) && !empty($s3Config['bucket']);
+            $enabled = $isTenant
+                ? \Screenart\Musedock\Env::get('TENANT_DISK_S3_ENABLED', false)
+                : true;
+
+            if ($hasCredentials && $enabled) {
                 $disks['s3'] = [
                     'name' => 'Amazon S3',
                     'icon' => 'bi-cloud-arrow-up',
@@ -527,10 +673,17 @@ public function upload()
             }
         }
 
-        // Verificar tamaño
+        // Verificar tamaño máximo por archivo
         if ($file['size'] > $maxFileSize) {
             $sizeInMB = number_format($maxFileSize / 1024 / 1024, 2);
             $errors[] = "El archivo {$file['name']} excede el tamaño máximo permitido ({$sizeInMB}MB)";
+            continue;
+        }
+
+        // 🔒 Verificar cuota de almacenamiento del tenant
+        $quotaCheck = $this->checkStorageQuota($file['size']);
+        if (!$quotaCheck['allowed']) {
+            $errors[] = "No se puede subir '{$file['name']}': " . $quotaCheck['message'];
             continue;
         }
 
@@ -651,6 +804,9 @@ public function upload()
                 }
             }
 
+            // 📊 Actualizar el espacio usado por el tenant
+            $this->updateTenantStorageUsed($file['size']);
+
             // Añadir a archivos subidos exitosamente
             $uploadedFiles[] = [
                 'id'            => $media->id,
@@ -756,6 +912,9 @@ private function getUploadErrorMessage($errorCode)
                 return $this->jsonResponse(['success' => false, 'message' => 'Medio no encontrado.']);
             }
 
+            // Guardar el tamaño antes de eliminar para actualizar la cuota
+            $fileSize = $media->size ?? 0;
+
             $filesystem = new \League\Flysystem\Filesystem(
                 new \League\Flysystem\Local\LocalFilesystemAdapter(APP_ROOT . config('filesystems.disks.local.root', '/public/assets/uploads'))
             );
@@ -765,6 +924,11 @@ private function getUploadErrorMessage($errorCode)
             }
 
             if ($media->delete()) {
+                // 📊 Restar el espacio usado del tenant
+                if ($fileSize > 0) {
+                    $this->updateTenantStorageUsed(-$fileSize);
+                }
+
                 return $this->jsonResponse(['success' => true, 'message' => 'Medio eliminado correctamente.']);
             }
 
@@ -1348,6 +1512,50 @@ private function getUploadErrorMessage($errorCode)
             'success' => true,
             'disks' => $disks
         ]);
+    }
+
+    /**
+     * Obtiene información de cuota de almacenamiento del tenant (endpoint API)
+     */
+    public function getStorageQuotaApi()
+    {
+        SessionSecurity::startSession();
+
+        $storageInfo = $this->getTenantStorageInfo();
+
+        // Formatear para mejor legibilidad
+        $quotaBytes = $storageInfo['quota_mb'] * 1024 * 1024;
+
+        return $this->jsonResponse([
+            'success' => true,
+            'storage' => [
+                'quota_mb' => $storageInfo['quota_mb'],
+                'quota_bytes' => $quotaBytes,
+                'quota_formatted' => $this->formatBytes($quotaBytes),
+                'used_bytes' => $storageInfo['used_bytes'],
+                'used_formatted' => $this->formatBytes($storageInfo['used_bytes']),
+                'available_bytes' => $storageInfo['available_bytes'],
+                'available_formatted' => $this->formatBytes($storageInfo['available_bytes']),
+                'percentage' => $storageInfo['percentage'],
+                'unlimited' => $storageInfo['unlimited']
+            ]
+        ]);
+    }
+
+    /**
+     * Formatea bytes a unidad legible (KB, MB, GB)
+     */
+    private function formatBytes(int $bytes, int $precision = 2): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+
+        $bytes /= pow(1024, $pow);
+
+        return round($bytes, $precision) . ' ' . $units[$pow];
     }
 
     private function jsonResponse(array $data, int $statusCode = 200)

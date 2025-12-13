@@ -105,6 +105,14 @@ Route::post("$adminPath/themes/update", 'tenant.ThemeController@update')
      ->middleware(['auth'])
      ->name('tenant.themes.update.legacy');
 
+// Widgets del tema
+Route::get("$adminPath/widgets/{slug}", 'tenant.ThemeWidgetController@index')
+     ->middleware(['auth'])
+     ->name('tenant.widgets.index');
+Route::post("$adminPath/widgets/{slug}/save", 'tenant.ThemeWidgetController@save')
+     ->middleware(['auth'])
+     ->name('tenant.widgets.save');
+
 // Rutas protegidas por permisos y roles
 Route::get("$adminPath/users", 'tenant.UserController@index')
      ->middleware(['auth', 'permission:users.view']);
