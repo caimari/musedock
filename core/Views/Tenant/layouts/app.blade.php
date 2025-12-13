@@ -696,19 +696,29 @@ function generate_id($prefix = 'menu-') {
 
         <main class="content">
             @php
-            $flashSuccess = function_exists('consume_flash') ? consume_flash('success') : (session()->pull('success') ?? '');
-            $flashError   = function_exists('consume_flash') ? consume_flash('error')   : (session()->pull('error') ?? '');
-            $flashWarning = function_exists('consume_flash') ? consume_flash('warning') : (session()->pull('warning') ?? '');
-            
-            if (function_exists('consume_flash')) {
-                $flashSuccess = (array) $flashSuccess; 
-                $flashError = (array) $flashError; 
-                $flashWarning = (array) $flashWarning;
-            } else {
-                $flashSuccess = is_array($flashSuccess) ? $flashSuccess : (!empty($flashSuccess) ? [$flashSuccess] : []);
-                $flashError   = is_array($flashError) ? $flashError : (!empty($flashError) ? [$flashError] : []);
-                $flashWarning = is_array($flashWarning) ? $flashWarning : (!empty($flashWarning) ? [$flashWarning] : []);
+            // Leer flash messages del sistema nuevo (con TTL)
+            $flashSuccess = function_exists('consume_flash') ? consume_flash('success') : null;
+            $flashError   = function_exists('consume_flash') ? consume_flash('error')   : null;
+            $flashWarning = function_exists('consume_flash') ? consume_flash('warning') : null;
+
+            // Fallback: también leer de $_SESSION directa (compatibilidad con código legacy)
+            if (empty($flashSuccess) && isset($_SESSION['success'])) {
+                $flashSuccess = $_SESSION['success'];
+                unset($_SESSION['success']); // Consumir
             }
+            if (empty($flashError) && isset($_SESSION['error'])) {
+                $flashError = $_SESSION['error'];
+                unset($_SESSION['error']); // Consumir
+            }
+            if (empty($flashWarning) && isset($_SESSION['warning'])) {
+                $flashWarning = $_SESSION['warning'];
+                unset($_SESSION['warning']); // Consumir
+            }
+
+            // Normalizar a arrays
+            $flashSuccess = is_array($flashSuccess) ? $flashSuccess : (!empty($flashSuccess) ? [$flashSuccess] : []);
+            $flashError   = is_array($flashError) ? $flashError : (!empty($flashError) ? [$flashError] : []);
+            $flashWarning = is_array($flashWarning) ? $flashWarning : (!empty($flashWarning) ? [$flashWarning] : []);
             @endphp
             
             <div class="container-fluid p-0">
