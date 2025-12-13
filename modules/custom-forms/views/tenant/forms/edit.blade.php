@@ -10,19 +10,22 @@
 @section('content')
 <div class="app-content">
     <div class="container-fluid">
-        <div class="mb-4">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-1">
-                    <li class="breadcrumb-item"><a href="{{ route('tenant.custom-forms.index') }}">{{ __forms('form.forms') }}</a></li>
-                    <li class="breadcrumb-item active">{{ $form->name }}</li>
-                </ol>
-            </nav>
-            <div class="d-flex justify-content-between align-items-center">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1">
+                        <li class="breadcrumb-item">
+                            <a href="{{ route('tenant.custom-forms.index') }}">{{ __forms('form.forms') }}</a>
+                        </li>
+                        <li class="breadcrumb-item active">{{ $form->name }}</li>
+                    </ol>
+                </nav>
                 <h2 class="mb-0"><i class="bi bi-pencil-square me-2"></i>{{ $form->name }}</h2>
-                <a href="{{ route('tenant.custom-forms.submissions', $form->id) }}" class="btn btn-outline-info">
-                    <i class="bi bi-inbox me-1"></i> {{ __forms('form.submissions') }} ({{ $form->submission_count ?? 0 }})
-                </a>
             </div>
+            <a href="{{ route('tenant.custom-forms.submissions', $form->id) }}" class="btn btn-outline-info">
+                <i class="bi bi-inbox me-1"></i> {{ __forms('form.submissions') }} ({{ $form->submission_count ?? 0 }})
+            </a>
         </div>
 
         @if(session('success'))

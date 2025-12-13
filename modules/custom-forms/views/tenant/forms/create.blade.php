@@ -9,14 +9,19 @@
 @section('content')
 <div class="app-content">
     <div class="container-fluid">
-        <div class="mb-4">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-1">
-                    <li class="breadcrumb-item"><a href="{{ route('tenant.custom-forms.index') }}">{{ __forms('form.forms') }}</a></li>
-                    <li class="breadcrumb-item active">{{ __forms('form.create') }}</li>
-                </ol>
-            </nav>
-            <h2 class="mb-0"><i class="bi bi-plus-circle me-2"></i>{{ $title ?? __forms('form.create') }}</h2>
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1">
+                        <li class="breadcrumb-item">
+                            <a href="{{ route('tenant.custom-forms.index') }}">{{ __forms('form.forms') }}</a>
+                        </li>
+                        <li class="breadcrumb-item active">{{ __forms('form.create') }}</li>
+                    </ol>
+                </nav>
+                <h2 class="mb-0"><i class="bi bi-plus-circle me-2"></i>{{ $title ?? __forms('form.create') }}</h2>
+            </div>
         </div>
 
         @if(session('error'))

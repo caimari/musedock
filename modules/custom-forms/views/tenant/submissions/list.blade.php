@@ -9,24 +9,29 @@
 @section('content')
 <div class="app-content">
     <div class="container-fluid">
-        <div class="mb-4">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-1">
-                    <li class="breadcrumb-item"><a href="{{ route('tenant.custom-forms.index') }}">{{ __forms('form.forms') }}</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('tenant.custom-forms.edit', $form->id) }}">{{ $form->name }}</a></li>
-                    <li class="breadcrumb-item active">{{ __forms('submission.submissions') }}</li>
-                </ol>
-            </nav>
-            <div class="d-flex justify-content-between align-items-center">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1">
+                        <li class="breadcrumb-item">
+                            <a href="{{ route('tenant.custom-forms.index') }}">{{ __forms('form.forms') }}</a>
+                        </li>
+                        <li class="breadcrumb-item">
+                            <a href="{{ route('tenant.custom-forms.edit', $form->id) }}">{{ $form->name }}</a>
+                        </li>
+                        <li class="breadcrumb-item active">{{ __forms('submission.submissions') }}</li>
+                    </ol>
+                </nav>
                 <h2 class="mb-0"><i class="bi bi-inbox me-2"></i>{{ __forms('submission.submissions') }}: {{ $form->name }}</h2>
-                <div>
-                    <a href="{{ route('tenant.custom-forms.submissions.export', $form->id) }}" class="btn btn-outline-success me-2">
-                        <i class="bi bi-download me-1"></i> {{ __forms('submission.export') }}
-                    </a>
-                    <a href="{{ route('tenant.custom-forms.edit', $form->id) }}" class="btn btn-outline-primary">
-                        <i class="bi bi-pencil me-1"></i> {{ __forms('form.edit') }}
-                    </a>
-                </div>
+            </div>
+            <div>
+                <a href="{{ route('tenant.custom-forms.submissions.export', $form->id) }}" class="btn btn-outline-success me-2">
+                    <i class="bi bi-download me-1"></i> {{ __forms('submission.export') }}
+                </a>
+                <a href="{{ route('tenant.custom-forms.edit', $form->id) }}" class="btn btn-outline-primary">
+                    <i class="bi bi-pencil me-1"></i> {{ __forms('form.edit') }}
+                </a>
             </div>
         </div>
 
