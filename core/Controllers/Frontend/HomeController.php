@@ -18,10 +18,19 @@ class HomeController
     {
         error_log("HomeController: Accediendo a index()");
 
-        // Verificar configuración de lectura
-        $showOnFront = setting('show_on_front', 'posts');
-        $pageOnFront = setting('page_on_front', '');
-        $postOnFront = setting('post_on_front', '');
+        // Obtener tenant actual para usar la función de settings correcta
+        $tenantId = \Screenart\Musedock\Services\TenantManager::currentTenantId();
+
+        // Verificar configuración de lectura (usar tenant_setting si hay tenant activo)
+        if ($tenantId !== null) {
+            $showOnFront = tenant_setting('show_on_front', 'posts');
+            $pageOnFront = tenant_setting('page_on_front', '');
+            $postOnFront = tenant_setting('post_on_front', '');
+        } else {
+            $showOnFront = setting('show_on_front', 'posts');
+            $pageOnFront = setting('page_on_front', '');
+            $postOnFront = setting('post_on_front', '');
+        }
 
         error_log("HomeController: show_on_front = {$showOnFront}, page_on_front = {$pageOnFront}, post_on_front = {$postOnFront}");
 
@@ -46,9 +55,6 @@ class HomeController
         // Fallback: buscar página marcada como homepage (comportamiento legacy)
         $homepage = null;
         $homepageData = null;
-
-        // Obtener tenant actual para filtrar correctamente
-        $tenantId = \Screenart\Musedock\Services\TenantManager::currentTenantId();
 
         try {
             error_log("HomeController: Intentando buscar homepage para tenant_id: " . ($tenantId ?? 'NULL (master)'));
