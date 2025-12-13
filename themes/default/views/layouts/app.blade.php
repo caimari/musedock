@@ -115,6 +115,7 @@
             "'Raleway', sans-serif" => 'Raleway:wght@400;500;600;700',
         ];
     @endphp
+    <!-- DEBUG: logoFont = {{ $logoFont }} -->
     @if(isset($googleFonts[$logoFont]))
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -200,35 +201,16 @@
         background-color: var(--footer-bg-color) !important;
     }
 
-    /* Textos del footer */
+    /* Textos del footer (excluyendo selectores de idioma) */
     .footer-area p,
     .footer-area .footer-pera p,
-    .footer-area span:not(.language-selector span),
     .footer-copy-right p,
     .footer-bottom-area p {
         color: var(--footer-text-color) !important;
     }
 
-    /* Selector de idioma - siempre negro sobre blanco (sin personalización) */
-    .language-selector select,
-    .language-selector option,
-    #language-select,
-    #language-select option,
-    .lang-btn,
-    .lang-dropdown,
-    .lang-dropdown .lang-option,
-    .mobile-lang-select select,
-    .mobile-lang-select option,
-    #mobile-lang-switcher,
-    #mobile-lang-switcher option {
-        color: #000 !important;
-        background-color: #fff !important;
-    }
-
-    .lang-dropdown .lang-option:hover,
-    .lang-dropdown .lang-option.active {
-        color: #ff5e15 !important;
-        background-color: #f5f5f5 !important;
+    .footer-area span {
+        color: var(--footer-text-color) !important;
     }
 
     /* Títulos del footer */
@@ -960,7 +942,11 @@ body.mobile-menu-open {
 
                     {{-- Mostrar título si está habilitado --}}
                     @if($showTitle)
-                        <span class="site-title" style="font-size: 24px; font-weight: bold; color: var(--header-logo-text-color, #1a2a40); font-family: var(--header-logo-font, inherit);">
+                        @php
+                            $logoTextColor = themeOption('header.header_logo_text_color', '#1a2a40');
+                            $logoFontFamily = themeOption('header.header_logo_font', 'inherit');
+                        @endphp
+                        <span class="site-title" style="font-size: 24px; font-weight: bold; color: {{ $logoTextColor }}; font-family: {{ $logoFontFamily }};">
                             {{ $siteName }}
                         </span>
                     @endif

@@ -53,7 +53,7 @@
                         {{-- Meta --}}
                         <div class="flex items-center text-sm text-gray-500 mb-3">
                             <i class="far fa-calendar mr-2"></i>
-                            <span>{{ $post->published_at ? date('d M Y', strtotime($post->published_at)) : date('d M Y', strtotime($post->created_at)) }}</span>
+                            <span>{{ format_date($post->published_at ?? $post->created_at) }}</span>
                         </div>
 
                         {{-- Title --}}

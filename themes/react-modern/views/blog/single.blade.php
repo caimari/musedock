@@ -35,7 +35,7 @@
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
-                        <span>{{ $post->published_at ? date('d M Y', strtotime($post->published_at)) : date('d M Y', strtotime($post->created_at)) }}</span>
+                        <span>{{ format_datetime($post->published_at ?? $post->created_at) }}</span>
                     </div>
                     @if($post->view_count > 0)
                     <div class="flex items-center">
@@ -140,7 +140,7 @@
                         <a href="/blog/{{ $recentPost->slug }}" class="block">
                             <span class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">{{ $recentPost->title }}</span>
                             <span class="block text-sm text-gray-500 mt-1">
-                                {{ $recentPost->published_at ? date('d M Y', strtotime($recentPost->published_at)) : date('d M Y', strtotime($recentPost->created_at)) }}
+                                {{ format_date($recentPost->published_at ?? $recentPost->created_at) }}
                             </span>
                         </a>
                     </li>
