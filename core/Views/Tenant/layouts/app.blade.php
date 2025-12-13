@@ -802,28 +802,30 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
     
-    const clearFlashUrl = '{{ route('tenant.settings.clearFlashes') ?? '' }}'; 
-    const csrfToken = '{{ csrf_token() }}'; 
-    
-    if (hasFlashToShow && clearFlashUrl && csrfToken) { 
-        setTimeout(() => { 
-            fetch(clearFlashUrl, { 
-                method: 'POST', 
-                headers: { 
-                    'X-Requested-With': 'XMLHttpRequest', 
-                    'X-CSRF-TOKEN': csrfToken, 
-                    'Accept': 'application/json' 
-                } 
+    const clearFlashUrl = '{{ route('tenant.settings.clearFlashes') ?? '' }}';
+    const csrfToken = '{{ csrf_token() }}';
+
+    // Solo intentar limpiar flashes si tenemos una URL válida (no vacía, no #ruta-no-encontrada)
+    if (hasFlashToShow && clearFlashUrl && csrfToken &&
+        clearFlashUrl.startsWith('/') && !clearFlashUrl.includes('#')) {
+        setTimeout(() => {
+            fetch(clearFlashUrl, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                }
             })
-            .then(response => { 
-                if (appDebug && !response.ok) { 
-                    console.error(`Error ${response.status} limpiando flashes en backend.`); 
-                } 
+            .then(response => {
+                if (appDebug && !response.ok) {
+                    console.error(`Error ${response.status} limpiando flashes en backend.`);
+                }
             })
-            .catch(error => { 
-                if (appDebug) console.error('Error limpiando flashes:', error); 
-            }); 
-        }, 5000); 
+            .catch(error => {
+                if (appDebug) console.error('Error limpiando flashes:', error);
+            });
+        }, 5000);
     }
 });
 </script>
