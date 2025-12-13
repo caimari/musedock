@@ -296,8 +296,15 @@ class View
 
         $blade = new BladeExtended($viewPath, $cache, self::getBladeMode());
 
-        // Registrar namespace del core para acceso a layouts
-        $blade->addNamespace('layouts', __DIR__ . '/../core/Views/Superadmin/layouts');
+        // Detectar si es una vista de tenant (el path contiene 'tenant/')
+        $isTenantView = strpos($view, 'tenant/') !== false || strpos($view, 'tenant.') !== false;
+
+        // Registrar namespace del core para acceso a layouts según el contexto
+        if ($isTenantView) {
+            $blade->addNamespace('layouts', __DIR__ . '/../core/Views/Tenant/layouts');
+        } else {
+            $blade->addNamespace('layouts', __DIR__ . '/../core/Views/Superadmin/layouts');
+        }
         $blade->addNamespace('superadmin', __DIR__ . '/../core/Views/Superadmin');
         $blade->addNamespace('tenant', __DIR__ . '/../core/Views/Tenant');
 
