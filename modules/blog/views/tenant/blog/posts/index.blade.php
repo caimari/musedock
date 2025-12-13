@@ -33,7 +33,7 @@
     {{-- Título y Botón Añadir Post --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h2>{{ $title }}</h2>
-      <a href="{{ route('blog.posts.create') }}" class="btn btn-primary">{{ __('blog.post.add_post') }}</a>
+      <a href="{{ admin_url('blog/posts/create') }}" class="btn btn-primary">{{ __('blog.post.add_post') }}</a>
     </div>
 
     {{-- Alertas con SweetAlert2 --}}
@@ -64,11 +64,11 @@
 
     {{-- Formulario de Búsqueda y Selector de registros por página --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <form method="GET" action="{{ route('blog.posts.index') }}" class="d-flex align-items-center">
+      <form method="GET" action="{{ admin_url('blog/posts') }}" class="d-flex align-items-center">
         <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="{{ __('blog.post.search_placeholder') }}" class="form-control form-control-sm me-2" style="width: 250px;" id="search-input">
         <button type="submit" class="btn btn-outline-secondary btn-sm me-2">{{ __('common.search') }}</button>
         @if (!empty($search))
-          <a href="{{ route('blog.posts.index') }}" class="btn btn-outline-danger btn-sm">{{ __('common.clear_filter') }}</a>
+          <a href="{{ admin_url('blog/posts') }}" class="btn btn-outline-danger btn-sm">{{ __('common.clear_filter') }}</a>
         @endif
       </form>
 
@@ -85,7 +85,7 @@
     </div>
 
     {{-- Formulario Acciones en Lote --}}
-    <form method="POST" action="{{ route('blog.posts.bulk') }}" id="bulkActionForm">
+    <form method="POST" action="{{ admin_url('blog/posts/bulk') }}" id="bulkActionForm">
       @csrf
       <div class="card">
         <div class="card-body table-responsive p-0">
@@ -139,7 +139,7 @@
                   @endif
                   <br>
                   <small>
-                    <a href="{{ route('blog.posts.edit', ['id' => $post->id]) }}">{{ __('common.edit') }}</a>
+                    <a href="{{ admin_url('blog/posts/' . $post->id . '/edit') }}">{{ __('common.edit') }}</a>
                     @if ($post->status === 'published')
                        |
                       <a href="/blog/{{ $post->slug }}" target="_blank" rel="noopener noreferrer">{{ __('blog.post.view_post') }}</a>
@@ -177,7 +177,7 @@
             <div class="p-3 text-center">
               <p class="text-muted">{{ __('blog.post.no_posts_found') }}</p>
                @if(empty($search))
-                 <a href="{{ route('blog.posts.create') }}" class="btn btn-sm btn-primary">{{ __('blog.post.create_first_post') }}</a>
+                 <a href="{{ admin_url('blog/posts/create') }}" class="btn btn-sm btn-primary">{{ __('blog.post.create_first_post') }}</a>
                @endif
             </div>
           @endif
@@ -214,7 +214,7 @@
     {{-- Formularios de eliminación --}}
     @if (!empty($posts) && count($posts) > 0)
       @foreach ($posts as $post)
-        <form method="POST" action="{{ route('blog.posts.destroy', ['id' => $post->id]) }}" style="display: none;" id="delete-form-{{ $post->id }}">
+        <form method="POST" action="{{ admin_url('blog/posts/' . $post->id) }}" style="display: none;" id="delete-form-{{ $post->id }}">
           {!! csrf_field() !!}
           @method('DELETE')
         </form>

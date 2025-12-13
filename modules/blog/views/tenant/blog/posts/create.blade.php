@@ -8,9 +8,9 @@
     {{-- Navegación --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="breadcrumb">
-        <a href="{{ route('blog.posts.index') }}">{{ __('blog.posts') }}</a> <span class="mx-2">/</span> <span>{{ __('blog.post.new_post') }}</span>
+        <a href="{{ admin_url('blog/posts') }}">{{ __('blog.posts') }}</a> <span class="mx-2">/</span> <span>{{ __('blog.post.new_post') }}</span>
       </div>
-      <a href="{{ route('blog.posts.index') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> {{ __('blog.post.back_to_posts') }}</a>
+      <a href="{{ admin_url('blog/posts') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> {{ __('blog.post.back_to_posts') }}</a>
     </div>
 
     {{-- Script para SweetAlert2 --}}
@@ -21,7 +21,7 @@
       <script> document.addEventListener('DOMContentLoaded', function () { Swal.fire({ icon: 'error', title: {!! json_encode(__('common.error')) !!}, text: {!! json_encode(session('error')) !!}, confirmButtonColor: '#d33' }); }); </script>
     @endif
 
-    <form method="POST" action="{{ route('blog.posts.store') }}" id="postForm" enctype="multipart/form-data">
+    <form method="POST" action="{{ admin_url('blog/posts') }}" id="postForm" enctype="multipart/form-data">
       @csrf
 
       <div class="row">
@@ -64,8 +64,36 @@
               </div>
 
               {{-- Editor TinyMCE --}}
-              <div class="mb-3">
+              <div class="mb-3" id="editor-wrapper">
                 <label for="content-editor" class="form-label">{{ __('blog.post.content') }}</label>
+                {{-- Skeleton Loader - se muestra mientras TinyMCE carga --}}
+                <div id="tinymce-skeleton" class="tinymce-skeleton">
+                  <div class="tinymce-skeleton-toolbar">
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-separator"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-separator"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-separator"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                  </div>
+                  <div class="tinymce-skeleton-content">
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                  </div>
+                </div>
                 <textarea id="content-editor" name="content" class="@error('content') is-invalid @enderror" style="display:none !important;">{{ old('content') }}</textarea>
                 @error('content')
                   <div class="invalid-feedback">{{ $message }}</div>
@@ -258,7 +286,7 @@
                 @enderror
                 <small class="text-muted">{{ __('blog.post.select_multiple') }}</small>
               </div>
-              <a href="{{ route('blog.tags.create') }}" class="btn btn-sm btn-outline-primary" target="_blank">+ {{ __('blog.tag.new_tag') }}</a>
+              <a href="{{ admin_url('blog/tags/create') }}" class="btn btn-sm btn-outline-primary" target="_blank">+ {{ __('blog.tag.new_tag') }}</a>
             </div>
           </div>
 
@@ -268,7 +296,7 @@
           {{-- Card Cancelar --}}
           <div class="card">
             <div class="card-body text-center">
-              <a href="{{ route('blog.posts.index') }}" class="btn btn-sm btn-outline-secondary">{{ __('common.cancel') }}</a>
+              <a href="{{ admin_url('blog/posts') }}" class="btn btn-sm btn-outline-secondary">{{ __('common.cancel') }}</a>
             </div>
           </div>
         </div> {{-- Fin .col-md-3 --}}

@@ -9,13 +9,13 @@
     {{-- Breadcrumbs / Navegación --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="breadcrumb">
-          <a href="{{ route('blog.posts.index') }}">Posts</a>
+          <a href="{{ admin_url('blog/posts') }}">Posts</a>
           <span class="mx-2">/</span>
-          <a href="{{ route('blog.posts.edit', ['id' => $post->id]) }}">{{ e($post->title) }}</a>
+          <a href="{{ admin_url('blog/posts/' . $post->id . '/edit') }}">{{ e($post->title) }}</a>
           <span class="mx-2">/</span>
           <span>{{ isset($translation->id) ? "Editar Traducción ({$localeName})" : "Crear Traducción ({$localeName})" }}</span>
         </div>
-         <a href="{{ route('blog.posts.edit', ['id' => $post->id]) }}" class="btn btn-sm btn-outline-secondary">
+         <a href="{{ admin_url('blog/posts/' . $post->id . '/edit') }}" class="btn btn-sm btn-outline-secondary">
             <i class="fas fa-arrow-left me-1"></i> Volver al Post Base
          </a>
     </div>
@@ -28,7 +28,7 @@
       <script> document.addEventListener('DOMContentLoaded', function () { Swal.fire({ icon: 'error', title: 'Error', text: {!! json_encode(session('error')) !!}, confirmButtonColor: '#d33' }); }); </script>
     @endif
 
-    <form method="POST" action="{{ route('blog.posts.translation.update', ['id' => $post->id, 'locale' => $locale]) }}" id="translationForm">
+    <form method="POST" action="{{ admin_url('blog/posts/' . $post->id . '/translate/' . $locale) }}" id="translationForm">
         @csrf
         @method('PUT')
 
@@ -64,9 +64,37 @@
                         </div>
 
                         {{-- Contenido Traducido (TinyMCE) --}}
-                        <div class="mb-3">
+                        <div class="mb-3" id="editor-wrapper">
                             <label for="content-editor" class="form-label">Contenido</label>
-                            <textarea id="content-editor" name="content" class="form-control @error('content') is-invalid @enderror" style="visibility: hidden; height: 600px;">{{ old('content', $translation->content ?? '') }}</textarea>
+                            {{-- Skeleton Loader - se muestra mientras TinyMCE carga --}}
+                            <div id="tinymce-skeleton" class="tinymce-skeleton">
+                              <div class="tinymce-skeleton-toolbar">
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-separator"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-separator"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-separator"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                              </div>
+                              <div class="tinymce-skeleton-content">
+                                <div class="tinymce-skeleton-line"></div>
+                                <div class="tinymce-skeleton-line"></div>
+                                <div class="tinymce-skeleton-line"></div>
+                                <div class="tinymce-skeleton-line"></div>
+                                <div class="tinymce-skeleton-line"></div>
+                                <div class="tinymce-skeleton-line"></div>
+                              </div>
+                            </div>
+                            <textarea id="content-editor" name="content" class="form-control @error('content') is-invalid @enderror" style="display:none !important;">{{ old('content', $translation->content ?? '') }}</textarea>
                             @error('content')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -177,7 +205,7 @@
                              <button type="submit" class="btn btn-success">
                                 <i class="fas fa-save me-1"></i> {{ isset($translation->id) ? 'Actualizar' : 'Crear' }} Traducción
                              </button>
-                             <a href="{{ route('blog.posts.edit', ['id' => $post->id]) }}" class="btn btn-secondary">
+                             <a href="{{ admin_url('blog/posts/' . $post->id . '/edit') }}" class="btn btn-secondary">
                                 <i class="fas fa-times me-1"></i> Cancelar
                              </a>
                          </div>

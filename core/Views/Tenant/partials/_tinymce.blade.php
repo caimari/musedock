@@ -197,34 +197,14 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
 // Pasar la configuración a JavaScript como variables
 @endphp
 
-{{-- Skeleton Loader HTML - se muestra mientras TinyMCE carga --}}
-<div id="tinymce-skeleton" class="tinymce-skeleton">
-  <div class="tinymce-skeleton-toolbar">
-    <div class="tinymce-skeleton-btn"></div>
-    <div class="tinymce-skeleton-btn"></div>
-    <div class="tinymce-skeleton-separator"></div>
-    <div class="tinymce-skeleton-btn"></div>
-    <div class="tinymce-skeleton-btn"></div>
-    <div class="tinymce-skeleton-btn"></div>
-    <div class="tinymce-skeleton-separator"></div>
-    <div class="tinymce-skeleton-btn"></div>
-    <div class="tinymce-skeleton-btn"></div>
-    <div class="tinymce-skeleton-btn"></div>
-    <div class="tinymce-skeleton-btn"></div>
-    <div class="tinymce-skeleton-separator"></div>
-    <div class="tinymce-skeleton-btn"></div>
-    <div class="tinymce-skeleton-btn"></div>
-    <div class="tinymce-skeleton-btn"></div>
+{{--
+  NOTA: El skeleton loader ya está incluido inline en las vistas que usan TinyMCE.
+  Este comentario mantiene la referencia de cómo debe ser el skeleton por si se necesita en el futuro.
+
+  <div id="tinymce-skeleton" class="tinymce-skeleton">
+    ... estructura del skeleton ...
   </div>
-  <div class="tinymce-skeleton-content">
-    <div class="tinymce-skeleton-line"></div>
-    <div class="tinymce-skeleton-line"></div>
-    <div class="tinymce-skeleton-line"></div>
-    <div class="tinymce-skeleton-line"></div>
-    <div class="tinymce-skeleton-line"></div>
-    <div class="tinymce-skeleton-line"></div>
-  </div>
-</div>
+--}}
 
 <script>
 // Inicializar TinyMCE inmediatamente (sin esperar DOMContentLoaded para más rapidez)

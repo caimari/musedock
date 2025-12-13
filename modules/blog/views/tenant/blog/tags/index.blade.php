@@ -9,7 +9,7 @@
     {{-- Título y Botón Añadir Etiqueta --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h2>{{ $title ?? __('blog.tags') }}</h2>
-      <a href="{{ route('blog.tags.create') }}" class="btn btn-primary">{{ __('blog.tag.add_tag') }}</a>
+      <a href="{{ admin_url('blog/tags/create') }}" class="btn btn-primary">{{ __('blog.tag.add_tag') }}</a>
     </div>
 
     {{-- Alertas con SweetAlert2 --}}
@@ -100,7 +100,7 @@
             <div class="p-3 text-center">
               <p class="text-muted">{{ __('blog.tag.no_tags_found') }}</p>
                @if(empty($search))
-                 <a href="{{ route('blog.tags.create') }}" class="btn btn-sm btn-primary">{{ __('blog.tag.create_first_tag') }}</a>
+                 <a href="{{ admin_url('blog/tags/create') }}" class="btn btn-sm btn-primary">{{ __('blog.tag.create_first_tag') }}</a>
                @endif
             </div>
           @endif
