@@ -19,7 +19,7 @@ class LanguagesController
         SessionSecurity::startSession();
         $this->checkPermission('settings.view');
 
-        $tenantId = tenant('id');
+        $tenantId = tenant_id();
 
         if (!$tenantId) {
             flash('error', 'No se pudo identificar el tenant actual.');
@@ -68,7 +68,7 @@ class LanguagesController
         SessionSecurity::startSession();
         $this->checkPermission('settings.edit');
 
-        $tenantId = tenant('id');
+        $tenantId = tenant_id();
 
         if (!$tenantId) {
             flash('error', 'No se pudo identificar el tenant actual.');
@@ -135,7 +135,7 @@ class LanguagesController
         SessionSecurity::startSession();
         $this->checkPermission('settings.edit');
 
-        $tenantId = tenant('id');
+        $tenantId = tenant_id();
 
         // Verificar que el idioma pertenece al tenant
         $language = Database::table('languages')
@@ -163,7 +163,7 @@ class LanguagesController
         SessionSecurity::startSession();
         $this->checkPermission('settings.edit');
 
-        $tenantId = tenant('id');
+        $tenantId = tenant_id();
 
         // Verificar que el idioma pertenece al tenant
         $language = Database::table('languages')
@@ -220,7 +220,7 @@ class LanguagesController
         SessionSecurity::startSession();
         $this->checkPermission('settings.edit');
 
-        $tenantId = tenant('id');
+        $tenantId = tenant_id();
 
         // Verificar contraseña
         $password = $_POST['password'] ?? '';
@@ -280,7 +280,7 @@ class LanguagesController
         SessionSecurity::startSession();
         $this->checkPermission('settings.edit');
 
-        $tenantId = tenant('id');
+        $tenantId = tenant_id();
 
         $lang = Database::table('languages')
             ->where('id', $id)
@@ -328,7 +328,7 @@ class LanguagesController
 
         header('Content-Type: application/json');
 
-        $tenantId = tenant('id');
+        $tenantId = tenant_id();
         $input = json_decode(file_get_contents('php://input'), true);
         $order = $input['order'] ?? [];
 
@@ -357,7 +357,7 @@ class LanguagesController
         SessionSecurity::startSession();
         $this->checkPermission('settings.edit');
 
-        $tenantId = tenant('id');
+        $tenantId = tenant_id();
         $defaultLang = $_POST['default_lang'] ?? '';
 
         if (empty($defaultLang)) {

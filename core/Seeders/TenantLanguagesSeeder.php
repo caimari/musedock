@@ -91,11 +91,15 @@ class TenantLanguagesSeeder
     private function setDefaultLanguage($tenantId, $langCode)
     {
         $pdo = Database::connect();
+        $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+        // Nombre de columna compatible con ambos drivers
+        $keyColumn = $driver === 'mysql' ? '`key`' : '"key"';
 
         // Verificar si ya existe la configuración
         $stmt = $pdo->prepare("
             SELECT id FROM tenant_settings
-            WHERE tenant_id = ? AND `key` = 'default_lang'
+            WHERE tenant_id = ? AND {$keyColumn} = 'default_lang'
         ");
         $stmt->execute([$tenantId]);
         $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -105,13 +109,13 @@ class TenantLanguagesSeeder
             $stmt = $pdo->prepare("
                 UPDATE tenant_settings
                 SET value = ?
-                WHERE tenant_id = ? AND `key` = 'default_lang'
+                WHERE tenant_id = ? AND {$keyColumn} = 'default_lang'
             ");
             $stmt->execute([$langCode, $tenantId]);
         } else {
             // Insertar
             $stmt = $pdo->prepare("
-                INSERT INTO tenant_settings (tenant_id, `key`, value, created_at)
+                INSERT INTO tenant_settings (tenant_id, {$keyColumn}, value, created_at)
                 VALUES (?, 'default_lang', ?, NOW())
             ");
             $stmt->execute([$tenantId, $langCode]);
