@@ -335,4 +335,145 @@ class SettingsController
             throw new \Exception('Error al subir el favicon');
         }
     }
+
+    /**
+     * Muestra la página de ajustes de lectura
+     */
+    public function reading()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.view');
+
+        $tenantId = tenant_id();
+        if (!$tenantId) {
+            $_SESSION['error'] = 'No se ha detectado el tenant actual';
+            header('Location: /' . admin_path());
+            exit;
+        }
+
+        $settings = $this->getTenantSettings($tenantId);
+        $pages = $this->getTenantPages($tenantId);
+        $blogPosts = $this->getTenantBlogPosts($tenantId);
+
+        return View::renderTenantAdmin('settings/reading', [
+            'title' => 'Ajustes de Lectura',
+            'settings' => $settings,
+            'pages' => $pages,
+            'blog_posts' => $blogPosts,
+        ]);
+    }
+
+    /**
+     * Guarda los ajustes de lectura
+     */
+    public function updateReading()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.edit');
+
+        $tenantId = tenant_id();
+        if (!$tenantId) {
+            $_SESSION['error'] = 'No se ha detectado el tenant actual';
+            header('Location: /' . admin_path());
+            exit;
+        }
+
+        try {
+            $pdo = Database::connect();
+            $pdo->beginTransaction();
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+            // Settings de lectura
+            $readingSettings = [
+                'show_on_front' => $_POST['show_on_front'] ?? 'posts',
+                'page_on_front' => $_POST['page_on_front'] ?? '',
+                'post_on_front' => $_POST['post_on_front'] ?? '',
+                'posts_per_page' => $_POST['posts_per_page'] ?? '10',
+                'posts_per_rss' => $_POST['posts_per_rss'] ?? '10',
+                'blog_public' => isset($_POST['blog_public']) ? '0' : '1',
+            ];
+
+            foreach ($readingSettings as $key => $value) {
+                $this->saveTenantSetting($pdo, $tenantId, $key, $value, $driver);
+            }
+
+            // Sincronizar is_homepage en tenant_pages
+            $stmt = $pdo->prepare("UPDATE tenant_pages SET is_homepage = 0 WHERE tenant_id = ?");
+            $stmt->execute([$tenantId]);
+
+            if ($readingSettings['show_on_front'] === 'page' && !empty($readingSettings['page_on_front'])) {
+                $stmt = $pdo->prepare("UPDATE tenant_pages SET is_homepage = 1 WHERE id = ? AND tenant_id = ?");
+                $stmt->execute([$readingSettings['page_on_front'], $tenantId]);
+            }
+
+            $pdo->commit();
+            clear_tenant_settings_cache();
+
+            $_SESSION['success'] = 'Ajustes de lectura guardados correctamente';
+        } catch (\Exception $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log("Error updating tenant reading settings: " . $e->getMessage());
+            $_SESSION['error'] = 'Error al guardar los ajustes de lectura';
+        }
+
+        header('Location: /' . admin_path() . '/settings/reading');
+        exit;
+    }
+
+    /**
+     * Obtiene las páginas del tenant
+     */
+    private function getTenantPages(int $tenantId): array
+    {
+        try {
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("
+                SELECT id, title, slug
+                FROM tenant_pages
+                WHERE tenant_id = ? AND status = 'published'
+                ORDER BY title ASC
+            ");
+            $stmt->execute([$tenantId]);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            error_log("Error getting tenant pages: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtiene los posts del blog del tenant
+     */
+    private function getTenantBlogPosts(int $tenantId): array
+    {
+        try {
+            $pdo = Database::connect();
+            // Verificar si existe la tabla tenant_blog_posts
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            if ($driver === 'mysql') {
+                $checkStmt = $pdo->query("SHOW TABLES LIKE 'tenant_blog_posts'");
+            } else {
+                $checkStmt = $pdo->query("SELECT to_regclass('public.tenant_blog_posts')");
+            }
+
+            $tableExists = $checkStmt->fetch();
+            if (!$tableExists || (is_array($tableExists) && empty($tableExists[0]))) {
+                return [];
+            }
+
+            $stmt = $pdo->prepare("
+                SELECT id, title, slug
+                FROM tenant_blog_posts
+                WHERE tenant_id = ? AND status = 'published'
+                ORDER BY title ASC
+            ");
+            $stmt->execute([$tenantId]);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            error_log("Error getting tenant blog posts: " . $e->getMessage());
+            return [];
+        }
+    }
 }

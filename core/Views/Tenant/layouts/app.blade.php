@@ -802,7 +802,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
     
-    const clearFlashUrl = '{{ route('settings.clearFlashes') ?? '' }}'; 
+    const clearFlashUrl = '{{ route('tenant.settings.clearFlashes') ?? '' }}'; 
     const csrfToken = '{{ csrf_token() }}'; 
     
     if (hasFlashToShow && clearFlashUrl && csrfToken) { 

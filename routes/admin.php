@@ -126,6 +126,14 @@ Route::get("$adminPath/settings/delete-logo", 'tenant.SettingsController@deleteL
 Route::get("$adminPath/settings/delete-favicon", 'tenant.SettingsController@deleteFavicon')
      ->middleware(['auth', 'permission:settings.edit']);
 
+// Settings - Reading (Ajustes de lectura)
+Route::get("$adminPath/settings/reading", 'tenant.SettingsController@reading')
+     ->middleware(['auth', 'permission:settings.view'])
+     ->name('tenant.settings.reading');
+Route::post("$adminPath/settings/reading", 'tenant.SettingsController@updateReading')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.settings.reading.update');
+
 // Roles
 Route::get("$adminPath/roles/permissions", 'tenant.RoleController@permissionsPanel')
      ->middleware(['auth', 'permission:roles.assign']);
@@ -305,3 +313,31 @@ Route::post("$adminPath/api/notifications/{id}/mark-read", 'tenant.Notifications
 Route::post("$adminPath/api/notifications/mark-all-read", 'tenant.NotificationsController@markAllAsRead')
      ->middleware(['auth'])
      ->name('tenant.notifications.mark-all-read');
+
+// ============================================================================
+// UTILIDADES (Limpiar flashes, etc.)
+// ============================================================================
+// Limpiar mensajes flash de la sesión
+Route::post("$adminPath/clear-flashes", function() {
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        session_start();
+    }
+
+    // Verificar que hay un admin autenticado
+    if (!isset($_SESSION['admin'])) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'No autorizado']);
+        exit;
+    }
+
+    // Limpiar flashes
+    if (function_exists('clear_all_flashes')) {
+        clear_all_flashes();
+    } else {
+        unset($_SESSION['_flash']);
+    }
+
+    header('Content-Type: application/json');
+    echo json_encode(['success' => true]);
+    exit;
+})->middleware(['auth'])->name('tenant.settings.clearFlashes');
