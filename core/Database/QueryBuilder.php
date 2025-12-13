@@ -1043,7 +1043,8 @@ public function dd()
         $sql = "INSERT INTO {$this->table} (" . implode(',', $escapedColumns) . ") VALUES (" . implode(',', $placeholders) . ")";
 
         // PostgreSQL requiere RETURNING para obtener el ID insertado
-        if ($this->driver === 'pgsql') {
+        $driverName = $this->driver->getDriverName();
+        if ($driverName === 'pgsql') {
             $sql .= " RETURNING id";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($data);
