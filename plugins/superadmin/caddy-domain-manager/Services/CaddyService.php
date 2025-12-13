@@ -458,6 +458,37 @@ class CaddyService
                             ]
                         ]
                     ]
+                ],
+                // 11. Error handler - Redirigir errores 404 a index.php para página personalizada
+                [
+                    'handler' => 'error',
+                    'routes' => [
+                        [
+                            'match' => [
+                                [
+                                    'expression' => '{http.error.status_code} == 404'
+                                ]
+                            ],
+                            'handle' => [
+                                [
+                                    'handler' => 'rewrite',
+                                    'uri' => '/index.php'
+                                ],
+                                [
+                                    'handler' => 'reverse_proxy',
+                                    'transport' => [
+                                        'protocol' => 'fastcgi',
+                                        'split_path' => ['.php']
+                                    ],
+                                    'upstreams' => [
+                                        [
+                                            'dial' => $this->phpFpmSocket
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
                 ]
             ]
         ];

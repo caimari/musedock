@@ -5,6 +5,43 @@
  */
 
 /* ============================================
+   BREADCRUMB FIX
+   ============================================ */
+
+.breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0;
+    margin-bottom: 0.5rem;
+    list-style: none;
+    background-color: transparent;
+}
+
+.breadcrumb-item + .breadcrumb-item {
+    padding-left: 0.5rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    display: inline-block;
+    padding-right: 0.5rem;
+    color: #6c757d;
+    content: "/";
+}
+
+.breadcrumb-item a {
+    color: var(--bs-primary, #0d6efd);
+    text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+    color: #6c757d;
+}
+
+/* ============================================
    GENERAL
    ============================================ */
 

@@ -476,4 +476,122 @@ class SettingsController
             return [];
         }
     }
+
+    /**
+     * Muestra la página de ajustes SEO y Social
+     */
+    public function seo()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.view');
+
+        $tenantId = tenant_id();
+        if (!$tenantId) {
+            $_SESSION['error'] = 'No se ha detectado el tenant actual';
+            header('Location: /' . admin_path());
+            exit;
+        }
+
+        $settings = $this->getTenantSettings($tenantId);
+
+        return View::renderTenantAdmin('settings/seo', [
+            'title' => 'Ajustes SEO y Social',
+            'settings' => $settings,
+        ]);
+    }
+
+    /**
+     * Guarda los ajustes SEO y Social
+     */
+    public function updateSeo()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.edit');
+
+        $tenantId = tenant_id();
+        if (!$tenantId) {
+            $_SESSION['error'] = 'No se ha detectado el tenant actual';
+            header('Location: /' . admin_path());
+            exit;
+        }
+
+        try {
+            $pdo = Database::connect();
+            $pdo->beginTransaction();
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+            // Settings de SEO y Social
+            $seoSettings = [
+                'site_keywords' => $_POST['site_keywords'] ?? '',
+                'site_author' => $_POST['site_author'] ?? '',
+                'twitter_site' => $_POST['twitter_site'] ?? '',
+                'social_facebook' => $_POST['social_facebook'] ?? '',
+                'social_twitter' => $_POST['social_twitter'] ?? '',
+                'social_instagram' => $_POST['social_instagram'] ?? '',
+                'social_linkedin' => $_POST['social_linkedin'] ?? '',
+                'social_youtube' => $_POST['social_youtube'] ?? '',
+                'social_pinterest' => $_POST['social_pinterest'] ?? '',
+            ];
+
+            foreach ($seoSettings as $key => $value) {
+                $this->saveTenantSetting($pdo, $tenantId, $key, $value, $driver);
+            }
+
+            // Procesar upload de imagen Open Graph
+            $this->handleOgImageUpload($pdo, $tenantId, $driver);
+
+            $pdo->commit();
+            clear_tenant_settings_cache();
+
+            $_SESSION['success'] = 'Ajustes SEO y Social guardados correctamente';
+        } catch (\Exception $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log("Error updating tenant SEO settings: " . $e->getMessage());
+            $_SESSION['error'] = 'Error al guardar los ajustes SEO: ' . $e->getMessage();
+        }
+
+        header('Location: /' . admin_path() . '/settings/seo');
+        exit;
+    }
+
+    /**
+     * Procesa el upload de la imagen Open Graph
+     */
+    private function handleOgImageUpload(\PDO $pdo, int $tenantId, string $driver): void
+    {
+        if (!isset($_FILES['og_image']) || $_FILES['og_image']['error'] !== UPLOAD_ERR_OK) {
+            return;
+        }
+
+        $file = $_FILES['og_image'];
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+        if (!in_array($file['type'], $allowedTypes)) {
+            throw new \Exception('Tipo de archivo no permitido para la imagen OG');
+        }
+
+        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $filename = 'tenant_' . $tenantId . '_og_' . time() . '.' . $ext;
+        $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/public/uploads/tenants/';
+
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $destination = $uploadDir . $filename;
+
+        if (move_uploaded_file($file['tmp_name'], $destination)) {
+            // Eliminar imagen OG anterior si existe
+            $currentOg = tenant_setting('og_image');
+            if ($currentOg && file_exists($_SERVER['DOCUMENT_ROOT'] . '/public/' . $currentOg)) {
+                unlink($_SERVER['DOCUMENT_ROOT'] . '/public/' . $currentOg);
+            }
+
+            $this->saveTenantSetting($pdo, $tenantId, 'og_image', 'uploads/tenants/' . $filename, $driver);
+        } else {
+            throw new \Exception('Error al subir la imagen Open Graph');
+        }
+    }
 }

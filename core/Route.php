@@ -364,43 +364,13 @@ public static function resolve() {
  */
 private static function render404Page(): void
 {
-    error_log("404: Iniciando render404Page para URI: " . ($_SERVER['REQUEST_URI'] ?? 'unknown'));
-
     // Limpiar TODOS los buffers de output para evitar interferencias
     while (ob_get_level() > 0) {
         ob_end_clean();
     }
 
-    // Intento 1: Plantilla del tema activo
-    try {
-        error_log("404: Intentando renderTheme errors.404");
-        $output = \Screenart\Musedock\View::renderTheme('errors.404');
-        if (!empty($output)) {
-            error_log("404: renderTheme exitoso, tamaño: " . strlen($output));
-            echo $output;
-            return;
-        }
-        error_log("404: renderTheme devolvió output vacío");
-    } catch (\Throwable $e) {
-        error_log("404: Falló renderTheme errors.404 - " . $e->getMessage());
-    }
-
-    // Intento 2: Plantilla base del sistema
-    try {
-        error_log("404: Intentando View::render errors.404");
-        $output = \Screenart\Musedock\View::render('errors.404');
-        if (!empty($output)) {
-            error_log("404: render exitoso, tamaño: " . strlen($output));
-            echo $output;
-            return;
-        }
-        error_log("404: render devolvió output vacío");
-    } catch (\Throwable $e) {
-        error_log("404: Falló render errors.404 - " . $e->getMessage());
-    }
-
-    // Intento 3: HTML genérico atractivo (sin dependencias) - SIEMPRE debe funcionar
-    error_log("404: Usando fallback renderGeneric404Html");
+    // Usar directamente el HTML genérico que SIEMPRE funciona (sin dependencias)
+    // Esto garantiza que siempre se muestre una página 404 bonita
     self::renderGeneric404Html();
 }
 

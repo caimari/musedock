@@ -134,6 +134,14 @@ Route::post("$adminPath/settings/reading", 'tenant.SettingsController@updateRead
      ->middleware(['auth', 'permission:settings.edit'])
      ->name('tenant.settings.reading.update');
 
+// Settings - SEO (Ajustes SEO y Social)
+Route::get("$adminPath/settings/seo", 'tenant.SettingsController@seo')
+     ->middleware(['auth', 'permission:settings.view'])
+     ->name('tenant.settings.seo');
+Route::post("$adminPath/settings/seo", 'tenant.SettingsController@updateSeo')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.settings.seo.update');
+
 // Roles
 Route::get("$adminPath/roles/permissions", 'tenant.RoleController@permissionsPanel')
      ->middleware(['auth', 'permission:roles.assign']);
