@@ -172,11 +172,11 @@
 
 
 /* 6. Nice Selectorp  */
-  // Excluir selectores de idioma del footer y móvil para que mantengan estilos nativos
-  var nice_Select = $('select').not('#language-select, #mobile-lang-switcher');
-    if(nice_Select.length){
-      nice_Select.niceSelect();
-    }
+  // DESACTIVADO - nice-select interfiere con selectores de idioma
+  // var nice_Select = $('select');
+  //   if(nice_Select.length){
+  //     nice_Select.niceSelect();
+  //   }
 
 /* 7.  Custom Sticky Menu  */
     $(window).on('scroll', function () {

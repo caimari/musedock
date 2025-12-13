@@ -136,7 +136,8 @@
     <link rel="stylesheet" href="{{ asset('themes/default/css/fontawesome-all.min.css') }}">
     <link rel="stylesheet" href="{{ asset('themes/default/css/themify-icons.css') }}">
 <!-- <link rel="stylesheet" href="{{ asset('themes/default/css/slick.css') }}"> --}} -->
-    <link rel="stylesheet" href="{{ asset('themes/default/css/nice-select.css') }}">
+    {{-- DESACTIVADO - nice-select interfiere con selectores de idioma --}}
+    {{-- <link rel="stylesheet" href="{{ asset('themes/default/css/nice-select.css') }}"> --}}
     <link rel="stylesheet" href="{{ asset('themes/default/css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('themes/default/css/responsive.css') }}">
 	
@@ -1348,7 +1349,8 @@ if (header && header.classList.contains('enable-sticky')) {
 <script src="{{ asset('themes/default/js/animated.headline.js') }}"></script>
 <script src="{{ asset('themes/default/js/jquery.magnific-popup.js') }}"></script>
 <script src="{{ asset('themes/default/js/jquery.scrollUp.min.js') }}"></script>
-<script src="{{ asset('themes/default/js/jquery.nice-select.min.js') }}"></script>
+{{-- DESACTIVADO - nice-select interfiere con selectores de idioma --}}
+{{-- <script src="{{ asset('themes/default/js/jquery.nice-select.min.js') }}"></script> --}}
 <script src="{{ asset('themes/default/js/jquery.sticky.js') }}"></script>
 <script src="{{ asset('themes/default/js/contact.js') }}"></script>
 <script src="{{ asset('themes/default/js/jquery.form.js') }}"></script>
