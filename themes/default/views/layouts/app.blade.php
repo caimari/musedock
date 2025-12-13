@@ -101,6 +101,26 @@
         }
     @endphp
 
+    {{-- Google Fonts para tipografías del tema --}}
+    @php
+        $logoFont = themeOption('header.header_logo_font', 'inherit');
+        $googleFonts = [
+            "'Playfair Display', serif" => 'Playfair+Display:wght@400;700',
+            "'Montserrat', sans-serif" => 'Montserrat:wght@400;500;600;700',
+            "'Roboto', sans-serif" => 'Roboto:wght@400;500;700',
+            "'Open Sans', sans-serif" => 'Open+Sans:wght@400;600;700',
+            "'Lato', sans-serif" => 'Lato:wght@400;700',
+            "'Poppins', sans-serif" => 'Poppins:wght@400;500;600;700',
+            "'Oswald', sans-serif" => 'Oswald:wght@400;500;600;700',
+            "'Raleway', sans-serif" => 'Raleway:wght@400;500;600;700',
+        ];
+    @endphp
+    @if(isset($googleFonts[$logoFont]))
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family={{ $googleFonts[$logoFont] }}&display=swap" rel="stylesheet">
+    @endif
+
     {{-- Bootstrap CSS local --}}
     <link rel="stylesheet" href="/assets/vendor/bootstrap/css/bootstrap.min.css"> 
 <!--    <link rel="stylesheet" href="{{ asset('themes/default/css/owl.carousel.min.css') }}"> -->
@@ -183,10 +203,32 @@
     /* Textos del footer */
     .footer-area p,
     .footer-area .footer-pera p,
-    .footer-area span,
+    .footer-area span:not(.language-selector span),
     .footer-copy-right p,
     .footer-bottom-area p {
         color: var(--footer-text-color) !important;
+    }
+
+    /* Selector de idioma - siempre negro sobre blanco (sin personalización) */
+    .language-selector select,
+    .language-selector option,
+    #language-select,
+    #language-select option,
+    .lang-btn,
+    .lang-dropdown,
+    .lang-dropdown .lang-option,
+    .mobile-lang-select select,
+    .mobile-lang-select option,
+    #mobile-lang-switcher,
+    #mobile-lang-switcher option {
+        color: #000 !important;
+        background-color: #fff !important;
+    }
+
+    .lang-dropdown .lang-option:hover,
+    .lang-dropdown .lang-option.active {
+        color: #ff5e15 !important;
+        background-color: #f5f5f5 !important;
     }
 
     /* Títulos del footer */

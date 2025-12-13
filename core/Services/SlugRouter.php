@@ -38,10 +38,11 @@ class SlugRouter
         file_put_contents($logPath, date('Y-m-d H:i:s') . " - RESOLVIENDO SLUG:\n", FILE_APPEND);
         file_put_contents($logPath, "- slug: $slug\n- prefix: " . json_encode($prefix) . "\n- tenant_id: " . json_encode($tenantId) . "\n- locale: " . $currentLang . "\n", FILE_APPEND);
         
-        // Query Eloquent - Primera versión
+        // Query Eloquent - Con todos los filtros
         $query = Slug::where('slug', '=', $slug)
-            ->where('module', '=', 'pages');
-        
+            ->where('module', '=', 'pages')
+            ->whereRaw('(locale = :locale OR locale IS NULL)', [':locale' => $currentLang]);
+
         if ($multiTenant) {
             if ($tenantId !== null) {
                 $query->where('tenant_id', '=', $tenantId);
@@ -49,18 +50,13 @@ class SlugRouter
                 $query->whereRaw('tenant_id IS NULL');
             }
         }
-        
+
         if ($prefix !== null) {
             $query->where('prefix', '=', $prefix);
         } else {
             $query->whereRaw('prefix IS NULL');
         }
-        
-        // Query Eloquent - Con idioma
-        $query = Slug::where('slug', '=', $slug)
-            ->where('module', '=', 'pages')
-            ->whereRaw('(locale = :locale OR locale IS NULL)', [':locale' => $currentLang]);
-        
+
         $entry = $query->first();
         
         // FallBack: Si el ORM no encuentra nada, intenta vía SQL directa
