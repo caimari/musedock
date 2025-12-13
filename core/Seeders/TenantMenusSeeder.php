@@ -129,7 +129,7 @@ class TenantMenusSeeder
             (tenant_id, parent_id, module_id, title, slug, url, icon, icon_type,
              order_position, permission, is_active, created_at, updated_at)
             VALUES (?, ?, NULL, 'Idiomas', 'settings-languages', '/{{ admin_path }}/languages',
-                    'bi-translate', 'bootstrap-icon', ?, 'settings.view', 1, NOW(), NOW())
+                    'bi-translate', 'bi', ?, 'settings.view', 1, NOW(), NOW())
         ");
         $stmt->execute([$tenantId, $settingsMenu['id'], $nextPos]);
 

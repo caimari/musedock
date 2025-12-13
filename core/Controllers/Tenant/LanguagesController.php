@@ -40,7 +40,7 @@ class LanguagesController
         // Obtener idioma por defecto del tenant
         $defaultLang = setting('default_lang', 'es');
 
-        return View::renderTenant('languages.index', [
+        return View::renderTenantAdmin('languages.index', [
             'title' => 'Idiomas',
             'languages' => $languages,
             'default_lang' => $defaultLang
@@ -55,7 +55,7 @@ class LanguagesController
         SessionSecurity::startSession();
         $this->checkPermission('settings.edit');
 
-        return View::renderTenant('languages.create', [
+        return View::renderTenantAdmin('languages.create', [
             'title' => 'Añadir Idioma'
         ]);
     }
@@ -149,7 +149,7 @@ class LanguagesController
             exit;
         }
 
-        return View::renderTenant('languages.edit', [
+        return View::renderTenantAdmin('languages.edit', [
             'title' => 'Editar Idioma',
             'language' => $language
         ]);

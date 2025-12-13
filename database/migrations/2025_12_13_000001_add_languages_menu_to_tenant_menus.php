@@ -64,7 +64,7 @@ class AddLanguagesMenuToTenantMenus_2025_12_13_000001
         $adminPath = '{{ admin_path }}'; // Blade syntax se procesa en runtime
         $stmt = $pdo->prepare("
             INSERT INTO tenant_menus (tenant_id, parent_id, module_id, title, slug, url, icon, icon_type, order_position, permission, is_active, created_at, updated_at)
-            VALUES (?, ?, NULL, 'Idiomas', 'settings-languages', '/{$adminPath}/languages', 'bi-translate', 'bootstrap-icon', ?, 'settings.view', 1, NOW(), NOW())
+            VALUES (?, ?, NULL, 'Idiomas', 'settings-languages', '/{$adminPath}/languages', 'bi-translate', 'bi', ?, 'settings.view', 1, NOW(), NOW())
         ");
         $stmt->execute([$tenantId, $settingsParentId, $nextPos]);
 
