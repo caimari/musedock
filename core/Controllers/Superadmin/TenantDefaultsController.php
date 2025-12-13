@@ -217,13 +217,14 @@ class TenantDefaultsController
 
     /**
      * Obtiene todos los menús de admin_menus con jerarquía
+     * Solo incluye los menús marcados para tenant (show_in_tenant = 1)
      */
     private function getAllAdminMenus(PDO $pdo): array
     {
         $stmt = $pdo->query("
-            SELECT id, parent_id, title, slug, url, icon, icon_type, order_position, permission
+            SELECT id, parent_id, title, slug, url, icon, icon_type, order_position, permission, show_in_tenant
             FROM admin_menus
-            WHERE is_active = 1
+            WHERE is_active = 1 AND show_in_tenant = 1
             ORDER BY order_position ASC
         ");
         $allMenus = $stmt->fetchAll(PDO::FETCH_ASSOC);

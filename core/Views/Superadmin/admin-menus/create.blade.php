@@ -59,6 +59,29 @@
             </div>
           </div>
 
+          {{-- Visibilidad por Scope --}}
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label class="form-label d-block">Visibilidad</label>
+              <div class="d-flex gap-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="show_in_superadmin" name="show_in_superadmin" checked>
+                  <label class="form-check-label" for="show_in_superadmin">
+                    <i class="bi bi-shield-lock me-1"></i> Mostrar en Superadmin
+                    <small class="text-muted d-block">Se muestra en el panel /musedock/</small>
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="show_in_tenant" name="show_in_tenant" checked>
+                  <label class="form-check-label" for="show_in_tenant">
+                    <i class="bi bi-building me-1"></i> Copiar a Tenants
+                    <small class="text-muted d-block">Se copia a nuevos tenants al crearlos</small>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="row">
             {{-- Icono --}}
             <div class="col-md-4 mb-3">

@@ -125,6 +125,8 @@ class AdminMenuController
         $orderPosition = (int)($_POST['order_position'] ?? 0);
         $permission = trim($_POST['permission'] ?? '');
         $isActive = isset($_POST['is_active']) ? 1 : 0;
+        $showInSuperadmin = isset($_POST['show_in_superadmin']) ? 1 : 0;
+        $showInTenant = isset($_POST['show_in_tenant']) ? 1 : 0;
 
         if (empty($title) || empty($slug) || empty($url)) {
             flash('error', 'Los campos título, slug y URL son obligatorios.');
@@ -146,8 +148,8 @@ class AdminMenuController
 
             $stmt = $pdo->prepare("
                 INSERT INTO admin_menus
-                (parent_id, module_id, title, slug, url, icon, icon_type, order_position, permission, is_active, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                (parent_id, module_id, title, slug, url, icon, icon_type, order_position, permission, is_active, show_in_superadmin, show_in_tenant, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
             ");
 
             $stmt->execute([
@@ -160,7 +162,9 @@ class AdminMenuController
                 $iconType,
                 $orderPosition,
                 $permission,
-                $isActive
+                $isActive,
+                $showInSuperadmin,
+                $showInTenant
             ]);
 
             $pdo->commit();
@@ -243,6 +247,8 @@ class AdminMenuController
         $orderPosition = (int)($_POST['order_position'] ?? 0);
         $permission = trim($_POST['permission'] ?? '');
         $isActive = isset($_POST['is_active']) ? 1 : 0;
+        $showInSuperadmin = isset($_POST['show_in_superadmin']) ? 1 : 0;
+        $showInTenant = isset($_POST['show_in_tenant']) ? 1 : 0;
 
         if (empty($title) || empty($slug) || empty($url)) {
             flash('error', 'Los campos título, slug y URL son obligatorios.');
@@ -274,6 +280,8 @@ class AdminMenuController
                     order_position = ?,
                     permission = ?,
                     is_active = ?,
+                    show_in_superadmin = ?,
+                    show_in_tenant = ?,
                     updated_at = NOW()
                 WHERE id = ?
             ");
@@ -289,6 +297,8 @@ class AdminMenuController
                 $orderPosition,
                 $permission,
                 $isActive,
+                $showInSuperadmin,
+                $showInTenant,
                 $id
             ]);
 

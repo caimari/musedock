@@ -18,13 +18,15 @@ class AdminMenu
     {
         $pdo = Database::connect();
 
-        // Obtener todos los menús activos, ordenados por parent_id y order_position
+        // Obtener todos los menús activos y visibles para superadmin, ordenados por parent_id y order_position
         $stmt = $pdo->prepare("
             SELECT *
             FROM admin_menus
-            WHERE is_active = 1 AND (module_id IS NULL OR module_id IN (
-                SELECT id FROM modules WHERE active = 1 AND cms_enabled = 1
-            ))
+            WHERE is_active = 1
+                AND show_in_superadmin = 1
+                AND (module_id IS NULL OR module_id IN (
+                    SELECT id FROM modules WHERE active = 1 AND cms_enabled = 1
+                ))
             ORDER BY parent_id IS NOT NULL, parent_id, order_position ASC
         ");
         $stmt->execute();
@@ -290,6 +292,7 @@ class AdminMenu
                 ON am.id = amc.admin_menu_id
                 AND amc.tenant_id " . ($tenantId ? "= ?" : "IS NULL") . "
             WHERE am.is_active = 1
+                AND am.show_in_superadmin = 1
                 AND (amc.is_hidden IS NULL OR amc.is_hidden = 0)
                 AND (am.module_id IS NULL OR am.module_id IN (
                     SELECT id FROM modules WHERE active = 1 AND cms_enabled = 1

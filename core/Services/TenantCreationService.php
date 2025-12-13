@@ -342,17 +342,18 @@ class TenantCreationService
 
     /**
      * Crear menús por defecto para el tenant copiando desde admin_menus
-     * Solo copia los menús cuyos slugs estén en la configuración default_menu_slugs
+     * Solo copia los menús marcados con show_in_tenant = 1
+     * y cuyos slugs estén en la configuración default_menu_slugs (si está configurado)
      */
     private function createDefaultTenantMenus(int $tenantId): void
     {
         // Obtener los slugs permitidos de la configuración
         $allowedSlugs = $this->getSetting('default_menu_slugs', []);
 
-        // Obtener todos los menús de admin_menus ordenados por parent_id (padres primero)
+        // Obtener todos los menús de admin_menus marcados para tenant, ordenados por parent_id (padres primero)
         $sql = "SELECT id, parent_id, module_id, title, slug, url, icon, icon_type, order_position, permission, is_active
                 FROM admin_menus
-                WHERE is_active = 1
+                WHERE is_active = 1 AND show_in_tenant = 1
                 ORDER BY parent_id IS NULL DESC, parent_id ASC, order_position ASC";
 
         $stmt = $this->pdo->query($sql);
