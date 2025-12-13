@@ -83,17 +83,17 @@
         "primary_color": {
           "type": "color",
           "label": "Color primario",
-          "default": "#667eea"
+          "default": "#6366f1"
         },
         "secondary_color": {
           "type": "color",
           "label": "Color secundario",
-          "default": "#764ba2"
+          "default": "#ec4899"
         },
         "accent_color": {
           "type": "color",
           "label": "Color de acento",
-          "default": "#f59e0b"
+          "default": "#06b6d4"
         },
         "header_bg_color": {
           "type": "color",

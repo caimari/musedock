@@ -136,7 +136,14 @@
 
             {{-- Renderizar el contenido HTML con filtros aplicados (shortcodes, etc.) --}}
             <div class="page-body">
-                 {!! apply_filters('the_content', $translation->content ?? '<p class="text-muted">Contenido no disponible.</p>') !!}
+                @php
+                    $content = apply_filters('the_content', $translation->content ?? '<p class="text-muted">Contenido no disponible.</p>');
+                    // Si hay slider activo, eliminar el primer h1, h2 o h3 del contenido para evitar duplicados
+                    if (isset($customizations) && ($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")) {
+                        $content = preg_replace('/<h[123][^>]*>.*?<\/h[123]>/', '', $content, 1);
+                    }
+                @endphp
+                {!! $content !!}
             </div>
         @endif
     </article>

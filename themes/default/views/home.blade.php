@@ -43,7 +43,12 @@
                         <div class="row">
                             <div class="col-xl-6 col-lg-6 col-md-8">
                                 <div class="hero__caption">
-                                    <p data-animation="fadeInLeft" data-delay=".4s">{!! apply_filters('the_content', $translation->content ?? $page->content ?? '<p>' . __('home_intro') . '</p>') !!}</p>
+                                    @php
+                                        $homeContent = apply_filters('the_content', $translation->content ?? $page->content ?? '<p>' . __('home_intro') . '</p>');
+                                        // Eliminar el primer h1, h2 o h3 del contenido para evitar duplicados
+                                        $homeContent = preg_replace('/<h[123][^>]*>.*?<\/h[123]>/', '', $homeContent, 1);
+                                    @endphp
+                                    <p data-animation="fadeInLeft" data-delay=".4s">{!! $homeContent !!}</p>
                                     <h1 data-animation="fadeInLeft" data-delay=".6s" >{{ $translation->title ?? $page->title ?? __('home_title') }}</h1>
                                     <!-- Hero-btn -->
                                     <div class="hero__btn" data-animation="fadeInLeft" data-delay=".8s">

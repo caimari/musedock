@@ -70,10 +70,20 @@
                                 </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">Direccion</label>
-                                <textarea name="contact_address" class="form-control" rows="2"
-                                          placeholder="Calle, numero, ciudad, pais">{{ $settings['contact_address'] ?? '' }}</textarea>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">WhatsApp</label>
+                                    <input type="text" name="contact_whatsapp" class="form-control"
+                                           value="{{ $settings['contact_whatsapp'] ?? '' }}"
+                                           placeholder="+34 600 000 000">
+                                    <small class="text-muted">Numero de WhatsApp con prefijo internacional</small>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Direccion</label>
+                                    <textarea name="contact_address" class="form-control" rows="2"
+                                              placeholder="Calle, numero, ciudad, pais">{{ $settings['contact_address'] ?? '' }}</textarea>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -130,6 +130,48 @@
           "label": "Color de fondo de la cabecera",
           "default": "#f8f9fa"
         },
+        "header_logo_text_color": {
+          "type": "color",
+          "label": "Color del texto del logo",
+          "default": "#1a2a40",
+          "description": "Color del título del sitio cuando se muestra como texto"
+        },
+        "header_logo_font": {
+          "type": "select",
+          "label": "Tipografía del logo",
+          "default": "inherit",
+          "options": {
+            "inherit": "Por defecto del tema",
+            "Arial, sans-serif": "Arial",
+            "Georgia, serif": "Georgia",
+            "Helvetica, sans-serif": "Helvetica",
+            "'Times New Roman', serif": "Times New Roman",
+            "'Courier New', monospace": "Courier New",
+            "'Trebuchet MS', sans-serif": "Trebuchet MS",
+            "'Verdana', sans-serif": "Verdana",
+            "'Playfair Display', serif": "Playfair Display",
+            "'Montserrat', sans-serif": "Montserrat",
+            "'Roboto', sans-serif": "Roboto",
+            "'Open Sans', sans-serif": "Open Sans",
+            "'Lato', sans-serif": "Lato",
+            "'Poppins', sans-serif": "Poppins",
+            "'Oswald', sans-serif": "Oswald",
+            "'Raleway', sans-serif": "Raleway"
+          },
+          "description": "Tipografía para el texto del logo"
+        },
+        "header_link_color": {
+          "type": "color",
+          "label": "Color de los enlaces del menú",
+          "default": "#333333",
+          "description": "Color de los enlaces de navegación"
+        },
+        "header_link_hover_color": {
+          "type": "color",
+          "label": "Color de enlaces al pasar el ratón",
+          "default": "#ff5e15",
+          "description": "Color de los enlaces de navegación al pasar el ratón"
+        },
         "header_sticky": {
           "type": "toggle",
           "label": "Cabecera fija (sticky)",

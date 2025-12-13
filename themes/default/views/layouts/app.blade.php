@@ -139,6 +139,10 @@
         --topbar-bg-color: {{ themeOption('topbar.topbar_bg_color', '#1a2a40') }};
         --topbar-text-color: {{ themeOption('topbar.topbar_text_color', '#ffffff') }};
         --header-bg-color: {{ themeOption('header.header_bg_color', '#f8f9fa') }};
+        --header-logo-text-color: {{ themeOption('header.header_logo_text_color', '#1a2a40') }};
+        --header-logo-font: {{ themeOption('header.header_logo_font', 'inherit') }};
+        --header-link-color: {{ themeOption('header.header_link_color', '#333333') }};
+        --header-link-hover-color: {{ themeOption('header.header_link_hover_color', '#ff5e15') }};
         --header-cta-bg-color: {{ themeOption('header.header_cta_bg_color', '#ff5e15') }};
         --header-cta-text-color: {{ themeOption('header.header_cta_text_color', '#ffffff') }};
         --header-cta-hover-color: {{ themeOption('header.header_cta_hover_color', '#e54c08') }};
@@ -149,6 +153,25 @@
         --footer-link-hover-color: {{ themeOption('footer.footer_link_hover_color', '#ff5e15') }};
         --footer-icon-color: {{ themeOption('footer.footer_icon_color', '#333333') }};
         --footer-border-color: {{ themeOption('footer.footer_border_color', '#e5e5e5') }};
+    }
+
+    /* ===== Estilos del Header usando CSS Variables ===== */
+    /* Logo texto */
+    .header-logo span,
+    .header-logo .site-title {
+        color: var(--header-logo-text-color) !important;
+        font-family: var(--header-logo-font) !important;
+    }
+
+    /* Enlaces del menú de navegación */
+    .main-navigation a,
+    .header-menu a {
+        color: var(--header-link-color) !important;
+    }
+
+    .main-navigation a:hover,
+    .header-menu a:hover {
+        color: var(--header-link-hover-color) !important;
     }
 
     /* ===== Estilos del Footer usando CSS Variables ===== */
@@ -207,50 +230,6 @@
 
     .footer-border {
         border-top: 1px solid var(--footer-border-color) !important;
-    }
-
-    /* ===== Selector de idioma SIEMPRE con texto negro ===== */
-    /* Footer language selector */
-    .language-selector select,
-    .language-selector .custom-language-select,
-    #language-select,
-    .footer-area select,
-    .footer-area .language-selector select {
-        color: #000 !important;
-        background-color: #fff !important;
-    }
-
-    .language-selector select option,
-    #language-select option {
-        color: #000 !important;
-        background-color: #fff !important;
-    }
-
-    /* Header language selector */
-    .lang-btn,
-    .lang-select .lang-btn,
-    .lang-dropdown .lang-option,
-    .header-actions .lang-btn {
-        color: #000 !important;
-        background-color: #fff !important;
-    }
-
-    .lang-dropdown .lang-option:hover {
-        color: #ff5e15 !important;
-        background-color: #f5f5f5 !important;
-    }
-
-    /* Mobile language selector */
-    .mobile-lang-select select,
-    #mobile-lang-switcher {
-        color: #000 !important;
-        background-color: #fff !important;
-    }
-
-    .mobile-lang-select select option,
-    #mobile-lang-switcher option {
-        color: #000 !important;
-        background-color: #fff !important;
     }
     </style>
 	
@@ -939,7 +918,7 @@ body.mobile-menu-open {
 
                     {{-- Mostrar título si está habilitado --}}
                     @if($showTitle)
-                        <span style="font-size: 24px; font-weight: bold; color: #1a2a40;">
+                        <span class="site-title" style="font-size: 24px; font-weight: bold; color: var(--header-logo-text-color, #1a2a40); font-family: var(--header-logo-font, inherit);">
                             {{ $siteName }}
                         </span>
                     @endif

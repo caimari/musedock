@@ -65,6 +65,7 @@ class SettingsController
                 'contact_phone',
                 'contact_email',
                 'contact_address',
+                'contact_whatsapp',
 
                 // Redes sociales
                 'social_facebook',

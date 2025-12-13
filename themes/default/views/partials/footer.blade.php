@@ -59,9 +59,9 @@
                             @if($showFooterLangSelector)
                             <div class="language-selector my-4 text-left">
                                 <form action="" method="get" id="language-form" class="d-inline-block">
-                                    <select name="lang" id="language-select" class="custom-language-select" style="width: 120px; color: #000 !important; background-color: #fff !important;" onchange="this.form.submit();">
+                                    <select name="lang" id="language-select" class="custom-language-select" style="width: 120px;" onchange="this.form.submit();">
                                         @foreach($activeLanguages as $lang)
-                                            <option value="{{ $lang['code'] }}" {{ $currentLang == $lang['code'] ? 'selected' : '' }} style="color: #000 !important;">
+                                            <option value="{{ $lang['code'] }}" {{ $currentLang == $lang['code'] ? 'selected' : '' }}>
                                                 {{ $lang['name'] }}
                                             </option>
                                         @endforeach
