@@ -41,7 +41,6 @@
     "select": "Seleccionar",
     "show": "Mostrar"
   },
-
   "menu": {
     "dashboard": "Panel de Control",
     "pages": "Páginas",
@@ -61,7 +60,6 @@
     "media": "Media",
     "advanced": "Avanzado"
   },
-
   "dashboard": {
     "title": "Panel de Control",
     "welcome": "Bienvenido, :name",
@@ -77,7 +75,6 @@
     "manage_modules_desc": "Visualiza y administra los módulos instalados",
     "view_site": "Ver Sitio"
   },
-
   "pages": {
     "title": "Páginas",
     "list": "Listado de Páginas",
@@ -178,7 +175,6 @@
     "compare_revisions": "Comparar revisiones",
     "preview_revision": "Previsualizar revisión"
   },
-
   "blog": {
     "title": "Blog",
     "posts": "Posts",
@@ -247,7 +243,25 @@
       "select_image": "Seleccionar imagen",
       "recommended_resolution": "Resolución recomendada: 1200x630px. Esta imagen se utiliza como cabecera del post y en los listados de Posts.",
       "hide_featured_image": "Ocultar imagen destacada en el blog",
-      "hide_featured_image_help": "Si está marcado, la imagen no se mostrará en el listado ni en el post individual"
+      "hide_featured_image_help": "Si está marcado, la imagen no se mostrará en el listado ni en el post individual",
+      "new_post": "Nuevo post",
+      "write_title": "Escribe el título",
+      "excerpt_placeholder": "Escribe un breve extracto del post...",
+      "excerpt_help": "Breve resumen que aparecerá en listados y tarjetas de posts",
+      "base_language": "Idioma base",
+      "create_post": "Crear post",
+      "published_immediately": "Publicado inmediatamente",
+      "password": "Contraseña",
+      "password_protected": "Protegido con contraseña",
+      "options": "Opciones",
+      "allow_comments": "Permitir comentarios",
+      "image_url": "URL de imagen",
+      "image_placeholder": "https://ejemplo.com/imagen.jpg",
+      "image_help": "URL completa de la imagen destacada",
+      "image_load_error": "Error al cargar la imagen",
+      "categories": "Categorías",
+      "select_multiple": "Mantén Ctrl/Cmd para seleccionar múltiples opciones",
+      "back_to_posts": "Volver a Posts"
     },
     "bulk": {
       "actions": "Acciones masivas"
@@ -326,14 +340,12 @@
       "error_update": "Error al actualizar la etiqueta",
       "error_delete": "Error al eliminar la etiqueta"
     },
-    "title": "Blog",
     "recent_posts": "Publicaciones Recientes",
     "view_all": "Ver Todos",
     "read_more": "Leer Más",
     "no_posts": "No hay posts publicados.",
     "no_posts_category": "No hay posts en esta categoría.",
     "no_posts_tag": "No hay posts con esta etiqueta.",
-    "tags": "Etiquetas",
     "back_to_all": "Volver a Todos los posts",
     "published_on": "Publicado el",
     "popular_posts": "Posts Populares",
@@ -349,7 +361,6 @@
     "no_comments": "No hay comentarios todavía.",
     "leave_comment": "Dejar un Comentario"
   },
-
   "users": {
     "title": "Usuarios",
     "list": "Listado de Usuarios",
@@ -371,7 +382,6 @@
     "change_password": "Cambiar Contraseña",
     "confirm_password": "Confirmar Contraseña"
   },
-
   "themes": {
     "title": "Temas",
     "list": "Listado de Temas",
@@ -392,7 +402,6 @@
     "version": "Versión",
     "description": "Descripción"
   },
-
   "modules": {
     "title": "Módulos",
     "list": "Listado de Módulos",
@@ -417,7 +426,6 @@
     "description": "Descripción",
     "requirements": "Requisitos"
   },
-
   "plugins": {
     "title": "Plugins",
     "list": "Listado de Plugins",
@@ -445,7 +453,6 @@
     "requirements": "Requisitos",
     "statistics": "Estadísticas"
   },
-
   "tickets": {
     "title": "Tickets de Soporte",
     "list": "Listado de Tickets",
@@ -486,7 +493,6 @@
     "total": "Total",
     "statistics": "Estadísticas"
   },
-
   "menus": {
     "title": "Menús",
     "list": "Listado de Menús",
@@ -509,7 +515,6 @@
     "item_target": "Destino",
     "parent_item": "Elemento Padre"
   },
-
   "tenants": {
     "title": "Tenants",
     "list": "Listado de Tenants",
@@ -533,7 +538,6 @@
     "success_deleted": "Tenant eliminado exitosamente",
     "error_not_found": "Tenant no encontrado"
   },
-
   "roles": {
     "title": "Roles",
     "list": "Listado de Roles",
@@ -551,7 +555,6 @@
     "select_all": "Seleccionar Todos",
     "deselect_all": "Deseleccionar Todos"
   },
-
   "permissions": {
     "title": "Permisos",
     "list": "Listado de Permisos",
@@ -565,7 +568,6 @@
     "success_updated": "Permiso actualizado exitosamente",
     "no_permission": "No tienes permiso para acceder a esta sección"
   },
-
   "settings": {
     "title": "Configuración",
     "general": "General",
@@ -583,7 +585,6 @@
     "success_updated": "Configuración actualizada exitosamente",
     "cache_cleared": "Caché limpiado exitosamente"
   },
-
   "logs": {
     "title": "Registros",
     "system_logs": "Registros del Sistema",
@@ -599,7 +600,6 @@
     "ip_address": "Dirección IP",
     "success_cleared": "Registros limpiados exitosamente"
   },
-
   "auth": {
     "login": "Acceder",
     "login_title": "Acceder al panel",
@@ -623,7 +623,6 @@
     "password_reset_sent": "Se ha enviado un enlace de restablecimiento de contraseña",
     "password_reset_success": "Contraseña restablecida exitosamente"
   },
-
   "languages": {
     "title": "Idiomas",
     "select_language": "Seleccionar Idioma",
@@ -631,7 +630,6 @@
     "english": "English",
     "current_language": "Idioma Actual"
   },
-
   "validation": {
     "required": "El campo :field es requerido",
     "email": "El campo :field debe ser un correo electrónico válido",
@@ -640,7 +638,6 @@
     "unique": "El :field ya está en uso",
     "confirmed": "La confirmación de :field no coincide"
   },
-
   "messages": {
     "success": "Operación realizada exitosamente",
     "error": "Ocurrió un error al procesar la solicitud",
@@ -655,16 +652,13 @@
     "no_all_permissions": "No tienes todos los permisos necesarios para acceder a esta sección",
     "superadmin_only": "Acceso restringido solo para super administradores"
   },
-
   "footer": {
     "cookie_settings": "Configuración de cookies",
     "contact": "Contacto"
   },
-
   "header": {
     "login_button": "Iniciar sesión"
   },
-
   "cookies": {
     "title": "Usamos cookies",
     "text": "Este sitio utiliza cookies para mejorar tu experiencia de navegación. Al continuar navegando, aceptas su uso.",
@@ -681,7 +675,6 @@
     "cat_analytics_desc": "Nos permiten medir el tráfico y analizar tu comportamiento para mejorar nuestro servicio.",
     "save_preferences": "Guardar preferencias"
   },
-
   "mobile_menu": {
     "select_language": "Selecciona tu idioma:"
   }
