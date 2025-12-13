@@ -144,8 +144,113 @@
         --header-cta-hover-color: {{ themeOption('header.header_cta_hover_color', '#e54c08') }};
         --footer-bg-color: {{ themeOption('footer.footer_bg_color', '#f8fafe') }};
         --footer-text-color: {{ themeOption('footer.footer_text_color', '#333333') }};
+        --footer-heading-color: {{ themeOption('footer.footer_heading_color', '#333333') }};
         --footer-link-color: {{ themeOption('footer.footer_link_color', '#333333') }};
         --footer-link-hover-color: {{ themeOption('footer.footer_link_hover_color', '#ff5e15') }};
+        --footer-icon-color: {{ themeOption('footer.footer_icon_color', '#333333') }};
+        --footer-border-color: {{ themeOption('footer.footer_border_color', '#e5e5e5') }};
+    }
+
+    /* ===== Estilos del Footer usando CSS Variables ===== */
+    .footer-area,
+    .footer-padding {
+        background-color: var(--footer-bg-color) !important;
+    }
+
+    /* Textos del footer */
+    .footer-area p,
+    .footer-area .footer-pera p,
+    .footer-area span,
+    .footer-copy-right p,
+    .footer-bottom-area p {
+        color: var(--footer-text-color) !important;
+    }
+
+    /* Títulos del footer */
+    .footer-area h4,
+    .footer-area .footer-tittle h4,
+    .footer-tittle h4,
+    .single-footer-caption h4 {
+        color: var(--footer-heading-color) !important;
+    }
+
+    /* Enlaces del footer */
+    .footer-area a,
+    .footer-tittle ul li a,
+    .footer-area .footer-tittle a {
+        color: var(--footer-link-color) !important;
+    }
+
+    .footer-area a:hover,
+    .footer-tittle ul li a:hover,
+    .footer-area .footer-tittle a:hover {
+        color: var(--footer-link-hover-color) !important;
+    }
+
+    /* Iconos sociales del footer */
+    .footer-social a,
+    .footer-social a i,
+    .footer-area .footer-social a {
+        color: var(--footer-icon-color) !important;
+    }
+
+    .footer-social a:hover,
+    .footer-social a:hover i {
+        color: var(--footer-link-hover-color) !important;
+    }
+
+    /* Línea divisoria del footer */
+    .footer-border,
+    .footer-bottom-area {
+        border-top-color: var(--footer-border-color) !important;
+    }
+
+    .footer-border {
+        border-top: 1px solid var(--footer-border-color) !important;
+    }
+
+    /* ===== Selector de idioma SIEMPRE con texto negro ===== */
+    /* Footer language selector */
+    .language-selector select,
+    .language-selector .custom-language-select,
+    #language-select,
+    .footer-area select,
+    .footer-area .language-selector select {
+        color: #000 !important;
+        background-color: #fff !important;
+    }
+
+    .language-selector select option,
+    #language-select option {
+        color: #000 !important;
+        background-color: #fff !important;
+    }
+
+    /* Header language selector */
+    .lang-btn,
+    .lang-select .lang-btn,
+    .lang-dropdown .lang-option,
+    .header-actions .lang-btn {
+        color: #000 !important;
+        background-color: #fff !important;
+    }
+
+    .lang-dropdown .lang-option:hover {
+        color: #ff5e15 !important;
+        background-color: #f5f5f5 !important;
+    }
+
+    /* Mobile language selector */
+    .mobile-lang-select select,
+    #mobile-lang-switcher {
+        color: #000 !important;
+        background-color: #fff !important;
+    }
+
+    .mobile-lang-select select option,
+    #mobile-lang-switcher option {
+        color: #000 !important;
+        background-color: #fff !important;
     }
     </style>
 	

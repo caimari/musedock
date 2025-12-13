@@ -11,7 +11,7 @@
 @endphp
 <footer>
     <!-- Footer Start -->
-    <div class="footer-area footer-padding">
+    <div class="footer-area footer-padding" style="background-color: var(--footer-bg-color, #f8fafe);">
         <div class="container">
             <div class="row">
 
@@ -26,12 +26,12 @@
                          @endif
                          <div class="footer-tittle">
                              <div class="footer-pera">
-                                 <p>{{ translatable_site_setting('footer_short_description', '') }}</p>
+                                 <p style="color: var(--footer-text-color, #333);">{{ translatable_site_setting('footer_short_description', '') }}</p>
                             </div>
 
                             <!-- Enlace configuración de cookies (RGPD) -->
                             <div class="cookie-settings-link my-2">
-                                <a href="javascript:void(0);" id="open-cookie-settings" style="color: #999; font-size: 13px; text-decoration: underline;">
+                                <a href="javascript:void(0);" id="open-cookie-settings" style="color: var(--footer-link-color, #333); font-size: 13px; text-decoration: underline;">
                                     <i class="fas fa-cookie-bite me-1"></i>{{ __('footer.cookie_settings') }}
                                 </a>
                             </div>
@@ -59,9 +59,9 @@
                             @if($showFooterLangSelector)
                             <div class="language-selector my-4 text-left">
                                 <form action="" method="get" id="language-form" class="d-inline-block">
-                                    <select name="lang" id="language-select" class="custom-language-select" style="width: 120px;" onchange="this.form.submit();">
+                                    <select name="lang" id="language-select" class="custom-language-select" style="width: 120px; color: #000 !important; background-color: #fff !important;" onchange="this.form.submit();">
                                         @foreach($activeLanguages as $lang)
-                                            <option value="{{ $lang['code'] }}" {{ $currentLang == $lang['code'] ? 'selected' : '' }}>
+                                            <option value="{{ $lang['code'] }}" {{ $currentLang == $lang['code'] ? 'selected' : '' }} style="color: #000 !important;">
                                                 {{ $lang['name'] }}
                                             </option>
                                         @endforeach
@@ -72,27 +72,27 @@
                          </div>
                          
                          <!-- social -->
-                         <div class="footer-social">
+                         <div class="footer-social" style="--icon-color: var(--footer-icon-color, #333);">
                             @if(site_setting('social_facebook', ''))
-                                <a href="{{ site_setting('social_facebook') }}" target="_blank"><i class="fab fa-facebook-square"></i></a>
+                                <a href="{{ site_setting('social_facebook') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-facebook-square"></i></a>
                             @endif
                             @if(site_setting('social_twitter', ''))
-                                <a href="{{ site_setting('social_twitter') }}" target="_blank"><i class="fab fa-twitter-square"></i></a>
+                                <a href="{{ site_setting('social_twitter') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-twitter-square"></i></a>
                             @endif
                             @if(site_setting('social_instagram', ''))
-                                <a href="{{ site_setting('social_instagram') }}" target="_blank"><i class="fab fa-instagram"></i></a>
+                                <a href="{{ site_setting('social_instagram') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-instagram"></i></a>
                             @endif
                             @if(site_setting('social_linkedin', ''))
-                                <a href="{{ site_setting('social_linkedin') }}" target="_blank"><i class="fab fa-linkedin"></i></a>
+                                <a href="{{ site_setting('social_linkedin') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-linkedin"></i></a>
                             @endif
                             @if(site_setting('social_pinterest', ''))
-                                <a href="{{ site_setting('social_pinterest') }}" target="_blank"><i class="fab fa-pinterest-square"></i></a>
+                                <a href="{{ site_setting('social_pinterest') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-pinterest-square"></i></a>
                             @endif
                             @if(site_setting('social_youtube', ''))
-                                <a href="{{ site_setting('social_youtube') }}" target="_blank"><i class="fab fa-youtube"></i></a>
+                                <a href="{{ site_setting('social_youtube') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-youtube"></i></a>
                             @endif
                             @if(site_setting('social_tiktok', ''))
-                                <a href="{{ site_setting('social_tiktok') }}" target="_blank"><i class="fab fa-tiktok"></i></a>
+                                <a href="{{ site_setting('social_tiktok') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-tiktok"></i></a>
                             @endif
                         </div>
                      </div>
@@ -128,7 +128,7 @@
                             {{-- Si tenemos un menú definido para footer1, mostrarlo --}}
                             <div class="footer-tittle">
                                 @if($footer1Title && $showFooter1Title)
-                                    <h4>{{ $footer1Title }}</h4>
+                                    <h4 style="color: var(--footer-heading-color, #333);">{{ $footer1Title }}</h4>
                                 @endif
                                 @custommenu('footer1', null, [
                                     'nav_class' => '',
@@ -173,7 +173,7 @@
                             {{-- Si tenemos un menú definido para footer2, mostrarlo --}}
                             <div class="footer-tittle">
                                 @if($footer2Title && $showFooter2Title)
-                                    <h4>{{ $footer2Title }}</h4>
+                                    <h4 style="color: var(--footer-heading-color, #333);">{{ $footer2Title }}</h4>
                                 @endif
                                 @custommenu('footer2', null, [
                                     'nav_class' => '',
@@ -222,7 +222,7 @@
                             {{-- Prioridad 1: Si hay menú asignado a footer3, mostrarlo --}}
                             <div class="footer-tittle">
                                 @if($footer3Title && $showFooter3Title)
-                                    <h4>{{ $footer3Title }}</h4>
+                                    <h4 style="color: var(--footer-heading-color, #333);">{{ $footer3Title }}</h4>
                                 @endif
                                 @custommenu('footer3', null, [
                                     'nav_class' => '',
@@ -234,7 +234,7 @@
                         @elseif($hasContactData)
                             {{-- Prioridad 2: Si no hay menú pero hay datos de contacto --}}
                             <div class="footer-tittle">
-                                <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #333;">{{ site_setting('footer_col4_title', __('footer.contact')) }}</h4>
+                                <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--footer-heading-color, #333);">{{ site_setting('footer_col4_title', __('footer.contact')) }}</h4>
                                 <ul>
                                     @if(site_setting('contact_phone'))<li><span>{{ site_setting('contact_phone') }}</span></li>@endif
                                     @if(site_setting('contact_email'))<li><span>{{ site_setting('contact_email') }}</span></li>@endif
@@ -253,13 +253,13 @@
     </div>
     
     <!-- footer-bottom area -->
-    <div class="footer-bottom-area footer-bg">
+    <div class="footer-bottom-area footer-bg" style="background-color: var(--footer-bg-color, #f8fafe);">
         <div class="container">
-            <div class="footer-border">
+            <div class="footer-border" style="border-top: 1px solid var(--footer-border-color, #e5e5e5);">
                 <div class="row d-flex align-items-center">
                     <div class="col-xl-12 ">
                         <div class="footer-copy-right text-center">
-                            <p>
+                            <p style="color: var(--footer-text-color, #333);">
                                 {!! site_setting('footer_copyright', '© Copyright ' . site_setting('site_name', 'MuseDock') . ' ' . date('Y') . '.') !!}
                             </p>
                         </div>

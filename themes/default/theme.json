@@ -188,6 +188,12 @@
           "label": "Color del texto del footer",
           "default": "#333333"
         },
+        "footer_heading_color": {
+          "type": "color",
+          "label": "Color de los títulos del footer",
+          "default": "#333333",
+          "description": "Color de los títulos de widgets y secciones del footer"
+        },
         "footer_link_color": {
           "type": "color",
           "label": "Color de los enlaces del footer",
@@ -197,6 +203,18 @@
           "type": "color",
           "label": "Color de los enlaces al pasar el ratón",
           "default": "#ff5e15"
+        },
+        "footer_icon_color": {
+          "type": "color",
+          "label": "Color de los iconos del footer",
+          "default": "#333333",
+          "description": "Color de los iconos sociales y otros iconos del footer"
+        },
+        "footer_border_color": {
+          "type": "color",
+          "label": "Color del borde/línea del footer",
+          "default": "#e5e5e5",
+          "description": "Color de la línea divisoria del footer"
         }
       }
     },
