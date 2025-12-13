@@ -41,22 +41,22 @@ Route::post('musedock/media/move', 'MediaManager\Controllers\MediaController@mov
 Route::post('musedock/media/copy', 'MediaManager\Controllers\MediaController@copyMedia')->name('superadmin.media.copy')->middleware('superadmin');
 
 // ========== TENANT MEDIA ROUTES ==========
-Route::get('admin/media', 'MediaManager\Controllers\MediaController@index')->name('tenant.media.index')->middleware('tenant');
-Route::get('admin/media/data', 'MediaManager\Controllers\MediaController@getMediaData')->name('tenant.media.data')->middleware('tenant');
-Route::get('admin/media/disks', 'MediaManager\Controllers\MediaController@getAvailableDisksApi')->name('tenant.media.disks')->middleware('tenant');
-Route::post('admin/media/upload', 'MediaManager\Controllers\MediaController@upload')->name('tenant.media.upload')->middleware('tenant');
-Route::post('admin/media/{id}/delete', 'MediaManager\Controllers\MediaController@delete')->name('tenant.media.delete')->middleware('tenant');
-Route::post('admin/media/{id}/update', 'MediaManager\Controllers\MediaController@updateMeta')->name('tenant.media.update')->middleware('tenant');
-Route::post('admin/media/{id}/rename', 'MediaManager\Controllers\MediaController@renameMedia')->name('tenant.media.rename')->middleware('tenant');
-Route::get('admin/media/{id}/details', 'MediaManager\Controllers\MediaController@getMediaDetails')->name('tenant.media.details')->middleware('tenant');
+Route::get('admin/media', 'MediaManager\Controllers\MediaController@index')->name('tenant.media.index');
+Route::get('admin/media/data', 'MediaManager\Controllers\MediaController@getMediaData')->name('tenant.media.data');
+Route::get('admin/media/disks', 'MediaManager\Controllers\MediaController@getAvailableDisksApi')->name('tenant.media.disks');
+Route::post('admin/media/upload', 'MediaManager\Controllers\MediaController@upload')->name('tenant.media.upload');
+Route::post('admin/media/{id}/delete', 'MediaManager\Controllers\MediaController@delete')->name('tenant.media.delete');
+Route::post('admin/media/{id}/update', 'MediaManager\Controllers\MediaController@updateMeta')->name('tenant.media.update');
+Route::post('admin/media/{id}/rename', 'MediaManager\Controllers\MediaController@renameMedia')->name('tenant.media.rename');
+Route::get('admin/media/{id}/details', 'MediaManager\Controllers\MediaController@getMediaDetails')->name('tenant.media.details');
 
 // ========== TENANT FOLDER MANAGEMENT ROUTES ==========
-Route::get('admin/media/folders/structure', 'MediaManager\Controllers\MediaController@getFolderStructure')->name('tenant.media.folders.structure')->middleware('tenant');
-Route::post('admin/media/folders/create', 'MediaManager\Controllers\MediaController@createFolder')->name('tenant.media.folders.create')->middleware('tenant');
-Route::post('admin/media/folders/{id}/rename', 'MediaManager\Controllers\MediaController@renameFolder')->name('tenant.media.folders.rename')->middleware('tenant');
-Route::post('admin/media/folders/{id}/delete', 'MediaManager\Controllers\MediaController@deleteFolder')->name('tenant.media.folders.delete')->middleware('tenant');
+Route::get('admin/media/folders/structure', 'MediaManager\Controllers\MediaController@getFolderStructure')->name('tenant.media.folders.structure');
+Route::post('admin/media/folders/create', 'MediaManager\Controllers\MediaController@createFolder')->name('tenant.media.folders.create');
+Route::post('admin/media/folders/{id}/rename', 'MediaManager\Controllers\MediaController@renameFolder')->name('tenant.media.folders.rename');
+Route::post('admin/media/folders/{id}/delete', 'MediaManager\Controllers\MediaController@deleteFolder')->name('tenant.media.folders.delete');
 
 // ========== TENANT MEDIA OPERATIONS ROUTES ==========
-Route::post('admin/media/move', 'MediaManager\Controllers\MediaController@moveItems')->name('tenant.media.move')->middleware('tenant');
-Route::post('admin/media/copy', 'MediaManager\Controllers\MediaController@copyMedia')->name('tenant.media.copy')->middleware('tenant');
+Route::post('admin/media/move', 'MediaManager\Controllers\MediaController@moveItems')->name('tenant.media.move');
+Route::post('admin/media/copy', 'MediaManager\Controllers\MediaController@copyMedia')->name('tenant.media.copy');
 ?>
