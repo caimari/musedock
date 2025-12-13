@@ -81,10 +81,13 @@ public function toggle($moduleId)
         // Toggle enabled - Verifica si $entry es un objeto o un array
         $isEnabled = is_array($entry) ? $entry['enabled'] : $entry->enabled;
 
+        // Convertir a entero explícitamente para PostgreSQL (SMALLINT)
+        $newEnabledValue = $isEnabled ? 0 : 1;
+
         Database::table('tenant_modules')
             ->where('tenant_id', $tenantId)
             ->where('module_id', $moduleId)
-            ->update(['enabled' => !$isEnabled]);
+            ->update(['enabled' => $newEnabledValue]);
     } else {
         Database::table('tenant_modules')->insert([
             'tenant_id' => $tenantId,

@@ -4,12 +4,12 @@
 // Configuración global del gestor de medios para TinyMCE
 if (!window.MediaManagerConfig) {
     window.MediaManagerConfig = {
-        uploadUrl: '{{ route("superadmin.media.upload") }}',
-        dataUrl: '{{ route("superadmin.media.data") }}',
-        deleteUrlTemplate: '{{ route("superadmin.media.delete", ["id" => ":id"]) }}',
-        detailsUrlTemplate: '{{ route("superadmin.media.details", ["id" => ":id"]) }}',
-        updateUrlTemplate: '{{ route("superadmin.media.update", ["id" => ":id"]) }}',
-        foldersStructureUrl: '{{ route("superadmin.media.folders.structure") }}',
+        uploadUrl: '{{ route("tenant.media.upload") }}',
+        dataUrl: '{{ route("tenant.media.data") }}',
+        deleteUrlTemplate: '{{ route("tenant.media.delete", ["id" => ":id"]) }}',
+        detailsUrlTemplate: '{{ route("tenant.media.details", ["id" => ":id"]) }}',
+        updateUrlTemplate: '{{ route("tenant.media.update", ["id" => ":id"]) }}',
+        foldersStructureUrl: '{{ route("tenant.media.folders.structure") }}',
         csrfToken: '{{ csrf_token() }}',
         currentDisk: 'media',
         availableDisks: {
@@ -19,13 +19,13 @@ if (!window.MediaManagerConfig) {
     };
     // Fallback si las rutas no se resuelven
     if (window.MediaManagerConfig.foldersStructureUrl.includes('#ruta-no-encontrada')) {
-        window.MediaManagerConfig.foldersStructureUrl = '/musedock/media/folders/structure';
+        window.MediaManagerConfig.foldersStructureUrl = '/admin/media/folders/structure';
     }
     if (window.MediaManagerConfig.uploadUrl.includes('#ruta-no-encontrada')) {
-        window.MediaManagerConfig.uploadUrl = '/musedock/media/upload';
+        window.MediaManagerConfig.uploadUrl = '/admin/media/upload';
     }
     if (window.MediaManagerConfig.dataUrl.includes('#ruta-no-encontrada')) {
-        window.MediaManagerConfig.dataUrl = '/musedock/media/data';
+        window.MediaManagerConfig.dataUrl = '/admin/media/data';
     }
 }
 </script>
