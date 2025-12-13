@@ -1,19 +1,39 @@
 /* ====================================
    Sustainable NextJS Theme - MuseDock
+   Adapted from Tailwind CSS Theme
    ==================================== */
 
-/* === Variables === */
+/* === CSS Variables (Tailwind Colors) === */
 :root {
-    --primary-color: #10b981;
-    --secondary-color: #059669;
-    --text-color: #1f2937;
-    --light-bg: #f9fafb;
-    --white: #ffffff;
-    --gray-100: #f3f4f6;
-    --gray-200: #e5e7eb;
-    --gray-300: #d1d5db;
-    --gray-700: #374151;
-    --gray-900: #111827;
+    --color-primary: #1358d8;
+    --color-darkprimary: #054ac8;
+    --color-lightPrimary: #3187f4;
+    --color-secondary: #102c46;
+    --color-SlateBlue: #547593;
+    --color-AliceBlue: #f3f9fd;
+    --color-LightApricot: #f9c78f;
+    --color-border: #233d55;
+    --color-BorderLine: #ccd7e1;
+    --color-darkmode: #021526;
+    --color-darklight: #061b2e;
+    --color-darktext: #7f8487;
+    --color-dark_border: #224767;
+    --color-Cream: #eee8a9;
+    --color-LavenderBlue: #dbe7ff;
+    --color-LightSoftBlue: #dbe9f6;
+    --color-gray: #acbcca;
+    --color-white: #ffffff;
+}
+
+/* === Reset === */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
 }
 
 /* === General === */

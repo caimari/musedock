@@ -191,9 +191,9 @@ body.mobile-menu-open {
 /* ================================================ */
 
 .header-top {
-    background-color: #1a2a40; /* Un color de fondo oscuro (ajústalo si prefieres otro) */
+    background-color: var(--topbar-bg-color, #1a2a40); /* Color de fondo dinámico */
     padding: 10px 0;        /* Espaciado vertical interno */
-    color: white;           /* Color de texto por defecto para todo el topbar */
+    color: var(--topbar-text-color, white); /* Color de texto dinámico */
     font-size: 14px;        /* Tamaño de fuente base para el topbar */
     line-height: 1.5;       /* Altura de línea para mejor legibilidad */
     /* Las clases d-none d-lg-block se encargan de mostrar/ocultar.
@@ -283,7 +283,7 @@ body.mobile-menu-open {
 .musedock-header {
     padding: 15px 0;
     position: relative;
-    background-color: #f8f9fa; /* Color de fondo de ejemplo */
+    background-color: var(--header-bg-color, #f8f9fa); /* Color de fondo dinámico */
     border-bottom: 1px solid #eee; /* Borde sutil */
     z-index: 999; /* Asegura que esté sobre otro contenido */
 }
@@ -407,8 +407,8 @@ body.mobile-menu-open {
 .header-btn {
     display: inline-block;
     padding: 8px 20px; /* Tamaño del botón */
-    background-color: #ff5e15; /* Tu color naranja */
-    color: #fff !important; /* Asegurar color blanco, !important por si hay overrides */
+    background-color: var(--header-cta-bg-color, #ff5e15); /* Color dinámico */
+    color: var(--header-cta-text-color, #fff) !important; /* Color texto dinámico */
     text-decoration: none !important; /* Quitar subrayado */
     border-radius: 4px;
     font-size: 14px;
@@ -420,8 +420,8 @@ body.mobile-menu-open {
 }
 
 .header-btn:hover {
-    background-color: #e54c08; /* Color naranja más oscuro al pasar el ratón */
-    color: #fff !important;
+    background-color: var(--header-cta-hover-color, #e54c08); /* Color hover dinámico */
+    color: var(--header-cta-text-color, #fff) !important;
 }
 
 /* Selector de idioma de escritorio */
