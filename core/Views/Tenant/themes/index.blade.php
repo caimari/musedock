@@ -39,8 +39,8 @@
                             </h5>
                         </div>
                     </div>
-                    <a href="/{{ admin_path() }}/widgets" class="btn btn-light btn-sm">
-                        <i class="fas fa-cog me-1"></i> Personalizar
+                    <a href="/{{ admin_path() }}/themes/appearance/{{ $tenant['theme_type'] === 'custom' ? $tenant['custom_theme_slug'] : $tenant['theme'] }}" class="btn btn-light btn-sm">
+                        <i class="fas fa-paint-brush me-1"></i> Personalizar
                     </a>
                 </div>
             </div>
@@ -111,16 +111,24 @@
                                 <span class="btn btn-primary btn-sm flex-grow-1 disabled">
                                     <i class="fas fa-check me-1"></i> Tema Activo
                                 </span>
-                                <a href="/{{ admin_path() }}/widgets" class="btn btn-outline-primary btn-sm" title="Personalizar">
-                                    <i class="fas fa-sliders-h"></i>
+                                <a href="/{{ admin_path() }}/themes/appearance/{{ $theme['slug'] }}" class="btn btn-outline-info btn-sm" title="Personalizar colores y estilos">
+                                    <i class="fas fa-paint-brush"></i>
+                                </a>
+                                <a href="/{{ admin_path() }}/widgets" class="btn btn-outline-primary btn-sm" title="Widgets">
+                                    <i class="fas fa-th-large"></i>
                                 </a>
                             </div>
                         @else
-                            <button type="button" class="btn btn-outline-primary btn-sm w-100 btn-activate-global"
-                                    data-slug="{{ $theme['slug'] }}"
-                                    data-name="{{ $theme['name'] }}">
-                                <i class="fas fa-power-off me-1"></i> Activar Tema
-                            </button>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-primary btn-sm flex-grow-1 btn-activate-global"
+                                        data-slug="{{ $theme['slug'] }}"
+                                        data-name="{{ $theme['name'] }}">
+                                    <i class="fas fa-power-off me-1"></i> Activar
+                                </button>
+                                <a href="/{{ admin_path() }}/themes/appearance/{{ $theme['slug'] }}" class="btn btn-outline-secondary btn-sm" title="Ver opciones">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
                         @endif
                     </div>
                 </div>

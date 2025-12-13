@@ -100,6 +100,48 @@ Route::post("$adminPath/themes/revalidate/{slug}", 'tenant.ThemesController@reva
      ->middleware(['auth'])
      ->name('tenant.themes.revalidate');
 
+// ==================== PERSONALIZACIÓN DE APARIENCIA ====================
+// Ver/editar opciones de apariencia del tema
+Route::get("$adminPath/themes/appearance/{slug?}", 'tenant.ThemeAppearanceController@index')
+     ->middleware(['auth'])
+     ->name('tenant.themes.appearance');
+
+// Guardar opciones de apariencia
+Route::post("$adminPath/themes/appearance/{slug}/save", 'tenant.ThemeAppearanceController@save')
+     ->middleware(['auth'])
+     ->name('tenant.themes.appearance.save');
+
+// Restaurar valores por defecto
+Route::post("$adminPath/themes/appearance/{slug}/reset", 'tenant.ThemeAppearanceController@reset')
+     ->middleware(['auth'])
+     ->name('tenant.themes.appearance.reset');
+
+// ==================== PRESETS ====================
+// Guardar preset
+Route::post("$adminPath/themes/appearance/{slug}/preset/save", 'tenant.ThemeAppearanceController@savePreset')
+     ->middleware(['auth'])
+     ->name('tenant.themes.preset.save');
+
+// Cargar preset
+Route::post("$adminPath/themes/appearance/{slug}/preset/load/{presetSlug}", 'tenant.ThemeAppearanceController@loadPreset')
+     ->middleware(['auth'])
+     ->name('tenant.themes.preset.load');
+
+// Eliminar preset
+Route::post("$adminPath/themes/appearance/{slug}/preset/delete/{presetSlug}", 'tenant.ThemeAppearanceController@deletePreset')
+     ->middleware(['auth'])
+     ->name('tenant.themes.preset.delete');
+
+// Exportar configuración como JSON
+Route::get("$adminPath/themes/appearance/{slug}/export", 'tenant.ThemeAppearanceController@exportPreset')
+     ->middleware(['auth'])
+     ->name('tenant.themes.appearance.export');
+
+// Importar configuración desde JSON
+Route::post("$adminPath/themes/appearance/{slug}/import", 'tenant.ThemeAppearanceController@importPreset')
+     ->middleware(['auth'])
+     ->name('tenant.themes.appearance.import');
+
 // Ruta legacy (compatibilidad con código antiguo)
 Route::post("$adminPath/themes/update", 'tenant.ThemeController@update')
      ->middleware(['auth'])
