@@ -31,12 +31,20 @@ class SlugRouter
         }
 
         $tenantId = TenantManager::currentTenantId();
-        $multiTenant = setting('multi_tenant_enabled', false);
+
+        // Leer multi_tenant_enabled desde .env primero (consistente con TenantResolver)
+        $multiTenant = \Screenart\Musedock\Env::get('MULTI_TENANT_ENABLED', null);
+        if ($multiTenant === null) {
+            $multiTenant = setting('multi_tenant_enabled', false);
+        }
+        // Convertir a booleano (puede venir como string "true"/"false" desde .env)
+        $multiTenant = filter_var($multiTenant, FILTER_VALIDATE_BOOLEAN);
+
         $currentLang = detectLanguage(); // Detectar el idioma activo
         
         // Log de información básica
         file_put_contents($logPath, date('Y-m-d H:i:s') . " - RESOLVIENDO SLUG:\n", FILE_APPEND);
-        file_put_contents($logPath, "- slug: $slug\n- prefix: " . json_encode($prefix) . "\n- tenant_id: " . json_encode($tenantId) . "\n- locale: " . $currentLang . "\n", FILE_APPEND);
+        file_put_contents($logPath, "- slug: $slug\n- prefix: " . json_encode($prefix) . "\n- tenant_id: " . json_encode($tenantId) . "\n- multiTenant: " . ($multiTenant ? 'true' : 'false') . "\n- locale: " . $currentLang . "\n", FILE_APPEND);
         
         // Query Eloquent - Con todos los filtros
         $query = Slug::where('slug', '=', $slug)

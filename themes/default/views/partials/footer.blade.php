@@ -59,7 +59,8 @@
                             @if($showFooterLangSelector)
                             <div class="language-selector my-4 text-left">
                                 <form action="" method="get" id="language-form" class="d-inline-block">
-                                    <select name="lang" id="language-select" class="custom-language-select" style="width: 120px;" onchange="this.form.submit();">
+                                    {{-- Select sin estilos personalizados - usa estilos nativos del navegador --}}
+                                    <select name="lang" id="language-select" onchange="this.form.submit();">
                                         @foreach($activeLanguages as $lang)
                                             <option value="{{ $lang['code'] }}" {{ $currentLang == $lang['code'] ? 'selected' : '' }}>
                                                 {{ $lang['name'] }}

@@ -104,6 +104,9 @@
     {{-- Google Fonts para tipografías del tema --}}
     @php
         $logoFont = themeOption('header.header_logo_font', 'inherit');
+
+        // Mapa de fuentes de Google (las fuentes del sistema no necesitan carga)
+        // Las claves deben coincidir EXACTAMENTE con los valores en theme.json
         $googleFonts = [
             "'Playfair Display', serif" => 'Playfair+Display:wght@400;700',
             "'Montserrat', sans-serif" => 'Montserrat:wght@400;500;600;700',
@@ -114,9 +117,11 @@
             "'Oswald', sans-serif" => 'Oswald:wght@400;500;600;700',
             "'Raleway', sans-serif" => 'Raleway:wght@400;500;600;700',
         ];
+
+        // Detectar si necesitamos cargar Google Fonts
+        $needsGoogleFont = isset($googleFonts[$logoFont]);
     @endphp
-    <!-- DEBUG: logoFont = {{ $logoFont }} -->
-    @if(isset($googleFonts[$logoFont]))
+    @if($needsGoogleFont)
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family={{ $googleFonts[$logoFont] }}&display=swap" rel="stylesheet">

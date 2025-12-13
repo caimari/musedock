@@ -195,11 +195,16 @@ class ThemeAppearanceController
             $this->jsonResponse(['success' => false, 'error' => 'El nombre del preset es requerido']);
         }
 
-        // Obtener opciones actuales
+        // Obtener opciones actuales del tenant
         $currentOptions = ThemeOption::getOptions($slug, $tenantId);
 
+        // Si el tenant no tiene opciones propias, usar las globales como base
+        if (empty($currentOptions) && $tenantId !== null) {
+            $currentOptions = ThemeOption::getOptions($slug, null);
+        }
+
         if (empty($currentOptions)) {
-            $this->jsonResponse(['success' => false, 'error' => 'No hay opciones guardadas para crear un preset']);
+            $this->jsonResponse(['success' => false, 'error' => 'No hay opciones guardadas para crear un preset. Guarda al menos una personalización primero.']);
         }
 
         // Generar slug único
