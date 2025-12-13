@@ -457,32 +457,26 @@ class CaddyService
                                 ]
                             ]
                         ]
-                    ]
-                ],
-                // 11. Error handler - Redirigir errores 404 a index.php para página personalizada
-                [
-                    'handler' => 'error',
-                    'routes' => [
-                        [
-                            'match' => [
-                                [
-                                    'expression' => '{http.error.status_code} == 404'
-                                ]
-                            ],
-                            'handle' => [
-                                [
-                                    'handler' => 'rewrite',
-                                    'uri' => '/index.php'
-                                ],
-                                [
-                                    'handler' => 'reverse_proxy',
-                                    'transport' => [
-                                        'protocol' => 'fastcgi',
-                                        'split_path' => ['.php']
+                    ],
+                    // Error handling dentro del subroute - redirige errores a index.php
+                    'errors' => [
+                        'routes' => [
+                            [
+                                'handle' => [
+                                    [
+                                        'handler' => 'rewrite',
+                                        'uri' => '/index.php?_error={http.error.status_code}'
                                     ],
-                                    'upstreams' => [
-                                        [
-                                            'dial' => $this->phpFpmSocket
+                                    [
+                                        'handler' => 'reverse_proxy',
+                                        'transport' => [
+                                            'protocol' => 'fastcgi',
+                                            'split_path' => ['.php']
+                                        ],
+                                        'upstreams' => [
+                                            [
+                                                'dial' => $this->phpFpmSocket
+                                            ]
                                         ]
                                     ]
                                 ]
