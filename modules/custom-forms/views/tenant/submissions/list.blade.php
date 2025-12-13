@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts::app')
 
 @section('title', __forms('submission.submissions_for', ['form' => $form->name]))
 

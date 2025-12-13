@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts::app')
 
 @section('title', __forms('submission.view_submission'))
 
