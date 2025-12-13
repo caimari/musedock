@@ -350,14 +350,11 @@ protected function hydrateModel($row)
         return $row;
     }
 
-    $model = new $this->modelClass();
+    // Convertir stdClass a array para pasarlo al constructor
+    // Esto asegura que fill() se ejecute y $exists se establezca correctamente
+    $data = (array) $row;
 
-    // Copiar todas las propiedades del stdClass al modelo
-    foreach ($row as $key => $value) {
-        $model->$key = $value;
-    }
-
-    return $model;
+    return new $this->modelClass($data);
 }
 	/**
  * Crea una cláusula GROUP BY

@@ -96,12 +96,22 @@ abstract class Model
         }
 
         if ($this->exists) {
+            // Excluir el primary key de los datos a actualizar
+            // En PostgreSQL y otros DBMS, actualizar la PK puede causar conflictos
+            unset($data[static::$primaryKey]);
+
             error_log("MODEL SAVE: Ejecutando UPDATE para ID: " . $this->getKey());
             Database::table(static::$table)
                 ->where(static::$primaryKey, $this->getKey())
                 ->update($data);
             error_log("MODEL SAVE: UPDATE completado");
         } else {
+            // Para INSERT, también excluimos el ID si es auto-generado
+            // Solo lo incluimos si fue explícitamente establecido y no es null
+            if (!isset($data[static::$primaryKey]) || $data[static::$primaryKey] === null) {
+                unset($data[static::$primaryKey]);
+            }
+
             error_log("MODEL SAVE: Ejecutando INSERT");
             $id = Database::table(static::$table)->insert($data);
             $this->attributes[static::$primaryKey] = $id;
