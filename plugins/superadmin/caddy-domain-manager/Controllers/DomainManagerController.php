@@ -187,7 +187,7 @@ class DomainManagerController
                     'name' => $name,
                     'domain' => $domain,
                     'admin_path' => 'admin',
-                    'is_active' => 1
+                    'status' => 'active'
                 ],
                 [
                     'email' => $adminEmail,

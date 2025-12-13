@@ -78,58 +78,6 @@
                         </div>
                     </div>
 
-                    <!-- Redes sociales -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0"><i class="bi bi-share"></i> Redes sociales</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label"><i class="bi bi-facebook text-primary"></i> Facebook</label>
-                                    <input type="url" name="social_facebook" class="form-control"
-                                           value="{{ $settings['social_facebook'] ?? '' }}"
-                                           placeholder="https://facebook.com/tupagina">
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label"><i class="bi bi-twitter-x"></i> Twitter / X</label>
-                                    <input type="url" name="social_twitter" class="form-control"
-                                           value="{{ $settings['social_twitter'] ?? '' }}"
-                                           placeholder="https://twitter.com/tuusuario">
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label"><i class="bi bi-instagram text-danger"></i> Instagram</label>
-                                    <input type="url" name="social_instagram" class="form-control"
-                                           value="{{ $settings['social_instagram'] ?? '' }}"
-                                           placeholder="https://instagram.com/tuusuario">
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label"><i class="bi bi-linkedin text-info"></i> LinkedIn</label>
-                                    <input type="url" name="social_linkedin" class="form-control"
-                                           value="{{ $settings['social_linkedin'] ?? '' }}"
-                                           placeholder="https://linkedin.com/company/tuempresa">
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label"><i class="bi bi-youtube text-danger"></i> YouTube</label>
-                                    <input type="url" name="social_youtube" class="form-control"
-                                           value="{{ $settings['social_youtube'] ?? '' }}"
-                                           placeholder="https://youtube.com/@tucanal">
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label"><i class="bi bi-tiktok"></i> TikTok</label>
-                                    <input type="url" name="social_tiktok" class="form-control"
-                                           value="{{ $settings['social_tiktok'] ?? '' }}"
-                                           placeholder="https://tiktok.com/@tuusuario">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Footer -->
                     <div class="card mb-4">
                         <div class="card-header">

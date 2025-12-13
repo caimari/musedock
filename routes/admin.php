@@ -142,6 +142,35 @@ Route::post("$adminPath/settings/seo", 'tenant.SettingsController@updateSeo')
      ->middleware(['auth', 'permission:settings.edit'])
      ->name('tenant.settings.seo.update');
 
+// Languages (Idiomas del Tenant)
+Route::get("$adminPath/languages", 'tenant.LanguagesController@index')
+     ->middleware(['auth', 'permission:settings.view'])
+     ->name('tenant.languages.index');
+Route::get("$adminPath/languages/create", 'tenant.LanguagesController@create')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.languages.create');
+Route::post("$adminPath/languages/store", 'tenant.LanguagesController@store')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.languages.store');
+Route::get("$adminPath/languages/{id}/edit", 'tenant.LanguagesController@edit')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.languages.edit');
+Route::post("$adminPath/languages/{id}/update", 'tenant.LanguagesController@update')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.languages.update');
+Route::post("$adminPath/languages/{id}/delete", 'tenant.LanguagesController@delete')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.languages.delete');
+Route::post("$adminPath/languages/{id}/toggle", 'tenant.LanguagesController@toggle')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.languages.toggle');
+Route::post("$adminPath/languages/update-order", 'tenant.LanguagesController@updateOrder')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.languages.update-order');
+Route::post("$adminPath/languages/set-default", 'tenant.LanguagesController@setDefault')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.languages.set-default');
+
 // Roles
 Route::get("$adminPath/roles/permissions", 'tenant.RoleController@permissionsPanel')
      ->middleware(['auth', 'permission:roles.assign']);

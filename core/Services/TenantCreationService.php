@@ -241,8 +241,8 @@ class TenantCreationService
      */
     private function createTenantAdmin(int $tenantId, array $adminData, bool $isRootAdmin = true): ?int
     {
-        $sql = "INSERT INTO admins (tenant_id, is_root_admin, email, name, password, is_active, created_at, updated_at)
-                VALUES (:tenant_id, :is_root_admin, :email, :name, :password, 1, NOW(), NOW())";
+        $sql = "INSERT INTO admins (tenant_id, is_root_admin, email, name, password, created_at, updated_at)
+                VALUES (:tenant_id, :is_root_admin, :email, :name, :password, NOW(), NOW())";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
