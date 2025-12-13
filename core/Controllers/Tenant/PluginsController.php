@@ -124,10 +124,10 @@ use Screenart\Musedock\Security\SessionSecurity;
 
         try {
             // Obtener estado actual
-            $plugin = \Screenart\Musedock\Database::query(
-                "SELECT * FROM tenant_plugins WHERE tenant_id = :tenant_id AND slug = :slug",
-                ['tenant_id' => $tenantId, 'slug' => $slug]
-            )->fetch();
+            $pdo = \Screenart\Musedock\Database::connect();
+            $stmt = $pdo->prepare("SELECT * FROM tenant_plugins WHERE tenant_id = ? AND slug = ?");
+            $stmt->execute([$tenantId, $slug]);
+            $plugin = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if (!$plugin) {
                 flash('error', 'Plugin no encontrado.');
@@ -175,10 +175,10 @@ use Screenart\Musedock\Security\SessionSecurity;
 
         try {
             // Obtener información del plugin antes de desinstalar
-            $plugin = \Screenart\Musedock\Database::query(
-                "SELECT * FROM tenant_plugins WHERE tenant_id = :tenant_id AND slug = :slug",
-                ['tenant_id' => $tenantId, 'slug' => $slug]
-            )->fetch();
+            $pdo = \Screenart\Musedock\Database::connect();
+            $stmt = $pdo->prepare("SELECT * FROM tenant_plugins WHERE tenant_id = ? AND slug = ?");
+            $stmt->execute([$tenantId, $slug]);
+            $plugin = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if (!$plugin) {
                 flash('error', 'Plugin no encontrado.');

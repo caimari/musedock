@@ -24,9 +24,10 @@
                         <p class="card-text flex-grow-1">{{ $module['description'] ?? __('no_description') ?? 'Sin descripción' }}</p>
 
                         <div class="mt-auto">
-                            <form method="POST" action="{{ admin_url('/modules/' . $module['id'] . '/toggle') }}" class="d-inline">
+                            <form method="POST" action="{{ admin_url('/modules/' . $module['id'] . '/toggle') }}" class="module-toggle-form" data-module-name="{{ $module['name'] }}" data-module-action="{{ $module['tenant_enabled'] ? 'desactivar' : 'activar' }}">
                                 {!! csrf_field() !!}
-                                <button type="submit" class="btn btn-sm {{ $module['tenant_enabled'] ? 'btn-danger' : 'btn-success' }}">
+                                <input type="hidden" name="password" class="password-input">
+                                <button type="button" class="btn btn-sm {{ $module['tenant_enabled'] ? 'btn-danger' : 'btn-success' }} toggle-module-btn">
                                     <i class="bi {{ $module['tenant_enabled'] ? 'bi-x-circle' : 'bi-check-circle' }} me-1"></i>
                                     {{ $module['tenant_enabled'] ? (__('deactivate') ?? 'Desactivar') : (__('activate') ?? 'Activar') }}
                                 </button>
@@ -109,3 +110,51 @@
         });
     </script>
 @endif
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Manejar clics en botones de toggle
+    document.querySelectorAll('.toggle-module-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const form = this.closest('.module-toggle-form');
+            const moduleName = form.dataset.moduleName;
+            const action = form.dataset.moduleAction;
+
+            // Mostrar SweetAlert2 pidiendo contraseña
+            Swal.fire({
+                title: '🔐 Confirmación requerida',
+                html: `
+                    <p class="mb-3">Estás a punto de <strong>${action}</strong> el módulo <strong>${moduleName}</strong>.</p>
+                    <p class="mb-2">Por favor, introduce tu contraseña para confirmar:</p>
+                `,
+                input: 'password',
+                inputPlaceholder: 'Introduce tu contraseña',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocorrect: 'off',
+                    autocomplete: 'current-password'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Confirmar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: action === 'activar' ? '#198754' : '#dc3545',
+                showLoaderOnConfirm: true,
+                preConfirm: (password) => {
+                    if (!password) {
+                        Swal.showValidationMessage('Debes introducir tu contraseña');
+                        return false;
+                    }
+                    return password;
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Asignar contraseña al campo hidden y enviar formulario
+                    form.querySelector('.password-input').value = result.value;
+                    form.submit();
+                }
+            });
+        });
+    });
+});
+</script>

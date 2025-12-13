@@ -57,6 +57,33 @@ public function toggle($moduleId)
         exit;
     }
 
+    // 🔒 SECURITY: Verificar contraseña del administrador
+    $password = $_POST['password'] ?? '';
+    if (empty($password)) {
+        flash('error', 'Debes confirmar con tu contraseña.');
+        header('Location: ' . admin_url('/modules'));
+        exit;
+    }
+
+    // Verificar contraseña del usuario actual
+    $userId = $_SESSION['user_id'] ?? null;
+    if (!$userId) {
+        flash('error', 'Sesión no válida.');
+        header('Location: ' . admin_url('/modules'));
+        exit;
+    }
+
+    $pdo = Database::connect();
+    $stmt = $pdo->prepare("SELECT password FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $user = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+    if (!$user || !password_verify($password, $user['password'])) {
+        flash('error', 'Contraseña incorrecta.');
+        header('Location: ' . admin_url('/modules'));
+        exit;
+    }
+
     $tenantId = tenant_id();
 
     // Verificar que el módulo esté activo en el dominio principal
