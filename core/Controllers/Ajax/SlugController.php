@@ -3,6 +3,7 @@
 namespace Screenart\Musedock\Controllers\Ajax;
 
 use Screenart\Musedock\Services\SlugService;
+use Screenart\Musedock\Services\TenantManager;
 
 class SlugController
 {
@@ -37,7 +38,11 @@ class SlugController
         }
 
         try {
-            $exists = SlugService::exists($slug, $prefix, $excludeId, $module);
+            // Obtener tenant actual (null para CMS global)
+            $tenantId = TenantManager::currentTenantId();
+
+            // Verificar slug solo dentro del mismo tenant/global
+            $exists = SlugService::exists($slug, $prefix, $excludeId, $module, $tenantId);
 
             header('Content-Type: application/json');
             echo json_encode(['exists' => $exists]);

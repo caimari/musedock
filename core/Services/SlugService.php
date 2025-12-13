@@ -10,21 +10,35 @@ class SlugService
 {
     /**
      * Comprueba si un slug ya existe en el sistema (para AJAX y validaciones)
+     *
+     * @param string $slug El slug a verificar
+     * @param string|null $prefix El prefijo del slug
+     * @param int|null $excludeId ID a excluir (para edición)
+     * @param string|null $module Módulo (pages, blog_posts, etc.)
+     * @param int|null $tenantId ID del tenant (null para global)
+     * @return bool
      */
-    public static function exists(string $slug, ?string $prefix = null, ?int $excludeId = null, ?string $module = 'pages'): bool 
+    public static function exists(string $slug, ?string $prefix = null, ?int $excludeId = null, ?string $module = 'pages', ?int $tenantId = null): bool
     {
         $query = \Screenart\Musedock\Database::table('slugs')
             ->where('slug', $slug)
             ->where('module', $module);
-        
+
         if ($prefix !== null) {
             $query->where('prefix', $prefix);
         }
-        
+
         if ($excludeId !== null) {
             $query->where('reference_id', '!=', $excludeId);
         }
-        
+
+        // Filtrar por tenant_id para que slugs sean independientes por tenant
+        if ($tenantId !== null) {
+            $query->where('tenant_id', $tenantId);
+        } else {
+            $query->whereNull('tenant_id');
+        }
+
         return $query->exists();
     }
 

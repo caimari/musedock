@@ -29,15 +29,18 @@ class PageRequest
             }
         }
 
+        // Obtener tenant actual (null para CMS global)
         $tenantId = TenantManager::currentTenantId();
         $prefix = $data['prefix'] ?? 'p';
 
         if (!empty($data['slug']) && empty($errors)) {
+            // Verificar slug solo dentro del mismo tenant/global
             $slugExists = SlugService::exists(
                 $data['slug'],
                 $prefix,
                 $excludeId,
-                'pages'
+                'pages',
+                $tenantId  // Pasar tenant_id para validación independiente
             );
 
             if ($slugExists) {

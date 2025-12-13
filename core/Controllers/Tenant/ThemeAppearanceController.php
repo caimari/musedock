@@ -423,12 +423,14 @@ class ThemeAppearanceController
     /**
      * Obtiene la ruta del tema.
      */
-    private function getThemePath(string $slug, int $tenantId): ?string
+    private function getThemePath(string $slug, ?int $tenantId): ?string
     {
-        // Primero intentar tema custom del tenant
-        $customPath = APP_ROOT . "/storage/tenants/{$tenantId}/themes/{$slug}";
-        if (is_dir($customPath)) {
-            return $customPath;
+        // Primero intentar tema custom del tenant (si hay tenant)
+        if ($tenantId !== null) {
+            $customPath = APP_ROOT . "/storage/tenants/{$tenantId}/themes/{$slug}";
+            if (is_dir($customPath)) {
+                return $customPath;
+            }
         }
 
         // Luego tema global
@@ -471,9 +473,9 @@ class ThemeAppearanceController
     }
 
     /**
-     * Genera CSS personalizado para el tenant.
+     * Genera CSS personalizado para el tenant (o global si no hay tenant).
      */
-    protected function generateCustomCSS(string $slug, array $options, int $tenantId): void
+    protected function generateCustomCSS(string $slug, array $options, ?int $tenantId): void
     {
         $themePath = $this->getThemePath($slug, $tenantId);
         if (!$themePath) {
@@ -503,11 +505,17 @@ class ThemeAppearanceController
         // Añadir CSS personalizado del usuario
         $customCSS = $this->getNestedValue($options, ['custom_code', 'custom_css']);
         if (!empty($customCSS)) {
-            $finalCss .= "\n\n/* --- CSS Personalizado del Tenant --- */\n" . $customCSS;
+            $finalCss .= "\n\n/* --- CSS Personalizado --- */\n" . $customCSS;
         }
 
-        // Guardar archivo
-        $customCssDir = APP_ROOT . "/public/assets/themes/tenant_{$tenantId}/{$slug}/css";
+        // Guardar archivo - usar ruta diferente para tenant vs global
+        if ($tenantId !== null) {
+            $customCssDir = APP_ROOT . "/public/assets/themes/tenant_{$tenantId}/{$slug}/css";
+        } else {
+            // Modo global (sin tenant) - guardar directamente en el tema
+            $customCssDir = APP_ROOT . "/public/assets/themes/{$slug}/css";
+        }
+
         if (!is_dir($customCssDir)) {
             mkdir($customCssDir, 0775, true);
         }
@@ -517,9 +525,9 @@ class ThemeAppearanceController
     }
 
     /**
-     * Genera JS personalizado para el tenant.
+     * Genera JS personalizado para el tenant (o global si no hay tenant).
      */
-    protected function generateCustomJS(string $slug, array $options, int $tenantId): void
+    protected function generateCustomJS(string $slug, array $options, ?int $tenantId): void
     {
         $customJS = $this->getNestedValue($options, ['custom_code', 'custom_js']);
 
@@ -527,12 +535,18 @@ class ThemeAppearanceController
             return;
         }
 
-        $customJsDir = APP_ROOT . "/public/assets/themes/tenant_{$tenantId}/{$slug}/js";
+        // Ruta diferente para tenant vs global
+        if ($tenantId !== null) {
+            $customJsDir = APP_ROOT . "/public/assets/themes/tenant_{$tenantId}/{$slug}/js";
+        } else {
+            $customJsDir = APP_ROOT . "/public/assets/themes/{$slug}/js";
+        }
+
         if (!is_dir($customJsDir)) {
             mkdir($customJsDir, 0775, true);
         }
 
-        $finalJs = "(function() {\n/* --- JavaScript Personalizado del Tenant --- */\n" . $customJS . "\n})();";
+        $finalJs = "(function() {\n/* --- JavaScript Personalizado --- */\n" . $customJS . "\n})();";
 
         file_put_contents("{$customJsDir}/custom.js", $finalJs);
         file_put_contents("{$customJsDir}/custom.js.timestamp", time());
@@ -541,9 +555,14 @@ class ThemeAppearanceController
     /**
      * Elimina archivos CSS/JS personalizados.
      */
-    protected function deleteCustomFiles(string $slug, int $tenantId): void
+    protected function deleteCustomFiles(string $slug, ?int $tenantId): void
     {
-        $basePath = APP_ROOT . "/public/assets/themes/tenant_{$tenantId}/{$slug}";
+        // Ruta diferente para tenant vs global
+        if ($tenantId !== null) {
+            $basePath = APP_ROOT . "/public/assets/themes/tenant_{$tenantId}/{$slug}";
+        } else {
+            $basePath = APP_ROOT . "/public/assets/themes/{$slug}";
+        }
 
         $files = [
             "{$basePath}/css/custom.css",

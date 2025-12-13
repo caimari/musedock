@@ -133,13 +133,47 @@
     <link rel="stylesheet" href="{{ asset('themes/default/css/theme_default.css') }}">
     
 
-	{{-- CSS personalizado generado dinámicamente --}}
+	{{-- CSS personalizado generado dinámicamente (tenant-aware) --}}
     @php
-    $themeSlug = $themeSlug ?? 'default'; // Usa 'default' si $themeSlug no está definido
-    $cssTimestampPath = public_path("assets/themes/{$themeSlug}/css/custom.css.timestamp");
-    $cssTimestamp = file_exists($cssTimestampPath) ? file_get_contents($cssTimestampPath) : time();
+    $themeSlug = $themeSlug ?? 'default';
+    $currentTenantId = tenant_id();
+
+    // Primero intentar CSS del tenant específico
+    $customCssPath = null;
+    $cssTimestamp = time();
+
+    if ($currentTenantId) {
+        // Ruta del tenant
+        $tenantCssPath = "assets/themes/tenant_{$currentTenantId}/{$themeSlug}/css/custom.css";
+        $tenantTimestampPath = public_path("assets/themes/tenant_{$currentTenantId}/{$themeSlug}/css/custom.css.timestamp");
+
+        if (file_exists(public_path($tenantCssPath))) {
+            $customCssPath = $tenantCssPath;
+            $cssTimestamp = file_exists($tenantTimestampPath) ? file_get_contents($tenantTimestampPath) : time();
+        }
+    }
+
+    // Fallback a CSS global del tema si no hay CSS del tenant
+    if (!$customCssPath) {
+        // Primero intentar en assets/themes/{slug}/css (donde se genera el custom.css)
+        $globalAssetsPath = "assets/themes/{$themeSlug}/css/custom.css";
+        $globalAssetsTimestampPath = public_path("assets/themes/{$themeSlug}/css/custom.css.timestamp");
+
+        if (file_exists(public_path($globalAssetsPath))) {
+            $customCssPath = $globalAssetsPath;
+            $cssTimestamp = file_exists($globalAssetsTimestampPath) ? file_get_contents($globalAssetsTimestampPath) : time();
+        } else {
+            // Fallback a themes/{slug}/css/custom.css (archivo estático del tema)
+            $themeCssPath = "themes/{$themeSlug}/css/custom.css";
+            if (file_exists(public_path($themeCssPath))) {
+                $customCssPath = $themeCssPath;
+            }
+        }
+    }
     @endphp
-    <link rel="stylesheet" href="{{ asset('themes/default/css/custom.css') }}?t={{ $cssTimestamp }}">
+    @if($customCssPath)
+    <link rel="stylesheet" href="{{ asset($customCssPath) }}?t={{ $cssTimestamp }}">
+    @endif
 	
     <!-- Modernizr  -->
     <script src="{{ asset('themes/default/js/vendor/modernizr-3.5.0.min.js') }}"></script>
