@@ -20,14 +20,17 @@ class ModulesController
 
 		// Solo mostrar módulos que estén activos en el dominio principal
 		// Los tenants pueden activar/desactivar estos módulos de forma independiente
-		$modules = Database::query("
+		$pdo = Database::connect();
+		$stmt = $pdo->prepare("
 			SELECT m.*,
 				   tm.enabled AS tenant_enabled
 			FROM modules m
-			LEFT JOIN tenant_modules tm ON tm.module_id = m.id AND tm.tenant_id = :tenant_id
+			LEFT JOIN tenant_modules tm ON tm.module_id = m.id AND tm.tenant_id = ?
 			WHERE m.active = 1
 			ORDER BY m.name ASC
-		", ['tenant_id' => $tenantId])->fetchAll();
+		");
+		$stmt->execute([$tenantId]);
+		$modules = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
 		return View::renderTenantAdmin('modules.index', [
 			'title' => __('modules_title'),
@@ -87,10 +90,10 @@ public function toggle($moduleId)
     $tenantId = tenant_id();
 
     // Verificar que el módulo esté activo en el dominio principal
-    $module = Database::query(
-        "SELECT active FROM modules WHERE id = :id",
-        ['id' => $moduleId]
-    )->fetch();
+    $pdo = Database::connect();
+    $stmt = $pdo->prepare("SELECT active FROM modules WHERE id = ?");
+    $stmt->execute([$moduleId]);
+    $module = $stmt->fetch(\PDO::FETCH_ASSOC);
 
     if (!$module || !$module['active']) {
         flash('error', __('module_not_available'));
