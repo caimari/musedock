@@ -256,17 +256,21 @@ public static function resolve() {
     error_log("ROUTE: Método final para routing: {$method}");
 
     if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'])) {
-        // Rutas excluidas de CSRF (APIs públicas)
+        // Rutas excluidas de CSRF (APIs públicas y rutas internas seguras)
         $csrfExcludedRoutes = [
             '/api/analytics/track',
             '/api/webhooks/',  // Para futuros webhooks
+            '/clear-flashes',  // Limpieza de flash messages (ya verifica sesión admin internamente)
         ];
 
         $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';
         $skipCsrf = false;
 
         foreach ($csrfExcludedRoutes as $excludedRoute) {
-            if (strpos($currentUri, $excludedRoute) === 0) {
+            // Verificar si la ruta comienza con el patrón O si termina con el patrón
+            // Esto permite excluir /api/analytics/track (prefix) y /admin/clear-flashes (suffix)
+            if (strpos($currentUri, $excludedRoute) === 0 ||
+                substr($currentUri, -strlen($excludedRoute)) === $excludedRoute) {
                 $skipCsrf = true;
                 break;
             }
