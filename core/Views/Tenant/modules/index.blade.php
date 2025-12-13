@@ -59,35 +59,53 @@
 
 @if ($successMessage)
     <script>
-        Swal.fire({
-            icon: 'success',
-            title: '¡Éxito!',
-            text: '{{ $successMessage }}',
-            confirmButtonText: 'Aceptar',
-            timer: 3000,
-            timerProgressBar: true
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    text: '{{ $successMessage }}',
+                    confirmButtonText: 'Aceptar',
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+            } else {
+                alert('{{ $successMessage }}');
+            }
         });
     </script>
 @endif
 
 @if ($errorMessage)
     <script>
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: '{{ $errorMessage }}',
-            confirmButtonText: 'Aceptar'
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: '{{ $errorMessage }}',
+                    confirmButtonText: 'Aceptar'
+                });
+            } else {
+                alert('Error: {{ $errorMessage }}');
+            }
         });
     </script>
 @endif
 
 @if ($warningMessage)
     <script>
-        Swal.fire({
-            icon: 'warning',
-            title: 'Atención',
-            text: '{{ $warningMessage }}',
-            confirmButtonText: 'Aceptar'
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Atención',
+                    text: '{{ $warningMessage }}',
+                    confirmButtonText: 'Aceptar'
+                });
+            } else {
+                alert('Atención: {{ $warningMessage }}');
+            }
         });
     </script>
 @endif

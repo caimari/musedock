@@ -35,13 +35,34 @@ class MediaController
         // Obtener discos disponibles para el selector
         $availableDisks = $this->getAvailableDisks();
 
-        // Usar el sistema de vistas estándar con namespace de módulo
-        // media-manager.admin.index se resuelve automáticamente a MediaManager::superadmin/media-manager/admin/index
-        return View::renderSuperadmin('media-manager.admin.index', [
-            'title' => 'Biblioteca de Medios',
-            'availableDisks' => $availableDisks,
-            'defaultDisk' => 'media'
-        ]);
+        // Detectar si estamos en contexto tenant o superadmin
+        $isTenant = $this->isTenantContext();
+
+        if ($isTenant) {
+            // Renderizar vista para tenant
+            return View::renderTenantAdmin('media-manager.admin.index', [
+                'title' => 'Biblioteca de Medios',
+                'availableDisks' => $availableDisks,
+                'defaultDisk' => 'media'
+            ]);
+        } else {
+            // Renderizar vista para superadmin
+            return View::renderSuperadmin('media-manager.admin.index', [
+                'title' => 'Biblioteca de Medios',
+                'availableDisks' => $availableDisks,
+                'defaultDisk' => 'media'
+            ]);
+        }
+    }
+
+    /**
+     * Detecta si estamos en contexto tenant o superadmin
+     */
+    private function isTenantContext(): bool
+    {
+        // Verificar si la URL actual contiene /admin/ (tenant) o /musedock/ (superadmin)
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        return strpos($requestUri, '/admin/') !== false;
     }
 
     /**
@@ -540,7 +561,7 @@ public function upload()
             }
 
             // Preparar la ruta del archivo
-            $tenantId = $_SESSION['admin']['tenant_id'] ?? null;
+            $tenantId = function_exists('tenant_id') ? tenant_id() : ($_SESSION['admin']['tenant_id'] ?? null);
             $subPath = $tenantId ? "tenant_{$tenantId}" : "global";
             $yearMonth = date('Y/m');
             $safeFilename = slugify(pathinfo($file['name'], PATHINFO_FILENAME)) . '_' . uniqid() . '.' . strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -600,7 +621,7 @@ public function upload()
             }
 
             // Guardar en la base de datos
-            $userId = $_SESSION['super_admin']['id'] ?? ($_SESSION['admin']['id'] ?? null);
+            $userId = $_SESSION['super_admin']['id'] ?? ($_SESSION['admin']['id'] ?? ($_SESSION['user']['id'] ?? null));
             $publicToken = Media::generatePublicToken();
             $slug = Media::generateSlug($file['name']);
             $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -871,7 +892,8 @@ private function getUploadErrorMessage($errorCode)
         header('Content-Type: application/json');
 
         try {
-            $tenantId = $_SESSION['admin']['tenant_id'] ?? null;
+            // Usar helper tenant_id() que funciona tanto en superadmin como tenant
+            $tenantId = function_exists('tenant_id') ? tenant_id() : ($_SESSION['admin']['tenant_id'] ?? null);
 
             // Obtener disco desde parámetro (default: media)
             $disk = isset($_GET['disk']) ? $_GET['disk'] : 'media';
@@ -961,7 +983,7 @@ private function getUploadErrorMessage($errorCode)
             $name = $_POST['name'] ?? '';
             $parentId = isset($_POST['parent_id']) && $_POST['parent_id'] !== '' ? (int)$_POST['parent_id'] : null;
             $description = $_POST['description'] ?? '';
-            $tenantId = $_SESSION['admin']['tenant_id'] ?? null;
+            $tenantId = function_exists('tenant_id') ? tenant_id() : ($_SESSION['admin']['tenant_id'] ?? null);
 
             // Obtener disco desde POST (default: media)
             $disk = isset($_POST['disk']) ? $_POST['disk'] : 'media';
