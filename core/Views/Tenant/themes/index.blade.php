@@ -66,7 +66,9 @@
             @forelse($globalThemes as $theme)
             @php
                 $isActive = $tenant['theme_type'] === 'global' && $tenant['theme'] === $theme['slug'];
-                $screenshotPath = $theme['screenshot'] ? "/themes/{$theme['slug']}/{$theme['screenshot']}" : null;
+                // Verificar si el archivo de screenshot existe realmente
+                $screenshotFile = $theme['screenshot'] ? public_path("themes/{$theme['slug']}/{$theme['screenshot']}") : null;
+                $screenshotPath = ($screenshotFile && file_exists($screenshotFile)) ? "/themes/{$theme['slug']}/{$theme['screenshot']}" : null;
             @endphp
             <div class="col-lg-4 col-md-6">
                 <div class="theme-card card h-100 {{ $isActive ? 'active' : '' }}">
@@ -76,13 +78,13 @@
                     </div>
                     @endif
 
-                    <div class="theme-preview" onclick="previewTheme('{{ $theme['name'] }}', '{{ $screenshotPath ?? '' }}', '{{ $theme['description'] }}')">
+                    <div class="theme-preview" onclick="previewTheme('{{ $theme['name'] }}', '{{ $screenshotPath ?? '' }}', '{{ addslashes($theme['description'] ?? '') }}')">
                         @if($screenshotPath)
                         <img src="{{ $screenshotPath }}" alt="{{ $theme['name'] }}" loading="lazy">
                         @else
                         <div class="no-image">
-                            <i class="fas fa-image"></i>
-                            <span>Sin vista previa</span>
+                            <i class="fas fa-palette"></i>
+                            <span>{{ $theme['name'] }}</span>
                         </div>
                         @endif
                         <div class="preview-overlay">
@@ -180,7 +182,9 @@
                 @foreach($customThemes as $theme)
                 @php
                     $isActive = $tenant['theme_type'] === 'custom' && $tenant['custom_theme_slug'] === $theme['slug'];
-                    $screenshotPath = $theme['screenshot'] ? "/storage/tenants/{$tenantId}/themes/{$theme['slug']}/{$theme['screenshot']}" : null;
+                    // Verificar si el archivo de screenshot existe realmente
+                    $screenshotFile = $theme['screenshot'] ? public_path("storage/tenants/{$tenantId}/themes/{$theme['slug']}/{$theme['screenshot']}") : null;
+                    $screenshotPath = ($screenshotFile && file_exists($screenshotFile)) ? "/storage/tenants/{$tenantId}/themes/{$theme['slug']}/{$theme['screenshot']}" : null;
                 @endphp
                 <div class="col-lg-4 col-md-6">
                     <div class="theme-card card h-100 {{ $isActive ? 'active' : '' }} {{ !$theme['validated'] ? 'not-validated' : '' }}">
@@ -196,13 +200,13 @@
                         </div>
                         @endif
 
-                        <div class="theme-preview" onclick="previewTheme('{{ $theme['name'] }}', '{{ $screenshotPath ?? '' }}', '{{ $theme['description'] ?? 'Sin descripción' }}')">
+                        <div class="theme-preview" onclick="previewTheme('{{ $theme['name'] }}', '{{ $screenshotPath ?? '' }}', '{{ addslashes($theme['description'] ?? 'Sin descripción') }}')">
                             @if($screenshotPath)
                             <img src="{{ $screenshotPath }}" alt="{{ $theme['name'] }}" loading="lazy">
                             @else
                             <div class="no-image">
-                                <i class="fas fa-image"></i>
-                                <span>Sin vista previa</span>
+                                <i class="fas fa-palette"></i>
+                                <span>{{ $theme['name'] }}</span>
                             </div>
                             @endif
                             <div class="preview-overlay">

@@ -2,6 +2,30 @@
 
 @section('title', $title ?? 'Personalizar Apariencia')
 
+@push('styles')
+<style>
+/* Fix breadcrumb numbered list override */
+nav[aria-label="breadcrumb"] ol.breadcrumb {
+    list-style: none !important;
+    counter-reset: none !important;
+    padding-left: 0 !important;
+}
+nav[aria-label="breadcrumb"] ol.breadcrumb li {
+    list-style: none !important;
+}
+nav[aria-label="breadcrumb"] ol.breadcrumb li::before {
+    content: none !important;
+    counter-increment: none !important;
+}
+nav[aria-label="breadcrumb"] .breadcrumb-item + .breadcrumb-item::before {
+    content: "/" !important;
+    float: left;
+    padding-right: 0.5rem;
+    color: var(--tblr-breadcrumb-divider-color, #6c757d);
+}
+</style>
+@endpush
+
 @section('content')
 <div class="app-content">
     <div class="container-fluid">

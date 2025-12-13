@@ -963,7 +963,7 @@ public function deleteFavicon()
     }
 
     /**
-     * Obtener todas las páginas publicadas para selector
+     * Obtener todas las páginas publicadas para selector (solo páginas globales, tenant_id IS NULL)
      */
     protected function getAllPages(): array
     {
@@ -973,7 +973,7 @@ public function deleteFavicon()
                 SELECT p.id, COALESCE(pt.title, p.title, p.slug) as title, p.slug
                 FROM pages p
                 LEFT JOIN page_translations pt ON p.id = pt.page_id AND pt.locale = ?
-                WHERE p.status = 'published'
+                WHERE p.status = 'published' AND p.tenant_id IS NULL
                 ORDER BY COALESCE(pt.title, p.title, p.slug) ASC
             ");
             $stmt->execute([config('app.locale', 'es')]);
@@ -985,7 +985,7 @@ public function deleteFavicon()
     }
 
     /**
-     * Obtener todos los posts de blog publicados para selector
+     * Obtener todos los posts de blog publicados para selector (solo posts globales, tenant_id IS NULL)
      */
     protected function getAllBlogPosts(): array
     {
@@ -994,7 +994,7 @@ public function deleteFavicon()
             $stmt = $pdo->prepare("
                 SELECT id, title, slug
                 FROM blog_posts
-                WHERE status = 'published'
+                WHERE status = 'published' AND tenant_id IS NULL
                 ORDER BY title ASC
             ");
             $stmt->execute();
