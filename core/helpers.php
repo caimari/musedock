@@ -1769,54 +1769,88 @@ function media_manager_available() {
 
 /**
  * Obtiene una opción del tema activo
+ * Prioriza opciones del tenant, luego fallback a opciones globales
  *
- * @param string $key Clave de la opción
+ * @param string $key Clave de la opción (soporta notación de puntos: "topbar.topbar_enabled")
  * @param mixed $default Valor por defecto si no existe
  * @return mixed Valor de la opción o el default
  */
 if (!function_exists('themeOption')) {
     function themeOption(string $key, $default = null)
     {
+        static $optionsCache = [];
+
         try {
             $themeSlug = get_active_theme_slug();
             $pdo = \Screenart\Musedock\Database::connect();
 
-            // theme_options stores all options as JSON in 'value' column
-            $stmt = $pdo->prepare('
-                SELECT value
-                FROM theme_options
-                WHERE theme_slug = :theme_slug
-                LIMIT 1
-            ');
+            // Obtener tenant_id actual (null para superadmin/global)
+            $tenantData = function_exists('tenant') ? tenant() : null;
+            $tenantId = $tenantData['id'] ?? null;
 
-            $stmt->execute([':theme_slug' => $themeSlug]);
+            // Cache key para evitar múltiples consultas
+            $cacheKey = "{$themeSlug}_{$tenantId}";
 
-            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if (!isset($optionsCache[$cacheKey])) {
+                $allOptions = null;
 
-            if ($result && isset($result['value'])) {
-                $allOptions = json_decode($result['value'], true);
+                // 1. Primero intentar obtener opciones específicas del tenant
+                if ($tenantId !== null) {
+                    $stmt = $pdo->prepare('
+                        SELECT value
+                        FROM theme_options
+                        WHERE theme_slug = :theme_slug AND tenant_id = :tenant_id
+                        LIMIT 1
+                    ');
+                    $stmt->execute([':theme_slug' => $themeSlug, ':tenant_id' => $tenantId]);
+                    $result = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-                // Soportar notación de puntos (ej: "topbar.topbar_enabled")
-                if (is_array($allOptions)) {
-                    $keys = explode('.', $key);
-                    $current = $allOptions;
-
-                    foreach ($keys as $k) {
-                        if (!is_array($current) || !isset($current[$k])) {
-                            return $default;
-                        }
-                        $current = $current[$k];
+                    if ($result && isset($result['value'])) {
+                        $allOptions = json_decode($result['value'], true);
                     }
-
-                    // Convertir valores de toggle ("0", "1") a booleanos
-                    if ($current === "0" || $current === 0) {
-                        return false;
-                    } elseif ($current === "1" || $current === 1) {
-                        return true;
-                    }
-
-                    return $current;
                 }
+
+                // 2. Si no hay opciones del tenant, buscar opciones globales (tenant_id IS NULL)
+                if ($allOptions === null) {
+                    $stmt = $pdo->prepare('
+                        SELECT value
+                        FROM theme_options
+                        WHERE theme_slug = :theme_slug AND tenant_id IS NULL
+                        LIMIT 1
+                    ');
+                    $stmt->execute([':theme_slug' => $themeSlug]);
+                    $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+                    if ($result && isset($result['value'])) {
+                        $allOptions = json_decode($result['value'], true);
+                    }
+                }
+
+                $optionsCache[$cacheKey] = is_array($allOptions) ? $allOptions : [];
+            }
+
+            $allOptions = $optionsCache[$cacheKey];
+
+            if (!empty($allOptions)) {
+                // Soportar notación de puntos (ej: "topbar.topbar_enabled")
+                $keys = explode('.', $key);
+                $current = $allOptions;
+
+                foreach ($keys as $k) {
+                    if (!is_array($current) || !isset($current[$k])) {
+                        return $default;
+                    }
+                    $current = $current[$k];
+                }
+
+                // Convertir valores de toggle ("0", "1") a booleanos
+                if ($current === "0" || $current === 0) {
+                    return false;
+                } elseif ($current === "1" || $current === 1) {
+                    return true;
+                }
+
+                return $current;
             }
 
             return $default;
