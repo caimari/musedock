@@ -318,9 +318,13 @@ function flash($key, $value = null)
     if (!isset($_SESSION['_flash'])) {
         $_SESSION['_flash'] = [];
     }
+    if (!isset($_SESSION['_flash_timestamps'])) {
+        $_SESSION['_flash_timestamps'] = [];
+    }
 
     if ($value !== null) {
         $_SESSION['_flash'][$key] = $value;
+        $_SESSION['_flash_timestamps'][$key] = time(); // Guardar timestamp para TTL
         return null;
     }
 
@@ -328,6 +332,7 @@ function flash($key, $value = null)
     if (isset($_SESSION['_flash'][$key])) {
         $message = $_SESSION['_flash'][$key];
         unset($_SESSION['_flash'][$key]);
+        unset($_SESSION['_flash_timestamps'][$key]);
         return $message;
     }
 
@@ -341,9 +346,21 @@ if (!function_exists('consume_flash')) {
             session_start();
         }
 
+        // Primero limpiar flashes expirados (más de 60 segundos)
+        if (isset($_SESSION['_flash_timestamps'])) {
+            $now = time();
+            foreach ($_SESSION['_flash_timestamps'] as $flashKey => $timestamp) {
+                if ($now - $timestamp > 60) { // 60 segundos de TTL
+                    unset($_SESSION['_flash'][$flashKey]);
+                    unset($_SESSION['_flash_timestamps'][$flashKey]);
+                }
+            }
+        }
+
         if (isset($_SESSION['_flash'][$key])) {
             $value = $_SESSION['_flash'][$key];
-            unset($_SESSION['_flash'][$key]); // se elimina correctamente
+            unset($_SESSION['_flash'][$key]);
+            unset($_SESSION['_flash_timestamps'][$key]);
             return $value;
         }
 
@@ -356,7 +373,8 @@ if (!function_exists('clear_all_flashes')) {
         if (session_status() !== PHP_SESSION_ACTIVE) {
             session_start();
         }
-        unset($_SESSION['_flash']); // Elimina todos los mensajes flash actuales
+        unset($_SESSION['_flash']);
+        unset($_SESSION['_flash_timestamps']);
     }
 }
 

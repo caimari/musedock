@@ -802,31 +802,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
     
-    const clearFlashUrl = '{{ route('tenant.settings.clearFlashes') ?? '' }}';
-    const csrfToken = '{{ csrf_token() }}';
-
-    // Solo intentar limpiar flashes si tenemos una URL válida (no vacía, no #ruta-no-encontrada)
-    if (hasFlashToShow && clearFlashUrl && csrfToken &&
-        clearFlashUrl.startsWith('/') && !clearFlashUrl.includes('#')) {
-        setTimeout(() => {
-            fetch(clearFlashUrl, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => {
-                if (appDebug && !response.ok) {
-                    console.error(`Error ${response.status} limpiando flashes en backend.`);
-                }
-            })
-            .catch(error => {
-                if (appDebug) console.error('Error limpiando flashes:', error);
-            });
-        }, 5000);
-    }
+    // Los flash messages ya fueron consumidos y eliminados por consume_flash() en PHP
+    // No es necesario hacer POST para limpiarlos - tienen TTL de 60 segundos como fallback
 });
 </script>
 
