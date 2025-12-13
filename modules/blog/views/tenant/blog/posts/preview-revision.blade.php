@@ -1,15 +1,62 @@
 @extends('layouts.app')
 @section('title', $title)
 @section('content')
-<div class="app-content"><div class="container-fluid">
-<div class="d-flex justify-content-between align-items-center mb-3"><h2>{{ $title }}</h2>
-<div><a href="{{ route('tenant.blog.posts.revisions', $post->id) }}" class="btn btn-secondary me-2"><i class="bi bi-arrow-left"></i> Volver a revisiones</a>
-<form method="POST" action="{{ route('tenant.blog.posts.revisions.restore', [$post->id, $revision->id]) }}" style="display:inline;" onsubmit="return confirm('¿Restaurar a esta versión?');">
-<input type="hidden" name="_token" value="{{ csrf_token() }}">
-<button type="submit" class="btn btn-primary"><i class="bi bi-arrow-counterclockwise"></i> Restaurar esta versión</button>
-</form></div>
+<div class="app-content">
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>{{ $title }}</h2>
+            <div>
+                <a href="{{ admin_url('blog') }}/posts/{{ $post->id }}/revisions" class="btn btn-secondary me-2">
+                    <i class="bi bi-arrow-left"></i> Volver a revisiones
+                </a>
+                <form method="POST" action="{{ admin_url('blog') }}/posts/{{ $post->id }}/revisions/{{ $revision->id }}/restore" style="display:inline;" onsubmit="return confirm('¿Restaurar a esta versión?');">
+                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-arrow-counterclockwise"></i> Restaurar esta versión
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Revisión ID:</strong> #{{ $revision->id }}</p>
+                        <p><strong>Creado:</strong> {{ date('d/m/Y H:i:s', strtotime($revision->created_at)) }}</p>
+                        <p><strong>Tipo:</strong> <span class="badge bg-info">{{ $revision->revision_type }}</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Usuario:</strong> {{ e($revision->user_name ?? 'Sistema') }}</p>
+                        <p><strong>Cambios:</strong> {{ e($revision->changes_summary ?? 'Sin descripción') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                @if($revision->featured_image)
+                <div class="mb-3">
+                    <img src="/{{ $revision->featured_image }}" class="img-fluid rounded" style="max-width:100%; max-height:400px; object-fit:cover;" alt="Imagen destacada">
+                </div>
+                @endif
+
+                <h3 class="mb-3">{{ e($revision->title) }}</h3>
+
+                @if($revision->excerpt)
+                <div class="alert alert-info mb-3">
+                    <strong>Extracto:</strong> {{ e($revision->excerpt) }}
+                </div>
+                @endif
+
+                <hr>
+
+                <div class="revision-content">
+                    {!! $revision->content !!}
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<div class="card mb-3"><div class="card-body"><p><strong>Revisión #{{ $revision->id }}</strong> - {{ date('d/m/Y H:i:s', strtotime($revision->created_at)) }}</p></div></div>
-<div class="card"><div class="card-body"><h5>{{ e($revision->title) }}</h5><hr><div>{!! nl2br(e($revision->content)) !!}</div></div></div>
-</div></div>
 @endsection

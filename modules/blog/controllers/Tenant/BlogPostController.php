@@ -14,14 +14,31 @@ use Blog\Requests\BlogPostRequest;
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Services\AuditLogger;
 use Screenart\Musedock\Helpers\FileUploadValidator;
+use Screenart\Musedock\Traits\RequiresPermission;
 
 class BlogPostController
 {
+    use RequiresPermission;
+
+    /**
+     * Verificar si el usuario actual tiene un permiso específico
+     * Si no lo tiene, redirige con mensaje de error
+     */
+    private function checkPermission(string $permission): void
+    {
+        if (!userCan($permission)) {
+            flash('error', __('blog.post.error_no_permission'));
+            header('Location: ' . admin_url('dashboard'));
+            exit;
+        }
+    }
+
     /**
      * Listado de posts del tenant
      */
     public function index()
     {
+        $this->checkPermission('blog.view');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -125,6 +142,7 @@ class BlogPostController
      */
     public function create()
     {
+        $this->checkPermission('blog.create');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -154,6 +172,7 @@ class BlogPostController
      */
     public function store()
     {
+        $this->checkPermission('blog.create');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -275,6 +294,7 @@ class BlogPostController
      */
     public function edit($id)
     {
+        $this->checkPermission('blog.edit');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -405,6 +425,7 @@ class BlogPostController
      */
     public function update($id)
     {
+        $this->checkPermission('blog.edit');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -603,6 +624,7 @@ class BlogPostController
      */
     public function destroy($id)
     {
+        $this->checkPermission('blog.delete');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -694,19 +716,26 @@ class BlogPostController
      */
     public function bulk()
     {
-        $tenantId = TenantManager::currentTenantId();
-
-        if ($tenantId === null) {
-            flash('error', __('blog.post.error_tenant_not_identified'));
-            header('Location: /' . admin_path() . '/blog/posts');
-            exit;
-        }
-
         $action = $_POST['action'] ?? null;
         $selected = $_POST['selected'] ?? [];
 
         if (empty($action) || empty($selected)) {
             flash('error', __('blog.post.error_bulk_no_selection'));
+            header('Location: /' . admin_path() . '/blog/posts');
+            exit;
+        }
+
+        // Verificar permisos según la acción
+        if ($action === 'delete') {
+            $this->checkPermission('blog.delete');
+        } else {
+            $this->checkPermission('blog.edit');
+        }
+
+        $tenantId = TenantManager::currentTenantId();
+
+        if ($tenantId === null) {
+            flash('error', __('blog.post.error_tenant_not_identified'));
             header('Location: /' . admin_path() . '/blog/posts');
             exit;
         }
@@ -823,6 +852,7 @@ class BlogPostController
      */
     public function editTranslation($id, $locale)
     {
+        $this->checkPermission('blog.edit');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -877,6 +907,7 @@ class BlogPostController
      */
     public function updateTranslation($id, $locale)
     {
+        $this->checkPermission('blog.edit');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {

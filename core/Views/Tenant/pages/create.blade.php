@@ -6,7 +6,7 @@
 <div class="app-content">
   <div class="container-fluid">
     {{-- El action y method cambian si es editar --}}
-    <form method="POST" action="{{ isset($Page) && $Page->id ? route('tenant.pages.update', ['id' => $Page->id]) : route('tenant.pages.store') }}" id="pageForm" enctype="multipart/form-data">
+    <form method="POST" action="{{ isset($Page) && $Page->id ? route('pages.update', ['id' => $Page->id]) : route('pages.store') }}" id="pageForm" enctype="multipart/form-data">
       {!! csrf_field() !!}
       {{-- Añadir campo _method para PUT en la edición --}}
       @if(isset($Page) && $Page->id)
@@ -51,11 +51,38 @@
                 </small>
               </div>
 
-              {{-- Textarea para TinyMCE --}}
-              <div class="mb-3">
+              {{-- Editor TinyMCE --}}
+              <div class="mb-3" id="editor-wrapper">
                 <label for="content-editor" class="form-label">{{ __('pages.content') }}</label>
-                <textarea name="content" id="content-editor" class="form-control"
-                  style="visibility: hidden; height: 600px;">{{ old('content', $Page->content ?? '') }}</textarea>
+                {{-- Skeleton Loader - se muestra mientras TinyMCE carga --}}
+                <div id="tinymce-skeleton" class="tinymce-skeleton">
+                  <div class="tinymce-skeleton-toolbar">
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-separator"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-separator"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-separator"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                  </div>
+                  <div class="tinymce-skeleton-content">
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                  </div>
+                </div>
+                <textarea name="content" id="content-editor" style="display:none !important;">{{ old('content', $Page->content ?? '') }}</textarea>
               </div>
             </div>
           </div> {{-- Fin Card Contenido Principal --}}
@@ -158,7 +185,7 @@
           {{-- Card Cancelar --}}
            <div class="card">
              <div class="card-body text-center">
-               <a href="{{ route('tenant.pages.index') }}" class="btn btn-sm btn-outline-secondary">{{ __('common.cancel') }}</a>
+               <a href="{{ route('pages.index') }}" class="btn btn-sm btn-outline-secondary">{{ __('common.cancel') }}</a>
              </div>
            </div>
         </div> {{-- Fin .col-md-3 --}}

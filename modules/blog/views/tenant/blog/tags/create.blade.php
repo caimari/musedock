@@ -8,9 +8,9 @@
     {{-- Navegación --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="breadcrumb">
-        <a href="{{ route('tenant.blog.tags.index') }}">Etiquetas</a> <span class="mx-2">/</span> <span>Nueva etiqueta</span>
+        <a href="{{ route('blog.tags.index') }}">Etiquetas</a> <span class="mx-2">/</span> <span>Nueva etiqueta</span>
       </div>
-      <a href="{{ route('tenant.blog.tags.index') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Volver a Etiquetas</a>
+      <a href="{{ route('blog.tags.index') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Volver a Etiquetas</a>
     </div>
 
     {{-- Alertas --}}
@@ -21,7 +21,7 @@
       <script> document.addEventListener('DOMContentLoaded', function () { Swal.fire({ icon: 'error', title: {!! json_encode(__('common.error')) !!}, text: {!! json_encode(session('error')) !!}, confirmButtonColor: '#d33' }); }); </script>
     @endif
 
-    <form method="POST" action="{{ route('tenant.blog.tags.store') }}" id="tagForm">
+    <form method="POST" action="{{ route('blog.tags.store') }}" id="tagForm">
       @csrf
 
       <div class="row">
@@ -92,7 +92,7 @@
           {{-- Card Cancelar --}}
           <div class="card">
             <div class="card-body text-center">
-              <a href="{{ route('tenant.blog.tags.index') }}" class="btn btn-sm btn-outline-secondary">{{ __('common.cancel') }}</a>
+              <a href="{{ route('blog.tags.index') }}" class="btn btn-sm btn-outline-secondary">{{ __('common.cancel') }}</a>
             </div>
           </div>
         </div>

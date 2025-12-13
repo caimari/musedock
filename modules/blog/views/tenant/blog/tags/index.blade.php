@@ -9,7 +9,7 @@
     {{-- Título y Botón Añadir Etiqueta --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h2>{{ $title ?? __('blog.tags') }}</h2>
-      <a href="{{ route('tenant.blog.tags.create') }}" class="btn btn-primary">{{ __('blog.tag.add_tag') }}</a>
+      <a href="{{ route('blog.tags.create') }}" class="btn btn-primary">{{ __('blog.tag.add_tag') }}</a>
     </div>
 
     {{-- Alertas con SweetAlert2 --}}
@@ -40,17 +40,17 @@
 
     {{-- Formulario de Búsqueda --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <form method="GET" action="{{ route('tenant.blog.tags.index') }}" class="d-flex align-items-center">
+      <form method="GET" action="{{ route('blog.tags.index') }}" class="d-flex align-items-center">
         <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="{{ __('blog.tag.search_placeholder') }}" class="form-control form-control-sm me-2" style="width: 250px;" id="search-input">
         <button type="submit" class="btn btn-outline-secondary btn-sm me-2">{{ __('common.search') }}</button>
         @if (!empty($search))
-          <a href="{{ route('tenant.blog.tags.index') }}" class="btn btn-outline-danger btn-sm">{{ __('common.clear_filter') }}</a>
+          <a href="{{ route('blog.tags.index') }}" class="btn btn-outline-danger btn-sm">{{ __('common.clear_filter') }}</a>
         @endif
       </form>
     </div>
 
     {{-- Formulario Acciones en Lote --}}
-    <form method="POST" action="{{ route('tenant.blog.tags.bulk') }}" id="bulkActionForm">
+    <form method="POST" action="{{ route('blog.tags.bulk') }}" id="bulkActionForm">
       @csrf
       <div class="card">
         <div class="card-body table-responsive p-0">
@@ -75,7 +75,7 @@
                   <strong>{{ e($tag->name) }}</strong>
                   <br>
                   <small>
-                    <a href="{{ route('tenant.blog.tags.edit', ['id' => $tag->id]) }}">{{ __('common.edit') }}</a>
+                    <a href="{{ route('blog.tags.edit', ['id' => $tag->id]) }}">{{ __('common.edit') }}</a>
                      |
                     <a href="#" class="delete-tag-link" data-tag-id="{{ $tag->id }}" data-tag-name="{{ htmlspecialchars($tag->name, ENT_QUOTES, 'UTF-8') }}" style="color: #dc3545; text-decoration: none;">{{ __('common.delete') }}</a>
                   </small>
@@ -100,7 +100,7 @@
             <div class="p-3 text-center">
               <p class="text-muted">{{ __('blog.tag.no_tags_found') }}</p>
                @if(empty($search))
-                 <a href="{{ route('tenant.blog.tags.create') }}" class="btn btn-sm btn-primary">{{ __('blog.tag.create_first_tag') }}</a>
+                 <a href="{{ route('blog.tags.create') }}" class="btn btn-sm btn-primary">{{ __('blog.tag.create_first_tag') }}</a>
                @endif
             </div>
           @endif
@@ -130,7 +130,7 @@
     {{-- Formularios de eliminación --}}
     @if (!empty($tags) && count($tags) > 0)
       @foreach ($tags as $tag)
-        <form method="POST" action="{{ route('tenant.blog.tags.destroy', ['id' => $tag->id]) }}" style="display: none;" id="delete-form-{{ $tag->id }}">
+        <form method="POST" action="{{ route('blog.tags.destroy', ['id' => $tag->id]) }}" style="display: none;" id="delete-form-{{ $tag->id }}">
           @csrf
           @method('DELETE')
         </form>

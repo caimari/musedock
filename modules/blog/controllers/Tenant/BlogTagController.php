@@ -7,14 +7,30 @@ use Blog\Models\BlogTag;
 use Blog\Requests\BlogTagRequest;
 use Screenart\Musedock\Services\TenantManager;
 use Screenart\Musedock\Database;
+use Screenart\Musedock\Traits\RequiresPermission;
 
 class BlogTagController
 {
+    use RequiresPermission;
+
+    /**
+     * Verificar si el usuario actual tiene un permiso específico
+     */
+    private function checkPermission(string $permission): void
+    {
+        if (!userCan($permission)) {
+            flash('error', __('blog.tag.error_no_permission'));
+            header('Location: ' . admin_url('dashboard'));
+            exit;
+        }
+    }
+
     /**
      * Listado de etiquetas del tenant
      */
     public function index()
     {
+        $this->checkPermission('blog.tags.view');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -74,6 +90,7 @@ class BlogTagController
      */
     public function create()
     {
+        $this->checkPermission('blog.tags.create');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -94,6 +111,7 @@ class BlogTagController
      */
     public function store()
     {
+        $this->checkPermission('blog.tags.create');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -131,6 +149,7 @@ class BlogTagController
      */
     public function edit($id)
     {
+        $this->checkPermission('blog.tags.edit');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -198,6 +217,7 @@ class BlogTagController
      */
     public function update($id)
     {
+        $this->checkPermission('blog.tags.edit');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -267,6 +287,7 @@ class BlogTagController
      */
     public function destroy($id)
     {
+        $this->checkPermission('blog.tags.delete');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -333,6 +354,11 @@ class BlogTagController
             flash('error', __('blog.tag.error_bulk_no_selection'));
             header('Location: /' . admin_path() . '/blog/tags');
             exit;
+        }
+
+        // Verificar permisos según la acción
+        if ($action === 'delete') {
+            $this->checkPermission('blog.tags.delete');
         }
 
         if ($action === 'delete') {

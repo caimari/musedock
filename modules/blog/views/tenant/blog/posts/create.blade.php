@@ -8,9 +8,9 @@
     {{-- Navegación --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="breadcrumb">
-        <a href="{{ route('tenant.blog.posts.index') }}">{{ __('blog.posts') }}</a> <span class="mx-2">/</span> <span>{{ __('blog.post.new_post') }}</span>
+        <a href="{{ route('blog.posts.index') }}">{{ __('blog.posts') }}</a> <span class="mx-2">/</span> <span>{{ __('blog.post.new_post') }}</span>
       </div>
-      <a href="{{ route('tenant.blog.posts.index') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> {{ __('blog.post.back_to_posts') }}</a>
+      <a href="{{ route('blog.posts.index') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> {{ __('blog.post.back_to_posts') }}</a>
     </div>
 
     {{-- Script para SweetAlert2 --}}
@@ -21,7 +21,7 @@
       <script> document.addEventListener('DOMContentLoaded', function () { Swal.fire({ icon: 'error', title: {!! json_encode(__('common.error')) !!}, text: {!! json_encode(session('error')) !!}, confirmButtonColor: '#d33' }); }); </script>
     @endif
 
-    <form method="POST" action="{{ route('tenant.blog.posts.store') }}" id="postForm" enctype="multipart/form-data">
+    <form method="POST" action="{{ route('blog.posts.store') }}" id="postForm" enctype="multipart/form-data">
       @csrf
 
       <div class="row">
@@ -155,13 +155,30 @@
             <div class="card-body">
               <div class="mb-3">
                 <label for="featured_image" class="form-label">{{ __('blog.post.image_url') }}</label>
-                <input type="text" class="form-control @error('featured_image') is-invalid @enderror" name="featured_image" id="featured_image" value="{{ old('featured_image') }}" placeholder="{{ __('blog.post.image_placeholder') }}">
-                @error('featured_image')
-                  <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-                <small class="text-muted">{{ __('blog.post.image_help') }}</small>
+                <div class="input-group">
+                  <input type="text" class="form-control @error('featured_image') is-invalid @enderror" name="featured_image" id="featured_image" value="{{ old('featured_image') }}" placeholder="{{ __('blog.post.image_placeholder') }}">
+                  <button type="button" class="btn btn-outline-primary" id="select-featured-image-btn">
+                    <i class="bi bi-image"></i> {{ __('blog.post.select_image') }}
+                  </button>
+                  @error('featured_image')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                  @enderror
+                </div>
+                <small class="text-muted d-block mt-1">{{ __('blog.post.image_help') }}</small>
+                <small class="text-info d-block mt-1">
+                  <i class="bi bi-info-circle"></i> {{ __('blog.post.recommended_resolution') }}
+                </small>
               </div>
               <div id="featured-image-preview" class="mt-2"></div>
+
+              {{-- Checkbox para ocultar imagen --}}
+              <div class="form-check form-switch mt-3">
+                <input class="form-check-input" type="checkbox" value="1" id="hide_featured_image" name="hide_featured_image" @checked(old('hide_featured_image'))>
+                <label class="form-check-label" for="hide_featured_image">
+                  {{ __('blog.post.hide_featured_image') }}
+                </label>
+                <small class="text-muted d-block">{{ __('blog.post.hide_featured_image_help') }}</small>
+              </div>
             </div>
           </div>
 
@@ -187,6 +204,24 @@
             </div>
           </div>
 
+          {{-- Card Plantilla --}}
+          <div class="card mb-4">
+            <div class="card-header"><strong>{{ __('blog.post.template') }}</strong></div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label for="template_select" class="form-label">{{ __('blog.post.template') }}</label>
+                <select class="form-select" id="template_select" name="template">
+                  @foreach ($availableTemplates as $filename => $displayName)
+                    <option value="{{ $filename }}" @if(old('template', $currentTemplate) === $filename) selected @endif>
+                      {{ $displayName }}
+                    </option>
+                  @endforeach
+                </select>
+                <small class="text-muted">{{ __('blog.post.template_help') }}</small>
+              </div>
+            </div>
+          </div>
+
           {{-- Card Categorías --}}
           <div class="card mb-4">
             <div class="card-header"><strong>{{ __('blog.post.categories') }}</strong></div>
@@ -204,7 +239,7 @@
                 @enderror
                 <small class="text-muted">{{ __('blog.post.select_multiple') }}</small>
               </div>
-              <a href="{{ route('tenant.blog.categories.create') }}" class="btn btn-sm btn-outline-primary" target="_blank">+ {{ __('blog.category.new_category') }}</a>
+              <a href="{{ route('blog.categories.create') }}" class="btn btn-sm btn-outline-primary" target="_blank">+ {{ __('blog.category.new_category') }}</a>
             </div>
           </div>
 
@@ -223,7 +258,7 @@
                 @enderror
                 <small class="text-muted">{{ __('blog.post.select_multiple') }}</small>
               </div>
-              <a href="{{ route('tenant.blog.tags.create') }}" class="btn btn-sm btn-outline-primary" target="_blank">+ {{ __('blog.tag.new_tag') }}</a>
+              <a href="{{ route('blog.tags.create') }}" class="btn btn-sm btn-outline-primary" target="_blank">+ {{ __('blog.tag.new_tag') }}</a>
             </div>
           </div>
 
@@ -233,7 +268,7 @@
           {{-- Card Cancelar --}}
           <div class="card">
             <div class="card-body text-center">
-              <a href="{{ route('tenant.blog.posts.index') }}" class="btn btn-sm btn-outline-secondary">{{ __('common.cancel') }}</a>
+              <a href="{{ route('blog.posts.index') }}" class="btn btn-sm btn-outline-secondary">{{ __('common.cancel') }}</a>
             </div>
           </div>
         </div> {{-- Fin .col-md-3 --}}
@@ -304,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function() {
     featuredImageInput.addEventListener('input', function() {
       const url = this.value.trim();
       if (url) {
-        featuredImagePreview.innerHTML = `<img src="${url}" class="img-fluid rounded" alt="Preview" onerror="this.parentElement.innerHTML='<p class=text-danger>{!! addslashes(__('blog.post.image_load_error')) !!}</p>'">`;
+        featuredImagePreview.innerHTML = `<img src="${url}" class="img-fluid rounded" alt="Preview" style="max-height: 200px; object-fit: cover;" onerror="this.parentElement.innerHTML='<p class=text-danger><i class=bi bi-exclamation-triangle></i> {!! addslashes(__('blog.post.image_load_error')) !!}</p>'">`;
       } else {
         featuredImagePreview.innerHTML = '';
       }
@@ -313,8 +348,30 @@ document.addEventListener('DOMContentLoaded', function() {
     // Preview inicial si hay valor
     if (featuredImageInput.value.trim()) {
       const url = featuredImageInput.value.trim();
-      featuredImagePreview.innerHTML = `<img src="${url}" class="img-fluid rounded" alt="Preview" onerror="this.parentElement.innerHTML='<p class=text-danger>{!! addslashes(__('blog.post.image_load_error')) !!}</p>'">`;
+      featuredImagePreview.innerHTML = `<img src="${url}" class="img-fluid rounded" alt="Preview" style="max-height: 200px; object-fit: cover;" onerror="this.parentElement.innerHTML='<p class=text-danger><i class=bi bi-exclamation-triangle></i> {!! addslashes(__('blog.post.image_load_error')) !!}</p>'">`;
     }
+  }
+
+  // Botón para abrir el gestor de medios
+  const selectFeaturedImageBtn = document.getElementById('select-featured-image-btn');
+  if (selectFeaturedImageBtn) {
+    selectFeaturedImageBtn.addEventListener('click', function() {
+      // Verificar si el Media Manager está disponible en el momento del clic
+      if (typeof window.openMediaManagerForTinyMCE === 'function') {
+        window.openMediaManagerForTinyMCE(function(url, meta) {
+          // Callback cuando se selecciona una imagen
+          if (featuredImageInput) {
+            featuredImageInput.value = url;
+            // Disparar evento input para actualizar el preview
+            featuredImageInput.dispatchEvent(new Event('input'));
+          }
+        }, featuredImageInput.value, { filetype: 'image' });
+      } else {
+        // Mostrar alerta si el Media Manager no está disponible
+        alert('El gestor de medios aún no está disponible. Por favor, espera un momento e intenta de nuevo.');
+        console.error('window.openMediaManagerForTinyMCE no está disponible');
+      }
+    });
   }
 });
 </script>

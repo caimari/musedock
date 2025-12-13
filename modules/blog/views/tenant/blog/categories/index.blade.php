@@ -9,7 +9,7 @@
     {{-- Título y Botón Añadir Categoría --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h2>{{ $title ?? __('blog.categories') }}</h2>
-      <a href="{{ route('tenant.blog.categories.create') }}" class="btn btn-primary">{{ __('blog.category.add_category') }}</a>
+      <a href="{{ route('blog.categories.create') }}" class="btn btn-primary">{{ __('blog.category.add_category') }}</a>
     </div>
 
     {{-- Alertas con SweetAlert2 --}}
@@ -40,17 +40,17 @@
 
     {{-- Formulario de Búsqueda --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <form method="GET" action="{{ route('tenant.blog.categories.index') }}" class="d-flex align-items-center">
+      <form method="GET" action="{{ route('blog.categories.index') }}" class="d-flex align-items-center">
         <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="{{ __('blog.category.search_placeholder') }}" class="form-control form-control-sm me-2" style="width: 250px;" id="search-input">
         <button type="submit" class="btn btn-outline-secondary btn-sm me-2">{{ __('common.search') }}</button>
         @if (!empty($search))
-          <a href="{{ route('tenant.blog.categories.index') }}" class="btn btn-outline-danger btn-sm">{{ __('common.clear_filter') }}</a>
+          <a href="{{ route('blog.categories.index') }}" class="btn btn-outline-danger btn-sm">{{ __('common.clear_filter') }}</a>
         @endif
       </form>
     </div>
 
     {{-- Formulario Acciones en Lote --}}
-    <form method="POST" action="{{ route('tenant.blog.categories.bulk') }}" id="bulkActionForm">
+    <form method="POST" action="{{ route('blog.categories.bulk') }}" id="bulkActionForm">
       @csrf
       <div class="card">
         <div class="card-body table-responsive p-0">
@@ -79,7 +79,7 @@
                   <strong>{{ str_repeat('— ', $category->depth ?? 0) }}{{ e($category->name) }}</strong>
                   <br>
                   <small>
-                    <a href="{{ route('tenant.blog.categories.edit', ['id' => $category->id]) }}">{{ __('common.edit') }}</a>
+                    <a href="{{ route('blog.categories.edit', ['id' => $category->id]) }}">{{ __('common.edit') }}</a>
                      |
                     <a href="#" class="delete-category-link" data-category-id="{{ $category->id }}" data-category-name="{{ htmlspecialchars($category->name, ENT_QUOTES, 'UTF-8') }}" style="color: #dc3545; text-decoration: none;">{{ __('common.delete') }}</a>
                   </small>
@@ -105,7 +105,7 @@
             <div class="p-3 text-center">
               <p class="text-muted">{{ __('blog.category.no_categories_found') }}</p>
                @if(empty($search))
-                 <a href="{{ route('tenant.blog.categories.create') }}" class="btn btn-sm btn-primary">{{ __('blog.category.create_first_category') }}</a>
+                 <a href="{{ route('blog.categories.create') }}" class="btn btn-sm btn-primary">{{ __('blog.category.create_first_category') }}</a>
                @endif
             </div>
           @endif
@@ -135,7 +135,7 @@
     {{-- Formularios de eliminación --}}
     @if (!empty($categories) && count($categories) > 0)
       @foreach ($categories as $category)
-        <form method="POST" action="{{ route('tenant.blog.categories.destroy', ['id' => $category->id]) }}" style="display: none;" id="delete-form-{{ $category->id }}">
+        <form method="POST" action="{{ route('blog.categories.destroy', ['id' => $category->id]) }}" style="display: none;" id="delete-form-{{ $category->id }}">
           @csrf
           @method('DELETE')
         </form>

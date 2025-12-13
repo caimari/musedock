@@ -4,10 +4,12 @@
 
 @section('styles')
 <style>
+  /* Estilos para la tabla ordenable */
   .sortable {
     cursor: pointer;
   }
 
+  /* Selector de registros por página */
   .pages-per-page-selector {
     display: flex;
     align-items: center;
@@ -28,10 +30,17 @@
 <div class="app-content">
   <div class="container-fluid">
 
-    {{-- Título y Botón Añadir Página --}}
+    {{-- Título y Botones de Acción --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h2>{{ $title }}</h2>
-      <a href="{{ route('tenant.pages.create') }}" class="btn btn-primary">{{ __('pages.add_page') }}</a>
+      <div class="d-flex gap-2">
+        <a href="{{ admin_url('pages/trash') }}" class="btn btn-outline-danger" title="{{ __('pages.view_trash') }}">
+          <i class="bi bi-trash me-1"></i> {{ __('pages.trash') }}
+        </a>
+        <a href="{{ admin_url('pages/create') }}" class="btn btn-primary">
+          <i class="bi bi-plus-lg me-1"></i> {{ __('pages.add_page') }}
+        </a>
+      </div>
     </div>
 
     {{-- Alertas con SweetAlert2 --}}
@@ -62,11 +71,11 @@
 
     {{-- Formulario de Búsqueda y Selector de registros por página --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <form method="GET" action="{{ route('tenant.pages.index') }}" class="d-flex align-items-center">
+      <form method="GET" action="{{ admin_url('pages') }}" class="d-flex align-items-center">
         <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="{{ __('pages.search_placeholder') }}" class="form-control form-control-sm me-2" style="width: 250px;" id="search-input">
         <button type="submit" class="btn btn-outline-secondary btn-sm me-2">{{ __('common.search') }}</button>
         @if (!empty($search))
-          <a href="{{ route('tenant.pages.index') }}" class="btn btn-outline-danger btn-sm">{{ __('common.clear_filter') }}</a>
+          <a href="{{ admin_url('pages') }}" class="btn btn-outline-danger btn-sm">{{ __('common.clear_filter') }}</a>
         @endif
       </form>
 
@@ -82,124 +91,291 @@
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-body table-responsive p-0">
-        @if (!empty($pages) && count($pages) > 0)
-        <table class="table table-hover align-middle" id="pagesTable">
-          <thead>
-            <tr>
-              <th class="sortable" data-sort-col="1">{{ __('pages.title') }} <i class="fas fa-sort text-muted ms-1"></i></th>
-              <th class="sortable" data-sort-col="2">{{ __('pages.author') }} <i class="fas fa-sort text-muted ms-1"></i></th>
-              <th class="sortable" data-sort-col="3">{{ __('pages.base_language') }} <i class="fas fa-sort text-muted ms-1"></i></th>
-              <th class="sortable" data-sort-col="4">{{ __('pages.status') }} <i class="fas fa-sort text-muted ms-1"></i></th>
-              <th class="sortable" data-sort-col="5">{{ __('pages.template') }} <i class="fas fa-sort text-muted ms-1"></i></th>
-              <th class="sortable" data-sort-col="6">{{ __('pages.publish_date') }} <i class="fas fa-sort-down text-primary ms-1"></i></th>
-              <th style="width: 100px;">{{ __('common.actions') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-          @foreach ($pages as $Page)
-            @php
-              $author = $authors[$Page->user_id] ?? null;
-              $baseLang = $Page->base_locale ?? setting('language', 'es');
-              $status = $Page->status === 'published' ? __('pages.published') : __('pages.draft');
+    {{-- Formulario Acciones en Lote --}}
+    <form method="POST" action="{{ admin_url('pages/bulk') }}" id="bulkActionForm">
+      @csrf
+      <div class="card">
+        <div class="card-body table-responsive p-0">
+          @if (!empty($pages) && count($pages) > 0)
+          <table class="table table-hover align-middle" id="pagesTable">
+            <thead>
+              <tr>
+                <th style="width: 1%;"><input type="checkbox" class="form-check-input" id="selectAll"></th>
+                <th class="sortable" data-sort-col="1">{{ __('pages.title') }} <i class="fas fa-sort text-muted ms-1"></i></th>
+                <th class="sortable" data-sort-col="2">{{ __('pages.author') }} <i class="fas fa-sort text-muted ms-1"></i></th>
+                <th class="sortable" data-sort-col="3">{{ __('pages.base_language') }} <i class="fas fa-sort text-muted ms-1"></i></th>
+                <th class="sortable" data-sort-col="4">{{ __('pages.status') }} <i class="fas fa-sort text-muted ms-1"></i></th>
+                <th class="sortable" data-sort-col="5">{{ __('pages.template') }} <i class="fas fa-sort text-muted ms-1"></i></th>
+                <th class="sortable" data-sort-col="6">{{ __('pages.publish_date') }} <i class="fas fa-sort-down text-primary ms-1"></i></th>
+              </tr>
+            </thead>
+            <tbody>
+            {{-- Bucle para mostrar las páginas --}}
+            @foreach ($pages as $Page)
+              @php
+                // Obtenemos datos asociados
+                $author = $authors[$Page->user_id] ?? null;
+                $baseLang = $Page->base_locale ?? setting('language', 'es');
+                $status = $Page->status === 'published' ? __('pages.published') : __('pages.draft');
 
-              $dateFormat = setting('date_format', 'd/m/Y');
-              $timeFormat = setting('time_format', 'H:i');
-              $dateTimeFormat = $dateFormat . ' ' . $timeFormat;
+                // Formato de fecha desde settings
+                $dateFormat = setting('date_format', 'd/m/Y');
+                $timeFormat = setting('time_format', 'H:i');
+                $dateTimeFormat = $dateFormat . ' ' . $timeFormat;
 
-              $templateName = '';
-              try {
-                if (isset($Page->meta) && isset($Page->meta->page_template)) {
-                  $templateName = (string) $Page->meta->page_template;
-                } else {
-                  $templateName = \Screenart\Musedock\Models\PageMeta::getMeta($Page->id, 'page_template', 'page.blade.php');
-                  $templateName = (string) $templateName;
+                // Datos de plantilla (convertir a string para evitar error de conversión)
+                $templateName = '';
+                try {
+                  if (isset($Page->meta) && isset($Page->meta->page_template)) {
+                    $templateName = (string) $Page->meta->page_template;
+                  } else {
+                    $templateName = \Screenart\Musedock\Models\PageMeta::getMeta($Page->id, 'page_template', 'page.blade.php');
+                    $templateName = (string) $templateName;
+                  }
+                } catch (\Exception $e) {
+                  $templateName = 'page.blade.php';
                 }
-              } catch (\Exception $e) {
-                $templateName = 'page.blade.php';
-              }
 
-              $availableTemplates = get_page_templates();
-              $templateLabel = isset($availableTemplates[$templateName]) ? (string) $availableTemplates[$templateName] : $templateName;
-            @endphp
-            <tr data-id="{{ $Page->id }}">
-              <td>
-                <strong>{{ e($Page->title) }}</strong>
-                @if(isset($homepageId) && $Page->id === $homepageId)
-                  <span class="badge rounded-pill bg-primary ms-1" style="font-size: 0.7em; vertical-align: middle;">{{ __('pages.homepage_badge') }}</span>
-                @endif
-                <br>
-                <small>
-                  <a href="{{ route('tenant.pages.edit', ['id' => $Page->id]) }}">{{ __('common.edit') }}</a>
-                  @if ($Page->status === 'published')
-                     |
-                    <a href="/p/{{ $Page->slug }}" target="_blank" rel="noopener noreferrer">{{ __('pages.view_page') }}</a>
+                $availableTemplates = get_page_templates();
+                $templateLabel = isset($availableTemplates[$templateName]) ? (string) $availableTemplates[$templateName] : $templateName;
+              @endphp
+              <tr data-id="{{ $Page->id }}">
+                <td><input type="checkbox" name="selected[]" value="{{ $Page->id }}" class="form-check-input select-item"></td>
+                <td>
+                  <strong>{{ e($Page->title) }}</strong>
+                  @if(isset($homepageId) && $Page->id === $homepageId)
+                    <span class="badge rounded-pill bg-primary ms-1" style="font-size: 0.7em; vertical-align: middle;">{{ __('pages.homepage_badge') }}</span>
                   @endif
-                </small>
-              </td>
-              <td>{{ $author?->name ?? '—' }}</td>
-              <td>{{ strtoupper($baseLang) }}</td>
-              <td>
-                <span class="badge {{ $Page->status === 'published' ? 'bg-success' : 'bg-secondary' }}">
-                  {{ $status }}
-                </span>
+                  <br>
+                  <small>
+                    <a href="{{ admin_url('pages/' . $Page->id . '/edit') }}">{{ __('common.edit') }}</a>
+                    @if ($Page->status === 'published')
+                       |
+                      <a href="/p/{{ $Page->slug }}" target="_blank" rel="noopener noreferrer">{{ __('pages.view_page') }}</a>
+                    @endif
+                     |
+                    <a href="#" class="delete-page-link" data-page-id="{{ $Page->id }}" data-page-title="{{ htmlspecialchars($Page->title, ENT_QUOTES, 'UTF-8') }}" style="color: #dc3545; text-decoration: none;">{{ __('common.delete') }}</a>
+                  </small>
+                </td>
+                <td>{{ $author?->name ?? '—' }}</td>
+                <td>{{ strtoupper($baseLang) }}</td>
+                <td>
+                  {{-- Estado --}}
+                  <span class="badge {{ $Page->status === 'published' ? 'bg-success' : 'bg-secondary' }}">
+                    {{ $status }}
+                  </span>
 
-                @if($Page->visibility === 'private')
-                  <span class="badge bg-danger ms-1">{{ __('pages.private') }}</span>
-                @endif
+                  {{-- Badge Visibilidad --}}
+                  @if($Page->visibility === 'private')
+                    <span class="badge bg-danger ms-1">{{ __('pages.private') }}</span>
+                  @endif
 
-                @if($Page->visibility === 'members')
-                  <span class="badge bg-info ms-1">{{ __('pages.members') }}</span>
-                @endif
-              </td>
-              <td><small class="text-muted">{{ $templateLabel }}</small></td>
-              <td data-date="{{ $Page->published_at ? $Page->published_at->format('Y-m-d H:i:s') : ($Page->created_at ? $Page->created_at->format('Y-m-d H:i:s') : '') }}">
-                {{ $Page->published_at ? $Page->published_at->format($dateTimeFormat) : ($Page->created_at ? $Page->created_at->format($dateTimeFormat) : '—') }}
-              </td>
-              <td>
-                <form method="POST" action="{{ route('tenant.pages.delete', ['id' => $Page->id]) }}" id="delete-form-{{ $Page->id }}" style="display: inline;">
-                  {!! csrf_field() !!}
-                  @method('DELETE')
-                  <button type="button" onclick="confirmDelete({{ $Page->id }})" class="btn btn-sm btn-danger" title="{{ __('common.delete') }}">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </form>
-              </td>
-            </tr>
-          @endforeach
-          </tbody>
-        </table>
+                  @if($Page->visibility === 'members')
+                    <span class="badge bg-info ms-1">{{ __('pages.members') }}</span>
+                  @endif
+                </td>
+                <td><small class="text-muted">{{ $templateLabel }}</small></td>
+                <td data-date="{{ $Page->published_at ? $Page->published_at->format('Y-m-d H:i:s') : ($Page->created_at ? $Page->created_at->format('Y-m-d H:i:s') : '') }}">
+                  {{ $Page->published_at ? $Page->published_at->format($dateTimeFormat) : ($Page->created_at ? $Page->created_at->format($dateTimeFormat) : '—') }}
+                </td>
+              </tr>
+            @endforeach
+            </tbody>
+          </table>
+          @else
+            <div class="p-3 text-center">
+              <p class="text-muted">{{ __('pages.no_pages_found') }}</p>
+               @if(empty($search))
+                 <a href="{{ admin_url('pages/create') }}" class="btn btn-sm btn-primary">{{ __('pages.create_first_page') }}</a>
+               @endif
+            </div>
+          @endif
+        </div>
+      </div>
+
+      {{-- Acciones en lote y Paginación --}}
+      <div class="d-flex justify-content-between align-items-center mt-3">
+        @if (!empty($pages) && count($pages) > 0)
+        <div class="d-flex">
+          <select name="action" class="form-select form-select-sm me-2" id="bulkActionSelect" style="width: auto;" required>
+            <option value="">{{ __('pages.bulk_actions') }}</option>
+            <option value="edit">{{ __('common.edit') }}</option>
+            <option value="delete">{{ __('common.delete') }}</option>
+            <option value="published">{{ __('pages.publish_selected') }}</option>
+            <option value="draft">{{ __('pages.move_to_draft') }}</option>
+            <option value="public">{{ __('pages.make_public') }}</option>
+            <option value="private">{{ __('pages.make_private') }}</option>
+            <option value="members">{{ __('pages.members_only') }}</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" type="submit" id="applyBulkAction" disabled>{{ __('common.apply') }}</button>
+        </div>
         @else
-          <div class="p-3 text-center">
-            <p class="text-muted">{{ __('pages.no_pages_found') }}</p>
-             @if(empty($search))
-               <a href="{{ route('tenant.pages.create') }}" class="btn btn-sm btn-primary">{{ __('pages.create_first_page') }}</a>
-             @endif
-          </div>
+         <div></div>
+        @endif
+        @if (!empty($pagination) && isset($pagination['last_page']) && $pagination['last_page'] > 1)
+            {{-- Paginación (pasando query y tamaño) --}}
+           {!! pagination_links($pagination, http_build_query(request()->except('page')), 'sm') !!}
         @endif
       </div>
-    </div>
+    </form>
 
-    {{-- Paginación --}}
-    @if (!empty($pagination) && isset($pagination['last_page']) && $pagination['last_page'] > 1)
-      <div class="d-flex justify-content-end mt-3">
-        {!! pagination_links($pagination, http_build_query(request()->except('page')), 'sm') !!}
-      </div>
+    {{-- Formularios de eliminación (fuera de la tabla para evitar html fixup del navegador) --}}
+    @if (!empty($pages) && count($pages) > 0)
+      @foreach ($pages as $Page)
+        <form method="POST" action="{{ admin_url('pages/' . $Page->id . '/delete') }}" style="display: none;" id="delete-form-{{ $Page->id }}">
+          {!! csrf_field() !!}
+          @method('DELETE')
+        </form>
+      @endforeach
     @endif
 
-  </div>
-</div>
+  </div> {{-- fin container-fluid --}}
+</div> {{-- fin app-content --}}
 @endsection
 
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Función de confirmación para eliminar una página
-  window.confirmDelete = function(id) {
+  // Referencia al checkbox "seleccionar todo"
+  const selectAllCheckbox = document.getElementById('selectAll');
+
+  // Referencias a todos los checkboxes individuales
+  const checkboxes = document.querySelectorAll('.select-item');
+
+  // Evento para seleccionar/deseleccionar todos
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', function() {
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+      });
+
+      // Actualizar estado del botón
+      updateButtonState();
+    });
+  }
+
+  // Evento para cada checkbox individual
+  checkboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+      // Verificar si todos están seleccionados
+      const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+      const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+
+      // Actualizar checkbox "seleccionar todo"
+      if (selectAllCheckbox) {
+        selectAllCheckbox.checked = allChecked;
+        selectAllCheckbox.indeterminate = anyChecked && !allChecked;
+      }
+
+      // Actualizar estado del botón
+      updateButtonState();
+    });
+  });
+
+  // Referencia al formulario y botón de acción
+  const bulkForm = document.getElementById('bulkActionForm');
+  const actionSelect = document.getElementById('bulkActionSelect');
+  const actionButton = document.getElementById('applyBulkAction');
+
+  // Función para actualizar estado del botón
+  function updateButtonState() {
+    const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+    if (actionButton) {
+      actionButton.disabled = !anyChecked;
+    }
+  }
+
+  // Inicializar estado del botón
+  updateButtonState();
+
+  // Manejar envío del formulario
+  if (bulkForm) {
+    bulkForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      // Verificar que haya elementos seleccionados
+      const selectedCount = document.querySelectorAll('.select-item:checked').length;
+      if (selectedCount === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: '{{ __('pages.selection_required') }}',
+          text: '{{ __('pages.select_at_least_one') }}'
+        });
+        return false;
+      }
+
+      // Verificar que haya una acción seleccionada
+      const action = actionSelect.value;
+      if (!action) {
+        Swal.fire({
+          icon: 'warning',
+          title: '{{ __('pages.action_required') }}',
+          text: '{{ __('pages.select_action') }}'
+        });
+        return false;
+      }
+
+      // Para acciones que requieren confirmación
+      if (action === 'delete') {
+        Swal.fire({
+          title: '{{ __('pages.confirm_delete_title') }}',
+          text: `{{ __('pages.confirm_bulk_delete_message') }} ${selectedCount} {{ __('pages.pages_count') }}`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#3085d6',
+          confirmButtonText: '{{ __('common.yes_delete') }}',
+          cancelButtonText: '{{ __('common.cancel') }}'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            bulkForm.submit();
+          }
+        });
+      } else if (action === 'published' || action === 'draft' ||
+                action === 'public' || action === 'private' || action === 'members') {
+        // Acciones que cambian estados
+        const actionLabels = {
+          'published': 'publicar',
+          'draft': 'pasar a borrador',
+          'public': 'hacer públicas',
+          'private': 'hacer privadas',
+          'members': 'restringir a miembros'
+        };
+
+        Swal.fire({
+          title: '{{ __('pages.confirm_change') }}',
+          text: `{{ __('pages.confirm_change_message') }} ${actionLabels[action]} ${selectedCount} {{ __('pages.pages_count') }}`,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#6c757d',
+          confirmButtonText: '{{ __('common.yes_continue') }}',
+          cancelButtonText: '{{ __('common.cancel') }}'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            bulkForm.submit();
+          }
+        });
+      } else {
+        // Otras acciones que no necesitan confirmación
+        bulkForm.submit();
+      }
+    });
+  }
+
+  // Event listener para eliminar páginas (delegación de eventos)
+  document.addEventListener('click', function(e) {
+    const deleteLink = e.target.closest('.delete-page-link');
+    if (!deleteLink) return;
+
+    e.preventDefault();
+
+    const pageId = deleteLink.getAttribute('data-page-id');
+    const pageTitle = deleteLink.getAttribute('data-page-title');
+
     Swal.fire({
       title: '{{ __('pages.confirm_delete_title') }}',
-      text: "{{ __('pages.confirm_delete_message') }}",
+      html: `{{ __('pages.confirm_delete_page_message') }} <strong>"${escapeHtml(pageTitle)}"</strong>`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
@@ -208,10 +384,34 @@ document.addEventListener('DOMContentLoaded', function() {
       cancelButtonText: '{{ __('common.cancel') }}'
     }).then((result) => {
       if (result.isConfirmed) {
-        document.getElementById('delete-form-' + id).submit();
+        // Buscar y enviar el formulario oculto
+        const formId = `delete-form-${pageId}`;
+        const form = document.getElementById(formId);
+
+        if (!form) {
+          Swal.fire({
+            icon: 'error',
+            title: '{{ __('common.error') }}',
+            text: '{{ __('pages.form_not_found') }}'
+          });
+          return;
+        }
+
+        form.submit();
       }
     });
-    return false;
+  });
+
+  // Función auxiliar para escapar HTML
+  function escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
   }
 
   // Selector de registros por página
@@ -250,32 +450,38 @@ document.addEventListener('DOMContentLoaded', function() {
     const rows = Array.from(tbody.querySelectorAll('tr'));
     const icon = header.querySelector('i');
 
+    // Determinar la dirección de ordenación
     const isAsc = icon.classList.contains('fa-sort') || icon.classList.contains('fa-sort-down');
 
+    // Resetear todos los iconos
     table.querySelectorAll('th.sortable i').forEach(i => {
       i.className = 'fas fa-sort text-muted ms-1';
     });
 
+    // Actualizar icono de ordenación
     if (isAsc) {
       icon.className = 'fas fa-sort-up text-primary ms-1';
     } else {
       icon.className = 'fas fa-sort-down text-primary ms-1';
     }
 
+    // Ordenar las filas
     rows.sort((a, b) => {
       let aValue, bValue;
 
-      if (columnIndex === 1) {
-        aValue = a.querySelector('td:nth-child(1) strong').textContent.trim();
-        bValue = b.querySelector('td:nth-child(1) strong').textContent.trim();
-      } else if (columnIndex === 6) {
-        aValue = a.querySelector('td:nth-child(6)').getAttribute('data-date') || '';
-        bValue = b.querySelector('td:nth-child(6)').getAttribute('data-date') || '';
+      // Obtener los valores según la columna
+      if (columnIndex === 1) { // Título
+        aValue = a.querySelector('td:nth-child(2) strong').textContent.trim();
+        bValue = b.querySelector('td:nth-child(2) strong').textContent.trim();
+      } else if (columnIndex === 6) { // Fecha (usamos el atributo data-date)
+        aValue = a.querySelector('td:nth-child(7)').getAttribute('data-date') || '';
+        bValue = b.querySelector('td:nth-child(7)').getAttribute('data-date') || '';
       } else {
-        aValue = a.querySelector(`td:nth-child(${columnIndex})`).textContent.trim();
-        bValue = b.querySelector(`td:nth-child(${columnIndex})`).textContent.trim();
+        aValue = a.querySelector(`td:nth-child(${columnIndex+1})`).textContent.trim();
+        bValue = b.querySelector(`td:nth-child(${columnIndex+1})`).textContent.trim();
       }
 
+      // Comparar valores (orden descendente para fecha)
       if (columnIndex === 6) {
         if (aValue < bValue) return isAsc ? 1 : -1;
         if (aValue > bValue) return isAsc ? -1 : 1;
@@ -286,6 +492,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return 0;
     });
 
+    // Reordenar el DOM
     rows.forEach(row => tbody.appendChild(row));
   }
 });

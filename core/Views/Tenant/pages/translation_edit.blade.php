@@ -1,5 +1,6 @@
 @extends('layouts.app')
 
+{{-- Título dinámico basado en si es creación o edición --}}
 @section('title', isset($translation->id) ? "Editar Traducción ({$localeName})" : "Crear Traducción ({$localeName})")
 
 @section('content')
@@ -9,30 +10,29 @@
     {{-- Breadcrumbs / Navegación --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="breadcrumb">
-          <a href="{{ route('blog.posts.index') }}">Posts</a>
+          <a href="{{ route('pages.index') }}">Páginas</a>
           <span class="mx-2">/</span>
-          <a href="{{ route('blog.posts.edit', ['id' => $post->id]) }}">{{ e($post->title) }}</a>
+          <a href="{{ route('pages.edit', ['id' => $Page->id]) }}">{{ e($Page->title) }}</a>
           <span class="mx-2">/</span>
+          {{-- Usamos el título dinámico --}}
           <span>{{ isset($translation->id) ? "Editar Traducción ({$localeName})" : "Crear Traducción ({$localeName})" }}</span>
         </div>
-         <a href="{{ route('blog.posts.edit', ['id' => $post->id]) }}" class="btn btn-sm btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i> Volver al Post Base
+         <a href="{{ route('pages.edit', ['id' => $Page->id]) }}" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Volver a Página Base
          </a>
     </div>
 
-    {{-- Mensajes de alerta --}}
-    @if (session('success'))
-      <script> document.addEventListener('DOMContentLoaded', function () { Swal.fire({ icon: 'success', title: 'Correcto', text: {!! json_encode(session('success')) !!}, confirmButtonColor: '#3085d6' }); }); </script>
-    @endif
-    @if (session('error'))
-      <script> document.addEventListener('DOMContentLoaded', function () { Swal.fire({ icon: 'error', title: 'Error', text: {!! json_encode(session('error')) !!}, confirmButtonColor: '#d33' }); }); </script>
-    @endif
+    {{-- Mensajes de alerta (si usas un sistema de flash messages) --}}
+    @include('partials.alerts')
 
-    <form method="POST" action="{{ route('blog.posts.translation.update', ['id' => $post->id, 'locale' => $locale]) }}" id="translationForm">
-        @csrf
-        @method('PUT')
+    <form method="POST" action="{{ route('pages.translation.update', ['id' => $Page->id, 'locale' => $locale]) }}" id="translationForm">
+        {{-- Método PUT es más semántico para updates, pero POST funciona si tu controlador usa $_POST --}}
+        {{-- Si tu router soporta PUT/PATCH y tu controlador usa un Request object, usa @method('PUT') --}}
+        {{-- @method('PUT') --}}
+        {!! csrf_field() !!}
 
-        <input type="hidden" name="post_id" value="{{ $post->id }}">
+        {{-- Es buena práctica incluir estos aunque el controlador los fuerce, por claridad --}}
+        <input type="hidden" name="page_id" value="{{ $Page->id }}">
         <input type="hidden" name="locale" value="{{ $locale }}">
 
         <div class="row">
@@ -49,38 +49,54 @@
                             <label for="title" class="form-label">Título <span class="text-danger">*</span></label>
                             <input type="text" class="form-control form-control-lg @error('title') is-invalid @enderror" id="title" name="title"
                                    value="{{ old('title', $translation->title ?? '') }}" required>
+                            {{-- Mostrar error de validación si existe --}}
                             @error('title')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
 
-                        {{-- Extracto Traducido --}}
-                        <div class="mb-3">
-                            <label for="excerpt" class="form-label">Extracto</label>
-                            <textarea class="form-control @error('excerpt') is-invalid @enderror" name="excerpt" id="excerpt" rows="3" placeholder="Breve resumen del post en {{ $localeName }}">{{ old('excerpt', $translation->excerpt ?? '') }}</textarea>
-                            @error('excerpt')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
                         {{-- Contenido Traducido (TinyMCE) --}}
-                        <div class="mb-3">
+                        <div class="mb-3" id="editor-wrapper">
                             <label for="content-editor" class="form-label">Contenido</label>
-                            <textarea id="content-editor" name="content" class="form-control @error('content') is-invalid @enderror" style="visibility: hidden; height: 600px;">{{ old('content', $translation->content ?? '') }}</textarea>
+                            {{-- Skeleton Loader - se muestra mientras TinyMCE carga --}}
+                            <div id="tinymce-skeleton" class="tinymce-skeleton">
+                              <div class="tinymce-skeleton-toolbar">
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-separator"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-separator"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                                <div class="tinymce-skeleton-btn"></div>
+                              </div>
+                              <div class="tinymce-skeleton-content">
+                                <div class="tinymce-skeleton-line"></div>
+                                <div class="tinymce-skeleton-line"></div>
+                                <div class="tinymce-skeleton-line"></div>
+                                <div class="tinymce-skeleton-line"></div>
+                                <div class="tinymce-skeleton-line"></div>
+                                <div class="tinymce-skeleton-line"></div>
+                              </div>
+                            </div>
+                            <textarea id="content-editor" name="content" class="@error('content') is-invalid @enderror" style="display:none !important;">{{ old('content', $translation->content ?? '') }}</textarea>
                             @error('content')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
                     </div>
-                </div>
+                </div>{{-- Fin card contenido --}}
 
                 {{-- Card SEO Específico del Idioma --}}
-                <div class="card mb-4">
+                <div class="card mb-4"> {{-- Añadido mb-4 --}}
                     <div class="card-header">
                         Optimización SEO ({{ $localeName }}) <small class="text-muted">- Opcional</small>
                     </div>
                     <div class="card-body">
-                         <p class="text-muted small mb-3">Define cómo quieres que esta traducción aparezca en buscadores. Si se dejan vacíos, se podrían usar los valores del post base.</p>
+                         <p class="text-muted small mb-3">Define cómo quieres que esta traducción aparezca en buscadores. Si se dejan vacíos, se podrían usar los valores de la página base.</p>
 
                          {{-- SEO Title --}}
                          <div class="mb-3">
@@ -116,10 +132,9 @@
                            <label for="robots_directive" class="form-label">Directiva para Robots</label>
                            <select class="form-select @error('robots_directive') is-invalid @enderror" id="robots_directive" name="robots_directive">
                               @php $currentRobots = old('robots_directive', $translation->robots_directive ?? null); @endphp
-                              <option value="" @selected($currentRobots === null)>Usar valor del post base o sistema</option>
+                              <option value="" @selected($currentRobots === null)>Usar valor de página base o sistema</option>
                               <option value="index,follow" @selected($currentRobots === 'index,follow')>Indexar y Seguir</option>
-                              <option value="noindex,follow" @selected($currentRobots === 'noindex,follow')>No Indexar pero Seguir</option>
-                              <option value="index,nofollow" @selected($currentRobots === 'index,nofollow')>Indexar pero No Seguir</option>
+                              {{-- ... otras opciones ... --}}
                               <option value="noindex,nofollow" @selected($currentRobots === 'noindex,nofollow')>No Indexar y No Seguir</option>
                            </select>
                            <small class="text-muted">Normalmente es la misma para todas las traducciones.</small>
@@ -159,8 +174,8 @@
                               @error('twitter_image') <div class="invalid-feedback">{{ $message }}</div> @enderror
                           </div>
 
-                    </div>
-                </div>
+                    </div>{{-- Fin card-body SEO --}}
+                </div>{{-- Fin card SEO --}}
 
             </div> {{-- Fin col-md-9 --}}
 
@@ -172,12 +187,12 @@
                      </div>
                      <div class="card-body">
                         <p><span class="badge bg-primary">Idioma: {{ $localeName }}</span></p>
-                        <p><small class="text-muted">Post base: {{ e($post->title) }}</small></p>
+                        <p><small class="text-muted">Página base: {{ e($Page->title) }}</small></p>
                         <div class="d-grid gap-2">
                              <button type="submit" class="btn btn-success">
                                 <i class="fas fa-save me-1"></i> {{ isset($translation->id) ? 'Actualizar' : 'Crear' }} Traducción
                              </button>
-                             <a href="{{ route('blog.posts.edit', ['id' => $post->id]) }}" class="btn btn-secondary">
+                             <a href="{{ route('pages.edit', ['id' => $Page->id]) }}" class="btn btn-secondary">
                                 <i class="fas fa-times me-1"></i> Cancelar
                              </a>
                          </div>
@@ -202,12 +217,13 @@
   </div> {{-- Fin container-fluid --}}
 </div> {{-- Fin app-content --}}
 
-{{-- Incluir el script de TinyMCE --}}
-@include('partials._tinymce')
+{{-- Incluir el script de TinyMCE DESPUÉS del textarea --}}
+@include('partials._tinymce') 
 
 @endsection
 
 {{-- Scripts específicos de la página --}}
 @push('scripts')
-@include('partials._page_scripts', ['isEdit' => isset($translation->id)])
+{{-- Incluimos el partial con el JavaScript existente --}}
+@include('partials._page_scripts', ['isEdit' => isset($translation->id)]) {{-- Pasamos 'isEdit' al script --}}
 @endpush

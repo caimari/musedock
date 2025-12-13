@@ -8,12 +8,21 @@
     <!-- Navegación y botón añadir página -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="breadcrumb">
-        <a href="{{ route('tenant.pages.index') }}">{{ __('pages.pages') }}</a> <span class="mx-2">/</span> <span>{{ e($Page->title ?? __('pages.editing')) }}</span>
+        <a href="{{ route('pages.index') }}">{{ __('pages.pages') }}</a> <span class="mx-2">/</span> <span>{{ e($Page->title ?? __('pages.editing')) }}</span>
       </div>
-      <a href="{{ route('tenant.pages.create') }}" class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i> {{ __('pages.add_page') }}</a>
+      <div class="d-flex gap-2">
+        <a href="{{ admin_url('pages') }}/{{ $Page->id }}/revisions" class="btn btn-sm btn-outline-secondary" title="{{ __('pages.view_revisions') }}">
+          <i class="bi bi-clock-history me-1"></i> {{ __('pages.revisions') }} @if(isset($Page->revision_count) && $Page->revision_count > 0)({{ $Page->revision_count }})@endif
+        </a>
+        <a href="{{ admin_url('pages') }}/trash" class="btn btn-sm btn-outline-danger" title="{{ __('pages.view_trash') }}">
+          <i class="bi bi-trash me-1"></i> {{ __('pages.trash') }}
+        </a>
+        <a href="{{ route('pages.create') }}" class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i> {{ __('pages.add_page') }}</a>
+      </div>
     </div>
 
     {{-- Script para SweetAlert2 (MANTENER ESTO) --}}
+    {{-- 🔒 SECURITY: JSON encoding con flags de escape para prevenir XSS --}}
     @if (session('success'))
       <script> document.addEventListener('DOMContentLoaded', function () { Swal.fire({ icon: 'success', title: 'Correcto', text: <?php echo json_encode(session('success'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>, confirmButtonColor: '#3085d6' }); }); </script>
     @endif
@@ -22,7 +31,7 @@
     @endif
     {{-- Fin Scripts SweetAlert2 --}}
 
-    <form method="POST" action="{{ route('tenant.pages.update', ['id' => $Page->id]) }}" id="pageForm" enctype="multipart/form-data">
+    <form method="POST" action="{{ route('pages.update', ['id' => $Page->id]) }}" id="pageForm" enctype="multipart/form-data">
       @method('PUT') {!! csrf_field() !!}
       <div class="row">
         {{-- Columna izquierda (Principal) --}}
@@ -48,9 +57,37 @@
                 </small> 
                 <span id="slug-check-result" class="ms-3 fw-bold"></span> 
               </div>
-              {{-- Editor TinyMCE --}} 
-              <div class="mb-3"> 
-                <textarea id="content-editor" name="content">{{ old('content', $Page->content) }}</textarea> 
+              {{-- Editor TinyMCE --}}
+              <div class="mb-3" id="editor-wrapper">
+                {{-- Skeleton Loader - se muestra mientras TinyMCE carga --}}
+                <div id="tinymce-skeleton" class="tinymce-skeleton">
+                  <div class="tinymce-skeleton-toolbar">
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-separator"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-separator"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-separator"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                    <div class="tinymce-skeleton-btn"></div>
+                  </div>
+                  <div class="tinymce-skeleton-content">
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                    <div class="tinymce-skeleton-line"></div>
+                  </div>
+                </div>
+                <textarea id="content-editor" name="content" style="display:none !important;">{{ old('content', $Page->content) }}</textarea>
               </div>
             </div> 
           </div>
@@ -65,7 +102,7 @@
               <div class="d-flex flex-wrap gap-2" id="translations-container"> 
                 @foreach ($locales as $code => $name) 
                   @if($code !== ($Page->base_locale ?? config('app.locale', 'es'))) 
-                    <a href="{{ route('tenant.pages.translation.edit', ['id' => $Page->id, 'locale' => $code]) }}" class="btn btn-sm translation-btn {{ isset($translatedLocales[$code]) ? 'btn-outline-success' : 'btn-outline-secondary' }}" data-locale="{{ $code }}"> 
+                    <a href="{{ route('pages.translation.edit', ['id' => $Page->id, 'locale' => $code]) }}" class="btn btn-sm translation-btn {{ isset($translatedLocales[$code]) ? 'btn-outline-success' : 'btn-outline-secondary' }}" data-locale="{{ $code }}"> 
                       {{ $name }} 
                       @if (isset($translatedLocales[$code])) 
                         <i class="ms-1 fas fa-check-circle text-success"></i> 
@@ -248,9 +285,9 @@
               const btn = document.createElement('a');
 
               // Construir la URL dinámicamente usando la función route() de JS si la tienes, o manualmente
-              // Nota: route('tenant.pages.translation.edit', ...) se ejecuta en PHP, no aquí. Necesitamos la URL base.
+              // Nota: route('pages.translation.edit', ...) se ejecuta en PHP, no aquí. Necesitamos la URL base.
               // Asumiremos una estructura de URL fija o necesitaremos pasar la URL base desde PHP.
-              const translationUrl = `/admin/pages/${pageId}/translations/${code}`; // AJUSTA ESTA URL si es diferente
+              const translationUrl = `{{ admin_url('pages') }}/${pageId}/translations/${code}`; // AJUSTA ESTA URL si es diferente
 
               btn.href = translationUrl;
               btn.className = `btn btn-sm translation-btn ${isTranslated ? 'btn-outline-success' : 'btn-outline-secondary'}`;

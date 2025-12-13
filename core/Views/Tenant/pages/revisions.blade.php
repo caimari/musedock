@@ -7,7 +7,7 @@
 <div class="app-content"><div class="container-fluid">
 <div class="d-flex justify-content-between align-items-center mb-3">
 <h2>{{ $title }}</h2>
-<div><a href="{{ route('tenant.pages.edit', $page->id) }}" class="btn btn-secondary me-2"><i class="bi bi-arrow-left"></i> Volver a editar</a><a href="{{ route('tenant.pages.index') }}" class="btn btn-outline-secondary"><i class="bi bi-list"></i> Lista de páginas</a></div>
+<div><a href="{{ admin_url('pages') }}/{{ $page->id }}/edit" class="btn btn-secondary me-2"><i class="bi bi-arrow-left"></i> Volver a editar</a><a href="{{ admin_url('pages') }}" class="btn btn-outline-secondary"><i class="bi bi-list"></i> Lista de páginas</a></div>
 </div>
 @if (session('success'))<script>document.addEventListener('DOMContentLoaded',function(){Swal.fire({icon:'success',title:'Correcto',text:{!!json_encode(session('success'))!!},confirmButtonColor:'#3085d6'});});</script>@endif
 <div class="card mb-3"><div class="card-body"><h5 class="card-title">{{ e($page->title) }}</h5><p class="card-text text-muted"><strong>Total de revisiones:</strong> {{ count($revisions) }}</p></div></div>
@@ -21,8 +21,8 @@
 <td>@php $badges=['initial'=>['success','Inicial'],'manual'=>['primary','Manual'],'autosave'=>['info','Autoguardado'],'published'=>['warning','Publicado'],'restored'=>['dark','Restaurado']]; [$class,$label]=$badges[$revision->revision_type]??['secondary',$revision->revision_type]; @endphp<span class="badge bg-{{ $class }} revision-type-badge">{{ $label }}</span></td>
 <td>{{ e($revision->user_name ?? 'Sistema') }}<small class="text-muted d-block">{{ e($revision->user_type) }}</small></td>
 <td>{!! e($revision->changes_summary)?:'<span class="text-muted">Sin descripción</span>' !!}</td>
-<td><div class="btn-group btn-group-sm"><a href="{{ route('tenant.pages.revisions.preview', [$page->id, $revision->id]) }}" class="btn btn-outline-secondary" title="Vista previa"><i class="bi bi-eye"></i></a>
-<button type="button" class="btn btn-outline-primary btn-restore" title="Restaurar" data-revision-id="{{ $revision->id }}" data-revision-date="{{ date('d/m/Y H:i', strtotime($revision->created_at)) }}" data-restore-url="{{ route('tenant.pages.revisions.restore', [$page->id, $revision->id]) }}"><i class="bi bi-arrow-counterclockwise"></i></button></div></td>
+<td><div class="btn-group btn-group-sm"><a href="{{ admin_url('pages') }}/{{ $page->id }}/revisions/{{ $revision->id }}/preview" class="btn btn-outline-secondary" title="Vista previa"><i class="bi bi-eye"></i></a>
+<button type="button" class="btn btn-outline-primary btn-restore" title="Restaurar" data-revision-id="{{ $revision->id }}" data-revision-date="{{ date('d/m/Y H:i', strtotime($revision->created_at)) }}"><i class="bi bi-arrow-counterclockwise"></i></button></div></td>
 </tr>
 @endforeach
 </tbody></table>@endif</div></div>
@@ -30,13 +30,13 @@
 <script>
 let selectedRevisions=[];
 function toggleCompareButton(){const checkboxes=document.querySelectorAll('.compare-checkbox:checked');selectedRevisions=Array.from(checkboxes).map(cb=>cb.getAttribute('data-revision-id'));document.getElementById('compare-button-container').style.display=selectedRevisions.length===2?'block':'none';if(selectedRevisions.length===2){document.querySelectorAll('.compare-checkbox:not(:checked)').forEach(cb=>cb.disabled=true);}else{document.querySelectorAll('.compare-checkbox').forEach(cb=>cb.disabled=false);}}
-function compareSelected(){if(selectedRevisions.length===2){@php $adminPath = $_SESSION['admin']['tenant_url'] ?? 'admin'; @endphp window.location.href=`/{!!json_encode($adminPath)!!}/pages/{{ $page->id }}/revisions/${selectedRevisions[0]}/compare/${selectedRevisions[1]}`;}}
+function compareSelected(){if(selectedRevisions.length===2){window.location.href=`{{ admin_url('pages') }}/{{ $page->id }}/revisions/${selectedRevisions[0]}/compare/${selectedRevisions[1]}`;}}
 
 // SweetAlert2 para restaurar revisión
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.btn-restore').forEach(btn => {
     btn.addEventListener('click', function() {
-      const restoreUrl = this.dataset.restoreUrl;
+      const revisionId = this.dataset.revisionId;
       const revisionDate = this.dataset.revisionDate;
 
       Swal.fire({
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (result.isConfirmed) {
           const form = document.createElement('form');
           form.method = 'POST';
-          form.action = restoreUrl;
+          form.action = '{{ admin_url('pages') }}/{{ $page->id }}/revisions/' + revisionId + '/restore';
           const csrfInput = document.createElement('input');
           csrfInput.type = 'hidden';
           csrfInput.name = '_token';

@@ -8,14 +8,30 @@ use Blog\Requests\BlogCategoryRequest;
 use Screenart\Musedock\Services\TenantManager;
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Helpers\FileUploadValidator;
+use Screenart\Musedock\Traits\RequiresPermission;
 
 class BlogCategoryController
 {
+    use RequiresPermission;
+
+    /**
+     * Verificar si el usuario actual tiene un permiso específico
+     */
+    private function checkPermission(string $permission): void
+    {
+        if (!userCan($permission)) {
+            flash('error', __('blog.category.error_no_permission'));
+            header('Location: ' . admin_url('dashboard'));
+            exit;
+        }
+    }
+
     /**
      * Listado de categorías del tenant
      */
     public function index()
     {
+        $this->checkPermission('blog.categories.view');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -76,6 +92,7 @@ class BlogCategoryController
      */
     public function create()
     {
+        $this->checkPermission('blog.categories.create');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -100,6 +117,7 @@ class BlogCategoryController
      */
     public function store()
     {
+        $this->checkPermission('blog.categories.create');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -148,6 +166,7 @@ class BlogCategoryController
      */
     public function edit($id)
     {
+        $this->checkPermission('blog.categories.edit');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -222,6 +241,7 @@ class BlogCategoryController
      */
     public function update($id)
     {
+        $this->checkPermission('blog.categories.edit');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -321,6 +341,7 @@ class BlogCategoryController
      */
     public function destroy($id)
     {
+        $this->checkPermission('blog.categories.delete');
         $tenantId = TenantManager::currentTenantId();
 
         if ($tenantId === null) {
@@ -396,6 +417,11 @@ class BlogCategoryController
             flash('error', __('blog.category.error_bulk_no_selection'));
             header('Location: /' . admin_path() . '/blog/categories');
             exit;
+        }
+
+        // Verificar permisos según la acción
+        if ($action === 'delete') {
+            $this->checkPermission('blog.categories.delete');
         }
 
         if ($action === 'delete') {

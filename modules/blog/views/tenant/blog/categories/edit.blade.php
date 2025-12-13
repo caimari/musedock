@@ -8,9 +8,9 @@
     {{-- Navegación --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="breadcrumb">
-        <a href="{{ route('tenant.blog.categories.index') }}">{{ __('blog.categories') }}</a> <span class="mx-2">/</span> <span>{{ e($category->name) }}</span>
+        <a href="{{ route('blog.categories.index') }}">{{ __('blog.categories') }}</a> <span class="mx-2">/</span> <span>{{ e($category->name) }}</span>
       </div>
-      <a href="{{ route('tenant.blog.categories.index') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> {{ __('blog.category.back_to_categories') }}</a>
+      <a href="{{ route('blog.categories.index') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> {{ __('blog.category.back_to_categories') }}</a>
     </div>
 
     {{-- Alertas --}}
@@ -21,7 +21,7 @@
       <script> document.addEventListener('DOMContentLoaded', function () { Swal.fire({ icon: 'error', title: {!! json_encode(__('common.error')) !!}, text: {!! json_encode(session('error')) !!}, confirmButtonColor: '#d33' }); }); </script>
     @endif
 
-    <form method="POST" action="{{ route('tenant.blog.categories.update', ['id' => $category->id]) }}" id="categoryForm" enctype="multipart/form-data">
+    <form method="POST" action="{{ route('blog.categories.update', ['id' => $category->id]) }}" id="categoryForm" enctype="multipart/form-data">
       @csrf
       @method('PUT')
 
