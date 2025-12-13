@@ -1,6 +1,6 @@
 (function ($)
   { "use strict"
-  
+
 /* 1. Proloder */
     $(window).on('load', function () {
       $('#preloader-active').delay(450).fadeOut('slow');
@@ -200,16 +200,18 @@
 
 
 /* 8. sildeBar scroll */
-    $.scrollUp({
-      scrollName: 'scrollUp', // Element ID
-      topDistance: '300', // Distance from top before showing element (px)
-      topSpeed: 300, // Speed back to top (ms)
-      animation: 'fade', // Fade, slide, none
-      animationInSpeed: 200, // Animation in speed (ms)
-      animationOutSpeed: 200, // Animation out speed (ms)
-      scrollText: '<i class="ti-arrow-up"></i>', // Text for element
-      activeOverlay: false, // Set CSS color to display scrollUp active point, e.g '#00FFFF'
-    });
+    if (typeof $.scrollUp === 'function') {
+      $.scrollUp({
+        scrollName: 'scrollUp', // Element ID
+        topDistance: '300', // Distance from top before showing element (px)
+        topSpeed: 300, // Speed back to top (ms)
+        animation: 'fade', // Fade, slide, none
+        animationInSpeed: 200, // Animation in speed (ms)
+        animationOutSpeed: 200, // Animation out speed (ms)
+        scrollText: '<i class="ti-arrow-up"></i>', // Text for element
+        activeOverlay: false, // Set CSS color to display scrollUp active point, e.g '#00FFFF'
+      });
+    }
 
 
 /* 9. data-background */
@@ -219,11 +221,13 @@
 
 
 /* 10. WOW active */
-    new WOW().init();
+    if (typeof WOW !== 'undefined') {
+      new WOW().init();
+    }
 
 /* 11. Datepicker */
-    
-// 11. ---- Mailchimp js --------//  
+
+// 11. ---- Mailchimp js --------//
     function mailChimp() {
       $('#mc_embed_signup').find('form').ajaxChimp();
     }
@@ -249,3 +253,16 @@
 
 
 })(jQuery);
+
+// Código de respaldo para data-background (ejecuta en document.ready)
+// Esto garantiza que las imágenes de fondo se apliquen incluso si hay errores en otros plugins
+jQuery(document).ready(function($) {
+  $("[data-background]").each(function () {
+    var bg = $(this).attr("data-background");
+    var currentBg = $(this).css("background-image");
+    // Solo aplicar si no tiene ya el background correcto
+    if (bg && (currentBg === 'none' || currentBg === '')) {
+      $(this).css("background-image", "url(" + bg + ")");
+    }
+  });
+});

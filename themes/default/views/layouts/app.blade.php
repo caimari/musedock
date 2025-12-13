@@ -1100,7 +1100,23 @@ body.mobile-menu-open {
         <div class="mobile-languages">
             <h4>{{ __('mobile_menu.select_language') }}</h4>
             <div class="mobile-lang-select">
-                <select id="mobile-lang-switcher" onchange="window.location.href='?lang=' + this.value;">
+                <select id="mobile-lang-switcher" onchange="window.location.href='?lang=' + this.value;" style="
+                    appearance: none;
+                    -webkit-appearance: none;
+                    -moz-appearance: none;
+                    background-color: transparent;
+                    border: 1px solid #666;
+                    border-radius: 4px;
+                    padding: 10px 36px 10px 14px;
+                    font-size: 15px;
+                    color: #333;
+                    cursor: pointer;
+                    width: 100%;
+                    background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpath fill=%22%23666%22 d=%22M6 8L1 3h10z%22/%3E%3C/svg%3E');
+                    background-repeat: no-repeat;
+                    background-position: right 12px center;
+                    background-size: 12px;
+                ">
                     @foreach($languages as $lang)
                         <option value="{{ $lang['code'] }}" {{ $currentLang == $lang['code'] ? 'selected' : '' }}>
                             {{ $lang['name'] ?? strtoupper($lang['code']) }}
