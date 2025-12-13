@@ -60,22 +60,13 @@
                             <div class="language-selector my-4 text-left">
                                 <form action="" method="get" id="language-form" class="d-inline-block">
                                     <select name="lang" id="language-select" onchange="this.form.submit();" style="
-                                        appearance: none;
-                                        -webkit-appearance: none;
-                                        -moz-appearance: none;
-                                        background-color: transparent;
-                                        border: 1px solid var(--footer-text-color, #666);
+                                        border: 1px solid #000;
                                         border-radius: 4px;
-                                        padding: 8px 32px 8px 12px;
+                                        padding: 8px 12px;
                                         font-size: 14px;
-                                        color: var(--footer-text-color, #333);
+                                        color: #000;
+                                        background-color: transparent;
                                         cursor: pointer;
-                                        min-width: 120px;
-                                        background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpath fill=%22%23666%22 d=%22M6 8L1 3h10z%22/%3E%3C/svg%3E');
-                                        background-repeat: no-repeat;
-                                        background-position: right 10px center;
-                                        background-size: 10px;
-                                        transition: border-color 0.2s ease;
                                     ">
                                         @foreach($activeLanguages as $lang)
                                             <option value="{{ $lang['code'] }}" {{ $currentLang == $lang['code'] ? 'selected' : '' }}>
@@ -85,17 +76,6 @@
                                     </select>
                                 </form>
                             </div>
-                            <style>
-                                #language-select:hover,
-                                #language-select:focus {
-                                    border-color: var(--primary-color, #007bff);
-                                    outline: none;
-                                }
-                                #language-select option {
-                                    background-color: #fff;
-                                    color: #333;
-                                }
-                            </style>
                             @endif
                          </div>
                          

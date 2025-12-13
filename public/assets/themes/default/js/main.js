@@ -259,10 +259,27 @@
 jQuery(document).ready(function($) {
   $("[data-background]").each(function () {
     var bg = $(this).attr("data-background");
-    var currentBg = $(this).css("background-image");
-    // Solo aplicar si no tiene ya el background correcto
-    if (bg && (currentBg === 'none' || currentBg === '')) {
-      $(this).css("background-image", "url(" + bg + ")");
+    if (bg) {
+      $(this).css({
+        "background-image": "url(" + bg + ")",
+        "background-size": "cover",
+        "background-position": "center center",
+        "background-repeat": "no-repeat"
+      });
+    }
+  });
+});
+
+// También ejecutar en window.load por si acaso
+jQuery(window).on('load', function() {
+  jQuery("[data-background]").each(function () {
+    var bg = jQuery(this).attr("data-background");
+    if (bg && jQuery(this).css("background-image") === 'none') {
+      jQuery(this).css({
+        "background-image": "url(" + bg + ")",
+        "background-size": "cover",
+        "background-position": "center center"
+      });
     }
   });
 });
