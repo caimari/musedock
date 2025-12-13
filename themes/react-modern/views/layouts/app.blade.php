@@ -151,8 +151,16 @@
         ] : null;
 
         // Obtener idiomas activos
-        $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE active = 1 ORDER BY id ASC");
-        $stmt->execute();
+        $tenantId = tenant_id();
+        if ($tenantId) {
+            // Tenant: obtener idiomas del tenant
+            $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE tenant_id = ? AND active = 1 ORDER BY order_position ASC, id ASC");
+            $stmt->execute([$tenantId]);
+        } else {
+            // Global/Superadmin: obtener idiomas globales
+            $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE tenant_id IS NULL AND active = 1 ORDER BY order_position ASC, id ASC");
+            $stmt->execute();
+        }
         $activeLanguages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         // Preparar configuraciones para React

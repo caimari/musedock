@@ -39,8 +39,16 @@
                             <!-- Selector de idiomas como SELECT (solo si hay más de un idioma activo y no está forzado) -->
                             @php
                                 $pdo = \Screenart\Musedock\Database::connect();
-                                $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE active = 1 ORDER BY order_position ASC, id ASC");
-                                $stmt->execute();
+                                $tenantId = tenant_id();
+                                if ($tenantId) {
+                                    // Tenant: obtener idiomas del tenant
+                                    $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE tenant_id = ? AND active = 1 ORDER BY order_position ASC, id ASC");
+                                    $stmt->execute([$tenantId]);
+                                } else {
+                                    // Global/Superadmin: obtener idiomas globales
+                                    $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE tenant_id IS NULL AND active = 1 ORDER BY order_position ASC, id ASC");
+                                    $stmt->execute();
+                                }
                                 $activeLanguages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                                 $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? site_setting('language', 'es'));
                                 // No mostrar selector si hay idioma forzado o solo hay un idioma

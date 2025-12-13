@@ -193,7 +193,16 @@ class TranslationService
         $validLocales = ['es', 'en'];
         try {
             $pdo = \Screenart\Musedock\Database::connect();
-            $stmt = $pdo->query("SELECT code FROM languages WHERE active = 1");
+            $tenantId = tenant_id();
+            if ($tenantId) {
+                // Tenant: obtener idiomas del tenant
+                $stmt = $pdo->prepare("SELECT code FROM languages WHERE tenant_id = ? AND active = 1");
+                $stmt->execute([$tenantId]);
+            } else {
+                // Global/Superadmin: obtener idiomas globales
+                $stmt = $pdo->prepare("SELECT code FROM languages WHERE tenant_id IS NULL AND active = 1");
+                $stmt->execute();
+            }
             $dbLocales = $stmt->fetchAll(\PDO::FETCH_COLUMN);
             if (!empty($dbLocales)) {
                 $validLocales = $dbLocales;
