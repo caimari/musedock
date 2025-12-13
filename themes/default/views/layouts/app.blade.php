@@ -1,18 +1,41 @@
 <!doctype html>
+@php
+    // ========================================
+    // CARGAR DATOS DEL SITIO (tenant o global)
+    // ========================================
+    // Detectar contexto - site_setting() ya maneja esto internamente:
+    // - Si hay tenant (tenant_id() != null): usa tenant_settings
+    // - Si no hay tenant: usa settings global
+    $_tenantId = tenant_id();
+    $_isTenant = $_tenantId !== null;
+
+    // Cargar TODOS los settings del sitio una sola vez
+    $_siteName = site_setting('site_name', '');
+    $_siteDescription = site_setting('site_description', '');
+    $_siteKeywords = site_setting('site_keywords', '');
+    $_siteAuthor = site_setting('site_author', '');
+    $_siteFavicon = site_setting('site_favicon', '');
+    $_ogImage = site_setting('og_image', '');
+    $_twitterSite = site_setting('twitter_site', '');
+    $_twitterImage = site_setting('twitter_image', '');
+    $_twitterDescription = site_setting('twitter_description', '');
+    $_blogPublic = site_setting('blog_public', '1');
+@endphp
 <html lang="{{ site_setting('language', 'es') }}" class="no-js">
 
 <head>
     <!-- Configuración básica -->
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <!-- DEBUG: Tenant={{ $_isTenant ? 'ID=' . $_tenantId : 'NO' }} | site_name={{ $_siteName }} -->
 
-    {{-- Título dinámico del layout original --}}
-    <title>{{ \Screenart\Musedock\View::yieldSection('title') ?: site_setting('site_name', config('app_name', 'MuseDock CMS')) }}</title>
+    {{-- Título dinámico --}}
+    <title>{{ \Screenart\Musedock\View::yieldSection('title') ?: ($_siteName ?: config('app_name', 'MuseDock CMS')) }}</title>
 
-    {{-- Metas dinámicas del layout original --}}
+    {{-- Metas dinámicas --}}
     @php
-        $metaDescription = \Screenart\Musedock\View::yieldSection('description') ?: site_setting('site_description', '');
-        $metaAuthor = site_setting('site_author', '');
+        $metaDescription = \Screenart\Musedock\View::yieldSection('description') ?: $_siteDescription;
+        $metaAuthor = $_siteAuthor;
     @endphp
     @if($metaDescription)
     <meta name="description" content="{{ $metaDescription }}">
@@ -22,30 +45,28 @@
     @endif
 
     <!-- Favicon dinámico -->
-    @if(site_setting('site_favicon'))
-        <link rel="icon" type="image/x-icon" href="{{ asset(ltrim(site_setting('site_favicon'), '/')) }}">
+    @if($_siteFavicon)
+        <link rel="icon" type="image/x-icon" href="{{ asset(ltrim($_siteFavicon, '/')) }}">
     @else
         <!-- Fallback favicon -->
         <link rel="shortcut icon" type="image/x-icon" href="{{ asset('img/favicon.png') }}">
-        {{-- O mantener el original: <link rel="icon" type="image/x-icon" href="{{ asset('themes/default/favicon.ico') }}"> --}}
     @endif
 
     <!-- SEO Meta Tags dinámicas -->
     @php
-        $seoKeywords = \Screenart\Musedock\View::yieldSection('keywords') ?: site_setting('site_keywords', '');
-        $ogTitle = \Screenart\Musedock\View::yieldSection('og_title') ?: site_setting('site_name', '');
-        $ogDescription = \Screenart\Musedock\View::yieldSection('og_description') ?: site_setting('site_description', '');
-        $siteName = site_setting('site_name', '');
+        $seoKeywords = \Screenart\Musedock\View::yieldSection('keywords') ?: $_siteKeywords;
+        $ogTitle = \Screenart\Musedock\View::yieldSection('og_title') ?: $_siteName;
+        $ogDescription = \Screenart\Musedock\View::yieldSection('og_description') ?: $_siteDescription;
+        $siteName = $_siteName;
         $robotsDirective = trim(\Screenart\Musedock\View::yieldSection('robots', ''));
 
-        // Verificar setting global de visibilidad en buscadores
-        $blogPublic = site_setting('blog_public', '1');
-        if ($blogPublic == '0' && empty($robotsDirective)) {
+        // Verificar setting de visibilidad en buscadores
+        if ($_blogPublic == '0' && empty($robotsDirective)) {
             $robotsDirective = 'noindex, nofollow';
         }
 
-        $twitterTitle = \Screenart\Musedock\View::yieldSection('twitter_title') ?: site_setting('site_name', '');
-        $twitterDescription = \Screenart\Musedock\View::yieldSection('twitter_description') ?: site_setting('site_description', '');
+        $twitterTitle = \Screenart\Musedock\View::yieldSection('twitter_title') ?: $_siteName;
+        $twitterDescription = \Screenart\Musedock\View::yieldSection('twitter_description') ?: ($_twitterDescription ?: $_siteDescription);
     @endphp
     @if($seoKeywords)
     <meta name="keywords" content="{{ $seoKeywords }}">
@@ -61,11 +82,11 @@
     <meta property="og:site_name" content="{{ $siteName }}">
     @endif
     <meta property="og:type" content="website">
-    @if(site_setting('og_image'))
-    <meta property="og:image" content="{{ asset(site_setting('og_image')) }}">
+    @if($_ogImage)
+    <meta property="og:image" content="{{ asset($_ogImage) }}">
     @endif
     <link rel="canonical" href="{{ url($_SERVER['REQUEST_URI']) }}">
-    <link rel="alternate" type="application/rss+xml" title="{{ site_setting('site_name', 'MuseDock') }} RSS Feed" href="{{ url('/feed') }}">
+    <link rel="alternate" type="application/rss+xml" title="{{ $_siteName ?: 'MuseDock' }} RSS Feed" href="{{ url('/feed') }}">
     @if($robotsDirective)
     <meta name="robots" content="{{ $robotsDirective }}">
     @endif
@@ -76,13 +97,13 @@
     @if($twitterDescription)
     <meta name="twitter:description" content="{{ $twitterDescription }}">
     @endif
-    @if(site_setting('twitter_site'))
-    <meta name="twitter:site" content="{{ site_setting('twitter_site') }}">
+    @if($_twitterSite)
+    <meta name="twitter:site" content="{{ $_twitterSite }}">
     @endif
-    @if(site_setting('twitter_image'))
-    <meta name="twitter:image" content="{{ asset(site_setting('twitter_image')) }}">
-    @elseif(site_setting('og_image'))
-    <meta name="twitter:image" content="{{ asset(site_setting('og_image')) }}">
+    @if($_twitterImage)
+    <meta name="twitter:image" content="{{ asset($_twitterImage) }}">
+    @elseif($_ogImage)
+    <meta name="twitter:image" content="{{ asset($_ogImage) }}">
     @endif
 
     <!-- Responsive (igual en ambos) -->
