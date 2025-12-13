@@ -362,19 +362,32 @@ public static function resolve() {
  */
 private static function render404Page(): void
 {
+    // Limpiar cualquier output previo que pueda interferir
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
+
     // Intento 1: Plantilla del tema activo
     try {
-        echo \Screenart\Musedock\View::renderTheme('errors.404');
+        ob_start();
+        $output = \Screenart\Musedock\View::renderTheme('errors.404');
+        ob_end_clean();
+        echo $output;
         return;
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
+        ob_end_clean();
         error_log("404: Falló renderTheme errors.404 - " . $e->getMessage());
     }
 
     // Intento 2: Plantilla base del sistema
     try {
-        echo \Screenart\Musedock\View::render('errors.404');
+        ob_start();
+        $output = \Screenart\Musedock\View::render('errors.404');
+        ob_end_clean();
+        echo $output;
         return;
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
+        ob_end_clean();
         error_log("404: Falló render errors.404 - " . $e->getMessage());
     }
 
