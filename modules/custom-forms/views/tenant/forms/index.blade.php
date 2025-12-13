@@ -1,4 +1,4 @@
-@extends('layouts::tenant')
+@extends('layouts.app')
 
 @section('title', __forms('form.forms'))
 
