@@ -31,16 +31,15 @@ nav[aria-label="breadcrumb"] .breadcrumb-item + .breadcrumb-item::before {
     <div class="container-fluid">
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-1">
+            <div class="d-flex align-items-center gap-3">
+                <nav aria-label="breadcrumb" class="mb-0">
+                    <ol class="breadcrumb mb-0 align-items-center">
                         <li class="breadcrumb-item">
                             <a href="/{{ admin_path() }}/themes"><i class="fas fa-palette me-1"></i>Temas</a>
                         </li>
                         <li class="breadcrumb-item active">Personalizar: {{ $theme['name'] ?? $slug }}</li>
                     </ol>
                 </nav>
-                <h2 class="mb-0"><i class="fas fa-paint-brush me-2"></i>{{ $title }}</h2>
             </div>
             <div class="d-flex gap-2 flex-wrap">
                 <button type="button" class="btn btn-outline-secondary" id="btn-presets-header">
@@ -55,20 +54,6 @@ nav[aria-label="breadcrumb"] .breadcrumb-item + .breadcrumb-item::before {
         <div class="row">
             <!-- Panel de opciones -->
             <div class="col-lg-8">
-                @if($hasCustomOptions)
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>
-                    Tienes personalizaciones activas para este tema.
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-                @else
-                <div class="alert alert-info alert-dismissible fade show" role="alert">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Estás usando los valores por defecto del tema. Personalízalo a tu gusto.
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-                @endif
-
                 <form method="POST" action="/{{ admin_path() }}/themes/appearance/{{ $slug }}/save" id="appearanceForm">
                     {!! csrf_field() !!}
 
