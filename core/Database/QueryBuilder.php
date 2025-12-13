@@ -1045,11 +1045,22 @@ public function dd()
         // PostgreSQL requiere RETURNING para obtener el ID insertado
         $driverName = $this->driver->getDriverName();
         if ($driverName === 'pgsql') {
-            $sql .= " RETURNING id";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($data);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result['id'] ?? null;
+            // Intentar con RETURNING id si la tabla tiene columna id
+            try {
+                $sqlWithReturning = $sql . " RETURNING id";
+                $stmt = $this->pdo->prepare($sqlWithReturning);
+                $stmt->execute($data);
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                return $result['id'] ?? null;
+            } catch (\PDOException $e) {
+                // Si la columna id no existe, ejecutar sin RETURNING
+                if (strpos($e->getMessage(), 'column "id" does not exist') !== false) {
+                    $stmt = $this->pdo->prepare($sql);
+                    $stmt->execute($data);
+                    return null;
+                }
+                throw $e;
+            }
         }
 
         // MySQL usa lastInsertId()
