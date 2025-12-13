@@ -10,6 +10,27 @@ class BladeExtended extends BladeOne
     protected $pathResolver = null;
 
     /**
+     * Constructor que configura BladeOne para lanzar excepciones en lugar de echo
+     */
+    public function __construct($templatePath = null, $compiledPath = null, $mode = 0)
+    {
+        parent::__construct($templatePath, $compiledPath, $mode);
+
+        // Configurar para que lance excepciones en lugar de echo
+        $this->throwOnError = true;
+    }
+
+    /**
+     * Override del método showError para lanzar excepciones en lugar de echo
+     * Esto asegura que los errores se puedan capturar con try/catch
+     */
+    public function showError($id, $text, $critic = false, $alwaysThrow = false): string
+    {
+        // Siempre lanzar excepción para que se pueda capturar
+        throw new \RuntimeException("BladeOne Error [$id]: $text");
+    }
+
+    /**
      * Añadir un namespace para vistas, ejemplo @include('Modulo::admin.index')
      */
     public function addNamespace(string $namespace, string $path): void
