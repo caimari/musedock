@@ -172,7 +172,8 @@
 
 
 /* 6. Nice Selectorp  */
-  var nice_Select = $('select');
+  // Excluir selectores de idioma del footer y móvil para que mantengan estilos nativos
+  var nice_Select = $('select').not('#language-select, #mobile-lang-switcher');
     if(nice_Select.length){
       nice_Select.niceSelect();
     }

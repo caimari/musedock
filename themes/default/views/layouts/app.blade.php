@@ -166,7 +166,7 @@
         --topbar-text-color: {{ themeOption('topbar.topbar_text_color', '#ffffff') }};
         --header-bg-color: {{ themeOption('header.header_bg_color', '#f8f9fa') }};
         --header-logo-text-color: {{ themeOption('header.header_logo_text_color', '#1a2a40') }};
-        --header-logo-font: {{ themeOption('header.header_logo_font', 'inherit') }};
+        --header-logo-font: {!! themeOption('header.header_logo_font', 'inherit') !!};
         --header-link-color: {{ themeOption('header.header_link_color', '#333333') }};
         --header-link-hover-color: {{ themeOption('header.header_link_hover_color', '#ff5e15') }};
         --header-cta-bg-color: {{ themeOption('header.header_cta_bg_color', '#ff5e15') }};
@@ -951,7 +951,7 @@ body.mobile-menu-open {
                             $logoTextColor = themeOption('header.header_logo_text_color', '#1a2a40');
                             $logoFontFamily = themeOption('header.header_logo_font', 'inherit');
                         @endphp
-                        <span class="site-title" style="font-size: 24px; font-weight: bold; color: {{ $logoTextColor }}; font-family: {{ $logoFontFamily }};">
+                        <span class="site-title" style="font-size: 24px; font-weight: bold; color: {{ $logoTextColor }}; font-family: {!! $logoFontFamily !!};">
                             {{ $siteName }}
                         </span>
                     @endif
