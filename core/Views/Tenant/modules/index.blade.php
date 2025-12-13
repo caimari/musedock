@@ -64,14 +64,12 @@
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     icon: 'success',
-                    title: '¡Éxito!',
-                    text: '{{ $successMessage }}',
+                    title: 'Éxito',
+                    text: {!! json_encode($successMessage) !!},
                     confirmButtonText: 'Aceptar',
                     timer: 3000,
                     timerProgressBar: true
                 });
-            } else {
-                alert('{{ $successMessage }}');
             }
         });
     </script>
@@ -84,11 +82,9 @@
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: '{{ $errorMessage }}',
+                    text: {!! json_encode($errorMessage) !!},
                     confirmButtonText: 'Aceptar'
                 });
-            } else {
-                alert('Error: {{ $errorMessage }}');
             }
         });
     </script>
@@ -101,11 +97,9 @@
                 Swal.fire({
                     icon: 'warning',
                     title: 'Atención',
-                    text: '{{ $warningMessage }}',
+                    text: {!! json_encode($warningMessage) !!},
                     confirmButtonText: 'Aceptar'
                 });
-            } else {
-                alert('Atención: {{ $warningMessage }}');
             }
         });
     </script>
