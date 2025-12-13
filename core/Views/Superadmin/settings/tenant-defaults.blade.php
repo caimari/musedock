@@ -39,6 +39,36 @@
     gap: 0.5rem;
     margin-bottom: 1rem;
 }
+.menu-tree {
+    list-style: none;
+    padding-left: 0;
+}
+.menu-tree .menu-tree {
+    padding-left: 2rem;
+    margin-top: 0.5rem;
+}
+.menu-item {
+    padding: 0.5rem;
+    border: 1px solid #e9ecef;
+    border-radius: 0.375rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s;
+}
+.menu-item:hover {
+    background-color: #f8f9fa;
+}
+.menu-item.has-children {
+    border-left: 3px solid #0d6efd;
+}
+.menu-item input:checked + label {
+    color: #0d6efd;
+    font-weight: 500;
+}
+.menu-icon {
+    width: 24px;
+    display: inline-block;
+    text-align: center;
+}
 </style>
 @endpush
 
@@ -151,6 +181,88 @@
                 </div>
             </div>
 
+            <!-- Menús por Defecto -->
+            <div class="card mb-4" id="menusSection" style="display: {{ ($settings['copy_menus_from_admin'] ?? true) ? 'block' : 'none' }};">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-list-nested me-2"></i>Menús a Copiar</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">
+                        Selecciona los menús de admin_menus que se copiarán a los nuevos tenants.
+                        Los menús no seleccionados no estarán disponibles para los tenants.
+                    </p>
+
+                    <div class="select-actions">
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllMenus">
+                            <i class="bi bi-check-all me-1"></i>Seleccionar todos
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllMenus">
+                            <i class="bi bi-x-lg me-1"></i>Deseleccionar todos
+                        </button>
+                    </div>
+
+                    <ul class="menu-tree">
+                        @foreach($allMenus as $menu)
+                        <li>
+                            <div class="menu-item {{ !empty($menu['children']) ? 'has-children' : '' }}">
+                                <div class="form-check">
+                                    <input class="form-check-input menu-checkbox" type="checkbox"
+                                           name="menus[]" value="{{ $menu['slug'] }}" id="menu_{{ $menu['slug'] }}"
+                                           data-has-children="{{ !empty($menu['children']) ? '1' : '0' }}"
+                                           {{ in_array($menu['slug'], $selectedMenus) ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="menu_{{ $menu['slug'] }}">
+                                        <span class="menu-icon">
+                                            @php
+                                                $iconType = $menu['icon_type'] ?? 'bi';
+                                                $icon = $menu['icon'] ?? 'circle';
+                                                $iconClass = $iconType === 'bi' ? "bi bi-{$icon}" : "{$iconType} fa-{$icon}";
+                                            @endphp
+                                            <i class="{{ $iconClass }}"></i>
+                                        </span>
+                                        {{ $menu['title'] }}
+                                        <small class="text-muted">({{ $menu['slug'] }})</small>
+                                    </label>
+                                </div>
+                            </div>
+                            @if(!empty($menu['children']))
+                            <ul class="menu-tree">
+                                @foreach($menu['children'] as $child)
+                                <li>
+                                    <div class="menu-item">
+                                        <div class="form-check">
+                                            <input class="form-check-input menu-checkbox" type="checkbox"
+                                                   name="menus[]" value="{{ $child['slug'] }}" id="menu_{{ $child['slug'] }}"
+                                                   data-parent="{{ $menu['slug'] }}"
+                                                   {{ in_array($child['slug'], $selectedMenus) ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="menu_{{ $child['slug'] }}">
+                                                <span class="menu-icon">
+                                                    @php
+                                                        $cIconType = $child['icon_type'] ?? 'bi';
+                                                        $cIcon = $child['icon'] ?? 'circle';
+                                                        $cIconClass = $cIconType === 'bi' ? "bi bi-{$cIcon}" : "{$cIconType} fa-{$cIcon}";
+                                                    @endphp
+                                                    <i class="{{ $cIconClass }}"></i>
+                                                </span>
+                                                {{ $child['title'] }}
+                                                <small class="text-muted">({{ $child['slug'] }})</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </li>
+                                @endforeach
+                            </ul>
+                            @endif
+                        </li>
+                        @endforeach
+                    </ul>
+
+                    <div class="mt-3">
+                        <span class="badge bg-info" id="menuCount">{{ count($selectedMenus) }}</span>
+                        <span class="text-muted">menús seleccionados</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Roles por Defecto -->
             <div class="card mb-4">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
@@ -259,6 +371,38 @@ document.addEventListener('DOMContentLoaded', function() {
             cb.checked = cb.dataset.isView === '1';
         });
         updatePermissionCount();
+    });
+
+    // Menús - Mostrar/ocultar sección según el checkbox de copiar menús
+    const copyMenusCheckbox = document.getElementById('copyMenus');
+    const menusSection = document.getElementById('menusSection');
+    const menuCheckboxes = document.querySelectorAll('.menu-checkbox');
+    const menuCount = document.getElementById('menuCount');
+
+    copyMenusCheckbox.addEventListener('change', function() {
+        menusSection.style.display = this.checked ? 'block' : 'none';
+    });
+
+    // Actualizar contador de menús
+    function updateMenuCount() {
+        const checked = document.querySelectorAll('.menu-checkbox:checked').length;
+        menuCount.textContent = checked;
+    }
+
+    menuCheckboxes.forEach(cb => {
+        cb.addEventListener('change', updateMenuCount);
+    });
+
+    // Seleccionar todos los menús
+    document.getElementById('selectAllMenus').addEventListener('click', function() {
+        menuCheckboxes.forEach(cb => cb.checked = true);
+        updateMenuCount();
+    });
+
+    // Deseleccionar todos los menús
+    document.getElementById('deselectAllMenus').addEventListener('click', function() {
+        menuCheckboxes.forEach(cb => cb.checked = false);
+        updateMenuCount();
     });
 
     // Añadir nuevo rol

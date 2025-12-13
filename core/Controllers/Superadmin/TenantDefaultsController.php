@@ -37,12 +37,20 @@ class TenantDefaultsController
         // Roles por defecto
         $defaultRoles = $settings['default_roles'] ?? [];
 
+        // Obtener todos los menús de admin_menus con jerarquía
+        $allMenus = $this->getAllAdminMenus($pdo);
+
+        // Menús actualmente seleccionados (si no hay ninguno guardado, usar todos por defecto)
+        $selectedMenus = $settings['default_menu_slugs'] ?? array_column($allMenus, 'slug');
+
         return View::renderSuperadmin('settings.tenant-defaults', [
             'title' => 'Configuración de Nuevos Tenants',
             'settings' => $settings,
             'allPermissions' => $allPermissions,
             'selectedPermissions' => $selectedPermissions,
-            'defaultRoles' => $defaultRoles
+            'defaultRoles' => $defaultRoles,
+            'allMenus' => $allMenus,
+            'selectedMenus' => $selectedMenus
         ]);
     }
 
@@ -83,6 +91,10 @@ class TenantDefaultsController
             // Tema por defecto
             $defaultTheme = $_POST['default_theme'] ?? 'default';
             $this->updateSetting($pdo, 'default_theme', $defaultTheme, 'string');
+
+            // Menús seleccionados para copiar a tenants
+            $selectedMenus = $_POST['menus'] ?? [];
+            $this->updateSetting($pdo, 'default_menu_slugs', json_encode($selectedMenus), 'json');
 
             $pdo->commit();
 
@@ -201,5 +213,40 @@ class TenantDefaultsController
                 'type2' => $type
             ]);
         }
+    }
+
+    /**
+     * Obtiene todos los menús de admin_menus con jerarquía
+     */
+    private function getAllAdminMenus(PDO $pdo): array
+    {
+        $stmt = $pdo->query("
+            SELECT id, parent_id, title, slug, url, icon, icon_type, order_position, permission
+            FROM admin_menus
+            WHERE is_active = 1
+            ORDER BY order_position ASC
+        ");
+        $allMenus = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Construir árbol de menús
+        $menuTree = [];
+        $menuById = [];
+
+        foreach ($allMenus as $menu) {
+            $menu['children'] = [];
+            $menuById[$menu['id']] = $menu;
+        }
+
+        foreach ($menuById as $id => $menu) {
+            if (empty($menu['parent_id'])) {
+                $menuTree[] = &$menuById[$id];
+            } else {
+                if (isset($menuById[$menu['parent_id']])) {
+                    $menuById[$menu['parent_id']]['children'][] = &$menuById[$id];
+                }
+            }
+        }
+
+        return $menuTree;
     }
 }

@@ -342,9 +342,13 @@ class TenantCreationService
 
     /**
      * Crear menús por defecto para el tenant copiando desde admin_menus
+     * Solo copia los menús cuyos slugs estén en la configuración default_menu_slugs
      */
     private function createDefaultTenantMenus(int $tenantId): void
     {
+        // Obtener los slugs permitidos de la configuración
+        $allowedSlugs = $this->getSetting('default_menu_slugs', []);
+
         // Obtener todos los menús de admin_menus ordenados por parent_id (padres primero)
         $sql = "SELECT id, parent_id, module_id, title, slug, url, icon, icon_type, order_position, permission, is_active
                 FROM admin_menus
@@ -358,8 +362,17 @@ class TenantCreationService
             return;
         }
 
+        // Si no hay slugs permitidos configurados, copiar todos (comportamiento por defecto)
+        $hasFilter = !empty($allowedSlugs);
+
         // Mapeo de IDs antiguos a nuevos
         $idMap = [];
+        // Mapeo de slug a ID en admin_menus
+        $slugToOldId = [];
+
+        foreach ($adminMenus as $menu) {
+            $slugToOldId[$menu['slug']] = $menu['id'];
+        }
 
         $insertSql = "INSERT INTO tenant_menus
             (tenant_id, parent_id, module_id, title, slug, url, icon, icon_type, order_position, permission, is_active, created_at, updated_at)
@@ -369,12 +382,22 @@ class TenantCreationService
         $insertStmt = $this->pdo->prepare($insertSql);
 
         foreach ($adminMenus as $menu) {
+            // Filtrar por slugs permitidos si hay filtro configurado
+            if ($hasFilter && !in_array($menu['slug'], $allowedSlugs)) {
+                continue;
+            }
+
             $oldId = $menu['id'];
             $newParentId = null;
 
             // Si tiene parent_id, buscar el nuevo ID
             if ($menu['parent_id'] && isset($idMap[$menu['parent_id']])) {
                 $newParentId = $idMap[$menu['parent_id']];
+            }
+
+            // Si el padre no fue creado (porque fue filtrado), saltamos este menú hijo
+            if ($menu['parent_id'] && !isset($idMap[$menu['parent_id']])) {
+                continue;
             }
 
             $insertStmt->execute([
