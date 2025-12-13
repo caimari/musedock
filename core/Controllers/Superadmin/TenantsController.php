@@ -394,6 +394,7 @@ public function destroy($id)
         $name = trim($input['name'] ?? '');
         $domain = trim($input['domain'] ?? '');
         $status = trim($input['status'] ?? 'active');
+        $storageQuotaMb = isset($input['storage_quota_mb']) ? (int) $input['storage_quota_mb'] : null;
 
         if (empty($password)) {
             http_response_code(400);
@@ -455,14 +456,23 @@ public function destroy($id)
         }
 
         try {
+            $updateData = [
+                'name' => htmlspecialchars($name, ENT_QUOTES, 'UTF-8'),
+                'domain' => $domain,
+                'status' => $status,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            // Si se proporciona cuota de almacenamiento, validar y añadir
+            if ($storageQuotaMb !== null) {
+                // Validar rango: mínimo 100 MB, máximo 100 GB
+                $storageQuotaMb = max(100, min(102400, $storageQuotaMb));
+                $updateData['storage_quota_mb'] = $storageQuotaMb;
+            }
+
             Database::table('tenants')
                 ->where('id', $id)
-                ->update([
-                    'name' => htmlspecialchars($name, ENT_QUOTES, 'UTF-8'),
-                    'domain' => $domain,
-                    'status' => $status,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
+                ->update($updateData);
 
             Logger::log("Tenant actualizado: {$name} (ID: {$id})", 'INFO');
 

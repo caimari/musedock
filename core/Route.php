@@ -353,12 +353,225 @@ public static function resolve() {
     }
     http_response_code(404);
 
+    self::render404Page();
+}
+
+/**
+ * Renderiza una página 404 atractiva.
+ * Intenta usar la plantilla del tema, si falla usa un HTML genérico.
+ */
+private static function render404Page(): void
+{
+    // Intento 1: Plantilla del tema activo
     try {
         echo \Screenart\Musedock\View::renderTheme('errors.404');
+        return;
     } catch (\Exception $e) {
-        // Si falla, fallback a texto plano
-        echo "404 - Página no encontrada.";
+        error_log("404: Falló renderTheme errors.404 - " . $e->getMessage());
     }
+
+    // Intento 2: Plantilla base del sistema
+    try {
+        echo \Screenart\Musedock\View::render('errors.404');
+        return;
+    } catch (\Exception $e) {
+        error_log("404: Falló render errors.404 - " . $e->getMessage());
+    }
+
+    // Intento 3: HTML genérico atractivo (sin dependencias)
+    self::renderGeneric404Html();
+}
+
+/**
+ * Renderiza un HTML 404 genérico y atractivo sin dependencias externas.
+ */
+private static function renderGeneric404Html(): void
+{
+    $requestUri = htmlspecialchars($_SERVER['REQUEST_URI'] ?? '/', ENT_QUOTES, 'UTF-8');
+    $homeUrl = '/';
+
+    // Detectar si hay un tenant para obtener el nombre del sitio
+    $siteName = 'Este sitio';
+    if (isset($GLOBALS['tenant']['name'])) {
+        $siteName = htmlspecialchars($GLOBALS['tenant']['name'], ENT_QUOTES, 'UTF-8');
+    }
+
+    echo <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Página no encontrada</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 600px;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .error-code {
+            font-size: clamp(100px, 20vw, 180px);
+            font-weight: 800;
+            line-height: 1;
+            text-shadow: 4px 4px 0 rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .error-title {
+            font-size: clamp(24px, 5vw, 36px);
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .error-message {
+            font-size: 18px;
+            opacity: 0.9;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: #fff;
+            color: #667eea;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        .illustration {
+            margin-bottom: 30px;
+        }
+
+        .illustration svg {
+            width: 120px;
+            height: 120px;
+            opacity: 0.9;
+        }
+
+        .site-name {
+            margin-top: 50px;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        @media (max-width: 480px) {
+            .buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="illustration">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M16 16s-1.5-2-4-2-4 2-4 2"/>
+                <line x1="9" y1="9" x2="9.01" y2="9"/>
+                <line x1="15" y1="9" x2="15.01" y2="9"/>
+            </svg>
+        </div>
+
+        <div class="error-code">404</div>
+
+        <h1 class="error-title">Página no encontrada</h1>
+
+        <p class="error-message">
+            Lo sentimos, la página que buscas no existe o ha sido movida.<br>
+            Puede que el enlace esté roto o la dirección sea incorrecta.
+        </p>
+
+        <div class="buttons">
+            <a href="{$homeUrl}" class="btn btn-primary">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                Ir al inicio
+            </a>
+            <button onclick="history.back()" class="btn btn-secondary">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"/>
+                    <polyline points="12 19 5 12 12 5"/>
+                </svg>
+                Volver atrás
+            </button>
+        </div>
+
+        <p class="site-name">{$siteName}</p>
+    </div>
+</body>
+</html>
+HTML;
 }
 
 

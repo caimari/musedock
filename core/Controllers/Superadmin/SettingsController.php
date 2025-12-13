@@ -897,6 +897,34 @@ public function deleteFavicon()
     }
 
     /**
+     * Guardar configuración de Storage para Tenants
+     */
+    public function updateStorageTenant()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.edit');
+
+        $envPath = dirname(__DIR__, 3) . '/.env';
+
+        $tenantStorageSettings = [
+            // Discos habilitados para tenants
+            'TENANT_DISK_MEDIA_ENABLED' => isset($_POST['tenant_disk_media_enabled']) ? 'true' : 'false',
+            'TENANT_DISK_LOCAL_ENABLED' => isset($_POST['tenant_disk_local_enabled']) ? 'true' : 'false',
+            'TENANT_DISK_R2_ENABLED' => isset($_POST['tenant_disk_r2_enabled']) ? 'true' : 'false',
+            'TENANT_DISK_S3_ENABLED' => isset($_POST['tenant_disk_s3_enabled']) ? 'true' : 'false',
+
+            // Cuota por defecto
+            'TENANT_DEFAULT_STORAGE_QUOTA_MB' => max(100, min(102400, (int)($_POST['tenant_default_storage_quota_mb'] ?? 1024))),
+        ];
+
+        $this->updateEnvFile($envPath, $tenantStorageSettings);
+
+        flash('success', 'Configuración de almacenamiento para tenants guardada correctamente.');
+        header('Location: ' . route('settings.storage'));
+        exit;
+    }
+
+    /**
      * Parsear archivo .env y devolver array asociativo
      */
     private function parseEnvFile(string $path): array

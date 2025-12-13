@@ -44,6 +44,46 @@
                         </select>
                     </div>
 
+                    <hr class="my-4">
+
+                    <h5 class="mb-3"><i class="bi bi-hdd-stack me-2"></i>Almacenamiento</h5>
+
+                    <div class="mb-3">
+                        <label for="storage_quota_mb" class="form-label">Cuota de almacenamiento</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="storage_quota_mb" name="storage_quota_mb"
+                                value="{{ old('storage_quota_mb') ?: ($tenant->storage_quota_mb ?? 1024) }}"
+                                min="100" max="102400">
+                            <span class="input-group-text">MB</span>
+                        </div>
+                        <small class="text-muted">Espacio máximo de almacenamiento para este tenant (1024 MB = 1 GB)</small>
+                    </div>
+
+                    @php
+                        $usedBytes = $tenant->storage_used_bytes ?? 0;
+                        $quotaMb = $tenant->storage_quota_mb ?? 1024;
+                        $quotaBytes = $quotaMb * 1024 * 1024;
+                        $percentage = $quotaBytes > 0 ? round(($usedBytes / $quotaBytes) * 100, 1) : 0;
+                        $usedFormatted = $usedBytes < 1024 * 1024
+                            ? round($usedBytes / 1024, 1) . ' KB'
+                            : round($usedBytes / (1024 * 1024), 2) . ' MB';
+                    @endphp
+
+                    <div class="mb-3">
+                        <label class="form-label">Uso actual</label>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar {{ $percentage > 90 ? 'bg-danger' : ($percentage > 70 ? 'bg-warning' : 'bg-success') }}"
+                                role="progressbar"
+                                style="width: {{ min($percentage, 100) }}%"
+                                aria-valuenow="{{ $percentage }}"
+                                aria-valuemin="0"
+                                aria-valuemax="100">
+                                {{ $usedFormatted }} / {{ $quotaMb >= 1024 ? round($quotaMb / 1024, 1) . ' GB' : $quotaMb . ' MB' }}
+                            </div>
+                        </div>
+                        <small class="text-muted">{{ $percentage }}% del espacio utilizado</small>
+                    </div>
+
                 </div>
 
                 <div class="card-footer text-end">
@@ -71,6 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const name = document.getElementById('name').value.trim();
         const domain = document.getElementById('domain').value.trim();
         const status = document.getElementById('status').value;
+        const storageQuotaMb = parseInt(document.getElementById('storage_quota_mb').value) || 1024;
 
         // Validaciones básicas
         if (!name || !domain) {
@@ -138,7 +179,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         password: result.value,
                         name: name,
                         domain: domain,
-                        status: status
+                        status: status,
+                        storage_quota_mb: storageQuotaMb
                     })
                 })
                 .then(response => response.json())

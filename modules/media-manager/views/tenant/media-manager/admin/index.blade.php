@@ -240,6 +240,45 @@
         display: none;
     }
 
+    /* Storage Quota Indicator */
+    .storage-quota-bar {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .storage-quota-bar .quota-icon {
+        font-size: 1.5rem;
+        color: #6c757d;
+    }
+
+    .storage-quota-bar .quota-info {
+        flex: 1;
+    }
+
+    .storage-quota-bar .quota-label {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-bottom: 0.25rem;
+    }
+
+    .storage-quota-bar .quota-progress {
+        height: 8px;
+        border-radius: 4px;
+        background-color: #e9ecef;
+    }
+
+    .storage-quota-bar .quota-text {
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
         .file-manager-container {
@@ -263,6 +302,23 @@
         </div>
 
         @include('partials.alerts-sweetalert2')
+
+        {{-- === Storage Quota Indicator === --}}
+        <div id="storage-quota-container" class="storage-quota-bar" style="display: none;">
+            <div class="quota-icon">
+                <i class="bi bi-hdd-stack"></i>
+            </div>
+            <div class="quota-info">
+                <div class="quota-label">Almacenamiento utilizado</div>
+                <div class="progress quota-progress">
+                    <div id="quota-progress-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="quota-text">
+                    <span id="quota-used">0 MB</span> / <span id="quota-total">0 MB</span>
+                    (<span id="quota-percentage">0</span>%)
+                </div>
+            </div>
+        </div>
 
         {{-- === Uploader === --}}
         <div id="media-uploader" class="mb-4">
@@ -395,8 +451,80 @@ window.MediaManagerConfig = {
     foldersStructureUrl: "{{ route('tenant.media.folders.structure') }}",
     createFolderUrl: "{{ route('tenant.media.folders.create') }}",
     renameFolderUrl: "{{ route('tenant.media.folders.rename', ['id' => ':id']) }}",
-    deleteFolderUrl: "{{ route('tenant.media.folders.delete', ['id' => ':id']) }}"
+    deleteFolderUrl: "{{ route('tenant.media.folders.delete', ['id' => ':id']) }}",
+    quotaUrl: "{{ route('tenant.media.quota') }}"
 };
+
+// Function to format bytes to human readable format
+function formatBytes(bytes, decimals = 2) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+// Function to load and display storage quota
+function loadStorageQuota() {
+    if (!window.MediaManagerConfig.quotaUrl) return;
+
+    fetch(window.MediaManagerConfig.quotaUrl, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.quota) {
+            const quota = data.quota;
+
+            // Don't show quota bar if unlimited
+            if (quota.unlimited) {
+                document.getElementById('storage-quota-container').style.display = 'none';
+                return;
+            }
+
+            const quotaBytes = quota.quota_mb * 1024 * 1024;
+            const usedBytes = quota.used_bytes || 0;
+            const percentage = quota.percentage || 0;
+
+            // Update UI elements
+            document.getElementById('quota-used').textContent = formatBytes(usedBytes);
+            document.getElementById('quota-total').textContent = quota.quota_mb >= 1024
+                ? (quota.quota_mb / 1024).toFixed(1) + ' GB'
+                : quota.quota_mb + ' MB';
+            document.getElementById('quota-percentage').textContent = percentage.toFixed(1);
+
+            // Update progress bar
+            const progressBar = document.getElementById('quota-progress-bar');
+            progressBar.style.width = Math.min(percentage, 100) + '%';
+            progressBar.setAttribute('aria-valuenow', percentage);
+
+            // Change color based on usage
+            progressBar.classList.remove('bg-success', 'bg-warning', 'bg-danger');
+            if (percentage > 90) {
+                progressBar.classList.add('bg-danger');
+            } else if (percentage > 70) {
+                progressBar.classList.add('bg-warning');
+            } else {
+                progressBar.classList.add('bg-success');
+            }
+
+            // Show the quota container
+            document.getElementById('storage-quota-container').style.display = 'flex';
+        }
+    })
+    .catch(error => {
+        console.warn('Could not load storage quota:', error);
+    });
+}
+
+// Load quota on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadStorageQuota();
+});
 
 // Verificar si las rutas se generaron correctamente, si no usar fallback
 if (window.MediaManagerConfig.deleteFolderUrl.includes('#ruta-no-encontrada')) {

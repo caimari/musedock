@@ -13,7 +13,26 @@ class AddStorageQuotaToTenantsTable_2025_12_13_040000
     public function up()
     {
         $pdo = Database::connect();
-        $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+        // Verificar si las columnas ya existen
+        try {
+            if ($driver === 'mysql') {
+                $stmt = $pdo->query("SHOW COLUMNS FROM `tenants` LIKE 'storage_quota_mb'");
+                if ($stmt->fetch()) {
+                    echo "⚠ Column storage_quota_mb already exists, skipping...\n";
+                    return;
+                }
+            } else {
+                $stmt = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'tenants' AND column_name = 'storage_quota_mb'");
+                if ($stmt->fetch()) {
+                    echo "⚠ Column storage_quota_mb already exists, skipping...\n";
+                    return;
+                }
+            }
+        } catch (\Exception $e) {
+            // La tabla puede no existir todavía, continuar
+        }
 
         if ($driver === 'mysql') {
             // Cuota de almacenamiento en MB (default 1024 = 1GB)
@@ -38,22 +57,30 @@ class AddStorageQuotaToTenantsTable_2025_12_13_040000
             // PostgreSQL
             $pdo->exec("
                 ALTER TABLE tenants
-                ADD COLUMN storage_quota_mb INTEGER NOT NULL DEFAULT 1024
+                ADD COLUMN IF NOT EXISTS storage_quota_mb INTEGER NOT NULL DEFAULT 1024
             ");
 
             $pdo->exec("
                 ALTER TABLE tenants
-                ADD COLUMN storage_used_bytes BIGINT NOT NULL DEFAULT 0
+                ADD COLUMN IF NOT EXISTS storage_used_bytes BIGINT NOT NULL DEFAULT 0
             ");
 
-            // Índice
-            $pdo->exec("
-                CREATE INDEX idx_tenants_storage ON tenants (storage_quota_mb, storage_used_bytes)
-            ");
+            // Índice (verificar si existe primero)
+            try {
+                $pdo->exec("
+                    CREATE INDEX IF NOT EXISTS idx_tenants_storage ON tenants (storage_quota_mb, storage_used_bytes)
+                ");
+            } catch (\Exception $e) {
+                // Índice puede ya existir
+            }
 
             // Comentarios
-            $pdo->exec("COMMENT ON COLUMN tenants.storage_quota_mb IS 'Cuota de almacenamiento en MB (1024 = 1GB)'");
-            $pdo->exec("COMMENT ON COLUMN tenants.storage_used_bytes IS 'Espacio de almacenamiento usado en bytes'");
+            try {
+                $pdo->exec("COMMENT ON COLUMN tenants.storage_quota_mb IS 'Cuota de almacenamiento en MB (1024 = 1GB)'");
+                $pdo->exec("COMMENT ON COLUMN tenants.storage_used_bytes IS 'Espacio de almacenamiento usado en bytes'");
+            } catch (\Exception $e) {
+                // Ignorar errores de comentarios
+            }
         }
 
         echo "✓ Added storage quota columns to tenants table\n";
@@ -62,12 +89,18 @@ class AddStorageQuotaToTenantsTable_2025_12_13_040000
     public function down()
     {
         $pdo = Database::connect();
-        $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
 
         if ($driver === 'mysql') {
-            $pdo->exec("DROP INDEX idx_tenants_storage ON `tenants`");
-            $pdo->exec("ALTER TABLE `tenants` DROP COLUMN `storage_used_bytes`");
-            $pdo->exec("ALTER TABLE `tenants` DROP COLUMN `storage_quota_mb`");
+            try {
+                $pdo->exec("DROP INDEX idx_tenants_storage ON `tenants`");
+            } catch (\Exception $e) {}
+            try {
+                $pdo->exec("ALTER TABLE `tenants` DROP COLUMN `storage_used_bytes`");
+            } catch (\Exception $e) {}
+            try {
+                $pdo->exec("ALTER TABLE `tenants` DROP COLUMN `storage_quota_mb`");
+            } catch (\Exception $e) {}
         } else {
             $pdo->exec("DROP INDEX IF EXISTS idx_tenants_storage");
             $pdo->exec("ALTER TABLE tenants DROP COLUMN IF EXISTS storage_used_bytes");

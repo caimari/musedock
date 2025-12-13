@@ -210,6 +210,107 @@
         </button>
       </div>
     </form>
+
+    <hr class="my-4">
+
+    <!-- TENANT STORAGE CONFIGURATION -->
+    <form method="POST" action="{{ route('settings.storage.tenant.update') }}">
+      {!! csrf_field() !!}
+
+      <h4 class="mb-4"><i class="bi bi-people me-2"></i>Configuración de almacenamiento para Tenants</h4>
+
+      <div class="alert alert-info mb-4">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>Multi-tenant:</strong> Configura qué discos de almacenamiento están disponibles para los tenants y la cuota de espacio por defecto.
+      </div>
+
+      <!-- Discos disponibles para tenants -->
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="mb-0"><i class="bi bi-hdd-stack me-2"></i>Discos disponibles para Tenants</h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted mb-3">Selecciona qué discos de almacenamiento pueden usar los tenants. El superadmin siempre tiene acceso a todos los discos.</p>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="tenant_disk_media" name="tenant_disk_media_enabled" value="true" {{ ($envConfig['TENANT_DISK_MEDIA_ENABLED'] ?? 'true') === 'true' ? 'checked' : '' }}>
+                <label class="form-check-label" for="tenant_disk_media">
+                  <strong><i class="bi bi-hdd me-1"></i>Local Seguro</strong>
+                  <br><small class="text-muted">Almacenamiento en /storage/app/media/ - Recomendado</small>
+                </label>
+              </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="tenant_disk_local" name="tenant_disk_local_enabled" value="true" {{ ($envConfig['TENANT_DISK_LOCAL_ENABLED'] ?? 'false') === 'true' ? 'checked' : '' }}>
+                <label class="form-check-label" for="tenant_disk_local">
+                  <strong><i class="bi bi-folder me-1"></i>Local Legacy</strong>
+                  <br><small class="text-muted">Archivos en /public/assets/uploads/ - Deprecated</small>
+                </label>
+              </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="tenant_disk_r2" name="tenant_disk_r2_enabled" value="true" {{ ($envConfig['TENANT_DISK_R2_ENABLED'] ?? 'true') === 'true' ? 'checked' : '' }}>
+                <label class="form-check-label" for="tenant_disk_r2">
+                  <strong><i class="bi bi-cloud me-1"></i>Cloudflare R2</strong>
+                  <br><small class="text-muted">CDN global - Recomendado para producción</small>
+                </label>
+              </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="tenant_disk_s3" name="tenant_disk_s3_enabled" value="true" {{ ($envConfig['TENANT_DISK_S3_ENABLED'] ?? 'false') === 'true' ? 'checked' : '' }}>
+                <label class="form-check-label" for="tenant_disk_s3">
+                  <strong><i class="bi bi-cloud-arrow-up me-1"></i>Amazon S3</strong>
+                  <br><small class="text-muted">Almacenamiento en Amazon Web Services</small>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cuota de almacenamiento por defecto -->
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Cuota de almacenamiento por defecto</h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted mb-3">Esta cuota se asignará automáticamente a los nuevos tenants. Puedes modificar la cuota individual de cada tenant desde su configuración.</p>
+
+          <div class="row align-items-end">
+            <div class="col-md-4">
+              <label class="form-label">Cuota por defecto</label>
+              <div class="input-group">
+                <input type="number" name="tenant_default_storage_quota_mb" class="form-control" value="{{ $envConfig['TENANT_DEFAULT_STORAGE_QUOTA_MB'] ?? 1024 }}" min="100" max="102400">
+                <span class="input-group-text">MB</span>
+              </div>
+            </div>
+            <div class="col-md-8">
+              <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelector('[name=tenant_default_storage_quota_mb]').value = 512">512 MB</button>
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.querySelector('[name=tenant_default_storage_quota_mb]').value = 1024">1 GB</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelector('[name=tenant_default_storage_quota_mb]').value = 2048">2 GB</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelector('[name=tenant_default_storage_quota_mb]').value = 5120">5 GB</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelector('[name=tenant_default_storage_quota_mb]').value = 10240">10 GB</button>
+              </div>
+              <small class="text-muted d-block mt-2">
+                <i class="bi bi-lightbulb me-1"></i>Valores típicos: 512 MB (trial), 1 GB (free), 5 GB (basic), 10 GB (pro)
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+        <button type="submit" class="btn btn-success">
+          <i class="bi bi-save me-2"></i>Guardar configuración de Tenants
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 @endsection

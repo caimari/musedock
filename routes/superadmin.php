@@ -226,6 +226,7 @@ Route::post('/musedock/settings/email', 'superadmin.SettingsController@updateEma
 // Settings - Storage
 Route::get('/musedock/settings/storage', 'superadmin.SettingsController@storage')->name('settings.storage')->middleware('superadmin');
 Route::post('/musedock/settings/storage', 'superadmin.SettingsController@updateStorage')->name('settings.storage.update')->middleware('superadmin');
+Route::post('/musedock/settings/storage/tenant', 'superadmin.SettingsController@updateStorageTenant')->name('settings.storage.tenant.update')->middleware('superadmin');
 
 // Settings - Tenant Defaults (Configuración por defecto para nuevos tenants)
 Route::get('/musedock/settings/tenant-defaults', 'superadmin.TenantDefaultsController@index')->name('tenant-defaults.index')->middleware('superadmin');
