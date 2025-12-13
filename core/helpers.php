@@ -765,16 +765,28 @@ if (!function_exists('translatable_setting')) {
         // Obtener idioma actual (respeta force_lang)
         $locale = function_exists('detectLanguage') ? detectLanguage() : 'es';
 
-        // Intentar obtener la versión traducida primero
+        // 1. Intentar obtener la versión en el idioma actual
         $translatedKey = $key . '_' . $locale;
         $value = setting($translatedKey);
 
-        // Si existe y no está vacío, devolver
         if (!empty($value)) {
             return $value;
         }
 
-        // Fallback al valor base (sin sufijo de idioma)
+        // 2. Fallback a otros idiomas disponibles
+        $fallbackLocales = ['es', 'en', 'ca', 'de', 'fr', 'it', 'pt'];
+        foreach ($fallbackLocales as $fallbackLocale) {
+            if ($fallbackLocale === $locale) continue; // Ya lo intentamos
+
+            $fallbackKey = $key . '_' . $fallbackLocale;
+            $fallbackValue = setting($fallbackKey);
+
+            if (!empty($fallbackValue)) {
+                return $fallbackValue;
+            }
+        }
+
+        // 3. Fallback al valor base (sin sufijo de idioma)
         $baseValue = setting($key);
         if (!empty($baseValue)) {
             return $baseValue;
@@ -899,7 +911,7 @@ if (!function_exists('translatable_tenant_setting')) {
     function translatable_tenant_setting(string $key, $default = null) {
         $locale = function_exists('detectLanguage') ? detectLanguage() : 'es';
 
-        // Intentar obtener la versión traducida primero
+        // 1. Intentar obtener la versión en el idioma actual
         $translatedKey = $key . '_' . $locale;
         $value = tenant_setting($translatedKey);
 
@@ -907,7 +919,20 @@ if (!function_exists('translatable_tenant_setting')) {
             return $value;
         }
 
-        // Fallback al valor base del tenant (sin sufijo de idioma)
+        // 2. Fallback a otros idiomas disponibles
+        $fallbackLocales = ['es', 'en', 'ca', 'de', 'fr', 'it', 'pt'];
+        foreach ($fallbackLocales as $fallbackLocale) {
+            if ($fallbackLocale === $locale) continue; // Ya lo intentamos
+
+            $fallbackKey = $key . '_' . $fallbackLocale;
+            $fallbackValue = tenant_setting($fallbackKey);
+
+            if (!empty($fallbackValue)) {
+                return $fallbackValue;
+            }
+        }
+
+        // 3. Fallback al valor base del tenant (sin sufijo de idioma)
         $baseValue = tenant_setting($key);
         if (!empty($baseValue)) {
             return $baseValue;
