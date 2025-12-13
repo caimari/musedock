@@ -231,7 +231,7 @@ CustomFormsModule::init();
     'module_slug'    => 'custom-forms',
     'menu_slug'      => 'appearance-custom-forms',
     'title'          => 'Formularios',
-    'superadmin_url' => '/musedock/custom-forms',
+    'superadmin_url' => '{admin_path}/custom-forms',
     'tenant_url'     => '{admin_path}/custom-forms',
     'parent_slug'    => 'appearance',
     'icon'           => 'ui-checks-grid',

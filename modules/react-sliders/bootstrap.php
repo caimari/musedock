@@ -223,7 +223,7 @@ error_log("React Sliders module loaded successfully with shortcode support");
     'module_slug'    => 'react-sliders',
     'menu_slug'      => 'appearance-react-sliders',
     'title'          => 'React Sliders',
-    'superadmin_url' => '/musedock/react-sliders',
+    'superadmin_url' => '{admin_path}/react-sliders',
     'tenant_url'     => '{admin_path}/react-sliders',
     'parent_slug'    => 'appearance',
     'icon'           => 'sliders',

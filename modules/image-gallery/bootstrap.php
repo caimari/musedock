@@ -138,7 +138,7 @@ error_log("ImageGallery: Module loaded successfully (v" . IMAGE_GALLERY_VERSION 
     'module_slug'    => 'image-gallery',
     'menu_slug'      => 'appearance-image-gallery',
     'title'          => 'Galerías',
-    'superadmin_url' => '/musedock/image-gallery',
+    'superadmin_url' => '{admin_path}/image-gallery',
     'tenant_url'     => '{admin_path}/image-gallery',
     'parent_slug'    => 'appearance',
     'icon'           => 'images',
