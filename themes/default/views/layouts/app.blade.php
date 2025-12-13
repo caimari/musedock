@@ -133,47 +133,21 @@
     <link rel="stylesheet" href="{{ asset('themes/default/css/theme_default.css') }}">
     
 
-	{{-- CSS personalizado generado dinámicamente (tenant-aware) --}}
-    @php
-    $themeSlug = $themeSlug ?? 'default';
-    $currentTenantId = tenant_id();
-
-    // Primero intentar CSS del tenant específico
-    $customCssPath = null;
-    $cssTimestamp = time();
-
-    if ($currentTenantId) {
-        // Ruta del tenant
-        $tenantCssPath = "assets/themes/tenant_{$currentTenantId}/{$themeSlug}/css/custom.css";
-        $tenantTimestampPath = public_path("assets/themes/tenant_{$currentTenantId}/{$themeSlug}/css/custom.css.timestamp");
-
-        if (file_exists(public_path($tenantCssPath))) {
-            $customCssPath = $tenantCssPath;
-            $cssTimestamp = file_exists($tenantTimestampPath) ? file_get_contents($tenantTimestampPath) : time();
-        }
+	{{-- CSS Variables dinámicas desde la base de datos (tenant-aware) --}}
+    <style>
+    :root {
+        --topbar-bg-color: {{ themeOption('topbar.topbar_bg_color', '#1a2a40') }};
+        --topbar-text-color: {{ themeOption('topbar.topbar_text_color', '#ffffff') }};
+        --header-bg-color: {{ themeOption('header.header_bg_color', '#f8f9fa') }};
+        --header-cta-bg-color: {{ themeOption('header.header_cta_bg_color', '#ff5e15') }};
+        --header-cta-text-color: {{ themeOption('header.header_cta_text_color', '#ffffff') }};
+        --header-cta-hover-color: {{ themeOption('header.header_cta_hover_color', '#e54c08') }};
+        --footer-bg-color: {{ themeOption('footer.footer_bg_color', '#f8fafe') }};
+        --footer-text-color: {{ themeOption('footer.footer_text_color', '#333333') }};
+        --footer-link-color: {{ themeOption('footer.footer_link_color', '#333333') }};
+        --footer-link-hover-color: {{ themeOption('footer.footer_link_hover_color', '#ff5e15') }};
     }
-
-    // Fallback a CSS global del tema si no hay CSS del tenant
-    if (!$customCssPath) {
-        // Primero intentar en assets/themes/{slug}/css (donde se genera el custom.css)
-        $globalAssetsPath = "assets/themes/{$themeSlug}/css/custom.css";
-        $globalAssetsTimestampPath = public_path("assets/themes/{$themeSlug}/css/custom.css.timestamp");
-
-        if (file_exists(public_path($globalAssetsPath))) {
-            $customCssPath = $globalAssetsPath;
-            $cssTimestamp = file_exists($globalAssetsTimestampPath) ? file_get_contents($globalAssetsTimestampPath) : time();
-        } else {
-            // Fallback a themes/{slug}/css/custom.css (archivo estático del tema)
-            $themeCssPath = "themes/{$themeSlug}/css/custom.css";
-            if (file_exists(public_path($themeCssPath))) {
-                $customCssPath = $themeCssPath;
-            }
-        }
-    }
-    @endphp
-    @if($customCssPath)
-    <link rel="stylesheet" href="{{ asset($customCssPath) }}?t={{ $cssTimestamp }}">
-    @endif
+    </style>
 	
     <!-- Modernizr  -->
     <script src="{{ asset('themes/default/js/vendor/modernizr-3.5.0.min.js') }}"></script>
