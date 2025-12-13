@@ -2,15 +2,15 @@
 
 {{-- SEO --}}
 @section('title')
-    {{ ($translation->seo_title ?: $translation->title ?: 'Página') . ' | ' . setting('site_name', 'MuseDock CMS') }}
+    {{ ($translation->seo_title ?: $translation->title ?: 'Página') . ' | ' . site_setting('site_name', '') }}
 @endsection
 
 @section('keywords')
-    {{ $translation->seo_keywords ?? setting('site_keywords', '') }}
+    {{ $translation->seo_keywords ?? site_setting('site_keywords', '') }}
 @endsection
 
 @section('description')
-    {{ $translation->seo_description ?? setting('site_description', '') }}
+    {{ $translation->seo_description ?? site_setting('site_description', '') }}
 @endsection
 
 @section('og_title')
@@ -18,7 +18,7 @@
 @endsection
 
 @section('og_description')
-    {{ $translation->seo_description ?? setting('site_description', '') }}
+    {{ $translation->seo_description ?? site_setting('site_description', '') }}
 @endsection
 
 @section('extra_head')

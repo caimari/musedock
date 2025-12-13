@@ -2,11 +2,11 @@
 
 {{-- SEO --}}
 @section('title')
-    {{ $tag->name . ' | ' . __('blog.title') . ' | ' . setting('site_name', 'MuseDock CMS') }}
+    {{ $tag->name . ' | ' . __('blog.title') . ' | ' . site_setting('site_name', '') }}
 @endsection
 
 @section('description')
-    {{ $tag->description ?? setting('site_description', '') }}
+    {{ $tag->description ?? site_setting('site_description', '') }}
 @endsection
 
 @section('content')

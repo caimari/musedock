@@ -2,7 +2,7 @@
 
 {{-- SEO --}}
 @section('title')
-    {{ $post->title . ' | ' . setting('site_name', 'MuseDock CMS') }}
+    {{ $post->title . ' | ' . site_setting('site_name', '') }}
 @endsection
 
 @section('description')

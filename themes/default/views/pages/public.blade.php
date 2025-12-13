@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
 @section('title')
-    {{ ($page->seo_title ?? $page->title) . ' | ' . setting('site_name', config('app_name', 'MuseDock CMS')) }}
+    {{ ($page->seo_title ?? $page->title) . ' | ' . site_setting('site_name', '') }}
 @endsection
 
 @section('keywords')
-    {{ $page->seo_keywords ?? setting('site_keywords', '') }}
+    {{ $page->seo_keywords ?? site_setting('site_keywords', '') }}
 @endsection
 
 @section('og_title')
@@ -13,7 +13,7 @@
 @endsection
 
 @section('og_description')
-    {{ $page->seo_description ?? setting('site_description', '') }}
+    {{ $page->seo_description ?? site_setting('site_description', '') }}
 @endsection
 
 @section('og_url')
@@ -31,7 +31,7 @@
 @endsection
 
 @section('twitter_description')
-    {{ $page->twitter_description ?? $page->seo_description ?? setting('site_description', '') }}
+    {{ $page->twitter_description ?? $page->seo_description ?? site_setting('site_description', '') }}
 @endsection
 
 @section('twitter_image')
@@ -49,9 +49,6 @@
 @endsection
 
 @section('content')
-
-SLIDEr PUBLIC PAGE
-
     <!-- slider Area Start-->
     <div class="slider-area ">
         <!-- Mobile Menu -->

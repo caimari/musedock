@@ -41,12 +41,12 @@
           </div>
           
           <div class="mb-3">
-            <label class="form-label">Usuario de Twitter</label>
+            <label class="form-label">Usuario de X (Twitter)</label>
             <div class="input-group">
               <span class="input-group-text">@</span>
               <input type="text" name="twitter_site" class="form-control" value="{{ $settings['twitter_site'] ?? '' }}" placeholder="usuario">
             </div>
-            <small class="text-muted">Sin incluir el @ (ej: musedock)</small>
+            <small class="text-muted">Sin incluir el @ (ej: musedock). Se usa para las Twitter/X Cards.</small>
           </div>
         </div>
       </div>
@@ -66,10 +66,10 @@
           </div>
           
           <div class="mb-3">
-            <label class="form-label">Twitter</label>
+            <label class="form-label">X (Twitter)</label>
             <div class="input-group">
-              <span class="input-group-text"><i class="fab fa-twitter"></i></span>
-              <input type="url" name="social_twitter" class="form-control" value="{{ $settings['social_twitter'] ?? '' }}" placeholder="https://twitter.com/tuempresa">
+              <span class="input-group-text"><i class="fab fa-x-twitter"></i></span>
+              <input type="url" name="social_twitter" class="form-control" value="{{ $settings['social_twitter'] ?? '' }}" placeholder="https://x.com/tuempresa">
             </div>
           </div>
           

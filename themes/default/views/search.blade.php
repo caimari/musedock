@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Resultados de búsqueda: ' . ($query ?? '') . ' | ' . setting('site_name'))
+@section('title', 'Resultados de búsqueda: ' . ($query ?? '') . ' | ' . site_setting('site_name', ''))
 
 @section('content')
 <div class="container py-5">

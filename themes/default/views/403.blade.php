@@ -2,7 +2,7 @@
 @extends('layouts.app')
 
 @section('title')
-    403 - Acceso Denegado | {{ setting('site_name', 'MuseDock CMS') }}
+    403 - Acceso Denegado | {{ site_setting('site_name', '') }}
 @endsection
 
 @section('description')

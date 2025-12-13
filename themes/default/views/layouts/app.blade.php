@@ -27,12 +27,11 @@
     <!-- Configuración básica -->
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <!-- DEBUG: Tenant={{ $_isTenant ? 'ID=' . $_tenantId : 'NO' }} | site_name={{ $_siteName }} -->
 
-    {{-- Título dinámico --}}
-    <title>{{ \Screenart\Musedock\View::yieldSection('title') ?: ($_siteName ?: config('app_name', 'MuseDock CMS')) }}</title>
+    {{-- Título dinámico - Sin fallback a MuseDock para tenants --}}
+    <title>{{ \Screenart\Musedock\View::yieldSection('title') ?: $_siteName }}</title>
 
-    {{-- Metas dinámicas --}}
+    {{-- Metas dinámicas - Solo usa datos del tenant/cms actual, sin fallback cruzado --}}
     @php
         $metaDescription = \Screenart\Musedock\View::yieldSection('description') ?: $_siteDescription;
         $metaAuthor = $_siteAuthor;
@@ -86,7 +85,9 @@
     <meta property="og:image" content="{{ asset($_ogImage) }}">
     @endif
     <link rel="canonical" href="{{ url($_SERVER['REQUEST_URI']) }}">
-    <link rel="alternate" type="application/rss+xml" title="{{ $_siteName ?: 'MuseDock' }} RSS Feed" href="{{ url('/feed') }}">
+    @if($_siteName)
+    <link rel="alternate" type="application/rss+xml" title="{{ $_siteName }} RSS Feed" href="{{ url('/feed') }}">
+    @endif
     @if($robotsDirective)
     <meta name="robots" content="{{ $robotsDirective }}">
     @endif

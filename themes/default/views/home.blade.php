@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
 @section('title')
-    {{ ($translation->seo_title ?? $page->seo_title ?? $translation->title ?? $page->title ?? __('home_title')) . ' | ' . setting('site_name', config('app_name', 'MuseDock CMS')) }}
+    {{ ($translation->seo_title ?? $page->seo_title ?? $translation->title ?? $page->title ?? __('home_title')) . ' | ' . site_setting('site_name', '') }}
 @endsection
 
 @section('keywords')
-    {{ $translation->seo_keywords ?? $page->seo_keywords ?? setting('site_keywords', 'Palabras clave predeterminadas') }}
+    {{ $translation->seo_keywords ?? $page->seo_keywords ?? site_setting('site_keywords', '') }}
 @endsection
 
 @section('og_title')
@@ -13,7 +13,7 @@
 @endsection
 
 @section('og_description')
-    {{ $translation->seo_description ?? $page->seo_description ?? setting('site_description', 'Descripción predeterminada') }}
+    {{ $translation->seo_description ?? $page->seo_description ?? site_setting('site_description', '') }}
 @endsection
 
 @section('content')

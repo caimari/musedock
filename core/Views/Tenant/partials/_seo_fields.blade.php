@@ -60,34 +60,34 @@
   </div>
 </div> {{-- Fin Card SEO General --}}
 
-{{-- Card para Twitter Cards --}}
+{{-- Card para X (Twitter) Cards --}}
 <div class="card mb-4">
   <div class="card-header">
-    <strong>Tarjetas de Twitter (Opcional)</strong>
+    <strong>Tarjetas de X / Twitter (Opcional)</strong>
   </div>
   <div class="card-body">
-    <p class="text-muted small mb-3">Personaliza cómo se muestra esta página cuando se comparte en Twitter.</p>
+    <p class="text-muted small mb-3">Personaliza cómo se muestra esta página cuando se comparte en X (antes Twitter). Estos datos son específicos para X y usan el formato "Twitter Cards".</p>
 
     {{-- Twitter Title --}}
     <div class="mb-3">
-        <label for="twitter_title" class="form-label">Título para Twitter</label>
+        <label for="twitter_title" class="form-label">Título para X</label>
         <input type="text" class="form-control" id="twitter_title" name="twitter_title" value="{{ old('twitter_title', $Page->twitter_title ?? '') }}">
         <small class="text-muted">Si se deja vacío, se usará el Título SEO o el título principal.</small>
     </div>
 
     {{-- Twitter Description --}}
     <div class="mb-3">
-        <label for="twitter_description" class="form-label">Descripción para Twitter</label>
+        <label for="twitter_description" class="form-label">Descripción para X</label>
         <textarea class="form-control" id="twitter_description" name="twitter_description" rows="2">{{ old('twitter_description', $Page->twitter_description ?? '') }}</textarea>
         <small class="text-muted">Si se deja vacía, se usará la Descripción SEO.</small>
     </div>
 
     {{-- Twitter Image --}}
     <div class="mb-3">
-        <label for="twitter_image" class="form-label">Imagen para Twitter</label>
-        <input type="text" class="form-control" id="twitter_image" name="twitter_image" value="{{ old('twitter_image', $Page->twitter_image ?? '') }}" placeholder="URL de la imagen específica para Twitter">
+        <label for="twitter_image" class="form-label">Imagen para X</label>
+        <input type="text" class="form-control" id="twitter_image" name="twitter_image" value="{{ old('twitter_image', $Page->twitter_image ?? '') }}" placeholder="URL de la imagen específica para X">
          <small class="text-muted">Si se deja vacía, se usará la Imagen SEO/Open Graph. Idealmente formato cuadrado o 2:1.</small>
     </div>
 
   </div>
-</div> {{-- Fin Card Twitter --}}
+</div> {{-- Fin Card X/Twitter --}}

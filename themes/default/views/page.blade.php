@@ -4,15 +4,15 @@
 {{-- === SECCIONES SEO (Usando $translation que ya tiene el fallback) === --}}
 @section('title')
     {{-- Usar el título SEO si existe, si no el título normal. Añadir nombre del sitio. --}}
-    {{ ($translation->seo_title ?: $translation->title ?: 'Página') . ' | ' . setting('site_name', 'MuseDock CMS') }}
+    {{ ($translation->seo_title ?: $translation->title ?: 'Página') . ' | ' . site_setting('site_name', '') }}
 @endsection
 
 @section('keywords')
-    {{ $translation->seo_keywords ?? setting('site_keywords', '') }}
+    {{ $translation->seo_keywords ?? site_setting('site_keywords', '') }}
 @endsection
 
 @section('description') {{-- Añadir meta description --}}
-    {{ $translation->seo_description ?? setting('site_description', '') }}
+    {{ $translation->seo_description ?? site_setting('site_description', '') }}
 @endsection
 
 @section('og_title')
@@ -21,7 +21,7 @@
 @endsection
 
 @section('og_description')
-    {{ $translation->seo_description ?? setting('site_description', '') }}
+    {{ $translation->seo_description ?? site_setting('site_description', '') }}
 @endsection
 
 {{-- Añadir más metas SEO si es necesario (imagen, canónica, robots, twitter) --}}
