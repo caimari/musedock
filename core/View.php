@@ -146,6 +146,26 @@ class View
         }
     }
 
+    /**
+     * Renderiza una plantilla genérica del sistema (para errores, etc.)
+     * Usa el directorio core/Views directamente
+     */
+    public static function render($template, $data = [])
+    {
+        self::loadGlobals();
+        $data = array_merge(self::$globalData, $data);
+
+        $views = __DIR__ . '/../core/Views';
+        $cache = __DIR__ . '/../storage/cache/system';
+
+        if (!is_dir($cache)) mkdir($cache, 0775, true);
+
+        $blade = new BladeExtended($views, $cache, self::getBladeMode());
+        self::registerHelpers($blade);
+
+        return $blade->run($template, $data);
+    }
+
     public static function renderSuperadmin($template, $data = [])
     {
         self::loadGlobals();

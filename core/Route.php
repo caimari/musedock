@@ -352,9 +352,7 @@ public static function resolve() {
     }
 
     // Si no se encuentra la ruta -> error 404 bonito
-    if ($isDebug) {
-        error_log("ROUTE: No se encontró ninguna ruta para {$method} {$uri}");
-    }
+    error_log("ROUTE 404: No se encontró ninguna ruta para {$method} {$uri} - Host: " . ($_SERVER['HTTP_HOST'] ?? 'unknown'));
     http_response_code(404);
 
     self::render404Page();
@@ -366,36 +364,43 @@ public static function resolve() {
  */
 private static function render404Page(): void
 {
-    // Limpiar cualquier output previo que pueda interferir
-    if (ob_get_level()) {
+    error_log("404: Iniciando render404Page para URI: " . ($_SERVER['REQUEST_URI'] ?? 'unknown'));
+
+    // Limpiar TODOS los buffers de output para evitar interferencias
+    while (ob_get_level() > 0) {
         ob_end_clean();
     }
 
     // Intento 1: Plantilla del tema activo
     try {
-        ob_start();
+        error_log("404: Intentando renderTheme errors.404");
         $output = \Screenart\Musedock\View::renderTheme('errors.404');
-        ob_end_clean();
-        echo $output;
-        return;
+        if (!empty($output)) {
+            error_log("404: renderTheme exitoso, tamaño: " . strlen($output));
+            echo $output;
+            return;
+        }
+        error_log("404: renderTheme devolvió output vacío");
     } catch (\Throwable $e) {
-        ob_end_clean();
         error_log("404: Falló renderTheme errors.404 - " . $e->getMessage());
     }
 
     // Intento 2: Plantilla base del sistema
     try {
-        ob_start();
+        error_log("404: Intentando View::render errors.404");
         $output = \Screenart\Musedock\View::render('errors.404');
-        ob_end_clean();
-        echo $output;
-        return;
+        if (!empty($output)) {
+            error_log("404: render exitoso, tamaño: " . strlen($output));
+            echo $output;
+            return;
+        }
+        error_log("404: render devolvió output vacío");
     } catch (\Throwable $e) {
-        ob_end_clean();
         error_log("404: Falló render errors.404 - " . $e->getMessage());
     }
 
-    // Intento 3: HTML genérico atractivo (sin dependencias)
+    // Intento 3: HTML genérico atractivo (sin dependencias) - SIEMPRE debe funcionar
+    error_log("404: Usando fallback renderGeneric404Html");
     self::renderGeneric404Html();
 }
 

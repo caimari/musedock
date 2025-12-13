@@ -5,6 +5,9 @@ Options +SymLinksIfOwnerMatch
 # Deshabilitar firmas del servidor (si está permitido)
 ServerSignature Off
 
+# Página de error 404 personalizada - Redirigir a PHP para mostrar página bonita
+ErrorDocument 404 /index.php
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
