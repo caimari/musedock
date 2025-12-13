@@ -397,12 +397,12 @@ class SettingsController
                 $this->saveTenantSetting($pdo, $tenantId, $key, $value, $driver);
             }
 
-            // Sincronizar is_homepage en tenant_pages
-            $stmt = $pdo->prepare("UPDATE tenant_pages SET is_homepage = 0 WHERE tenant_id = ?");
+            // Sincronizar is_homepage en pages
+            $stmt = $pdo->prepare("UPDATE pages SET is_homepage = 0 WHERE tenant_id = ?");
             $stmt->execute([$tenantId]);
 
             if ($readingSettings['show_on_front'] === 'page' && !empty($readingSettings['page_on_front'])) {
-                $stmt = $pdo->prepare("UPDATE tenant_pages SET is_homepage = 1 WHERE id = ? AND tenant_id = ?");
+                $stmt = $pdo->prepare("UPDATE pages SET is_homepage = 1 WHERE id = ? AND tenant_id = ?");
                 $stmt->execute([$readingSettings['page_on_front'], $tenantId]);
             }
 
@@ -431,7 +431,7 @@ class SettingsController
             $pdo = Database::connect();
             $stmt = $pdo->prepare("
                 SELECT id, title, slug
-                FROM tenant_pages
+                FROM pages
                 WHERE tenant_id = ? AND status = 'published'
                 ORDER BY title ASC
             ");
