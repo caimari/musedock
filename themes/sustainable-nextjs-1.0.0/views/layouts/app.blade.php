@@ -88,6 +88,9 @@
     {{-- Bootstrap CSS --}}
     <link rel="stylesheet" href="/assets/vendor/bootstrap/css/bootstrap.min.css">
 
+    {{-- Font Awesome --}}
+    <link rel="stylesheet" href="/assets/vendor/fontawesome/css/all.min.css">
+
     {{-- Theme CSS --}}
     <link rel="stylesheet" href="{{ asset('themes/sustainable-nextjs-1.0.0/css/style.css') }}">
 
