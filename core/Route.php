@@ -369,6 +369,12 @@ private static function render404Page(): void
         ob_end_clean();
     }
 
+    // Asegurar headers correctos
+    if (!headers_sent()) {
+        header('Content-Type: text/html; charset=UTF-8');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+    }
+
     // Usar directamente el HTML genérico que SIEMPRE funciona (sin dependencias)
     // Esto garantiza que siempre se muestre una página 404 bonita
     self::renderGeneric404Html();
@@ -377,6 +383,7 @@ private static function render404Page(): void
     if (ob_get_level() > 0) {
         ob_end_flush();
     }
+    flush();
     exit;
 }
 

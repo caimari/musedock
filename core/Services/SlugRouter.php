@@ -111,14 +111,30 @@ class SlugRouter
             http_response_code(404);
             file_put_contents($logPath, date('Y-m-d H:i:s') . " - 404 NOT FOUND: Renderizando página 404\n", FILE_APPEND);
 
-            // Renderizar la vista 404 bonita
-            $blade = new \Screenart\Musedock\BladeExtended(
-                __DIR__ . '/../Views/errors',
-                __DIR__ . '/../../storage/cache/errors',
-                \Screenart\Musedock\BladeExtended::MODE_AUTO
-            );
-            echo $blade->run('404');
-            return;
+            // Limpiar cualquier buffer de output
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+
+            // Asegurar headers correctos
+            if (!headers_sent()) {
+                header('Content-Type: text/html; charset=UTF-8');
+            }
+
+            // Intentar renderizar con Blade, con fallback a HTML directo
+            try {
+                $blade = new \Screenart\Musedock\BladeExtended(
+                    __DIR__ . '/../Views/errors',
+                    __DIR__ . '/../../storage/cache/errors',
+                    \Screenart\Musedock\BladeExtended::MODE_AUTO
+                );
+                echo $blade->run('404');
+            } catch (\Exception $e) {
+                file_put_contents($logPath, date('Y-m-d H:i:s') . " - ERROR BLADE 404: " . $e->getMessage() . "\n", FILE_APPEND);
+                // Fallback a HTML genérico si Blade falla
+                echo self::getGeneric404Html();
+            }
+            exit;
         }
         
         $method = 'resolve_' . strtolower($entry->module);
@@ -130,14 +146,29 @@ class SlugRouter
         http_response_code(404);
         file_put_contents($logPath, date('Y-m-d H:i:s') . " - 404 NOT FOUND: Módulo '{$entry->module}' no soportado - Renderizando página 404\n", FILE_APPEND);
 
-        // Renderizar la vista 404 bonita
-        $blade = new \Screenart\Musedock\BladeExtended(
-            __DIR__ . '/../Views/errors',
-            __DIR__ . '/../../storage/cache/errors',
-            \Screenart\Musedock\BladeExtended::MODE_AUTO
-        );
-        echo $blade->run('404');
-        return;
+        // Limpiar cualquier buffer de output
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        // Asegurar headers correctos
+        if (!headers_sent()) {
+            header('Content-Type: text/html; charset=UTF-8');
+        }
+
+        // Intentar renderizar con Blade, con fallback a HTML directo
+        try {
+            $blade = new \Screenart\Musedock\BladeExtended(
+                __DIR__ . '/../Views/errors',
+                __DIR__ . '/../../storage/cache/errors',
+                \Screenart\Musedock\BladeExtended::MODE_AUTO
+            );
+            echo $blade->run('404');
+        } catch (\Exception $e) {
+            file_put_contents($logPath, date('Y-m-d H:i:s') . " - ERROR BLADE 404: " . $e->getMessage() . "\n", FILE_APPEND);
+            echo self::getGeneric404Html();
+        }
+        exit;
     }
 
     /**
@@ -167,20 +198,35 @@ class SlugRouter
                 http_response_code(404);
                 file_put_contents($logPath, date('Y-m-d H:i:s') . " - 404 NOT FOUND: Prefijo no reconocido - Renderizando página 404\n", FILE_APPEND);
 
-                // Renderizar la vista 404 bonita
-                $blade = new \Screenart\Musedock\BladeExtended(
-                    __DIR__ . '/../Views/errors',
-                    __DIR__ . '/../../storage/cache/errors',
-                    \Screenart\Musedock\BladeExtended::MODE_AUTO
-                );
-                echo $blade->run('404');
-                return;
+                // Limpiar cualquier buffer de output
+                while (ob_get_level() > 0) {
+                    ob_end_clean();
+                }
+
+                // Asegurar headers correctos
+                if (!headers_sent()) {
+                    header('Content-Type: text/html; charset=UTF-8');
+                }
+
+                // Intentar renderizar con Blade, con fallback a HTML directo
+                try {
+                    $blade = new \Screenart\Musedock\BladeExtended(
+                        __DIR__ . '/../Views/errors',
+                        __DIR__ . '/../../storage/cache/errors',
+                        \Screenart\Musedock\BladeExtended::MODE_AUTO
+                    );
+                    echo $blade->run('404');
+                } catch (\Exception $e) {
+                    file_put_contents($logPath, date('Y-m-d H:i:s') . " - ERROR BLADE 404: " . $e->getMessage() . "\n", FILE_APPEND);
+                    echo self::getGeneric404Html();
+                }
+                exit;
         }
     }
 
     /**
      * Resolución de slugs para páginas.
-     * 
+     *
      * @param int $id ID de la página a mostrar
      * @return mixed Respuesta del controlador
      */
@@ -189,7 +235,81 @@ class SlugRouter
         $controller = new \Screenart\Musedock\Controllers\Frontend\PageController();
         return $controller->showById($id);
     }
-    
+
+    /**
+     * HTML genérico de 404 como fallback si Blade falla
+     */
+    private static function getGeneric404Html(): string
+    {
+        $requestUri = htmlspecialchars($_SERVER['REQUEST_URI'] ?? '/', ENT_QUOTES, 'UTF-8');
+        $siteName = isset($GLOBALS['tenant']['name'])
+            ? htmlspecialchars($GLOBALS['tenant']['name'], ENT_QUOTES, 'UTF-8')
+            : 'Este sitio';
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Página no encontrada</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 20px;
+        }
+        .container { text-align: center; max-width: 600px; }
+        .error-code {
+            font-size: clamp(100px, 20vw, 180px);
+            font-weight: 800;
+            line-height: 1;
+            text-shadow: 4px 4px 0 rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .error-title { font-size: clamp(24px, 5vw, 36px); font-weight: 600; margin-bottom: 15px; }
+        .error-message { font-size: 18px; opacity: 0.9; margin-bottom: 40px; line-height: 1.6; }
+        .btn {
+            display: inline-block;
+            padding: 14px 28px;
+            background: #fff;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+        .btn-secondary { background: rgba(255,255,255,0.15); color: #fff; border: 2px solid rgba(255,255,255,0.3); }
+        .site-name { margin-top: 50px; font-size: 14px; opacity: 0.7; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="error-code">404</div>
+        <h1 class="error-title">Página no encontrada</h1>
+        <p class="error-message">
+            Lo sentimos, la página que buscas no existe o ha sido movida.<br>
+            Puede que el enlace esté roto o la dirección sea incorrecta.
+        </p>
+        <div>
+            <a href="/" class="btn">Ir al inicio</a>
+            <a href="javascript:history.back()" class="btn btn-secondary">Volver atrás</a>
+        </div>
+        <p class="site-name">{$siteName}</p>
+    </div>
+</body>
+</html>
+HTML;
+    }
+
     // Puedes añadir más resolvers aquí si necesitas soporte para otros módulos:
     // public static function resolve_blog($id) { ... }
     // public static function resolve_product($id) { ... }

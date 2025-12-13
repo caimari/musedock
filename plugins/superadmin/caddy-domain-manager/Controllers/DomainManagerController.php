@@ -239,7 +239,11 @@ class DomainManagerController
             exit;
 
         } catch (\Exception $e) {
-            $pdo->rollBack();
+            // Solo hacer rollBack si hay una transacción activa
+            // (TenantCreationService maneja su propia transacción)
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             Logger::log("[DomainManager] Error creando tenant: " . $e->getMessage(), 'ERROR');
             flash('error', 'Error al crear el tenant: ' . $e->getMessage());
             header('Location: /musedock/domain-manager/create');
