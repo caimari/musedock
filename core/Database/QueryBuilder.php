@@ -1041,9 +1041,19 @@ public function dd()
         $escapedColumns = array_map([$this, 'escapeColumn'], $columns);
 
         $sql = "INSERT INTO {$this->table} (" . implode(',', $escapedColumns) . ") VALUES (" . implode(',', $placeholders) . ")";
+
+        // PostgreSQL requiere RETURNING para obtener el ID insertado
+        if ($this->driver === 'pgsql') {
+            $sql .= " RETURNING id";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($data);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['id'] ?? null;
+        }
+
+        // MySQL usa lastInsertId()
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($data);
-
         return $this->pdo->lastInsertId();
     }
 
