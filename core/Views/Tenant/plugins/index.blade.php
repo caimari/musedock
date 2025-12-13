@@ -11,49 +11,25 @@
                 <p class="text-muted">Plugins personalizados instalados exclusivamente para tu sitio</p>
             </div>
             <div class="d-flex gap-2">
-                <form action="/admin/plugins/sync" method="POST" class="d-inline">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-repeat"></i> Sincronizar
-                    </button>
-                </form>
-                <button class="btn btn-primary" onclick="toggleUploadForm()">
+                <button type="button" class="btn btn-outline-secondary" id="btn-sync-plugins">
+                    <i class="bi bi-arrow-repeat"></i> Sincronizar
+                </button>
+                <button class="btn btn-primary" id="btn-install-plugin">
                     <i class="bi bi-upload"></i> Instalar Plugin
                 </button>
             </div>
         </div>
 
-        <!-- Formulario de subida (oculto por defecto) -->
-        <div id="upload-form" class="card mb-4" style="display:none;">
-            <div class="card-header bg-primary text-white">
-                <h4 class="card-title mb-0">📦 Instalar Nuevo Plugin</h4>
-            </div>
-            <div class="card-body">
-                <form action="/admin/plugins/upload" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    <div class="mb-3">
-                        <label for="plugin_zip" class="form-label">Archivo ZIP del plugin:</label>
-                        <input
-                            type="file"
-                            id="plugin_zip"
-                            name="plugin_zip"
-                            accept=".zip"
-                            required
-                            class="form-control"
-                        >
-                        <small class="form-text text-muted">Máximo 10MB. Solo archivos ZIP.</small>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-success">
-                            <i class="bi bi-check-lg"></i> Instalar Plugin
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="toggleUploadForm()">
-                            <i class="bi bi-x-lg"></i> Cancelar
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        <!-- Formulario oculto para sincronizar -->
+        <form id="form-sync" action="{{ admin_url('/plugins/sync') }}" method="POST" style="display:none;">
+            @csrf
+        </form>
+
+        <!-- Formulario oculto para subir plugin -->
+        <form id="form-upload" action="{{ admin_url('/plugins/upload') }}" method="POST" enctype="multipart/form-data" style="display:none;">
+            @csrf
+            <input type="file" id="plugin_zip_hidden" name="plugin_zip" accept=".zip">
+        </form>
 
         <!-- Lista de plugins -->
         @if(empty($plugins))
@@ -93,9 +69,9 @@
                             </div>
                         </div>
                         <div class="card-footer bg-transparent d-flex gap-2">
-                            <form action="/admin/plugins/{{ $plugin['slug'] }}/toggle" method="POST" class="flex-fill">
+                            <form action="{{ admin_url('/plugins/' . $plugin['slug'] . '/toggle') }}" method="POST" class="flex-fill plugin-toggle-form" data-plugin-name="{{ $plugin['name'] }}" data-plugin-active="{{ $plugin['active'] ? '1' : '0' }}">
                                 @csrf
-                                <button type="submit" class="btn btn-sm {{ $plugin['active'] ? 'btn-warning' : 'btn-success' }} w-100">
+                                <button type="button" class="btn btn-sm {{ $plugin['active'] ? 'btn-warning' : 'btn-success' }} w-100 btn-toggle-plugin">
                                     @if($plugin['active'])
                                         <i class="bi bi-pause-circle"></i> Desactivar
                                     @else
@@ -104,11 +80,10 @@
                                 </button>
                             </form>
 
-                            <form action="/admin/plugins/{{ $plugin['slug'] }}/uninstall" method="POST"
-                                  onsubmit="return confirm('¿Estás seguro de desinstalar este plugin?\n\nEsta acción eliminará todos los archivos del plugin y no se puede deshacer.')">
+                            <form action="{{ admin_url('/plugins/' . $plugin['slug'] . '/uninstall') }}" method="POST" class="plugin-uninstall-form" data-plugin-name="{{ $plugin['name'] }}">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-danger">
+                                <button type="button" class="btn btn-sm btn-danger btn-uninstall-plugin">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
@@ -121,7 +96,7 @@
 
         <!-- Información sobre plugins -->
         <div class="card mt-4">
-            <div class="card-header bg-info text-white">
+            <div class="card-header" style="background-color: #d4edda; color: #155724;">
                 <h4 class="card-title mb-0">ℹ️ Información sobre Plugins</h4>
             </div>
             <div class="card-body">
@@ -195,10 +170,203 @@
     </div>
 </div>
 
+{{-- SweetAlert2 para mensajes flash --}}
+@php
+    $successMessage = consume_flash('success');
+    $errorMessage = consume_flash('error');
+    $warningMessage = consume_flash('warning');
+@endphp
+
+@if ($successMessage)
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    text: '{{ $successMessage }}',
+                    confirmButtonText: 'Aceptar',
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+            }
+        });
+    </script>
+@endif
+
+@if ($errorMessage)
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: '{{ $errorMessage }}',
+                    confirmButtonText: 'Aceptar'
+                });
+            }
+        });
+    </script>
+@endif
+
+@if ($warningMessage)
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Atención',
+                    text: '{{ $warningMessage }}',
+                    confirmButtonText: 'Aceptar'
+                });
+            }
+        });
+    </script>
+@endif
+
 <script>
-function toggleUploadForm() {
-    const form = document.getElementById('upload-form');
-    form.style.display = form.style.display === 'none' ? 'block' : 'none';
-}
+document.addEventListener('DOMContentLoaded', function() {
+
+    // ========== INSTALAR PLUGIN ==========
+    document.getElementById('btn-install-plugin').addEventListener('click', function() {
+        Swal.fire({
+            title: '📦 Instalar Plugin',
+            html: `
+                <p class="mb-3">Selecciona un archivo ZIP con el plugin a instalar.</p>
+                <input type="file" id="swal-plugin-file" accept=".zip" class="form-control">
+                <small class="text-muted d-block mt-2">Máximo 10MB. Solo archivos ZIP.</small>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '<i class="bi bi-upload"></i> Instalar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#198754',
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                const fileInput = document.getElementById('swal-plugin-file');
+                if (!fileInput.files.length) {
+                    Swal.showValidationMessage('Debes seleccionar un archivo ZIP');
+                    return false;
+                }
+                const file = fileInput.files[0];
+                if (!file.name.toLowerCase().endsWith('.zip')) {
+                    Swal.showValidationMessage('Solo se permiten archivos ZIP');
+                    return false;
+                }
+                if (file.size > 10 * 1024 * 1024) {
+                    Swal.showValidationMessage('El archivo no puede superar los 10MB');
+                    return false;
+                }
+                return file;
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                // Copiar archivo al formulario oculto y enviar
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(result.value);
+                document.getElementById('plugin_zip_hidden').files = dataTransfer.files;
+
+                Swal.fire({
+                    title: 'Instalando...',
+                    text: 'Por favor espera mientras se instala el plugin.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                        document.getElementById('form-upload').submit();
+                    }
+                });
+            }
+        });
+    });
+
+    // ========== SINCRONIZAR PLUGINS ==========
+    document.getElementById('btn-sync-plugins').addEventListener('click', function() {
+        Swal.fire({
+            title: '🔄 Sincronizar Plugins',
+            text: '¿Deseas sincronizar los plugins desde el disco? Esto registrará nuevos plugins y actualizará los existentes.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sincronizar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#6c757d'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Sincronizando...',
+                    text: 'Por favor espera.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                        document.getElementById('form-sync').submit();
+                    }
+                });
+            }
+        });
+    });
+
+    // ========== TOGGLE PLUGIN (Activar/Desactivar) ==========
+    document.querySelectorAll('.btn-toggle-plugin').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const form = this.closest('.plugin-toggle-form');
+            const pluginName = form.dataset.pluginName;
+            const isActive = form.dataset.pluginActive === '1';
+            const action = isActive ? 'desactivar' : 'activar';
+            const actionVerb = isActive ? 'Desactivar' : 'Activar';
+
+            Swal.fire({
+                title: `${isActive ? '⏸️' : '▶️'} ${actionVerb} Plugin`,
+                html: `<p>¿Estás seguro de ${action} el plugin <strong>${pluginName}</strong>?</p>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: actionVerb,
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: isActive ? '#ffc107' : '#198754'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+
+    // ========== DESINSTALAR PLUGIN ==========
+    document.querySelectorAll('.btn-uninstall-plugin').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const form = this.closest('.plugin-uninstall-form');
+            const pluginName = form.dataset.pluginName;
+
+            Swal.fire({
+                title: '🗑️ Desinstalar Plugin',
+                html: `
+                    <p class="text-danger"><strong>¡Atención!</strong></p>
+                    <p>Estás a punto de desinstalar el plugin <strong>${pluginName}</strong>.</p>
+                    <p class="text-muted small">Esta acción eliminará todos los archivos del plugin y no se puede deshacer.</p>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, desinstalar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc3545',
+                focusCancel: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Desinstalando...',
+                        text: 'Por favor espera.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                            form.submit();
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+});
 </script>
 @endsection
