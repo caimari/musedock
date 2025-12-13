@@ -372,6 +372,12 @@ private static function render404Page(): void
     // Usar directamente el HTML genérico que SIEMPRE funciona (sin dependencias)
     // Esto garantiza que siempre se muestre una página 404 bonita
     self::renderGeneric404Html();
+
+    // Forzar el envío del output y terminar la ejecución
+    if (ob_get_level() > 0) {
+        ob_end_flush();
+    }
+    exit;
 }
 
 /**
