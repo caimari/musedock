@@ -81,66 +81,31 @@
   .tox-tinymce {
     border: 1px solid #ced4da !important;
     border-radius: 0.25rem !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
-  
-  .tox .tox-edit-area__iframe { 
-    background-color: white !important; 
-  }
-  
-  /* Eliminar TODOS los bordes de foco y cajas de sombra en TinyMCE */
-  .tox *, 
-  .tox-tinymce *, 
-  .tox-tinymce *:focus,
-  .tox *:focus,
-  .tox .tox-edit-area__iframe,
-  .tox .tox-edit-area__iframe:focus,
-  .tox .tox-edit-area:focus,
-  .tox-tinymce--toolbar-bottom,
-  .tox-tinymce-aux:focus,
+
+  /* Eliminar bordes de foco en elementos específicos (sin usar selectores * que rompen el layout) */
   .tox-tinymce:focus,
   .tox-tinymce:focus-within,
-  .tox .tox-toolbar:focus,
-  .tox .tox-toolbar__group:focus,
-  .tox .tox-toolbar__primary:focus,
+  .tox .tox-edit-area__iframe:focus,
   .tox .tox-tbtn:focus,
-  .tox .tox-menu:focus,
-  .tox .tox-collection__item--active,
-  .tox .tox-dialog *:focus,
-  .tox-editor-container,
-  .tox-editor-container *,
-  .mce-content-body,
   .mce-content-body:focus {
     outline: none !important;
     box-shadow: none !important;
   }
-  
-  /* Agregar un borde diferente al hacer foco, en lugar del azul predeterminado */
-  .tox.tox-tinymce:focus, 
-  .tox.tox-tinymce:focus-within { 
-    border: 1px solid #ced4da !important; 
-  }
-  
-  /* Estilos adicionales para el área de edición */
-  .tox-edit-area {
-    border: none !important;
-  }
-  
-  /* Estilos para el contenido editable */
-  .mce-content-body {
-    outline: none !important;
-  }
-  
-  /* Eliminar el borde azul dentro del iframe */
-  iframe#content-editor_ifr {
-    outline: none !important;
+
+  /* Borde al hacer foco */
+  .tox.tox-tinymce:focus,
+  .tox.tox-tinymce:focus-within {
+    border: 1px solid #ced4da !important;
   }
 
-  /* Corregir la selección de imágenes en TinyMCE */
-  .tox .tox-edit-area__iframe img[data-mce-selected] {
-    outline: 2px solid #3b7ddd !important;
-    outline-offset: 2px;
+  /* Asegurar que el iframe del editor tenga fondo blanco */
+  .tox .tox-edit-area__iframe {
+    background-color: white !important;
   }
-
+  
   /* --- Estilos Opcionales --- */
   .tox .tox-tbtn--bespoke { background-color: #f8f9fa !important; }
   .tox-collection__item-label h1 { font-size: 2em !important; margin: 0 !important; }
@@ -197,15 +162,6 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
 // Pasar la configuración a JavaScript como variables
 @endphp
 
-{{--
-  NOTA: El skeleton loader ya está incluido inline en las vistas que usan TinyMCE.
-  Este comentario mantiene la referencia de cómo debe ser el skeleton por si se necesita en el futuro.
-
-  <div id="tinymce-skeleton" class="tinymce-skeleton">
-    ... estructura del skeleton ...
-  </div>
---}}
-
 <script>
 // Inicializar TinyMCE inmediatamente (sin esperar DOMContentLoaded para más rapidez)
 (function() {
@@ -215,11 +171,55 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         if (skeleton) {
             skeleton.style.display = 'none';
         }
+
+        // Asegurarse de que el editor TinyMCE sea visible
+        const tinymceContainer = document.querySelector('.tox-tinymce');
+        if (tinymceContainer) {
+            tinymceContainer.style.display = 'block';
+            tinymceContainer.style.visibility = 'visible';
+        }
+    }
+
+    // Función para mostrar el textarea como fallback
+    function showTextareaFallback(showError = false) {
+        hideSkeleton();
+        const textarea = document.getElementById('content-editor');
+        if (textarea) {
+            textarea.style.cssText = 'display: block !important; width: 100%; height: 400px; min-height: 400px; padding: 15px; border: 1px solid #ced4da; border-radius: 0.25rem; font-family: monospace;';
+
+            if (showError) {
+                // Agregar un mensaje sobre el error si no existe ya
+                if (!document.getElementById('tinymce-error-msg')) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.id = 'tinymce-error-msg';
+                    errorDiv.className = 'alert alert-warning mt-2';
+                    errorDiv.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>No se pudo cargar el editor visual. Puedes editar el contenido en modo texto.';
+                    textarea.parentNode.insertBefore(errorDiv, textarea.nextSibling);
+                }
+            }
+        }
+    }
+
+    // Timeout de seguridad: si TinyMCE no carga en 10 segundos, mostrar textarea
+    const safetyTimeout = setTimeout(function() {
+        console.warn('TinyMCE no cargó en 10 segundos. Mostrando textarea como fallback.');
+        if (typeof tinymce === 'undefined' || !tinymce.get('content-editor')) {
+            showTextareaFallback(true);
+        }
+    }, 10000);
+
+    // Verificar si TinyMCE está disponible
+    if (typeof tinymce === 'undefined') {
+        console.error('TinyMCE no está cargado. Mostrando textarea.');
+        clearTimeout(safetyTimeout);
+        showTextareaFallback(true);
+        return;
     }
 
     // Prevenir inicialización múltiple
-    if (typeof tinymce !== 'undefined' && tinymce.get('content-editor')) {
+    if (tinymce.get('content-editor')) {
         console.log("TinyMCE ya está inicializado para #content-editor. No se inicializará de nuevo.");
+        clearTimeout(safetyTimeout);
         hideSkeleton();
         return;
     }
@@ -241,6 +241,7 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         plugins: '{{ $pluginsString }}',
         toolbar: <?php echo json_encode($tinymce_toolbar_lines, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
         contextmenu: '{{ $contextmenuString }}',
+        contextmenu_never_use_native: true,
         
         // --- Otras configuraciones ---
         block_formats: 'Párrafo=p; Encabezado 1=h1; Encabezado 2=h2; Encabezado 3=h3; Encabezado 4=h4; Encabezado 5=h5; Encabezado 6=h6; Preformateado=pre; Bloque de Código=code',
@@ -248,30 +249,175 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; font-size: 16px; margin: 15px; }
             code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 4px; font-size: 90%; font-family: monospace; }
             pre > code { display: block; padding: 10px; background-color: #2d2d2d; color: #f1f1f1; border-radius: 5px; overflow-x: auto; }
+            img { max-width: 100%; height: auto; cursor: pointer; pointer-events: auto; user-select: auto; }
+            figure img { pointer-events: auto; }
+            .mce-content-body img[data-mce-selected] { outline: 2px solid rgba(59,125,221,0.35); outline-offset: 2px; box-shadow: 0 0 0 2px rgba(59,125,221,0.1); background-color: transparent; }
+            img::selection, figure::selection, a::selection { background: transparent !important; }
+            img::-moz-selection, figure::-moz-selection, a::-moz-selection { background: transparent !important; }
         `,
         branding: false,
         promotion: false,
         browser_spellcheck: true,
         paste_data_images: true,
         image_caption: true,
-        
+
+        // Configuración de imágenes - permitir redimensionar y seleccionar fácilmente
+        object_resizing: true,
+        image_advtab: true, // Pestaña avanzada en diálogo de imagen (para añadir enlaces, etc.)
+        image_title: true,
+        automatic_uploads: false,
+
+        // Hacer imágenes más fáciles de seleccionar con clic
+        noneditable_noneditable_class: 'mceNonEditable',
+
         // Desactivar las quickbars (barras flotantes)
         quickbars_selection_toolbar: false,
         quickbars_insert_toolbar: false,
 
         entity_encoding: 'raw',
         convert_urls: false,
+        // Context menu nativo de TinyMCE: impedir nativo del navegador
+        contextmenu_never_use_native: true,
 
-        // Configuración para imágenes - menú contextual y selección
-        image_advtab: true,
-        image_title: true,
-        automatic_uploads: true,
-        object_resizing: true,
-        resize_img_proportional: true,
-        
-        // Función Setup con solución para el borde azul y menú contextual de imágenes
+        // Habilitar el file picker para imágenes y medios
+        file_picker_types: 'image media file',
+        file_picker_callback: function(callback, value, meta) {
+            // Verificar si el Media Manager está disponible
+            if (typeof window.openMediaManagerForTinyMCE === 'function') {
+                window.openMediaManagerForTinyMCE(callback, value, meta);
+            } else if (typeof window.openMediaManager === 'function') {
+                // Fallback: crear un input temporal y usar el modal estándar
+                window._tinymceFilePickerCallback = callback;
+                window._tinymceFilePickerMeta = meta;
+
+                // Crear elementos temporales para el media manager
+                let tempInput = document.getElementById('tinymce-media-input');
+                if (!tempInput) {
+                    tempInput = document.createElement('input');
+                    tempInput.type = 'hidden';
+                    tempInput.id = 'tinymce-media-input';
+                    document.body.appendChild(tempInput);
+                }
+
+                // Abrir el gestor de medios con los selectores
+                const mediaModal = document.getElementById('md-media-manager');
+                if (mediaModal) {
+                    // Configurar callback personalizado para TinyMCE
+                    window._tinymceMediaCallback = function(url) {
+                        if (window._tinymceFilePickerCallback) {
+                            window._tinymceFilePickerCallback(url, { title: '' });
+                            window._tinymceFilePickerCallback = null;
+                        }
+                    };
+
+                    // Simular clic en botón que abre el modal
+                    const btn = document.createElement('button');
+                    btn.className = 'open-media-modal-button';
+                    btn.dataset.inputTarget = '#tinymce-media-input';
+                    btn.style.display = 'none';
+                    document.body.appendChild(btn);
+                    btn.click();
+                    btn.remove();
+                }
+            } else {
+                // Si no hay Media Manager, usar input file nativo
+                const input = document.createElement('input');
+                input.setAttribute('type', 'file');
+                input.setAttribute('accept', meta.filetype === 'image' ? 'image/*' : '*/*');
+
+                input.addEventListener('change', function() {
+                    const file = this.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function() {
+                            callback(reader.result, { title: file.name });
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+
+                input.click();
+            }
+        },
+
+        // Función Setup con solución para el borde azul
         setup: function(editor) {
             // === MENÚ CONTEXTUAL PERSONALIZADO PARA IMÁGENES ===
+            function showFallbackImageMenu(e, img) {
+                removeFallbackImageMenu();
+                const iframeRect = editor.iframeElement.getBoundingClientRect();
+                const left = iframeRect.left + e.clientX;
+                const top = iframeRect.top + e.clientY;
+
+                const menu = document.createElement('div');
+                menu.id = 'md-tiny-image-menu';
+                Object.assign(menu.style, {
+                    position: 'fixed',
+                    left: `${left}px`,
+                    top: `${top}px`,
+                    background: '#fff',
+                    border: '1px solid #ced4da',
+                    borderRadius: '4px',
+                    boxShadow: '0 8px 18px rgba(0,0,0,0.18)',
+                    padding: '6px 0',
+                    minWidth: '190px',
+                    zIndex: 99999,
+                    fontFamily: 'inherit',
+                    fontSize: '14px'
+                });
+                // Evitar que el click dentro cierre el menú antes de la acción
+                menu.addEventListener('mousedown', (ev) => ev.stopPropagation());
+                menu.addEventListener('contextmenu', (ev) => ev.preventDefault());
+
+                const items = [
+                    { text: 'Propiedades de imagen', action: () => { try { editor.execCommand('mceImage'); } catch (e) {} } },
+                    { text: 'Añadir enlace a imagen', action: () => openImageLinkDialog(img) },
+                    { text: (checked) => checked ? 'Quitar Lightbox' : 'Abrir en Lightbox',
+                      action: () => { isLightboxActive(img) ? removeLightbox(img) : applyLightbox(img); },
+                      isChecked: () => isLightboxActive(img)
+                    }
+                ];
+
+                items.forEach(item => {
+                    const btn = document.createElement('div');
+                    const checked = item.isChecked ? item.isChecked() : false;
+                    const label = typeof item.text === 'function' ? item.text(checked) : item.text;
+                    btn.textContent = checked ? `✔ ${label}` : label;
+                    Object.assign(btn.style, {
+                        padding: '8px 14px',
+                        cursor: 'pointer'
+                    });
+                    btn.addEventListener('mouseenter', () => { btn.style.background = '#f1f3f5'; });
+                    btn.addEventListener('mouseleave', () => { btn.style.background = 'transparent'; });
+                    btn.addEventListener('click', (evt) => {
+                        evt.preventDefault();
+                        evt.stopPropagation();
+                        removeFallbackImageMenu();
+                        editor.focus();
+                        editor.selection.select(img);
+                        editor.nodeChanged();
+                        // Pequeño delay para asegurar focus antes de abrir diálogos
+                        setTimeout(() => item.action(), 0);
+                    });
+                    menu.appendChild(btn);
+                });
+
+                document.body.appendChild(menu);
+
+                setTimeout(() => {
+                    document.addEventListener('mousedown', removeFallbackImageMenu, { once: true });
+                    document.addEventListener('scroll', removeFallbackImageMenu, { once: true, capture: true });
+                    const iframeEl = editor.iframeElement;
+                    if (iframeEl && iframeEl.contentDocument) {
+                        iframeEl.contentDocument.addEventListener('mousedown', removeFallbackImageMenu, { once: true });
+                    }
+                }, 0);
+            }
+
+            function removeFallbackImageMenu() {
+                const existing = document.getElementById('md-tiny-image-menu');
+                if (existing) existing.remove();
+            }
 
             // Función para abrir diálogo de enlace de imagen
             function openImageLinkDialog(img) {
@@ -340,17 +486,222 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
 
                 if (parentLink) {
                     parentLink.href = imgSrc;
-                    parentLink.setAttribute('data-lightbox', 'gallery');
+                    parentLink.setAttribute('data-lightbox', 'md-gallery');
+                    parentLink.classList.add('lightbox');
+                    parentLink.setAttribute('rel', 'lightbox');
                     parentLink.removeAttribute('target');
                 } else {
                     const link = editor.dom.create('a', {
                         href: imgSrc,
-                        'data-lightbox': 'gallery'
+                        'data-lightbox': 'md-gallery',
+                        'class': 'lightbox',
+                        'rel': 'lightbox'
                     });
                     img.parentNode.insertBefore(link, img);
                     link.appendChild(img);
                 }
                 editor.nodeChanged();
+            }
+
+            function isLightboxActive(img) {
+                const parentLink = img.closest('a');
+                return !!(parentLink && parentLink.getAttribute('data-lightbox'));
+            }
+
+            function removeLightbox(img) {
+                const parentLink = img.closest('a');
+                if (parentLink && parentLink.getAttribute('data-lightbox')) {
+                    parentLink.parentNode.insertBefore(img, parentLink);
+                    parentLink.remove();
+                    editor.nodeChanged();
+                }
+            }
+
+            /**
+             * Limpia enlaces vacíos (lightbox sin imagen)
+             */
+            function unwrapEmptyAnchors(doc) {
+                if (!doc) return;
+                const anchors = doc.querySelectorAll('a[data-lightbox], a.lightbox');
+                anchors.forEach(anchor => {
+                    const hasImg = !!anchor.querySelector('img');
+                    const text = (anchor.textContent || '').trim();
+                    if (!hasImg && text.length === 0) {
+                        anchor.remove();
+                    } else if (!hasImg) {
+                        const parent = anchor.parentNode;
+                        while (anchor.firstChild) {
+                            parent.insertBefore(anchor.firstChild, anchor);
+                        }
+                        if (parent) parent.removeChild(anchor);
+                    }
+                });
+            }
+
+            /**
+             * Limpieza profunda de elementos huérfanos tras borrar una imagen
+             * Elimina: figure vacíos, p vacíos, a sin contenido, elementos con data-mce-selected sin img
+             */
+            function deepCleanOrphanElements(doc) {
+                if (!doc) return;
+
+                // 1. Eliminar cualquier elemento con data-mce-selected que no tenga imagen
+                const selectedElements = doc.querySelectorAll('[data-mce-selected]');
+                selectedElements.forEach(el => {
+                    if (!el.querySelector('img') && el.nodeName !== 'IMG') {
+                        el.remove();
+                    }
+                });
+
+                // 2. Eliminar figure vacíos o con solo whitespace
+                const figures = doc.querySelectorAll('figure');
+                figures.forEach(fig => {
+                    if (!fig.querySelector('img') && !fig.textContent.trim()) {
+                        fig.remove();
+                    }
+                });
+
+                // 3. Eliminar enlaces vacíos (no solo lightbox)
+                const emptyLinks = doc.querySelectorAll('a:empty');
+                emptyLinks.forEach(a => a.remove());
+
+                // 4. Eliminar enlaces que solo tienen un br o whitespace
+                const allLinks = doc.querySelectorAll('a');
+                allLinks.forEach(a => {
+                    const hasImg = !!a.querySelector('img');
+                    const hasText = a.textContent.trim().length > 0;
+                    const hasOnlyBr = a.children.length === 1 && a.children[0].nodeName === 'BR';
+                    if (!hasImg && !hasText) {
+                        a.remove();
+                    } else if (!hasImg && hasOnlyBr) {
+                        a.remove();
+                    }
+                });
+
+                // 5. Eliminar p vacíos consecutivos (dejar máximo uno)
+                const paragraphs = doc.querySelectorAll('p');
+                let lastWasEmpty = false;
+                paragraphs.forEach(p => {
+                    const isEmpty = !p.textContent.trim() && !p.querySelector('img, video, iframe, table');
+                    if (isEmpty && lastWasEmpty) {
+                        p.remove();
+                    }
+                    lastWasEmpty = isEmpty;
+                });
+
+                // 6. Limpiar cualquier resto de resizer/backdrop de TinyMCE
+                const mceResizers = doc.querySelectorAll('.mce-resizehandle, .mce-resize-backdrop, .mce-clonedresizable');
+                mceResizers.forEach(el => {
+                    // Solo eliminar si no hay imagen seleccionada activamente
+                    const hasSelectedImg = doc.querySelector('img[data-mce-selected]');
+                    if (!hasSelectedImg) {
+                        el.remove();
+                    }
+                });
+            }
+
+            /**
+             * Elimina una imagen y todos sus wrappers (link, figure, etc.)
+             * Retorna true si se eliminó algo, false si no había nada que eliminar
+             */
+            function deleteImageAndWrapper(target) {
+                if (!target) return false;
+
+                let node = target;
+                let deleted = false;
+
+                // Si el target tiene data-mce-selected pero no es IMG, buscar la imagen
+                if (node.nodeName !== 'IMG') {
+                    // Buscar imagen dentro
+                    const innerImg = node.querySelector ? node.querySelector('img') : null;
+                    if (innerImg) {
+                        node = innerImg;
+                    } else {
+                        // Si es un contenedor vacío con data-mce-selected, eliminarlo
+                        if (node.hasAttribute && node.hasAttribute('data-mce-selected')) {
+                            node.remove();
+                            return true;
+                        }
+                        return false;
+                    }
+                }
+
+                // Ahora node es IMG - buscar contenedores padre
+                const parentLink = node.closest('a');
+                const parentFigure = node.closest('figure');
+
+                // Determinar qué eliminar (de más externo a más interno)
+                if (parentFigure) {
+                    // Si está en figure, eliminar todo el figure
+                    parentFigure.remove();
+                    deleted = true;
+                } else if (parentLink) {
+                    // Si está en link (lightbox u otro), eliminar el link
+                    parentLink.remove();
+                    deleted = true;
+                } else {
+                    // Solo la imagen
+                    node.remove();
+                    deleted = true;
+                }
+
+                return deleted;
+            }
+
+            /**
+             * Maneja el borrado de imagen con limpieza completa
+             * Se llama desde keydown Delete/Backspace
+             */
+            function handleImageDeletion(e) {
+                const node = editor.selection.getNode();
+                const doc = editor.getDoc();
+
+                // Verificar si hay una imagen seleccionada (directamente o dentro del nodo)
+                let imgToDelete = null;
+
+                if (node.nodeName === 'IMG') {
+                    imgToDelete = node;
+                } else if (node.querySelector) {
+                    // Buscar imagen con data-mce-selected dentro del nodo
+                    imgToDelete = node.querySelector('img[data-mce-selected]') || node.querySelector('img');
+                }
+
+                // También verificar si hay imagen seleccionada en todo el documento
+                if (!imgToDelete && doc) {
+                    imgToDelete = doc.querySelector('img[data-mce-selected]');
+                }
+
+                if (imgToDelete) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // Guardar referencia al padre antes de eliminar
+                    const parentNode = imgToDelete.parentNode;
+
+                    // Eliminar imagen y wrappers
+                    deleteImageAndWrapper(imgToDelete);
+
+                    // Colapsar selección
+                    editor.selection.collapse(true);
+
+                    // Limpieza profunda inmediata
+                    setTimeout(() => {
+                        const body = editor.getBody();
+                        unwrapEmptyAnchors(body);
+                        deepCleanOrphanElements(body);
+                        editor.nodeChanged();
+
+                        // Segunda pasada de limpieza tras un pequeño delay
+                        setTimeout(() => {
+                            unwrapEmptyAnchors(body);
+                            deepCleanOrphanElements(body);
+                        }, 50);
+                    }, 0);
+
+                    return true;
+                }
+
+                return false;
             }
 
             // Registrar menú contextual personalizado para imágenes
@@ -395,105 +746,149 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
             editor.on('init', function() {
                 console.log('TinyMCE inicializado para: #' + editor.id);
 
+                // Limpiar timeout de seguridad
+                if (typeof safetyTimeout !== 'undefined') {
+                    clearTimeout(safetyTimeout);
+                }
+
                 // Ocultar skeleton loader
                 hideSkeleton();
+
+                // === MANEJO DE DESELECCIÓN DE IMÁGENES ===
+                // Añadir listener en el iframe para deseleccionar imágenes al hacer clic fuera
+                try {
+                    const iframeEl = editor.iframeElement;
+                    if (iframeEl && iframeEl.contentDocument) {
+                        const iframeDoc = iframeEl.contentDocument;
+
+                        iframeDoc.addEventListener('mousedown', function(e) {
+                            const target = e.target;
+
+                            // Ignorar clics en los handlers/overlays de TinyMCE para no romper la selección nativa
+                            if (target.closest('.mce-resizehandle') || target.closest('.mce-resize-backdrop') || target.closest('.mce-clonedresizable')) {
+                                return;
+                            }
+
+                            // Seleccionar explícitamente la imagen si se hace clic sobre ella
+                            if (target.nodeName === 'IMG') {
+                                setTimeout(function() {
+                                    editor.selection.select(target);
+                                    editor.nodeChanged();
+                                }, 0);
+                                return;
+                            }
+
+                            // Si hicimos clic en algo que NO es una imagen, deseleccionar
+                            if (target.nodeName !== 'IMG' && !target.closest('figure')) {
+                                // Buscar si hay alguna imagen seleccionada
+                                const selectedImg = iframeDoc.querySelector('img[data-mce-selected]');
+                                if (selectedImg) {
+                                    // Usar setTimeout para no interferir con el evento actual
+                                    setTimeout(function() {
+                                        editor.selection.collapse(true);
+                                        editor.nodeChanged();
+                                    }, 0);
+                                }
+                            }
+                        });
+
+                        // Asegurar selección antes de abrir menú contextual con clic derecho
+                        iframeDoc.addEventListener('contextmenu', function(e) {
+                            const target = e.target;
+                            if (target.closest('.mce-resizehandle') || target.closest('.mce-resize-backdrop') || target.closest('.mce-clonedresizable')) {
+                                return;
+                            }
+                            const imgTarget = target.nodeName === 'IMG' ? target : target.closest('figure img');
+                            if (imgTarget) {
+                                e.preventDefault(); // Evita el menú del navegador
+                                editor.selection.select(imgTarget);
+                                editor.nodeChanged();
+                                // Intentar disparar menú nativo de TinyMCE; si no aparece, usar fallback manual
+                                setTimeout(() => {
+                                    const menuExists = document.querySelector('.tox-collection.tox-collection--list');
+                                    if (!menuExists) {
+                                        showFallbackImageMenu(e, imgTarget);
+                                    }
+                                }, 10);
+                            }
+                        });
+
+                        // Limpiar enlaces vacíos tras borrar imágenes
+                        iframeDoc.addEventListener('keyup', function(e) {
+                            if (e.key === 'Delete' || e.key === 'Backspace') {
+                                unwrapEmptyAnchors(iframeDoc);
+                                deepCleanOrphanElements(iframeDoc);
+                            }
+                        });
+
+                        iframeDoc.addEventListener('input', function() {
+                            unwrapEmptyAnchors(iframeDoc);
+                        });
+
+                        // También limpiar al perder/girar selección
+                        editor.on('NodeChange', function() {
+                            // Solo hacer limpieza ligera en NodeChange para no afectar rendimiento
+                            unwrapEmptyAnchors(iframeDoc);
+                        });
+
+                        // Interceptar keydown en el iframe para capturar Delete/Backspace antes
+                        iframeDoc.addEventListener('keydown', function(e) {
+                            if (e.key === 'Delete' || e.key === 'Backspace') {
+                                // Verificar si hay imagen seleccionada
+                                const selectedImg = iframeDoc.querySelector('img[data-mce-selected]');
+                                if (selectedImg) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    deleteImageAndWrapper(selectedImg);
+                                    editor.selection.collapse(true);
+                                    setTimeout(() => {
+                                        unwrapEmptyAnchors(iframeDoc);
+                                        deepCleanOrphanElements(iframeDoc);
+                                        editor.nodeChanged();
+                                    }, 0);
+                                }
+                            }
+                        }, true); // Usar capture para interceptar antes
+                    }
+                } catch (e) {
+                    console.warn('No se pudo añadir listener de deselección:', e);
+                }
+
+                // Eliminar imagen (y wrapper lightbox) con Delete/Backspace cuando está seleccionada
+                editor.on('keydown', function(e) {
+                    if (e.key === 'Delete' || e.key === 'Backspace') {
+                        if (handleImageDeletion(e)) {
+                            return false; // Prevenir propagación adicional
+                        }
+                    }
+                });
+
+                // Limpieza adicional al hacer clic (por si quedaron restos)
+                editor.on('click', function() {
+                    const body = editor.getBody();
+                    // Solo limpiar si no hay imagen seleccionada actualmente
+                    if (!body.querySelector('img[data-mce-selected]')) {
+                        deepCleanOrphanElements(body);
+                    }
+                });
+
+                // Limpieza al cambiar de modo (visual/código)
+                editor.on('SwitchMode', function() {
+                    const body = editor.getBody();
+                    unwrapEmptyAnchors(body);
+                    deepCleanOrphanElements(body);
+                });
+
+                // Limpieza antes de guardar contenido
+                editor.on('BeforeGetContent', function() {
+                    const body = editor.getBody();
+                    unwrapEmptyAnchors(body);
+                    deepCleanOrphanElements(body);
+                });
 
                 // Hacer visible el contenedor del editor
                 const container = editor.getContainer();
                 if (container) container.style.visibility = 'visible';
-                
-                // ---- INICIO DE SOLUCIÓN PARA EL BORDE AZUL ----
-                
-                // 1. Aplicar estilos al contenedor principal de TinyMCE
-                const tinymceElement = document.querySelector('.tox.tox-tinymce');
-                if (tinymceElement) {
-                    tinymceElement.style.outline = 'none';
-                    tinymceElement.style.boxShadow = 'none';
-                }
-                
-                // 2. Aplicar estilos al iframe de edición
-                const iframeElement = document.getElementById('content-editor_ifr');
-                if (iframeElement) {
-                    // Quitar el borde del iframe mismo
-                    iframeElement.style.outline = 'none';
-                    iframeElement.style.boxShadow = 'none';
-                    
-                    // Acceder al documento dentro del iframe
-                    try {
-                        const iframeDoc = iframeElement.contentDocument || iframeElement.contentWindow.document;
-                        
-                        // Añadir estilos específicos al body del iframe
-                        const styleElement = iframeDoc.createElement('style');
-                        styleElement.textContent = `
-                            body.mce-content-body {
-                                outline: none !important;
-                                box-shadow: none !important;
-                            }
-                            body.mce-content-body:focus,
-                            body.mce-content-body:focus-visible {
-                                outline: none !important;
-                                box-shadow: none !important;
-                                border: none !important;
-                            }
-                            /* Estilos para hacer imágenes más fáciles de seleccionar */
-                            img {
-                                cursor: pointer;
-                                transition: outline 0.15s ease;
-                            }
-                            img:hover {
-                                outline: 2px dashed #3b7ddd;
-                                outline-offset: 2px;
-                            }
-                            img[data-mce-selected] {
-                                outline: 2px solid #3b7ddd !important;
-                                outline-offset: 2px;
-                            }
-                        `;
-
-                        iframeDoc.head.appendChild(styleElement);
-
-                        // Manejador de clic para gestionar la selección de imágenes
-                        iframeDoc.body.addEventListener('mousedown', function(e) {
-                            const clickedElement = e.target;
-
-                            // Si hacemos clic izquierdo en una imagen, seleccionarla
-                            if (e.button === 0 && clickedElement.tagName === 'IMG') {
-                                setTimeout(function() {
-                                    editor.selection.select(clickedElement);
-                                    editor.nodeChanged();
-                                }, 10);
-                            }
-                            // Si hacemos clic izquierdo FUERA de una imagen, deseleccionar imágenes
-                            else if (e.button === 0 && clickedElement.tagName !== 'IMG') {
-                                // Buscar todas las imágenes seleccionadas y quitar la selección visual
-                                const selectedImages = iframeDoc.querySelectorAll('img[data-mce-selected]');
-                                selectedImages.forEach(function(img) {
-                                    img.removeAttribute('data-mce-selected');
-                                });
-                                // Notificar a TinyMCE del cambio
-                                editor.nodeChanged();
-                            }
-                        });
-
-                        // Eliminar el foco en todo el documento
-                        iframeDoc.body.addEventListener('focus', function(e) {
-                            this.style.outline = 'none';
-                            e.target.style.outline = 'none';
-                        }, true);
-                    } catch (e) {
-                        console.error("Error al aplicar estilos al iframe:", e);
-                    }
-                }
-                
-                // 3. Desactivar la apariencia de foco para todo el contenedor de TinyMCE
-                document.querySelectorAll('.tox *').forEach(el => {
-                    el.style.outline = 'none';
-                    el.addEventListener('focus', function() {
-                        this.style.outline = 'none';
-                    });
-                });
-                
-                // ---- FIN DE SOLUCIÓN PARA EL BORDE AZUL ----
             });
         }
     };
@@ -561,6 +956,7 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                 // Intentar inicializar con AIWriter
                 try {
                     await initTinyMCE(currentConfig);
+                    clearTimeout(safetyTimeout);
                     console.log("TinyMCE inicializado correctamente con AIWriter");
                     return; // Éxito, salir de la función
                 } catch (error) {
@@ -577,6 +973,7 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         // Si no se ha inicializado con AIWriter, usar configuración básica
         try {
             await initTinyMCE(baseConfig);
+            clearTimeout(safetyTimeout);
             console.log("TinyMCE inicializado correctamente con configuración básica");
         } catch (error) {
             console.error("Error crítico al inicializar TinyMCE:", error);
@@ -617,33 +1014,44 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
             
             try {
                 await initTinyMCE(minimalConfig);
+                clearTimeout(safetyTimeout);
                 console.log("TinyMCE inicializado con configuración mínima");
             } catch (finalError) {
                 console.error("ERROR FATAL: No se pudo inicializar TinyMCE:", finalError);
-
-                // Ocultar skeleton y mostrar textarea con mensaje de error
-                hideSkeleton();
-                const textarea = document.getElementById('content-editor');
-                if (textarea) {
-                    textarea.style.display = 'block';
-                    textarea.style.height = '300px';
-
-                    // Agregar un mensaje sobre el error
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'alert alert-danger mt-2';
-                    errorDiv.textContent = 'No se pudo cargar el editor. Por favor, recargue la página o contacte al administrador.';
-                    textarea.parentNode.insertBefore(errorDiv, textarea.nextSibling);
-                }
+                clearTimeout(safetyTimeout);
+                showTextareaFallback(true);
             }
         }
     }
 
     // Esperar a que el DOM esté listo antes de inicializar
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initTinyMCEWithFallback);
+        document.addEventListener('DOMContentLoaded', function() {
+            const textarea = document.getElementById('content-editor');
+            if (textarea) {
+                initTinyMCEWithFallback();
+            } else {
+                showTextareaFallback(true);
+            }
+        });
     } else {
-        // DOM ya está listo, inicializar inmediatamente
-        initTinyMCEWithFallback();
+        // DOM ya está listo, verificar que el textarea exista
+        const textarea = document.getElementById('content-editor');
+        if (textarea) {
+            initTinyMCEWithFallback();
+        } else {
+            showTextareaFallback(true);
+        }
     }
 })();
 </script>
+
+@php
+// Verificar si el módulo Media Manager está activo
+$mediaModuleActive = function_exists('is_module_active') ? is_module_active('media-manager') : false;
+@endphp
+
+@if($mediaModuleActive)
+{{-- Incluir el Media Manager para TinyMCE --}}
+@include('partials._tinymce_media_manager')
+@endif

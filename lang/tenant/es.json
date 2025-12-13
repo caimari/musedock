@@ -261,7 +261,8 @@
       "image_load_error": "Error al cargar la imagen",
       "categories": "Categorías",
       "select_multiple": "Mantén Ctrl/Cmd para seleccionar múltiples opciones",
-      "back_to_posts": "Volver a Posts"
+      "back_to_posts": "Volver a Posts",
+      "publish": "Publicar"
     },
     "bulk": {
       "actions": "Acciones masivas"
