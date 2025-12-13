@@ -508,7 +508,10 @@ class CaddyService
         ]);
 
         if ($data !== null && in_array($method, ['POST', 'PUT', 'PATCH'])) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            $jsonData = json_encode($data);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
+            // Log del JSON enviado para debug
+            Logger::log("[CaddyService] Request body: " . substr($jsonData, 0, 500), 'DEBUG');
         }
 
         $response = curl_exec($ch);
@@ -517,8 +520,11 @@ class CaddyService
         $errno = curl_errno($ch);
         curl_close($ch);
 
-        // Log de la petición
-        Logger::log("[CaddyService] {$method} {$endpoint} -> HTTP {$httpCode}", 'DEBUG');
+        // Log de la petición con respuesta
+        Logger::log("[CaddyService] {$method} {$endpoint} -> HTTP {$httpCode}", 'INFO');
+        if ($httpCode >= 400 || $errno) {
+            Logger::log("[CaddyService] Response: " . substr($response, 0, 1000), 'ERROR');
+        }
 
         // Error de conexión
         if ($errno) {

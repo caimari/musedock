@@ -464,12 +464,15 @@ class DomainManagerController
         $this->checkMultitenancyEnabled();
         $this->checkPermission('tenants.manage');
 
+        error_log("[DomainManager] reconfigure() called for tenant ID: {$id}");
+
         $tenant = $this->getTenant($id);
 
         if (!$tenant) {
+            error_log("[DomainManager] Tenant not found: {$id}");
             if ($this->isAjaxRequest()) {
                 header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'message' => 'Tenant no encontrado']);
+                echo json_encode(['success' => false, 'error' => 'Tenant no encontrado']);
                 exit;
             }
             flash('error', 'Tenant no encontrado.');
@@ -477,37 +480,22 @@ class DomainManagerController
             exit;
         }
 
+        error_log("[DomainManager] Tenant found: {$tenant->domain}, caddy_status: " . ($tenant->caddy_status ?? 'null'));
+
         // Validar que tenga sentido reconfigurar
         $caddyStatus = $tenant->caddy_status ?? 'not_configured';
 
-        // Si ya está activo Y tiene SSL verificado, preguntar confirmación
-        if ($caddyStatus === 'active' && !($tenant->caddy_error_log ?? '')) {
-            // Verificar si realmente está funcionando
-            $verification = $this->caddyService->verifyDomain($tenant->domain);
-
-            if ($verification['success'] && ($verification['ssl_valid'] ?? false)) {
-                if ($this->isAjaxRequest()) {
-                    header('Content-Type: application/json');
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'El dominio ya está activo y funcionando correctamente. No necesita reconfiguración.',
-                        'status' => 'already_active'
-                    ]);
-                    exit;
-                }
-                flash('info', "El dominio '{$tenant->domain}' ya está activo y funcionando correctamente.");
-                header('Location: /musedock/domain-manager');
-                exit;
-            }
-        }
+        // Si está en estado 'configuring', no permitir otra configuración
+        // (Quitada la verificación de 'already_active' para permitir forzar reconfiguración)
 
         // Si está en estado 'configuring', no permitir otra configuración
         if ($caddyStatus === 'configuring') {
+            error_log("[DomainManager] Domain is currently configuring, rejecting");
             if ($this->isAjaxRequest()) {
                 header('Content-Type: application/json');
                 echo json_encode([
                     'success' => false,
-                    'message' => 'El dominio está siendo configurado actualmente. Por favor espere.',
+                    'error' => 'El dominio está siendo configurado actualmente. Por favor espere.',
                     'status' => 'in_progress'
                 ]);
                 exit;
@@ -519,11 +507,14 @@ class DomainManagerController
 
         // Si existe una ruta antigua, eliminarla primero
         if ($tenant->caddy_route_id ?? null) {
+            error_log("[DomainManager] Removing old route: {$tenant->caddy_route_id}");
             $this->caddyService->removeDomain($tenant->caddy_route_id);
         }
 
         // Proceder con la reconfiguración
+        error_log("[DomainManager] Calling configureDomainInCaddy for: {$tenant->domain}");
         $result = $this->configureDomainInCaddy($id, $tenant->domain, (bool)($tenant->include_www ?? true));
+        error_log("[DomainManager] configureDomainInCaddy result: " . json_encode($result));
 
         if ($this->isAjaxRequest()) {
             header('Content-Type: application/json');
