@@ -11,15 +11,23 @@ class Language extends Model
 
     public static function getActiveLanguages(?int $tenantId = null): array
     {
-        $query = static::where('active', 1);
-
         if ($tenantId !== null) {
-            // Usar parámetros nombrados para evitar mezcla con posicionales
-            $query->whereRaw("(tenant_id = :tenant_id OR tenant_id IS NULL)", ['tenant_id' => $tenantId]);
-        } else {
-            $query->whereNull('tenant_id');
+            // Primero buscar idiomas específicos del tenant
+            $tenantLanguages = static::where('active', 1)
+                ->where('tenant_id', $tenantId)
+                ->orderBy('order_position')
+                ->get();
+
+            // Si el tenant tiene idiomas configurados, usarlos
+            if (!empty($tenantLanguages)) {
+                return $tenantLanguages;
+            }
         }
 
-        return $query->get();
+        // Fallback: idiomas globales (tenant_id IS NULL)
+        return static::where('active', 1)
+            ->whereNull('tenant_id')
+            ->orderBy('order_position')
+            ->get();
     }
 }
