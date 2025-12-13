@@ -8,7 +8,7 @@
     <!-- Navegación y botón añadir página -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="breadcrumb">
-        <a href="{{ route('pages.index') }}">{{ __('pages.pages') }}</a> <span class="mx-2">/</span> <span>{{ e($Page->title ?? __('pages.editing')) }}</span>
+        <a href="{{ route('tenant.pages.index') }}">{{ __('pages.pages') }}</a> <span class="mx-2">/</span> <span>{{ e($Page->title ?? __('pages.editing')) }}</span>
       </div>
       <div class="d-flex gap-2">
         <a href="{{ admin_url('pages') }}/{{ $Page->id }}/revisions" class="btn btn-sm btn-outline-secondary" title="{{ __('pages.view_revisions') }}">
@@ -17,7 +17,7 @@
         <a href="{{ admin_url('pages') }}/trash" class="btn btn-sm btn-outline-danger" title="{{ __('pages.view_trash') }}">
           <i class="bi bi-trash me-1"></i> {{ __('pages.trash') }}
         </a>
-        <a href="{{ route('pages.create') }}" class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i> {{ __('pages.add_page') }}</a>
+        <a href="{{ route('tenant.pages.create') }}" class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i> {{ __('pages.add_page') }}</a>
       </div>
     </div>
 
@@ -31,7 +31,7 @@
     @endif
     {{-- Fin Scripts SweetAlert2 --}}
 
-    <form method="POST" action="{{ route('pages.update', ['id' => $Page->id]) }}" id="pageForm" enctype="multipart/form-data">
+    <form method="POST" action="{{ route('tenant.pages.update', ['id' => $Page->id]) }}" id="pageForm" enctype="multipart/form-data">
       @method('PUT') {!! csrf_field() !!}
       <div class="row">
         {{-- Columna izquierda (Principal) --}}
@@ -102,7 +102,7 @@
               <div class="d-flex flex-wrap gap-2" id="translations-container"> 
                 @foreach ($locales as $code => $name) 
                   @if($code !== ($Page->base_locale ?? config('app.locale', 'es'))) 
-                    <a href="{{ route('pages.translation.edit', ['id' => $Page->id, 'locale' => $code]) }}" class="btn btn-sm translation-btn {{ isset($translatedLocales[$code]) ? 'btn-outline-success' : 'btn-outline-secondary' }}" data-locale="{{ $code }}"> 
+                    <a href="{{ route('tenant.pages.translation.edit', ['id' => $Page->id, 'locale' => $code]) }}" class="btn btn-sm translation-btn {{ isset($translatedLocales[$code]) ? 'btn-outline-success' : 'btn-outline-secondary' }}" data-locale="{{ $code }}"> 
                       {{ $name }} 
                       @if (isset($translatedLocales[$code])) 
                         <i class="ms-1 fas fa-check-circle text-success"></i> 

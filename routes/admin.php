@@ -169,6 +169,17 @@ Route::delete("$adminPath/pages/{id}", 'tenant.PageController@delete')
      ->middleware(['auth'])
      ->name('tenant.pages.delete');
 
+// Acciones en lote para páginas
+Route::post("$adminPath/pages/bulk", 'tenant.PageController@bulk')
+     ->middleware(['auth'])
+     ->name('tenant.pages.bulk');
+Route::post("$adminPath/pages/bulk-update", 'tenant.PageController@bulkUpdate')
+     ->middleware(['auth'])
+     ->name('tenant.pages.bulk.update');
+Route::get("$adminPath/pages/bulk-edit", 'tenant.PageController@bulkEditForm')
+     ->middleware(['auth'])
+     ->name('tenant.pages.bulk.edit');
+
 // ========== SISTEMA DE VERSIONES/REVISIONES - PÁGINAS ==========
 
 // Historial de revisiones
@@ -210,6 +221,14 @@ Route::delete("$adminPath/pages/{id}/force-delete", 'tenant.PageController@force
 Route::post("$adminPath/pages/{id}/autosave", 'tenant.PageController@autosave')
      ->middleware(['auth'])
      ->name('tenant.pages.autosave');
+
+// Traducciones de páginas
+Route::get("$adminPath/pages/{id}/translations/{locale}", 'tenant.PageController@editTranslation')
+     ->middleware(['auth'])
+     ->name('tenant.pages.translation.edit');
+Route::post("$adminPath/pages/{id}/translations/{locale}", 'tenant.PageController@updateTranslation')
+     ->middleware(['auth'])
+     ->name('tenant.pages.translation.update');
 
 // Rutas para la gestión de menús del tenant
 Route::get("$adminPath/menus", 'tenant.MenuController@index')

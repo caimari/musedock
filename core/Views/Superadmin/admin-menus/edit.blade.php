@@ -39,8 +39,8 @@
             {{-- URL --}}
             <div class="col-md-6 mb-3">
               <label for="url" class="form-label">URL <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" id="url" name="url" value="{{ $menu->url }}" required placeholder="/musedock/mi-seccion">
-              <small class="text-muted">Ruta del menú (ej: /musedock/configuracion)</small>
+              <input type="text" class="form-control" id="url" name="url" value="{{ $menu->url }}" required placeholder="{admin_path}/settings/reading">
+              <small class="text-muted">Ruta del menú (ej: {admin_path}/settings/reading)</small>
             </div>
 
             {{-- Orden --}}

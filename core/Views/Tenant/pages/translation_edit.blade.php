@@ -10,14 +10,14 @@
     {{-- Breadcrumbs / Navegación --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="breadcrumb">
-          <a href="{{ route('pages.index') }}">Páginas</a>
+          <a href="{{ route('tenant.pages.index') }}">Páginas</a>
           <span class="mx-2">/</span>
-          <a href="{{ route('pages.edit', ['id' => $Page->id]) }}">{{ e($Page->title) }}</a>
+          <a href="{{ route('tenant.pages.edit', ['id' => $Page->id]) }}">{{ e($Page->title) }}</a>
           <span class="mx-2">/</span>
           {{-- Usamos el título dinámico --}}
           <span>{{ isset($translation->id) ? "Editar Traducción ({$localeName})" : "Crear Traducción ({$localeName})" }}</span>
         </div>
-         <a href="{{ route('pages.edit', ['id' => $Page->id]) }}" class="btn btn-sm btn-outline-secondary">
+         <a href="{{ route('tenant.pages.edit', ['id' => $Page->id]) }}" class="btn btn-sm btn-outline-secondary">
             <i class="fas fa-arrow-left me-1"></i> Volver a Página Base
          </a>
     </div>
@@ -25,7 +25,7 @@
     {{-- Mensajes de alerta (si usas un sistema de flash messages) --}}
     @include('partials.alerts')
 
-    <form method="POST" action="{{ route('pages.translation.update', ['id' => $Page->id, 'locale' => $locale]) }}" id="translationForm">
+    <form method="POST" action="{{ route('tenant.pages.translation.update', ['id' => $Page->id, 'locale' => $locale]) }}" id="translationForm">
         {{-- Método PUT es más semántico para updates, pero POST funciona si tu controlador usa $_POST --}}
         {{-- Si tu router soporta PUT/PATCH y tu controlador usa un Request object, usa @method('PUT') --}}
         {{-- @method('PUT') --}}
@@ -192,7 +192,7 @@
                              <button type="submit" class="btn btn-success">
                                 <i class="fas fa-save me-1"></i> {{ isset($translation->id) ? 'Actualizar' : 'Crear' }} Traducción
                              </button>
-                             <a href="{{ route('pages.edit', ['id' => $Page->id]) }}" class="btn btn-secondary">
+                             <a href="{{ route('tenant.pages.edit', ['id' => $Page->id]) }}" class="btn btn-secondary">
                                 <i class="fas fa-times me-1"></i> Cancelar
                              </a>
                          </div>

@@ -5,7 +5,7 @@
   <div class="container">
     <h2 class="mb-4">Edición en lote</h2>
     
-    <form method="POST" action="{{ route('pages.bulk.update') }}">
+    <form method="POST" action="{{ route('tenant.pages.bulk.update') }}">
       {!! csrf_field() !!}
       
       @foreach ($selectedIds as $id)
@@ -63,7 +63,7 @@
                 <tr>
                   <td>{{ $page->id }}</td>
                   <td>
-                    <a href="{{ route('pages.edit', ['id' => $page->id]) }}" target="_blank">
+                    <a href="{{ route('tenant.pages.edit', ['id' => $page->id]) }}" target="_blank">
                       {{ $page->title }}
                     </a>
                   </td>
@@ -115,7 +115,7 @@
         <button type="submit" class="btn btn-primary">
           <i class="fas fa-save me-1"></i> Aplicar cambios a todas
         </button>
-        <a href="{{ route('pages.index') }}" class="btn btn-secondary">
+        <a href="{{ route('tenant.pages.index') }}" class="btn btn-secondary">
           <i class="fas fa-times me-1"></i> Cancelar
         </a>
       </div>

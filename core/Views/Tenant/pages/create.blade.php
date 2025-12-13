@@ -6,7 +6,7 @@
 <div class="app-content">
   <div class="container-fluid">
     {{-- El action y method cambian si es editar --}}
-    <form method="POST" action="{{ isset($Page) && $Page->id ? route('pages.update', ['id' => $Page->id]) : route('pages.store') }}" id="pageForm" enctype="multipart/form-data">
+    <form method="POST" action="{{ isset($Page) && $Page->id ? route('tenant.pages.update', ['id' => $Page->id]) : route('tenant.pages.store') }}" id="pageForm" enctype="multipart/form-data">
       {!! csrf_field() !!}
       {{-- Añadir campo _method para PUT en la edición --}}
       @if(isset($Page) && $Page->id)
@@ -185,7 +185,7 @@
           {{-- Card Cancelar --}}
            <div class="card">
              <div class="card-body text-center">
-               <a href="{{ route('pages.index') }}" class="btn btn-sm btn-outline-secondary">{{ __('common.cancel') }}</a>
+               <a href="{{ route('tenant.pages.index') }}" class="btn btn-sm btn-outline-secondary">{{ __('common.cancel') }}</a>
              </div>
            </div>
         </div> {{-- Fin .col-md-3 --}}
