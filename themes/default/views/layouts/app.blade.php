@@ -875,8 +875,16 @@ body.mobile-menu-open {
                             // --- Lógica para obtener idiomas ordenados ---
                             try {
                                 $pdo = \Screenart\Musedock\Database::connect();
-                                $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE active = 1 ORDER BY order_position ASC, id ASC");
-                                $stmt->execute();
+                                $tenantId = tenant_id();
+                                if ($tenantId) {
+                                    // Tenant: obtener idiomas del tenant
+                                    $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE tenant_id = ? AND active = 1 ORDER BY order_position ASC, id ASC");
+                                    $stmt->execute([$tenantId]);
+                                } else {
+                                    // Global/Superadmin: obtener idiomas globales
+                                    $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE tenant_id IS NULL AND active = 1 ORDER BY order_position ASC, id ASC");
+                                    $stmt->execute();
+                                }
                                 $languages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                             } catch (\Exception $e) {
                                 // Fallback por si falla la DB
@@ -925,8 +933,16 @@ body.mobile-menu-open {
              try {
                  if (!isset($languages) || !isset($showLangSelector)) {
                      $pdo = \Screenart\Musedock\Database::connect();
-                     $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE active = 1 ORDER BY order_position ASC, id ASC");
-                     $stmt->execute();
+                     $tenantId = tenant_id();
+                     if ($tenantId) {
+                         // Tenant: obtener idiomas del tenant
+                         $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE tenant_id = ? AND active = 1 ORDER BY order_position ASC, id ASC");
+                         $stmt->execute([$tenantId]);
+                     } else {
+                         // Global/Superadmin: obtener idiomas globales
+                         $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE tenant_id IS NULL AND active = 1 ORDER BY order_position ASC, id ASC");
+                         $stmt->execute();
+                     }
                      $languages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                      $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? site_setting('language', 'es'));
                      $showLangSelector = count($languages) > 1;

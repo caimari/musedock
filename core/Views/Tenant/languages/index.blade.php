@@ -139,6 +139,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const tbody = document.getElementById('sortable-languages');
+  const adminPath = '{{ admin_path() }}';
 
   // Drag & Drop ordering
   if (tbody && typeof Sortable !== 'undefined') {
@@ -153,7 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-        fetch('/{{ admin_path() }}/languages/update-order', {
+        fetch('/' + adminPath + '/languages/update-order', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

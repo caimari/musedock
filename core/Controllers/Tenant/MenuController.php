@@ -85,8 +85,8 @@ class MenuController
         $tenantId = $this->getCurrentTenantId();
 
         $pdo = Database::connect();
-        $stmt = $pdo->prepare("SELECT id, code, name FROM languages WHERE active = 1 ORDER BY id ASC");
-        $stmt->execute();
+        $stmt = $pdo->prepare("SELECT id, code, name FROM languages WHERE tenant_id = ? AND active = 1 ORDER BY order_position ASC, id ASC");
+        $stmt->execute([$tenantId]);
         $languages = $stmt->fetchAll(\PDO::FETCH_OBJ);
 
         // Obtener el idioma por defecto
