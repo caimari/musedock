@@ -3,11 +3,12 @@ namespace Screenart\Musedock\Controllers\Tenant;
 
 use Screenart\Musedock\TenantPluginManager;
 use Screenart\Musedock\Security\AuditLogger;
+use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Logger;
 use Screenart\Musedock\View;
 use Screenart\Musedock\Helpers\FileUploadValidator;
-
 use Screenart\Musedock\Traits\RequiresPermission;
+
 /**
  * Controlador de Plugins por Tenant
  *
@@ -16,7 +17,6 @@ use Screenart\Musedock\Traits\RequiresPermission;
 class PluginsController
 {
     use RequiresPermission;
-use Screenart\Musedock\Security\SessionSecurity;
 
     /**
      * Listar todos los plugins del tenant
