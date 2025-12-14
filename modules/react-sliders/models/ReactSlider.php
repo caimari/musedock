@@ -48,6 +48,7 @@ class ReactSlider extends Model
             'loop' => true,
             'navigation' => true,
             'pagination' => true,
+            'full_width' => false,
             'slides_per_view' => 1,
             'space_between' => 0,
             'speed' => 500

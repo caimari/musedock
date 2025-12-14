@@ -4,8 +4,12 @@
 
 @push('styles')
 {{-- Swiper local (sin CDN) para evitar problemas CSP --}}
-<link rel="stylesheet" href="/assets/css/swiper-bundle.min.css" />
-<link rel="stylesheet" href="/assets/themes/default/css/slider-themes.css" />
+<link rel="stylesheet" href="/assets/css/swiper-bundle.min.css?v={{ file_exists(public_path('assets/css/swiper-bundle.min.css')) ? filemtime(public_path('assets/css/swiper-bundle.min.css')) : time() }}" />
+<link rel="stylesheet" href="{{ asset('themes/default/css/slider-themes.css') }}?v={{ file_exists(public_path('assets/themes/default/css/slider-themes.css')) ? filemtime(public_path('assets/themes/default/css/slider-themes.css')) : time() }}" />
+{{-- Google Fonts (para selects de tipografías en captions) --}}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;800&family=Montserrat:wght@400;600;700;800&family=Roboto:wght@400;500;700;900&family=Open+Sans:wght@400;600;700;800&family=Lato:wght@400;700;900&family=Poppins:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Raleway:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
     /* Asegurar que los contenedores permitan sticky */
     .app-content,
@@ -34,13 +38,17 @@
         min-height: 100%;
     }
 
+    /* Importante: NO recortar el slider aquí, para que temas con sombra (p.ej. rounded-shadow)
+       se vean correctamente en el preview. El recorte lo hace #preview-swiper. */
     #preview-container {
-        border-radius: 8px;
-        overflow: hidden;
+        border-radius: 0;
+        overflow: visible;
         position: relative;
     }
     #preview-swiper {
         height: 350px;
+        border-radius: 8px;
+        overflow: hidden;
     }
 
     .theme-badge {
@@ -460,18 +468,44 @@
                                     </div>
 
                                     {{-- Swiper Preview --}}
-                                    <div id="preview-swiper" class="swiper {{ !empty($settings['theme']) ? 'theme-' . e($settings['theme']) : '' }}">
+                                    <div id="preview-swiper"
+                                         class="swiper {{ !empty($settings['theme']) ? 'theme-' . e($settings['theme']) : '' }}"
+                                         style="height: {{ (int)($settings['height'] ?? 400) }}px;">
                                         <div class="swiper-wrapper">
                                             @if($slides && count($slides) > 0)
-                                                @foreach($slides as $slide)
-                                                <div class="swiper-slide">
-                                                    <img src="{{ $slide->image_url }}" alt="{{ $slide->title ?? 'Slide' }}">
-                                                    <div class="caption" id="caption-{{ $loop->index }}">
-                                                        <h4 class="caption-title">{{ $slide->title ?? 'Título' }}</h4>
-                                                        <p class="caption-description mb-0">{{ $slide->description ?? '' }}</p>
-                                                    </div>
-                                                </div>
-                                                @endforeach
+	                                                @foreach($slides as $slide)
+		                                                <div class="swiper-slide">
+		                                                    <img src="{{ $slide->image_url }}" alt="{{ $slide->title ?? 'Slide' }}">
+		                                                    <div class="caption" id="caption-{{ $loop->index }}"
+		                                                         data-title-font="{{ !empty($slide->title_font) ? e(preg_replace('/[;\r\n]/', '', $slide->title_font)) : '' }}"
+		                                                         data-desc-font="{{ !empty($slide->description_font) ? e(preg_replace('/[;\r\n]/', '', $slide->description_font)) : '' }}"
+		                                                         data-title-bold="{{ (!isset($slide->title_bold) || (int)$slide->title_bold === 1) ? '1' : '0' }}"
+		                                                         data-title-color="{{ !empty($slide->title_color) ? e($slide->title_color) : '' }}"
+		                                                         data-desc-color="{{ !empty($slide->description_color) ? e($slide->description_color) : '' }}"
+		                                                         data-btn-custom="{{ (!empty($slide->button_custom) && (int)$slide->button_custom === 1) ? '1' : '0' }}"
+		                                                         data-btn-bg="{{ !empty($slide->button_bg_color) ? e($slide->button_bg_color) : '' }}"
+		                                                         data-btn-text="{{ !empty($slide->button_text_color) ? e($slide->button_text_color) : '' }}"
+		                                                         data-btn-border="{{ !empty($slide->button_border_color) ? e($slide->button_border_color) : '' }}"
+		                                                         data-btn2-custom="{{ (!empty($slide->button2_custom) && (int)$slide->button2_custom === 1) ? '1' : '0' }}"
+		                                                         data-btn2-bg="{{ !empty($slide->button2_bg_color) ? e($slide->button2_bg_color) : '' }}"
+		                                                         data-btn2-text="{{ !empty($slide->button2_text_color) ? e($slide->button2_text_color) : '' }}"
+		                                                         data-btn2-border="{{ !empty($slide->button2_border_color) ? e($slide->button2_border_color) : '' }}"
+		                                                         data-btn-shape="{{ !empty($slide->button_shape) ? e($slide->button_shape) : 'rounded' }}">
+		                                                        <h4 class="caption-title">{{ $slide->title ?? 'Título' }}</h4>
+		                                                        <p class="caption-description mb-0">{{ $slide->description ?? '' }}</p>
+		                                                        @if((!empty($slide->link_url) && !empty($slide->link_text)) || (!empty($slide->link2_url) && !empty($slide->link2_text)))
+		                                                            <div class="mt-3 slider-cta-buttons" data-shape="{{ !empty($slide->button_shape) ? e($slide->button_shape) : 'rounded' }}">
+		                                                                @if(!empty($slide->link_url) && !empty($slide->link_text))
+		                                                                    <a class="slider-cta-button" data-btn="1" href="{{ $slide->link_url }}" target="{{ $slide->link_target ?? '_self' }}" @if(($slide->link_target ?? '_self') === '_blank') rel="noopener noreferrer" @endif>{{ $slide->link_text }}</a>
+		                                                                @endif
+		                                                                @if(!empty($slide->link2_url) && !empty($slide->link2_text))
+		                                                                    <a class="slider-cta-button secondary" data-btn="2" href="{{ $slide->link2_url }}" target="{{ $slide->link2_target ?? '_self' }}" @if(($slide->link2_target ?? '_self') === '_blank') rel="noopener noreferrer" @endif>{{ $slide->link2_text }}</a>
+		                                                                @endif
+		                                                            </div>
+		                                                        @endif
+		                                                    </div>
+		                                                </div>
+		                                                @endforeach
                                             @else
                                                 <div class="swiper-slide">
                                                     <div style="width:100%;height:100%;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);display:flex;align-items:center;justify-content:center;">
@@ -611,16 +645,18 @@
     <div class="card-header">Tema Visual</div>
     <div class="card-body">
         <label class="form-label">Tema</label>
-        <select name="settings[theme]" class="form-select">
-            <option value="">- Sin tema (personalizado) -</option>
-            <optgroup label="Temas Swiper & Gallery">
-                <option value="dark-rounded" @if(($settings['theme'] ?? '') == 'dark-rounded') selected @endif>🌙 Dark Rounded (Glassmorphism)</option>
-                <option value="light-minimal" @if(($settings['theme'] ?? '') == 'light-minimal') selected @endif>☀️ Light Minimal (Limpio)</option>
-                <option value="hero-full" @if(($settings['theme'] ?? '') == 'hero-full') selected @endif>🎬 Hero Full (Cinematic)</option>
-                <option value="neon-glow" @if(($settings['theme'] ?? '') == 'neon-glow') selected @endif>⚡ Neon Glow (Cyberpunk)</option>
-                <option value="elegant-gold" @if(($settings['theme'] ?? '') == 'elegant-gold') selected @endif>👑 Elegant Gold (Luxury)</option>
-                <option value="modern-gradient" @if(($settings['theme'] ?? '') == 'modern-gradient') selected @endif>🌈 Modern Gradient (Vibrante)</option>
-            </optgroup>
+	        <select name="settings[theme]" class="form-select">
+	            <option value="">- Sin tema (personalizado) -</option>
+	            <optgroup label="Temas Swiper & Gallery">
+	                <option value="dark-rounded" @if(($settings['theme'] ?? '') == 'dark-rounded') selected @endif>🌙 Dark Rounded (Glassmorphism)</option>
+	                <option value="moon-crescent" @if(($settings['theme'] ?? '') == 'moon-crescent') selected @endif>🌙 Media Luna (Wave)</option>
+	                <option value="light-minimal" @if(($settings['theme'] ?? '') == 'light-minimal') selected @endif>☀️ Light Minimal (Limpio)</option>
+	                <option value="hero-full" @if(($settings['theme'] ?? '') == 'hero-full') selected @endif>🎬 Hero Full (Cinematic)</option>
+	                <option value="neon-glow" @if(($settings['theme'] ?? '') == 'neon-glow') selected @endif>⚡ Neon Glow (Cyberpunk)</option>
+	                <option value="elegant-gold" @if(($settings['theme'] ?? '') == 'elegant-gold') selected @endif>👑 Elegant Gold (Luxury)</option>
+	                <option value="modern-gradient" @if(($settings['theme'] ?? '') == 'modern-gradient') selected @endif>🌈 Modern Gradient (Vibrante)</option>
+	                <option value="rounded-shadow" @if(($settings['theme'] ?? '') == 'rounded-shadow') selected @endif>🧾 Rounded Shadow (Tarjeta)</option>
+	            </optgroup>
             <optgroup label="Temas Gallery">
                 <option value="gallery-light" @if(($settings['theme'] ?? '') == 'gallery-light') selected @endif>📸 Gallery Light (Claro)</option>
                 <option value="gallery-dark" @if(($settings['theme'] ?? '') == 'gallery-dark') selected @endif>🎞️ Gallery Dark (Oscuro)</option>
@@ -628,6 +664,22 @@
         </select>
     </div>
 </div>
+
+            {{-- TAMAÑO --}}
+            <div class="card mb-3">
+                <div class="card-header">Tamaño</div>
+                <div class="card-body">
+                    <label class="form-label">Altura del slider (px)</label>
+                    <input type="number"
+                           class="form-control"
+                           name="settings[height]"
+                           min="120"
+                           max="1200"
+                           step="10"
+                           value="{{ (int)($settings['height'] ?? 400) }}">
+                    <small class="form-text text-muted d-block">Ejemplos: 400 (actual), 500, 600, 700… Aplica al render del shortcode.</small>
+                </div>
+            </div>
 
             {{-- REPRODUCCIÓN --}}
             <div class="card mb-3">
@@ -674,6 +726,14 @@
                         <input type="hidden" name="settings[navigation]" value="0">
                         <input type="checkbox" class="form-check-input" name="settings[navigation]" value="1" @if(($settings['navigation'] ?? '') == 1) checked @endif>
                         <label class="form-check-label">Mostrar flechas de navegación</label>
+                    </div>
+
+                    {{-- Full Width (a sangre) --}}
+                    <div class="form-check mb-2">
+                        <input type="hidden" name="settings[full_width]" value="0">
+                        <input type="checkbox" class="form-check-input" name="settings[full_width]" value="1" @if(($settings['full_width'] ?? '') == 1) checked @endif>
+                        <label class="form-check-label">Ancho completo (a sangre)</label>
+                        <small class="form-text text-muted d-block">El slider ocupará todo el ancho de la pantalla sin márgenes del container</small>
                     </div>
 
                   {{-- Estilo de Flechas (actualizado con más opciones) --}}
@@ -761,13 +821,26 @@
             </div>
 
             {{-- CAPTIONS Y TEXTOS --}}
-            <div class="card mb-3">
-                <div class="card-header">Textos y Descripciones</div>
-                <div class="card-body">
-
-                    {{-- Mostrar descripción --}}
-                    <div class="form-check mb-2">
-                        <input type="hidden" name="settings[show_caption]" value="0">
+	            <div class="card mb-3">
+	                <div class="card-header">Textos y Descripciones</div>
+	                <div class="card-body">
+	                    @php
+	                        $fontOptions = [
+	                            '' => '— Tipografía del tema (default) —',
+	                            "'Playfair Display', serif" => 'Playfair Display',
+	                            "'Montserrat', sans-serif" => 'Montserrat',
+	                            "'Roboto', sans-serif" => 'Roboto',
+	                            "'Open Sans', sans-serif" => 'Open Sans',
+	                            "'Lato', sans-serif" => 'Lato',
+	                            "'Poppins', sans-serif" => 'Poppins',
+	                            "'Oswald', sans-serif" => 'Oswald',
+	                            "'Raleway', sans-serif" => 'Raleway',
+	                        ];
+	                    @endphp
+	
+	                    {{-- Mostrar descripción --}}
+	                    <div class="form-check mb-2">
+	                        <input type="hidden" name="settings[show_caption]" value="0">
                         <input type="checkbox" class="form-check-input" name="settings[show_caption]" value="1" @if(($settings['show_caption'] ?? '') == 1) checked @endif>
                         <label class="form-check-label">Mostrar descripción</label>
                     </div>
@@ -812,11 +885,56 @@
 </div>
 
 
-                    {{-- Color caption --}}
-                    <div class="mb-2">
-                        <label class="form-label">Color del texto</label>
-                        <input type="color" name="settings[caption_color]" value="{{ $settings['caption_color'] ?? '#ffffff' }}" class="form-control form-control-color">
-                    </div>
+	                    {{-- Color caption --}}
+	                    <div class="mb-2">
+	                        <label class="form-label">Color del texto</label>
+	                        <input type="color" name="settings[caption_color]" value="{{ $settings['caption_color'] ?? '#ffffff' }}" class="form-control form-control-color">
+	                    </div>
+
+	                    <div class="mb-2">
+	                        <label class="form-label">Color global del título</label>
+	                        <input type="color" name="settings[caption_title_color]" value="{{ $settings['caption_title_color'] ?? ($settings['caption_color'] ?? '#ffffff') }}" class="form-control form-control-color">
+	                    </div>
+
+	                    <div class="mb-2">
+	                        <label class="form-label">Color global del subtítulo</label>
+	                        <input type="color" name="settings[caption_description_color]" value="{{ $settings['caption_description_color'] ?? ($settings['caption_color'] ?? '#ffffff') }}" class="form-control form-control-color">
+	                    </div>
+
+	                    <div class="mb-2">
+	                        <label class="form-label">Tipografía global del título</label>
+	                        <select name="settings[caption_title_font]" class="form-select">
+	                            @php $selectedTitleFont = $settings['caption_title_font'] ?? ''; @endphp
+	                            @foreach($fontOptions as $value => $label)
+	                                <option value="{{ $value }}" @if((string)$selectedTitleFont === (string)$value) selected @endif>{{ $label }}</option>
+	                            @endforeach
+	                        </select>
+	                        <small class="form-text text-muted d-block">Las tipografías definidas en una diapositiva tienen prioridad.</small>
+	                    </div>
+
+	                    <div class="mb-2">
+	                        <label class="form-label">Tipografía global del subtítulo</label>
+	                        <select name="settings[caption_description_font]" class="form-select">
+	                            @php $selectedDescFont = $settings['caption_description_font'] ?? ''; @endphp
+	                            @foreach($fontOptions as $value => $label)
+	                                <option value="{{ $value }}" @if((string)$selectedDescFont === (string)$value) selected @endif>{{ $label }}</option>
+	                            @endforeach
+	                        </select>
+	                        <small class="form-text text-muted d-block">Las tipografías definidas en una diapositiva tienen prioridad.</small>
+	                    </div>
+
+	                    <div class="mt-3 mb-2">
+	                        <label class="form-label">Botón (CTA) global: fondo</label>
+	                        <input type="color" name="settings[cta_bg_color]" value="{{ $settings['cta_bg_color'] ?? '#1d4ed8' }}" class="form-control form-control-color">
+	                    </div>
+	                    <div class="mb-2">
+	                        <label class="form-label">Botón (CTA) global: texto</label>
+	                        <input type="color" name="settings[cta_text_color]" value="{{ $settings['cta_text_color'] ?? '#ffffff' }}" class="form-control form-control-color">
+	                    </div>
+	                    <div class="mb-2">
+	                        <label class="form-label">Botón (CTA) global: borde</label>
+	                        <input type="color" name="settings[cta_border_color]" value="{{ $settings['cta_border_color'] ?? '#ffffff' }}" class="form-control form-control-color">
+	                    </div>
 
                     {{-- Tamaño título --}}
                     <div class="mb-2">
@@ -895,19 +1013,118 @@ let arrowsBgPickrInstance = null;
 let captionBgColor = '{{ $settings["caption_bg"] ?? "rgba(0,0,0,0.6)" }}';
 let arrowsBgColor = '{{ $settings["arrows_bg_color"] ?? "rgba(255,255,255,0.9)" }}';
 let currentEngine = '{{ $settings["engine"] ?? "swiper" }}';
+let lastThemeValue = null;
+let isApplyingThemePreset = false;
 
 // Nombres de temas para el badge
 const themeNames = {
     '': 'Sin tema',
     'dark-rounded': '🌙 Dark Rounded',
+    'moon-crescent': '🌙 Media Luna',
     'light-minimal': '☀️ Light Minimal',
     'hero-full': '🎬 Hero Full',
     'neon-glow': '⚡ Neon Glow',
     'elegant-gold': '👑 Elegant Gold',
     'modern-gradient': '🌈 Modern Gradient',
+    'rounded-shadow': '🧾 Rounded Shadow',
     'gallery-light': '📸 Gallery Light',
     'gallery-dark': '🎞️ Gallery Dark'
 };
+
+// ============================================
+// APLICAR PRESET "MEDIA LUNA" (THEME: moon-crescent)
+// ============================================
+function applyMoonCrescentPreset() {
+    if (isApplyingThemePreset) return;
+    isApplyingThemePreset = true;
+
+    try {
+        // Helpers
+        const setCheckbox = (name, checked) => {
+            const el = document.querySelector(`input[type="checkbox"][name="${name}"]`);
+            if (el) el.checked = !!checked;
+        };
+        const setValue = (name, value) => {
+            const el = document.querySelector(`[name="${name}"]`);
+            if (el) el.value = value;
+        };
+        const setSelect = (name, value) => {
+            const el = document.querySelector(`select[name="${name}"]`);
+            if (el) el.value = value;
+        };
+
+        // Look & layout similar a la referencia
+        setValue('settings[height]', '600');
+        setCheckbox('settings[full_width]', true);
+
+        // Navegación
+        setCheckbox('settings[navigation]', true);
+        setCheckbox('settings[pagination]', true);
+        setSelect('settings[arrows_style]', 'arrow-minimal-large');
+        setValue('settings[arrows_color]', '#ffffff');
+
+        // Fondo de flechas (aunque en minimal se forza transparente)
+        const arrowsBg = 'rgba(255,255,255,0)';
+        const arrowsBgHidden = document.getElementById('arrows_bg_color_input');
+        if (arrowsBgHidden) arrowsBgHidden.value = arrowsBg;
+        arrowsBgColor = arrowsBg;
+        const arrowsPickerEl = document.getElementById('arrows-bg-picker-element');
+        if (arrowsPickerEl) {
+            arrowsPickerEl.style.backgroundColor = arrowsBg;
+            arrowsPickerEl.textContent = arrowsBg;
+        }
+        const arrowsBgValueEl = document.getElementById('arrows-bg-value');
+        if (arrowsBgValueEl) arrowsBgValueEl.textContent = arrowsBg;
+        const arrowsBgPreview = document.getElementById('arrows-bg-preview');
+        if (arrowsBgPreview) {
+            const colorBox = arrowsBgPreview.querySelector('div:last-child');
+            if (colorBox) colorBox.style.backgroundColor = arrowsBg;
+        }
+
+        // Texto centrado y limpio (sin caja de fondo)
+        setCheckbox('settings[show_caption]', true);
+        setSelect('settings[caption_position]', 'center');
+        setValue('settings[caption_color]', '#ffffff');
+        setValue('settings[caption_title_size]', '56px');
+        setValue('settings[caption_description_size]', '18px');
+
+        const captionBg = 'rgba(0,0,0,0)';
+        const captionHidden = document.getElementById('caption_bg_input');
+        if (captionHidden) captionHidden.value = captionBg;
+        captionBgColor = captionBg;
+        const captionPickerEl = document.getElementById('color-picker-element');
+        if (captionPickerEl) {
+            captionPickerEl.style.backgroundColor = captionBg;
+            captionPickerEl.textContent = captionBg;
+        }
+        const captionValueEl = document.getElementById('color-value');
+        if (captionValueEl) captionValueEl.textContent = captionBg;
+        const captionPreview = document.getElementById('color-preview');
+        if (captionPreview) {
+            const colorBox = captionPreview.querySelector('div:last-child');
+            if (colorBox) colorBox.style.backgroundColor = captionBg;
+        }
+
+        // Movimiento suave
+        setCheckbox('settings[autoplay]', true);
+        setValue('settings[autoplay_delay]', '5000');
+        setCheckbox('settings[loop]', true);
+        setSelect('settings[transition_effect]', 'slide');
+    } finally {
+        isApplyingThemePreset = false;
+    }
+
+    // Re-aplicar preview con los nuevos valores
+    updateHeight();
+    updateNavigation();
+    updatePagination();
+    updateArrowStyle();
+    updateArrowColor();
+    updateArrowBackgroundColor();
+    updateAutoplay();
+    updateLoop();
+    updateCaptionStyles();
+}
 
 // Nombres de estilos de flechas
 const arrowStyleNames = {
@@ -1565,6 +1782,8 @@ function handleSettingChange(e) {
         updateEngine();
     } else if (name.includes('theme')) {
         updateTheme();
+    } else if (name.includes('height')) {
+        updateHeight();
     } else if (name.includes('arrows_style')) {
         updateArrowStyle();
         // Después de cambiar estilo, aplicar colores (fondo transparente si es minimalista)
@@ -1671,7 +1890,30 @@ function updateTheme() {
         badge.textContent = themeNames[theme] || 'Sin tema';
     }
 
+    // Aplicar preset solo cuando el usuario CAMBIA el tema (no en el primer render)
+    if (lastThemeValue !== null && lastThemeValue !== theme && theme === 'moon-crescent') {
+        applyMoonCrescentPreset();
+    }
+    lastThemeValue = theme;
+
     console.log('Tema actualizado:', theme);
+}
+
+// ============================================
+// ACTUALIZAR ALTURA DEL PREVIEW
+// ============================================
+function updateHeight() {
+    const heightInput = document.querySelector('input[name="settings[height]"]');
+    const height = Math.max(120, Math.min(1200, parseInt(heightInput?.value || '400', 10)));
+    const swiperEl = document.getElementById('preview-swiper');
+    if (swiperEl) {
+        swiperEl.style.height = height + 'px';
+    }
+
+    // Swiper necesita update() si cambia tamaño
+    if (window.previewSwiper && typeof window.previewSwiper.update === 'function') {
+        window.previewSwiper.update();
+    }
 }
 
 // ============================================
@@ -1881,9 +2123,16 @@ function updateCaptionStyles() {
     // Usar la variable global captionBgColor que se actualiza con Pickr
     const captionBg = captionBgColor || document.getElementById('caption_bg_input')?.value || 'rgba(0,0,0,0.6)';
     const captionColor = document.querySelector('input[name="settings[caption_color]"]')?.value || '#ffffff';
+    const globalTitleColor = document.querySelector('input[name="settings[caption_title_color]"]')?.value || captionColor;
+    const globalDescColor = document.querySelector('input[name="settings[caption_description_color]"]')?.value || captionColor;
     const titleSize = document.querySelector('input[name="settings[caption_title_size]"]')?.value || '28px';
     const descSize = document.querySelector('input[name="settings[caption_description_size]"]')?.value || '18px';
     const position = document.querySelector('select[name="settings[caption_position]"]')?.value || 'bottom-left';
+    const globalTitleFont = document.querySelector('select[name="settings[caption_title_font]"]')?.value || '';
+    const globalDescFont = document.querySelector('select[name="settings[caption_description_font]"]')?.value || '';
+    const globalBtnBg = document.querySelector('input[name="settings[cta_bg_color]"]')?.value || '#1d4ed8';
+    const globalBtnText = document.querySelector('input[name="settings[cta_text_color]"]')?.value || '#ffffff';
+    const globalBtnBorder = document.querySelector('input[name="settings[cta_border_color]"]')?.value || '#ffffff';
 
     const isVisible = showCaptionCheckbox?.checked || false;
 
@@ -1943,13 +2192,53 @@ function updateCaptionStyles() {
         const desc = caption.querySelector('.caption-description');
         if (title) {
             title.style.fontSize = titleSize;
-            title.style.color = captionColor;
+            const slideTitleColor = caption.dataset.titleColor || '';
+            title.style.color = slideTitleColor || globalTitleColor || captionColor;
             title.style.margin = '0';
+            const slideTitleFont = caption.dataset.titleFont || '';
+            const slideTitleBold = caption.dataset.titleBold;
+            const finalTitleFont = slideTitleFont || globalTitleFont;
+            if (finalTitleFont) title.style.fontFamily = finalTitleFont;
+            if (slideTitleBold === '0') title.style.fontWeight = '400';
+            else if (slideTitleBold === '1') title.style.fontWeight = '800';
         }
         if (desc) {
             desc.style.fontSize = descSize;
-            desc.style.color = captionColor;
+            const slideDescColor = caption.dataset.descColor || '';
+            desc.style.color = slideDescColor || globalDescColor || captionColor;
             desc.style.marginTop = '8px';
+            const slideDescFont = caption.dataset.descFont || '';
+            const finalDescFont = slideDescFont || globalDescFont;
+            if (finalDescFont) desc.style.fontFamily = finalDescFont;
+        }
+
+        // Botón CTA (si existe)
+        const btn1 = caption.querySelector('.slider-cta-button[data-btn="1"]');
+        if (btn1) {
+            const useCustom = caption.dataset.btnCustom === '1';
+            const btnBg = (useCustom && caption.dataset.btnBg) ? caption.dataset.btnBg : globalBtnBg;
+            const btnText = (useCustom && caption.dataset.btnText) ? caption.dataset.btnText : globalBtnText;
+            const btnBorder = (useCustom && caption.dataset.btnBorder) ? caption.dataset.btnBorder : globalBtnBorder;
+            btn1.style.backgroundColor = btnBg;
+            btn1.style.color = btnText;
+            btn1.style.borderColor = btnBorder;
+        }
+
+        const btn2 = caption.querySelector('.slider-cta-button[data-btn="2"]');
+        if (btn2) {
+            const useCustom2 = caption.dataset.btn2Custom === '1';
+            const btn2Bg = (useCustom2 && caption.dataset.btn2Bg) ? caption.dataset.btn2Bg : 'transparent';
+            const btn2Text = (useCustom2 && caption.dataset.btn2Text) ? caption.dataset.btn2Text : globalBtnText;
+            const btn2Border = (useCustom2 && caption.dataset.btn2Border) ? caption.dataset.btn2Border : globalBtnBorder;
+            btn2.style.backgroundColor = btn2Bg;
+            btn2.style.color = btn2Text;
+            btn2.style.borderColor = btn2Border;
+        }
+
+        const btnRow = caption.querySelector('.slider-cta-buttons');
+        if (btnRow) {
+            const shape = (btnRow.dataset.shape || caption.dataset.btnShape || 'rounded');
+            btnRow.classList.toggle('shape-square', shape === 'square');
         }
     });
 }
@@ -1960,6 +2249,7 @@ function updateCaptionStyles() {
 function updateAllPreview() {
     updateEngine();
     updateTheme();
+    updateHeight();
     updateArrowStyle();
     // Aplicar color de flechas después del estilo para que tenga prioridad
     setTimeout(updateArrowColor, 100);

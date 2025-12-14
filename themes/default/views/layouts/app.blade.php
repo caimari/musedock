@@ -164,8 +164,8 @@
     <link rel="stylesheet" href="{{ asset('themes/default/css/responsive.css') }}">
 	
 	{{-- Swiper CSS local (DEBE cargarse ANTES de slider-themes.css para que nuestros estilos sobrescriban) --}}
-	<link rel="stylesheet" href="/assets/css/swiper-bundle.min.css">
-	<link rel="stylesheet" href="{{ asset('themes/default/css/slider-themes.css') }}">
+	<link rel="stylesheet" href="/assets/css/swiper-bundle.min.css?v={{ file_exists(public_path('assets/css/swiper-bundle.min.css')) ? filemtime(public_path('assets/css/swiper-bundle.min.css')) : time() }}">
+	<link rel="stylesheet" href="{{ asset('themes/default/css/slider-themes.css') }}?v={{ file_exists(public_path('assets/themes/default/css/slider-themes.css')) ? filemtime(public_path('assets/themes/default/css/slider-themes.css')) : time() }}">
 {{-- Slick Carousel CSS (local) --}}
 <link rel="stylesheet" href="{{ asset('vendor/slick/slick.min.css') }}" />
 <link rel="stylesheet" href="{{ asset('vendor/slick/slick-theme.min.css') }}" />

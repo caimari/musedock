@@ -24,6 +24,8 @@
     "loop": "Repetir",
     "navigation": "Navegación",
     "pagination": "Paginación",
+    "full_width": "Ancho completo (a sangre)",
+    "full_width_help": "El slider ocupará todo el ancho de la pantalla sin márgenes del container",
     "slides_per_view": "Slides por vista",
     "space_between": "Espacio entre slides (px)",
     "speed": "Velocidad (ms)",

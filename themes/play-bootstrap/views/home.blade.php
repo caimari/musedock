@@ -20,6 +20,78 @@
     {{ $translation->seo_description ?? $page->seo_description ?? site_setting('site_description', '') }}
 @endsection
 
+@push('styles')
+<style>
+/* ===== ESPACIADO ENTRE COMPONENTES ===== */
+.page-content-wrapper > * {
+    margin-bottom: 3rem !important; /* 48px entre componentes */
+}
+
+.page-content-wrapper > *:last-child {
+    margin-bottom: 0 !important;
+}
+
+/* ===== SLIDER FULL-WIDTH COMO PRIMER ELEMENTO ===== */
+body.has-fullwidth-slider-first .ud-hero {
+    display: none !important;
+}
+
+body.has-fullwidth-slider-first main {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+body.has-fullwidth-slider-first .ud-page-content {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+body.has-fullwidth-slider-first .page-content-wrapper {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+body.has-fullwidth-slider-first .page-content-wrapper > .slider-full-width-wrapper:first-child {
+    margin-top: 0 !important;
+    margin-bottom: 3rem !important;
+}
+
+/* ===== SLIDER NORMAL (SIN FULL-WIDTH) COMO PRIMER ELEMENTO ===== */
+body.has-slider-first:not(.has-fullwidth-slider-first) .ud-hero {
+    padding-top: 120px !important; /* Reducir el padding del hero */
+}
+
+body.has-slider-first:not(.has-fullwidth-slider-first) .ud-page-content {
+    padding-top: 1rem !important;
+}
+</style>
+@endpush
+
+@push('scripts')
+<script>
+// Detectar tipo de slider y ajustar layout
+document.addEventListener('DOMContentLoaded', function() {
+    const wrapper = document.querySelector('.page-content-wrapper');
+    if (wrapper) {
+        const firstChild = wrapper.firstElementChild;
+
+        if (firstChild) {
+            // Si es slider full-width
+            if (firstChild.classList.contains('slider-full-width-wrapper')) {
+                document.body.classList.add('has-fullwidth-slider-first');
+                console.log('Slider full-width detectado como primer elemento');
+            }
+            // Si es slider normal (swiper o gallery sin wrapper full-width)
+            else if (firstChild.classList.contains('swiper') || firstChild.classList.contains('gallery-container')) {
+                document.body.classList.add('has-slider-first');
+                console.log('Slider normal detectado como primer elemento');
+            }
+        }
+    }
+});
+</script>
+@endpush
+
 @section('content')
 <!-- ====== Hero Start ====== -->
 <section class="ud-hero" id="home">

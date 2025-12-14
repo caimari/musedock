@@ -78,6 +78,10 @@ class CsrfMiddleware
             return $_POST['csrf_token'];
         }
 
+        if (isset($_POST['_csrf_token'])) {
+            return $_POST['_csrf_token'];
+        }
+
         // 2. Buscar en headers (para APIs)
         if (isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
             return $_SERVER['HTTP_X_CSRF_TOKEN'];
@@ -147,10 +151,15 @@ class CsrfMiddleware
 
         if ($isAjax) {
             header('Content-Type: application/json');
+
+            // Mensaje traducido
+            $message = 'Tu sesión ha expirado. Por favor, recarga la página e inicia sesión nuevamente.';
+
             $response = [
                 'success' => false,
-                'message' => 'Tu sesión ha expirado. Por favor, recarga la página e inicia sesión nuevamente.',
+                'message' => $message,
                 'error' => 'csrf_token_mismatch',
+                'error_detail' => 'Token CSRF inválido o expirado',
                 'redirect' => $this->getLoginUrl()
             ];
             // Incluir nuevo token para que el frontend pueda actualizar y reintentar
@@ -192,6 +201,11 @@ class CsrfMiddleware
         // Si es superadmin (comienza con /musedock)
         if (strpos($uri, '/musedock') === 0) {
             return '/musedock/login';
+        }
+
+        // Si es customer (comienza con /customer)
+        if (strpos($uri, '/customer') === 0) {
+            return '/customer/login';
         }
 
         // Para tenants, usar el admin_path si está disponible

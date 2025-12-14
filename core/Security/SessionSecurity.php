@@ -95,6 +95,7 @@ class SessionSecurity
                 unset($_SESSION['super_admin']);
                 unset($_SESSION['admin']);
                 unset($_SESSION['user']);
+                unset($_SESSION['customer']);
                 unset($_SESSION['persistent']);
                 unset($_SESSION['last_active']);
 
@@ -650,6 +651,8 @@ class SessionSecurity
                 return self::rememberAdmin($userId);
             case 'user':
                 return self::rememberUser($userId);
+            case 'customer':
+                return self::rememberCustomer($userId);
             default:
                 error_log("Tipo de usuario no válido para remember: {$userType}");
                 return false;
@@ -806,10 +809,54 @@ class SessionSecurity
                 return true;
             }
             
+            // 4. Verificar si es un customer
+            $stmt = $db->prepare("
+                SELECT st.*, c.*
+                FROM customer_session_tokens st
+                JOIN customers c ON st.customer_id = c.id
+                WHERE st.token = :token
+                AND st.expires_at > NOW()
+            ");
+
+            $stmt->execute(['token' => $tokenHash]);
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($result) {
+                // Es un customer
+                if (!$skipSessionStart) {
+                    self::startSession();
+                    self::regenerate();
+                }
+
+                $_SESSION['customer'] = [
+                    'id' => $result['customer_id'],
+                    'email' => $result['email'],
+                    'name' => $result['name'] ?? 'Customer',
+                    'company' => $result['company'] ?? null,
+                    'status' => $result['status']
+                ];
+
+                // Marcar sesión como persistente
+                $_SESSION['persistent'] = true;
+
+                // Actualizar la fecha de último uso del token
+                $db->prepare("
+                    UPDATE customer_session_tokens
+                    SET last_used_at = NOW()
+                    WHERE token = :token
+                ")->execute(['token' => $tokenHash]);
+
+                // Refrescar token si está próximo a expirar
+                self::refreshCustomerToken($result['customer_id']);
+
+                error_log("Sesión restaurada desde token para customer: {$result['customer_id']}");
+                return true;
+            }
+
             // Si llegamos aquí, el token no es válido para ningún tipo de usuario
             error_log("Token remember no válido para ningún tipo de usuario");
             return false;
-            
+
         } catch (\Exception $e) {
             error_log("Error al verificar token remember: " . $e->getMessage());
             return false;
@@ -933,6 +980,117 @@ class SessionSecurity
             }
         } catch (\Exception $e) {
             error_log("Error al refrescar token remember de user: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Crea un token "recordarme" para un customer
+     *
+     * @param int $userId ID del customer
+     * @return bool
+     */
+    public static function rememberCustomer($userId)
+    {
+        $token = bin2hex(random_bytes(32));
+        $hash = hash('sha256', $token);
+
+        try {
+            $db = self::getDatabase();
+            $isPgsql = self::isPostgreSQL();
+
+            // Eliminar tokens antiguos primero
+            $stmt = $db->prepare("DELETE FROM customer_session_tokens WHERE customer_id = :id");
+            $stmt->execute(['id' => $userId]);
+
+            // Crear nuevo token - sintaxis diferente para MySQL vs PostgreSQL
+            if ($isPgsql) {
+                $days = self::PERSISTENT_DAYS;
+                $stmt = $db->prepare("
+                    INSERT INTO customer_session_tokens
+                    (customer_id, token, ip, user_agent, persistent, created_at, expires_at, last_used_at)
+                    VALUES
+                    (:id, :token, :ip, :agent, TRUE, NOW(), NOW() + INTERVAL '{$days} days', NOW())
+                ");
+                $stmt->execute([
+                    'id' => $userId,
+                    'token' => $hash,
+                    'ip' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0',
+                    'agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+                ]);
+            } else {
+                $stmt = $db->prepare("
+                    INSERT INTO customer_session_tokens
+                    (customer_id, token, ip, user_agent, persistent, created_at, expires_at, last_used_at)
+                    VALUES
+                    (:id, :token, :ip, :agent, 1, NOW(), DATE_ADD(NOW(), INTERVAL :days DAY), NOW())
+                ");
+                $stmt->execute([
+                    'id' => $userId,
+                    'token' => $hash,
+                    'ip' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0',
+                    'agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
+                    'days' => self::PERSISTENT_DAYS
+                ]);
+            }
+
+            setcookie(
+                'remember_token',
+                $token,
+                [
+                    'expires' => time() + (86400 * self::PERSISTENT_DAYS),
+                    'path' => '/',
+                    'secure' => true,
+                    'httponly' => true,
+                    'samesite' => 'Lax'
+                ]
+            );
+
+            error_log("Token remember creado para customer {$userId}");
+            return true;
+        } catch (\Exception $e) {
+            error_log("Error al crear token remember para customer: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Refresca el token de customer si está próximo a expirar (< 7 días)
+     * MEJORA #4: Rotación de tokens cada 7 días para seguridad mejorada
+     *
+     * @param int $userId ID del customer
+     */
+    private static function refreshCustomerToken($userId)
+    {
+        try {
+            $db = self::getDatabase();
+            $days = self::PERSISTENT_DAYS;
+
+            if (self::isPostgreSQL()) {
+                $stmt = $db->prepare("
+                    UPDATE customer_session_tokens
+                    SET expires_at = NOW() + INTERVAL '{$days} days'
+                    WHERE customer_id = :id
+                    AND expires_at < NOW() + INTERVAL '7 days'
+                ");
+                $stmt->execute(['id' => $userId]);
+            } else {
+                $stmt = $db->prepare("
+                    UPDATE customer_session_tokens
+                    SET expires_at = DATE_ADD(NOW(), INTERVAL :days DAY)
+                    WHERE customer_id = :id
+                    AND expires_at < DATE_ADD(NOW(), INTERVAL 7 DAY)
+                ");
+                $stmt->execute([
+                    'id' => $userId,
+                    'days' => $days
+                ]);
+            }
+
+            if ($stmt->rowCount() > 0) {
+                error_log("Token remember refrescado para customer {$userId} (rotación de seguridad)");
+            }
+        } catch (\Exception $e) {
+            error_log("Error al refrescar token remember de customer: " . $e->getMessage());
         }
     }
 }

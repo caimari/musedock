@@ -7,6 +7,23 @@ use Screenart\Musedock\Models\Slide;
 
 class SliderHelper
 {
+    private static function sanitizeColor($value, string $default): string
+    {
+        $value = is_string($value) ? trim($value) : '';
+        if ($value === '') return $default;
+
+        // HEX (#rgb, #rrggbb, #rrggbbaa)
+        if (preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/', $value)) {
+            return $value;
+        }
+
+        // rgb/rgba
+        if (preg_match('/^rgba?\\(\\s*\\d{1,3}\\s*,\\s*\\d{1,3}\\s*,\\s*\\d{1,3}(\\s*,\\s*(0(\\.\\d+)?|1(\\.0+)?)\\s*)?\\)$/', $value)) {
+            return $value;
+        }
+
+        return $default;
+    }
     /**
      * Renderiza un slider por su ID
      * Retorna string directo (sin SafeHtml) porque el contenido es generado internamente
@@ -57,6 +74,16 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
     $captionPosition = $settings['caption_position'] ?? 'bottom-left';
     $captionAnimation = $settings['caption_animation'] ?? 'none';
     $transitionEffect = $settings['transition_effect'] ?? 'slide';
+    $fullWidth = !empty($settings['full_width']);
+    $globalTitleFont = isset($settings['caption_title_font']) ? trim((string)$settings['caption_title_font']) : '';
+    $globalDescFont = isset($settings['caption_description_font']) ? trim((string)$settings['caption_description_font']) : '';
+    $globalTitleFont = preg_replace('/[;\r\n]/', '', $globalTitleFont);
+    $globalDescFont = preg_replace('/[;\r\n]/', '', $globalDescFont);
+    $globalTitleColor = self::sanitizeColor($settings['caption_title_color'] ?? '', $captionColor);
+    $globalDescColor = self::sanitizeColor($settings['caption_description_color'] ?? '', $captionColor);
+    $globalBtnBg = self::sanitizeColor($settings['cta_bg_color'] ?? '', '#1d4ed8');
+    $globalBtnText = self::sanitizeColor($settings['cta_text_color'] ?? '', '#ffffff');
+    $globalBtnBorder = self::sanitizeColor($settings['cta_border_color'] ?? '', '#ffffff');
 
     $autoplay = !empty($settings['autoplay']);
     $autoplayDelay = intval($settings['autoplay_delay'] ?? 3000);
@@ -68,8 +95,56 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
     $arrowColor = $settings['arrows_color'] ?? '#ffffff';
     $arrowBgColor = $settings['arrows_bg_color'] ?? 'rgba(255,255,255,0.9)';
 
-    $output = '<link rel="stylesheet" href="/assets/css/swiper-bundle.min.css">';
-    $output .= '<link rel="stylesheet" href="/assets/themes/default/css/slider-themes.css">';
+    // Cache-busting para evitar que el navegador se quede con versiones viejas del CSS
+    $appRoot = defined('APP_ROOT') ? APP_ROOT : realpath(__DIR__ . '/../../..');
+    $swiperCssPath = $appRoot . '/public/assets/css/swiper-bundle.min.css';
+    $themesCssPath = $appRoot . '/public/assets/themes/default/css/slider-themes.css';
+    $swiperCssVersion = is_file($swiperCssPath) ? filemtime($swiperCssPath) : time();
+    $themesCssVersion = is_file($themesCssPath) ? filemtime($themesCssPath) : time();
+
+    $output = '<link rel="stylesheet" href="/assets/css/swiper-bundle.min.css?v=' . $swiperCssVersion . '">';
+    $output .= '<link rel="stylesheet" href="/assets/themes/default/css/slider-themes.css?v=' . $themesCssVersion . '">';
+
+    // Cargar Google Fonts si se seleccionaron (global o por slide)
+    $googleFontMap = [
+        'Playfair Display' => 'Playfair+Display:wght@400;700;800',
+        'Montserrat' => 'Montserrat:wght@400;600;700;800',
+        'Roboto' => 'Roboto:wght@400;500;700;900',
+        'Open Sans' => 'Open+Sans:wght@400;600;700;800',
+        'Lato' => 'Lato:wght@400;700;900',
+        'Poppins' => 'Poppins:wght@400;500;600;700;800',
+        'Oswald' => 'Oswald:wght@400;500;600;700',
+        'Raleway' => 'Raleway:wght@400;500;600;700;800',
+    ];
+    $fontsWanted = [];
+    $extractFirstFamily = static function (string $fontFamily): string {
+        $first = trim(explode(',', $fontFamily, 2)[0] ?? '');
+        $first = trim($first, " \t\n\r\0\x0B\"'");
+        return $first;
+    };
+    foreach ([$globalTitleFont, $globalDescFont] as $ff) {
+        if ($ff !== '') $fontsWanted[] = $extractFirstFamily($ff);
+    }
+    foreach ($slides as $slide) {
+        if (!empty($slide->title_font)) $fontsWanted[] = $extractFirstFamily((string)$slide->title_font);
+        if (!empty($slide->description_font)) $fontsWanted[] = $extractFirstFamily((string)$slide->description_font);
+    }
+    $fontsWanted = array_values(array_unique(array_filter($fontsWanted)));
+    $googleFamilies = [];
+    foreach ($fontsWanted as $fontName) {
+        if (isset($googleFontMap[$fontName])) $googleFamilies[] = $googleFontMap[$fontName];
+    }
+    if (!empty($googleFamilies)) {
+        $output .= '<link rel="preconnect" href="https://fonts.googleapis.com">';
+        $output .= '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>';
+        $output .= '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=' . implode('&family=', $googleFamilies) . '&display=swap">';
+    }
+
+    // Wrapper para full-width (a sangre)
+    if ($fullWidth) {
+        $output .= '<div class="slider-full-width-wrapper" style="width:100vw;margin-left:calc(-50vw + 50%);margin-right:calc(-50vw + 50%);position:relative;">';
+    }
+
     $output .= '<div class="swiper slider-' . $sliderId . ' theme-' . \e($theme) . '" style="width:100%;height:' . intval($height) . 'px;">';
     $output .= '<div class="swiper-wrapper">';
 
@@ -108,7 +183,14 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
             
             // CAMBIO: Si hay link_url, hacer que SOLO el título sea clickeable
             if (!empty($slide->title)) {
-                $titleStyle = 'font-size:' . $titleSize . ';font-weight:bold;color:' . $captionColor . ' !important;';
+                $isTitleBold = !isset($slide->title_bold) || (bool) $slide->title_bold;
+                $titleFont = isset($slide->title_font) ? trim((string) $slide->title_font) : '';
+                $titleFont = preg_replace('/[;\\r\\n]/', '', $titleFont);
+                $titleWeight = $isTitleBold ? '800' : '400';
+                $titleColor = self::sanitizeColor($slide->title_color ?? '', $globalTitleColor);
+                $titleStyle = 'font-size:' . $titleSize . ';font-weight:' . $titleWeight . ';color:' . $titleColor . ' !important;';
+                $finalTitleFont = $titleFont !== '' ? $titleFont : $globalTitleFont;
+                if ($finalTitleFont !== '') $titleStyle .= 'font-family:' . \e($finalTitleFont) . ' !important;';
                 
                 if (!empty($slide->link_url)) {
                     // Título con enlace
@@ -121,8 +203,51 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
             
             // Descripción (sin enlace)
             if (!empty($slide->description)) {
-                $descStyle = 'font-size:' . $descriptionSize . ';margin-top:6px;color:' . $captionColor . ' !important;';
+                $descFont = isset($slide->description_font) ? trim((string) $slide->description_font) : '';
+                $descFont = preg_replace('/[;\\r\\n]/', '', $descFont);
+                $descColor = self::sanitizeColor($slide->description_color ?? '', $globalDescColor);
+                $descStyle = 'font-size:' . $descriptionSize . ';margin-top:6px;color:' . $descColor . ' !important;';
+                $finalDescFont = $descFont !== '' ? $descFont : $globalDescFont;
+                if ($finalDescFont !== '') $descStyle .= 'font-family:' . \e($finalDescFont) . ' !important;';
                 $output .= '<div style="' . $descStyle . '">' . \e($slide->description) . '</div>';
+            }
+
+            // Botón opcional (si hay link_url + link_text)
+            $linkText = isset($slide->link_text) ? trim((string) $slide->link_text) : '';
+            $link2Text = isset($slide->link2_text) ? trim((string) $slide->link2_text) : '';
+            $hasBtn1 = !empty($slide->link_url) && $linkText !== '';
+            $hasBtn2 = !empty($slide->link2_url) && $link2Text !== '';
+            $buttonShape = isset($slide->button_shape) && $slide->button_shape === 'square' ? 'shape-square' : '';
+
+            if ($hasBtn1 || $hasBtn2) {
+                $output .= '<div style="margin-top:14px;" class="slider-cta-buttons ' . $buttonShape . '">';
+
+                if ($hasBtn1) {
+                    $linkText = preg_replace('/[\\r\\n]/', '', $linkText);
+                    $useCustomButton = !empty($slide->button_custom);
+                    $btnBg = self::sanitizeColor($useCustomButton ? ($slide->button_bg_color ?? '') : '', $globalBtnBg);
+                    $btnText = self::sanitizeColor($useCustomButton ? ($slide->button_text_color ?? '') : '', $globalBtnText);
+                    $btnBorder = self::sanitizeColor($useCustomButton ? ($slide->button_border_color ?? '') : '', $globalBtnBorder);
+                    $btnStyle = 'background-color:' . $btnBg . ' !important;color:' . $btnText . ' !important;border-color:' . $btnBorder . ' !important;';
+                    $target = (isset($slide->link_target) && $slide->link_target === '_blank') ? '_blank' : '_self';
+                    $rel = $target === '_blank' ? ' rel="noopener noreferrer"' : '';
+                    $output .= '<a class="slider-cta-button" style="' . $btnStyle . '" href="' . \e($slide->link_url) . '" target="' . $target . '"' . $rel . '>' . \e($linkText) . '</a>';
+                }
+
+                if ($hasBtn2) {
+                    $link2Text = preg_replace('/[\\r\\n]/', '', $link2Text);
+                    $useCustomButton2 = !empty($slide->button2_custom);
+                    // Botón 2 por defecto: transparente (outline). Si hay custom, puede tener fondo.
+                    $btn2Bg = self::sanitizeColor($useCustomButton2 ? ($slide->button2_bg_color ?? '') : '', 'transparent');
+                    $btn2Text = self::sanitizeColor($useCustomButton2 ? ($slide->button2_text_color ?? '') : '', $globalBtnText);
+                    $btn2Border = self::sanitizeColor($useCustomButton2 ? ($slide->button2_border_color ?? '') : '', $globalBtnBorder);
+                    $btn2Style = 'background-color:' . $btn2Bg . ' !important;color:' . $btn2Text . ' !important;border-color:' . $btn2Border . ' !important;';
+                    $target2 = (isset($slide->link2_target) && $slide->link2_target === '_blank') ? '_blank' : '_self';
+                    $rel2 = $target2 === '_blank' ? ' rel="noopener noreferrer"' : '';
+                    $output .= '<a class="slider-cta-button secondary" style="' . $btn2Style . '" href="' . \e($slide->link2_url) . '" target="' . $target2 . '"' . $rel2 . '>' . \e($link2Text) . '</a>';
+                }
+
+                $output .= '</div>';
             }
             
             $output .= '</div>'; // Fin caption
@@ -220,7 +345,9 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
             break;
     }
 
-    $output .= '<script src="/assets/js/swiper-bundle.min.js"></script>';
+    $swiperJsPath = $appRoot . '/public/assets/js/swiper-bundle.min.js';
+    $swiperJsVersion = is_file($swiperJsPath) ? filemtime($swiperJsPath) : time();
+    $output .= '<script src="/assets/js/swiper-bundle.min.js?v=' . $swiperJsVersion . '"></script>';
     $output .= '<script>
     document.addEventListener("DOMContentLoaded", function () {
         new Swiper(".slider-' . $sliderId . '", {
@@ -234,6 +361,11 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
         });
     });
     </script>';
+
+    // Cerrar wrapper full-width si está activado
+    if ($fullWidth) {
+        $output .= '</div>'; // Cierra slider-full-width-wrapper
+    }
 
     return $output;
 }
@@ -249,9 +381,23 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
         $arrowStyleClass = !empty($settings['arrows_style']) ? $settings['arrows_style'] : '';
         $arrowColor = $settings['arrows_color'] ?? '#ffffff';
         $arrowBgColor = $settings['arrows_bg_color'] ?? 'rgba(255,255,255,0.9)';
+        $fullWidth = !empty($settings['full_width']);
 
-        $output = '<link rel="stylesheet" href="/assets/css/swiper-bundle.min.css">';
-        $output .= '<link rel="stylesheet" href="/assets/themes/default/css/slider-themes.css">';
+        // Cache-busting para evitar versiones viejas en navegador
+        $appRoot = defined('APP_ROOT') ? APP_ROOT : realpath(__DIR__ . '/../../..');
+        $swiperCssPath = $appRoot . '/public/assets/css/swiper-bundle.min.css';
+        $themesCssPath = $appRoot . '/public/assets/themes/default/css/slider-themes.css';
+        $swiperCssVersion = is_file($swiperCssPath) ? filemtime($swiperCssPath) : time();
+        $themesCssVersion = is_file($themesCssPath) ? filemtime($themesCssPath) : time();
+
+        $output = '<link rel="stylesheet" href="/assets/css/swiper-bundle.min.css?v=' . $swiperCssVersion . '">';
+        $output .= '<link rel="stylesheet" href="/assets/themes/default/css/slider-themes.css?v=' . $themesCssVersion . '">';
+
+        // Wrapper para full-width (a sangre)
+        if ($fullWidth) {
+            $output .= '<div class="slider-full-width-wrapper" style="width:100vw;margin-left:calc(-50vw + 50%);margin-right:calc(-50vw + 50%);position:relative;">';
+        }
+
         $output .= '<div class="gallery-container theme-' . \e($theme) . '" style="display:flex;flex-direction:column;gap:0;margin:0;padding:0;">';
 
         // Main swiper con altura configurable
@@ -302,7 +448,9 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
             $output .= $customStyles;
         }
 
-        $output .= '<script src="/assets/js/swiper-bundle.min.js"></script>';
+        $swiperJsPath = $appRoot . '/public/assets/js/swiper-bundle.min.js';
+        $swiperJsVersion = is_file($swiperJsPath) ? filemtime($swiperJsPath) : time();
+        $output .= '<script src="/assets/js/swiper-bundle.min.js?v=' . $swiperJsVersion . '"></script>';
         $output .= '<script>
         document.addEventListener("DOMContentLoaded", function () {
             var thumbs = new Swiper(".slider-' . $sliderId . '-thumbs", {
@@ -321,6 +469,11 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
             });
         });
         </script>';
+
+        // Cerrar wrapper full-width si está activado
+        if ($fullWidth) {
+            $output .= '</div>'; // Cierra slider-full-width-wrapper
+        }
 
         return $output;
     }

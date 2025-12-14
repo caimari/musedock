@@ -211,7 +211,7 @@
                                            name="autoplay"
                                            id="autoplay"
                                            value="1"
-                                           {{ old('autoplay', $slider->autoplay ?? 1) == 1 ? 'checked' : '' }}>
+                                           {{ old('autoplay', $settings['autoplay'] ?? 1) == 1 ? 'checked' : '' }}>
                                     <label class="form-check-label" for="autoplay">{{ __rs('slider.autoplay') }}</label>
                                 </div>
 
@@ -222,7 +222,7 @@
                                            name="loop"
                                            id="loop"
                                            value="1"
-                                           {{ old('loop', $slider->loop ?? 1) == 1 ? 'checked' : '' }}>
+                                           {{ old('loop', $settings['loop'] ?? 1) == 1 ? 'checked' : '' }}>
                                     <label class="form-check-label" for="loop">{{ __rs('slider.loop') }}</label>
                                 </div>
 
@@ -233,7 +233,7 @@
                                            name="navigation"
                                            id="navigation"
                                            value="1"
-                                           {{ old('navigation', $slider->navigation ?? 1) == 1 ? 'checked' : '' }}>
+                                           {{ old('navigation', $settings['navigation'] ?? 1) == 1 ? 'checked' : '' }}>
                                     <label class="form-check-label" for="navigation">{{ __rs('slider.navigation') }}</label>
                                 </div>
 
@@ -244,8 +244,20 @@
                                            name="pagination"
                                            id="pagination"
                                            value="1"
-                                           {{ old('pagination', $slider->pagination ?? 1) == 1 ? 'checked' : '' }}>
+                                           {{ old('pagination', $settings['pagination'] ?? 1) == 1 ? 'checked' : '' }}>
                                     <label class="form-check-label" for="pagination">{{ __rs('slider.pagination') }}</label>
+                                </div>
+
+                                <div class="form-check mb-2">
+                                    <input type="hidden" name="full_width" value="0">
+                                    <input type="checkbox"
+                                           class="form-check-input"
+                                           name="full_width"
+                                           id="full_width"
+                                           value="1"
+                                           {{ old('full_width', $settings['full_width'] ?? 0) == 1 ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="full_width">{{ __rs('slider.full_width') }}</label>
+                                    <small class="form-text text-muted d-block">{{ __rs('slider.full_width_help') }}</small>
                                 </div>
                             </div>
 
@@ -253,10 +265,10 @@
                             <div class="mb-3">
                                 <label for="animation" class="form-label">{{ __rs('slider.animation') }}</label>
                                 <select class="form-select" id="animation" name="animation">
-                                    <option value="slide" {{ old('animation', $slider->animation ?? 'slide') == 'slide' ? 'selected' : '' }}>Slide</option>
-                                    <option value="fade" {{ old('animation', $slider->animation ?? '') == 'fade' ? 'selected' : '' }}>Fade</option>
-                                    <option value="cube" {{ old('animation', $slider->animation ?? '') == 'cube' ? 'selected' : '' }}>Cube</option>
-                                    <option value="coverflow" {{ old('animation', $slider->animation ?? '') == 'coverflow' ? 'selected' : '' }}>Coverflow</option>
+                                    <option value="slide" {{ old('animation', $settings['animation'] ?? 'slide') == 'slide' ? 'selected' : '' }}>Slide</option>
+                                    <option value="fade" {{ old('animation', $settings['animation'] ?? '') == 'fade' ? 'selected' : '' }}>Fade</option>
+                                    <option value="cube" {{ old('animation', $settings['animation'] ?? '') == 'cube' ? 'selected' : '' }}>Cube</option>
+                                    <option value="coverflow" {{ old('animation', $settings['animation'] ?? '') == 'coverflow' ? 'selected' : '' }}>Coverflow</option>
                                 </select>
                             </div>
 
@@ -267,7 +279,7 @@
                                            class="form-control"
                                            id="autoplay_delay"
                                            name="autoplay_delay"
-                                           value="{{ old('autoplay_delay', $slider->autoplay_delay ?? 3000) }}"
+                                           value="{{ old('autoplay_delay', $settings['autoplay_delay'] ?? 3000) }}"
                                            min="1000"
                                            step="100">
                                     <span class="input-group-text">ms</span>
@@ -281,7 +293,7 @@
                                            class="form-control"
                                            id="speed"
                                            name="speed"
-                                           value="{{ old('speed', $slider->speed ?? 300) }}"
+                                           value="{{ old('speed', $settings['speed'] ?? 300) }}"
                                            min="100"
                                            step="100">
                                     <span class="input-group-text">ms</span>
@@ -294,7 +306,7 @@
                                        class="form-control"
                                        id="slides_per_view"
                                        name="slides_per_view"
-                                       value="{{ old('slides_per_view', $slider->slides_per_view ?? 1) }}"
+                                       value="{{ old('slides_per_view', $settings['slides_per_view'] ?? 1) }}"
                                        min="1"
                                        max="10">
                             </div>
@@ -306,7 +318,7 @@
                                            class="form-control"
                                            id="space_between"
                                            name="space_between"
-                                           value="{{ old('space_between', $slider->space_between ?? 0) }}"
+                                           value="{{ old('space_between', $settings['space_between'] ?? 0) }}"
                                            min="0"
                                            step="10">
                                     <span class="input-group-text">px</span>

@@ -149,12 +149,12 @@
             --light-color: {{ themeOption('colors.light', '#f8f9fa') }};
 
             /* Header/Cabecera */
-            --header-bg-color: {{ themeOption('header.header_bg_color', '#3056d3') }};
-            --header-sticky-bg-color: {!! themeOption('header.header_sticky_bg_color', 'rgba(255, 255, 255, 0.95)') !!};
+            --header-bg-color: {{ themeOption('header.header_bg_color', '#2546b8') }};
+            --header-sticky-bg-color: {!! themeOption('header.header_sticky_bg_color', 'rgba(37, 70, 184, 0.95)') !!};
             --header-logo-text-color: {{ themeOption('header.header_logo_text_color', '#ffffff') }};
             --header-logo-font: {!! themeOption('header.header_logo_font', 'inherit') !!};
             --header-link-color: {{ themeOption('header.header_link_color', '#ffffff') }};
-            --header-link-hover-color: {{ themeOption('header.header_link_hover_color', '#13c296') }};
+            --header-link-hover-color: {!! themeOption('header.header_link_hover_color', 'rgba(255, 255, 255, 0.7)') !!};
             --header-cta-bg-color: {{ themeOption('header.header_cta_bg_color', '#3056d3') }};
             --header-cta-text-color: {{ themeOption('header.header_cta_text_color', '#ffffff') }};
             --header-cta-hover-color: {{ themeOption('header.header_cta_hover_color', '#2546b8') }};
@@ -193,6 +193,77 @@
     <script src="{{ asset('themes/play-bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('themes/play-bootstrap/js/wow.min.js') }}"></script>
     <script src="{{ asset('themes/play-bootstrap/js/main.js') }}"></script>
+
+    {{-- Detectar sliders como primer elemento para ajustar spacing --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mainEl = document.querySelector('main');
+            if (!mainEl) return;
+
+            const wrappers = [];
+            const pageContentWrapper = mainEl.querySelector('.page-content-wrapper');
+            const pageBody = mainEl.querySelector('.page-body');
+            if (pageContentWrapper) wrappers.push(pageContentWrapper);
+            if (pageBody) wrappers.push(pageBody);
+
+            const shouldSkipTag = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'LINK', 'META']);
+            const contentTags = new Set(['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE', 'PRE', 'CODE', 'FIGURE', 'IMG', 'VIDEO', 'IFRAME', 'TABLE']);
+
+            const isVisibleTextElement = (el) => {
+                if (!el) return false;
+                if (el.matches('img, video, iframe, svg, canvas')) return true;
+                const text = ((el.innerText || el.textContent || '') + '').replace(/\u00a0/g, ' ').trim();
+                if (text.length > 0) return true;
+                return !!el.querySelector('img, video, iframe, svg, canvas');
+            };
+
+            const findFirstMeaningfulElement = (root) => {
+                if (!root) return null;
+                const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
+                    acceptNode(node) {
+                        if (shouldSkipTag.has(node.tagName)) return NodeFilter.FILTER_SKIP;
+                        return NodeFilter.FILTER_ACCEPT;
+                    }
+                });
+
+                let node = walker.nextNode();
+                while (node) {
+                    if (node.closest('.slider-full-width-wrapper, .swiper, .gallery-container')) {
+                        // Prefer returning the actual slider wrapper element if this node is inside it
+                        return node.closest('.slider-full-width-wrapper, .swiper, .gallery-container');
+                    }
+
+                    if (contentTags.has(node.tagName) && isVisibleTextElement(node)) return node;
+                    node = walker.nextNode();
+                }
+                return null;
+            };
+
+            wrappers.some(function(wrapper) {
+                const firstEl = findFirstMeaningfulElement(wrapper);
+                if (!firstEl) return false;
+
+                if (firstEl.classList.contains('slider-full-width-wrapper')) {
+                    document.body.classList.add('has-fullwidth-slider-first');
+                    const pageContentSection = firstEl.closest('.ud-page-content');
+                    if (pageContentSection) pageContentSection.classList.add('ud-page-content--slider-first');
+                    const possibleParagraph = firstEl.previousElementSibling;
+                    if (possibleParagraph && possibleParagraph.tagName === 'P' && !isVisibleTextElement(possibleParagraph)) {
+                        possibleParagraph.classList.add('ud-slider-paragraph');
+                    }
+                    return true;
+                }
+
+                if (firstEl.classList.contains('swiper') || firstEl.classList.contains('gallery-container')) {
+                    document.body.classList.add('has-slider-first');
+                    const pageContentSection = firstEl.closest('.ud-page-content');
+                    if (pageContentSection) pageContentSection.classList.add('ud-page-content--slider-first');
+                }
+
+                return false;
+            });
+        });
+    </script>
 
     @stack('scripts')
 </body>

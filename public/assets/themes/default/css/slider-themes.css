@@ -374,6 +374,41 @@
 .caption.position-bottom-right { bottom: 20px !important; right: 20px !important; text-align: right !important; }
 .caption.position-center { top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; text-align: center !important; }
 
+/* ---------- BOTÓN CTA (SLIDE) ---------- */
+.slider-cta-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.slider-cta-buttons.shape-square .slider-cta-button {
+    border-radius: 10px !important;
+}
+.slider-cta-button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 10px 22px !important;
+    border-radius: 999px !important;
+    font-weight: 700 !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease !important;
+    border: 2px solid rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+}
+.slider-cta-button.secondary {
+    background: transparent;
+}
+.slider-cta-button:hover {
+    transform: translateY(-1px) !important;
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.7);
+}
+
 /* ================================================================
    TEMAS VISUALES - SWIPER Y GALLERY
    Cada tema usa selectores con alta especificidad
@@ -386,6 +421,73 @@
     border-radius: 16px !important;
     overflow: hidden !important;
     box-shadow: 0 10px 40px rgba(0,0,0,0.3) !important;
+}
+
+/* ========== 1.5 TEMA: MOON CRESCENT - Overlay azul + ola inferior ========== */
+.swiper.theme-moon-crescent,
+.gallery-container.theme-moon-crescent,
+.theme-moon-crescent.swiper {
+    position: relative !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
+    background: #0b2232 !important;
+    /* Recorte real tipo "media luna" (evita que se vea la imagen rectangular abajo) */
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill='white' d='M0 0 H100 V80 Q50 100 0 80 Z'/%3E%3C/svg%3E");
+    -webkit-mask-size: 100% 100% !important;
+    -webkit-mask-repeat: no-repeat !important;
+    -webkit-mask-position: 0 0 !important;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill='white' d='M0 0 H100 V80 Q50 100 0 80 Z'/%3E%3C/svg%3E");
+    mask-size: 100% 100% !important;
+    mask-repeat: no-repeat !important;
+    mask-position: 0 0 !important;
+}
+
+/* Overlay de color (encima de la imagen, debajo del texto) */
+.swiper.theme-moon-crescent::before,
+.theme-moon-crescent.swiper::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 8 !important;
+    pointer-events: none !important;
+    background:
+        radial-gradient(1200px 600px at 60% 30%, rgba(120, 220, 255, 0.18) 0%, rgba(0, 0, 0, 0) 60%),
+        linear-gradient(90deg, rgba(6, 34, 58, 0.65) 0%, rgba(0, 96, 128, 0.35) 55%, rgba(0, 112, 140, 0.25) 100%);
+}
+
+/* NOTA: la "media luna" se logra con mask-image para que recorte la imagen a todo el ancho */
+
+/* Asegurar que el contenido quede por encima del overlay */
+.swiper.theme-moon-crescent .swiper-button-prev,
+.swiper.theme-moon-crescent .swiper-button-next,
+.swiper.theme-moon-crescent .swiper-pagination,
+.theme-moon-crescent .swiper-button-prev,
+.theme-moon-crescent .swiper-button-next,
+.theme-moon-crescent .swiper-pagination {
+    z-index: 20 !important;
+}
+
+/* Evitar que la paginación quede recortada por la media luna */
+.swiper.theme-moon-crescent .swiper-pagination,
+.theme-moon-crescent .swiper-pagination {
+    bottom: 96px !important;
+}
+
+/* Tipografías y espaciado del caption (posición/colores se setean vía preset en settings) */
+.swiper.theme-moon-crescent .caption,
+.theme-moon-crescent .swiper .caption {
+    text-align: center !important;
+    max-width: 860px !important;
+}
+.swiper.theme-moon-crescent .caption-title,
+.theme-moon-crescent .caption-title {
+    font-weight: 800 !important;
+    letter-spacing: 0.2px !important;
+}
+.swiper.theme-moon-crescent .caption-description,
+.theme-moon-crescent .caption-description {
+    opacity: 0.92 !important;
+    line-height: 1.55 !important;
 }
 
 .swiper.theme-dark-rounded .caption,
@@ -706,6 +808,71 @@
 .theme-modern-gradient .gallery-thumbs .swiper-slide-thumb-active {
     border-color: #667eea !important;
     box-shadow: 0 0 15px rgba(102, 126, 234, 0.5) !important;
+}
+
+/* ========== 6.5 TEMA: ROUNDED SHADOW - Tarjeta redondeada con sombra ========== */
+.swiper.theme-rounded-shadow,
+.gallery-container.theme-rounded-shadow,
+.theme-rounded-shadow.swiper {
+    border-radius: 22px !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+    box-shadow: 0 18px 50px rgba(18, 38, 63, 0.18) !important;
+    border: 1px solid rgba(18, 38, 63, 0.08) !important;
+}
+
+/* Si está en modo "a sangre", inset horizontal para que se vean esquinas/sombra */
+.slider-full-width-wrapper > .swiper.theme-rounded-shadow,
+.slider-full-width-wrapper > .gallery-container.theme-rounded-shadow {
+    width: calc(100% - 32px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+.swiper.theme-rounded-shadow .swiper-slide,
+.theme-rounded-shadow .swiper-slide {
+    border-radius: 22px !important;
+    overflow: hidden !important;
+}
+
+.swiper.theme-rounded-shadow .swiper-slide img,
+.theme-rounded-shadow .swiper-slide img {
+    border-radius: 22px !important;
+}
+
+.swiper.theme-rounded-shadow .caption,
+.theme-rounded-shadow .swiper .caption,
+.theme-rounded-shadow .swiper-slide .caption {
+    background: rgba(16, 24, 40, 0.55) !important;
+    color: #ffffff !important;
+    padding: 18px 26px !important;
+    border-radius: 14px !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25) !important;
+}
+
+.swiper.theme-rounded-shadow .swiper-pagination-bullet,
+.theme-rounded-shadow .swiper-pagination-bullet {
+    background: rgba(255,255,255,0.55) !important;
+}
+.swiper.theme-rounded-shadow .swiper-pagination-bullet-active,
+.theme-rounded-shadow .swiper-pagination-bullet-active {
+    background: #ffffff !important;
+    transform: scale(1.15) !important;
+}
+
+.theme-rounded-shadow .gallery-thumbs,
+.theme-rounded-shadow.gallery-container .gallery-thumbs {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border-top: 1px solid rgba(18, 38, 63, 0.08) !important;
+}
+.theme-rounded-shadow .gallery-thumbs .swiper-slide {
+    border-radius: 12px !important;
+    border: 2px solid rgba(18, 38, 63, 0.12) !important;
+}
+.theme-rounded-shadow .gallery-thumbs .swiper-slide-thumb-active {
+    border-color: rgba(18, 38, 63, 0.55) !important;
 }
 
 /* ========== 7. TEMA: GALLERY LIGHT - Especial para galerías ========== */

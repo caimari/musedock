@@ -1402,4 +1402,83 @@ Si tienes alguna pregunta, no dudes en contactarnos.
 © {$year} {$tenantName}
 TEXT;
     }
+
+    /**
+     * Crea un subdominio FREE .musedock.com (manual desde superadmin)
+     *
+     * POST /musedock/domain-manager/create-free
+     */
+    public function createFreeSubdomain()
+    {
+        // Verificar CSRF
+        if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
+            $this->jsonResponse(['success' => false, 'error' => 'Token CSRF inválido'], 403);
+            return;
+        }
+
+        // Verificar permisos
+        if (!$this->checkPermission('tenants.manage')) {
+            $this->jsonResponse(['success' => false, 'error' => 'Sin permisos'], 403);
+            return;
+        }
+
+        try {
+            // Recoger datos
+            $subdomain = trim(strtolower($_POST['subdomain'] ?? ''));
+            $customerEmail = trim(strtolower($_POST['customer_email'] ?? ''));
+            $customerName = trim($_POST['customer_name'] ?? '');
+            $customerPassword = $_POST['customer_password'] ?? '';
+
+            // Validaciones
+            if (empty($subdomain) || empty($customerEmail) || empty($customerName) || empty($customerPassword)) {
+                $this->jsonResponse(['success' => false, 'error' => 'Todos los campos son obligatorios'], 400);
+                return;
+            }
+
+            // Preparar datos de customer
+            $customerData = [
+                'name' => $customerName,
+                'email' => $customerEmail,
+                'password' => $customerPassword
+            ];
+
+            // Usar ProvisioningService para crear tenant FREE
+            $provisioningService = new \CaddyDomainManager\Services\ProvisioningService();
+            $result = $provisioningService->provisionFreeTenant($customerData, $subdomain);
+
+            if ($result['success']) {
+                Logger::info("[DomainManagerController] FREE subdomain created by superadmin: {$result['domain']}");
+
+                $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Subdominio FREE creado exitosamente',
+                    'domain' => $result['domain'],
+                    'tenant_id' => $result['tenant_id']
+                ]);
+            } else {
+                $this->jsonResponse([
+                    'success' => false,
+                    'error' => $result['error'] ?? 'Error al crear subdominio'
+                ], 400);
+            }
+
+        } catch (\Exception $e) {
+            Logger::error("[DomainManagerController] Error creating FREE subdomain: " . $e->getMessage());
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al crear subdominio: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Helper: Envía respuesta JSON
+     */
+    private function jsonResponse(array $data, int $statusCode = 200): void
+    {
+        http_response_code($statusCode);
+        header('Content-Type: application/json');
+        echo json_encode($data);
+        exit;
+    }
 }

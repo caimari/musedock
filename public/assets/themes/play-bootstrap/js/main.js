@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  // ======= Sticky
+  // ======= Sticky Header
   window.onscroll = function () {
     const ud_header = document.querySelector(".ud-header");
 
@@ -13,7 +13,7 @@
       ud_header.classList.remove("sticky");
     }
 
-    // show or hide the back-top-top button
+    // show or hide the back-to-top button
     const backToTop = document.querySelector(".back-to-top");
     if (backToTop) {
       if (
@@ -27,33 +27,87 @@
     }
   };
 
-  //===== close navbar-collapse when a  clicked
-  let navbarToggler = document.querySelector(".navbar-toggler");
+  // ===== Mobile Menu Toggle
+  const navbarToggler = document.querySelector(".navbar-toggler");
   const navbarCollapse = document.querySelector(".navbar-collapse");
 
+  if (navbarToggler && navbarCollapse) {
+    navbarToggler.addEventListener("click", function () {
+      navbarToggler.classList.toggle("active");
+      navbarCollapse.classList.toggle("show");
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener("click", function (e) {
+      if (!navbarToggler.contains(e.target) && !navbarCollapse.contains(e.target)) {
+        navbarToggler.classList.remove("active");
+        navbarCollapse.classList.remove("show");
+      }
+    });
+  }
+
+  // ===== Close navbar when menu item is clicked (for scroll links)
   document.querySelectorAll(".ud-menu-scroll").forEach((e) =>
     e.addEventListener("click", () => {
-      navbarToggler.classList.remove("active");
-      navbarCollapse.classList.remove("show");
+      if (navbarToggler && navbarCollapse) {
+        navbarToggler.classList.remove("active");
+        navbarCollapse.classList.remove("show");
+      }
     })
   );
-  navbarToggler.addEventListener("click", function () {
-    navbarToggler.classList.toggle("active");
-    navbarCollapse.classList.toggle("show");
+
+  // ===== Submenu Accordion (Mobile) & Hover (Desktop)
+  const submenuItems = document.querySelectorAll(".nav-item-has-children");
+
+  submenuItems.forEach((item) => {
+    const link = item.querySelector("a");
+    const submenu = item.querySelector(".ud-submenu");
+
+    if (link && submenu) {
+      link.addEventListener("click", function(e) {
+        // Only prevent default and toggle on mobile
+        if (window.innerWidth < 992) {
+          e.preventDefault();
+
+          // Close other open submenus
+          submenuItems.forEach((otherItem) => {
+            if (otherItem !== item && otherItem.classList.contains("open")) {
+              otherItem.classList.remove("open");
+            }
+          });
+
+          // Toggle current submenu
+          item.classList.toggle("open");
+        }
+      });
+    }
   });
 
-  // ===== submenu
-  const submenuButton = document.querySelectorAll(".nav-item-has-children");
-  submenuButton.forEach((elem) => {
-    elem.querySelector("a").addEventListener("click", () => {
-      elem.querySelector(".ud-submenu").classList.toggle("show");
+  // ===== Desktop: Show submenu on hover
+  if (window.innerWidth >= 992) {
+    submenuItems.forEach((item) => {
+      item.addEventListener("mouseenter", function() {
+        const submenu = item.querySelector(".ud-submenu");
+        if (submenu) {
+          submenu.classList.add("show");
+        }
+      });
+
+      item.addEventListener("mouseleave", function() {
+        const submenu = item.querySelector(".ud-submenu");
+        if (submenu) {
+          submenu.classList.remove("show");
+        }
+      });
     });
-  });
+  }
 
-  // ===== wow js
-  new WOW().init();
+  // ===== WOW.js Initialization
+  if (typeof WOW !== 'undefined') {
+    new WOW().init();
+  }
 
-  // ====== scroll top js
+  // ====== Scroll to Top
   function scrollTo(element, to = 0, duration = 500) {
     const start = element.scrollTop;
     const change = to - start;
@@ -62,9 +116,7 @@
 
     const animateScroll = () => {
       currentTime += increment;
-
       const val = Math.easeInOutQuad(currentTime, start, change, duration);
-
       element.scrollTop = val;
 
       if (currentTime < duration) {
@@ -82,7 +134,25 @@
     return (-c / 2) * (t * (t - 2) - 1) + b;
   };
 
-  document.querySelector(".back-to-top").onclick = () => {
-    scrollTo(document.documentElement);
-  };
+  const backToTopBtn = document.querySelector(".back-to-top");
+  if (backToTopBtn) {
+    backToTopBtn.onclick = () => {
+      scrollTo(document.documentElement);
+    };
+  }
+
+  // ===== Handle window resize for submenu behavior
+  window.addEventListener("resize", function() {
+    // Close mobile menu on resize to desktop
+    if (window.innerWidth >= 992) {
+      if (navbarToggler && navbarCollapse) {
+        navbarToggler.classList.remove("active");
+        navbarCollapse.classList.remove("show");
+      }
+      // Close all open submenus
+      submenuItems.forEach((item) => {
+        item.classList.remove("open");
+      });
+    }
+  });
 })();

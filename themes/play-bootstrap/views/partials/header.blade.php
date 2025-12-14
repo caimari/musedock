@@ -42,14 +42,16 @@
                         @if($showLogo)
                             <img src="{{ $logoPath ? asset($logoPath) : $defaultLogo }}"
                                  alt="{{ $siteName }}"
-                                 style="max-height: 50px; width: auto;"
+                                 style="max-height: 40px; width: auto;"
                                  onerror="this.onerror=null; this.src='{{ $defaultLogo }}';" />
                         @endif
 
                         @if($showTitle)
-                            <span style="color: var(--header-logo-text-color); font-weight: 700; font-size: 24px;">{{ $siteName }}</span>
+                            <span class="navbar-brand-text">{{ $siteName }}</span>
                         @endif
-                    </a>                    <button class="navbar-toggler">
+                    </a>
+
+                    <button class="navbar-toggler" aria-label="Toggle navigation">
                         <span class="toggler-icon"></span>
                         <span class="toggler-icon"></span>
                         <span class="toggler-icon"></span>
@@ -61,21 +63,32 @@
                             'ul_id' => 'nav',
                             'ul_class' => 'navbar-nav mx-auto',
                             'li_class' => 'nav-item',
-                            'a_class' => '',
+                            'a_class' => 'nav-link',
                             'submenu_class' => 'ud-submenu',
                             'submenu_item_class' => 'ud-submenu-item',
                             'submenu_link_class' => 'ud-submenu-link',
                             'parent_class' => 'nav-item-has-children'
                         ])
+
+                        {{-- Selector de idiomas dentro del menú móvil --}}
+                        @if($langSelectorEnabled && count($languages) > 1)
+                        <div class="mobile-lang-selector">
+                            <select onchange="window.location.href='?lang=' + this.value" class="mobile-lang-select">
+                                @foreach($languages as $lang)
+                                    <option value="{{ $lang['code'] }}" {{ $currentLang == $lang['code'] ? 'selected' : '' }}>
+                                        {{ $lang['name'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @endif
                     </div>
 
                     <div class="navbar-btn d-none d-sm-inline-block">
-                        {{-- Selector de idiomas --}}
+                        {{-- Selector de idiomas (desktop) --}}
                         @if($langSelectorEnabled && count($languages) > 1)
-                        <div class="language-selector" style="display: inline-block; margin-right: 15px;">
-                            <select onchange="window.location.href='?lang=' + this.value"
-                                    class="ud-main-btn ud-white-btn"
-                                    style="padding: 8px 15px; border: 2px solid var(--primary-color); background: transparent; color: var(--primary-color); cursor: pointer; border-radius: 5px;">
+                        <div class="language-selector">
+                            <select onchange="window.location.href='?lang=' + this.value" class="lang-select">
                                 @foreach($languages as $lang)
                                     <option value="{{ $lang['code'] }}" {{ $currentLang == $lang['code'] ? 'selected' : '' }}>
                                         {{ $lang['name'] }}
@@ -87,7 +100,7 @@
 
                         {{-- CTA Button --}}
                         @if($ctaEnabled)
-                        <a href="{{ $ctaUrl }}" class="ud-main-btn ud-login-btn" style="background: var(--header-cta-bg-color); color: var(--header-cta-text-color);">
+                        <a href="{{ $ctaUrl }}" class="ud-main-btn ud-login-btn">
                             {{ $ctaText }}
                         </a>
                         @endif

@@ -6,6 +6,7 @@
   "description": "Tema Play Bootstrap - Template profesional y moderno adaptado para MuseDock CMS multi-tenant",
   "screenshot": "/assets/themes/play-bootstrap/img/hero/hero-image.svg",
   "bootstrap": true,
+  "customizable": true,
   "customizable_options": {
     "header": {
       "type": "section",
@@ -14,12 +15,12 @@
         "header_bg_color": {
           "type": "color",
           "label": "Color de fondo de la cabecera",
-          "default": "#3056d3"
+          "default": "#2546b8"
         },
         "header_sticky_bg_color": {
           "type": "color",
           "label": "Color de fondo sticky",
-          "default": "rgba(255, 255, 255, 0.95)",
+          "default": "rgba(37, 70, 184, 0.95)",
           "description": "Color cuando la cabecera está fija al hacer scroll"
         },
         "header_logo_text_color": {
@@ -61,7 +62,7 @@
         "header_link_hover_color": {
           "type": "color",
           "label": "Color de enlaces al pasar el ratón",
-          "default": "#13c296",
+          "default": "rgba(255, 255, 255, 0.7)",
           "description": "Color de los enlaces de navegación al pasar el ratón"
         },
         "header_sticky": {

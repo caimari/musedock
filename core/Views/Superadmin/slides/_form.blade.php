@@ -10,6 +10,21 @@
 
 <div class="row">
     <div class="col-md-8">
+        @php
+            // Lista de tipografías (valores CSS para font-family)
+            $fontOptions = [
+                '' => '— Heredar del slider/tema —',
+                "'Playfair Display', serif" => 'Playfair Display',
+                "'Montserrat', sans-serif" => 'Montserrat',
+                "'Roboto', sans-serif" => 'Roboto',
+                "'Open Sans', sans-serif" => 'Open Sans',
+                "'Lato', sans-serif" => 'Lato',
+                "'Poppins', sans-serif" => 'Poppins',
+                "'Oswald', sans-serif" => 'Oswald',
+                "'Raleway', sans-serif" => 'Raleway',
+            ];
+        @endphp
+
         {{-- URL de la Imagen --}}
         <div class="mb-3">
             <label for="image_url" class="form-label">URL de la Imagen <span class="text-danger">*</span></label>
@@ -52,12 +67,28 @@
             @error('title') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
 
+        <div class="mb-3">
+            <label for="title_color" class="form-label">Color del título (Opcional)</label>
+            <input type="color" class="form-control form-control-color @error('title_color') is-invalid @enderror"
+                   id="title_color" name="title_color" value="{{ old('title_color', $slide->title_color ?? '#ffffff') }}">
+            <small class="text-muted">Si lo defines aquí, tiene prioridad sobre el color global del slider.</small>
+            @error('title_color') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+
         {{-- Descripción --}}
         <div class="mb-3">
             <label for="description" class="form-label">Descripción (Opcional)</label>
             <textarea class="form-control @error('description') is-invalid @enderror" id="description" name="description" rows="3">{{ old('description', $slide->description ?? '') }}</textarea>
             <small class="text-muted">Texto adicional corto.</small>
             @error('description') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+
+        <div class="mb-3">
+            <label for="description_color" class="form-label">Color del subtítulo (Opcional)</label>
+            <input type="color" class="form-control form-control-color @error('description_color') is-invalid @enderror"
+                   id="description_color" name="description_color" value="{{ old('description_color', $slide->description_color ?? '#ffffff') }}">
+            <small class="text-muted">Si lo defines aquí, tiene prioridad sobre el color global del slider.</small>
+            @error('description_color') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
 
         {{-- Enlace --}}
@@ -67,6 +98,157 @@
                    value="{{ old('link_url', $slide->link_url ?? '') }}" placeholder="https://...">
             <small class="text-muted">URL a la que dirigirá al hacer clic en la diapositiva.</small>
             @error('link_url') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+        <div class="mb-3">
+            <label for="link_target" class="form-label">Abrir enlace</label>
+            @php $selectedTarget = old('link_target', $slide->link_target ?? '_self'); @endphp
+            <select class="form-select" id="link_target" name="link_target">
+                <option value="_self" @selected($selectedTarget === '_self')>En la misma pestaña</option>
+                <option value="_blank" @selected($selectedTarget === '_blank')>En una pestaña nueva</option>
+            </select>
+        </div>
+
+        {{-- Botón (opcional) --}}
+        <div class="mb-3">
+            <label for="link_text" class="form-label">Texto del botón (Opcional)</label>
+            <input type="text" class="form-control @error('link_text') is-invalid @enderror" id="link_text" name="link_text"
+                   value="{{ old('link_text', $slide->link_text ?? '') }}" placeholder="Ej: Leer más">
+            <small class="text-muted">Si defines un texto y hay enlace, se mostrará un botón dentro de la diapositiva.</small>
+            @error('link_text') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+
+        {{-- Botón 2 (opcional) --}}
+        <div class="mb-3">
+            <label for="link2_url" class="form-label">Enlace 2 (Opcional)</label>
+            <input type="url" class="form-control @error('link2_url') is-invalid @enderror" id="link2_url" name="link2_url"
+                   value="{{ old('link2_url', $slide->link2_url ?? '') }}" placeholder="https://...">
+            <small class="text-muted">URL del segundo botón.</small>
+            @error('link2_url') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+        <div class="mb-3">
+            <label for="link2_target" class="form-label">Abrir enlace 2</label>
+            @php $selectedTarget2 = old('link2_target', $slide->link2_target ?? '_self'); @endphp
+            <select class="form-select" id="link2_target" name="link2_target">
+                <option value="_self" @selected($selectedTarget2 === '_self')>En la misma pestaña</option>
+                <option value="_blank" @selected($selectedTarget2 === '_blank')>En una pestaña nueva</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="link2_text" class="form-label">Texto del botón 2 (Opcional)</label>
+            <input type="text" class="form-control @error('link2_text') is-invalid @enderror" id="link2_text" name="link2_text"
+                   value="{{ old('link2_text', $slide->link2_text ?? '') }}" placeholder="Ej: Contactar">
+            <small class="text-muted">Si defines texto y enlace 2, se mostrará un segundo botón en paralelo.</small>
+            @error('link2_text') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+
+        <div class="form-check mb-2">
+            <input type="hidden" name="button_custom" value="0">
+            <input class="form-check-input" type="checkbox" value="1" id="button_custom" name="button_custom"
+                   @checked(old('button_custom', (int)($slide->button_custom ?? 0)) == 1)>
+            <label class="form-check-label" for="button_custom">Personalizar colores del botón</label>
+        </div>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label for="button_bg_color" class="form-label">Botón: fondo</label>
+                    <input type="color" class="form-control form-control-color @error('button_bg_color') is-invalid @enderror"
+                           id="button_bg_color" name="button_bg_color" value="{{ old('button_bg_color', $slide->button_bg_color ?? '#1d4ed8') }}">
+                    @error('button_bg_color') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label for="button_text_color" class="form-label">Botón: texto</label>
+                    <input type="color" class="form-control form-control-color @error('button_text_color') is-invalid @enderror"
+                           id="button_text_color" name="button_text_color" value="{{ old('button_text_color', $slide->button_text_color ?? '#ffffff') }}">
+                    @error('button_text_color') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label for="button_border_color" class="form-label">Botón: borde</label>
+                    <input type="color" class="form-control form-control-color @error('button_border_color') is-invalid @enderror"
+                           id="button_border_color" name="button_border_color" value="{{ old('button_border_color', $slide->button_border_color ?? '#ffffff') }}">
+                    @error('button_border_color') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+            </div>
+        </div>
+
+        <div class="form-check mb-2">
+            <input type="hidden" name="button2_custom" value="0">
+            <input class="form-check-input" type="checkbox" value="1" id="button2_custom" name="button2_custom"
+                   @checked(old('button2_custom', (int)($slide->button2_custom ?? 0)) == 1)>
+            <label class="form-check-label" for="button2_custom">Personalizar colores del botón 2</label>
+        </div>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label for="button2_bg_color" class="form-label">Botón 2: fondo</label>
+                    <input type="color" class="form-control form-control-color @error('button2_bg_color') is-invalid @enderror"
+                           id="button2_bg_color" name="button2_bg_color" value="{{ old('button2_bg_color', $slide->button2_bg_color ?? '#0ea5e9') }}">
+                    @error('button2_bg_color') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label for="button2_text_color" class="form-label">Botón 2: texto</label>
+                    <input type="color" class="form-control form-control-color @error('button2_text_color') is-invalid @enderror"
+                           id="button2_text_color" name="button2_text_color" value="{{ old('button2_text_color', $slide->button2_text_color ?? '#ffffff') }}">
+                    @error('button2_text_color') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label for="button2_border_color" class="form-label">Botón 2: borde</label>
+                    <input type="color" class="form-control form-control-color @error('button2_border_color') is-invalid @enderror"
+                           id="button2_border_color" name="button2_border_color" value="{{ old('button2_border_color', $slide->button2_border_color ?? '#ffffff') }}">
+                    @error('button2_border_color') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="button_shape" class="form-label">Forma de los botones</label>
+            @php $selectedShape = old('button_shape', $slide->button_shape ?? 'rounded'); @endphp
+            <select class="form-select" id="button_shape" name="button_shape">
+                <option value="rounded" @selected($selectedShape === 'rounded')>Redondeado (pill)</option>
+                <option value="square" @selected($selectedShape === 'square')>Cuadrado (esquinas)</option>
+            </select>
+            <small class="text-muted">Aplica a ambos botones de la diapositiva.</small>
+        </div>
+
+        {{-- Tipografía y estilo --}}
+        <div class="mt-2">
+            <div class="form-check mb-2">
+                <input type="hidden" name="title_bold" value="0">
+                <input class="form-check-input" type="checkbox" value="1" id="title_bold" name="title_bold"
+                       @checked(old('title_bold', $slide->exists ? (int)($slide->title_bold ?? 1) : 1) == 1)>
+                <label class="form-check-label" for="title_bold">Título en negrita (bold)</label>
+            </div>
+
+            <div class="mb-3">
+                <label for="title_font" class="form-label">Tipografía del título (Opcional)</label>
+                <select class="form-select @error('title_font') is-invalid @enderror" id="title_font" name="title_font">
+                    @php $selectedTitleFont = old('title_font', $slide->title_font ?? ''); @endphp
+                    @foreach($fontOptions as $value => $label)
+                        <option value="{{ $value }}" @selected((string)$selectedTitleFont === (string)$value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <small class="text-muted">Si eliges una tipografía aquí, tiene prioridad sobre la del slider.</small>
+                @error('title_font') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="mb-3">
+                <label for="description_font" class="form-label">Tipografía del subtítulo (Opcional)</label>
+                <select class="form-select @error('description_font') is-invalid @enderror" id="description_font" name="description_font">
+                    @php $selectedDescFont = old('description_font', $slide->description_font ?? ''); @endphp
+                    @foreach($fontOptions as $value => $label)
+                        <option value="{{ $value }}" @selected((string)$selectedDescFont === (string)$value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <small class="text-muted">Si eliges una tipografía aquí, tiene prioridad sobre la del slider.</small>
+                @error('description_font') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
         </div>
     </div>
 

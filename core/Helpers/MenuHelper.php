@@ -99,7 +99,9 @@ class MenuHelper
 
         // Preparar atributos del UL principal
         $ulIdAttr = isset($options['ul_id']) ? ' id="' . e($options['ul_id']) . '"' : '';
-        $ulClassAttr = isset($options['nav_class']) && $options['nav_class'] ? ' class="' . e($options['nav_class']) . '"' : ''; // Solo si no está vacía
+        // Soportar tanto ul_class como nav_class para compatibilidad
+        $ulClass = $options['ul_class'] ?? $options['nav_class'] ?? '';
+        $ulClassAttr = $ulClass ? ' class="' . e($ulClass) . '"' : '';
 
         // Iniciar HTML con el UL principal
         $html = "<ul{$ulIdAttr}{$ulClassAttr}>";

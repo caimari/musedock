@@ -91,3 +91,62 @@ Route::post('/musedock/domain-manager/{id}/regenerate-permissions', 'CaddyDomain
 Route::post('/musedock/domain-manager/{id}/regenerate-menus', 'CaddyDomainManager\Controllers\DomainManagerController@regenerateMenus')
     ->middleware('superadmin')
     ->name('superadmin.domain-manager.regenerate-menus');
+
+// Crear subdominio FREE manual (superadmin)
+Route::post('/musedock/domain-manager/create-free', 'CaddyDomainManager\Controllers\DomainManagerController@createFreeSubdomain')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.create-free');
+
+// ============================================
+// CUSTOMER PUBLIC ROUTES (No auth required)
+// ============================================
+
+// Registro público
+Route::get('/register', 'CaddyDomainManager\Controllers\RegisterController@showForm')
+    ->name('customer.register.form');
+
+Route::post('/register', 'CaddyDomainManager\Controllers\RegisterController@register')
+    ->name('customer.register.submit');
+
+// Check subdomain availability (AJAX)
+Route::get('/customer/check-subdomain', 'CaddyDomainManager\Controllers\RegisterController@checkSubdomainAvailability')
+    ->name('customer.check-subdomain');
+
+// Login
+Route::get('/customer/login', 'CaddyDomainManager\Controllers\CustomerController@showLoginForm')
+    ->name('customer.login.form');
+
+Route::post('/customer/login', 'CaddyDomainManager\Controllers\CustomerController@login')
+    ->name('customer.login.submit');
+
+// Password Reset
+Route::get('/customer/forgot-password', 'CaddyDomainManager\Controllers\PasswordResetController@showForgotForm')
+    ->name('customer.password.request');
+
+Route::post('/customer/forgot-password', 'CaddyDomainManager\Controllers\PasswordResetController@sendResetLink')
+    ->name('customer.password.email');
+
+Route::get('/customer/reset-password', 'CaddyDomainManager\Controllers\PasswordResetController@showResetForm')
+    ->name('customer.password.reset');
+
+Route::post('/customer/reset-password', 'CaddyDomainManager\Controllers\PasswordResetController@resetPassword')
+    ->name('customer.password.update');
+
+// ============================================
+// CUSTOMER PROTECTED ROUTES (Require auth)
+// ============================================
+
+// Dashboard
+Route::get('/customer/dashboard', 'CaddyDomainManager\Controllers\CustomerController@dashboard')
+    ->middleware('customer')
+    ->name('customer.dashboard');
+
+// Profile
+Route::get('/customer/profile', 'CaddyDomainManager\Controllers\CustomerController@profile')
+    ->middleware('customer')
+    ->name('customer.profile');
+
+// Logout
+Route::post('/customer/logout', 'CaddyDomainManager\Controllers\CustomerController@logout')
+    ->middleware('customer')
+    ->name('customer.logout');
