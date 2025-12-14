@@ -34,6 +34,26 @@
 }
 
 /* Columna de widgets disponibles */
+.widgets-sticky-wrapper {
+    z-index: 1000;
+}
+
+.widgets-sticky-wrapper.is-fixed {
+    position: fixed !important;
+}
+
+.widgets-sticky-placeholder {
+    display: none;
+}
+
+.widgets-sticky-placeholder.is-active {
+    display: block;
+}
+
+.btn-widgets-pin.active {
+    background: rgba(0, 0, 0, 0.08);
+}
+
 .available-widgets-panel {
     background-color: var(--widget-bg);
     border: 1px solid var(--border-color);
@@ -48,6 +68,15 @@
     font-weight: 600;
     color: var(--text-color);
     border-radius: var(--border-radius) var(--border-radius) 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.available-widgets-header .header-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .available-widgets-body {
@@ -334,33 +363,45 @@
                 <div class="widget-management-grid">
 
                     {{-- Widgets Disponibles --}}
-                    <div class="available-widgets-panel">
-                        <div class="available-widgets-header">
-                            <i class="bi bi-grid-3x3-gap me-2"></i> Widgets Disponibles
-                        </div>
-                        <div class="available-widgets-body">
-                            <p class="small text-muted mb-3">Arrastra widgets a las áreas de la derecha para añadirlos a tu tema.</p>
-                            <ul id="available-widgets" class="available-widgets-list">
-                                @foreach($availableWidgets as $slug => $widgetInfo)
-                                    @php $widgetInstance = WidgetManager::getWidgetInstance($slug); @endphp
-                                    @if($widgetInstance)
-                                        <li class="widget-block" data-widget-slug="{{ $slug }}">
-                                            <div class="widget-icon">
-                                                <i class="bi {{ $widgetInfo['icon'] ?? 'bi-puzzle' }}"></i>
-                                            </div>
-                                            <div>
-                                                <span class="widget-title">{{ e($widgetInfo['name']) }}</span>
-                                                @if(!empty($widgetInfo['description']))
-                                                    <div class="widget-description">{{ e($widgetInfo['description']) }}</div>
-                                                @endif
-                                            </div>
-                                            <div class="widget-form-template" style="display:none;">
-                                                {!! $widgetInstance->form() !!}
-                                            </div>
-                                        </li>
-                                    @endif
-                                @endforeach
-                            </ul>
+                    <div class="widgets-sticky-placeholder"></div>
+                    <div class="widgets-sticky-wrapper">
+                        <div class="available-widgets-panel">
+                            <div class="available-widgets-header">
+                                <span class="header-title">
+                                    <i class="bi bi-grid-3x3-gap"></i> Widgets Disponibles
+                                </span>
+                                <button type="button"
+                                        id="toggle-widgets-pin"
+                                        class="btn btn-sm btn-outline-secondary btn-widgets-pin"
+                                        title="Anclar / desanclar panel"
+                                        aria-pressed="true">
+                                    <i class="bi bi-pin-angle"></i>
+                                </button>
+                            </div>
+                            <div class="available-widgets-body">
+                                <p class="small text-muted mb-3">Arrastra widgets a las áreas de la derecha para añadirlos a tu tema.</p>
+                                <ul id="available-widgets" class="available-widgets-list">
+                                    @foreach($availableWidgets as $slug => $widgetInfo)
+                                        @php $widgetInstance = WidgetManager::getWidgetInstance($slug); @endphp
+                                        @if($widgetInstance)
+                                            <li class="widget-block" data-widget-slug="{{ $slug }}">
+                                                <div class="widget-icon">
+                                                    <i class="bi {{ $widgetInfo['icon'] ?? 'bi-puzzle' }}"></i>
+                                                </div>
+                                                <div>
+                                                    <span class="widget-title">{{ e($widgetInfo['name']) }}</span>
+                                                    @if(!empty($widgetInfo['description']))
+                                                        <div class="widget-description">{{ e($widgetInfo['description']) }}</div>
+                                                    @endif
+                                                </div>
+                                                <div class="widget-form-template" style="display:none;">
+                                                    {!! $widgetInstance->form() !!}
+                                                </div>
+                                            </li>
+                                        @endif
+                                    @endforeach
+                                </ul>
+                            </div>
                         </div>
                     </div>
 
@@ -417,6 +458,178 @@ document.addEventListener('DOMContentLoaded', function () {
     const widgetAreas = document.querySelectorAll('.widget-area-sortable');
     const widgetForm = document.getElementById('widgetAreasForm');
     const saveButton = document.getElementById('saveWidgetsBtn');
+
+    // ============================================
+    // STICKY SIDEBAR: Widgets Disponibles
+    // ============================================
+    function setupStickyAvailableWidgets() {
+        const wrapper = document.querySelector('.widgets-sticky-wrapper');
+        const placeholder = document.querySelector('.widgets-sticky-placeholder');
+        const pinBtn = document.getElementById('toggle-widgets-pin');
+
+        if (!wrapper || !placeholder) return;
+
+        const topOffset = 16;
+        const storageKey = 'musedock.widgetsSidebarPinned';
+
+        const getScrollContainer = (startEl) => {
+            let node = startEl.parentElement;
+            while (node) {
+                const style = window.getComputedStyle(node);
+                const overflowY = style.overflowY;
+                if ((overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') && node.scrollHeight > node.clientHeight) {
+                    return node;
+                }
+                node = node.parentElement;
+            }
+            return document.querySelector('main.content') || null;
+        };
+
+        const scrollContainer = getScrollContainer(wrapper);
+        const usesWindow = !scrollContainer || scrollContainer === document.body || scrollContainer === document.documentElement;
+
+        const getScrollTop = () => {
+            if (usesWindow) return window.pageYOffset || document.documentElement.scrollTop || 0;
+            return scrollContainer.scrollTop || 0;
+        };
+
+        const getScrollerTopInViewport = () => {
+            if (usesWindow) return 0;
+            return scrollContainer.getBoundingClientRect().top;
+        };
+
+        const originalInlineStyle = wrapper.getAttribute('style') || '';
+
+        let isFixed = false;
+        let rafId = null;
+        let pinEnabled = true;
+
+        const readPinned = () => {
+            try {
+                const v = window.localStorage.getItem(storageKey);
+                if (v === null) return true;
+                return v === '1';
+            } catch (_) {
+                return true;
+            }
+        };
+
+        const writePinned = (value) => {
+            try {
+                window.localStorage.setItem(storageKey, value ? '1' : '0');
+            } catch (_) {
+                // ignore
+            }
+        };
+
+        const syncPinBtn = () => {
+            if (!pinBtn) return;
+            pinBtn.classList.toggle('active', pinEnabled);
+            pinBtn.setAttribute('aria-pressed', pinEnabled ? 'true' : 'false');
+            pinBtn.title = pinEnabled ? 'Panel anclado (clic para desanclar)' : 'Panel desanclado (clic para anclar)';
+        };
+
+        const applyPosition = () => {
+            const phRect = placeholder.getBoundingClientRect();
+            const scrollerTop = Math.max(getScrollerTopInViewport(), 0);
+            const maxHeight = window.innerHeight - (scrollerTop + topOffset) - 16;
+
+            wrapper.style.position = 'fixed';
+            wrapper.style.top = (scrollerTop + topOffset) + 'px';
+            wrapper.style.left = phRect.left + 'px';
+            wrapper.style.width = phRect.width + 'px';
+            wrapper.style.zIndex = '1100';
+
+            // Mantener scroll interno del panel dentro del viewport
+            const body = wrapper.querySelector('.available-widgets-body');
+            if (body) body.style.maxHeight = Math.max(240, maxHeight) + 'px';
+        };
+
+        const fix = () => {
+            if (isFixed) return;
+            isFixed = true;
+
+            placeholder.style.height = wrapper.offsetHeight + 'px';
+            placeholder.classList.add('is-active');
+            wrapper.classList.add('is-fixed');
+
+            // Extra-robusto frente a overflow/transform en ancestros
+            document.body.appendChild(wrapper);
+            applyPosition();
+        };
+
+        const unfix = () => {
+            if (!isFixed) return;
+            isFixed = false;
+
+            wrapper.classList.remove('is-fixed');
+            wrapper.setAttribute('style', originalInlineStyle);
+
+            const body = wrapper.querySelector('.available-widgets-body');
+            if (body) body.style.maxHeight = '';
+
+            placeholder.classList.remove('is-active');
+            placeholder.style.height = '';
+            placeholder.insertAdjacentElement('afterend', wrapper);
+        };
+
+        const onScroll = () => {
+            if (rafId) return;
+            rafId = window.requestAnimationFrame(() => {
+                rafId = null;
+
+                if (window.innerWidth < 992) {
+                    unfix();
+                    return;
+                }
+
+                if (!pinEnabled) {
+                    unfix();
+                    return;
+                }
+
+                const scrollTop = getScrollTop();
+                const scrollerTop = getScrollerTopInViewport();
+                const phRect = placeholder.getBoundingClientRect();
+                const phTopInScroll = scrollTop + (phRect.top - scrollerTop);
+
+                if (scrollTop >= phTopInScroll - topOffset) {
+                    fix();
+                    applyPosition();
+                } else {
+                    unfix();
+                }
+            });
+        };
+
+        const addScrollListener = (target) => {
+            if (!target) return;
+            target.addEventListener('scroll', onScroll, { passive: true });
+        };
+
+        addScrollListener(usesWindow ? window : scrollContainer);
+        addScrollListener(window); // fallback
+
+        pinEnabled = readPinned();
+        syncPinBtn();
+        if (pinBtn) {
+            pinBtn.addEventListener('click', () => {
+                pinEnabled = !pinEnabled;
+                writePinned(pinEnabled);
+                syncPinBtn();
+                onScroll();
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            if (isFixed) applyPosition();
+            onScroll();
+        });
+
+        setTimeout(onScroll, 200);
+    }
+
+    setupStickyAvailableWidgets();
 
     // Inicializar SortableJS para los widgets disponibles
     if (availableWidgets) {

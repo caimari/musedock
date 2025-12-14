@@ -37,14 +37,24 @@
 
                         <div class="mb-3">
                             <label for="password" class="form-label fw-semibold">Contraseña</label>
-                            <input type="password" class="form-control" id="password" name="password" required
-                                   minlength="8" placeholder="Mínimo 8 caracteres">
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="password" name="password" required
+                                       minlength="8" placeholder="Mínimo 8 caracteres">
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                    <i class="bi bi-eye" id="eyeIcon"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="mb-3">
-                            <label for="password_confirmation" class="form-label fw-semibold">Confirmar contraseña</label>
-                            <input type="password" class="form-control" id="password_confirmation"
-                                   name="password_confirmation" required placeholder="Repite tu contraseña">
+                            <label for="password_confirm" class="form-label fw-semibold">Confirmar contraseña</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="password_confirm"
+                                       name="password_confirm" required placeholder="Repite tu contraseña">
+                                <button class="btn btn-outline-secondary" type="button" id="togglePasswordConfirm">
+                                    <i class="bi bi-eye" id="eyeIconConfirm"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <details class="mb-3">
@@ -69,9 +79,9 @@
                         </details>
 
                         <div class="form-check mb-4">
-                            <input class="form-check-input" type="checkbox" id="terms" required>
-                            <label class="form-check-label" for="terms">
-                                Acepto los <a href="/p/terms" target="_blank">términos y condiciones</a> y la <a href="/p/privacy" target="_blank">política de privacidad</a>
+                            <input class="form-check-input" type="checkbox" id="terms" name="accept_terms" value="1" required>
+                            <label class="form-check-label text-dark" for="terms">
+                                Acepto los <a href="/p/terms" target="_blank" class="text-dark text-decoration-underline fw-semibold">términos y condiciones</a> y la <a href="/p/privacy" target="_blank" class="text-dark text-decoration-underline fw-semibold">política de privacidad</a>
                             </label>
                         </div>
 
@@ -209,6 +219,37 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
         submitBtn.disabled = false;
         submitBtn.innerHTML = 'Crear cuenta gratis';
     });
+});
+
+// Toggle mostrar/ocultar contraseña
+document.getElementById('togglePassword').addEventListener('click', function() {
+    const passwordInput = document.getElementById('password');
+    const eyeIcon = document.getElementById('eyeIcon');
+
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        eyeIcon.classList.remove('bi-eye');
+        eyeIcon.classList.add('bi-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        eyeIcon.classList.remove('bi-eye-slash');
+        eyeIcon.classList.add('bi-eye');
+    }
+});
+
+document.getElementById('togglePasswordConfirm').addEventListener('click', function() {
+    const passwordConfirmInput = document.getElementById('password_confirm');
+    const eyeIconConfirm = document.getElementById('eyeIconConfirm');
+
+    if (passwordConfirmInput.type === 'password') {
+        passwordConfirmInput.type = 'text';
+        eyeIconConfirm.classList.remove('bi-eye');
+        eyeIconConfirm.classList.add('bi-eye-slash');
+    } else {
+        passwordConfirmInput.type = 'password';
+        eyeIconConfirm.classList.remove('bi-eye-slash');
+        eyeIconConfirm.classList.add('bi-eye');
+    }
 });
 </script>
 @endsection
