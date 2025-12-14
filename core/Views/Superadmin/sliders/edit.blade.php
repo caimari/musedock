@@ -10,33 +10,36 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;800&family=Montserrat:wght@400;600;700;800&family=Roboto:wght@400;500;700;900&family=Open+Sans:wght@400;600;700;800&family=Lato:wght@400;700;900&family=Poppins:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Raleway:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-    /* Asegurar que los contenedores permitan sticky */
-    .app-content,
-    .container-fluid,
-    .row,
-    .col-lg-8 {
-        overflow: visible !important;
-    }
+	<style>
+	    /* Asegurar que los contenedores permitan sticky */
+	    .app-content,
+	    .container-fluid,
+	    .sliders-edit-row,
+	    .sliders-edit-left {
+	        overflow: visible !important;
+	    }
 
-    .row {
-        align-items: flex-start !important;
-    }
+	    /* IMPORTANTE: para que position:sticky funcione durante TODO el scroll del sidebar,
+	       la columna izquierda debe estirarse a la altura de la columna derecha.
+	       Evitar align-items:flex-start (corta el sticky). */
+	    .sliders-edit-row {
+	        align-items: stretch !important;
+	    }
 
-    /* Preview sticky - se mantiene visible al hacer scroll */
-    .preview-sticky-wrapper {
-        position: -webkit-sticky;
-        position: sticky;
+	    /* Preview sticky - se mantiene visible al hacer scroll */
+	    .preview-sticky-wrapper {
+	        position: -webkit-sticky;
+	        position: sticky;
         top: 20px;
         z-index: 50;
         align-self: flex-start;
         max-height: calc(100vh - 40px);
     }
 
-    /* Asegurar que el contenedor tenga altura para scroll */
-    .col-lg-8 {
-        min-height: 100%;
-    }
+	    /* Asegurar que el contenedor tenga altura para scroll */
+	    .sliders-edit-left {
+	        min-height: 100%;
+	    }
 
     /* Importante: NO recortar el slider aquí, para que temas con sombra (p.ej. rounded-shadow)
        se vean correctamente en el preview. El recorte lo hace #preview-swiper. */
@@ -423,12 +426,12 @@
         @include('partials.alerts-sweetalert2')
 
         <form method="POST" action="{{ route('sliders.update', ['id' => $slider->id]) }}">
-            @csrf
-
-            <div class="row">
-
-                {{-- Panel izquierdo (Datos principales y Diapositivas) --}}
-                <div class="col-lg-8">
+	            @csrf
+	
+	            <div class="row sliders-edit-row">
+	
+	                {{-- Panel izquierdo (Datos principales y Diapositivas) --}}
+	                <div class="col-lg-8 sliders-edit-left">
 
                     {{-- Información del Slider --}}
                     <div class="card mb-4">
@@ -625,8 +628,8 @@
 
                 </div>
 
-                {{-- Panel derecho (Settings) --}}
-                <div class="col-lg-4">
+	                {{-- Panel derecho (Settings) --}}
+	                <div class="col-lg-4">
 
                     {{-- MOTOR --}}
             <div class="card mb-3">
