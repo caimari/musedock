@@ -373,7 +373,10 @@ class ProvisioningService
     }
 
     /**
-     * Configura Cloudflare (CNAME + proxy orange)
+     * Configura Cloudflare (CNAME + proxy orange/gris)
+     *
+     * Para plan FREE: usa DNS-only (gris) para permitir Let's Encrypt
+     * Para planes STARTER/BUSINESS: usa proxy (naranja) para protección DDoS
      *
      * @param int $tenantId
      * @param string $subdomain
@@ -382,8 +385,20 @@ class ProvisioningService
     private function configureCloudflare(int $tenantId, string $subdomain): bool
     {
         try {
-            $proxiedEnv = \Screenart\Musedock\Env::get('TENANT_CLOUDFLARE_PROXY_ENABLED', true);
-            $proxied = filter_var($proxiedEnv, FILTER_VALIDATE_BOOLEAN);
+            // Obtener plan del tenant
+            $stmt = $this->pdo->prepare("SELECT plan FROM tenants WHERE id = ?");
+            $stmt->execute([$tenantId]);
+            $plan = $stmt->fetchColumn();
+
+            // FREE plan: DNS-only (grey cloud) para permitir Let's Encrypt de Caddy
+            // STARTER/BUSINESS: Proxy enabled (orange cloud) para protección y CDN
+            if ($plan === 'free') {
+                $proxied = false; // DNS-only (grey cloud)
+                Logger::info("[ProvisioningService] Using DNS-only for FREE plan tenant {$tenantId}");
+            } else {
+                $proxiedEnv = \Screenart\Musedock\Env::get('TENANT_CLOUDFLARE_PROXY_ENABLED', true);
+                $proxied = filter_var($proxiedEnv, FILTER_VALIDATE_BOOLEAN);
+            }
 
             $result = $this->cloudflareService->createSubdomainRecord($subdomain, $proxied);
 

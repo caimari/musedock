@@ -2906,6 +2906,66 @@ body {
     }
   }
 
+/* ===== TinyMCE content: responsive media ===== */
+.post-content img,
+.page-body img,
+.ud-blog-details-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+.post-content figure,
+.page-body figure,
+.ud-blog-details-content figure {
+  max-width: 100%;
+}
+
+.post-content iframe,
+.page-body iframe,
+.ud-blog-details-content iframe {
+  max-width: 100%;
+}
+
+.post-content table,
+.page-body table,
+.ud-blog-details-content table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.post-content,
+.page-body,
+.ud-blog-details-content {
+  overflow-x: hidden;
+}
+
+/* ===== Mobile: force sliders (Swiper) full-width + horizontal ===== */
+@media (max-width: 767px) {
+  main .ud-page-content .swiper,
+  main .ud-page-content .slider-full-width-wrapper,
+  main .page-body .swiper,
+  main .page-content-wrapper .swiper {
+    width: 100vw !important;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+    border-radius: 0 !important;
+  }
+
+  main .ud-page-content .swiper {
+    height: 240px !important;
+    max-height: 40vh !important;
+  }
+
+  main .ud-page-content .swiper .swiper-slide img,
+  main .page-body .swiper .swiper-slide img,
+  main .page-content-wrapper .swiper .swiper-slide img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+}
+
 /* ===== Custom layout overrides ===== */
 main .container {
   padding-top: 0 !important;
