@@ -859,11 +859,15 @@ public function destroy($id)
         // PASO 2: Registrar en tabla pages_trash usando prepared statement
         error_log("PASO 2: Insertando en pages_trash...");
 
-        $stmt = $pdo->prepare("INSERT INTO pages_trash (page_id, tenant_id, deleted_by, deleted_by_name, deleted_by_type, deleted_at, scheduled_permanent_delete, ip_address) VALUES (?, NULL, ?, ?, 'superadmin', NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), ?)");
+        $deletedAt = (new \DateTimeImmutable('now'))->format('Y-m-d H:i:s');
+        $scheduledPermanentDelete = (new \DateTimeImmutable('now'))->modify('+30 days')->format('Y-m-d H:i:s');
+        $stmt = $pdo->prepare("INSERT INTO pages_trash (page_id, tenant_id, deleted_by, deleted_by_name, deleted_by_type, deleted_at, scheduled_permanent_delete, ip_address) VALUES (?, NULL, ?, ?, 'superadmin', ?, ?, ?)");
         $stmt->execute([
             $pageId,
             $user['id'] ?? 0,
             $user['name'] ?? 'Sistema',
+            $deletedAt,
+            $scheduledPermanentDelete,
             $_SERVER['REMOTE_ADDR'] ?? 'unknown'
         ]);
         error_log("✓ INSERT en pages_trash completado");
@@ -1596,4 +1600,3 @@ public function autosave($id)
     exit;
 }
 }
-

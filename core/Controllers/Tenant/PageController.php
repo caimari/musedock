@@ -653,12 +653,16 @@ class PageController
             }
 
             // Registrar en tabla pages_trash
-            $stmt = $pdo->prepare("INSERT INTO pages_trash (page_id, tenant_id, deleted_by, deleted_by_name, deleted_by_type, deleted_at, scheduled_permanent_delete, ip_address) VALUES (?, ?, ?, ?, 'admin', NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), ?)");
+            $deletedAt = (new \DateTimeImmutable('now'))->format('Y-m-d H:i:s');
+            $scheduledPermanentDelete = (new \DateTimeImmutable('now'))->modify('+30 days')->format('Y-m-d H:i:s');
+            $stmt = $pdo->prepare("INSERT INTO pages_trash (page_id, tenant_id, deleted_by, deleted_by_name, deleted_by_type, deleted_at, scheduled_permanent_delete, ip_address) VALUES (?, ?, ?, ?, 'admin', ?, ?, ?)");
             $stmt->execute([
                 $pageId,
                 $tenantId,
                 $user['id'] ?? 0,
                 $user['name'] ?? 'Sistema',
+                $deletedAt,
+                $scheduledPermanentDelete,
                 $_SERVER['REMOTE_ADDR'] ?? 'unknown'
             ]);
 
