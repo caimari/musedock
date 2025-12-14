@@ -1,0 +1,35 @@
+{
+  "name": "Instagram Gallery",
+  "slug": "instagram-gallery",
+  "version": "1.0.0",
+  "description": "Galería de Instagram con conexión a cuentas de Instagram Basic Display API. Permite a SuperAdmin y Tenants conectar sus cuentas de Instagram y mostrar sus publicaciones en galerías con múltiples diseños.",
+  "author": "MuseDock",
+  "enabled_by_default": true,
+  "for_cms": true,
+  "for_tenant": true,
+  "permissions": [
+    "view",
+    "create",
+    "edit",
+    "manage",
+    "delete"
+  ],
+  "settings": {
+    "instagram_app_id": "",
+    "instagram_app_secret": "",
+    "instagram_redirect_uri": "",
+    "default_layout": "grid",
+    "default_columns": 3,
+    "default_gap": 10,
+    "max_posts_per_gallery": 50,
+    "cache_duration_hours": 6,
+    "auto_refresh_tokens": true,
+    "allowed_layouts": [
+      "grid",
+      "masonry",
+      "carousel",
+      "lightbox",
+      "justified"
+    ]
+  }
+}

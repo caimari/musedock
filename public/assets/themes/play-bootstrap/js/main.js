@@ -188,4 +188,10 @@
   } else {
     initNiceSelects();
   }
+
+  // Retry after everything is fully loaded (helps with rare race conditions)
+  window.addEventListener("load", () => {
+    initNiceSelects();
+    setTimeout(initNiceSelects, 250);
+  });
 })();

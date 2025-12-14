@@ -1,5 +1,10 @@
 <!doctype html>
 @php
+    // Asegurar contexto tenant para traducciones del frontend
+    \Screenart\Musedock\Services\TranslationService::setContext('tenant');
+    $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? site_setting('language', 'es'));
+    \Screenart\Musedock\Services\TranslationService::load($currentLang, 'tenant');
+
     // ========================================
     // CARGAR DATOS DEL SITIO (tenant o global)
     // ========================================

@@ -544,6 +544,10 @@ body {
   margin: 0;
 }
 
+.language-selector .choices {
+  min-width: 140px;
+}
+
 .language-selector .choices__inner {
   min-height: auto;
   padding: 6px 34px 6px 12px;
@@ -552,6 +556,7 @@ body {
   color: var(--header-link-color, #ffffff);
   border-radius: 6px;
   font-size: 14px;
+  white-space: nowrap;
 }
 
 .mobile-lang-selector .choices {
