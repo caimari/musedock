@@ -71,10 +71,10 @@ class AddCloudflareColumnsToTenants_2025_01_01_000242
                     ADD COLUMN IF NOT EXISTS plan VARCHAR(20) NOT NULL DEFAULT 'free'
                         CHECK (plan IN ('free', 'starter', 'business')),
                     ADD COLUMN IF NOT EXISTS cloudflare_record_id VARCHAR(100) NULL,
-                    ADD COLUMN IF NOT EXISTS cloudflare_proxied BOOLEAN NOT NULL DEFAULT TRUE,
+                    ADD COLUMN IF NOT EXISTS cloudflare_proxied SMALLINT NOT NULL DEFAULT 1,
                     ADD COLUMN IF NOT EXISTS cloudflare_configured_at TIMESTAMP NULL,
                     ADD COLUMN IF NOT EXISTS cloudflare_error_log TEXT NULL,
-                    ADD COLUMN IF NOT EXISTS is_subdomain BOOLEAN NOT NULL DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS is_subdomain SMALLINT NOT NULL DEFAULT 0,
                     ADD COLUMN IF NOT EXISTS parent_domain VARCHAR(255) NULL
             ");
 

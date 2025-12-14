@@ -2916,6 +2916,16 @@ main .ud-page-content {
   transform: translateX(0px) translateY(0px);
 }
 
+main .ud-page-content.ud-page-content-post {
+  padding-top: 80px !important;
+}
+
+@media (max-width: 767px) {
+  main .ud-page-content.ud-page-content-post {
+    padding-top: 60px !important;
+  }
+}
+
 /* ===== Full-width slider as first element ===== */
 body.has-fullwidth-slider-first main {
   padding-top: 0 !important;

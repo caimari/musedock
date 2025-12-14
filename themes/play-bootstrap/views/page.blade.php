@@ -48,7 +48,7 @@
 @endif
 
 {{-- Contenido principal de la página --}}
-<section class="ud-page-content py-5">
+<section class="ud-page-content py-5{{ isset($post) ? ' ud-page-content-post' : '' }}">
     <div class="{{ isset($post) ? 'container' : ((isset($customizations) ? $customizations->container_class : null) ?? 'container') }}">
         <article class="{{ isset($post) ? 'blog-post-single' : ((isset($customizations) ? $customizations->content_class : null) ?? 'page-content-wrapper') }}">
             @if(isset($post))
