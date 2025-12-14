@@ -1681,6 +1681,32 @@ if (!function_exists('request')) {
 
                 return $data;
             }
+
+            public function path(): string
+            {
+                $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
+                $path = '/' . ltrim($path, '/');
+
+                return $path === '//' ? '/' : $path;
+            }
+
+            /**
+             * Compatibilidad tipo Laravel: request()->is('home'), request()->is('admin/*'), request()->is('/')
+             */
+            public function is(string $pattern): bool
+            {
+                $pattern = trim($pattern);
+                $path = ltrim($this->path(), '/'); // '' para la home
+
+                if ($pattern === '' || $pattern === '/') {
+                    return $path === '';
+                }
+
+                $pattern = ltrim($pattern, '/');
+
+                // fnmatch soporta '*' y '?' (similar a Request::is en Laravel)
+                return fnmatch($pattern, $path);
+            }
         };
     }
 }

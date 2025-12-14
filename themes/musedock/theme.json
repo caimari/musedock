@@ -1,0 +1,587 @@
+{
+  "name": "MuseDock (Zipprich Theme)",
+  "version": "1.0.0",
+  "description": "Modern web hosting theme adapted from Zipprich with full multi-tenant support, custom colors, social media integration, and responsive design.",
+  "author": "MuseDock CMS",
+  "url": "https://musedock.net",
+  "license": "MIT",
+  "compatibility": ">=1.0.0",
+  "requirements": {
+    "php": ">=8.0",
+    "extensions": ["pdo", "mbstring", "json", "gd"]
+  },
+  "preview": "screenshot.jpg",
+  "folder": "musedock",
+  "extends": "default",
+  "supports": [
+    "multi-tenant",
+    "custom-colors",
+    "custom-logo",
+    "site-settings",
+    "theme-options",
+    "custom-fields",
+    "seo-settings",
+    "social-media",
+    "translations",
+    "contact-form",
+    "blog",
+    "sidebar-widgets",
+    "custom-menus",
+    "banners",
+    "featured-images",
+    "page-meta"
+  ],
+  "templates": {
+    "home": "views/home.blade.php",
+    "page": "views/page.blade.php",
+    "pageWithSidebarLeft": "views/page.blade.php",
+    "pageWithSidebarRight": "views/page.blade.php",
+    "blog": "views/blog/index.blade.php",
+    "blogSingle": "views/blog/single.blade.php",
+    "blogCategory": "views/blog/category.blade.php",
+    "blogTag": "views/blog/tag.blade.php"
+  },
+  "assets": {
+    "css": [
+      "assets/themes/musedock/css/bootstrap.min.css",
+      "assets/themes/musedock/css/font-awesome.min.css",
+      "assets/themes/musedock/css/plugins.css",
+      "assets/themes/musedock/css/animated.css",
+      "assets/themes/musedock/css/owl.carousel.min.css",
+      "assets/themes/musedock/css/style.css",
+      "assets/themes/musedock/css/colors.css",
+      "assets/themes/musedock/css/responsive.css",
+      "assets/themes/musedock/css/simple-slider.css"
+    ],
+    "js": [
+      "assets/themes/musedock/js/jquery.min.js",
+      "assets/themes/musedock/js/bootstrap.min.js",
+      "assets/themes/musedock/js/owl.carousel.min.js",
+      "assets/themes/musedock/js/plugins.js",
+      "assets/themes/musedock/js/scripts.js",
+      "assets/themes/musedock/js/simple-slider.js"
+    ]
+  },
+  "custom_fields": {
+    "page": {
+      "banner_image": {
+        "type": "image",
+        "label": "Page Banner Image",
+        "description": "Upload a banner image for this page",
+        "max_size": "2MB",
+        "allowed_types": ["jpg", "jpeg", "png", "webp"],
+        "category": "media"
+      },
+      "show_sidebar": {
+        "type": "checkbox",
+        "label": "Show Sidebar",
+        "default": false,
+        "category": "layout"
+      },
+      "sidebar_position": {
+        "type": "select",
+        "label": "Sidebar Position",
+        "options": ["left", "right"],
+        "default": "right",
+        "category": "layout",
+        "depends_on": "show_sidebar"
+      },
+      "show_meta": {
+        "type": "checkbox",
+        "label": "Show Page Meta Information",
+        "default": true,
+        "category": "display"
+      },
+      "category": {
+        "type": "text",
+        "label": "Page Category",
+        "category": "taxonomy"
+      },
+      "tags": {
+        "type": "text",
+        "label": "Page Tags (comma separated)",
+        "category": "taxonomy"
+      },
+      "author": {
+        "type": "text",
+        "label": "Page Author",
+        "default": "Admin",
+        "category": "metadata"
+      },
+      "featured_image": {
+        "type": "image",
+        "label": "Featured Image",
+        "description": "Upload a featured image for this page",
+        "max_size": "2MB",
+        "allowed_types": ["jpg", "jpeg", "png", "webp"],
+        "category": "media"
+      }
+    },
+    "blog_post": {
+      "featured_image": {
+        "type": "image",
+        "label": "Featured Image",
+        "description": "Upload a featured image for this blog post",
+        "max_size": "2MB",
+        "allowed_types": ["jpg", "jpeg", "png", "webp"],
+        "category": "media"
+      },
+      "category": {
+        "type": "select",
+        "label": "Blog Category",
+        "options": ["Technology", "Hosting", "Web Development", "Tutorials", "News"],
+        "category": "taxonomy"
+      },
+      "tags": {
+        "type": "text",
+        "label": "Blog Tags (comma separated)",
+        "category": "taxonomy"
+      },
+      "author": {
+        "type": "text",
+        "label": "Post Author",
+        "default": "Admin",
+        "category": "metadata"
+      },
+      "show_author": {
+        "type": "checkbox",
+        "label": "Show Author Information",
+        "default": true,
+        "category": "display"
+      },
+      "show_date": {
+        "type": "checkbox",
+        "label": "Show Publication Date",
+        "default": true,
+        "category": "display"
+      },
+      "show_category": {
+        "type": "checkbox",
+        "label": "Show Category",
+        "default": true,
+        "category": "display"
+      },
+      "show_tags": {
+        "type": "checkbox",
+        "label": "Show Tags",
+        "default": true,
+        "category": "display"
+      }
+    }
+  },
+  "menu_positions": {
+    "header": {
+      "label": "Header Navigation Menu",
+      "description": "Main navigation menu in the header",
+      "max_items": 20,
+      "supports_dropdowns": true,
+      "supports_megamenu": true
+    },
+    "footer": {
+      "label": "Footer Navigation Menu",
+      "description": "Navigation menu in the footer",
+      "max_items": 10,
+      "supports_dropdowns": true,
+      "supports_megamenu": false
+    }
+  },
+  "widget_areas": {
+    "sidebar_left": {
+      "label": "Left Sidebar",
+      "description": "Widgets displayed in the left sidebar",
+      "before_widget": "<div class=\"widget %2$s\">",
+      "after_widget": "</div>",
+      "before_title": "<h4 class=\"widget-title\">",
+      "after_title": "</h4>"
+    },
+    "sidebar_right": {
+      "label": "Right Sidebar",
+      "description": "Widgets displayed in the right sidebar",
+      "before_widget": "<div class=\"widget %2$s\">",
+      "after_widget": "</div>",
+      "before_title": "<h4 class=\"widget-title\">",
+      "after_title": "</h4>"
+    },
+    "footer_column_1": {
+      "label": "Footer Column 1",
+      "description": "Widgets displayed in the first footer column",
+      "before_widget": "<div class=\"widget %2$s\">",
+      "after_widget": "</div>",
+      "before_title": "<h4 class=\"widget-title\">",
+      "after_title": "</h4>"
+    },
+    "footer_column_2": {
+      "label": "Footer Column 2",
+      "description": "Widgets displayed in the second footer column",
+      "before_widget": "<div class=\"widget %2$s\">",
+      "after_widget": "</div>",
+      "before_title": "<h4 class=\"widget-title\">",
+      "after_title": "</h4>"
+    },
+    "footer_column_3": {
+      "label": "Footer Column 3",
+      "description": "Widgets displayed in the third footer column",
+      "before_widget": "<div class=\"widget %2$s\">",
+      "after_widget": "</div>",
+      "before_title": "<h4 class=\"widget-title\">",
+      "after_title": "</h4>"
+    },
+    "footer_column_4": {
+      "label": "Footer Column 4",
+      "description": "Widgets displayed in the fourth footer column",
+      "before_widget": "<div class=\"widget %2$s\">",
+      "after_widget": "</div>",
+      "before_title": "<h4 class=\"widget-title\">",
+      "after_title": "</h4>"
+    }
+  },
+  "options": {
+    "sections": {
+      "colors": {
+        "title": "Color Scheme",
+        "description": "Customize the colors of your theme",
+        "icon": "fa-palette",
+        "fields": {
+          "primary_color": {
+            "type": "color",
+            "label": "Primary Color",
+            "default": "#ff5e15",
+            "description": "Main color used throughout the theme"
+          },
+          "secondary_color": {
+            "type": "color",
+            "label": "Secondary Color",
+            "default": "#1a2a40",
+            "description": "Secondary color used throughout the theme"
+          },
+          "text_color": {
+            "type": "color",
+            "label": "Text Color",
+            "default": "#333333",
+            "description": "Main text color"
+          },
+          "link_color": {
+            "type": "color",
+            "label": "Link Color",
+            "default": "#ff5e15",
+            "description": "Color for links"
+          },
+          "link_hover_color": {
+            "type": "color",
+            "label": "Link Hover Color",
+            "default": "#e54c08",
+            "description": "Color for links on hover"
+          }
+        }
+      },
+      "header": {
+        "title": "Header Settings",
+        "description": "Configure the header appearance and functionality",
+        "icon": "fa-header",
+        "fields": {
+          "header_bg_color": {
+            "type": "color",
+            "label": "Header Background Color",
+            "default": "#ffffff",
+            "description": "Background color for the main header"
+          },
+          "header_logo_text_color": {
+            "type": "color",
+            "label": "Header Logo Text Color",
+            "default": "#1a2a40",
+            "description": "Color for the logo text"
+          },
+          "header_link_color": {
+            "type": "color",
+            "label": "Header Link Color",
+            "default": "#333333",
+            "description": "Color for navigation links"
+          },
+          "header_link_hover_color": {
+            "type": "color",
+            "label": "Header Link Hover Color",
+            "default": "#ff5e15",
+            "description": "Color for navigation links on hover"
+          },
+          "header_sticky": {
+            "type": "checkbox",
+            "label": "Sticky Header",
+            "default": false,
+            "description": "Make header sticky on scroll"
+          },
+          "header_cta_enabled": {
+            "type": "checkbox",
+            "label": "Enable CTA Button",
+            "default": false,
+            "description": "Show call-to-action button in header"
+          },
+          "header_cta_text_en": {
+            "type": "text",
+            "label": "CTA Button Text (English)",
+            "default": "Sign Up",
+            "depends_on": "header_cta_enabled"
+          },
+          "header_cta_text_es": {
+            "type": "text",
+            "label": "CTA Button Text (Spanish)",
+            "default": "Inscríbete",
+            "depends_on": "header_cta_enabled"
+          },
+          "header_cta_url": {
+            "type": "text",
+            "label": "CTA Button URL",
+            "default": "#",
+            "depends_on": "header_cta_enabled"
+          },
+          "header_cta_bg_color": {
+            "type": "color",
+            "label": "CTA Button Background Color",
+            "default": "#ff5e15",
+            "depends_on": "header_cta_enabled"
+          },
+          "header_cta_text_color": {
+            "type": "color",
+            "label": "CTA Button Text Color",
+            "default": "#ffffff",
+            "depends_on": "header_cta_enabled"
+          }
+        }
+      },
+      "topbar": {
+        "title": "Top Bar Settings",
+        "description": "Configure the top bar appearance and content",
+        "icon": "fa-bars",
+        "fields": {
+          "topbar_enabled": {
+            "type": "checkbox",
+            "label": "Enable Top Bar",
+            "default": true,
+            "description": "Show the top bar with contact info"
+          },
+          "topbar_bg_color": {
+            "type": "color",
+            "label": "Top Bar Background Color",
+            "default": "#1a2a40",
+            "depends_on": "topbar_enabled"
+          },
+          "topbar_text_color": {
+            "type": "color",
+            "label": "Top Bar Text Color",
+            "default": "#ffffff",
+            "depends_on": "topbar_enabled"
+          },
+          "topbar_show_address": {
+            "type": "checkbox",
+            "label": "Show Address",
+            "default": false,
+            "depends_on": "topbar_enabled"
+          },
+          "topbar_show_email": {
+            "type": "checkbox",
+            "label": "Show Email",
+            "default": true,
+            "depends_on": "topbar_enabled"
+          },
+          "topbar_show_whatsapp": {
+            "type": "checkbox",
+            "label": "Show WhatsApp",
+            "default": true,
+            "depends_on": "topbar_enabled"
+          }
+        }
+      },
+      "footer": {
+        "title": "Footer Settings",
+        "description": "Configure the footer appearance and content",
+        "icon": "fa-footer",
+        "fields": {
+          "footer_bg_color": {
+            "type": "color",
+            "label": "Footer Background Color",
+            "default": "#f8fafe",
+            "description": "Background color for the footer"
+          },
+          "footer_text_color": {
+            "type": "color",
+            "label": "Footer Text Color",
+            "default": "#333333",
+            "description": "Main text color in footer"
+          },
+          "footer_heading_color": {
+            "type": "color",
+            "label": "Footer Heading Color",
+            "default": "#333333",
+            "description": "Color for footer widget headings"
+          },
+          "footer_link_color": {
+            "type": "color",
+            "label": "Footer Link Color",
+            "default": "#333333",
+            "description": "Color for footer links"
+          },
+          "footer_link_hover_color": {
+            "type": "color",
+            "label": "Footer Link Hover Color",
+            "default": "#ff5e15",
+            "description": "Color for footer links on hover"
+          },
+          "footer_icon_color": {
+            "type": "color",
+            "label": "Footer Icon Color",
+            "default": "#333333",
+            "description": "Color for social media icons"
+          },
+          "footer_border_color": {
+            "type": "color",
+            "label": "Footer Border Color",
+            "default": "#e5e5e5",
+            "description": "Color for footer borders"
+          }
+        }
+      },
+      "slider": {
+        "title": "Home Slider Settings",
+        "description": "Configure the home page slider",
+        "icon": "fa-images",
+        "fields": {
+          "slider_enabled": {
+            "type": "checkbox",
+            "label": "Enable Home Slider",
+            "default": true,
+            "description": "Show the slider on the home page"
+          },
+          "slider_autoplay": {
+            "type": "checkbox",
+            "label": "Auto Play Slider",
+            "default": true,
+            "depends_on": "slider_enabled"
+          },
+          "slider_interval": {
+            "type": "number",
+            "label": "Slide Interval (seconds)",
+            "default": 5,
+            "min": 2,
+            "max": 20,
+            "depends_on": "slider_enabled"
+          },
+          "slider_transition": {
+            "type": "select",
+            "label": "Transition Effect",
+            "options": ["fade", "slide"],
+            "default": "fade",
+            "depends_on": "slider_enabled"
+          }
+        }
+      },
+      "social": {
+        "title": "Social Media Integration",
+        "description": "Configure social media links and sharing",
+        "icon": "fa-share-alt",
+        "fields": {
+          "social_facebook": {
+            "type": "text",
+            "label": "Facebook URL",
+            "placeholder": "https://facebook.com/yourpage",
+            "category": "social_links"
+          },
+          "social_twitter": {
+            "type": "text",
+            "label": "Twitter/X URL",
+            "placeholder": "https://twitter.com/yourhandle",
+            "category": "social_links"
+          },
+          "social_instagram": {
+            "type": "text",
+            "label": "Instagram URL",
+            "placeholder": "https://instagram.com/yourprofile",
+            "category": "social_links"
+          },
+          "social_linkedin": {
+            "type": "text",
+            "label": "LinkedIn URL",
+            "placeholder": "https://linkedin.com/in/yourprofile",
+            "category": "social_links"
+          },
+          "social_youtube": {
+            "type": "text",
+            "label": "YouTube URL",
+            "placeholder": "https://youtube.com/yourchannel",
+            "category": "social_links"
+          },
+          "social_pinterest": {
+            "type": "text",
+            "label": "Pinterest URL",
+            "placeholder": "https://pinterest.com/yourprofile",
+            "category": "social_links"
+          },
+          "social_tiktok": {
+            "type": "text",
+            "label": "TikTok URL",
+            "placeholder": "https://tiktok.com/@yourusername",
+            "category": "social_links"
+          }
+        }
+      }
+    }
+  },
+  "language_support": {
+    "default": "en",
+    "available": ["en", "es"],
+    "rtl_support": false,
+    "translation_files": {
+      "en": "lang/en.php",
+      "es": "lang/es.php"
+    }
+  },
+  "hooks": {
+    "init": "MusedockTheme\\init",
+    "wp_head": "MusedockTheme\\wp_head",
+    "wp_footer": "MusedockTheme\\wp_footer",
+    "wp_enqueue_scripts": "MusedockTheme\\enqueue_scripts",
+    "wp_enqueue_styles": "MusedockTheme\\enqueue_styles"
+  },
+  "filters": {
+    "the_content": "MusedockTheme\\the_content",
+    "the_excerpt": "MusedockTheme\\the_excerpt",
+    "wp_title": "MusedockTheme\\wp_title",
+    "body_class": "MusedockTheme\\body_class"
+  },
+  "shortcodes": {
+    "slider": "MusedockTheme\\shortcode_slider",
+    "pricing_table": "MusedockTheme\\shortcode_pricing_table",
+    "testimonial": "MusedockTheme\\shortcode_testimonial",
+    "feature_box": "MusedockTheme\\shortcode_feature_box",
+    "call_to_action": "MusedockTheme\\shortcode_cta",
+    "contact_form": "MusedockTheme\\shortcode_contact_form"
+  },
+  "custom_post_types": {
+    "testimonial": {
+      "label": "Testimonials",
+      "supports": ["title", "editor", "thumbnail", "excerpt"],
+      "public": true,
+      "has_archive": true,
+      "menu_icon": "fa-quote-left",
+      "menu_position": 25
+    },
+    "pricing_plan": {
+      "label": "Pricing Plans",
+      "supports": ["title", "editor", "thumbnail", "excerpt"],
+      "public": true,
+      "has_archive": true,
+      "menu_icon": "fa-dollar",
+      "menu_position": 26
+    }
+  },
+  "taxonomies": {
+    "testimonial_category": {
+      "label": "Testimonial Categories",
+      "post_types": ["testimonial"],
+      "hierarchical": true
+    },
+    "pricing_category": {
+      "label": "Pricing Categories",
+      "post_types": ["pricing_plan"],
+      "hierarchical": true
+    }
+  }
+}

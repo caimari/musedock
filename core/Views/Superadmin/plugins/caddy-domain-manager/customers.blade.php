@@ -101,8 +101,8 @@
                                 </td>
                                 <td class="text-center">{{ (int)($c->tenants_count ?? 0) }}</td>
                                 <td class="text-center">{{ (int)($c->subdomains_count ?? 0) }}</td>
-                                <td class="text-muted">{{ $c->last_tenant_created_at ?? '-' }}</td>
-                                <td class="text-muted">{{ $c->created_at ?? '-' }}</td>
+                                <td class="text-muted">{{ $c->last_tenant_created_at ? format_datetime($c->last_tenant_created_at) : '-' }}</td>
+                                <td class="text-muted">{{ $c->created_at ? format_datetime($c->created_at) : '-' }}</td>
                             </tr>
                         @empty
                             <tr>
@@ -119,4 +119,3 @@
     </div>
 </div>
 @endsection
-
