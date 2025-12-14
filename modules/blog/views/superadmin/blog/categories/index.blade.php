@@ -135,7 +135,7 @@
     {{-- Formularios de eliminación --}}
     @if (!empty($categories) && count($categories) > 0)
       @foreach ($categories as $category)
-        <form method="POST" action="{{ route('blog.categories.destroy', ['id' => $category->id]) }}" style="display: none;" id="delete-form-{{ $category->id }}">
+        <form method="POST" action="{{ admin_url('blog/categories/' . $category->id) }}" style="display: none;" id="delete-form-{{ $category->id }}">
           @csrf
           @method('DELETE')
         </form>

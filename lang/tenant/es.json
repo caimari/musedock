@@ -165,6 +165,7 @@
     "error_page_not_in_trash": "Página no encontrada en la papelera",
     "error_image_upload": "Error al subir la imagen",
     "error_move_to_trash": "Error al mover a papelera",
+    "error_trash_status_update_failed": "No se pudo mover a papelera (falló la actualización del estado)",
     "error_restore_revision": "Error al restaurar la revisión",
     "error_delete": "Error al eliminar la página",
     "error_update": "Error al actualizar la página",

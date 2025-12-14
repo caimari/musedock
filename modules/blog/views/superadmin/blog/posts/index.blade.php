@@ -214,7 +214,7 @@
     {{-- Formularios de eliminación --}}
     @if (!empty($posts) && count($posts) > 0)
       @foreach ($posts as $post)
-        <form method="POST" action="{{ route('blog.posts.destroy', ['id' => $post->id]) }}" style="display: none;" id="delete-form-{{ $post->id }}">
+        <form method="POST" action="{{ admin_url('blog/posts/' . $post->id) }}" style="display: none;" id="delete-form-{{ $post->id }}">
           {!! csrf_field() !!}
           @method('DELETE')
         </form>

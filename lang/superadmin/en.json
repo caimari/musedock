@@ -186,6 +186,7 @@
     "error_page_not_in_trash": "Page not found in trash",
     "error_image_upload": "Error uploading image",
     "error_move_to_trash": "Error moving to trash",
+    "error_trash_status_update_failed": "Could not move to trash (status update failed)",
     "error_restore_revision": "Error restoring revision",
     "error_delete": "Error deleting page",
     "error_update": "Error updating page",
