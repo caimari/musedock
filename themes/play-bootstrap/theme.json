@@ -1,0 +1,42 @@
+{
+  "name": "Play Bootstrap",
+  "slug": "play-bootstrap",
+  "version": "1.0.0",
+  "author": "UIdeck / Adapted for MuseDock",
+  "description": "Tema Play Bootstrap - Template profesional y moderno adaptado para MuseDock CMS multi-tenant",
+  "screenshot": "/assets/themes/play-bootstrap/img/hero/hero-image.svg",
+  "bootstrap": true,
+  "customizable_options": {
+    "colors": {
+      "primary": "#3056d3",
+      "secondary": "#13c296",
+      "dark": "#1d2144",
+      "light": "#f8f9fa"
+    },
+    "header": {
+      "header_bg_color": "#ffffff",
+      "header_logo_text_color": "#3056d3",
+      "header_logo_font": "inherit",
+      "header_link_color": "#212529",
+      "header_link_hover_color": "#3056d3",
+      "header_sticky": true,
+      "header_cta_enabled": false,
+      "header_cta_text_es": "Iniciar Sesión",
+      "header_cta_text_en": "Sign In",
+      "header_cta_url": "/login",
+      "header_cta_bg_color": "#3056d3",
+      "header_cta_text_color": "#ffffff",
+      "header_cta_hover_color": "#2546b8",
+      "header_lang_selector_enabled": true
+    },
+    "footer": {
+      "footer_bg_color": "#f8fafe",
+      "footer_text_color": "#717171",
+      "footer_heading_color": "#212529",
+      "footer_link_color": "#717171",
+      "footer_link_hover_color": "#3056d3",
+      "footer_icon_color": "#3056d3",
+      "footer_border_color": "#e5e5e5"
+    }
+  }
+}
