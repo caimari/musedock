@@ -43,7 +43,7 @@ class HomeController
         // Si está configurado para mostrar una página estática
         if ($showOnFront === 'page' && !empty($pageOnFront)) {
             error_log("HomeController: Mostrando página estática ID: {$pageOnFront}");
-            return $this->showStaticPage($pageOnFront);
+            return $this->showStaticPage($pageOnFront, true);
         }
 
         // Si está configurado para mostrar un post estático
@@ -296,7 +296,7 @@ class HomeController
     /**
      * Muestra una página estática específica como página de inicio
      */
-    private function showStaticPage($pageId)
+    private function showStaticPage($pageId, bool $isFrontPage = false)
     {
         try {
             $page = Page::find($pageId);
@@ -323,9 +323,14 @@ class HomeController
             $displayData->twitter_description = $translation->twitter_description ?? $page->twitter_description;
             $displayData->twitter_image = $translation->twitter_image ?? $page->twitter_image;
 
-            // Obtener plantilla asignada
-            $templateName = PageMeta::getMeta($page->id, 'page_template', 'page.blade.php');
-            $templateName = str_replace('.blade.php', '', $templateName);
+            // Si esta página es la homepage configurada, usar la plantilla "home" del tema
+            if ($isFrontPage) {
+                $templateName = 'home';
+            } else {
+                // Obtener plantilla asignada
+                $templateName = PageMeta::getMeta($page->id, 'page_template', 'page.blade.php');
+                $templateName = str_replace('.blade.php', '', $templateName);
+            }
 
             // Cargar personalizaciones de página
             $pageCustomizations = $this->loadPageCustomizations($page->id);
@@ -333,7 +338,8 @@ class HomeController
             return View::renderTheme($templateName, [
                 'page' => $page,
                 'translation' => $displayData,
-                'customizations' => $pageCustomizations
+                'customizations' => $pageCustomizations,
+                'isFrontPage' => $isFrontPage,
             ]);
 
         } catch (\Exception $e) {

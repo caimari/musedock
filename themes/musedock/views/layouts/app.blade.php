@@ -98,11 +98,16 @@ $_contactAddress = site_setting('contact_address', '');
   @endif
   
   {{-- CSS del tema --}}
+  <link rel="stylesheet" href="{{ asset('themes/musedock/css/classic-themes.min.css') }}">
+  <link rel="stylesheet" href="{{ asset('themes/musedock/css/css-extra1.css') }}">
+  <link rel="stylesheet" href="{{ asset('themes/musedock/css/css-extra2.css') }}">
+  <link rel="stylesheet" href="{{ asset('themes/musedock/css/js_composer.min.css') }}">
   <link rel="stylesheet" href="{{ asset('themes/musedock/css/bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ asset('themes/musedock/css/font-awesome.min.css') }}">
   <link rel="stylesheet" href="{{ asset('themes/musedock/css/plugins.css') }}">
   <link rel="stylesheet" href="{{ asset('themes/musedock/css/animated.css') }}">
   <link rel="stylesheet" href="{{ asset('themes/musedock/css/owl.carousel.min.css') }}">
+  <link rel="stylesheet" href="{{ asset('themes/musedock/css/styles(1).css') }}">
   <link rel="stylesheet" href="{{ asset('themes/musedock/css/style.css') }}">
   <link rel="stylesheet" href="{{ asset('themes/musedock/css/colors.css') }}">
   <link rel="stylesheet" href="{{ asset('themes/musedock/css/responsive.css') }}">
@@ -111,19 +116,20 @@ $_contactAddress = site_setting('contact_address', '');
   {{-- CSS Variables dinámicas --}}
   <style>
     :root {
-      --topbar-bg-color: {{ themeOption('topbar.topbar_bg_color', '#1a2a40') }};
-      --topbar-text-color: {{ themeOption('topbar.topbar_text_color', '#ffffff') }};
-      --header-bg-color: {{ themeOption('header.header_bg_color', '#f8f9fa') }};
-      --header-logo-text-color: {{ themeOption('header.header_logo_text_color', '#1a2a40') }};
-      --header-link-color: {{ themeOption('header.header_link_color', '#333333') }};
-      --header-link-hover-color: {{ themeOption('header.header_link_hover_color', '#ff5e15') }};
-      --footer-bg-color: {{ themeOption('footer.footer_bg_color', '#f8fafe') }};
-      --footer-text-color: {{ themeOption('footer.footer_text_color', '#333333') }};
-      --footer-heading-color: {{ themeOption('footer.footer_heading_color', '#333333') }};
-      --footer-link-color: {{ themeOption('footer.footer_link_color', '#333333') }};
-      --footer-link-hover-color: {{ themeOption('footer.footer_link_hover_color', '#ff5e15') }};
-      --footer-icon-color: {{ themeOption('footer.footer_icon_color', '#333333') }};
-      --footer-border-color: {{ themeOption('footer.footer_border_color', '#e5e5e5') }};
+      /* Defaults alineados con Zipprich (styles(1).css) */
+      --topbar-bg-color: {{ themeOption('topbar.topbar_bg_color', '#ffffff') }};
+      --topbar-text-color: {{ themeOption('topbar.topbar_text_color', '#808a95') }};
+      --header-bg-color: {{ themeOption('header.header_bg_color', '#ffffff') }};
+      --header-logo-text-color: {{ themeOption('header.header_logo_text_color', '#243141') }};
+      --header-link-color: {{ themeOption('header.header_link_color', '#808a95') }};
+      --header-link-hover-color: {{ themeOption('header.header_link_hover_color', '#243141') }};
+      --footer-bg-color: {{ themeOption('footer.footer_bg_color', '#0C112A') }};
+      --footer-text-color: {{ themeOption('footer.footer_text_color', '#595f7c') }};
+      --footer-heading-color: {{ themeOption('footer.footer_heading_color', '#ffffff') }};
+      --footer-link-color: {{ themeOption('footer.footer_link_color', '#595f7c') }};
+      --footer-link-hover-color: {{ themeOption('footer.footer_link_hover_color', '#ffffff') }};
+      --footer-icon-color: {{ themeOption('footer.footer_icon_color', '#ffffff') }};
+      --footer-border-color: {{ themeOption('footer.footer_border_color', '#181d35') }};
     }
   </style>
   
@@ -144,8 +150,14 @@ $_contactAddress = site_setting('contact_address', '');
   {{-- Scripts del tema --}}
   <script src="{{ asset('themes/musedock/js/jquery.min.js') }}"></script>
   <script src="{{ asset('themes/musedock/js/bootstrap.min.js') }}"></script>
-  <script src="{{ asset('themes/musedock/js/owl.carousel.min.js') }}"></script>
   <script src="{{ asset('themes/musedock/js/plugins.js') }}"></script>
+  <script src="{{ asset('themes/musedock/js/waypoints.min.js') }}"></script>
+  <script src="{{ asset('themes/musedock/js/counterup.min.js') }}"></script>
+  <script src="{{ asset('themes/musedock/js/owl.carousel.min.js') }}"></script>
+  <script src="{{ asset('themes/musedock/js/slimmenu.min.js') }}"></script>
+  <script src="{{ asset('themes/musedock/js/fitvids.min.js') }}"></script>
+  <script src="{{ asset('themes/musedock/js/sticky.header.min.js') }}"></script>
+  <script src="{{ asset('themes/musedock/js/matchHeight.min.js') }}"></script>
   <script src="{{ asset('themes/musedock/js/scripts.js') }}"></script>
   <script src="{{ asset('themes/musedock/js/simple-slider.js') }}"></script>
   

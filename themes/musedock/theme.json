@@ -43,11 +43,16 @@
   },
   "assets": {
     "css": [
+      "assets/themes/musedock/css/classic-themes.min.css",
+      "assets/themes/musedock/css/css-extra1.css",
+      "assets/themes/musedock/css/css-extra2.css",
+      "assets/themes/musedock/css/js_composer.min.css",
       "assets/themes/musedock/css/bootstrap.min.css",
       "assets/themes/musedock/css/font-awesome.min.css",
       "assets/themes/musedock/css/plugins.css",
       "assets/themes/musedock/css/animated.css",
       "assets/themes/musedock/css/owl.carousel.min.css",
+      "assets/themes/musedock/css/styles(1).css",
       "assets/themes/musedock/css/style.css",
       "assets/themes/musedock/css/colors.css",
       "assets/themes/musedock/css/responsive.css",
@@ -56,8 +61,14 @@
     "js": [
       "assets/themes/musedock/js/jquery.min.js",
       "assets/themes/musedock/js/bootstrap.min.js",
-      "assets/themes/musedock/js/owl.carousel.min.js",
       "assets/themes/musedock/js/plugins.js",
+      "assets/themes/musedock/js/waypoints.min.js",
+      "assets/themes/musedock/js/counterup.min.js",
+      "assets/themes/musedock/js/owl.carousel.min.js",
+      "assets/themes/musedock/js/slimmenu.min.js",
+      "assets/themes/musedock/js/fitvids.min.js",
+      "assets/themes/musedock/js/sticky.header.min.js",
+      "assets/themes/musedock/js/matchHeight.min.js",
       "assets/themes/musedock/js/scripts.js",
       "assets/themes/musedock/js/simple-slider.js"
     ]
