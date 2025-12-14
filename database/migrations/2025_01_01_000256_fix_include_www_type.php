@@ -20,9 +20,9 @@ class FixIncludeWwwType_2025_01_01_000256
         // Solo aplicar en PostgreSQL
         if ($driver === 'pgsql') {
             try {
-                // 1. Convertir is_subdomain de BOOLEAN a SMALLINT
+                // 1. Arreglar is_subdomain (puede ser BOOLEAN o SMALLINT con DEFAULT incorrecto)
                 $stmt = $pdo->query("
-                    SELECT data_type
+                    SELECT data_type, column_default
                     FROM information_schema.columns
                     WHERE table_name = 'tenants'
                     AND column_name = 'is_subdomain'
@@ -30,36 +30,77 @@ class FixIncludeWwwType_2025_01_01_000256
 
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                if ($result && $result['data_type'] === 'boolean') {
-                    $pdo->exec("
-                        ALTER TABLE tenants
-                        ALTER COLUMN is_subdomain TYPE SMALLINT
-                        USING CASE
-                            WHEN is_subdomain = TRUE THEN 1
-                            ELSE 0
-                        END
-                    ");
+                if ($result) {
+                    // Primero eliminar DEFAULT si existe
+                    try {
+                        $pdo->exec("ALTER TABLE tenants ALTER COLUMN is_subdomain DROP DEFAULT");
+                    } catch (\Exception $e) {
+                        // Puede no tener DEFAULT
+                    }
 
-                    $pdo->exec("
-                        ALTER TABLE tenants
-                        ALTER COLUMN is_subdomain SET DEFAULT 0
-                    ");
+                    // Convertir a SMALLINT si es BOOLEAN
+                    if ($result['data_type'] === 'boolean') {
+                        $pdo->exec("
+                            ALTER TABLE tenants
+                            ALTER COLUMN is_subdomain TYPE SMALLINT
+                            USING CASE
+                                WHEN is_subdomain = TRUE THEN 1
+                                ELSE 0
+                            END
+                        ");
+                        echo "✓ Column is_subdomain converted from BOOLEAN to SMALLINT\n";
+                    }
 
-                    echo "✓ Column is_subdomain converted from BOOLEAN to SMALLINT\n";
+                    // Establecer DEFAULT correcto
+                    $pdo->exec("ALTER TABLE tenants ALTER COLUMN is_subdomain SET DEFAULT 0");
+                    echo "✓ Column is_subdomain default set to 0\n";
                 }
 
-                // 2. Asegurar que include_www no tenga DEFAULT problemático
-                $pdo->exec("
-                    ALTER TABLE tenants
-                    ALTER COLUMN include_www DROP DEFAULT
+                // 2. Arreglar cloudflare_proxied (puede ser BOOLEAN o SMALLINT)
+                $stmt = $pdo->query("
+                    SELECT data_type, column_default
+                    FROM information_schema.columns
+                    WHERE table_name = 'tenants'
+                    AND column_name = 'cloudflare_proxied'
                 ");
 
-                $pdo->exec("
-                    ALTER TABLE tenants
-                    ALTER COLUMN include_www SET DEFAULT 1
-                ");
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                echo "✓ Column include_www default fixed\n";
+                if ($result) {
+                    // Primero eliminar DEFAULT si existe
+                    try {
+                        $pdo->exec("ALTER TABLE tenants ALTER COLUMN cloudflare_proxied DROP DEFAULT");
+                    } catch (\Exception $e) {
+                        // Puede no tener DEFAULT
+                    }
+
+                    // Convertir a SMALLINT si es BOOLEAN
+                    if ($result['data_type'] === 'boolean') {
+                        $pdo->exec("
+                            ALTER TABLE tenants
+                            ALTER COLUMN cloudflare_proxied TYPE SMALLINT
+                            USING CASE
+                                WHEN cloudflare_proxied = TRUE THEN 1
+                                ELSE 0
+                            END
+                        ");
+                        echo "✓ Column cloudflare_proxied converted from BOOLEAN to SMALLINT\n";
+                    }
+
+                    // Establecer DEFAULT correcto
+                    $pdo->exec("ALTER TABLE tenants ALTER COLUMN cloudflare_proxied SET DEFAULT 1");
+                    echo "✓ Column cloudflare_proxied default set to 1\n";
+                }
+
+                // 3. Asegurar que include_www tenga DEFAULT correcto
+                try {
+                    $pdo->exec("ALTER TABLE tenants ALTER COLUMN include_www DROP DEFAULT");
+                } catch (\Exception $e) {
+                    // Puede no tener DEFAULT
+                }
+
+                $pdo->exec("ALTER TABLE tenants ALTER COLUMN include_www SET DEFAULT 1");
+                echo "✓ Column include_www default set to 1\n";
 
             } catch (\Exception $e) {
                 echo "⚠ Error converting columns: " . $e->getMessage() . "\n";
@@ -77,24 +118,11 @@ class FixIncludeWwwType_2025_01_01_000256
 
         if ($driver === 'pgsql') {
             try {
-                // Revertir is_subdomain a BOOLEAN
-                $pdo->exec("
-                    ALTER TABLE tenants
-                    ALTER COLUMN is_subdomain TYPE BOOLEAN
-                    USING CASE
-                        WHEN is_subdomain = 1 THEN TRUE
-                        ELSE FALSE
-                    END
-                ");
-
-                $pdo->exec("
-                    ALTER TABLE tenants
-                    ALTER COLUMN is_subdomain SET DEFAULT FALSE
-                ");
-
-                echo "✓ Column is_subdomain reverted to BOOLEAN\n";
+                // No revertir - mantener SMALLINT es la solución correcta
+                // Solo advertir que el rollback no hace nada
+                echo "⚠ Rollback skipped: SMALLINT is the correct type for compatibility\n";
             } catch (\Exception $e) {
-                echo "⚠ Error reverting columns: " . $e->getMessage() . "\n";
+                echo "⚠ Error in rollback: " . $e->getMessage() . "\n";
             }
         }
     }
