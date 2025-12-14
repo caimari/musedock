@@ -12,7 +12,7 @@
 @section('content')
 
 <!-- ====== Banner Start ====== -->
-<section class="ud-page-banner">
+<section class="ud-page-banner" style="background-image: linear-gradient(rgba(48, 86, 211, 0.55), rgba(48, 86, 211, 0.55)), url('{{ asset('img/background.jpg') }}'); background-size: cover; background-position: center; background-repeat: no-repeat;">
     <div class="container">
         <div class="row">
             <div class="col-lg-12">
@@ -41,7 +41,7 @@
                                         ? $post->featured_image
                                         : asset($post->featured_image);
                                 } else {
-                                    $imageUrl = asset('themes/play-bootstrap/img/blog/blog-01.jpg');
+                                    $imageUrl = asset('img/no-image.png');
                                 }
                             @endphp
                             <img src="{{ $imageUrl }}" alt="{{ $post->title }}" />

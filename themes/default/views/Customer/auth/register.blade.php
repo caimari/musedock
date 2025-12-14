@@ -37,23 +37,43 @@
 
                         <div class="mb-3">
                             <label for="password" class="form-label fw-semibold">Contraseña</label>
-                            <div class="input-group">
+                            <div class="input-group input-group-flat">
                                 <input type="password" class="form-control" id="password" name="password" required
                                        minlength="8" placeholder="Mínimo 8 caracteres">
-                                <button class="btn btn-outline-secondary" type="button" id="togglePassword" style="background-color: #fff !important; border-color: #ced4da !important; color: #6c757d !important;">
-                                    <i class="bi bi-eye" id="eyeIcon"></i>
-                                </button>
+                                <span class="input-group-text">
+                                    <a href="#" class="link-secondary toggle-password" title="Mostrar contraseña" data-bs-toggle="tooltip">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-eye" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
+                                            <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+                                            <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" />
+                                        </svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-eye-off d-none" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
+                                            <path d="M10.585 10.587a2 2 0 0 0 2.829 2.828" />
+                                            <path d="M16.681 16.673a8.717 8.717 0 0 1 -4.681 1.327c-3.6 0 -6.6 -2 -9 -6c1.272 -2.12 2.712 -3.678 4.32 -4.674m2.86 -1.146a9.055 9.055 0 0 1 1.82 -.18c3.6 0 6.6 2 9 6c-.666 1.11 -1.379 2.067 -2.138 2.87" />
+                                            <path d="M3 3l18 18" />
+                                        </svg>
+                                    </a>
+                                </span>
                             </div>
                         </div>
 
                         <div class="mb-3">
                             <label for="password_confirm" class="form-label fw-semibold">Confirmar contraseña</label>
-                            <div class="input-group">
+                            <div class="input-group input-group-flat">
                                 <input type="password" class="form-control" id="password_confirm"
                                        name="password_confirm" required placeholder="Repite tu contraseña">
-                                <button class="btn btn-outline-secondary" type="button" id="togglePasswordConfirm" style="background-color: #fff !important; border-color: #ced4da !important; color: #6c757d !important;">
-                                    <i class="bi bi-eye" id="eyeIconConfirm"></i>
-                                </button>
+                                <span class="input-group-text">
+                                    <a href="#" class="link-secondary toggle-password-confirm" title="Mostrar contraseña" data-bs-toggle="tooltip">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-eye" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
+                                            <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+                                            <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" />
+                                        </svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-eye-off d-none" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
+                                            <path d="M10.585 10.587a2 2 0 0 0 2.829 2.828" />
+                                            <path d="M16.681 16.673a8.717 8.717 0 0 1 -4.681 1.327c-3.6 0 -6.6 -2 -9 -6c1.272 -2.12 2.712 -3.678 4.32 -4.674m2.86 -1.146a9.055 9.055 0 0 1 1.82 -.18c3.6 0 6.6 2 9 6c-.666 1.11 -1.379 2.067 -2.138 2.87" />
+                                            <path d="M3 3l18 18" />
+                                        </svg>
+                                    </a>
+                                </span>
                             </div>
                         </div>
 
@@ -222,33 +242,53 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
 });
 
 // Toggle mostrar/ocultar contraseña
-document.getElementById('togglePassword').addEventListener('click', function() {
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle password visibility
+    const togglePassword = document.querySelector('.toggle-password');
     const passwordInput = document.getElementById('password');
-    const eyeIcon = document.getElementById('eyeIcon');
 
-    if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        eyeIcon.classList.remove('bi-eye');
-        eyeIcon.classList.add('bi-eye-slash');
-    } else {
-        passwordInput.type = 'password';
-        eyeIcon.classList.remove('bi-eye-slash');
-        eyeIcon.classList.add('bi-eye');
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const iconEye = this.querySelector('.icon-eye');
+            const iconEyeOff = this.querySelector('.icon-eye-off');
+
+            // Toggle password type
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+
+            // Toggle icons
+            iconEye.classList.toggle('d-none');
+            iconEyeOff.classList.toggle('d-none');
+
+            // Update tooltip
+            this.setAttribute('title', type === 'password' ? 'Mostrar contraseña' : 'Ocultar contraseña');
+        });
     }
-});
 
-document.getElementById('togglePasswordConfirm').addEventListener('click', function() {
+    // Toggle password confirm visibility
+    const togglePasswordConfirm = document.querySelector('.toggle-password-confirm');
     const passwordConfirmInput = document.getElementById('password_confirm');
-    const eyeIconConfirm = document.getElementById('eyeIconConfirm');
 
-    if (passwordConfirmInput.type === 'password') {
-        passwordConfirmInput.type = 'text';
-        eyeIconConfirm.classList.remove('bi-eye');
-        eyeIconConfirm.classList.add('bi-eye-slash');
-    } else {
-        passwordConfirmInput.type = 'password';
-        eyeIconConfirm.classList.remove('bi-eye-slash');
-        eyeIconConfirm.classList.add('bi-eye');
+    if (togglePasswordConfirm && passwordConfirmInput) {
+        togglePasswordConfirm.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const iconEye = this.querySelector('.icon-eye');
+            const iconEyeOff = this.querySelector('.icon-eye-off');
+
+            // Toggle password type
+            const type = passwordConfirmInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordConfirmInput.setAttribute('type', type);
+
+            // Toggle icons
+            iconEye.classList.toggle('d-none');
+            iconEyeOff.classList.toggle('d-none');
+
+            // Update tooltip
+            this.setAttribute('title', type === 'password' ? 'Mostrar contraseña' : 'Ocultar contraseña');
+        });
     }
 });
 </script>

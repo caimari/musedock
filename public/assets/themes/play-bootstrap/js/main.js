@@ -155,4 +155,37 @@
       });
     }
   });
+
+  // ===== Nice selects (language selector)
+  const initNiceSelects = () => {
+    if (typeof Choices === "undefined") return;
+
+    const selects = document.querySelectorAll(
+      "select.lang-select, select.mobile-lang-select"
+    );
+
+    selects.forEach((select) => {
+      if (select.dataset.choicesInitialized === "1") return;
+      select.dataset.choicesInitialized = "1";
+
+      try {
+        new Choices(select, {
+          allowHTML: false,
+          searchEnabled: false,
+          shouldSort: false,
+          itemSelectText: "",
+          position: "bottom",
+        });
+      } catch (e) {
+        // If Choices fails, keep native select
+        select.dataset.choicesInitialized = "0";
+      }
+    });
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initNiceSelects);
+  } else {
+    initNiceSelects();
+  }
 })();

@@ -112,6 +112,7 @@
     <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/css/bootstrap.min.css') }}" />
     <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/css/animate.css') }}" />
     <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/css/lineicons.css') }}" />
+    <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/vendor/choices/choices.min.css') }}" />
     <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/css/ud-styles.css') }}" />
 
     {{-- Google Fonts para tipografías del tema --}}
@@ -192,6 +193,7 @@
     {{-- Play Bootstrap JS Files --}}
     <script src="{{ asset('themes/play-bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('themes/play-bootstrap/js/wow.min.js') }}"></script>
+    <script src="{{ asset('themes/play-bootstrap/vendor/choices/choices.min.js') }}"></script>
     <script src="{{ asset('themes/play-bootstrap/js/main.js') }}"></script>
 
     {{-- Detectar sliders como primer elemento para ajustar spacing --}}

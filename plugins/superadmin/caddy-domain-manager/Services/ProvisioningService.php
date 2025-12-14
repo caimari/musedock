@@ -299,13 +299,14 @@ class ProvisioningService
         $tenantName = ucfirst($subdomain);
         $baseDomain = \Screenart\Musedock\Env::get('TENANT_BASE_DOMAIN', 'musedock.com');
 
+        // PostgreSQL: ambos campos son BOOLEAN después de la migración 000256
         $stmt->execute([
             $customerId,
             $fullDomain,
             $tenantName,
-            true,  // is_subdomain (compatible con PostgreSQL boolean)
+            true,   // is_subdomain (BOOLEAN)
             $baseDomain,
-            false  // include_www (compatible con PostgreSQL boolean)
+            false   // include_www (BOOLEAN, convertido de SMALLINT en migración 000256)
         ]);
 
         return (int) $this->pdo->lastInsertId();
