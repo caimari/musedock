@@ -247,6 +247,13 @@ class View
 
    public static function renderTheme($template, $data = [])
 {
+    // Asegurar traducciones del frontend en contexto tenant (antes de renderizar vistas)
+    \Screenart\Musedock\Services\TranslationService::setContext('tenant');
+    $locale = function_exists('detectLanguage')
+        ? detectLanguage()
+        : (\Screenart\Musedock\Services\TranslationService::getCurrentLocale() ?? 'es');
+    \Screenart\Musedock\Services\TranslationService::load($locale, 'tenant');
+
     self::loadGlobals();
     $data = array_merge(self::$globalData, $data);
 

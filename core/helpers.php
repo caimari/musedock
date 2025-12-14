@@ -1299,7 +1299,7 @@ if (!function_exists('detectLanguage')) {
         }
 
         // Idioma por defecto configurado en settings
-        return $lang = $settings['language'] ?? 'en';
+        return $lang = setting('language', 'es');
     }
 }
 

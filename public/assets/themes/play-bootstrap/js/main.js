@@ -157,10 +157,10 @@
   });
 
   // ===== Nice selects (language selector)
-  const initNiceSelects = () => {
+  const initNiceSelects = (root = document) => {
     if (typeof Choices === "undefined") return;
 
-    const selects = document.querySelectorAll(
+    const selects = root.querySelectorAll(
       "select.lang-select, select.mobile-lang-select"
     );
 
@@ -194,4 +194,20 @@
     initNiceSelects();
     setTimeout(initNiceSelects, 250);
   });
+
+  // Re-init when opening mobile menu (the select is initially hidden)
+  if (navbarToggler && navbarCollapse) {
+    navbarToggler.addEventListener("click", () => {
+      setTimeout(() => initNiceSelects(navbarCollapse), 60);
+    });
+
+    if (typeof MutationObserver !== "undefined") {
+      const observer = new MutationObserver(() => {
+        if (navbarCollapse.classList.contains("show")) {
+          initNiceSelects(navbarCollapse);
+        }
+      });
+      observer.observe(navbarCollapse, { attributes: true, attributeFilter: ["class"] });
+    }
+  }
 })();
