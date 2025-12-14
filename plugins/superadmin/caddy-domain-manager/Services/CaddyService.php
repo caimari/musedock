@@ -22,8 +22,59 @@ class CaddyService
         // Configuración por defecto - puede sobreescribirse via .env
         $this->caddyApiUrl = \Screenart\Musedock\Env::get('CADDY_API_URL', 'http://localhost:2019');
         $this->phpFpmSocket = \Screenart\Musedock\Env::get('PHP_FPM_SOCKET', 'unix//run/php/php8.3-fpm-musedock.sock');
-        $this->documentRoot = \Screenart\Musedock\Env::get('CADDY_DOCUMENT_ROOT', '/var/www/vhosts/musedock.com/httpdocs/public');
+        $configuredDocumentRoot = (string) \Screenart\Musedock\Env::get('CADDY_DOCUMENT_ROOT', '');
+        $this->documentRoot = $this->resolveDocumentRoot($configuredDocumentRoot);
         $this->timeout = 30;
+    }
+
+    private function resolveDocumentRoot(string $configuredDocumentRoot): string
+    {
+        $candidates = [];
+
+        $configuredDocumentRoot = trim($configuredDocumentRoot);
+        if ($configuredDocumentRoot !== '') {
+            $candidates[] = $configuredDocumentRoot;
+            if (basename($configuredDocumentRoot) !== 'public') {
+                $candidates[] = rtrim($configuredDocumentRoot, '/') . '/public';
+            }
+        }
+
+        if (defined('APP_ROOT') && is_string(APP_ROOT) && APP_ROOT !== '') {
+            $candidates[] = rtrim(APP_ROOT, '/') . '/public';
+        }
+
+        $relativePublic = realpath(__DIR__ . '/../../../../public');
+        if (is_string($relativePublic) && $relativePublic !== '') {
+            $candidates[] = $relativePublic;
+        }
+
+        if (!empty($_SERVER['DOCUMENT_ROOT']) && is_string($_SERVER['DOCUMENT_ROOT'])) {
+            $documentRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
+            if (basename($documentRoot) === 'public') {
+                $candidates[] = $documentRoot;
+            } else {
+                $candidates[] = $documentRoot . '/public';
+            }
+        }
+
+        foreach ($candidates as $candidate) {
+            $candidate = rtrim($candidate, '/');
+            if ($candidate === '' || !is_dir($candidate)) {
+                continue;
+            }
+
+            if (is_file($candidate . '/index.php')) {
+                return realpath($candidate) ?: $candidate;
+            }
+        }
+
+        Logger::log(
+            "[CaddyService] CADDY_DOCUMENT_ROOT inválido o no encontrado ('{$configuredDocumentRoot}'). " .
+            "Asegura que apunte al directorio 'public' real (con index.php).",
+            'WARNING'
+        );
+
+        return $configuredDocumentRoot !== '' ? $configuredDocumentRoot : '/var/www/html/public';
     }
 
     /**
