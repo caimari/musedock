@@ -1,15 +1,14 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo __instagram('connection.connections'); ?> - Instagram Gallery</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-</head>
-<body>
-    <div class="container-fluid py-4">
+@extends('layouts::app')
+
+@section('title', __instagram('connection.connections') . ' - Instagram Gallery')
+
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+@endpush
+
+@section('content')
+<div class="app-content">
+    <div class="container-fluid">
         <div class="row mb-4">
             <div class="col-md-8">
                 <h1 class="h3 mb-1">
@@ -140,115 +139,116 @@
             </div>
         <?php endif; ?>
     </div>
+</div>
+@endsection
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        // Show success/error messages
-        <?php if (isset($_SESSION['success'])): ?>
-            Swal.fire({
-                icon: 'success',
-                title: '<?php echo __instagram('common.success'); ?>',
-                text: '<?php echo addslashes($_SESSION['success']); ?>',
-                confirmButtonColor: '#198754',
-                timer: 3000,
-                timerProgressBar: true
-            });
-            <?php unset($_SESSION['success']); ?>
-        <?php endif; ?>
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // Show success/error messages
+    <?php if (isset($_SESSION['success'])): ?>
+        Swal.fire({
+            icon: 'success',
+            title: '<?php echo __instagram('common.success'); ?>',
+            text: '<?php echo addslashes($_SESSION['success']); ?>',
+            confirmButtonColor: '#198754',
+            timer: 3000,
+            timerProgressBar: true
+        });
+        <?php unset($_SESSION['success']); ?>
+    <?php endif; ?>
 
-        <?php if (isset($_SESSION['error'])): ?>
-            Swal.fire({
-                icon: 'error',
-                title: '<?php echo __instagram('common.error'); ?>',
-                html: '<?php echo addslashes($_SESSION['error']); ?>',
-                confirmButtonColor: '#dc3545'
-            });
-            <?php unset($_SESSION['error']); ?>
-        <?php endif; ?>
+    <?php if (isset($_SESSION['error'])): ?>
+        Swal.fire({
+            icon: 'error',
+            title: '<?php echo __instagram('common.error'); ?>',
+            html: '<?php echo addslashes($_SESSION['error']); ?>',
+            confirmButtonColor: '#dc3545'
+        });
+        <?php unset($_SESSION['error']); ?>
+    <?php endif; ?>
 
-        function showApiWarning() {
-            Swal.fire({
-                icon: 'warning',
-                title: '<?php echo __instagram('connection.api_not_configured'); ?>',
-                text: 'Configura las credenciales de la API de Instagram primero.',
-                confirmButtonText: '<?php echo __instagram('connection.configure_api'); ?>',
-                confirmButtonColor: '#0d6efd',
-                showCancelButton: true,
-                cancelButtonText: '<?php echo __instagram('common.cancel'); ?>'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = '/musedock/instagram/settings';
-                }
-            });
-        }
+    function showApiWarning() {
+        Swal.fire({
+            icon: 'warning',
+            title: '<?php echo __instagram('connection.api_not_configured'); ?>',
+            text: 'Configura las credenciales de la API de Instagram primero.',
+            confirmButtonText: '<?php echo __instagram('connection.configure_api'); ?>',
+            confirmButtonColor: '#0d6efd',
+            showCancelButton: true,
+            cancelButtonText: '<?php echo __instagram('common.cancel'); ?>'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = '/musedock/instagram/settings';
+            }
+        });
+    }
 
-        function syncConnection(id) {
-            Swal.fire({
-                title: '<?php echo __instagram('connection.syncing'); ?>',
-                text: 'Obteniendo posts de Instagram...',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
+    function syncConnection(id) {
+        Swal.fire({
+            title: '<?php echo __instagram('connection.syncing'); ?>',
+            text: 'Obteniendo posts de Instagram...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
-            fetch(`/musedock/instagram/${id}/sync`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: '<?php echo __instagram('common.success'); ?>',
-                        text: data.message,
-                        confirmButtonColor: '#198754'
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: '<?php echo __instagram('common.error'); ?>',
-                        text: data.message,
-                        confirmButtonColor: '#dc3545'
-                    });
-                }
-            })
-            .catch(error => {
+        fetch(`/musedock/instagram/${id}/sync`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '<?php echo __instagram('common.success'); ?>',
+                    text: data.message,
+                    confirmButtonColor: '#198754'
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
                 Swal.fire({
                     icon: 'error',
                     title: '<?php echo __instagram('common.error'); ?>',
-                    text: error.message,
+                    text: data.message,
                     confirmButtonColor: '#dc3545'
                 });
-            });
-        }
-
-        function confirmDisconnect(id, username) {
+            }
+        })
+        .catch(error => {
             Swal.fire({
-                icon: 'warning',
-                title: '<?php echo __instagram('connection.confirm_disconnect'); ?>',
-                html: `<p><?php echo __instagram('connection.disconnect_warning'); ?></p><p><strong>@${username}</strong></p>`,
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="bi bi-trash me-1"></i> <?php echo __instagram('common.delete'); ?>',
-                cancelButtonText: '<?php echo __instagram('common.cancel'); ?>'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = `/musedock/instagram/${id}/disconnect`;
-                    document.body.appendChild(form);
-                    form.submit();
-                }
+                icon: 'error',
+                title: '<?php echo __instagram('common.error'); ?>',
+                text: error.message,
+                confirmButtonColor: '#dc3545'
             });
-        }
-    </script>
-</body>
-</html>
+        });
+    }
+
+    function confirmDisconnect(id, username) {
+        Swal.fire({
+            icon: 'warning',
+            title: '<?php echo __instagram('connection.confirm_disconnect'); ?>',
+            html: `<p><?php echo __instagram('connection.disconnect_warning'); ?></p><p><strong>@${username}</strong></p>`,
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="bi bi-trash me-1"></i> <?php echo __instagram('common.delete'); ?>',
+            cancelButtonText: '<?php echo __instagram('common.cancel'); ?>'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/musedock/instagram/${id}/disconnect`;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+</script>
+@endpush

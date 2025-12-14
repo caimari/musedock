@@ -1,15 +1,14 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo __instagram('settings.settings'); ?> - Instagram Gallery</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-</head>
-<body>
-    <div class="container-fluid py-4">
+@extends('layouts::app')
+
+@section('title', __instagram('settings.settings') . ' - Instagram Gallery')
+
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+@endpush
+
+@section('content')
+<div class="app-content">
+    <div class="container-fluid">
         <div class="row mb-4">
             <div class="col-md-8">
                 <a href="/musedock/instagram" class="btn btn-sm btn-outline-secondary mb-2">
@@ -173,31 +172,32 @@
             </div>
         </form>
     </div>
+</div>
+@endsection
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        <?php if (isset($_SESSION['success'])): ?>
-            Swal.fire({
-                icon: 'success',
-                title: '<?php echo __instagram('common.success'); ?>',
-                text: '<?php echo addslashes($_SESSION['success']); ?>',
-                confirmButtonColor: '#198754',
-                timer: 3000,
-                timerProgressBar: true
-            });
-            <?php unset($_SESSION['success']); ?>
-        <?php endif; ?>
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    <?php if (isset($_SESSION['success'])): ?>
+        Swal.fire({
+            icon: 'success',
+            title: '<?php echo __instagram('common.success'); ?>',
+            text: '<?php echo addslashes($_SESSION['success']); ?>',
+            confirmButtonColor: '#198754',
+            timer: 3000,
+            timerProgressBar: true
+        });
+        <?php unset($_SESSION['success']); ?>
+    <?php endif; ?>
 
-        <?php if (isset($_SESSION['error'])): ?>
-            Swal.fire({
-                icon: 'error',
-                title: '<?php echo __instagram('common.error'); ?>',
-                html: '<?php echo addslashes($_SESSION['error']); ?>',
-                confirmButtonColor: '#dc3545'
-            });
-            <?php unset($_SESSION['error']); ?>
-        <?php endif; ?>
-    </script>
-</body>
-</html>
+    <?php if (isset($_SESSION['error'])): ?>
+        Swal.fire({
+            icon: 'error',
+            title: '<?php echo __instagram('common.error'); ?>',
+            html: '<?php echo addslashes($_SESSION['error']); ?>',
+            confirmButtonColor: '#dc3545'
+        });
+        <?php unset($_SESSION['error']); ?>
+    <?php endif; ?>
+</script>
+@endpush
