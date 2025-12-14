@@ -2964,6 +2964,42 @@ body {
     height: 100% !important;
     object-fit: cover !important;
   }
+
+  /* Override slider-themes.css "rounded-shadow" inset on mobile: always full width */
+  main .ud-page-content .slider-full-width-wrapper > .swiper.theme-rounded-shadow,
+  main .ud-page-content .slider-full-width-wrapper > .gallery-container.theme-rounded-shadow,
+  main .page-body .slider-full-width-wrapper > .swiper.theme-rounded-shadow,
+  main .page-content-wrapper .slider-full-width-wrapper > .swiper.theme-rounded-shadow {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+
+  /* Extra-safe override (slider-themes.css is injected in-page and may load after) */
+  html body .slider-full-width-wrapper > .swiper.theme-rounded-shadow,
+  html body .slider-full-width-wrapper > .gallery-container.theme-rounded-shadow {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+
+  html body .swiper.theme-rounded-shadow,
+  html body .gallery-container.theme-rounded-shadow {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+
+  html body .swiper.theme-rounded-shadow .swiper-slide,
+  html body .swiper.theme-rounded-shadow .swiper-slide img {
+    border-radius: 0 !important;
+  }
 }
 
 /* ===== Custom layout overrides ===== */

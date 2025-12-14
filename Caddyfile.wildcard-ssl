@@ -1,0 +1,129 @@
+# ===============================================
+# Configuración de Caddy con Wildcard SSL
+# Usando DNS-01 Challenge con Cloudflare
+# ===============================================
+
+{
+	admin localhost:2019
+
+	# Email para notificaciones de Let's Encrypt
+	email admin@musedock.com
+}
+
+# ===============================================
+# Certificado Wildcard para *.musedock.com
+# ===============================================
+*.musedock.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+
+	# Esta configuración solo obtiene el certificado
+	# Los dominios específicos se configuran abajo
+	respond "Wildcard certificate obtained" 200
+}
+
+# ===============================================
+# Dominio principal: musedock.com
+# ===============================================
+musedock.com {
+	root * /var/www/vhosts/musedock.com/httpdocs/public
+
+	php_fastcgi unix//run/php/php8.3-fpm-musedock.sock {
+		env APP_ENV production
+	}
+
+	file_server {
+		hide .git .env .htaccess
+	}
+
+	@blocked {
+		path *.env *.htaccess *.htpasswd *.log *.ini
+		path *.json *.lock *.sql *.md *.sh *.bak *.old *.backup
+		path *.swp *.dist *.yml *.yaml composer.json composer.lock
+		path package.json package-lock.json
+		path_regexp git /\.git
+	}
+	respond @blocked 403
+
+	@hidden {
+		path_regexp hidden /\..+
+	}
+	respond @hidden 403
+
+	try_files {path} {path}/ /index.php?{query}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+		-X-Powered-By
+	}
+
+	log {
+		output file /var/www/vhosts/musedock.com/logs/access.log {
+			roll_size 100mb
+			roll_keep 5
+		}
+		format json
+	}
+}
+
+# ===============================================
+# Wildcard para subdominios FREE: *.musedock.com
+# ===============================================
+*.musedock.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+
+	root * /var/www/vhosts/musedock.com/httpdocs/public
+
+	php_fastcgi unix//run/php/php8.3-fpm-musedock.sock {
+		env APP_ENV production
+	}
+
+	file_server {
+		hide .git .env .htaccess
+	}
+
+	@blocked {
+		path *.env *.htaccess *.htpasswd *.log *.ini
+		path *.json *.lock *.sql *.md *.sh *.bak *.old *.backup
+		path *.swp *.dist *.yml *.yaml composer.json composer.lock
+		path package.json package-lock.json
+		path_regexp git /\.git
+	}
+	respond @blocked 403
+
+	@hidden {
+		path_regexp hidden /\..+
+	}
+	respond @hidden 403
+
+	try_files {path} {path}/ /index.php?{query}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		-Server
+		-X-Powered-By
+	}
+
+	log {
+		output file /var/www/vhosts/musedock.com/logs/subdomains-access.log {
+			roll_size 100mb
+			roll_keep 5
+		}
+		format json
+	}
+}
+
+# ===============================================
+# Dominios personalizados (STARTER/BUSINESS)
+# Estos se añadirán dinámicamente por el sistema
+# ===============================================

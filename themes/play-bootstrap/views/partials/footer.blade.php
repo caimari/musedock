@@ -107,9 +107,6 @@
 
 <!-- ====== Footer Start ====== -->
 <footer class="ud-footer wow fadeInUp" data-wow-delay=".15s" style="background-color: var(--footer-bg-color); color: var(--footer-text-color);">
-    <div class="shape shape-1">
-        <img src="{{ asset('themes/play-bootstrap/img/footer/shape-1.svg') }}" alt="shape" />
-    </div>
     <div class="shape shape-2">
         <img src="{{ asset('themes/play-bootstrap/img/footer/shape-2.svg') }}" alt="shape" />
     </div>

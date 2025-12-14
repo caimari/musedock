@@ -118,7 +118,7 @@
     <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/css/animate.css') }}" />
     <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/css/lineicons.css') }}" />
     <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/vendor/choices/choices.min.css') }}?v=1" />
-    <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/css/ud-styles.css') }}?v=4" />
+    <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/css/ud-styles.css') }}?v=6" />
 
     {{-- Google Fonts para tipografías del tema --}}
     @php

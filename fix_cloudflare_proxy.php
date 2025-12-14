@@ -29,7 +29,7 @@ try {
 
     // Get tenant information
     $stmt = $pdo->prepare("
-        SELECT id, domain, subdomain, is_subdomain, cloudflare_record_id, cloudflare_proxied, plan
+        SELECT id, domain, is_subdomain, cloudflare_record_id, cloudflare_proxied, plan
         FROM tenants
         WHERE id = :id
     ");
@@ -44,7 +44,6 @@ try {
     echo "📋 Tenant Information:\n";
     echo "   ID: {$tenant['id']}\n";
     echo "   Domain: {$tenant['domain']}\n";
-    echo "   Subdomain: {$tenant['subdomain']}\n";
     echo "   Is Subdomain: {$tenant['is_subdomain']}\n";
     echo "   Plan: {$tenant['plan']}\n";
     echo "   Cloudflare Record ID: {$tenant['cloudflare_record_id']}\n";
