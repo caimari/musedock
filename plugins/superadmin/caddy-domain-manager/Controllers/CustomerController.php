@@ -4,7 +4,6 @@ namespace CaddyDomainManager\Controllers;
 
 use CaddyDomainManager\Models\Customer;
 use Screenart\Musedock\Security\SessionSecurity;
-use Screenart\Musedock\Security\CSRFProtection;
 use Screenart\Musedock\Logger;
 use Screenart\Musedock\Database;
 
@@ -209,7 +208,7 @@ class CustomerController
         $data = [
             'page_title' => 'Mi Perfil - MuseDock',
             'customer' => $customer,
-            'csrf_token' => CSRFProtection::generateToken()
+            'csrf_token' => csrf_token()
         ];
 
         $this->render('Customer.profile', $data);
