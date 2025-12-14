@@ -243,51 +243,10 @@
                 </div>
                 @endif
 
-                {{-- Cuarta columna - Footer 4 (widgets) / Contacto (fallback) --}}
-                @if($hasFooter4Widgets || $hasContactData)
-                <div class="col-xl-2 col-lg-3 col-md-6 col-sm-6">
-                    <div class="ud-widget">
-                        @if($hasFooter4Widgets)
-                            {!! $widgetHtmlByArea['footer4'] !!}
-                        @else
-                            <h5 class="ud-widget-title" style="color: var(--footer-heading-color);">
-                                {{ $currentLang === 'en' ? 'Contact' : 'Contacto' }}
-                            </h5>
-                            <ul class="ud-widget-links">
-                                @if($contactEmail)
-                                <li>
-                                    <a class="ud-contact-link" href="mailto:{{ $contactEmail }}" style="color: var(--footer-link-color);">
-                                        <i class="lni lni-envelope"></i>
-                                        <span class="ud-contact-text">{{ $contactEmail }}</span>
-                                    </a>
-                                </li>
-                                @endif
-                                @if($contactPhone)
-                                <li>
-                                    <a class="ud-contact-link" href="tel:{{ $contactPhone }}" style="color: var(--footer-link-color);">
-                                        <i class="lni lni-phone"></i>
-                                        <span class="ud-contact-text">{{ $contactPhone }}</span>
-                                    </a>
-                                </li>
-                                @endif
-                                @if($contactAddress)
-                                <li>
-                                    <span class="ud-contact-link" style="color: var(--footer-text-color);">
-                                        <i class="lni lni-map-marker"></i>
-                                        <span class="ud-contact-text">{{ $contactAddress }}</span>
-                                    </span>
-                                </li>
-                                @endif
-                            </ul>
-                        @endif
-                    </div>
-                </div>
-                @endif
-
-                {{-- Quinta columna - Footer 5 (widgets) / Últimas entradas (fallback) --}}
+                {{-- Cuarta columna - Footer 4 (widgets) / Últimas entradas (fallback) --}}
                 @php
                     $latestPosts = [];
-                    if (!$hasFooter5Widgets) {
+                    if (!$hasFooter4Widgets) {
                         $blogPublic = site_setting('blog_public', '1');
                         if ($blogPublic === '1') {
                             try {
@@ -320,11 +279,11 @@
                         }
                     }
                 @endphp
-                @if($hasFooter5Widgets || count($latestPosts) > 0)
-                <div class="col-xl-3 col-lg-6 col-md-8 col-sm-10">
+                @if($hasFooter4Widgets || count($latestPosts) > 0)
+                <div class="col-xl-2 col-lg-3 col-md-6 col-sm-6">
                     <div class="ud-widget">
-                        @if($hasFooter5Widgets)
-                            {!! $widgetHtmlByArea['footer5'] !!}
+                        @if($hasFooter4Widgets)
+                            {!! $widgetHtmlByArea['footer4'] !!}
                         @else
                             <h5 class="ud-widget-title" style="color: var(--footer-heading-color);">
                                 {{ $currentLang === 'en' ? 'Latest Posts' : 'Últimas Publicaciones' }}
@@ -337,6 +296,47 @@
                                     </a>
                                 </li>
                                 @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                </div>
+                @endif
+
+                {{-- Quinta columna (derecha) - Footer 5 (widgets) / Contacto (fallback) --}}
+                @if($hasFooter5Widgets || $hasContactData)
+                <div class="col-xl-3 col-lg-6 col-md-8 col-sm-10 ms-xl-auto">
+                    <div class="ud-widget">
+                        @if($hasFooter5Widgets)
+                            {!! $widgetHtmlByArea['footer5'] !!}
+                        @else
+                            <h5 class="ud-widget-title" style="color: var(--footer-heading-color);">
+                                {{ $currentLang === 'en' ? 'Contact' : 'Contacto' }}
+                            </h5>
+                            <ul class="ud-widget-links">
+                                @if($contactEmail)
+                                <li>
+                                    <a class="ud-contact-link" href="mailto:{{ $contactEmail }}" style="color: var(--footer-link-color);">
+                                        <i class="lni lni-envelope"></i>
+                                        <span class="ud-contact-text">{{ $contactEmail }}</span>
+                                    </a>
+                                </li>
+                                @endif
+                                @if($contactPhone)
+                                <li>
+                                    <a class="ud-contact-link" href="tel:{{ $contactPhone }}" style="color: var(--footer-link-color);">
+                                        <i class="lni lni-phone"></i>
+                                        <span class="ud-contact-text">{{ $contactPhone }}</span>
+                                    </a>
+                                </li>
+                                @endif
+                                @if($contactAddress)
+                                <li>
+                                    <span class="ud-contact-link" style="color: var(--footer-text-color);">
+                                        <i class="lni lni-map-marker"></i>
+                                        <span class="ud-contact-text">{{ $contactAddress }}</span>
+                                    </span>
+                                </li>
+                                @endif
                             </ul>
                         @endif
                     </div>
