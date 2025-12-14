@@ -117,8 +117,11 @@
     <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/css/bootstrap.min.css') }}" />
     <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/css/animate.css') }}" />
     <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/css/lineicons.css') }}" />
+    {{-- Slider (Swiper + themes) --}}
+    <link rel="stylesheet" href="{{ asset('css/swiper-bundle.min.css') }}?v=1" />
+    <link rel="stylesheet" href="{{ asset('themes/default/css/slider-themes.css') }}?v=2" />
     <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/vendor/choices/choices.min.css') }}?v=1" />
-    <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/css/ud-styles.css') }}?v=6" />
+    <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/css/ud-styles.css') }}?v=7" />
 
     {{-- Google Fonts para tipografías del tema --}}
     @php

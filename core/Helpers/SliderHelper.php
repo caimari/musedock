@@ -142,7 +142,9 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
 
     // Wrapper para full-width (a sangre)
     if ($fullWidth) {
-        $output .= '<div class="slider-full-width-wrapper" style="width:100vw;margin-left:calc(-50vw + 50%);margin-right:calc(-50vw + 50%);position:relative;">';
+        // Full-bleed wrapper robusto (funciona incluso dentro de containers/columns con padding)
+        // IMPORTANTE: No usar inline styles - delegar al CSS para máxima compatibilidad
+        $output .= '<div class="slider-full-width-wrapper" data-full-bleed="true">';
     }
 
     $output .= '<div class="swiper slider-' . $sliderId . ' theme-' . \e($theme) . '" style="width:100%;height:' . intval($height) . 'px;">';
@@ -395,7 +397,9 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
 
         // Wrapper para full-width (a sangre)
         if ($fullWidth) {
-            $output .= '<div class="slider-full-width-wrapper" style="width:100vw;margin-left:calc(-50vw + 50%);margin-right:calc(-50vw + 50%);position:relative;">';
+            // Full-bleed wrapper robusto (funciona incluso dentro de containers/columns con padding)
+            // IMPORTANTE: No usar inline styles - delegar al CSS para máxima compatibilidad
+            $output .= '<div class="slider-full-width-wrapper" data-full-bleed="true">';
         }
 
         $output .= '<div class="gallery-container theme-' . \e($theme) . '" style="display:flex;flex-direction:column;gap:0;margin:0;padding:0;">';

@@ -11,19 +11,6 @@
 }
 
 # ===============================================
-# Certificado Wildcard para *.musedock.com
-# ===============================================
-*.musedock.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-
-	# Esta configuración solo obtiene el certificado
-	# Los dominios específicos se configuran abajo
-	respond "Wildcard certificate obtained" 200
-}
-
-# ===============================================
 # Dominio principal: musedock.com
 # ===============================================
 musedock.com {
