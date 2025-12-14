@@ -130,7 +130,7 @@
     {{-- Formularios de eliminación --}}
     @if (!empty($tags) && count($tags) > 0)
       @foreach ($tags as $tag)
-        <form method="POST" action="{{ admin_url('blog/tags/' . $tag->id) }}" style="display: none;" id="delete-form-{{ $tag->id }}">
+        <form method="POST" action="/musedock/blog/tags/{{ $tag->id }}" style="display: none;" id="delete-form-{{ $tag->id }}">
           @csrf
           @method('DELETE')
         </form>
