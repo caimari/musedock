@@ -75,6 +75,67 @@ class CaddyService
     }
 
     /**
+     * Crea o actualiza la ruta de un dominio en Caddy (idempotente).
+     *
+     * Motivo: evitar "downtime" cuando desde el panel se reconfigura un dominio.
+     * Con el enfoque anterior (DELETE + POST), si el POST fallaba, el dominio quedaba sin ruta.
+     *
+     * @param string $domain
+     * @param bool $includeWww
+     * @return array ['success' => bool, 'route_id' => string|null, 'error' => string|null]
+     */
+    public function upsertDomain(string $domain, bool $includeWww = true): array
+    {
+        $domain = $this->sanitizeDomain($domain);
+        $routeId = $this->generateRouteId($domain);
+        $config = $this->generateCaddyConfig($domain, $includeWww, $routeId);
+
+        // Si ya existe, hacemos PUT para actualizarla sin eliminar primero
+        if ($this->routeExists($routeId)) {
+            $response = $this->apiRequest('PUT', "/id/{$routeId}", $config);
+
+            if ($response['success']) {
+                Logger::log("[CaddyService] Dominio actualizado: {$domain} (route_id: {$routeId})", 'INFO');
+                return [
+                    'success' => true,
+                    'route_id' => $routeId,
+                    'error' => null
+                ];
+            }
+
+            Logger::log("[CaddyService] Error actualizando dominio {$domain}: " . $response['error'], 'ERROR');
+            return [
+                'success' => false,
+                'route_id' => $routeId,
+                'error' => $response['error']
+            ];
+        }
+
+        // Si no existe, lo creamos
+        $response = $this->apiRequest(
+            'POST',
+            '/config/apps/http/servers/srv0/routes',
+            $config
+        );
+
+        if ($response['success']) {
+            Logger::log("[CaddyService] Dominio añadido: {$domain} (route_id: {$routeId})", 'INFO');
+            return [
+                'success' => true,
+                'route_id' => $routeId,
+                'error' => null
+            ];
+        }
+
+        Logger::log("[CaddyService] Error añadiendo dominio {$domain}: " . $response['error'], 'ERROR');
+        return [
+            'success' => false,
+            'route_id' => null,
+            'error' => $response['error']
+        ];
+    }
+
+    /**
      * Elimina un dominio de Caddy
      *
      * @param string $routeId ID de la ruta (ej: route_cliente_com)

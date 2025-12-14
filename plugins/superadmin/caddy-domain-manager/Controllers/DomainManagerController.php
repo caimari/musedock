@@ -337,10 +337,7 @@ class DomainManagerController
                                in_array($tenant->caddy_status ?? 'not_configured', ['active', 'error']);
 
             if ($needsCaddyUpdate && $this->caddyService->isApiAvailable()) {
-                // Primero eliminar la ruta antigua
-                $this->caddyService->removeDomain($tenant->caddy_route_id);
-
-                // Reconfigurar con nuevo valor de www
+                // Reconfigurar con nuevo valor de www (sin downtime: upsert en lugar de delete+create)
                 $result = $this->configureDomainInCaddy($id, $tenant->domain, $newIncludeWww);
 
                 if ($result['success']) {
@@ -533,12 +530,6 @@ class DomainManagerController
             exit;
         }
 
-        // Si existe una ruta antigua, eliminarla primero
-        if ($tenant->caddy_route_id ?? null) {
-            error_log("[DomainManager] Removing old route: {$tenant->caddy_route_id}");
-            $this->caddyService->removeDomain($tenant->caddy_route_id);
-        }
-
         // Proceder con la reconfiguración
         error_log("[DomainManager] Calling configureDomainInCaddy for: {$tenant->domain}");
         $result = $this->configureDomainInCaddy($id, $tenant->domain, (bool)($tenant->include_www ?? true));
@@ -612,8 +603,8 @@ class DomainManagerController
         $stmt = $pdo->prepare("UPDATE tenants SET caddy_status = 'configuring', caddy_error_log = NULL WHERE id = ?");
         $stmt->execute([$tenantId]);
 
-        // Intentar añadir a Caddy
-        $result = $this->caddyService->addDomain($domain, $includeWww);
+        // Intentar crear/actualizar en Caddy (sin downtime)
+        $result = $this->caddyService->upsertDomain($domain, $includeWww);
 
         if ($result['success']) {
             // Caddy aceptó la ruta, pero el certificado SSL puede tardar

@@ -31,5 +31,12 @@
       "lightbox",
       "justified"
     ]
+  },
+  "autoload": {
+    "psr-4": {
+      "Modules\\InstagramGallery\\Controllers\\": "controllers/",
+      "Modules\\InstagramGallery\\Models\\": "models/",
+      "Modules\\InstagramGallery\\Services\\": "services/"
+    }
   }
 }

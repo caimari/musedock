@@ -436,7 +436,8 @@ class ProvisioningService
     private function configureCaddy(int $tenantId, string $fullDomain): bool
     {
         try {
-            $result = $this->caddyService->addDomain($fullDomain, true); // incluir www
+            // Upsert para evitar fallos si la ruta ya existía por un reintento previo
+            $result = $this->caddyService->upsertDomain($fullDomain, true); // incluir www
 
             if ($result['success']) {
                 // Guardar route_id en BD
