@@ -7,36 +7,178 @@
   "screenshot": "/assets/themes/play-bootstrap/img/hero/hero-image.svg",
   "bootstrap": true,
   "customizable_options": {
-    "colors": {
-      "primary": "#3056d3",
-      "secondary": "#13c296",
-      "dark": "#1d2144",
-      "light": "#f8f9fa"
-    },
     "header": {
-      "header_bg_color": "#ffffff",
-      "header_logo_text_color": "#3056d3",
-      "header_logo_font": "inherit",
-      "header_link_color": "#212529",
-      "header_link_hover_color": "#3056d3",
-      "header_sticky": true,
-      "header_cta_enabled": false,
-      "header_cta_text_es": "Iniciar Sesión",
-      "header_cta_text_en": "Sign In",
-      "header_cta_url": "/login",
-      "header_cta_bg_color": "#3056d3",
-      "header_cta_text_color": "#ffffff",
-      "header_cta_hover_color": "#2546b8",
-      "header_lang_selector_enabled": true
+      "type": "section",
+      "label": "Cabecera principal",
+      "options": {
+        "header_bg_color": {
+          "type": "color",
+          "label": "Color de fondo de la cabecera",
+          "default": "#3056d3"
+        },
+        "header_sticky_bg_color": {
+          "type": "color",
+          "label": "Color de fondo sticky",
+          "default": "rgba(255, 255, 255, 0.95)",
+          "description": "Color cuando la cabecera está fija al hacer scroll"
+        },
+        "header_logo_text_color": {
+          "type": "color",
+          "label": "Color del texto del logo",
+          "default": "#ffffff",
+          "description": "Color del título del sitio cuando se muestra como texto"
+        },
+        "header_logo_font": {
+          "type": "select",
+          "label": "Tipografía del logo",
+          "default": "inherit",
+          "options": {
+            "inherit": "Por defecto del tema",
+            "Arial, sans-serif": "Arial",
+            "Georgia, serif": "Georgia",
+            "Helvetica, sans-serif": "Helvetica",
+            "'Times New Roman', serif": "Times New Roman",
+            "'Courier New', monospace": "Courier New",
+            "'Trebuchet MS', sans-serif": "Trebuchet MS",
+            "'Verdana', sans-serif": "Verdana",
+            "'Playfair Display', serif": "Playfair Display",
+            "'Montserrat', sans-serif": "Montserrat",
+            "'Roboto', sans-serif": "Roboto",
+            "'Open Sans', sans-serif": "Open Sans",
+            "'Lato', sans-serif": "Lato",
+            "'Poppins', sans-serif": "Poppins",
+            "'Oswald', sans-serif": "Oswald",
+            "'Raleway', sans-serif": "Raleway"
+          },
+          "description": "Tipografía para el texto del logo"
+        },
+        "header_link_color": {
+          "type": "color",
+          "label": "Color de los enlaces del menú",
+          "default": "#ffffff",
+          "description": "Color de los enlaces de navegación"
+        },
+        "header_link_hover_color": {
+          "type": "color",
+          "label": "Color de enlaces al pasar el ratón",
+          "default": "#13c296",
+          "description": "Color de los enlaces de navegación al pasar el ratón"
+        },
+        "header_sticky": {
+          "type": "toggle",
+          "label": "Cabecera fija (sticky)",
+          "default": true,
+          "description": "La cabecera se quedará fija al hacer scroll"
+        },
+        "header_cta_enabled": {
+          "type": "toggle",
+          "label": "Mostrar botón Call-to-Action",
+          "default": false
+        },
+        "header_cta_text_es": {
+          "type": "text",
+          "label": "Texto del botón CTA (Español)",
+          "default": "Iniciar Sesión"
+        },
+        "header_cta_text_en": {
+          "type": "text",
+          "label": "Texto del botón CTA (English)",
+          "default": "Sign In"
+        },
+        "header_cta_url": {
+          "type": "text",
+          "label": "Enlace del botón CTA",
+          "default": "#",
+          "placeholder": "https://ejemplo.com/login"
+        },
+        "header_cta_bg_color": {
+          "type": "color",
+          "label": "Color de fondo del botón CTA",
+          "default": "#3056d3"
+        },
+        "header_cta_text_color": {
+          "type": "color",
+          "label": "Color del texto del botón CTA",
+          "default": "#ffffff"
+        },
+        "header_cta_hover_color": {
+          "type": "color",
+          "label": "Color del botón CTA al pasar el ratón",
+          "default": "#2546b8"
+        },
+        "header_lang_selector_enabled": {
+          "type": "toggle",
+          "label": "Mostrar selector de idioma",
+          "default": true
+        }
+      }
     },
     "footer": {
-      "footer_bg_color": "#f8fafe",
-      "footer_text_color": "#717171",
-      "footer_heading_color": "#212529",
-      "footer_link_color": "#717171",
-      "footer_link_hover_color": "#3056d3",
-      "footer_icon_color": "#3056d3",
-      "footer_border_color": "#e5e5e5"
+      "type": "section",
+      "label": "Pie de página",
+      "options": {
+        "footer_bg_color": {
+          "type": "color",
+          "label": "Color de fondo del footer",
+          "default": "#f8fafe"
+        },
+        "footer_text_color": {
+          "type": "color",
+          "label": "Color del texto del footer",
+          "default": "#717171"
+        },
+        "footer_heading_color": {
+          "type": "color",
+          "label": "Color de los títulos",
+          "default": "#212529"
+        },
+        "footer_link_color": {
+          "type": "color",
+          "label": "Color de los enlaces",
+          "default": "#717171"
+        },
+        "footer_link_hover_color": {
+          "type": "color",
+          "label": "Color de enlaces al pasar el ratón",
+          "default": "#3056d3"
+        },
+        "footer_icon_color": {
+          "type": "color",
+          "label": "Color de los iconos sociales",
+          "default": "#3056d3"
+        },
+        "footer_border_color": {
+          "type": "color",
+          "label": "Color de los bordes",
+          "default": "#e5e5e5"
+        }
+      }
+    },
+    "colors": {
+      "type": "section",
+      "label": "Colores principales",
+      "options": {
+        "primary": {
+          "type": "color",
+          "label": "Color primario",
+          "default": "#3056d3"
+        },
+        "secondary": {
+          "type": "color",
+          "label": "Color secundario",
+          "default": "#13c296"
+        },
+        "dark": {
+          "type": "color",
+          "label": "Color oscuro",
+          "default": "#1d2144"
+        },
+        "light": {
+          "type": "color",
+          "label": "Color claro",
+          "default": "#f8f9fa"
+        }
+      }
     }
   }
 }

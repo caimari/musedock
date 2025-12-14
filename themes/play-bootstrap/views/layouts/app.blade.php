@@ -114,26 +114,59 @@
     <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/css/lineicons.css') }}" />
     <link rel="stylesheet" href="{{ asset('themes/play-bootstrap/css/ud-styles.css') }}" />
 
-    {{-- CSS Variables dinámicas --}}
+    {{-- Google Fonts para tipografías del tema --}}
+    @php
+        $logoFont = themeOption('header.header_logo_font', 'inherit');
+
+        // Mapa de fuentes de Google (las fuentes del sistema no necesitan carga)
+        $googleFonts = [
+            "'Playfair Display', serif" => 'Playfair+Display:wght@400;700',
+            "'Montserrat', sans-serif" => 'Montserrat:wght@400;500;600;700',
+            "'Roboto', sans-serif" => 'Roboto:wght@400;500;700',
+            "'Open Sans', sans-serif" => 'Open+Sans:wght@400;600;700',
+            "'Lato', sans-serif" => 'Lato:wght@400;700',
+            "'Poppins', sans-serif" => 'Poppins:wght@400;500;600;700',
+            "'Oswald', sans-serif" => 'Oswald:wght@400;500;600;700',
+            "'Raleway', sans-serif" => 'Raleway:wght@400;500;600;700',
+        ];
+
+        // Detectar si necesitamos cargar Google Fonts
+        $needsGoogleFont = isset($googleFonts[$logoFont]);
+    @endphp
+    @if($needsGoogleFont)
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family={{ $googleFonts[$logoFont] }}&display=swap" rel="stylesheet">
+    @endif
+
+    {{-- CSS Variables dinámicas desde la base de datos (tenant-aware) --}}
     <style>
         :root {
+            /* Colores principales */
             --primary-color: {{ themeOption('colors.primary', '#3056d3') }};
             --secondary-color: {{ themeOption('colors.secondary', '#13c296') }};
             --dark-color: {{ themeOption('colors.dark', '#1d2144') }};
             --light-color: {{ themeOption('colors.light', '#f8f9fa') }};
-            --header-bg-color: {{ themeOption('header.header_bg_color', '#ffffff') }};
-            --header-logo-text-color: {{ themeOption('header.header_logo_text_color', '#3056d3') }};
-            --header-link-color: {{ themeOption('header.header_link_color', '#212529') }};
-            --header-link-hover-color: {{ themeOption('header.header_link_hover_color', '#3056d3') }};
+
+            /* Header/Cabecera */
+            --header-bg-color: {{ themeOption('header.header_bg_color', '#3056d3') }};
+            --header-sticky-bg-color: {!! themeOption('header.header_sticky_bg_color', 'rgba(255, 255, 255, 0.95)') !!};
+            --header-logo-text-color: {{ themeOption('header.header_logo_text_color', '#ffffff') }};
+            --header-logo-font: {!! themeOption('header.header_logo_font', 'inherit') !!};
+            --header-link-color: {{ themeOption('header.header_link_color', '#ffffff') }};
+            --header-link-hover-color: {{ themeOption('header.header_link_hover_color', '#13c296') }};
             --header-cta-bg-color: {{ themeOption('header.header_cta_bg_color', '#3056d3') }};
             --header-cta-text-color: {{ themeOption('header.header_cta_text_color', '#ffffff') }};
             --header-cta-hover-color: {{ themeOption('header.header_cta_hover_color', '#2546b8') }};
+
+            /* Footer/Pie de página */
             --footer-bg-color: {{ themeOption('footer.footer_bg_color', '#f8fafe') }};
             --footer-text-color: {{ themeOption('footer.footer_text_color', '#717171') }};
             --footer-heading-color: {{ themeOption('footer.footer_heading_color', '#212529') }};
             --footer-link-color: {{ themeOption('footer.footer_link_color', '#717171') }};
             --footer-link-hover-color: {{ themeOption('footer.footer_link_hover_color', '#3056d3') }};
             --footer-icon-color: {{ themeOption('footer.footer_icon_color', '#3056d3') }};
+            --footer-border-color: {{ themeOption('footer.footer_border_color', '#e5e5e5') }};
         }
     </style>
 
