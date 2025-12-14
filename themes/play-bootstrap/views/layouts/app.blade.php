@@ -199,7 +199,7 @@
     <script src="{{ asset('themes/play-bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('themes/play-bootstrap/js/wow.min.js') }}"></script>
     <script src="{{ asset('themes/play-bootstrap/vendor/choices/choices.min.js') }}?v=1"></script>
-    <script src="{{ asset('themes/play-bootstrap/js/main.js') }}?v=3"></script>
+    <script src="{{ asset('themes/play-bootstrap/js/main.js') }}?v=4"></script>
     <script src="{{ asset('themes/play-bootstrap/js/choices-init.js') }}?v=1"></script>
 
     {{-- Detectar sliders como primer elemento para ajustar spacing --}}

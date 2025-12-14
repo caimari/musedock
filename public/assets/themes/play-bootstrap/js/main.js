@@ -107,6 +107,36 @@
     new WOW().init();
   }
 
+  // ===== Mobile slider: force full-width even if theme adds inset (slider-themes.css is injected in content)
+  (function injectMobileSliderOverrides() {
+    if (document.getElementById("musedock-mobile-slider-overrides")) return;
+
+    const style = document.createElement("style");
+    style.id = "musedock-mobile-slider-overrides";
+    style.textContent = `
+@media (max-width: 767px) {
+  .slider-full-width-wrapper > .swiper.theme-rounded-shadow,
+  .slider-full-width-wrapper > .gallery-container.theme-rounded-shadow {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+
+  .swiper.theme-rounded-shadow,
+  .gallery-container.theme-rounded-shadow,
+  .swiper.theme-rounded-shadow .swiper-slide,
+  .swiper.theme-rounded-shadow .swiper-slide img {
+    border-radius: 0 !important;
+  }
+}
+`;
+
+    document.head.appendChild(style);
+  })();
+
   // ====== Scroll to Top
   function scrollTo(element, to = 0, duration = 500) {
     const start = element.scrollTop;
