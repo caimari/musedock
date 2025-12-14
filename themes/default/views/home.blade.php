@@ -19,12 +19,11 @@
 @section('content')
     @php
         $homeContent = apply_filters('the_content', $translation->content ?? $page->content ?? '<p>' . __('home_intro') . '</p>');
-        $homeContent = preg_replace('/<h[123][^>]*>.*?<\/h[123]>/', '', $homeContent, 1);
+        $homeContent = preg_replace('/<h[12][^>]*>.*?<\/h[12]>/', '', $homeContent, 1);
     @endphp
 
     <div class="container py-4 page-container">
         <div class="page-content-wrapper">
-            <h1 class="page-title">{{ $translation->title ?? $page->title ?? __('home_title') }}</h1>
             <div class="page-body">
                 {!! $homeContent !!}
             </div>
