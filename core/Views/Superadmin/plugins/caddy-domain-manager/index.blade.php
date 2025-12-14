@@ -17,6 +17,9 @@
                 @else
                     <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Caddy API No Disponible</span>
                 @endif
+                <a href="/musedock/domain-manager/customers" class="btn btn-outline-primary">
+                    <i class="bi bi-people"></i> Clientes
+                </a>
                 <button type="button" class="btn btn-success" onclick="showCreateFreeSubdomainModal()">
                     <i class="bi bi-gift"></i> Crear Subdominio FREE
                 </button>

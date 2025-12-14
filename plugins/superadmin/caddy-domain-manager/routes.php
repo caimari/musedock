@@ -97,6 +97,11 @@ Route::post('/musedock/domain-manager/create-free', 'CaddyDomainManager\Controll
     ->middleware('superadmin')
     ->name('superadmin.domain-manager.create-free');
 
+// Listado de clientes (customers)
+Route::get('/musedock/domain-manager/customers', 'CaddyDomainManager\Controllers\AdminCustomerController@index')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.customers');
+
 // ============================================
 // CUSTOMER PUBLIC ROUTES (No auth required)
 // ============================================

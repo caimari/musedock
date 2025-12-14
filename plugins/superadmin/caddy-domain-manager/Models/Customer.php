@@ -15,6 +15,80 @@ use Screenart\Musedock\Database;
 class Customer
 {
     /**
+     * Lista customers para el superadmin con métricas de tenants asociadas.
+     *
+     * @return array{items: array<int, object>, total: int, page: int, per_page: int, pages: int}
+     */
+    public static function listWithTenantStats(string $search = '', int $page = 1, int $perPage = 50): array
+    {
+        $pdo = Database::connect();
+        $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        $page = max(1, $page);
+        $perPage = max(1, min(200, $perPage));
+        $offset = ($page - 1) * $perPage;
+
+        $params = [];
+        $whereSql = " WHERE 1=1 ";
+
+        $search = trim($search);
+        if ($search !== '') {
+            $likeOperator = ($driver === 'pgsql') ? 'ILIKE' : 'LIKE';
+            $whereSql .= " AND (c.name {$likeOperator} ? OR c.email {$likeOperator} ? OR c.company {$likeOperator} ?)";
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
+        }
+
+        $countSql = "
+            SELECT COUNT(DISTINCT c.id) AS total
+            FROM customers c
+            LEFT JOIN tenants t ON t.customer_id = c.id
+            {$whereSql}
+        ";
+        $stmt = $pdo->prepare($countSql);
+        $stmt->execute($params);
+        $total = (int) ($stmt->fetchColumn() ?: 0);
+        $pages = (int) max(1, (int) ceil($total / $perPage));
+        if ($page > $pages) {
+            $page = $pages;
+            $offset = ($page - 1) * $perPage;
+        }
+
+        $sql = "
+            SELECT
+                c.id,
+                c.name,
+                c.email,
+                c.company,
+                c.status,
+                c.email_verified_at,
+                c.last_login_at,
+                c.created_at,
+                COUNT(t.id) AS tenants_count,
+                SUM(CASE WHEN t.is_subdomain = 1 THEN 1 ELSE 0 END) AS subdomains_count,
+                MAX(t.created_at) AS last_tenant_created_at
+            FROM customers c
+            LEFT JOIN tenants t ON t.customer_id = c.id
+            {$whereSql}
+            GROUP BY
+                c.id, c.name, c.email, c.company, c.status, c.email_verified_at, c.last_login_at, c.created_at
+            ORDER BY c.created_at DESC
+            LIMIT {$perPage} OFFSET {$offset}
+        ";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $items = $stmt->fetchAll(\PDO::FETCH_OBJ) ?: [];
+
+        return [
+            'items' => $items,
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
+            'pages' => $pages,
+        ];
+    }
+
+    /**
      * Busca customer por ID
      *
      * @param int $id
