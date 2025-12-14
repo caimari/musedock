@@ -25,10 +25,24 @@ class ConnectionController
     }
 
     /**
+     * Verificar si el usuario actual tiene un permiso específico
+     * Si no lo tiene, redirige con mensaje de error
+     */
+    private function checkPermission(string $permission): void
+    {
+        if (!userCan($permission)) {
+            flash('error', __instagram('errors.permission_denied'));
+            header('Location: /admin/dashboard');
+            exit;
+        }
+    }
+
+    /**
      * List all Instagram connections for Tenant
      */
     public function index()
     {
+        $this->checkPermission('instagram.view');
         // Get tenant connections (includes global)
         $connections = InstagramConnection::getByTenant($this->tenantId, true);
 
@@ -49,6 +63,7 @@ class ConnectionController
      */
     public function connect()
     {
+        $this->checkPermission('instagram.create');
         // Get API credentials
         $appId = InstagramSetting::get('instagram_app_id', $this->tenantId);
         $appSecret = InstagramSetting::get('instagram_app_secret', $this->tenantId);
@@ -79,6 +94,7 @@ class ConnectionController
      */
     public function callback()
     {
+        $this->checkPermission('instagram.create');
         // Validate state
         $receivedState = $_GET['state'] ?? '';
         $expectedState = $_SESSION['instagram_oauth_state'] ?? '';
@@ -174,6 +190,7 @@ class ConnectionController
      */
     public function sync($id)
     {
+        $this->checkPermission('instagram.edit');
         header('Content-Type: application/json');
 
         try {
@@ -220,6 +237,7 @@ class ConnectionController
      */
     public function disconnect($id)
     {
+        $this->checkPermission('instagram.delete');
         try {
             $connection = InstagramConnection::find((int) $id);
 
@@ -254,6 +272,7 @@ class ConnectionController
      */
     public function posts($id)
     {
+        $this->checkPermission('instagram.view');
         $connection = InstagramConnection::find((int) $id);
 
         if (!$connection) {

@@ -491,6 +491,7 @@ class CaddyService
                                     'handler' => 'reverse_proxy',
                                     'transport' => [
                                         'protocol' => 'fastcgi',
+                                        'root' => $this->documentRoot,
                                         'split_path' => ['.php'],
                                         'env' => [
                                             'APP_ENV' => 'production'
@@ -532,6 +533,7 @@ class CaddyService
                                         'handler' => 'reverse_proxy',
                                         'transport' => [
                                             'protocol' => 'fastcgi',
+                                            'root' => $this->documentRoot,
                                             'split_path' => ['.php']
                                         ],
                                         'upstreams' => [

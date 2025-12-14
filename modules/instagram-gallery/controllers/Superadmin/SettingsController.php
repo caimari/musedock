@@ -15,10 +15,24 @@ class SettingsController
     }
 
     /**
+     * Verificar si el usuario actual tiene un permiso específico
+     * Si no lo tiene, redirige con mensaje de error
+     */
+    private function checkPermission(string $permission): void
+    {
+        if (!userCan($permission)) {
+            flash('error', __instagram('errors.permission_denied'));
+            header('Location: /musedock/dashboard');
+            exit;
+        }
+    }
+
+    /**
      * Show settings page
      */
     public function index()
     {
+        $this->checkPermission('instagram.settings');
         // Get all settings
         $settings = InstagramSetting::getAll(null);
 
@@ -36,6 +50,7 @@ class SettingsController
      */
     public function update()
     {
+        $this->checkPermission('instagram.settings');
         try {
             $data = $_POST;
 
