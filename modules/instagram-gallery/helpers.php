@@ -19,7 +19,7 @@ function __instagram(string $key, array $replacements = []): string
     static $translations = null;
 
     if ($translations === null) {
-        $locale = locale() ?? 'es';
+        $locale = function_exists('detectLanguage') ? detectLanguage() : 'es';
         $langFile = __DIR__ . "/lang/{$locale}.json";
 
         if (!file_exists($langFile)) {
