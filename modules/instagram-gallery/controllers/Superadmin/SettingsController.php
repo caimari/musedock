@@ -3,6 +3,7 @@
 namespace Modules\InstagramGallery\Controllers\Superadmin;
 
 use Modules\InstagramGallery\Models\InstagramSetting;
+use Screenart\Musedock\View;
 
 class SettingsController
 {
@@ -39,7 +40,7 @@ class SettingsController
         // Get available layouts
         $layouts = InstagramSetting::getAvailableLayouts();
 
-        render('modules/instagram-gallery/views/superadmin/instagram/settings.blade.php', [
+        return View::renderModule('instagram-gallery', 'superadmin.instagram.settings', [
             'settings' => $settings,
             'layouts' => $layouts
         ]);

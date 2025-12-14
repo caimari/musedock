@@ -6,6 +6,7 @@ use Modules\InstagramGallery\Models\InstagramConnection;
 use Modules\InstagramGallery\Models\InstagramPost;
 use Modules\InstagramGallery\Models\InstagramSetting;
 use Modules\InstagramGallery\Services\InstagramApiService;
+use Screenart\Musedock\View;
 use Exception;
 
 class ConnectionController
@@ -47,7 +48,7 @@ class ConnectionController
         $appSecret = InstagramSetting::get('instagram_app_secret', null);
         $apiConfigured = !empty($appId) && !empty($appSecret);
 
-        render('modules/instagram-gallery/views/superadmin/instagram/index.blade.php', [
+        return View::renderModule('instagram-gallery', 'superadmin.instagram.index', [
             'connections' => $connections,
             'apiConfigured' => $apiConfigured
         ]);
@@ -257,7 +258,7 @@ class ConnectionController
         // Get posts
         $posts = $connection->posts();
 
-        render('modules/instagram-gallery/views/superadmin/instagram/posts.blade.php', [
+        return View::renderModule('instagram-gallery', 'superadmin.instagram.posts', [
             'connection' => $connection,
             'posts' => $posts
         ]);
