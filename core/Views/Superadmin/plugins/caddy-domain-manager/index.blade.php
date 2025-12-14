@@ -17,7 +17,7 @@
                 @else
                     <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Caddy API No Disponible</span>
                 @endif
-                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createFreeSubdomainModal">
+                <button type="button" class="btn btn-success" onclick="showCreateFreeSubdomainModal()">
                     <i class="bi bi-gift"></i> Crear Subdominio FREE
                 </button>
                 <a href="/musedock/domain-manager/create" class="btn btn-primary">
@@ -413,130 +413,147 @@ async function reconfigure(id) {
 </script>
 @endpush
 
-<!-- Modal para crear subdominio FREE -->
-<div class="modal fade" id="createFreeSubdomainModal" tabindex="-1" aria-labelledby="createFreeSubdomainModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title" id="createFreeSubdomainModalLabel">
-                    <i class="bi bi-gift"></i> Crear Subdominio FREE
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="createFreeSubdomainForm">
-                <input type="hidden" name="_csrf_token" value="<?= csrf_token() ?>">
-
-                <div class="modal-body">
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i>
-                        <strong>Subdominio FREE:</strong> Se creará un nuevo customer y tenant con subdominio .musedock.com gratuito.
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="subdomain" class="form-label">Subdominio <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="subdomain" name="subdomain" required
-                                   pattern="[a-z0-9\-]+" placeholder="ejemplo"
-                                   title="Solo letras minúsculas, números y guiones">
-                            <span class="input-group-text">.musedock.com</span>
-                        </div>
-                        <div class="form-text">Mínimo 3 caracteres. Solo letras minúsculas, números y guiones.</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="customer_name" class="form-label">Nombre del Customer <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="customer_name" name="customer_name" required
-                               placeholder="Juan Pérez">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="customer_email" class="form-label">Email del Customer <span class="text-danger">*</span></label>
-                        <input type="email" class="form-control" id="customer_email" name="customer_email" required
-                               placeholder="juan@example.com">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="customer_password" class="form-label">Contraseña <span class="text-danger">*</span></label>
-                        <input type="password" class="form-control" id="customer_password" name="customer_password" required
-                               minlength="8" placeholder="Mínimo 8 caracteres">
-                        <div class="form-text">El customer usará esta contraseña para acceder a su panel.</div>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success" id="createFreeSubdomainBtn">
-                        <i class="bi bi-check-lg"></i> Crear Subdominio FREE
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 @push('scripts')
 <script>
-document.getElementById('createFreeSubdomainForm').addEventListener('submit', function(e) {
-    e.preventDefault();
+function showCreateFreeSubdomainModal() {
+    Swal.fire({
+        title: '<i class="bi bi-gift"></i> Crear Subdominio FREE',
+        html: `
+            <div class="text-start">
+                <div class="alert alert-info mb-3">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Subdominio FREE:</strong> Se creará un nuevo customer y tenant con subdominio .musedock.com gratuito.
+                </div>
 
-    const formData = new FormData(this);
-    const submitBtn = document.getElementById('createFreeSubdomainBtn');
-    const originalBtnText = submitBtn.innerHTML;
+                <div class="mb-3">
+                    <label for="swal-subdomain" class="form-label fw-semibold">Subdominio <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="swal-subdomain" required
+                               pattern="[a-z0-9\\-]+" placeholder="ejemplo"
+                               title="Solo letras minúsculas, números y guiones">
+                        <span class="input-group-text">.musedock.com</span>
+                    </div>
+                    <div class="form-text">Mínimo 3 caracteres. Solo letras minúsculas, números y guiones.</div>
+                </div>
 
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creando...';
+                <div class="mb-3">
+                    <label for="swal-customer-name" class="form-label fw-semibold">Nombre del Customer <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="swal-customer-name" required
+                           placeholder="Juan Pérez">
+                </div>
 
-    fetch('/musedock/domain-manager/create-free', {
-        method: 'POST',
-        headers: {
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+                <div class="mb-3">
+                    <label for="swal-customer-email" class="form-label fw-semibold">Email del Customer <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" id="swal-customer-email" required
+                           placeholder="juan@example.com">
+                </div>
+
+                <div class="mb-3">
+                    <label for="swal-customer-password" class="form-label fw-semibold">Contraseña <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="swal-customer-password" required
+                           minlength="8" placeholder="Mínimo 8 caracteres">
+                    <div class="form-text">El customer usará esta contraseña para acceder a su panel.</div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="swal-send-welcome-email" checked>
+                        <label class="form-check-label" for="swal-send-welcome-email">
+                            <strong>Enviar email de bienvenida</strong>
+                        </label>
+                        <div class="form-text">El customer recibirá un email con sus credenciales de acceso al panel admin.</div>
+                    </div>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-check-lg"></i> Crear Subdominio FREE',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#198754',
+        width: '600px',
+        didOpen: () => {
+            // Auto-convertir subdomain a minúsculas
+            const subdomainInput = document.getElementById('swal-subdomain');
+            subdomainInput.addEventListener('input', function(e) {
+                e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9\-]/g, '');
+            });
         },
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
+        preConfirm: () => {
+            const subdomain = document.getElementById('swal-subdomain').value;
+            const customerName = document.getElementById('swal-customer-name').value;
+            const customerEmail = document.getElementById('swal-customer-email').value;
+            const customerPassword = document.getElementById('swal-customer-password').value;
+            const sendWelcomeEmail = document.getElementById('swal-send-welcome-email').checked;
+
+            // Validaciones
+            if (!subdomain || subdomain.length < 3) {
+                Swal.showValidationMessage('El subdominio debe tener al menos 3 caracteres');
+                return false;
+            }
+            if (!/^[a-z0-9\-]+$/.test(subdomain)) {
+                Swal.showValidationMessage('El subdominio solo puede contener letras minúsculas, números y guiones');
+                return false;
+            }
+            if (!customerName) {
+                Swal.showValidationMessage('El nombre del customer es requerido');
+                return false;
+            }
+            if (!customerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+                Swal.showValidationMessage('Email inválido');
+                return false;
+            }
+            if (!customerPassword || customerPassword.length < 8) {
+                Swal.showValidationMessage('La contraseña debe tener al menos 8 caracteres');
+                return false;
+            }
+
+            // Crear FormData
+            const formData = new FormData();
+            formData.append('_csrf_token', '<?= csrf_token() ?>');
+            formData.append('subdomain', subdomain);
+            formData.append('customer_name', customerName);
+            formData.append('customer_email', customerEmail);
+            formData.append('customer_password', customerPassword);
+            formData.append('send_welcome_email', sendWelcomeEmail ? '1' : '0');
+
+            // Enviar petición
+            return fetch('/musedock/domain-manager/create-free', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'No se pudo crear el subdominio');
+                }
+                return data;
+            })
+            .catch(error => {
+                Swal.showValidationMessage(`Error: ${error.message}`);
+            });
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
             Swal.fire({
                 icon: 'success',
                 title: '¡Subdominio FREE creado!',
                 html: `
                     <p>El subdominio ha sido creado exitosamente:</p>
-                    <p class="h5 text-success">${data.domain}</p>
-                    <p class="mt-3">Tenant ID: ${data.tenant_id}</p>
+                    <p class="h5 text-success">${result.value.domain}</p>
+                    <p class="mt-3">Tenant ID: ${result.value.tenant_id}</p>
                 `,
                 confirmButtonText: 'Entendido'
             }).then(() => {
-                // Cerrar modal y recargar página
-                bootstrap.Modal.getInstance(document.getElementById('createFreeSubdomainModal')).hide();
                 location.reload();
             });
-        } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: data.error || 'No se pudo crear el subdominio'
-            });
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalBtnText;
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Error de conexión. Por favor, intenta de nuevo.'
-        });
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalBtnText;
     });
-});
-
-// Convertir subdomain a minúsculas automáticamente
-document.getElementById('subdomain').addEventListener('input', function(e) {
-    e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9\-]/g, '');
-});
+}
 </script>
 @endpush
 

@@ -26,19 +26,30 @@
 	        align-items: stretch !important;
 	    }
 
-	    /* Preview sticky - se mantiene visible al hacer scroll */
-	    .preview-sticky-wrapper {
-	        position: -webkit-sticky;
-	        position: sticky;
-        top: 20px;
-        z-index: 50;
-        align-self: flex-start;
-        max-height: calc(100vh - 40px);
-    }
+		    /* Preview sticky - controlado por JS (más robusto que sticky por overflow AdminLTE) */
+		    .preview-sticky-wrapper {
+		        z-index: 1000;
+		        align-self: flex-start;
+		        max-height: calc(100vh - 40px);
+		    }
+
+		    .preview-sticky-wrapper.is-fixed {
+		        position: fixed !important;
+		    }
+
+		    /* Placeholder para evitar "saltos" cuando el preview pasa a fixed */
+		    .preview-sticky-placeholder {
+		        display: none;
+		    }
+
+		    .preview-sticky-placeholder.is-active {
+		        display: block;
+		    }
 
 	    /* Asegurar que el contenedor tenga altura para scroll */
 	    .sliders-edit-left {
 	        min-height: 100%;
+	        position: relative;
 	    }
 
     /* Importante: NO recortar el slider aquí, para que temas con sombra (p.ej. rounded-shadow)
@@ -428,10 +439,10 @@
         <form method="POST" action="{{ route('sliders.update', ['id' => $slider->id]) }}">
 	            @csrf
 	
-	            <div class="row sliders-edit-row">
-	
-	                {{-- Panel izquierdo (Datos principales y Diapositivas) --}}
-	                <div class="col-lg-8 sliders-edit-left">
+		            <div class="row sliders-edit-row">
+		
+		                {{-- Panel izquierdo (Datos principales y Diapositivas) --}}
+		                <div class="col-lg-8 sliders-edit-left">
 
                     {{-- Información del Slider --}}
                     <div class="card mb-4">
@@ -442,13 +453,14 @@
                                 <input type="text" name="name" value="{{ old('name', $slider->name) }}" class="form-control" required>
                             </div>
                         </div>
-                    </div>
+	                    </div>
 
-                    {{-- Vista Previa en Tiempo Real (STICKY) --}}
-                    <div class="preview-sticky-wrapper">
-                        <div class="card mb-4">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <span><i class="fas fa-eye me-2"></i>Vista Previa en Tiempo Real</span>
+	                    {{-- Vista Previa en Tiempo Real (STICKY) --}}
+	                    <div class="preview-sticky-placeholder"></div>
+	                    <div class="preview-sticky-wrapper">
+	                        <div class="card mb-4">
+	                            <div class="card-header d-flex justify-content-between align-items-center">
+	                                <span><i class="fas fa-eye me-2"></i>Vista Previa en Tiempo Real</span>
                                 <div class="btn-group btn-group-sm">
                                     <button type="button" class="btn btn-outline-secondary" onclick="previewSwiper && previewSwiper.slidePrev()" title="Anterior">
                                         <i class="fas fa-chevron-left"></i>
@@ -1383,62 +1395,127 @@ function showToast(message, type = 'info') {
 // ============================================
 function setupStickyPreview() {
     const stickyWrapper = document.querySelector('.preview-sticky-wrapper');
-    const settingsColumn = document.querySelector('.col-lg-4');
+    const placeholder = document.querySelector('.preview-sticky-placeholder');
+    const leftCol = stickyWrapper?.closest('.sliders-edit-left');
 
-    if (!stickyWrapper || !settingsColumn) return;
+    if (!stickyWrapper || !placeholder || !leftCol) return;
 
-    // Calcular posición inicial
-    const headerHeight = 70; // Altura aproximada del header
-    let initialTop = stickyWrapper.getBoundingClientRect().top + window.scrollY;
+    const topOffset = 16;
 
-    function handleScroll() {
-        const scrollY = window.scrollY;
-        const wrapperRect = stickyWrapper.getBoundingClientRect();
-        const settingsRect = settingsColumn.getBoundingClientRect();
-
-        // Si estamos en viewport grande (lg) y el contenido de settings es más largo
-        if (window.innerWidth >= 992 && settingsRect.height > wrapperRect.height) {
-            const offsetTop = headerHeight + 20;
-
-            if (scrollY > initialTop - offsetTop) {
-                // Calcular el límite inferior
-                const settingsBottom = settingsColumn.offsetTop + settingsColumn.offsetHeight;
-                const stickyBottom = scrollY + offsetTop + stickyWrapper.offsetHeight;
-
-                if (stickyBottom < settingsBottom) {
-                    stickyWrapper.style.position = 'fixed';
-                    stickyWrapper.style.top = offsetTop + 'px';
-                    stickyWrapper.style.width = stickyWrapper.parentElement.offsetWidth + 'px';
-                } else {
-                    // Llegamos al final, posición absoluta
-                    stickyWrapper.style.position = 'absolute';
-                    stickyWrapper.style.top = (settingsBottom - stickyWrapper.offsetHeight - stickyWrapper.parentElement.offsetTop) + 'px';
-                    stickyWrapper.style.width = '';
-                }
-            } else {
-                // Volver a posición normal
-                stickyWrapper.style.position = '';
-                stickyWrapper.style.top = '';
-                stickyWrapper.style.width = '';
+    // Si un ancestro tiene scroll interno (AdminLTE: main.content), window.scrollY se queda en 0.
+    // Detectamos el "scroll container" real de forma robusta.
+    const getScrollContainer = (startEl) => {
+        let node = startEl.parentElement;
+        while (node) {
+            const style = window.getComputedStyle(node);
+            const overflowY = style.overflowY;
+            if ((overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') && node.scrollHeight > node.clientHeight) {
+                return node;
             }
-        } else {
-            // Resetear en viewport pequeño
-            stickyWrapper.style.position = '';
-            stickyWrapper.style.top = '';
-            stickyWrapper.style.width = '';
+            node = node.parentElement;
         }
-    }
+        return document.querySelector('main.content') || null;
+    };
 
-    // Recalcular initialTop después de que todo cargue
-    setTimeout(() => {
-        initialTop = stickyWrapper.getBoundingClientRect().top + window.scrollY;
-    }, 1000);
+    const scrollContainer = getScrollContainer(stickyWrapper);
+    const usesWindow = !scrollContainer || scrollContainer === document.body || scrollContainer === document.documentElement;
 
-    window.addEventListener('scroll', handleScroll);
+    const getScrollTop = () => {
+        if (usesWindow) return window.pageYOffset || document.documentElement.scrollTop || 0;
+        return scrollContainer.scrollTop || 0;
+    };
+
+    const getScrollerTopInViewport = () => {
+        if (usesWindow) return 0;
+        return scrollContainer.getBoundingClientRect().top;
+    };
+
+    // Guardar estilo original por si existe
+    const originalInlineStyle = stickyWrapper.getAttribute('style') || '';
+
+    let isFixed = false;
+    let rafId = null;
+
+    const applyPosition = () => {
+        const leftRect = leftCol.getBoundingClientRect();
+        const scrollerTop = Math.max(getScrollerTopInViewport(), 0);
+
+        stickyWrapper.style.position = 'fixed';
+        stickyWrapper.style.top = (scrollerTop + topOffset) + 'px';
+        stickyWrapper.style.left = leftRect.left + 'px';
+        stickyWrapper.style.width = leftRect.width + 'px';
+        stickyWrapper.style.zIndex = '1100';
+    };
+
+    // Solución extra-robusta: cuando está fixed, movemos el nodo al body para evitar
+    // conflictos de "containing blocks" por overflow/transform en ancestros.
+    const fix = () => {
+        if (isFixed) return;
+        isFixed = true;
+
+        placeholder.style.height = stickyWrapper.offsetHeight + 'px';
+        placeholder.classList.add('is-active');
+        stickyWrapper.classList.add('is-fixed');
+
+        document.body.appendChild(stickyWrapper);
+        applyPosition();
+    };
+
+    const unfix = () => {
+        if (!isFixed) return;
+        isFixed = false;
+
+        stickyWrapper.classList.remove('is-fixed');
+        stickyWrapper.setAttribute('style', originalInlineStyle);
+
+        placeholder.classList.remove('is-active');
+        placeholder.style.height = '';
+
+        // Volver a insertar el preview justo después del placeholder
+        placeholder.insertAdjacentElement('afterend', stickyWrapper);
+    };
+
+    const onScroll = () => {
+        if (rafId) return;
+        rafId = window.requestAnimationFrame(() => {
+            rafId = null;
+
+            // En móvil/tablet mejor no fijar para evitar problemas de espacio
+            if (window.innerWidth < 992) {
+                unfix();
+                return;
+            }
+
+            const scrollTop = getScrollTop();
+            const scrollerTop = getScrollerTopInViewport();
+            const phRect = placeholder.getBoundingClientRect();
+            const phTopInScroll = scrollTop + (phRect.top - scrollerTop);
+
+            if (scrollTop >= phTopInScroll - topOffset) {
+                fix();
+                applyPosition();
+            } else {
+                unfix();
+            }
+        });
+    };
+
+    const addScrollListener = (target) => {
+        if (!target) return;
+        target.addEventListener('scroll', onScroll, { passive: true });
+    };
+
+    addScrollListener(usesWindow ? window : scrollContainer);
+    // Fallback: por si el layout cambia y el scroll cae en window (o viceversa)
+    addScrollListener(window);
+
     window.addEventListener('resize', () => {
-        initialTop = stickyWrapper.getBoundingClientRect().top + window.scrollY;
-        handleScroll();
+        if (isFixed) applyPosition();
+        onScroll();
     });
+
+    // Inicial
+    setTimeout(onScroll, 250);
 }
 
 // ============================================

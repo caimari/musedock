@@ -386,9 +386,23 @@ class DomainManagerController
         }
 
         $caddyWarning = null;
+        $cloudflareWarning = null;
 
         try {
-            // Intentar eliminar de Caddy primero si existe configuración
+            // 1. Intentar eliminar de Cloudflare primero (solo para subdominios FREE)
+            if (($tenant->is_subdomain ?? false) && ($tenant->cloudflare_record_id ?? null)) {
+                $cloudflareService = new \CaddyDomainManager\Services\CloudflareService();
+                $cloudflareResult = $cloudflareService->deleteRecord($tenant->cloudflare_record_id);
+
+                if (!$cloudflareResult['success']) {
+                    $cloudflareWarning = "El registro DNS de Cloudflare podría seguir activo. Error: " . ($cloudflareResult['error'] ?? 'desconocido');
+                    Logger::log("[DomainManager] Warning eliminando de Cloudflare: " . $cloudflareWarning, 'WARNING');
+                } else {
+                    Logger::log("[DomainManager] Registro DNS eliminado de Cloudflare: {$tenant->cloudflare_record_id}", 'INFO');
+                }
+            }
+
+            // 2. Intentar eliminar de Caddy si existe configuración
             if ($tenant->caddy_route_id ?? null) {
                 $caddyResult = $this->caddyService->removeDomain($tenant->caddy_route_id);
                 if (!$caddyResult['success']) {
@@ -400,7 +414,7 @@ class DomainManagerController
                 }
             }
 
-            // Eliminar tenant y datos relacionados de la BD
+            // 3. Eliminar tenant y datos relacionados de la BD
             $pdo = Database::connect();
             $pdo->beginTransaction();
 
@@ -420,10 +434,19 @@ class DomainManagerController
 
             Logger::log("[DomainManager] Tenant eliminado: {$tenant->domain} (ID: {$id})", 'INFO');
 
-            // Preparar mensaje según resultado de Caddy
+            // Preparar mensaje según resultado de Cloudflare y Caddy
             $message = "Tenant '{$tenant->name}' eliminado correctamente.";
+            $warnings = [];
+
+            if ($cloudflareWarning) {
+                $warnings[] = $cloudflareWarning;
+            }
             if ($caddyWarning) {
-                $message .= " Advertencia: " . $caddyWarning;
+                $warnings[] = $caddyWarning;
+            }
+
+            if (!empty($warnings)) {
+                $message .= " Advertencias: " . implode(' | ', $warnings);
             }
 
             if ($this->isAjaxRequest()) {
@@ -431,12 +454,13 @@ class DomainManagerController
                 echo json_encode([
                     'success' => true,
                     'message' => $message,
+                    'cloudflare_warning' => $cloudflareWarning,
                     'caddy_warning' => $caddyWarning
                 ]);
                 exit;
             }
 
-            if ($caddyWarning) {
+            if (!empty($warnings)) {
                 flash('warning', $message);
             } else {
                 flash('success', $message);
@@ -1159,9 +1183,23 @@ class DomainManagerController
         }
 
         $caddyWarning = null;
+        $cloudflareWarning = null;
 
         try {
-            // Intentar eliminar de Caddy primero si existe configuración
+            // 1. Intentar eliminar de Cloudflare primero (solo para subdominios FREE)
+            if (($tenant->is_subdomain ?? false) && ($tenant->cloudflare_record_id ?? null)) {
+                $cloudflareService = new \CaddyDomainManager\Services\CloudflareService();
+                $cloudflareResult = $cloudflareService->deleteRecord($tenant->cloudflare_record_id);
+
+                if (!$cloudflareResult['success']) {
+                    $cloudflareWarning = "El registro DNS de Cloudflare podría seguir activo.";
+                    Logger::log("[DomainManager] Warning eliminando de Cloudflare: " . ($cloudflareResult['error'] ?? 'Error desconocido'), 'WARNING');
+                } else {
+                    Logger::log("[DomainManager] Registro DNS eliminado de Cloudflare: {$tenant->cloudflare_record_id}", 'INFO');
+                }
+            }
+
+            // 2. Intentar eliminar de Caddy si existe configuración
             if ($tenant->caddy_route_id ?? null) {
                 $caddyResult = $this->caddyService->removeDomain($tenant->caddy_route_id);
                 if (!$caddyResult['success']) {
@@ -1172,7 +1210,7 @@ class DomainManagerController
                 }
             }
 
-            // Eliminar tenant y datos relacionados de la BD
+            // 3. Eliminar tenant y datos relacionados de la BD
             $pdo->beginTransaction();
 
             try {
@@ -1191,13 +1229,23 @@ class DomainManagerController
             Logger::log("[DomainManager] Tenant eliminado: {$tenant->domain} (ID: {$id})", 'INFO');
 
             $message = "Tenant '{$tenant->name}' eliminado correctamente.";
+            $warnings = [];
+
+            if ($cloudflareWarning) {
+                $warnings[] = $cloudflareWarning;
+            }
             if ($caddyWarning) {
-                $message .= " " . $caddyWarning;
+                $warnings[] = $caddyWarning;
+            }
+
+            if (!empty($warnings)) {
+                $message .= " Advertencias: " . implode(' | ', $warnings);
             }
 
             echo json_encode([
                 'success' => true,
                 'message' => $message,
+                'cloudflare_warning' => $cloudflareWarning,
                 'caddy_warning' => $caddyWarning
             ]);
             exit;
@@ -1428,6 +1476,7 @@ TEXT;
             $customerEmail = trim(strtolower($_POST['customer_email'] ?? ''));
             $customerName = trim($_POST['customer_name'] ?? '');
             $customerPassword = $_POST['customer_password'] ?? '';
+            $sendWelcomeEmail = isset($_POST['send_welcome_email']) && $_POST['send_welcome_email'] === '1';
 
             // Validaciones
             if (empty($subdomain) || empty($customerEmail) || empty($customerName) || empty($customerPassword)) {
@@ -1444,7 +1493,7 @@ TEXT;
 
             // Usar ProvisioningService para crear tenant FREE
             $provisioningService = new \CaddyDomainManager\Services\ProvisioningService();
-            $result = $provisioningService->provisionFreeTenant($customerData, $subdomain);
+            $result = $provisioningService->provisionFreeTenant($customerData, $subdomain, $sendWelcomeEmail);
 
             if ($result['success']) {
                 Logger::info("[DomainManagerController] FREE subdomain created by superadmin: {$result['domain']}");
