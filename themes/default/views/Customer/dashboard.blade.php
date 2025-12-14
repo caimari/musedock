@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $page_title ?? 'Dashboard - MuseDock' ?></title>
+    <link rel="shortcut icon" type="image/x-icon" href="/img/favicon.png">
     <link rel="stylesheet" href="/assets/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -17,19 +18,27 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .navbar-custom {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            background: #f8f9fa;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-bottom: 1px solid #e0e0e0;
         }
         .navbar-custom .navbar-brand {
-            color: white !important;
+            color: #333 !important;
             font-weight: bold;
             font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .navbar-custom .navbar-brand img {
+            max-height: 40px;
+            width: auto;
         }
         .navbar-custom .nav-link {
-            color: rgba(255,255,255,0.9) !important;
+            color: #555 !important;
         }
         .navbar-custom .nav-link:hover {
-            color: white !important;
+            color: var(--primary-color) !important;
         }
         .sidebar {
             background: white;
@@ -161,7 +170,10 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-custom">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/customer/dashboard">MuseDock</a>
+            <a class="navbar-brand" href="/customer/dashboard">
+                <img src="/themes/play-bootstrap/img/logo/logo.svg" alt="MuseDock" onerror="this.style.display='none';">
+                <span>MuseDock</span>
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>

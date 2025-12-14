@@ -4,6 +4,7 @@ namespace CaddyDomainManager\Controllers;
 
 use CaddyDomainManager\Models\Customer;
 use Screenart\Musedock\Security\SessionSecurity;
+use Screenart\Musedock\Security\CSRFProtection;
 use Screenart\Musedock\Logger;
 use Screenart\Musedock\Database;
 
