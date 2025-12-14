@@ -77,7 +77,7 @@ class BlogCategoryController
         }
 
         // Procesar categorías
-        $processedCategories = array_map(fn($row) => new BlogCategory((array) $row), $categories);
+        $processedCategories = array_map(fn($row) => ($row instanceof BlogCategory) ? $row : new BlogCategory((array) $row), $categories);
 
         return View::renderTenantAdmin('blog.categories.index', [
             'title'       => 'Listado de categorías',

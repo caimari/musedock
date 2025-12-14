@@ -56,7 +56,7 @@ class BlogCategoryController
         }
 
         // Procesamos los objetos BlogCategory
-        $processedCategories = array_map(fn($row) => new BlogCategory((array) $row), $categories);
+        $processedCategories = array_map(fn($row) => ($row instanceof BlogCategory) ? $row : new BlogCategory((array) $row), $categories);
 
         // Renderizamos la vista
         return View::renderSuperadmin('blog.categories.index', [

@@ -54,7 +54,7 @@ class BlogTagController
         }
 
         // Procesamos los objetos BlogTag
-        $processedTags = array_map(fn($row) => new BlogTag((array) $row), $tags);
+        $processedTags = array_map(fn($row) => ($row instanceof BlogTag) ? $row : new BlogTag((array) $row), $tags);
 
         // Renderizamos la vista
         return View::renderSuperadmin('blog.tags.index', [

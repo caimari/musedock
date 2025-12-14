@@ -101,7 +101,7 @@ class BlogPostController
             $pdo = Database::connect();
 
             foreach ($posts as $postData) {
-                $post = new BlogPost((array) $postData);
+                $post = ($postData instanceof BlogPost) ? $postData : new BlogPost((array) $postData);
 
                 // Cargar visibilidad
                 $stmt = $pdo->prepare("SELECT visibility FROM blog_posts WHERE id = ? LIMIT 1");
@@ -116,7 +116,7 @@ class BlogPostController
             }
         } catch (\Exception $e) {
             error_log("Error al cargar datos adicionales: " . $e->getMessage());
-            $processedPosts = array_map(fn($row) => new BlogPost((array) $row), $posts);
+            $processedPosts = array_map(fn($row) => ($row instanceof BlogPost) ? $row : new BlogPost((array) $row), $posts);
         }
 
         // Cargar autores (usuarios del tenant)

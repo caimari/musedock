@@ -80,8 +80,8 @@ class BlogPostController
             $pdo = Database::connect();
 
             foreach ($posts as $postData) {
-                // Crear el objeto BlogPost
-                $post = new BlogPost((array) $postData);
+                // Si ya es instancia de BlogPost, no reconstruir desde (array)$obj (pierde atributos)
+                $post = ($postData instanceof BlogPost) ? $postData : new BlogPost((array) $postData);
 
                 // Cargar visibilidad
                 $stmt = $pdo->prepare("SELECT visibility FROM blog_posts WHERE id = ? LIMIT 1");
@@ -97,7 +97,7 @@ class BlogPostController
         } catch (\Exception $e) {
             // Si falla la consulta, usar los datos originales
             error_log("Error al cargar datos adicionales: " . $e->getMessage());
-            $processedPosts = array_map(fn($row) => new BlogPost((array) $row), $posts);
+            $processedPosts = array_map(fn($row) => ($row instanceof BlogPost) ? $row : new BlogPost((array) $row), $posts);
         }
 
         // Precargamos autores

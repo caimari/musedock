@@ -104,6 +104,7 @@
     "publish": "Publicar",
     "publish_on": "Publicar el",
     "publish_date": "Fecha de publicación",
+    "success_permanently_deleted": "Página eliminada permanentemente",
     "publish_selected": "Publicar seleccionadas",
     "publish_immediately_help": "Dejar en blanco para publicar inmediatamente",
     "draft": "Borrador",

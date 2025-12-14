@@ -102,6 +102,7 @@
     "publish": "Publish",
     "publish_on": "Publish on",
     "publish_date": "Publish date",
+    "success_permanently_deleted": "Page permanently deleted",
     "publish_selected": "Publish selected",
     "publish_immediately_help": "Leave blank to publish immediately",
     "draft": "Draft",

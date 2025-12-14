@@ -75,7 +75,7 @@ class BlogTagController
         }
 
         // Procesar etiquetas
-        $processedTags = array_map(fn($row) => new BlogTag((array) $row), $tags);
+        $processedTags = array_map(fn($row) => ($row instanceof BlogTag) ? $row : new BlogTag((array) $row), $tags);
 
         return View::renderTenantAdmin('blog.tags.index', [
             'title'      => 'Listado de etiquetas',
