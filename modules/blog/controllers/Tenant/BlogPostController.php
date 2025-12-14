@@ -669,13 +669,17 @@ class BlogPostController
                 exit;
             }
 
-            // Registrar en tabla blog_posts_trash usando prepared statement
-            $stmt = $pdo->prepare("INSERT INTO blog_posts_trash (post_id, tenant_id, deleted_by, deleted_by_name, deleted_by_type, deleted_at, scheduled_permanent_delete, ip_address) VALUES (?, ?, ?, ?, 'admin', NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), ?)");
+            // Registrar en tabla blog_posts_trash (compatible MySQL/PostgreSQL)
+            $deletedAt = (new \DateTimeImmutable('now'))->format('Y-m-d H:i:s');
+            $scheduledPermanentDelete = (new \DateTimeImmutable('now'))->modify('+30 days')->format('Y-m-d H:i:s');
+            $stmt = $pdo->prepare("INSERT INTO blog_posts_trash (post_id, tenant_id, deleted_by, deleted_by_name, deleted_by_type, deleted_at, scheduled_permanent_delete, ip_address) VALUES (?, ?, ?, ?, 'admin', ?, ?, ?)");
             $stmt->execute([
                 $postId,
                 $tenantId,
                 $user['id'] ?? 0,
                 $user['name'] ?? 'Sistema',
+                $deletedAt,
+                $scheduledPermanentDelete,
                 $_SERVER['REMOTE_ADDR'] ?? 'unknown'
             ]);
 
