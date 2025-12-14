@@ -28,7 +28,15 @@ fi
 
 echo "✓ Token encontrado: ${CLOUDFLARE_API_TOKEN:0:20}..."
 
-# Crear override de systemd para añadir variable de entorno
+# Crear archivo de entorno para Caddy
+echo ""
+echo "📝 Creando archivo de entorno /etc/default/caddy..."
+
+echo "CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN" > /etc/default/caddy
+
+echo "✓ Archivo de entorno creado"
+
+# Crear override de systemd para usar EnvironmentFile
 echo ""
 echo "📝 Configurando systemd override..."
 
@@ -36,7 +44,7 @@ mkdir -p /etc/systemd/system/caddy.service.d/
 
 cat > /etc/systemd/system/caddy.service.d/override.conf <<EOF
 [Service]
-Environment="CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN"
+EnvironmentFile=/etc/default/caddy
 EOF
 
 echo "✓ Override creado en /etc/systemd/system/caddy.service.d/override.conf"

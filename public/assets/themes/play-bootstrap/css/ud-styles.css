@@ -2937,39 +2937,121 @@ body {
 .post-content,
 .page-body,
 .ud-blog-details-content {
-  overflow-x: hidden;
+  /* ELIMINADO overflow-x: hidden - impedía que los sliders full-width salieran del contenedor */
+  /* Si hay problemas de scroll horizontal, usar overflow-x: clip en lugar de hidden */
+  overflow-x: clip;
+}
+
+/* ===== Desktop + Mobile: Full-width slider support ===== */
+/* IMPORTANTE: Estos estilos deben aplicarse SIEMPRE para full-bleed, no solo en móvil */
+
+/* Permitir que el wrapper full-width escape del container padre */
+main .ud-page-content,
+main .page-body,
+main .page-content-wrapper,
+main .container {
+  /* Crucial: NO usar overflow:hidden en contenedores que puedan tener sliders full-width */
+  overflow: visible !important;
+}
+
+/* Estilos base del wrapper (aplicables en todas las resoluciones) */
+.slider-full-width-wrapper[data-full-bleed="true"] {
+  /* Ya definido en slider-themes.css, pero reforzamos aquí por especificidad */
+  position: relative !important;
+  left: 50% !important;
+  right: 50% !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  margin-left: -50vw !important;
+  margin-right: -50vw !important;
+  overflow: visible !important;
+}
+
+/* Evitar que <p> de TinyMCE rompa el full-bleed */
+p > .slider-full-width-wrapper,
+.page-body p > .slider-full-width-wrapper,
+.ud-page-content p > .slider-full-width-wrapper {
+  display: block !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Si el <p> envuelve el slider, hacer que ocupe todo el ancho también */
+.page-body > p:has(> .slider-full-width-wrapper),
+.ud-page-content > p:has(> .slider-full-width-wrapper) {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+
+/* ===== Flechas de navegación: garantizar visibilidad ===== */
+/* Sobrescribir cualquier estilo del tema que pueda ocultar las flechas */
+.swiper-button-prev,
+.swiper-button-next {
+  /* Z-index alto para estar por encima de todo */
+  z-index: 100 !important;
+  /* Visibilidad explícita */
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Asegurar que el swiper permita que las flechas sean clickeables */
+.swiper {
+  /* No bloquear pointer-events de las flechas */
+  isolation: isolate;
 }
 
 /* ===== Mobile: force sliders (Swiper) full-width + horizontal ===== */
 @media (max-width: 767px) {
-  main .ud-page-content .swiper,
+  /* CRÍTICO: Forzar full-width en el wrapper del slider */
+  .slider-full-width-wrapper,
+  .slider-full-width-wrapper[data-full-bleed="true"],
   main .ud-page-content .slider-full-width-wrapper,
-  main .page-body .swiper,
-  main .page-content-wrapper .swiper {
+  main .page-body .slider-full-width-wrapper,
+  main .page-content-wrapper .slider-full-width-wrapper {
+    position: relative !important;
+    left: 50% !important;
+    right: 50% !important;
     width: 100vw !important;
-    margin-left: calc(50% - 50vw) !important;
-    margin-right: calc(50% - 50vw) !important;
+    max-width: 100vw !important;
+    margin-left: -50vw !important;
+    margin-right: -50vw !important;
+    padding: 0 !important;
     border-radius: 0 !important;
   }
 
-  main .ud-page-content .swiper {
-    height: 240px !important;
-    max-height: 40vh !important;
+  /* El swiper dentro del wrapper debe ocupar el 100% */
+  .slider-full-width-wrapper > .swiper,
+  .slider-full-width-wrapper > .gallery-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
   }
 
-  main .ud-page-content .swiper .swiper-slide img,
-  main .page-body .swiper .swiper-slide img,
-  main .page-content-wrapper .swiper .swiper-slide img {
+  /* Altura recomendada para móvil */
+  main .ud-page-content .swiper,
+  main .page-body .swiper,
+  main .page-content-wrapper .swiper {
+    height: 280px !important;
+    max-height: 50vh !important;
+  }
+
+  /* Imágenes responsive */
+  .swiper .swiper-slide img {
     width: 100% !important;
     height: 100% !important;
     object-fit: cover !important;
   }
 
-  /* Override slider-themes.css "rounded-shadow" inset on mobile: always full width */
-  main .ud-page-content .slider-full-width-wrapper > .swiper.theme-rounded-shadow,
-  main .ud-page-content .slider-full-width-wrapper > .gallery-container.theme-rounded-shadow,
-  main .page-body .slider-full-width-wrapper > .swiper.theme-rounded-shadow,
-  main .page-content-wrapper .slider-full-width-wrapper > .swiper.theme-rounded-shadow {
+  /* Override slider-themes.css "rounded-shadow" - en móvil siempre full width sin bordes */
+  .slider-full-width-wrapper > .swiper.theme-rounded-shadow,
+  .slider-full-width-wrapper > .gallery-container.theme-rounded-shadow,
+  .swiper.theme-rounded-shadow,
+  .gallery-container.theme-rounded-shadow {
     width: 100% !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
@@ -2978,27 +3060,47 @@ body {
     border: 0 !important;
   }
 
-  /* Extra-safe override (slider-themes.css is injected in-page and may load after) */
-  html body .slider-full-width-wrapper > .swiper.theme-rounded-shadow,
-  html body .slider-full-width-wrapper > .gallery-container.theme-rounded-shadow {
-    width: 100% !important;
+  .swiper.theme-rounded-shadow .swiper-slide,
+  .swiper.theme-rounded-shadow .swiper-slide img {
+    border-radius: 0 !important;
+  }
+
+  /* Asegurar que body no tenga scroll horizontal en móvil */
+  html,
+  body {
+    overflow-x: clip !important;
+    max-width: 100vw !important;
+    position: relative !important;
+  }
+
+  /* CRÍTICO: Eliminar CUALQUIER padding horizontal en móvil */
+  body,
+  main,
+  main .container,
+  main .ud-page-content,
+  main .page-body,
+  main .page-content-wrapper {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    border: 0 !important;
   }
 
-  html body .swiper.theme-rounded-shadow,
-  html body .gallery-container.theme-rounded-shadow {
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    border: 0 !important;
+  /* Container debe permitir que el slider salga */
+  main .container,
+  main .ud-page-content,
+  main .page-body,
+  main .page-content-wrapper {
+    overflow-x: clip !important;
+    overflow-y: visible !important;
+    max-width: 100vw !important;
   }
 
-  html body .swiper.theme-rounded-shadow .swiper-slide,
-  html body .swiper.theme-rounded-shadow .swiper-slide img {
-    border-radius: 0 !important;
+  /* Restaurar solo el padding del contenido que NO es slider */
+  main .ud-page-content > *:not(.slider-full-width-wrapper):not(p:has(> .slider-full-width-wrapper)),
+  main .page-body > *:not(.slider-full-width-wrapper):not(p:has(> .slider-full-width-wrapper)) {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
   }
 }
 

@@ -42,18 +42,24 @@ sudo ./configure-caddy-env.sh
 
 **Qué hace**:
 1. Lee `CLOUDFLARE_API_TOKEN` del archivo `.env`
-2. Crea override de systemd en `/etc/systemd/system/caddy.service.d/override.conf`
-3. Añade la variable de entorno al servicio de Caddy
-4. Recarga systemd daemon
+2. Crea archivo de entorno `/etc/default/caddy` con el token
+3. Crea override de systemd en `/etc/systemd/system/caddy.service.d/override.conf`
+4. Configura systemd para usar `EnvironmentFile` (método correcto, sin problemas de comillas)
+5. Recarga systemd daemon
 
 **Verificar**:
 ```bash
-systemctl cat caddy | grep CLOUDFLARE
+# Ver el archivo de entorno
+cat /etc/default/caddy
+
+# Ver configuración de systemd
+systemctl cat caddy | grep EnvironmentFile
 ```
 
 Deberías ver:
 ```
-Environment="CLOUDFLARE_API_TOKEN=RoWaHrupEzaA-Y3qrg9S..."
+CLOUDFLARE_API_TOKEN=RoWaHrupEzaA-Y3qrg9S...
+EnvironmentFile=/etc/default/caddy
 ```
 
 ## Paso 3: Hacer backup de Caddyfile actual
@@ -143,16 +149,20 @@ Caddy renovará automáticamente los certificados **60 días antes de expirar** 
 
 ## Troubleshooting
 
-### Error: "dns: cloudflare: API error"
+### Error: "dns: cloudflare: API error" o "API token '' appears invalid"
 ```bash
-# Verificar token
+# Verificar token en .env
 grep CLOUDFLARE_API_TOKEN /var/www/vhosts/musedock.com/httpdocs/.env
 
-# Verificar que systemd lo tiene
-systemctl show caddy | grep CLOUDFLARE
+# Verificar archivo de entorno
+cat /etc/default/caddy
 
-# Si no aparece, repetir Paso 2
+# Verificar que systemd lo carga
+systemctl cat caddy | grep EnvironmentFile
+
+# Si no aparece o está vacío, repetir Paso 2
 sudo ./configure-caddy-env.sh
+sudo systemctl daemon-reload
 sudo systemctl restart caddy
 ```
 
@@ -198,10 +208,12 @@ sudo systemctl reload caddy
 
 Una vez verificado que funciona:
 
-1. Subir código a repositorio
-2. Borrar script `fix_cloudflare_proxy.php` (ya no es necesario)
-3. Nuevos registros se crearán automáticamente con proxy naranja
-4. Los certificados se obtendrán automáticamente vía DNS-01
+1. ✅ **Subir código a repositorio** - Todos los cambios están listos
+2. ✅ **El script `fix_cloudflare_proxy.php` ya no es necesario** - Puedes mantenerlo por si acaso, pero no lo necesitarás
+3. ✅ **Nuevos tenants FREE se crearán automáticamente con proxy naranja** - ProvisioningService ya está configurado
+4. ✅ **Los certificados SSL se obtienen automáticamente vía DNS-01** - Sin intervención manual
+5. ✅ **Renovación automática** - Caddy renovará los certificados cada 60-90 días
+6. ✅ **IP del servidor oculta** - Cloudflare proxy activo en todo momento
 
 ## Soporte
 
