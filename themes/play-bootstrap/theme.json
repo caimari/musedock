@@ -5,8 +5,64 @@
   "author": "UIdeck / Adapted for MuseDock",
   "description": "Tema Play Bootstrap - Template profesional y moderno adaptado para MuseDock CMS multi-tenant",
   "screenshot": "/assets/themes/play-bootstrap/img/hero/hero-image.svg",
+  "layout": "layouts.app",
   "bootstrap": true,
   "customizable": true,
+  "content_areas": [
+    {
+      "id": "nav",
+      "name": "Navegación principal",
+      "description": "Menú de navegación en la cabecera del sitio",
+      "supports": ["menu"]
+    },
+    {
+      "id": "footer1",
+      "name": "Footer 1",
+      "description": "Primera columna del pie de página",
+      "supports": ["widget"]
+    },
+    {
+      "id": "footer2",
+      "name": "Footer 2",
+      "description": "Segunda columna del pie de página",
+      "supports": ["widget"]
+    },
+    {
+      "id": "footer3",
+      "name": "Footer 3",
+      "description": "Tercera columna del pie de página",
+      "supports": ["widget"]
+    },
+    {
+      "id": "footer4",
+      "name": "Footer 4",
+      "description": "Cuarta columna del pie de página",
+      "supports": ["widget"]
+    },
+    {
+      "id": "footer5",
+      "name": "Footer 5",
+      "description": "Quinta columna del pie de página",
+      "supports": ["widget"]
+    }
+  ],
+  "menu_areas": [
+    {
+      "id": "nav",
+      "name": "Navegación principal",
+      "description": "Menú de navegación en la cabecera del sitio"
+    },
+    {
+      "id": "footer-1",
+      "name": "Footer - Menú 1",
+      "description": "Menú del footer (columna 2)"
+    },
+    {
+      "id": "footer-2",
+      "name": "Footer - Menú 2",
+      "description": "Menú del footer (columna 3)"
+    }
+  ],
   "customizable_options": {
     "header": {
       "type": "section",

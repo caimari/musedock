@@ -46,6 +46,11 @@
 		        display: block;
 		    }
 
+		    /* Botón anclar/desanclar */
+		    .btn-preview-pin.active {
+		        background: rgba(0, 0, 0, 0.08);
+		    }
+
 	    /* Asegurar que el contenedor tenga altura para scroll */
 	    .sliders-edit-left {
 	        min-height: 100%;
@@ -461,15 +466,22 @@
 	                        <div class="card mb-4">
 	                            <div class="card-header d-flex justify-content-between align-items-center">
 	                                <span><i class="fas fa-eye me-2"></i>Vista Previa en Tiempo Real</span>
-                                <div class="btn-group btn-group-sm">
-                                    <button type="button" class="btn btn-outline-secondary" onclick="previewSwiper && previewSwiper.slidePrev()" title="Anterior">
-                                        <i class="fas fa-chevron-left"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary" onclick="previewSwiper && previewSwiper.slideNext()" title="Siguiente">
-                                        <i class="fas fa-chevron-right"></i>
-                                    </button>
-                                </div>
-                            </div>
+	                                <div class="btn-group btn-group-sm">
+	                                    <button type="button"
+	                                            id="toggle-preview-pin"
+	                                            class="btn btn-outline-secondary btn-preview-pin"
+	                                            title="Anclar / desanclar preview"
+	                                            aria-pressed="true">
+	                                        <i class="fas fa-thumbtack"></i>
+	                                    </button>
+	                                    <button type="button" class="btn btn-outline-secondary" onclick="previewSwiper && previewSwiper.slidePrev()" title="Anterior">
+	                                        <i class="fas fa-chevron-left"></i>
+	                                    </button>
+	                                    <button type="button" class="btn btn-outline-secondary" onclick="previewSwiper && previewSwiper.slideNext()" title="Siguiente">
+	                                        <i class="fas fa-chevron-right"></i>
+	                                    </button>
+	                                </div>
+	                            </div>
                             <div class="card-body p-0">
                                 <div id="preview-container" class="{{ ($settings['engine'] ?? 'swiper') === 'gallery' ? 'gallery-mode' : '' }}">
                                     <div class="theme-badge" id="theme-badge" style="{{ ($settings['engine'] ?? 'swiper') === 'gallery' ? 'background: rgba(102,126,234,0.9);' : '' }}">
@@ -1397,6 +1409,7 @@ function setupStickyPreview() {
     const stickyWrapper = document.querySelector('.preview-sticky-wrapper');
     const placeholder = document.querySelector('.preview-sticky-placeholder');
     const leftCol = stickyWrapper?.closest('.sliders-edit-left');
+    const pinBtn = document.getElementById('toggle-preview-pin');
 
     if (!stickyWrapper || !placeholder || !leftCol) return;
 
@@ -1435,6 +1448,34 @@ function setupStickyPreview() {
 
     let isFixed = false;
     let rafId = null;
+    const storageKey = 'musedock.sliderPreviewPinned';
+    let pinEnabled = true;
+
+    const readPinned = () => {
+        try {
+            const v = window.localStorage.getItem(storageKey);
+            // default: true (pinned)
+            if (v === null) return true;
+            return v === '1';
+        } catch (_) {
+            return true;
+        }
+    };
+
+    const writePinned = (value) => {
+        try {
+            window.localStorage.setItem(storageKey, value ? '1' : '0');
+        } catch (_) {
+            // ignore
+        }
+    };
+
+    const syncPinBtn = () => {
+        if (!pinBtn) return;
+        pinBtn.classList.toggle('active', pinEnabled);
+        pinBtn.setAttribute('aria-pressed', pinEnabled ? 'true' : 'false');
+        pinBtn.title = pinEnabled ? 'Preview anclado (clic para desanclar)' : 'Preview desanclado (clic para anclar)';
+    };
 
     const applyPosition = () => {
         const leftRect = leftCol.getBoundingClientRect();
@@ -1486,6 +1527,12 @@ function setupStickyPreview() {
                 return;
             }
 
+            // Si está desanclado, siempre volver al flujo normal
+            if (!pinEnabled) {
+                unfix();
+                return;
+            }
+
             const scrollTop = getScrollTop();
             const scrollerTop = getScrollerTopInViewport();
             const phRect = placeholder.getBoundingClientRect();
@@ -1508,6 +1555,18 @@ function setupStickyPreview() {
     addScrollListener(usesWindow ? window : scrollContainer);
     // Fallback: por si el layout cambia y el scroll cae en window (o viceversa)
     addScrollListener(window);
+
+    // Toggle anclar/desanclar
+    pinEnabled = readPinned();
+    syncPinBtn();
+    if (pinBtn) {
+        pinBtn.addEventListener('click', () => {
+            pinEnabled = !pinEnabled;
+            writePinned(pinEnabled);
+            syncPinBtn();
+            onScroll();
+        });
+    }
 
     window.addEventListener('resize', () => {
         if (isFixed) applyPosition();

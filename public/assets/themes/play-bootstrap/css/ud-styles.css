@@ -1738,6 +1738,21 @@ body {
   padding-left: 10px;
 }
 
+.ud-footer .ud-contact-link {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ud-footer .ud-contact-link .ud-contact-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ud-footer .ud-contact-link .lni {
+  margin-top: 3px;
+}
+
 .ud-widget .ud-widget-brands {
   display: -webkit-box;
   display: -ms-flexbox;

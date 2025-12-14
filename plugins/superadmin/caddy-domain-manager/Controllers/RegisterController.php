@@ -110,6 +110,9 @@ class RegisterController
         $country = trim(strtoupper($_POST['country'] ?? ''));
         $acceptTerms = isset($_POST['accept_terms']) && $_POST['accept_terms'] === '1';
 
+        // Detectar idioma (desde formulario, sesión, o navegador)
+        $language = $_POST['language'] ?? $_SESSION['language'] ?? $this->detectBrowserLanguage();
+
         // Validaciones completas
         $validation = $this->validateRegistrationData([
             'name' => $name,
@@ -138,7 +141,7 @@ class RegisterController
 
         // Provisionar tenant FREE
         try {
-            $result = $this->provisioningService->provisionFreeTenant($customerData, $subdomain);
+            $result = $this->provisioningService->provisionFreeTenant($customerData, $subdomain, true, $language);
 
             if (!$result['success']) {
                 $this->incrementRateLimitAttempt();
@@ -446,5 +449,44 @@ class RegisterController
 
         // Renderizar usando el sistema de temas (con Blade compilado)
         echo \Screenart\Musedock\View::renderTheme($viewPath, $data);
+    }
+
+    /**
+     * Detecta el idioma del navegador desde Accept-Language header
+     *
+     * @return string 'es' o 'en'
+     */
+    private function detectBrowserLanguage(): string
+    {
+        $acceptLanguage = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? 'en';
+
+        // Parsear Accept-Language header (ej: "es-ES,es;q=0.9,en;q=0.8")
+        $languages = [];
+        foreach (explode(',', $acceptLanguage) as $lang) {
+            $parts = explode(';', $lang);
+            $code = trim($parts[0]);
+            $quality = 1.0;
+
+            if (isset($parts[1]) && strpos($parts[1], 'q=') === 0) {
+                $quality = (float) substr($parts[1], 2);
+            }
+
+            // Extraer código de idioma (ej: "es-ES" -> "es")
+            $langCode = strtolower(substr($code, 0, 2));
+            $languages[$langCode] = $quality;
+        }
+
+        // Ordenar por calidad
+        arsort($languages);
+
+        // Obtener idioma preferido
+        $preferredLang = array_key_first($languages);
+
+        // Soportamos solo 'es' e 'en', default 'es'
+        if ($preferredLang === 'en') {
+            return 'en';
+        }
+
+        return 'es'; // Default español
     }
 }

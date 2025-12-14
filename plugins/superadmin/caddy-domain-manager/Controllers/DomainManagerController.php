@@ -1493,7 +1493,8 @@ TEXT;
 
             // Usar ProvisioningService para crear tenant FREE
             $provisioningService = new \CaddyDomainManager\Services\ProvisioningService();
-            $result = $provisioningService->provisionFreeTenant($customerData, $subdomain, $sendWelcomeEmail);
+            // Superadmin creando manualmente: usar español por defecto
+            $result = $provisioningService->provisionFreeTenant($customerData, $subdomain, $sendWelcomeEmail, 'es');
 
             if ($result['success']) {
                 Logger::info("[DomainManagerController] FREE subdomain created by superadmin: {$result['domain']}");

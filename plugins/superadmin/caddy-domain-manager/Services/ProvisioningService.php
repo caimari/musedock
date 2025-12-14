@@ -42,9 +42,10 @@ class ProvisioningService
      * @param array $customerData ['name', 'email', 'password', 'company', 'phone', 'country']
      * @param string $subdomain Subdominio sin .musedock.com
      * @param bool $sendWelcomeEmail Si enviar email de bienvenida (default: true)
+     * @param string $language Idioma del email ('es' o 'en', default: 'es')
      * @return array ['success', 'customer_id', 'tenant_id', 'admin_id', 'domain', 'cloudflare_configured', 'caddy_configured', 'error']
      */
-    public function provisionFreeTenant(array $customerData, string $subdomain, bool $sendWelcomeEmail = true): array
+    public function provisionFreeTenant(array $customerData, string $subdomain, bool $sendWelcomeEmail = true, string $language = 'es'): array
     {
         $fullDomain = "{$subdomain}." . \Screenart\Musedock\Env::get('TENANT_BASE_DOMAIN', 'musedock.com');
 
@@ -105,7 +106,7 @@ class ProvisioningService
 
         // Paso 5: Enviar email de bienvenida (no bloquea si falla, solo si está habilitado)
         if ($sendWelcomeEmail) {
-            $this->sendWelcomeEmail($customerData, $fullDomain);
+            $this->sendWelcomeEmail($customerData, $fullDomain, $language);
         }
 
         Logger::info("[ProvisioningService] ✓ FREE tenant provisioned successfully: {$fullDomain}");
@@ -452,16 +453,22 @@ class ProvisioningService
      *
      * @param array $customerData
      * @param string $fullDomain
+     * @param string $language 'es' o 'en'
      * @return bool Success (no bloquea si falla)
      */
-    private function sendWelcomeEmail(array $customerData, string $fullDomain): bool
+    private function sendWelcomeEmail(array $customerData, string $fullDomain, string $language = 'es'): bool
     {
         try {
             $adminPath = \Screenart\Musedock\Env::get('ADMIN_PATH_TENANT', 'admin');
             $adminUrl = "https://{$fullDomain}/{$adminPath}";
             $customerDashboardUrl = "https://musedock.net/customer/dashboard";
 
-            $subject = '¡Bienvenido a MuseDock! Tu sitio está listo';
+            // Determinar idioma (normalizar)
+            $lang = strtolower($language) === 'en' ? 'en' : 'es';
+
+            // Textos según idioma
+            $texts = $this->getWelcomeEmailTexts($lang);
+            $subject = $texts['subject'];
 
             // Incluir contraseña en texto plano (para primer acceso)
             $password = $customerData['password'];
@@ -479,7 +486,7 @@ class ProvisioningService
                         .credentials { background: white; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; }
                         .credentials h3 { margin-top: 0; color: #667eea; }
                         .credential-item { margin: 10px 0; }
-                        .credential-item strong { display: inline-block; width: 140px; }
+                        .credential-item strong { display: inline-block; width: 160px; }
                         .btn { display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 10px 5px; }
                         .features { list-style: none; padding: 0; }
                         .features li { padding: 8px 0; }
@@ -491,53 +498,53 @@ class ProvisioningService
                 <body>
                     <div class='container'>
                         <div class='header'>
-                            <h1 style='margin: 0;'>¡Bienvenido a MuseDock!</h1>
-                            <p style='margin: 10px 0 0 0;'>Tu sitio web está listo</p>
+                            <h1 style='margin: 0;'>{$texts['header_title']}</h1>
+                            <p style='margin: 10px 0 0 0;'>{$texts['header_subtitle']}</p>
                         </div>
 
                         <div class='content'>
-                            <p>Hola <strong>{$customerData['name']}</strong>,</p>
+                            <p>{$texts['greeting']} <strong>{$customerData['name']}</strong>,</p>
 
-                            <p>¡Tu sitio web ha sido creado exitosamente y ya está disponible en:</p>
+                            <p>{$texts['site_created']}</p>
                             <p style='text-align: center; font-size: 18px;'><strong><a href='https://{$fullDomain}' style='color: #667eea;'>https://{$fullDomain}</a></strong></p>
 
                             <div class='credentials'>
-                                <h3>🔐 Credenciales de acceso</h3>
+                                <h3>🔐 {$texts['credentials_title']}</h3>
                                 <div class='credential-item'>
-                                    <strong>Panel Admin:</strong> <a href='{$adminUrl}'>{$adminUrl}</a>
+                                    <strong>{$texts['admin_panel']}:</strong> <a href='{$adminUrl}'>{$adminUrl}</a>
                                 </div>
                                 <div class='credential-item'>
-                                    <strong>Email:</strong> {$customerData['email']}
+                                    <strong>{$texts['email']}:</strong> {$customerData['email']}
                                 </div>
                                 <div class='credential-item'>
-                                    <strong>Contraseña:</strong> {$password}
+                                    <strong>{$texts['password']}:</strong> {$password}
                                 </div>
                             </div>
 
                             <div class='warning'>
-                                <strong>⚠️ Importante:</strong> Por seguridad, te recomendamos cambiar tu contraseña después del primer inicio de sesión.
+                                <strong>⚠️ {$texts['important']}:</strong> {$texts['security_warning']}
                             </div>
 
                             <div style='text-align: center; margin: 30px 0;'>
-                                <a href='{$adminUrl}' class='btn'>Acceder al Panel Admin</a>
-                                <a href='{$customerDashboardUrl}' class='btn' style='background: #764ba2;'>Dashboard de Customer</a>
+                                <a href='{$adminUrl}' class='btn'>{$texts['btn_admin']}</a>
+                                <a href='{$customerDashboardUrl}' class='btn' style='background: #764ba2;'>{$texts['btn_dashboard']}</a>
                             </div>
 
-                            <h3>🚀 Características incluidas</h3>
+                            <h3>🚀 {$texts['features_title']}</h3>
                             <ul class='features'>
-                                <li>Certificado SSL automático (HTTPS)</li>
-                                <li>Protección DDoS de Cloudflare</li>
-                                <li>CDN global</li>
-                                <li>CMS completo con gestor de contenidos</li>
-                                <li>Subdominio FREE .musedock.com</li>
+                                <li>{$texts['feature_ssl']}</li>
+                                <li>{$texts['feature_ddos']}</li>
+                                <li>{$texts['feature_cdn']}</li>
+                                <li>{$texts['feature_cms']}</li>
+                                <li>{$texts['feature_subdomain']}</li>
                             </ul>
 
-                            <p>Si tienes alguna pregunta, no dudes en contactarnos.</p>
-                            <p>¡Gracias por elegir MuseDock!</p>
+                            <p>{$texts['questions']}</p>
+                            <p>{$texts['thanks']}</p>
                         </div>
 
                         <div class='footer'>
-                            <p>© 2025 MuseDock - Plataforma SaaS Multi-tenant</p>
+                            <p>© 2025 MuseDock - {$texts['footer_tagline']}</p>
                             <p><a href='https://musedock.net' style='color: #ddd;'>musedock.net</a></p>
                         </div>
                     </div>
@@ -546,37 +553,37 @@ class ProvisioningService
             ";
 
             $textBody = "
-¡Bienvenido a MuseDock, {$customerData['name']}!
+{$texts['greeting_plain']} {$customerData['name']}!
 
-Tu sitio web ha sido creado exitosamente y ya está disponible en:
+{$texts['site_created_plain']}
 https://{$fullDomain}
 
 ═══════════════════════════════════
-🔐 CREDENCIALES DE ACCESO
+🔐 {$texts['credentials_title']}
 ═══════════════════════════════════
 
-Panel Admin:  {$adminUrl}
-Email:        {$customerData['email']}
-Contraseña:   {$password}
+{$texts['admin_panel']}:  {$adminUrl}
+{$texts['email']}:        {$customerData['email']}
+{$texts['password']}:   {$password}
 
-⚠️ IMPORTANTE: Por seguridad, te recomendamos cambiar tu contraseña después del primer inicio de sesión.
-
-═══════════════════════════════════
-🚀 CARACTERÍSTICAS INCLUIDAS
-═══════════════════════════════════
-
-✓ Certificado SSL automático (HTTPS)
-✓ Protección DDoS de Cloudflare
-✓ CDN global
-✓ CMS completo con gestor de contenidos
-✓ Subdominio FREE .musedock.com
+⚠️ {$texts['important']}: {$texts['security_warning']}
 
 ═══════════════════════════════════
+🚀 {$texts['features_title']}
+═══════════════════════════════════
 
-Customer Dashboard: {$customerDashboardUrl}
+✓ {$texts['feature_ssl']}
+✓ {$texts['feature_ddos']}
+✓ {$texts['feature_cdn']}
+✓ {$texts['feature_cms']}
+✓ {$texts['feature_subdomain']}
 
-Si tienes alguna pregunta, no dudes en contactarnos.
-¡Gracias por elegir MuseDock!
+═══════════════════════════════════
+
+{$texts['dashboard_label']}: {$customerDashboardUrl}
+
+{$texts['questions']}
+{$texts['thanks']}
 
 © 2025 MuseDock - https://musedock.net
             ";
@@ -589,5 +596,73 @@ Si tienes alguna pregunta, no dudes en contactarnos.
             Logger::warning("[ProvisioningService] Failed to send welcome email: " . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Obtiene textos del email de bienvenida según idioma
+     *
+     * @param string $lang 'es' o 'en'
+     * @return array
+     */
+    private function getWelcomeEmailTexts(string $lang): array
+    {
+        $texts = [
+            'es' => [
+                'subject' => '¡Bienvenido a MuseDock! Tu sitio está listo',
+                'header_title' => '¡Bienvenido a MuseDock!',
+                'header_subtitle' => 'Tu sitio web está listo',
+                'greeting' => 'Hola',
+                'greeting_plain' => '¡Bienvenido a MuseDock',
+                'site_created' => '¡Tu sitio web ha sido creado exitosamente y ya está disponible en:',
+                'site_created_plain' => 'Tu sitio web ha sido creado exitosamente y ya está disponible en:',
+                'credentials_title' => 'Credenciales de acceso',
+                'admin_panel' => 'Panel Admin',
+                'email' => 'Email',
+                'password' => 'Contraseña',
+                'important' => 'Importante',
+                'security_warning' => 'Por seguridad, te recomendamos cambiar tu contraseña después del primer inicio de sesión.',
+                'btn_admin' => 'Acceder al Panel Admin',
+                'btn_dashboard' => 'Dashboard de Customer',
+                'dashboard_label' => 'Dashboard de Customer',
+                'features_title' => 'Características incluidas',
+                'feature_ssl' => 'Certificado SSL automático (HTTPS)',
+                'feature_ddos' => 'Protección DDoS de Cloudflare',
+                'feature_cdn' => 'CDN global',
+                'feature_cms' => 'CMS completo con gestor de contenidos',
+                'feature_subdomain' => 'Subdominio FREE .musedock.com',
+                'questions' => 'Si tienes alguna pregunta, no dudes en contactarnos.',
+                'thanks' => '¡Gracias por elegir MuseDock!',
+                'footer_tagline' => 'Plataforma SaaS Multi-tenant'
+            ],
+            'en' => [
+                'subject' => 'Welcome to MuseDock! Your site is ready',
+                'header_title' => 'Welcome to MuseDock!',
+                'header_subtitle' => 'Your website is ready',
+                'greeting' => 'Hello',
+                'greeting_plain' => 'Welcome to MuseDock',
+                'site_created' => 'Your website has been successfully created and is now available at:',
+                'site_created_plain' => 'Your website has been successfully created and is now available at:',
+                'credentials_title' => 'Access Credentials',
+                'admin_panel' => 'Admin Panel',
+                'email' => 'Email',
+                'password' => 'Password',
+                'important' => 'Important',
+                'security_warning' => 'For security, we recommend changing your password after your first login.',
+                'btn_admin' => 'Access Admin Panel',
+                'btn_dashboard' => 'Customer Dashboard',
+                'dashboard_label' => 'Customer Dashboard',
+                'features_title' => 'Included Features',
+                'feature_ssl' => 'Automatic SSL certificate (HTTPS)',
+                'feature_ddos' => 'Cloudflare DDoS protection',
+                'feature_cdn' => 'Global CDN',
+                'feature_cms' => 'Complete CMS with content manager',
+                'feature_subdomain' => 'FREE .musedock.com subdomain',
+                'questions' => 'If you have any questions, please don\'t hesitate to contact us.',
+                'thanks' => 'Thank you for choosing MuseDock!',
+                'footer_tagline' => 'Multi-tenant SaaS Platform'
+            ]
+        ];
+
+        return $texts[$lang] ?? $texts['es'];
     }
 }
