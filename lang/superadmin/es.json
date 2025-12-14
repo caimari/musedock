@@ -269,6 +269,7 @@
       "success_deleted": "Post eliminado permanentemente",
       "success_trashed": "Post movido a papelera. Se eliminará permanentemente en 30 días",
       "success_moved_to_trash": "Post movido a papelera. Se eliminará permanentemente en 30 días",
+      "success_permanently_deleted": "Post eliminado permanentemente",
       "success_restored": "Post restaurado correctamente",
       "success_revision_restored": "Post restaurado a la versión del :date",
       "success_translation_created": "Traducción creada correctamente",
