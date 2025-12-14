@@ -3074,14 +3074,6 @@ p > .slider-full-width-wrapper,
     border-radius: 0 !important;
   }
 
-  /* Asegurar que body no tenga scroll horizontal en móvil */
-  html,
-  body {
-    overflow-x: clip !important;
-    max-width: 100vw !important;
-    position: relative !important;
-  }
-
   /* CRÍTICO: Eliminar CUALQUIER padding horizontal en móvil - TODOS los selectores */
   html,
   body,
@@ -3104,13 +3096,25 @@ p > .slider-full-width-wrapper,
     max-width: 100vw !important;
   }
 
-  /* Container debe permitir que el slider salga */
+  /* CRÍTICO: Container debe permitir que el slider salga - NO CORTAR */
+  html,
+  body,
+  main,
   main .container,
   main .ud-page-content,
   main .page-body,
-  main .page-content-wrapper {
-    overflow-x: clip !important;
-    overflow-y: visible !important;
+  main .page-content-wrapper,
+  .container,
+  .ud-page-content,
+  .page-body,
+  .page-content-wrapper {
+    overflow: visible !important;
+  }
+
+  /* Solo prevenir scroll horizontal en el BODY final */
+  body {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
   }
 
   /* IMPORTANTE: El párrafo que contiene el slider NO debe tener padding */
