@@ -141,35 +141,61 @@ class CaddyService
         $routeId = $this->generateRouteId($domain);
         $config = $this->generateCaddyConfig($domain, $includeWww, $routeId);
 
-        // Si ya existe, hacemos PUT para actualizarla sin eliminar primero
-        if ($this->routeExists($routeId)) {
-            $response = $this->apiRequest('PUT', "/id/{$routeId}", $config);
+        $indices = $this->findRouteIndicesById($routeId);
 
-            if ($response['success']) {
-                Logger::log("[CaddyService] Dominio actualizado: {$domain} (route_id: {$routeId})", 'INFO');
+        // Si existe (incluso duplicada), actualizamos SIEMPRE la primera (orden de evaluación de Caddy)
+        // y eliminamos las copias sobrantes para evitar que una ruta antigua "tape" a la nueva.
+        if (!empty($indices)) {
+            $primaryIndex = min($indices);
+
+            $update = $this->apiRequest(
+                'PUT',
+                "/config/apps/http/servers/srv0/routes/{$primaryIndex}",
+                $config
+            );
+
+            if (!$update['success']) {
+                Logger::log("[CaddyService] Error actualizando dominio {$domain}: " . $update['error'], 'ERROR');
                 return [
-                    'success' => true,
+                    'success' => false,
                     'route_id' => $routeId,
-                    'error' => null
+                    'error' => $update['error']
                 ];
             }
 
-            Logger::log("[CaddyService] Error actualizando dominio {$domain}: " . $response['error'], 'ERROR');
+            $duplicates = array_values(array_filter($indices, static fn (int $i): bool => $i !== $primaryIndex));
+            rsort($duplicates);
+
+            $deleteErrors = [];
+            foreach ($duplicates as $duplicateIndex) {
+                $del = $this->apiRequest('DELETE', "/config/apps/http/servers/srv0/routes/{$duplicateIndex}");
+                if (!$del['success']) {
+                    $deleteErrors[] = $del['error'] ?: "No se pudo eliminar la ruta duplicada en índice {$duplicateIndex}";
+                }
+            }
+
+            if (!empty($deleteErrors)) {
+                $msg = "Dominio actualizado, pero no se pudieron eliminar algunas rutas duplicadas: " . implode(' | ', $deleteErrors);
+                Logger::log("[CaddyService] {$msg}", 'WARNING');
+                return [
+                    'success' => false,
+                    'route_id' => $routeId,
+                    'error' => $msg
+                ];
+            }
+
+            Logger::log("[CaddyService] Dominio actualizado (dedupe OK): {$domain} (route_id: {$routeId})", 'INFO');
             return [
-                'success' => false,
+                'success' => true,
                 'route_id' => $routeId,
-                'error' => $response['error']
+                'error' => null
             ];
         }
 
         // Si no existe, lo creamos
-        $response = $this->apiRequest(
-            'POST',
-            '/config/apps/http/servers/srv0/routes',
-            $config
-        );
+        $create = $this->apiRequest('POST', '/config/apps/http/servers/srv0/routes', $config);
 
-        if ($response['success']) {
+        if ($create['success']) {
             Logger::log("[CaddyService] Dominio añadido: {$domain} (route_id: {$routeId})", 'INFO');
             return [
                 'success' => true,
@@ -178,11 +204,11 @@ class CaddyService
             ];
         }
 
-        Logger::log("[CaddyService] Error añadiendo dominio {$domain}: " . $response['error'], 'ERROR');
+        Logger::log("[CaddyService] Error añadiendo dominio {$domain}: " . $create['error'], 'ERROR');
         return [
             'success' => false,
             'route_id' => null,
-            'error' => $response['error']
+            'error' => $create['error']
         ];
     }
 
@@ -194,31 +220,61 @@ class CaddyService
      */
     public function removeDomain(string $routeId): array
     {
-        if (!$this->routeExists($routeId)) {
+        $indices = $this->findRouteIndicesById($routeId);
+        if (empty($indices)) {
             return [
                 'success' => true,
                 'error' => null
             ];
         }
 
-        $response = $this->apiRequest(
-            'DELETE',
-            "/id/{$routeId}"
-        );
+        rsort($indices);
+        $deleteErrors = [];
 
-        if ($response['success']) {
-            Logger::log("[CaddyService] Dominio eliminado: {$routeId}", 'INFO');
+        foreach ($indices as $index) {
+            $response = $this->apiRequest('DELETE', "/config/apps/http/servers/srv0/routes/{$index}");
+            if (!$response['success']) {
+                $deleteErrors[] = $response['error'] ?: "No se pudo eliminar la ruta en índice {$index}";
+            }
+        }
+
+        if (!empty($deleteErrors)) {
+            $msg = implode(' | ', $deleteErrors);
+            Logger::log("[CaddyService] Error eliminando dominio {$routeId}: {$msg}", 'ERROR');
             return [
-                'success' => true,
-                'error' => null
+                'success' => false,
+                'error' => $msg
             ];
         }
 
-        Logger::log("[CaddyService] Error eliminando dominio {$routeId}: " . $response['error'], 'ERROR');
+        Logger::log("[CaddyService] Dominio eliminado (todas las copias): {$routeId}", 'INFO');
         return [
-            'success' => false,
-            'error' => $response['error']
+            'success' => true,
+            'error' => null
         ];
+    }
+
+    /**
+     * Devuelve los índices (en srv0/routes) de todas las rutas cuyo "@id" coincide.
+     * Importante: Caddy evalúa las rutas en orden; si hay duplicados, la primera "tapa" a las demás.
+     *
+     * @return int[]
+     */
+    private function findRouteIndicesById(string $routeId): array
+    {
+        $routes = $this->listRoutes();
+        if (empty($routes)) {
+            return [];
+        }
+
+        $indices = [];
+        foreach ($routes as $i => $route) {
+            if (is_array($route) && ($route['@id'] ?? null) === $routeId) {
+                $indices[] = (int) $i;
+            }
+        }
+
+        return $indices;
     }
 
     /**
