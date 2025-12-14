@@ -211,7 +211,8 @@ class CustomerController
             'csrf_token' => csrf_token()
         ];
 
-        $this->render('Customer.profile', $data);
+        // DEBUG: Usar dashboard temporalmente para verificar si el problema es solo la vista nueva
+        $this->render('Customer.dashboard', $data);
     }
 
     /**
