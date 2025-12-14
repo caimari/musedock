@@ -316,7 +316,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     const formData = new FormData();
-                    formData.append('_csrf_token', '<?= \Screenart\Musedock\Security\CSRFProtection::generateToken() ?>');
+                    formData.append('_csrf_token', '<?= csrf_token() ?>');
 
                     fetch('/customer/logout', {
                         method: 'POST',

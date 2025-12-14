@@ -6,7 +6,7 @@
 @endsection
 
 @section('description')
-    {{ $category->description ?? __('blog.category_desc') . ' ' . $category->name }}
+    {{ $category->description ?? __('blog.frontend.category_desc') . ' ' . $category->name }}
 @endsection
 
 @section('content')
@@ -17,7 +17,7 @@
         <div class="row">
             <div class="col-lg-12">
                 <div class="ud-banner-content">
-                    <h1>{{ __('blog.category') }}: {{ $category->name }}</h1>
+                    <h1>{{ __('blog.frontend.category') }}: {{ $category->name }}</h1>
                     @if($category->description)
                     <p class="mt-3">{{ $category->description }}</p>
                     @endif
@@ -121,7 +121,7 @@
         @else
         <div class="row">
             <div class="col-12">
-                <p class="text-muted text-center">{{ __('blog.no_posts_in_category') }}</p>
+                <p class="text-muted text-center">{{ __('blog.frontend.no_posts_in_category') }}</p>
             </div>
         </div>
         @endif

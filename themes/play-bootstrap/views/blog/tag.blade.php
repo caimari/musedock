@@ -6,7 +6,7 @@
 @endsection
 
 @section('description')
-    {{ __('blog.tag_desc') . ' ' . $tag->name }}
+    {{ __('blog.frontend.tag_desc') . ' ' . $tag->name }}
 @endsection
 
 @section('content')
@@ -17,7 +17,7 @@
         <div class="row">
             <div class="col-lg-12">
                 <div class="ud-banner-content">
-                    <h1>{{ __('blog.tag') }}: {{ $tag->name }}</h1>
+                    <h1>{{ __('blog.frontend.tag') }}: {{ $tag->name }}</h1>
                 </div>
             </div>
         </div>
@@ -118,7 +118,7 @@
         @else
         <div class="row">
             <div class="col-12">
-                <p class="text-muted text-center">{{ __('blog.no_posts_with_tag') }}</p>
+                <p class="text-muted text-center">{{ __('blog.frontend.no_posts_with_tag') }}</p>
             </div>
         </div>
         @endif

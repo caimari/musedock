@@ -82,7 +82,7 @@
                         @endif
 
                         <div class="ud-blog-share">
-                            <h6>{{ __('blog.share_post') }}</h6>
+                            <h6>{{ __('blog.frontend.share_post') }}</h6>
                             <ul class="ud-blog-share-links">
                                 <li>
                                     <a href="https://www.facebook.com/sharer/sharer.php?u={{ url('/blog/' . $post->slug) }}" target="_blank" class="facebook">
@@ -114,7 +114,7 @@
                                     <div class="d-flex align-items-center">
                                         <i class="lni lni-arrow-left me-2"></i>
                                         <div>
-                                            <small class="text-muted d-block">{{ __('blog.previous_post') }}</small>
+                                            <small class="text-muted d-block">{{ __('blog.frontend.previous_post') }}</small>
                                             <strong>{{ $prevPost->title }}</strong>
                                         </div>
                                     </div>
@@ -127,7 +127,7 @@
                                 <a href="/blog/{{ $nextPost->slug }}" class="text-decoration-none">
                                     <div class="d-flex align-items-center justify-content-md-end">
                                         <div>
-                                            <small class="text-muted d-block">{{ __('blog.next_post') }}</small>
+                                            <small class="text-muted d-block">{{ __('blog.frontend.next_post') }}</small>
                                             <strong>{{ $nextPost->title }}</strong>
                                         </div>
                                         <i class="lni lni-arrow-right ms-2"></i>
@@ -181,7 +181,7 @@
 
                     @if(count($recentPosts) > 0)
                     <div class="ud-articles-box mb-4">
-                        <h3 class="ud-articles-box-title">{{ __('blog.recent_posts') }}</h3>
+                        <h3 class="ud-articles-box-title">{{ __('blog.frontend.recent_posts') }}</h3>
                         <ul class="ud-articles-list">
                             @foreach($recentPosts as $recentPost)
                             <li>

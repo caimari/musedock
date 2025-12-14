@@ -118,10 +118,10 @@
             </div>
         </div>
         @endif
-        @else
+@else
         <div class="row">
             <div class="col-12">
-                <p class="text-muted text-center">{{ __('blog.no_posts') }}</p>
+                <p class="text-muted text-center">{{ __('blog.frontend.no_posts') }}</p>
             </div>
         </div>
         @endif
