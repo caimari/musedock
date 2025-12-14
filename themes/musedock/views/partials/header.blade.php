@@ -49,11 +49,7 @@ $headerSticky = themeOption('header.header_sticky', false);
             </a>
             @endif
             
-            @if($contactEmail)
-            <a href="mailto:{{ $contactEmail }}" class="icon-fa-headphones">
-              <i class="fa fa-headphones"></i> {{ __('Live Chat') }}
-            </a>
-            @endif
+
             
             <a href="{{ url('/contact') }}" class="icon-fa-question-circle">
               <i class="fa fa-question-circle"></i> {{ __('Support') }}
@@ -61,7 +57,7 @@ $headerSticky = themeOption('header.header_sticky', false);
             
             {{-- Login Button --}}
             <div class="ziph-flt_right ziph-headlogin_btn">
-              <a href="{{ url('/login') }}" class="btn btn-info">{{ __('Login') }}</a>
+              <a href="{{ url('/customer/login') }}" class="btn btn-info">{{ __('Login') }}</a>
             </div>
             
           </div>

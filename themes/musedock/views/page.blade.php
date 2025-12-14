@@ -1,5 +1,10 @@
 @extends('layouts.app')
 
+@php
+  // Evitar warnings si este template se renderiza sin $page (ej: mal mapeo o reuse)
+  $page = $page ?? null;
+@endphp
+
 @section('title') 
 {{ ($translation->seo_title ?: $translation->title ?: 'Página') . ' | ' . site_setting('site_name', '') }}
 @endsection
@@ -66,9 +71,7 @@
           </div>
           <div class="col-md-9">
             <div class="ziph-page_content_inner">
-              <h1 class="ziph-page_content_title @if($page->banner_image) hidden @endif">
-                {{ $translation->title }}
-              </h1>
+              {{-- Título dentro del contenido desactivado (evita el "HOME" gigante); usar banner si se necesita --}}
               
               @if(!empty($translation->excerpt ?? null))
               <div class="ziph-page_excerpt">
@@ -140,9 +143,7 @@
           @else
           <div class="col-md-12">
             <div class="ziph-page_content_inner">
-              <h1 class="ziph-page_content_title @if($page->banner_image) hidden @endif">
-                {{ $translation->title }}
-              </h1>
+              {{-- Título dentro del contenido desactivado (evita el "HOME" gigante); usar banner si se necesita --}}
               
               @if(!empty($translation->excerpt ?? null))
               <div class="ziph-page_excerpt">

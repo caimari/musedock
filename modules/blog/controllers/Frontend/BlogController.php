@@ -118,17 +118,9 @@ class BlogController
         // Obtener categorías para sidebar
         $categories = BlogCategory::where('tenant_id', $tenantId)->get();
 
-        // Obtener la plantilla seleccionada o usar la predeterminada (page = ancho completo)
-        $template = $post->template ?? 'page';
-
-        // Determinar la ruta de la plantilla
-        if (strpos($template, 'template-sidebar-') === 0 || $template === 'page') {
-            // Plantillas de páginas (page, template-sidebar-left, template-sidebar-right)
-            $templatePath = $template;
-        } else {
-            // Plantillas específicas de blog (por si existen en el futuro)
-            $templatePath = 'blog/' . $template;
-        }
+        // Para posts del blog, usar la plantilla del blog (evita renderizar page.blade.php sin $page)
+        // Si en el futuro se soportan variantes, mapear aquí.
+        $templatePath = 'blog/single';
 
         return View::renderTheme($templatePath, [
             'post' => $post,

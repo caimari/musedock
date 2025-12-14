@@ -32,64 +32,98 @@
 <!-- START Simple Slider (pegado al header) -->
 <div id="simple-slider" class="simple-slider-container">
   <!-- Slide 1 -->
-  <div class="simple-slide active" style="background-image: url('{{ asset('themes/musedock/images/home-one-slider-one.jpg') }}');">
-    <div class="simple-slide-content">
-      <div class="slide-text">
-        <h1><strong>{{ __('Amazing') }}</strong> {{ __('Hosting Plans') }}<br>{{ __('with FREE DOMAIN') }}</h1>
-        <ul class="slide-features">
-          <li><i class="fa fa-check"></i> {{ __('Unlimited Disk Space, Bandwidth') }}</li>
-          <li><i class="fa fa-check"></i> {{ __('Free domain registration') }}</li>
-          <li><i class="fa fa-check"></i> {{ __('1,000s of free templates') }}</li>
-          <li><i class="fa fa-check"></i> {{ __('24/7 Support') }}</li>
-        </ul>
-        <div class="slide-button">
-          <a href="{{ url('/shared-hosting') }}">{{ __('Get Started Now') }}</a>
-        </div>
-      </div>
-      <div class="slide-image">
-        <img src="{{ asset('themes/musedock/images/object-one.png') }}" alt="{{ __('Hosting Guy') }}" class="animated-obj-1">
-      </div>
-    </div>
-  </div>
+	  <div class="simple-slide active" style="background-image: url('{{ asset('themes/musedock/images/home-one-slider-one.jpg') }}');">
+	    <div class="simple-slide-content">
+	      <div class="slide-text">
+	        <h1>Crea tu sitio web gratis en segundos</h1>
+	        <ul class="slide-features">
+	          <li><i class="fa fa-check"></i> Panel propio para crear y publicar</li>
+	          <li><i class="fa fa-check"></i> 1GB gratis para empezar</li>
+	          <li><i class="fa fa-check"></i> SSL gratuito incluido</li>
+	        </ul>
+	        <div class="slide-button">
+	          <a href="{{ url('/register') }}">Crear mi sitio</a>
+	        </div>
+	      </div>
+	      <div class="slide-image">
+	        <img src="{{ asset('themes/musedock/images/object-one.png') }}" alt="MuseDock" class="animated-obj-1">
+	      </div>
+	    </div>
+	  </div>
 
   <!-- Slide 2 -->
-  <div class="simple-slide" style="background-image: url('{{ asset('themes/musedock/images/home-one-slider-two.jpg') }}');">
-    <div class="simple-slide-content">
-      <div class="slide-text">
-        <h1><strong>{{ __('Premium') }}</strong> {{ __('Web Hosting') }}<br>{{ __('Starting at $2.99/mo') }}</h1>
-        <ul class="slide-features">
-          <li><i class="fa fa-check"></i> {{ __('99.9% Uptime Guarantee') }}</li>
-          <li><i class="fa fa-check"></i> {{ __('Free SSL Certificate') }}</li>
-          <li><i class="fa fa-check"></i> {{ __('One-Click WordPress Install') }}</li>
-          <li><i class="fa fa-check"></i> {{ __('Money Back Guarantee') }}</li>
-        </ul>
-        <div class="slide-button">
-          <a href="{{ url('/shared-hosting') }}">{{ __('View Plans') }}</a>
-        </div>
-      </div>
-      <div class="slide-image">
-        <img src="{{ asset('themes/musedock/images/object-two.png') }}" alt="{{ __('Servers') }}" class="animated-obj-2">
-      </div>
-    </div>
-  </div>
+	  <div class="simple-slide" style="background-image: url('{{ asset('themes/musedock/images/home-one-slider-two.jpg') }}');">
+	    <div class="simple-slide-content">
+	      <div class="slide-text">
+	        <h1><strong>Subdominio</strong> incluido<br>en .musedock.com</h1>
+	        <ul class="slide-features">
+	          <li><i class="fa fa-check"></i> Tu web en minutos, sin instalar nada</li>
+	          <li><i class="fa fa-check"></i> URL: <strong>tu-subdominio.musedock.com</strong></li>
+	          <li><i class="fa fa-check"></i> Escala cuando tu proyecto crece</li>
+	        </ul>
+	        <div class="slide-button">
+	          <a href="{{ url('/register') }}">Empezar gratis</a>
+	        </div>
+	      </div>
+	      <div class="slide-image">
+	        <img src="{{ asset('themes/musedock/images/object-two.png') }}" alt="Infraestructura" class="animated-obj-2">
+	      </div>
+	    </div>
+	  </div>
 
   <!-- Slide 3 -->
-  <div class="simple-slide" style="background-image: url('{{ asset('themes/musedock/images/home-one-slider-three.jpg') }}');">
-    <div class="simple-slide-content">
-      <h1><strong>{{ __('Powerful') }}</strong> {{ __('Cloud Hosting') }}<br>{{ __('for Your Business') }}</h1>
-      <ul class="slide-features">
-        <li><i class="fa fa-check"></i> {{ __('High Performance SSD Storage') }}</li>
-        <li><i class="fa fa-check"></i> {{ __('Scalable Resources') }}</li>
-        <li><i class="fa fa-check"></i> {{ __('Advanced Security Features') }}</li>
-        <li><i class="fa fa-check"></i> {{ __('Expert Support Team') }}</li>
-      </ul>
-      <div class="slide-button">
-        <a href="{{ url('/cloud-hosting') }}">{{ __('Learn More') }}</a>
-      </div>
+	  <div class="simple-slide" style="background-image: url('{{ asset('themes/musedock/images/home-one-slider-three.jpg') }}');">
+	    <div class="simple-slide-content">
+	      <h1><strong>Seguridad</strong> y rendimiento<br>con Cloudflare</h1>
+	      <ul class="slide-features">
+	        <li><i class="fa fa-check"></i> Proxy naranja + mitigación de ataques</li>
+	        <li><i class="fa fa-check"></i> SSL gratis y HTTPS siempre</li>
+	        <li><i class="fa fa-check"></i> Caché/CDN para más velocidad</li>
+	      </ul>
+
+	    </div>
+	  </div>
+</div>
+<!-- END Simple Slider -->
+
+<!-- Domain Search (hardcoded) -->
+<div class="ziph-page_content ziph-dhav-dotted" style="background-color:#267ae9;">
+  <div class="container">
+    <div class="ziph-page_warp">
+      <section class="wpb-content-wrapper">
+        <div class="row">
+          <div class="col-sm-12">
+            <div class="ziph-domainsearch_area">
+              <div class="ziph-domainsearch">
+                <div class="ziph-fix ziph-domainsrch_warp">
+                  <h3 class="ziph-flt_left ziph-domainsrch_title">{{ __('Find your perfect domain here') }}</h3>
+                  <div class="ziph-flt_right ziph-domainsrch_form">
+                    <form method="get" action="{{ url('/domain') }}">
+                      <input type="search" id="whmcs_domain_search" name="query" placeholder="{{ __('Enter your domain here') }}">
+                      <input id="domsrch_btn" value="{{ __('Search') }}" type="submit">
+                    </form>
+                    <div class="text-right ziph-domainsrch_links">
+                      <a href="{{ url('/domain') }}">{{ __('View Domain Price List') }}</a>
+                      <a href="{{ url('/domain') }}">{{ __('Bulk Domain Search') }}</a>
+                      <a href="{{ url('/domain') }}">{{ __('Transfer Domain') }}</a>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="text-right ziph-domainsrch_price">
+                  <span class="ziph-dsp_col"><strong>.com</strong> $5.75</span>
+                  <span class="ziph-dsp_col"><strong>.net</strong> $9.75</span>
+                  <span class="ziph-dsp_col"><strong>.org</strong> $7.75</span>
+                  <span class="ziph-dsp_col"><strong>.us</strong> $5.75</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </div>
-<!-- END Simple Slider -->
 
 @php
   $homeContent = $translation->content ?? ($page->content ?? '');
@@ -111,7 +145,7 @@
 
 .simple-slider-container {
     position: relative;
-    height: 730px;
+    height: 490px;
     overflow: hidden;
 }
 
@@ -192,11 +226,15 @@
 .slide-image {
     flex: 0 0 auto;
     margin-left: 50px;
+    align-self: flex-end;
+    margin-bottom: -1px; /* pega la imagen al borde inferior del slider */
 }
 
 .slide-image img {
-    max-width: 400px;
+    max-width: 470px;
     height: auto;
+    max-height: 560px;
+    display: block;
 }
 
 @media (max-width: 992px) {

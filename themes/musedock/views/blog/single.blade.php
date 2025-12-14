@@ -2,11 +2,11 @@
 
 {{-- SEO --}}
 @section('title')
-    {{ $post->title . ' | ' . site_setting('site_name', '') }}
+    {{ ($translation->title ?? $post->title) . ' | ' . site_setting('site_name', '') }}
 @endsection
 
 @section('description')
-    {{ $post->excerpt ?? mb_substr(strip_tags($post->content), 0, 160) }}
+    {{ $translation->excerpt ?? $post->excerpt ?? mb_substr(strip_tags($translation->content ?? $post->content), 0, 160) }}
 @endsection
 
 @section('content')
@@ -27,7 +27,7 @@
                 @endif
 
                 {{-- Título --}}
-                <h1 class="mb-3">{{ $post->title }}</h1>
+                <h1 class="mb-3">{{ $translation->title ?? $post->title }}</h1>
 
                 {{-- Meta información --}}
                 <div class="post-meta mb-4 text-muted">
@@ -43,7 +43,7 @@
 
                 {{-- Contenido --}}
                 <div class="post-content">
-                    {!! $post->content !!}
+                    {!! $translation->content ?? $post->content !!}
                 </div>
 
                 {{-- Categorías y etiquetas --}}

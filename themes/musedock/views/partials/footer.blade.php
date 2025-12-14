@@ -231,11 +231,7 @@ $footerBorderColor = themeOption('footer.footer_border_color', '#181d35');
     <div class="container">
       <div class="row">
         <div class="col-sm-4">
-          <div class="ziph-footer_logo">
-            <a href="{{ url('/') }}">
-              <img src="{{ asset('themes/musedock/images/logo-black-2x.png') }}" alt="{{ $siteName }}" width="154" height="36">
-            </a>
-          </div>
+          {{-- Logo del footer eliminado --}}
         </div>
         <div class="text-right col-sm-8">
           <p class="ziph-copyright">

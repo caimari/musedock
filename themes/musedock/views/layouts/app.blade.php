@@ -131,12 +131,21 @@ $_contactAddress = site_setting('contact_address', '');
       --footer-icon-color: {{ themeOption('footer.footer_icon_color', '#ffffff') }};
       --footer-border-color: {{ themeOption('footer.footer_border_color', '#181d35') }};
     }
+
+    /* Navbar con tono gris-azulado (home + páginas secundarias) */
+    .ziph-header_navigation {
+      background-color: #eef3f8;
+      border-bottom: 1px solid rgba(36, 49, 65, 0.08);
+    }
   </style>
   
   {{-- Additional CSS for theme customization --}}
   @stack('styles')
 </head>
-<body class="ziph-page">
+@php
+  $isHomePage = request()->is('/') || request()->is('home');
+@endphp
+<body class="ziph-page {{ $isHomePage ? 'ziph-is-home' : 'ziph-is-inner' }}">
   <div id="zipprich-wrapper" class="ziph_page">
     @include('partials.header')
     
