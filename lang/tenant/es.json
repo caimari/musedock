@@ -255,6 +255,7 @@
       "published_at": "Fecha de publicación",
       "draft": "Borrador",
       "trash": "Papelera",
+      "view_trash": "Ver papelera",
       "public": "Público",
       "private": "Privado",
       "members": "Miembros",

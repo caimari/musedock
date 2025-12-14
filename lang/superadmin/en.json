@@ -252,6 +252,7 @@
       "published_immediately": "Leave blank to publish immediately.",
       "draft": "Draft",
       "trash": "Trash",
+      "view_trash": "View trash",
       "public": "Public",
       "private": "Private",
       "password": "Password",

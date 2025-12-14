@@ -225,6 +225,7 @@
       "published_at": "Publication date",
       "draft": "Draft",
       "trash": "Trash",
+      "view_trash": "View trash",
       "public": "Public",
       "private": "Private",
       "members": "Members",

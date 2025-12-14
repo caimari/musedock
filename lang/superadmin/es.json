@@ -252,6 +252,7 @@
       "published_immediately": "Dejar en blanco para publicar inmediatamente.",
       "draft": "Borrador",
       "trash": "Papelera",
+      "view_trash": "Ver papelera",
       "public": "Público",
       "private": "Privado",
       "password": "Contraseña",

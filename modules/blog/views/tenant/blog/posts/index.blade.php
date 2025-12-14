@@ -30,10 +30,15 @@
 <div class="app-content">
   <div class="container-fluid">
 
-    {{-- Título y Botón Añadir Post --}}
+    {{-- Título y Botones de Acción --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h2>{{ $title }}</h2>
-      <a href="{{ admin_url('blog/posts/create') }}" class="btn btn-primary">{{ __('blog.post.add_post') }}</a>
+      <div class="d-flex gap-2">
+        <a href="{{ admin_url('blog/posts/trash') }}" class="btn btn-outline-danger" title="{{ __('blog.post.view_trash') }}">
+          <i class="bi bi-trash me-1"></i> {{ __('blog.post.trash') }}
+        </a>
+        <a href="{{ admin_url('blog/posts/create') }}" class="btn btn-primary">{{ __('blog.post.add_post') }}</a>
+      </div>
     </div>
 
     {{-- Alertas con SweetAlert2 --}}
