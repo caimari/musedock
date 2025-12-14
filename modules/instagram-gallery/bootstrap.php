@@ -78,5 +78,20 @@ if (!function_exists('apply_instagram_shortcodes')) {
     }
 }
 
+// Register admin menu items
+if (function_exists('register_module_admin_menu')) {
+    register_module_admin_menu([
+        'module_slug' => 'instagram-gallery',
+        'menu_slug' => 'instagram-gallery',
+        'title' => 'Instagram Gallery',
+        'superadmin_url' => '/musedock/instagram',
+        'tenant_url' => '{admin_path}/instagram',
+        'icon' => 'bi-instagram',
+        'icon_type' => 'bi',
+        'order' => 45,
+        'permission' => null
+    ]);
+}
+
 // Log module initialization
 error_log('InstagramGallery: Module bootstrapped successfully');

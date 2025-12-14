@@ -1,6 +1,130 @@
-# Instagram Gallery Module
+# Instagram Gallery Module 📸
 
 Módulo completo de galería de Instagram para MuseDock con conexión directa a Instagram Basic Display API.
+
+---
+
+## 🚀 GUÍA RÁPIDA PARA EMPEZAR (5 MINUTOS)
+
+### Paso 1: Crear App en Facebook Developers
+
+1. **Ir a:** https://developers.facebook.com/
+2. **Click en:** "My Apps" (Mis Apps) → "Create App" (Crear App)
+3. **Seleccionar:** "Consumer" (Consumidor) → Click "Next"
+4. **Llenar:**
+   - **App Name:** Instagram Gallery MuseDock
+   - **Email:** tu@email.com
+5. **Click:** "Create App" (Crear App)
+
+### Paso 2: Configurar Instagram Basic Display
+
+1. En el Dashboard de tu App, busca **"Instagram Basic Display"**
+2. **Click en:** "Set Up" (Configurar)
+3. **Click en:** "Create New App"
+4. **Ir a:** "Basic Display" → "Settings"
+5. **Configurar:**
+
+   **Valid OAuth Redirect URIs** (agregar estas 2 URLs):
+   ```
+   https://tusitio.com/musedock/instagram/callback
+   https://tusitio.com/admin/instagram/callback
+   ```
+
+   **Deauthorize Callback URL:**
+   ```
+   https://tusitio.com/musedock/instagram/deauthorize
+   ```
+
+   **Data Deletion Request URL:**
+   ```
+   https://tusitio.com/musedock/instagram/delete
+   ```
+
+6. **Guardar cambios**
+
+### Paso 3: Obtener Credenciales
+
+1. En la pestaña **"Basic Display"**, copia:
+   - **Instagram App ID** (ej: 123456789012345)
+   - **Instagram App Secret** (ej: abc123def456...) - Click "Show"
+
+### Paso 4: Configurar en MuseDock
+
+1. **Ir a:** `/musedock/instagram/settings` (como SuperAdmin)
+2. **Pegar:**
+   - Instagram App ID
+   - Instagram App Secret
+   - Redirect URI: `https://tusitio.com/musedock/instagram/callback`
+3. **Click:** "Guardar"
+
+### Paso 5: Conectar Instagram
+
+1. **Ir a:** `/musedock/instagram`
+2. **Click:** "Conectar Nueva Cuenta"
+3. **Autorizar** en Instagram
+4. **Click:** "Sincronizar" para obtener posts
+
+### Paso 6: Usar en tu Sitio
+
+Inserta este shortcode donde quieras mostrar la galería:
+
+```
+[instagram connection=1]
+```
+
+O con opciones:
+```
+[instagram connection=1 layout="masonry" columns=4]
+```
+
+### Paso 7: Configurar Auto-Renovación (Opcional pero Recomendado)
+
+Para que los tokens se renueven automáticamente cada 60 días:
+
+**En Ubuntu/Linux:**
+```bash
+cd /var/www/vhosts/musedock.net/httpdocs/modules/instagram-gallery
+sudo bash install-cron.sh
+```
+
+**Manualmente:**
+```bash
+crontab -e
+```
+
+Agregar esta línea:
+```
+0 2 * * * /usr/bin/php /var/www/vhosts/musedock.net/httpdocs/modules/instagram-gallery/commands/RefreshInstagramTokens.php
+```
+
+✅ **¡Listo!** Tu galería de Instagram está funcionando.
+
+---
+
+## 📖 ¿CÓMO FUNCIONAN LOS TOKENS DE 60 DÍAS?
+
+### El Problema
+Instagram te da un **token de acceso** que dura **60 días**. Después de 60 días, el token expira y no puedes obtener más posts.
+
+### La Solución Automática
+El módulo incluye un sistema de **auto-renovación**:
+
+1. **Día 1:** Conectas Instagram → Token expira en 60 días
+2. **Día 53:** El cron job detecta que faltan 7 días
+3. **Día 53:** Renueva automáticamente el token → Ahora expira en 60 días más
+4. **Se repite infinitamente** 🔄
+
+**Sin cron:** Tendrías que reconectar cada 60 días manualmente.
+**Con cron:** Funciona **para siempre** automáticamente.
+
+### Ver Estado de Tokens
+
+En `/musedock/instagram` puedes ver:
+- ✅ **Token activo** (verde)
+- ⚠️ **Expira pronto** (amarillo) - faltan menos de 7 días
+- ❌ **Token expirado** (rojo) - debes reconectar
+
+---
 
 ## 🎯 Características
 

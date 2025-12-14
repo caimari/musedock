@@ -494,7 +494,7 @@ class ProvisioningService
                         .credentials h3 { margin-top: 0; color: #667eea; }
                         .credential-item { margin: 10px 0; }
                         .credential-item strong { display: inline-block; width: 160px; }
-                        .btn { display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 10px 5px; }
+                        .btn { display: inline-block; padding: 12px 30px; background: #667eea; color: #ffffff !important; text-decoration: none; border-radius: 5px; margin: 10px 5px; }
                         .features { list-style: none; padding: 0; }
                         .features li { padding: 8px 0; }
                         .features li:before { content: '✓ '; color: #667eea; font-weight: bold; }
@@ -533,8 +533,8 @@ class ProvisioningService
                             </div>
 
                             <div style='text-align: center; margin: 30px 0;'>
-                                <a href='{$adminUrl}' class='btn'>{$texts['btn_admin']}</a>
-                                <a href='{$customerDashboardUrl}' class='btn' style='background: #764ba2;'>{$texts['btn_dashboard']}</a>
+                                <a href='{$adminUrl}' class='btn' style='color: #ffffff !important;'>{$texts['btn_admin']}</a>
+                                <a href='{$customerDashboardUrl}' class='btn' style='background: #764ba2; color: #ffffff !important;'>{$texts['btn_dashboard']}</a>
                             </div>
 
                             <h3>🚀 {$texts['features_title']}</h3>
@@ -552,7 +552,7 @@ class ProvisioningService
 
                         <div class='footer'>
                             <p>© 2025 MuseDock - {$texts['footer_tagline']}</p>
-                            <p><a href='https://musedock.net' style='color: #ddd;'>musedock.net</a></p>
+                            <p><a href='https://musedock.com' style='color: #ddd;'>musedock.com</a></p>
                         </div>
                     </div>
                 </body>
@@ -592,7 +592,7 @@ https://{$fullDomain}
 {$texts['questions']}
 {$texts['thanks']}
 
-© 2025 MuseDock - https://musedock.net
+© 2025 MuseDock - https://musedock.com
             ";
 
             \Screenart\Musedock\Mail\Mailer::send($customerData['email'], $subject, $htmlBody, $textBody);

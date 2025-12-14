@@ -3003,23 +3003,32 @@ p > .slider-full-width-wrapper,
   isolation: isolate;
 }
 
-/* ===== Mobile: force sliders (Swiper) full-width + horizontal ===== */
-@media (max-width: 767px) {
+/* ===== Mobile + Tablet: force sliders (Swiper) full-width + horizontal ===== */
+/* EXTENDIDO hasta 991px para cubrir tablets y resoluciones intermedias */
+@media (max-width: 991px) {
   /* CRÍTICO: Forzar full-width en el wrapper del slider */
   .slider-full-width-wrapper,
   .slider-full-width-wrapper[data-full-bleed="true"],
   main .ud-page-content .slider-full-width-wrapper,
   main .page-body .slider-full-width-wrapper,
   main .page-content-wrapper .slider-full-width-wrapper {
+    /* Técnica mejorada: combinar transform + margin negativo */
+    width: 100vw !important;
+    max-width: 100vw !important;
     position: relative !important;
     left: 50% !important;
     right: 50% !important;
-    width: 100vw !important;
-    max-width: 100vw !important;
     margin-left: -50vw !important;
     margin-right: -50vw !important;
     padding: 0 !important;
     border-radius: 0 !important;
+    /* Asegurar que no herede ningún padding del padre */
+    box-sizing: border-box !important;
+  }
+
+  /* Anular cualquier margen del párrafo padre */
+  p > .slider-full-width-wrapper {
+    display: block !important;
   }
 
   /* El swiper dentro del wrapper debe ocupar el 100% */
@@ -3073,17 +3082,26 @@ p > .slider-full-width-wrapper,
     position: relative !important;
   }
 
-  /* CRÍTICO: Eliminar CUALQUIER padding horizontal en móvil */
+  /* CRÍTICO: Eliminar CUALQUIER padding horizontal en móvil - TODOS los selectores */
+  html,
   body,
   main,
+  .container,
+  .container-fluid,
   main .container,
   main .ud-page-content,
   main .page-body,
-  main .page-content-wrapper {
+  main .page-content-wrapper,
+  .ud-page-content,
+  .page-body,
+  .page-content-wrapper,
+  div[class*="container"] {
     padding-left: 0 !important;
     padding-right: 0 !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
   }
 
   /* Container debe permitir que el slider salga */
@@ -3093,7 +3111,18 @@ p > .slider-full-width-wrapper,
   main .page-content-wrapper {
     overflow-x: clip !important;
     overflow-y: visible !important;
+  }
+
+  /* IMPORTANTE: El párrafo que contiene el slider NO debe tener padding */
+  p:has(> .slider-full-width-wrapper) {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100vw !important;
     max-width: 100vw !important;
+    position: relative !important;
+    left: 50% !important;
+    margin-left: -50vw !important;
+    margin-right: -50vw !important;
   }
 
   /* Restaurar solo el padding del contenido que NO es slider */

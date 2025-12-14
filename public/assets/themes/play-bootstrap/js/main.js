@@ -240,4 +240,41 @@
       observer.observe(navbarCollapse, { attributes: true, attributeFilter: ["class"] });
     }
   }
+
+  // ===== Fix full-width sliders in mobile + tablet
+  function fixFullWidthSliders() {
+    // Aplicar hasta 991px (incluye tablets y resoluciones intermedias)
+    if (window.innerWidth <= 991) {
+      const sliders = document.querySelectorAll('.slider-full-width-wrapper[data-full-bleed="true"]');
+
+      sliders.forEach(slider => {
+        // Calcular el offset desde el borde izquierdo de la ventana
+        const rect = slider.getBoundingClientRect();
+        const offsetLeft = rect.left;
+
+        if (offsetLeft > 0) {
+          // Hay padding/margin - compensar con margin negativo
+          slider.style.marginLeft = `calc(-50vw - ${offsetLeft}px)`;
+          slider.style.marginRight = `calc(-50vw - ${offsetLeft}px)`;
+        }
+      });
+    } else {
+      // En desktop (>991px), resetear estilos inline para usar CSS nativo
+      const sliders = document.querySelectorAll('.slider-full-width-wrapper[data-full-bleed="true"]');
+      sliders.forEach(slider => {
+        slider.style.marginLeft = '';
+        slider.style.marginRight = '';
+      });
+    }
+  }
+
+  // Ejecutar al cargar y al redimensionar
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fixFullWidthSliders);
+  } else {
+    fixFullWidthSliders();
+  }
+
+  window.addEventListener('resize', fixFullWidthSliders);
+
 })();
