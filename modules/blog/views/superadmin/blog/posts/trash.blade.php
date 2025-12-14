@@ -29,7 +29,7 @@
 <input type="hidden" name="_token" value="{{ csrf_token() }}">
 <button type="submit" class="btn btn-success" title="Restaurar"><i class="bi bi-arrow-counterclockwise"></i> Restaurar</button>
 </form>
-<form method="POST" action="/musedock/blog/posts/{{ $post->id }}/force-delete" style="display:inline;" onsubmit="return confirm('¿ELIMINAR PERMANENTEMENTE este post? Esta acción NO se puede deshacer.');">
+<form method="POST" action="/musedock/blog/posts/{{ $post->id }}/force-delete" style="display:inline;" class="force-delete-post-form" data-post-title="{{ htmlspecialchars($post->title, ENT_QUOTES, 'UTF-8') }}">
 <input type="hidden" name="_token" value="{{ csrf_token() }}">
 <input type="hidden" name="_method" value="DELETE">
 <button type="submit" class="btn btn-danger" title="Eliminar permanentemente"><i class="bi bi-trash"></i></button>
@@ -44,3 +44,46 @@
 </div></div>
 </div></div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('submit', function(e) {
+    const form = e.target;
+    if (!form || !form.classList || !form.classList.contains('force-delete-post-form')) return;
+
+    if (form.dataset.confirmed === '1') return;
+    e.preventDefault();
+
+    const postTitle = form.getAttribute('data-post-title') || '';
+
+    Swal.fire({
+      title: {!! json_encode(__('common.are_you_sure')) !!},
+      html: {!! json_encode(__('blog.delete.confirm_delete_post', ['title' => ':title'])) !!}.replace(':title', escapeHtml(postTitle)),
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: {!! json_encode(__('blog.bulk.confirm_delete_yes')) !!},
+      cancelButtonText: {!! json_encode(__('blog.bulk.confirm_cancel')) !!}
+    }).then((result) => {
+      if (result.isConfirmed) {
+        form.dataset.confirmed = '1';
+        form.submit();
+      }
+    });
+  });
+
+  function escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, m => map[m]);
+  }
+});
+</script>
+@endpush
