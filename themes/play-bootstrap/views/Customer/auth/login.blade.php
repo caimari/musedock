@@ -40,10 +40,10 @@
 
                     <div class="text-center mt-4">
                         <p class="mb-2">
-                            <a href="/customer/forgot-password" class="text-decoration-none">¿Olvidaste tu contraseña?</a>
+                            <a href="/customer/forgot-password" class="text-decoration-none" style="color: #212529;">¿Olvidaste tu contraseña?</a>
                         </p>
-                        <p class="mb-0">
-                            ¿No tienes cuenta? <a href="/register" class="fw-semibold">Regístrate gratis</a>
+                        <p class="mb-0" style="color: #212529;">
+                            ¿No tienes cuenta? <a href="/register" class="fw-semibold" style="color: #212529;">Regístrate gratis</a>
                         </p>
                     </div>
                 </div>

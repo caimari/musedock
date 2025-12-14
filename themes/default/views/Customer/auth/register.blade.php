@@ -110,8 +110,8 @@
                         </button>
                     </form>
 
-                    <p class="text-center mt-4 mb-0">
-                        ¿Ya tienes cuenta? <a href="/customer/login">Inicia sesión</a>
+                    <p class="text-center mt-4 mb-0" style="color: #212529;">
+                        ¿Ya tienes cuenta? <a href="/customer/login" style="color: #212529;">Inicia sesión</a>
                     </p>
                 </div>
             </div>

@@ -5,6 +5,7 @@ namespace CaddyDomainManager\Services;
 use Screenart\Musedock\Logger;
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Mailer;
+use Screenart\Musedock\Services\TenantCreationService;
 
 /**
  * ProvisioningService - Orquestador de registro de customers
@@ -13,9 +14,10 @@ use Screenart\Musedock\Mailer;
  * 1. Crear customer en BD
  * 2. Crear tenant en BD
  * 3. Crear admin del tenant
- * 4. Configurar Cloudflare (CNAME + proxy orange)
- * 5. Configurar Caddy (SSL automático)
- * 6. Enviar email de bienvenida
+ * 4. Aplicar configuración por defecto (permisos, roles, menús)
+ * 5. Configurar Cloudflare (CNAME + proxy orange)
+ * 6. Configurar Caddy (SSL automático)
+ * 7. Enviar email de bienvenida
  *
  * Incluye IDEMPOTENCIA (mejora #6): puede resumir registros incompletos
  *
@@ -85,6 +87,10 @@ class ProvisioningService
 
             // Generar slug único
             $this->generateUniqueSlug($tenantId, $subdomain);
+
+            // Aplicar configuración por defecto (permisos, roles, menús)
+            $this->applyTenantDefaults($tenantId);
+            Logger::info("[ProvisioningService] Tenant defaults applied: permissions, roles, menus");
 
             $this->pdo->commit();
             Logger::info("[ProvisioningService] ✓ Database transaction committed");
@@ -671,5 +677,25 @@ https://{$fullDomain}
         ];
 
         return $texts[$lang] ?? $texts['es'];
+    }
+
+    /**
+     * Aplica configuración por defecto al tenant (permisos, roles, menús)
+     *
+     * @param int $tenantId
+     * @throws \Exception
+     */
+    private function applyTenantDefaults(int $tenantId): void
+    {
+        try {
+            // Usar TenantCreationService para aplicar defaults
+            TenantCreationService::applyDefaultsToTenant($tenantId, $this->pdo);
+            Logger::info("[ProvisioningService] Successfully applied tenant defaults for tenant ID: {$tenantId}");
+
+        } catch (\Exception $e) {
+            Logger::error("[ProvisioningService] Failed to apply tenant defaults: " . $e->getMessage());
+            // Re-lanzar la excepción para que la transacción haga rollback
+            throw new \Exception("Error aplicando configuración por defecto del tenant: " . $e->getMessage());
+        }
     }
 }

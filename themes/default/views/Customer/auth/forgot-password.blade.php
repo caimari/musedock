@@ -27,10 +27,10 @@
 
                     <div class="text-center mt-4">
                         <p class="mb-2">
-                            <a href="/customer/login" class="text-decoration-none">← Volver al login</a>
+                            <a href="/customer/login" class="text-decoration-none" style="color: #212529;">← Volver al login</a>
                         </p>
-                        <p class="mb-0">
-                            ¿No tienes cuenta? <a href="/register" class="fw-semibold">Regístrate gratis</a>
+                        <p class="mb-0" style="color: #212529;">
+                            ¿No tienes cuenta? <a href="/register" class="fw-semibold" style="color: #212529;">Regístrate gratis</a>
                         </p>
                     </div>
                 </div>
