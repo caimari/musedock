@@ -507,10 +507,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const readPinned = () => {
             try {
                 const v = window.localStorage.getItem(storageKey);
-                if (v === null) return true;
+                // default: false (unpinned)
+                if (v === null) return false;
                 return v === '1';
             } catch (_) {
-                return true;
+                return false;
             }
         };
 

@@ -40,7 +40,7 @@
                             <div class="input-group">
                                 <input type="password" class="form-control" id="password" name="password" required
                                        minlength="8" placeholder="Mínimo 8 caracteres">
-                                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword" style="background-color: #fff !important; border-color: #ced4da !important; color: #6c757d !important;">
                                     <i class="bi bi-eye" id="eyeIcon"></i>
                                 </button>
                             </div>
@@ -51,7 +51,7 @@
                             <div class="input-group">
                                 <input type="password" class="form-control" id="password_confirm"
                                        name="password_confirm" required placeholder="Repite tu contraseña">
-                                <button class="btn btn-outline-secondary" type="button" id="togglePasswordConfirm">
+                                <button class="btn btn-outline-secondary" type="button" id="togglePasswordConfirm" style="background-color: #fff !important; border-color: #ced4da !important; color: #6c757d !important;">
                                     <i class="bi bi-eye" id="eyeIconConfirm"></i>
                                 </button>
                             </div>

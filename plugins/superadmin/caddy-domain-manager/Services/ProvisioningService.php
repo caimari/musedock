@@ -293,7 +293,7 @@ class ProvisioningService
                 customer_id, domain, name, plan,
                 is_subdomain, parent_domain, include_www,
                 status, created_at
-            ) VALUES (?, ?, ?, 'free', 1, ?, 0, 'active', NOW())
+            ) VALUES (?, ?, ?, 'free', ?, ?, ?, 'active', NOW())
         ");
 
         $tenantName = ucfirst($subdomain);
@@ -303,7 +303,9 @@ class ProvisioningService
             $customerId,
             $fullDomain,
             $tenantName,
-            $baseDomain
+            true,  // is_subdomain (compatible con PostgreSQL boolean)
+            $baseDomain,
+            false  // include_www (compatible con PostgreSQL boolean)
         ]);
 
         return (int) $this->pdo->lastInsertId();
