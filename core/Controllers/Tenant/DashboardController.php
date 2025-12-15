@@ -2,6 +2,7 @@
 namespace Screenart\Musedock\Controllers\Tenant;
 
 use Screenart\Musedock\View;
+use Screenart\Musedock\Database;
 use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Security\SessionCleaner;
 
@@ -60,11 +61,55 @@ class DashboardController
         }
         
         error_log("Acceso al dashboard: " . $userData['email'] . " (Rol: " . $userData['role'] . ")");
+
+        $tenantId = tenant_id();
+        $stats = [
+            'pages' => 0,
+            'menus' => 0,
+            'modules_enabled' => 0,
+            'modules_available' => 0,
+            'plugins' => 0,
+        ];
+
+        if ($tenantId) {
+            try {
+                $pdo = Database::connect();
+
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM pages WHERE tenant_id = ? AND status <> 'trash'");
+                $stmt->execute([$tenantId]);
+                $stats['pages'] = (int) $stmt->fetchColumn();
+
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM tenant_menus WHERE tenant_id = ? AND is_active = 1");
+                $stmt->execute([$tenantId]);
+                $stats['menus'] = (int) $stmt->fetchColumn();
+
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM modules WHERE active = 1");
+                $stmt->execute();
+                $stats['modules_available'] = (int) $stmt->fetchColumn();
+
+                $stmt = $pdo->prepare("
+                    SELECT COUNT(*)
+                    FROM modules m
+                    LEFT JOIN tenant_modules tm ON tm.module_id = m.id AND tm.tenant_id = ?
+                    WHERE m.active = 1 AND COALESCE(tm.enabled, 0) = 1
+                ");
+                $stmt->execute([$tenantId]);
+                $stats['modules_enabled'] = (int) $stmt->fetchColumn();
+
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM tenant_plugins WHERE tenant_id = ?");
+                $stmt->execute([$tenantId]);
+                $stats['plugins'] = (int) $stmt->fetchColumn();
+            } catch (\Throwable $e) {
+                error_log("DashboardController - Error cargando contadores: " . $e->getMessage());
+            }
+        }
+
         return View::renderTenantAdmin('dashboard', [
             'title' => __('dashboard'),
             'email' => $userData['email'],
             'name' => $userData['name'],
-            'role' => $userData['role']
+            'role' => $userData['role'],
+            'stats' => $stats,
         ]);
     }
 }
