@@ -448,10 +448,15 @@ window.MediaManagerConfig = {
     uploadUrl: "{{ route('tenant.media.upload') }}",
     dataUrl: "{{ route('tenant.media.data') }}",
     deleteUrlTemplate: "{{ route('tenant.media.delete', ['id' => ':id']) }}",
+    detailsUrlTemplate: "{{ route('tenant.media.details', ['id' => ':id']) }}",
+    updateUrlTemplate: "{{ route('tenant.media.update', ['id' => ':id']) }}",
+    renameUrlTemplate: "{{ route('tenant.media.rename', ['id' => ':id']) }}",
     foldersStructureUrl: "{{ route('tenant.media.folders.structure') }}",
     createFolderUrl: "{{ route('tenant.media.folders.create') }}",
     renameFolderUrl: "{{ route('tenant.media.folders.rename', ['id' => ':id']) }}",
     deleteFolderUrl: "{{ route('tenant.media.folders.delete', ['id' => ':id']) }}",
+    moveUrl: "{{ route('tenant.media.move') }}",
+    copyUrl: "{{ route('tenant.media.copy') }}",
     quotaUrl: "{{ route('tenant.media.quota') }}"
 };
 

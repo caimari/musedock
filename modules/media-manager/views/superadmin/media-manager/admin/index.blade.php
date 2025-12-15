@@ -409,21 +409,34 @@ window.MediaManagerConfig = {
     uploadUrl: "{{ route('superadmin.media.upload') }}",
     dataUrl: "{{ route('superadmin.media.data') }}",
     deleteUrlTemplate: "{{ route('superadmin.media.delete', ['id' => ':id']) }}",
+    detailsUrlTemplate: "{{ route('superadmin.media.details', ['id' => ':id']) }}",
+    updateUrlTemplate: "{{ route('superadmin.media.update', ['id' => ':id']) }}",
+    renameUrlTemplate: "{{ route('superadmin.media.rename', ['id' => ':id']) }}",
     foldersStructureUrl: "{{ route('superadmin.media.folders.structure') }}",
     createFolderUrl: "{{ route('superadmin.media.folders.create') }}",
     renameFolderUrl: "{{ route('superadmin.media.folders.rename', ['id' => ':id']) }}",
     deleteFolderUrl: "{{ route('superadmin.media.folders.delete', ['id' => ':id']) }}",
+    moveUrl: "{{ route('superadmin.media.move') }}",
+    copyUrl: "{{ route('superadmin.media.copy') }}",
     currentDisk: "{{ $defaultDisk ?? 'media' }}",
     availableDisks: @json($availableDisks ?? ['media' => ['name' => 'Local (Seguro)', 'icon' => 'bi-hdd']])
 };
 
 // Verificar si las rutas se generaron correctamente, si no usar fallback
 if (window.MediaManagerConfig.deleteFolderUrl.includes('#ruta-no-encontrada') ||
-    window.MediaManagerConfig.deleteUrlTemplate.includes('#ruta-no-encontrada')) {
+    window.MediaManagerConfig.deleteUrlTemplate.includes('#ruta-no-encontrada') ||
+    window.MediaManagerConfig.detailsUrlTemplate.includes('#ruta-no-encontrada') ||
+    window.MediaManagerConfig.updateUrlTemplate.includes('#ruta-no-encontrada') ||
+    window.MediaManagerConfig.renameUrlTemplate.includes('#ruta-no-encontrada')) {
     console.warn('Las rutas nombradas no se pudieron resolver. Usando URLs hardcodeadas como fallback.');
     window.MediaManagerConfig.deleteUrlTemplate = '/musedock/media/:id/delete';
+    window.MediaManagerConfig.detailsUrlTemplate = '/musedock/media/:id/details';
+    window.MediaManagerConfig.updateUrlTemplate = '/musedock/media/:id/update';
+    window.MediaManagerConfig.renameUrlTemplate = '/musedock/media/:id/rename';
     window.MediaManagerConfig.renameFolderUrl = '/musedock/media/folders/:id/rename';
     window.MediaManagerConfig.deleteFolderUrl = '/musedock/media/folders/:id/delete';
+    window.MediaManagerConfig.moveUrl = '/musedock/media/move';
+    window.MediaManagerConfig.copyUrl = '/musedock/media/copy';
 }
 
 // Inicializar selector de disco

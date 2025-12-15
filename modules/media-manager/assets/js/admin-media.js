@@ -47,6 +47,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const uploadUrl = window.MediaManagerConfig.uploadUrl;
     const dataUrl = window.MediaManagerConfig.dataUrl;
     const deleteUrlBase = window.MediaManagerConfig.deleteUrlTemplate;
+    const detailsUrlTemplate = window.MediaManagerConfig?.detailsUrlTemplate || '/musedock/media/:id/details';
+    const updateUrlTemplate = window.MediaManagerConfig?.updateUrlTemplate || '/musedock/media/:id/update';
+    const renameUrlTemplate = window.MediaManagerConfig?.renameUrlTemplate || '/musedock/media/:id/rename';
+    const moveUrl = window.MediaManagerConfig?.moveUrl || '/musedock/media/move';
+
+    function buildUrl(template, id) {
+        return (template || '').replace(':id', id);
+    }
     
     // ========================================================
     // SECTION 6: MAIN LIBRARY FUNCTIONS
@@ -642,7 +650,7 @@ document.body.addEventListener('click', function(e) {
             willOpen: () => { Swal.showLoading(); }
         });
 
-        fetch(`/musedock/media/${mediaId}/details`)
+        fetch(buildUrl(detailsUrlTemplate, mediaId))
             .then(response => {
                 if (!response.ok) throw new Error(`HTTP error ${response.status}`);
                 return response.json();
@@ -686,7 +694,7 @@ document.body.addEventListener('click', function(e) {
     const csrfToken = document.querySelector('input[name="_token"]')?.value;
     if (csrfToken) formData.append('_token', csrfToken);
 
-    fetch(`/musedock/media/${data.id}/update`, {
+	    fetch(buildUrl(updateUrlTemplate, data.id), {
         method: 'POST',
         headers: {'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded'},
         body: formData
@@ -1242,7 +1250,7 @@ for (const key in detailFields) {
         loadingIndicator.style.display = 'block';
 
         // --- Petición AJAX ---
-        fetch(`/musedock/media/${mediaId}/details`)
+        fetch(buildUrl(detailsUrlTemplate, mediaId))
             .then(response => {
                 if (!response.ok) {
                     console.error(`[Modal Load] HTTP error ${response.status} para ID ${mediaId}`);
@@ -1762,7 +1770,7 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
                 // Eliminar cada archivo
                 let deleted = 0;
                 ids.forEach(id => {
-                    fetch(`/musedock/media/${id}/delete`, {
+                    fetch(buildUrl(deleteUrlTemplate, id), {
                         method: 'POST',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
@@ -1874,7 +1882,7 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
 
     // Función para renombrar media via AJAX
     function renameMedia(mediaId, newName) {
-        fetch(`/musedock/media/${mediaId}/rename`, {
+        fetch(buildUrl(renameUrlTemplate, mediaId), {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -1902,7 +1910,7 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
         const ids = clipboardData.ids;
         const action = clipboardData.action;
 
-        fetch('/musedock/media/move', {
+        fetch(moveUrl, {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
