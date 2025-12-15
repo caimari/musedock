@@ -679,7 +679,8 @@ document.body.addEventListener('click', function(e) {
         function createMediaModal(mediaInfo) {
              console.log("[Modal Init] Creando modal para ID:", mediaInfo.id, mediaInfo);
             // Llamada a la función principal que ahora contiene toda la lógica AJAX
-            createCustomWPModal({
+            let modalInstance;
+            modalInstance = createCustomWPModal({
                 mediaId: mediaInfo.id,
                 mediaUrl: mediaInfo.url,
                 mediaAlt: mediaInfo.alt_text || '',
@@ -785,11 +786,17 @@ onDelete: function(id) {
     const deleteUrlTemplate = window.MediaManagerConfig?.deleteUrlTemplate || '/musedock/media/:id/delete';
     const deleteUrl = deleteUrlTemplate.replace(':id', id);
 
+    const extractItemId = (item) => {
+        const raw = item?.dataset?.mediaId || item?.dataset?.id || item?.getAttribute?.('data-id') || item?.id || '';
+        const match = String(raw).match(/(\d+)/);
+        return match ? match[1] : raw;
+    };
+
     // Verificar si hay más elementos para navegar
     const galleryItemsSelector = '.media-item[data-media-id], .attachment[data-id], .attachment[data-media-id]';
     const allMediaItems = Array.from(document.querySelectorAll(galleryItemsSelector));
     const currentIndex = allMediaItems.findIndex(item => {
-        const itemId = item.dataset.mediaId || item.dataset.id || item.id;
+        const itemId = extractItemId(item);
         return itemId == id;
     });
     
@@ -799,12 +806,16 @@ onDelete: function(id) {
         // Si hay un elemento siguiente, usarlo
         if (currentIndex < allMediaItems.length - 1) {
             const nextItem = allMediaItems[currentIndex + 1];
-            nextItemId = nextItem.dataset.mediaId || nextItem.dataset.id || nextItem.id;
+            nextItemId = extractItemId(nextItem);
         } 
         // Si no hay siguiente pero hay anterior, usar el anterior
         else if (currentIndex > 0) {
             const prevItem = allMediaItems[currentIndex - 1];
-            nextItemId = prevItem.dataset.mediaId || prevItem.dataset.id || prevItem.id;
+            nextItemId = extractItemId(prevItem);
+        } else if (currentIndex < 0) {
+            // Fallback si no encontramos el actual en DOM: tomar el primero distinto
+            const fallbackItem = allMediaItems.find(item => extractItemId(item) != id);
+            nextItemId = fallbackItem ? extractItemId(fallbackItem) : null;
         }
     }
 
@@ -817,7 +828,7 @@ onDelete: function(id) {
     .then(({ ok, status, data }) => {
         if (ok && data.success) {
             // Eliminar del DOM
-            const itemElement = document.querySelector(`.media-item[data-media-id="${id}"], .attachment[data-id="${id}"]`);
+            const itemElement = document.querySelector(`.media-item[data-media-id="${id}"], .attachment[data-id="${id}"], .attachment[data-media-id="${id}"]`);
             if (itemElement) itemElement.remove();
             
             // Actualizar la vista de grid si quedó vacía
@@ -859,12 +870,10 @@ onDelete: function(id) {
                 
                 // Cargar el siguiente elemento
                 setTimeout(() => {
-                    const modalInstance = window.currentModalInstance;
                     if (modalInstance && typeof modalInstance.loadMedia === 'function') {
                         modalInstance.loadMedia(nextItemId);
                     } else {
-                        // Fallback: Si no podemos acceder a la instancia del modal, recargar toda la página
-                        loadMediaData(nextItemId);
+                        console.warn("[Modal Delete] No se pudo acceder a la instancia del modal para navegar.");
                     }
                 }, 100);
                 
@@ -873,6 +882,9 @@ onDelete: function(id) {
             
             // Si no hay más elementos, cerrar modal y mostrar mensaje
             Swal.fire(swalConfig);
+            if (modalInstance && typeof modalInstance.close === 'function') {
+                setTimeout(() => modalInstance.close(), 150);
+            }
         } else {
             // Error al eliminar
             showError(data?.message || `Error al eliminar (${status})`);

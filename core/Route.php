@@ -315,6 +315,7 @@ public static function resolve() {
         }
         $handler = self::$routes[$method][$uri];
         $middlewares = self::$middlewares[$method][$uri] ?? [];
+        if (!self::enforceTenantAdminAuth($uri, $middlewares)) return;
         if (!self::runMiddlewares($middlewares)) return;
         return self::callHandler($handler);
     }
@@ -345,6 +346,7 @@ public static function resolve() {
                 }
                 array_shift($matches); // Quitamos el match completo
                 $middlewares = self::$middlewares[$method][$route] ?? [];
+                if (!self::enforceTenantAdminAuth($uri, $middlewares)) return;
                 if (!self::runMiddlewares($middlewares)) return;
                 return self::callHandler($handler, $matches);
             }
@@ -356,6 +358,58 @@ public static function resolve() {
     http_response_code(404);
 
     self::render404Page();
+}
+
+private static function enforceTenantAdminAuth(string $uri, array $middlewares): bool
+{
+    if (!isset($GLOBALS['tenant'])) {
+        return true;
+    }
+
+    $adminBase = '/' . trim(($GLOBALS['tenant']['admin_path'] ?? 'admin'), '/');
+    $isAdminArea = ($uri === $adminBase) || (strpos($uri, $adminBase . '/') === 0);
+    if (!$isAdminArea) {
+        return true;
+    }
+
+    // Rutas públicas del panel (sin sesión): login y reset de contraseña
+    $publicAdminPrefixes = [
+        $adminBase . '/login',
+        $adminBase . '/password/forgot',
+        $adminBase . '/password/reset',
+    ];
+
+    foreach ($publicAdminPrefixes as $prefix) {
+        if ($uri === $prefix || strpos($uri, $prefix . '/') === 0) {
+            return true;
+        }
+    }
+
+    // Si la ruta ya declara auth, no repetir (evita doble trabajo/logs)
+    foreach ($middlewares as $entry) {
+        if (is_string($entry)) {
+            [$name] = array_pad(explode(':', $entry, 2), 2, null);
+            if ($name === 'auth' || $name === 'AuthMiddleware') {
+                return true;
+            }
+        } elseif (is_object($entry)) {
+            $class = get_class($entry);
+            if ($class === \Screenart\Musedock\Middlewares\AuthMiddleware::class) {
+                return true;
+            }
+        }
+    }
+
+    $middlewareRegistry = require __DIR__ . '/MiddlewareRegistry.php';
+    if (!isset($middlewareRegistry['auth'])) {
+        return false;
+    }
+
+    $authMiddlewareClass = $middlewareRegistry['auth'];
+    $authMiddleware = new $authMiddlewareClass();
+    $result = $authMiddleware->handle();
+
+    return $result !== false;
 }
 
 /**
