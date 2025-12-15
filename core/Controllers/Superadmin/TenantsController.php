@@ -142,18 +142,10 @@ public function store()
             throw new \Exception($result['error'] ?? 'Error desconocido');
         }
 
-        $tenantId = $result['tenant_id'];
-
-        // Crear carpeta de tema del tenant
-        $tenantThemePath = __DIR__ . '/../../../themes/tenant_' . $tenantId . '/default';
-
-        if (!is_dir($tenantThemePath)) {
-            mkdir($tenantThemePath, 0755, true);
-
-            // Copiar la plantilla base
-            $sourcePath = __DIR__ . '/../../../themes/shared/default';
-            $this->copyDirectory($sourcePath, $tenantThemePath);
-        }
+        // TenantCreationService ya aplica automáticamente:
+        // - tema por defecto (tenant_default_settings.default_theme)
+        // - permisos/roles/menús por defecto (tenant_default_settings)
+        // No se copian carpetas de tema (sistema antiguo).
 
         flash('success', 'Tenant y administrador creados correctamente.');
         header('Location: /musedock/tenants');
@@ -167,27 +159,6 @@ public function store()
     }
 }
 
-/**
- * Copia recursivamente una carpeta y su contenido.
- */
-private function copyDirectory($source, $destination)
-{
-    $dir = opendir($source);
-    @mkdir($destination, 0755, true);
-
-    while (($file = readdir($dir)) !== false) {
-        if ($file == '.' || $file == '..') {
-            continue;
-        }
-
-        if (is_dir($source . '/' . $file)) {
-            $this->copyDirectory($source . '/' . $file, $destination . '/' . $file);
-        } else {
-            copy($source . '/' . $file, $destination . '/' . $file);
-        }
-    }
-    closedir($dir);
-}
 	private function generateSlug(string $text): string
 {
     $slug = strtolower(trim($text));
@@ -315,9 +286,9 @@ public function destroy($id)
             exit;
         }
 
-        // Verificar contraseña del superadmin actual
-        $auth = $_SESSION['super_admin'] ?? null;
-        if (!$auth || empty($auth['id'])) {
+        // Verificar contraseña del usuario logeado (superadmin)
+        $auth = SessionSecurity::getAuthenticatedUser();
+        if (!$auth || ($auth['type'] ?? null) !== 'super_admin' || empty($auth['id'])) {
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Sesión no válida']);
             exit;
@@ -326,7 +297,7 @@ public function destroy($id)
         // Obtener el hash de contraseña de la BD
         $pdo = Database::connect();
         $stmt = $pdo->prepare("SELECT password FROM super_admins WHERE id = ?");
-        $stmt->execute([$auth['id']]);
+        $stmt->execute([(int) $auth['id']]);
         $user = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!$user || !password_verify($password, $user['password'])) {
@@ -415,9 +386,9 @@ public function destroy($id)
             exit;
         }
 
-        // Verificar contraseña del superadmin actual
-        $auth = $_SESSION['super_admin'] ?? null;
-        if (!$auth || empty($auth['id'])) {
+        // Verificar contraseña del usuario logeado (superadmin)
+        $auth = SessionSecurity::getAuthenticatedUser();
+        if (!$auth || ($auth['type'] ?? null) !== 'super_admin' || empty($auth['id'])) {
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Sesión no válida']);
             exit;
@@ -426,7 +397,7 @@ public function destroy($id)
         // Obtener el hash de contraseña de la BD
         $pdo = Database::connect();
         $stmt = $pdo->prepare("SELECT password FROM super_admins WHERE id = ?");
-        $stmt->execute([$auth['id']]);
+        $stmt->execute([(int) $auth['id']]);
         $user = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!$user || !password_verify($password, $user['password'])) {

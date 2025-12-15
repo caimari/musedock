@@ -18,8 +18,6 @@
             </div>
         </div>
 
-        @include('partials.alerts')
-
         <div class="card">
             <div class="card-body table-responsive p-0">
                 <table class="table table-hover align-middle">
@@ -85,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Introduce tu contraseña para confirmar:</label>
-                            <input type="password" id="deletePassword" class="form-control" placeholder="Contraseña del superadmin" autocomplete="current-password">
+                            <input type="password" id="deletePassword" class="form-control" placeholder="Contraseña de tu usuario" autocomplete="current-password">
                         </div>
                     </div>
                 `,
@@ -158,15 +156,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
-    });
-
-    // Auto-cerrar alertas
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(alert => {
-        setTimeout(() => {
-            alert.classList.add('fade');
-            setTimeout(() => alert.remove(), 300);
-        }, 3000);
     });
 });
 </script>
