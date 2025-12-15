@@ -4,41 +4,45 @@
     <div class="card-body">
         {{-- Lógica para determinar la imagen a mostrar --}}
         @php
-            $sliderImage = $Page->slider_image ?? '';
+            $heroImage = $Page->hero_image ?? '';
             $imagePath = '';
             $isCustom = false;
             
-            if (!empty($sliderImage)) {
-                $isCustom = strpos($sliderImage, 'themes/default') === false;
+            if (!empty($heroImage)) {
+                $isCustom = strpos($heroImage, 'themes/default') === false;
                 // No añadimos 'assets/' al inicio si ya existe una imagen personalizada
-                $imagePath = $isCustom ? $sliderImage : 'themes/default/img/hero/contact_hero.jpg';
+                $imagePath = $isCustom ? $heroImage : 'themes/default/img/hero/contact_hero.jpg';
             } else {
                 $imagePath = 'themes/default/img/hero/contact_hero.jpg';
+            }
+
+            $imageUrl = $imagePath;
+            if (!(str_starts_with($imagePath, 'http') || str_starts_with($imagePath, '/media/'))) {
+                $imageUrl = asset($imagePath);
             }
         @endphp
         
         {{-- Activar/desactivar la cabecera --}}
         <div class="mb-3 form-check">
-            <input type="hidden" name="show_slider" value="0">
-            <input type="checkbox" class="form-check-input" id="show-slider" name="show_slider" value="1"
-                   {{ old('show_slider', $Page->show_slider ?? 0) == 1 ? 'checked' : '' }}>
+            <input type="checkbox" class="form-check-input" id="show-slider" name="show_hero" value="1"
+                   {{ old('show_hero', $Page->show_hero ?? 0) == 1 ? 'checked' : '' }}>
             <label class="form-check-label" for="show-slider">Mostrar cabecera con imagen</label>
         </div>
 
         {{-- Imagen de fondo --}}
-        <div class="mb-3" id="slider-image-container" style="{{ old('show_slider', $Page->show_slider ?? 0) == 1 ? '' : 'display: none;' }}">
+        <div class="mb-3" id="slider-image-container" style="{{ old('show_hero', $Page->show_hero ?? 0) == 1 ? '' : 'display: none;' }}">
             <label for="slider-image" class="form-label">Imagen de fondo</label>
             
             <div class="image-preview-container mb-3">
                 <div class="slider-preview" id="current-image-preview">
-                    <img src="{{ asset($imagePath) }}" 
+                    <img src="{{ $imageUrl }}"
                          alt="Vista previa de la imagen de cabecera" 
                          class="img-fluid img-thumbnail mb-2" 
                          style="max-height: 150px; max-width: 100%; {{ $isCustom ? '' : 'opacity: 0.7;' }}"
                          id="preview-image-display"
                          data-path="{{ $imagePath }}"
                          data-is-custom="{{ $isCustom ? 'true' : 'false' }}"
-                         data-original-value="{{ $sliderImage }}">
+                         data-original-value="{{ $heroImage }}">
                     
                     @if($isCustom)
                         <div class="mt-1 d-flex" id="custom-image-controls">
@@ -59,32 +63,31 @@
             
             <div class="mb-3">
                 <label for="slider-image" class="form-label">Subir nueva imagen</label>
-                <input type="file" class="form-control" id="slider-image" name="slider_image" accept="image/*">
-                <input type="hidden" name="current_slider_image" value="{{ $sliderImage }}" id="current-slider-image-input">
-                <input type="hidden" name="remove_slider_image" id="remove-slider-image-flag" value="0">
+                <input type="file" class="form-control" id="slider-image" name="hero_image" accept="image/*">
+                <input type="hidden" name="current_hero_image" value="{{ $heroImage }}" id="current-hero-image-input">
+                <input type="hidden" name="remove_hero_image" id="remove-slider-image-flag" value="0">
                 <small class="text-muted">Recomendado: 1920x400px. La imagen se adaptará automáticamente a estas dimensiones.</small>
             </div>
         </div>
 
         {{-- Título personalizado para la cabecera (opcional) --}}
-        <div class="mb-3" id="slider-title-container" style="{{ old('show_slider', $Page->show_slider ?? 0) == 1 ? '' : 'display: none;' }}">
+        <div class="mb-3" id="slider-title-container" style="{{ old('show_hero', $Page->show_hero ?? 0) == 1 ? '' : 'display: none;' }}">
             <label for="slider-title" class="form-label">Título para la cabecera <small class="text-muted">(opcional)</small></label>
-            <input type="text" class="form-control" id="slider-title" name="slider_title" 
-                   value="{{ old('slider_title', $Page->slider_title ?? '') }}" 
-                   placeholder="Dejar vacío para usar el título de la página">
+            <input type="text" class="form-control" id="slider-title" name="hero_title"
+                   value="{{ old('hero_title', $Page->hero_title ?? '') }}"
+                   placeholder="Dejar vacío para usar el título">
         </div>
 
         {{-- Contenido personalizado para la cabecera (opcional) --}}
-        <div class="mb-3" id="slider-content-container" style="{{ old('show_slider', $Page->show_slider ?? 0) == 1 ? '' : 'display: none;' }}">
+        <div class="mb-3" id="slider-content-container" style="{{ old('show_hero', $Page->show_hero ?? 0) == 1 ? '' : 'display: none;' }}">
             <label for="slider-content" class="form-label">Subtítulo <small class="text-muted">(opcional)</small></label>
-            <textarea class="form-control" id="slider-content" name="slider_content" rows="2" 
-                      placeholder="Texto adicional para mostrar debajo del título principal">{{ old('slider_content', $Page->slider_content ?? '') }}</textarea>
+            <textarea class="form-control" id="slider-content" name="hero_content" rows="2"
+                      placeholder="Texto adicional para mostrar debajo del título principal">{{ old('hero_content', $Page->hero_content ?? '') }}</textarea>
             <small class="text-muted">Texto breve que aparecerá debajo del título principal.</small>
         </div>
 
         {{-- Ocultar título H1 en el contenido principal --}}
         <div class="mb-3 form-check mt-4">
-            <input type="hidden" name="hide_title" value="0">
             <input type="checkbox" class="form-check-input" id="hide-title" name="hide_title" value="1"
                    {{ old('hide_title', $Page->hide_title ?? 0) == 1 ? 'checked' : '' }}>
             <label class="form-check-label" for="hide-title">Ocultar título H1 en el contenido principal</label>
@@ -106,11 +109,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const sliderImageInput = document.getElementById('slider-image');
     const currentImagePreview = document.getElementById('current-image-preview');
     const previewImageDisplay = document.getElementById('preview-image-display');
-    const currentSliderImageInput = document.getElementById('current-slider-image-input');
+    const currentSliderImageInput = document.getElementById('current-hero-image-input');
     
     // Logs para depuración detallada
     console.log('Estado inicial:');
-    console.log('- Valor de current_slider_image:', currentSliderImageInput ? currentSliderImageInput.value : 'no encontrado');
+    console.log('- Valor de current_hero_image:', currentSliderImageInput ? currentSliderImageInput.value : 'no encontrado');
     if (previewImageDisplay) {
         console.log('- Valor original de slider_image:', previewImageDisplay.getAttribute('data-original-value'));
         console.log('- Ruta de la imagen mostrada:', previewImageDisplay.getAttribute('data-path'));

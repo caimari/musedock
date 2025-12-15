@@ -94,6 +94,33 @@
     @endif
 @endif
 
+{{-- Hero para posts de blog (usa show_hero/hero_*) --}}
+@if(isset($post) && ($post->show_hero === true || $post->show_hero === 1 || $post->show_hero === "1"))
+    @php
+        $heroPath = !empty($post->hero_image) ? $post->hero_image : 'themes/default/img/hero/contact_hero.jpg';
+        $heroUrl = (str_starts_with($heroPath, '/media/') || str_starts_with($heroPath, 'http')) ? $heroPath : asset($heroPath);
+        $heroTitle = $post->hero_title ?: ($translation->title ?? $post->title);
+    @endphp
+    <div class="slider-area">
+        <div class="single-slider slider-height2 d-flex align-items-center" data-background="{{ $heroUrl }}">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-12">
+                        <div class="hero-cap text-center">
+                            <h2>{{ $heroTitle }}</h2>
+                            @if(!empty($post->hero_content))
+                                <div class="hero-subtitle mt-3">
+                                    {!! $post->hero_content !!}
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+
 {{-- Contenido principal de la página --}}
 <div class="{{ isset($post) ? 'container py-4' : ((isset($customizations) ? $customizations->container_class : null) ?? 'container py-4 page-container') }}">
     <article class="{{ isset($post) ? 'blog-post-single' : ((isset($customizations) ? $customizations->content_class : null) ?? 'page-content-wrapper') }}">
@@ -112,7 +139,7 @@
             @endif
 
             {{-- Título del post --}}
-            @if(empty($post->hide_title))
+            @if(empty($post->hide_title) && empty($post->show_hero))
                 <h1 class="post-title mb-3">{{ $translation->title }}</h1>
             @endif
 

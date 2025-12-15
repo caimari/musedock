@@ -16,6 +16,33 @@
         {{-- Contenido principal --}}
         <div class="col-lg-8">
             <article class="blog-post">
+                {{-- Hero --}}
+                @if(!empty($post->show_hero))
+                    @php
+                        $heroPath = !empty($post->hero_image) ? $post->hero_image : 'themes/default/img/hero/contact_hero.jpg';
+                        $heroUrl = (str_starts_with($heroPath, '/media/') || str_starts_with($heroPath, 'http')) ? $heroPath : asset($heroPath);
+                        $heroTitle = $post->hero_title ?: ($translation->title ?? $post->title);
+                    @endphp
+                    <div class="slider-area mb-4">
+                        <div class="single-slider slider-height2 d-flex align-items-center" data-background="{{ $heroUrl }}">
+                            <div class="container">
+                                <div class="row">
+                                    <div class="col-xl-12">
+                                        <div class="hero-cap text-center">
+                                            <h1>{{ $heroTitle }}</h1>
+                                            @if(!empty($post->hero_content))
+                                                <div class="hero-subtitle mt-3">
+                                                    {!! $post->hero_content !!}
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Imagen destacada --}}
                 @if($post->featured_image && !$post->hide_featured_image)
                     @php
@@ -27,7 +54,7 @@
                 @endif
 
                 {{-- Título --}}
-                @if(empty($post->hide_title))
+                @if(empty($post->hide_title) && empty($post->show_hero))
                     <h1 class="mb-3">{{ $translation->title ?? $post->title }}</h1>
                 @endif
 
