@@ -165,3 +165,36 @@ Route::post('/customer/tenant/{id}/retry', 'CaddyDomainManager\Controllers\Custo
 Route::get('/customer/tenant/{id}/health-check', 'CaddyDomainManager\Controllers\CustomerController@healthCheck')
     ->middleware('customer')
     ->name('customer.tenant.health-check');
+
+// ============================================
+// FREE SUBDOMAIN REQUEST
+// ============================================
+
+// Formulario para solicitar nuevo subdominio FREE
+Route::get('/customer/request-free-subdomain', 'CaddyDomainManager\Controllers\FreeSubdomainController@showForm')
+    ->middleware('customer')
+    ->name('customer.request-free-subdomain.form');
+
+// Procesar solicitud de subdominio FREE
+Route::post('/customer/request-free-subdomain', 'CaddyDomainManager\Controllers\FreeSubdomainController@submitRequest')
+    ->middleware('customer')
+    ->name('customer.request-free-subdomain.submit');
+
+// Verificar disponibilidad de subdominio FREE (AJAX)
+Route::get('/customer/check-free-subdomain', 'CaddyDomainManager\Controllers\FreeSubdomainController@checkAvailability')
+    ->middleware('customer')
+    ->name('customer.check-free-subdomain');
+
+// ============================================
+// CUSTOM DOMAIN REQUEST
+// ============================================
+
+// Formulario para incorporar dominio personalizado
+Route::get('/customer/request-custom-domain', 'CaddyDomainManager\Controllers\CustomDomainController@showForm')
+    ->middleware('customer')
+    ->name('customer.request-custom-domain.form');
+
+// Procesar solicitud de dominio personalizado
+Route::post('/customer/request-custom-domain', 'CaddyDomainManager\Controllers\CustomDomainController@submitRequest')
+    ->middleware('customer')
+    ->name('customer.request-custom-domain.submit');

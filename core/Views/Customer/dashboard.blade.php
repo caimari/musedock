@@ -330,8 +330,11 @@
         </div>
     </div>
 
-    <!-- Botón para solicitar dominio personalizado -->
+    <!-- Botones de acción -->
     <div class="text-center mt-4">
+        <a href="/customer/request-free-subdomain" class="btn btn-success me-2">
+            <i class="bi bi-gift"></i> Solicitar Subdominio FREE
+        </a>
         <a href="/customer/request-custom-domain" class="btn btn-outline-primary">
             <i class="bi bi-plus-circle"></i> Solicitar Dominio Personalizado
         </a>

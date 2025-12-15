@@ -120,3 +120,70 @@
     overflow-x: hidden !important;
   }
 }
+
+/* ========== GRID RESPONSIVO PARA IMÁGENES MÚLTIPLES ========== */
+/* Convertir párrafos con múltiples imágenes en grid responsivo */
+
+/* Grid en párrafos con múltiples imágenes */
+.page-body p:has(img + img),
+.post-content p:has(img + img),
+.page-content-wrapper p:has(img + img),
+.blog-post-single p:has(img + img) {
+  display: grid !important;
+  gap: 15px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  align-items: start;
+}
+
+/* Desktop grande: 4 columnas para muchas imágenes */
+@media (min-width: 1200px) {
+  .page-body p:has(img + img + img + img),
+  .post-content p:has(img + img + img + img),
+  .page-content-wrapper p:has(img + img + img + img),
+  .blog-post-single p:has(img + img + img + img) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .page-body p:has(img + img + img),
+  .post-content p:has(img + img + img),
+  .page-content-wrapper p:has(img + img + img),
+  .blog-post-single p:has(img + img + img) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .page-body p:has(img + img),
+  .post-content p:has(img + img),
+  .page-content-wrapper p:has(img + img),
+  .blog-post-single p:has(img + img) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Tablet: 2 columnas */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .page-body p:has(img + img),
+  .post-content p:has(img + img),
+  .page-content-wrapper p:has(img + img),
+  .blog-post-single p:has(img + img) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Móvil: 2 columnas para imágenes pequeñas (logos), 1 para imágenes grandes */
+@media (max-width: 767px) {
+  .page-body p:has(img + img),
+  .post-content p:has(img + img),
+  .page-content-wrapper p:has(img + img),
+  .blog-post-single p:has(img + img) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  /* Si las imágenes son muy grandes (más de 300px), usar 1 columna */
+  .page-body p:has(img + img) img,
+  .post-content p:has(img + img) img,
+  .page-content-wrapper p:has(img + img) img,
+  .blog-post-single p:has(img + img) img {
+    margin: 0 auto;
+  }
+}
