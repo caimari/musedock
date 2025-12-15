@@ -32,9 +32,10 @@
 }
 
 /* ========== RESPONSIVE IMAGES FIX ========== */
-/* Forzar todas las imágenes a ser responsivas en dispositivos móviles */
-@media (max-width: 991px) {
-  /* Resetear atributos width/height inline en todas las imágenes */
+/* Forzar todas las imágenes a ser responsivas en todos los tamaños de pantalla */
+
+/* Rango tablet/desktop pequeño: 992px - 1200px */
+@media (min-width: 992px) and (max-width: 1200px) {
   img,
   img[width],
   img[height],
@@ -53,7 +54,64 @@
     display: block;
   }
 
-  /* Asegurar overflow en contenedores */
+  .container,
+  .page-body,
+  .post-content,
+  article,
+  main {
+    overflow-x: hidden !important;
+  }
+}
+
+/* Rango tablet: 768px - 991px */
+@media (min-width: 768px) and (max-width: 991px) {
+  img,
+  img[width],
+  img[height],
+  .page-body img,
+  .post-content img,
+  .page-content-wrapper img,
+  .blog-post-single img,
+  article img,
+  .container img,
+  main img,
+  p img,
+  div img {
+    max-width: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    display: block;
+  }
+
+  .container,
+  .page-body,
+  .post-content,
+  article,
+  main {
+    overflow-x: hidden !important;
+  }
+}
+
+/* Móviles y tablets pequeñas: hasta 767px */
+@media (max-width: 767px) {
+  img,
+  img[width],
+  img[height],
+  .page-body img,
+  .post-content img,
+  .page-content-wrapper img,
+  .blog-post-single img,
+  article img,
+  .container img,
+  main img,
+  p img,
+  div img {
+    max-width: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    display: block;
+  }
+
   .container,
   .page-body,
   .post-content,
