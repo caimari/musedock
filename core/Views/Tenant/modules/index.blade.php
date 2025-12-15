@@ -20,7 +20,12 @@
             <div class="col-md-4 mb-3">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body d-flex flex-column">
-                        <h5 class="card-title">{{ $module['name'] }}</h5>
+                        <div class="d-flex align-items-start justify-content-between gap-2">
+                            <h5 class="card-title mb-0">{{ $module['name'] }}</h5>
+                            @if(!empty($module['version']))
+                                <span class="badge bg-light text-muted border">v{{ $module['version'] }}</span>
+                            @endif
+                        </div>
                         <p class="card-text flex-grow-1">{{ $module['description'] ?? __('no_description') ?? 'Sin descripción' }}</p>
 
                         <div class="mt-auto">
