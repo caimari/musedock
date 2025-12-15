@@ -198,9 +198,10 @@ class CsrfMiddleware
     {
         $uri = $_SERVER['REQUEST_URI'] ?? '/';
 
-        // Si es superadmin (comienza con /musedock)
-        if (strpos($uri, '/musedock') === 0) {
-            return '/musedock/login';
+        // Si es superadmin (comienza con /{ADMIN_PATH_MUSEDOCK})
+        $musedockBase = '/' . trim((string) \Screenart\Musedock\Env::get('ADMIN_PATH_MUSEDOCK', 'musedock'), '/');
+        if (strpos($uri, $musedockBase) === 0) {
+            return "{$musedockBase}/login";
         }
 
         // Si es customer (comienza con /customer)

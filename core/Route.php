@@ -315,6 +315,7 @@ public static function resolve() {
         }
         $handler = self::$routes[$method][$uri];
         $middlewares = self::$middlewares[$method][$uri] ?? [];
+        if (!self::enforceSuperadminAuth($uri, $middlewares)) return;
         if (!self::enforceTenantAdminAuth($uri, $middlewares)) return;
         if (!self::runMiddlewares($middlewares)) return;
         return self::callHandler($handler);
@@ -346,6 +347,7 @@ public static function resolve() {
                 }
                 array_shift($matches); // Quitamos el match completo
                 $middlewares = self::$middlewares[$method][$route] ?? [];
+                if (!self::enforceSuperadminAuth($uri, $middlewares)) return;
                 if (!self::enforceTenantAdminAuth($uri, $middlewares)) return;
                 if (!self::runMiddlewares($middlewares)) return;
                 return self::callHandler($handler, $matches);
@@ -408,6 +410,68 @@ private static function enforceTenantAdminAuth(string $uri, array $middlewares):
     $authMiddlewareClass = $middlewareRegistry['auth'];
     $authMiddleware = new $authMiddlewareClass();
     $result = $authMiddleware->handle();
+
+    return $result !== false;
+}
+
+private static function enforceSuperadminAuth(string $uri, array $middlewares): bool
+{
+    $configured = \Screenart\Musedock\Env::get('ADMIN_PATH_MUSEDOCK', 'musedock');
+    $configuredBase = '/' . trim((string)$configured, '/');
+    $legacyBase = '/musedock';
+
+    $bases = array_values(array_unique(array_filter([$configuredBase, $legacyBase])));
+
+    $matchedBase = null;
+    foreach ($bases as $base) {
+        if ($uri === $base || strpos($uri, $base . '/') === 0) {
+            $matchedBase = $base;
+            break;
+        }
+    }
+
+    if ($matchedBase === null) {
+        return true;
+    }
+
+    // Rutas públicas del superadmin (sin sesión)
+    $publicPrefixes = [
+        $matchedBase . '/login',
+        $matchedBase . '/password/forgot',
+        $matchedBase . '/password/reset',
+        $matchedBase . '/captcha',
+        $matchedBase . '/language/switch',
+    ];
+
+    foreach ($publicPrefixes as $prefix) {
+        if ($uri === $prefix || strpos($uri, $prefix . '/') === 0) {
+            return true;
+        }
+    }
+
+    // Si la ruta ya declara superadmin, no repetir
+    foreach ($middlewares as $entry) {
+        if (is_string($entry)) {
+            [$name] = array_pad(explode(':', $entry, 2), 2, null);
+            if ($name === 'superadmin') {
+                return true;
+            }
+        } elseif (is_object($entry)) {
+            $class = get_class($entry);
+            if ($class === \Screenart\Musedock\Middlewares\SuperAdminMiddleware::class) {
+                return true;
+            }
+        }
+    }
+
+    $middlewareRegistry = require __DIR__ . '/MiddlewareRegistry.php';
+    if (!isset($middlewareRegistry['superadmin'])) {
+        return false;
+    }
+
+    $superadminMiddlewareClass = $middlewareRegistry['superadmin'];
+    $superadminMiddleware = new $superadminMiddlewareClass();
+    $result = $superadminMiddleware->handle();
 
     return $result !== false;
 }

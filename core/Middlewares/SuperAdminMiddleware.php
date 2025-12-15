@@ -2,6 +2,7 @@
 namespace Screenart\Musedock\Middlewares;
 
 use Screenart\Musedock\Security\SessionSecurity;
+use Screenart\Musedock\Env;
 
 /**
  * Middleware para proteger el panel de SuperAdmin (/musedock/)
@@ -20,14 +21,16 @@ class SuperAdminMiddleware
     {
         SessionSecurity::startSession();
 
+        $adminBase = '/' . trim((string) Env::get('ADMIN_PATH_MUSEDOCK', 'musedock'), '/');
+
         // Permitir acceso a la página de login
         $requestUri = $_SERVER['REQUEST_URI'] ?? '';
-        if (strpos($requestUri, '/musedock/login') === 0) {
+        if (strpos($requestUri, $adminBase . '/login') === 0) {
             return true;
         }
 
         // Debug: Log estado de sesión para AJAX
-        if (strpos($requestUri, '/musedock/run-seeders') !== false) {
+        if (strpos($requestUri, $adminBase . '/run-seeders') !== false) {
             error_log("SuperAdminMiddleware [run-seeders] - Session ID: " . session_id());
             error_log("SuperAdminMiddleware [run-seeders] - super_admin isset: " . (isset($_SESSION['super_admin']) ? 'YES' : 'NO'));
             if (isset($_SESSION['super_admin'])) {
@@ -56,12 +59,12 @@ class SuperAdminMiddleware
                 echo json_encode([
                     'success' => false,
                     'error' => 'Acceso denegado. Solo SuperAdmins pueden acceder.',
-                    'redirect' => '/musedock/login?error=forbidden'
+                    'redirect' => $adminBase . '/login?error=forbidden'
                 ]);
                 exit;
             }
 
-            header("Location: /musedock/login?error=forbidden");
+            header("Location: {$adminBase}/login?error=forbidden");
             exit;
         }
 
@@ -88,13 +91,13 @@ class SuperAdminMiddleware
             echo json_encode([
                 'success' => false,
                 'error' => 'No autenticado',
-                'redirect' => '/musedock/login'
+                'redirect' => $adminBase . '/login'
             ]);
             exit;
         }
 
         // Redirigir al login
-        header("Location: /musedock/login");
+        header("Location: {$adminBase}/login");
         exit;
     }
 
@@ -117,11 +120,12 @@ class SuperAdminMiddleware
 
         // 3. Rutas específicas que siempre deben responder JSON
         $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        $adminBase = '/' . trim((string) Env::get('ADMIN_PATH_MUSEDOCK', 'musedock'), '/');
         $jsonRoutes = [
-            '/musedock/settings/check-updates',
-            '/musedock/run-seeders',
-            '/musedock/settings/clear-flashes',
-            '/musedock/media/api/',
+            $adminBase . '/settings/check-updates',
+            $adminBase . '/run-seeders',
+            $adminBase . '/settings/clear-flashes',
+            $adminBase . '/media/api/',
             '/api/',
         ];
 

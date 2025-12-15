@@ -38,7 +38,8 @@ class RoleMiddleware
             flash('error', 'Sesión no válida.');
             // Redirigir a login dinámico según contexto (tenant o superadmin)
             // Usar $GLOBALS['tenant'] en lugar de $tenantId (sesión) para determinar el contexto
-            $loginUrl = isset($GLOBALS['tenant']) ? admin_url('login') : '/musedock/login';
+            $musedockBase = '/' . trim((string) \Screenart\Musedock\Env::get('ADMIN_PATH_MUSEDOCK', 'musedock'), '/');
+            $loginUrl = isset($GLOBALS['tenant']) ? admin_url('login') : "{$musedockBase}/login";
             header("Location: {$loginUrl}");
             exit;
         }
@@ -47,7 +48,8 @@ class RoleMiddleware
             flash('error', 'No tienes el rol necesario para acceder a esta sección.');
             // Redirigir a dashboard dinámico según contexto (tenant o superadmin)
             // Usar $GLOBALS['tenant'] en lugar de $tenantId (sesión) para determinar el contexto
-            $dashboardUrl = isset($GLOBALS['tenant']) ? admin_url('dashboard') : '/musedock/dashboard';
+            $musedockBase = '/' . trim((string) \Screenart\Musedock\Env::get('ADMIN_PATH_MUSEDOCK', 'musedock'), '/');
+            $dashboardUrl = isset($GLOBALS['tenant']) ? admin_url('dashboard') : "{$musedockBase}/dashboard";
             header("Location: {$dashboardUrl}");
             exit;
         }
