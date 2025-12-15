@@ -53,6 +53,7 @@
                   @enderror
                 </div>
                 <small class="text-muted">URL amigable. Se genera automáticamente desde el nombre.</small>
+                <span id="slug-check-result" class="ms-1 fw-bold"></span>
               </div>
 
               {{-- Descripción --}}
@@ -153,26 +154,4 @@
 </script>
 @endsection
 
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const slugInput = document.getElementById('slug');
-  const toggleSlugBtn = document.getElementById('toggle-slug-edit');
-
-  // Toggle edición de slug
-  if (toggleSlugBtn && slugInput) {
-    toggleSlugBtn.addEventListener('click', function() {
-      if (slugInput.readOnly) {
-        slugInput.readOnly = false;
-        this.querySelector('i').className = 'bi bi-unlock';
-        slugInput.focus();
-      } else {
-        slugInput.readOnly = true;
-        this.querySelector('i').className = 'bi bi-lock';
-      }
-    });
-  }
-});
-</script>
-@endpush
-@endsection
+@include('Blog::partials._taxonomy_slug_scripts', ['type' => 'tag', 'entityId' => $tag->id])

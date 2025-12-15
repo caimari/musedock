@@ -53,6 +53,7 @@
                   @enderror
                 </div>
                 <small class="text-muted">{{ __('blog.category.slug_help') }}</small>
+                <span id="slug-check-result" class="ms-1 fw-bold"></span>
               </div>
 
               {{-- Descripción --}}
@@ -206,24 +207,8 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const slugInput = document.getElementById('slug');
-  const toggleSlugBtn = document.getElementById('toggle-slug-edit');
   const imageInput = document.getElementById('image');
   const imagePreview = document.getElementById('image-preview');
-
-  // Toggle edición de slug
-  if (toggleSlugBtn && slugInput) {
-    toggleSlugBtn.addEventListener('click', function() {
-      if (slugInput.readOnly) {
-        slugInput.readOnly = false;
-        this.querySelector('i').className = 'bi bi-unlock';
-        slugInput.focus();
-      } else {
-        slugInput.readOnly = true;
-        this.querySelector('i').className = 'bi bi-lock';
-      }
-    });
-  }
 
   // Preview de imagen
   if (imageInput && imagePreview) {
@@ -240,3 +225,5 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 @endpush
 @endsection
+
+@include('Blog::partials._taxonomy_slug_scripts', ['type' => 'category', 'entityId' => $category->id])

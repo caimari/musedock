@@ -2,7 +2,7 @@
     "name": "Blog",
     "slug": "blog",
     "description": "Sistema de Blog completo con categorías, etiquetas y traducciones multiidioma para MuseDock CMS.",
-    "version": "1.0.0",
+    "version": "2.0.1",
     "author": "MuseDock Team",
     "active": true,
     "cms_enabled": true,

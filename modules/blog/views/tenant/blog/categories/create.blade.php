@@ -47,6 +47,7 @@
                   <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
                 <small class="text-muted">{{ __('blog.category.slug_help') }}</small>
+                <span id="slug-check-result" class="ms-1 fw-bold"></span>
               </div>
 
               {{-- Descripción --}}
@@ -146,6 +147,8 @@
   </div>
 </div>
 @endsection
+
+@include('Blog::partials._taxonomy_slug_scripts', ['type' => 'category', 'entityId' => 'new'])
 
 @push('scripts')
 <script>

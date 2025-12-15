@@ -13,6 +13,30 @@ class BlogTagController
 {
     use RequiresPermission;
 
+    private function flashValidationErrors(array $errors): void
+    {
+        $errors = array_values(array_filter(array_map('trim', $errors)));
+        $message = !empty($errors) ? implode("\n", $errors) : 'Error de validación.';
+        flash('error', $message);
+    }
+
+    private function isUniqueViolation(\Throwable $e): bool
+    {
+        $sqlState = method_exists($e, 'getCode') ? (string) $e->getCode() : '';
+        if ($sqlState === '23505' || $sqlState === '23000') {
+            return true;
+        }
+        $message = $e->getMessage();
+        return stripos($message, 'duplicate key value') !== false
+            || stripos($message, 'unique constraint') !== false
+            || stripos($message, 'Duplicate entry') !== false;
+    }
+
+    private function flashDuplicateSlug(): void
+    {
+        flash('error', 'El slug ya está en uso.');
+    }
+
     /**
      * Verificar si el usuario actual tiene un permiso específico
      */
@@ -131,13 +155,22 @@ class BlogTagController
         $errors = BlogTagRequest::validate($data);
 
         if (!empty($errors)) {
-            flash('error', __('blog.tag.error_validation', ['errors' => implode('<br>', $errors)]));
+            $this->flashValidationErrors($errors);
             header("Location: /" . admin_path() . "/blog/tags/create");
             exit;
         }
 
         // Crear la etiqueta
-        $tag = BlogTag::create($data);
+        try {
+            $tag = BlogTag::create($data);
+        } catch (\Throwable $e) {
+            if ($this->isUniqueViolation($e)) {
+                $this->flashDuplicateSlug();
+                header("Location: /" . admin_path() . "/blog/tags/create");
+                exit;
+            }
+            throw $e;
+        }
 
         flash('success', __('blog.tag.success_created'));
         header("Location: /" . admin_path() . "/blog/tags/{$tag->id}/edit");
@@ -246,18 +279,19 @@ class BlogTagController
         // Asegurar que tenant_id no cambie
         $data['tenant_id'] = $tenantId;
 
-        // Validación
-        $errors = BlogTagRequest::validate($rawData, $id);
+        // Validación (usar datos procesados para validar el slug real)
+        $validationData = self::processFormData($data);
+        $errors = BlogTagRequest::validate($validationData, $id);
         if (!empty($errors)) {
             $_SESSION['_old_input'] = $rawData;
-            flash('error', __('blog.tag.error_validation', ['errors' => implode('<br>', $errors)]));
+            $this->flashValidationErrors($errors);
             header("Location: /" . admin_path() . "/blog/tags/{$id}/edit");
             exit;
         }
         unset($_SESSION['_old_input']);
 
         // Procesar datos
-        $data = self::processFormData($data);
+        $data = $validationData;
 
         try {
             $pdo = Database::connect();
@@ -268,8 +302,13 @@ class BlogTagController
 
             $pdo->commit();
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             if ($pdo && $pdo->inTransaction()) { $pdo->rollBack(); }
+            if ($this->isUniqueViolation($e)) {
+                $this->flashDuplicateSlug();
+                header("Location: /" . admin_path() . "/blog/tags/{$id}/edit");
+                exit;
+            }
             error_log("ERROR en transacción update etiqueta {$id}: " . $e->getMessage());
             $_SESSION['_old_input'] = $rawData;
             flash('error', __('blog.tag.error_update', ['error' => $e->getMessage()]));

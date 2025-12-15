@@ -97,3 +97,7 @@ Route::get('/{slug}', function ($slug) {
 
 // Verificación AJAX de slug duplicado
 Route::post('/ajax/check-slug', 'ajax.SlugController@check')->name('slug.check');
+
+// Verificación AJAX de slug duplicado (Blog categorías/tags)
+Route::post('/ajax/blog/check-category-slug', 'ajax.BlogSlugController@checkCategory')->name('blog.slug.category.check');
+Route::post('/ajax/blog/check-tag-slug', 'ajax.BlogSlugController@checkTag')->name('blog.slug.tag.check');

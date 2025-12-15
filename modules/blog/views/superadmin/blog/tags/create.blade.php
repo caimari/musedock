@@ -47,6 +47,7 @@
                   <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
                 <small class="text-muted">URL amigable. Se genera automáticamente desde el nombre.</small>
+                <span id="slug-check-result" class="ms-1 fw-bold"></span>
               </div>
 
               {{-- Descripción --}}
@@ -102,32 +103,4 @@
   </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const nameInput = document.getElementById('name');
-  const slugInput = document.getElementById('slug');
-
-  // Auto-generar slug desde nombre
-  if (nameInput && slugInput) {
-    nameInput.addEventListener('input', function() {
-      const slug = generateSlug(this.value);
-      slugInput.value = slug;
-    });
-  }
-
-  // Función para generar slug
-  function generateSlug(text) {
-    return text
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9\s-]/g, '')
-      .trim()
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
-  }
-});
-</script>
-@endpush
+@include('Blog::partials._taxonomy_slug_scripts', ['type' => 'tag', 'entityId' => 'new'])
