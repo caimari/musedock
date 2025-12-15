@@ -270,6 +270,14 @@
                                 <?= $tenant['status'] === 'active' ? '✅ Activo' : '❌ ' . ucfirst($tenant['status']) ?>
                             </span>
 
+                            <!-- Health Check Status -->
+                            <?php if (isset($tenant['health_badge'])): ?>
+                            <span class="badge <?= $tenant['health_status'] === 'healthy' ? 'bg-success' : ($tenant['health_status'] === 'degraded' ? 'bg-warning' : 'bg-danger') ?>"
+                                  title="<?= htmlspecialchars(implode(', ', $tenant['health_check']['errors'] ?? [])) ?>">
+                                <?= $tenant['health_badge'] ?>
+                            </span>
+                            <?php endif; ?>
+
                             <?php if ($tenant['cloudflare_proxied']): ?>
                             <span class="badge bg-warning text-dark">
                                 <i class="bi bi-shield-fill-check"></i> Cloudflare Proxy
@@ -283,6 +291,16 @@
                             <?php endif; ?>
                         </div>
 
+                        <!-- Detalles del Health Check -->
+                        <?php if (isset($tenant['health_check']) && !empty($tenant['health_check']['warnings'])): ?>
+                        <div class="mt-2">
+                            <small class="text-warning">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                <?= implode(', ', $tenant['health_check']['warnings']) ?>
+                            </small>
+                        </div>
+                        <?php endif; ?>
+
                         <div class="mt-3">
                             <a href="https://<?= htmlspecialchars($tenant['domain']) ?>/<?= \Screenart\Musedock\Env::get('ADMIN_PATH_TENANT', 'admin') ?>"
                                class="btn btn-sm btn-primary" target="_blank">
@@ -292,12 +310,31 @@
                                class="btn btn-sm btn-outline-primary" target="_blank">
                                 <i class="bi bi-eye"></i> Ver Sitio
                             </a>
+
+                            <!-- Botón de Retry si hay problemas -->
+                            <?php if (isset($tenant['needs_retry']) && $tenant['needs_retry']): ?>
+                            <button class="btn btn-sm btn-warning" onclick="retryProvisioning(<?= $tenant['id'] ?>, '<?= htmlspecialchars($tenant['domain']) ?>')">
+                                <i class="bi bi-arrow-clockwise"></i> Reintentar Configuración
+                            </button>
+                            <?php endif; ?>
+
+                            <!-- Botón Health Check Manual -->
+                            <button class="btn btn-sm btn-outline-secondary" onclick="runHealthCheck(<?= $tenant['id'] ?>, '<?= htmlspecialchars($tenant['domain']) ?>')">
+                                <i class="bi bi-heart-pulse"></i> Verificar Estado
+                            </button>
                         </div>
                     </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </div>
         </div>
+    </div>
+
+    <!-- Botón para solicitar dominio personalizado -->
+    <div class="text-center mt-4">
+        <a href="/customer/request-custom-domain" class="btn btn-outline-primary">
+            <i class="bi bi-plus-circle"></i> Solicitar Dominio Personalizado
+        </a>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -334,6 +371,156 @@
                     .catch(error => {
                         console.error('Error:', error);
                         window.location.href = '/customer/login';
+                    });
+                }
+            });
+        }
+
+        /**
+         * Reintentar provisioning de un tenant
+         */
+        function retryProvisioning(tenantId, domain) {
+            Swal.fire({
+                title: 'Reintentar Configuración',
+                html: `¿Quieres reintentar la configuración de <strong>${domain}</strong>?<br><small>Esto volverá a ejecutar la configuración de Cloudflare y Caddy.</small>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#ffc107',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, reintentar',
+                cancelButtonText: 'Cancelar',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    const formData = new FormData();
+                    formData.append('_csrf_token', '<?= \Screenart\Musedock\Security\CSRFProtection::generateToken() ?>');
+
+                    return fetch(`/customer/tenant/${tenantId}/retry`, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) {
+                            throw new Error(data.error || 'Error desconocido');
+                        }
+                        return data;
+                    })
+                    .catch(error => {
+                        Swal.showValidationMessage(`Error: ${error.message}`);
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Configuración reiniciada!',
+                        text: 'El sitio debería estar funcionando en unos momentos.',
+                        confirmButtonColor: '#667eea'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                }
+            });
+        }
+
+        /**
+         * Ejecutar health check manual
+         */
+        function runHealthCheck(tenantId, domain) {
+            Swal.fire({
+                title: 'Verificando Estado',
+                html: `Comprobando el estado de <strong>${domain}</strong>...`,
+                icon: 'info',
+                showConfirmButton: false,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+
+                    fetch(`/customer/tenant/${tenantId}/health-check`, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) {
+                            throw new Error(data.error || 'Error desconocido');
+                        }
+
+                        const health = data.health_check;
+                        let icon = 'success';
+                        let title = '✅ Todo funciona correctamente';
+
+                        if (health.overall_status === 'error') {
+                            icon = 'error';
+                            title = '❌ Se detectaron errores';
+                        } else if (health.overall_status === 'degraded') {
+                            icon = 'warning';
+                            title = '⚠️ Funcionamiento degradado';
+                        }
+
+                        let html = '<div class="text-left">';
+
+                        // DNS
+                        if (health.checks.dns) {
+                            html += `<p><strong>DNS:</strong> ${health.checks.dns.passed ? '✅' : '❌'} ${health.checks.dns.message}</p>`;
+                        }
+
+                        // HTTP
+                        if (health.checks.http) {
+                            html += `<p><strong>HTTP/HTTPS:</strong> ${health.checks.http.passed ? '✅' : '❌'} ${health.checks.http.message}</p>`;
+                        }
+
+                        // SSL
+                        if (health.checks.ssl) {
+                            html += `<p><strong>SSL:</strong> ${health.checks.ssl.passed ? '✅' : '❌'} ${health.checks.ssl.message}</p>`;
+                        }
+
+                        // Cloudflare
+                        if (health.checks.cloudflare) {
+                            html += `<p><strong>Cloudflare:</strong> ${health.checks.cloudflare.message}</p>`;
+                        }
+
+                        // Errores
+                        if (health.errors && health.errors.length > 0) {
+                            html += '<hr><p><strong>Errores:</strong></p><ul>';
+                            health.errors.forEach(error => {
+                                html += `<li class="text-danger">${error}</li>`;
+                            });
+                            html += '</ul>';
+                        }
+
+                        // Warnings
+                        if (health.warnings && health.warnings.length > 0) {
+                            html += '<hr><p><strong>Advertencias:</strong></p><ul>';
+                            health.warnings.forEach(warning => {
+                                html += `<li class="text-warning">${warning}</li>`;
+                            });
+                            html += '</ul>';
+                        }
+
+                        html += '</div>';
+
+                        Swal.fire({
+                            icon: icon,
+                            title: title,
+                            html: html,
+                            confirmButtonColor: '#667eea',
+                            width: 600
+                        });
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: error.message,
+                            confirmButtonColor: '#667eea'
+                        });
                     });
                 }
             });

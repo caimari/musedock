@@ -171,8 +171,8 @@ class CustomerController
             exit;
         }
 
-        // Obtener tenants del customer
-        $tenants = Customer::getTenants($customerId);
+        // Obtener tenants del customer con health check
+        $tenants = Customer::getTenantsWithHealthCheck($customerId);
 
         // Obtener estadísticas
         $stats = Customer::getStats($customerId);
@@ -385,6 +385,113 @@ class CustomerController
                 strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') ||
                (!empty($_SERVER['HTTP_ACCEPT']) &&
                 strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+    }
+
+    /**
+     * Reintentar provisioning de un tenant
+     *
+     * POST /customer/tenant/{id}/retry
+     */
+    public function retryProvisioning(int $tenantId): void
+    {
+        SessionSecurity::startSession();
+
+        // Validar CSRF
+        if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
+            $this->jsonResponse(['success' => false, 'error' => 'Token CSRF inválido'], 403);
+            return;
+        }
+
+        $customerId = $_SESSION['customer']['id'];
+
+        try {
+            $pdo = \Screenart\Musedock\Database::connect();
+
+            // Verificar que el tenant pertenece al customer
+            $stmt = $pdo->prepare("SELECT * FROM tenants WHERE id = ? AND customer_id = ?");
+            $stmt->execute([$tenantId, $customerId]);
+            $tenant = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$tenant) {
+                $this->jsonResponse(['success' => false, 'error' => 'Tenant no encontrado'], 404);
+                return;
+            }
+
+            // Extraer subdomain
+            $subdomain = explode('.', $tenant['domain'])[0];
+
+            // Reintentar configuración
+            $provisioningService = new \CaddyDomainManager\Services\ProvisioningService();
+
+            // Configurar Cloudflare si falta
+            if (!$tenant['cloudflare_record_id']) {
+                Logger::info("[CustomerController] Retrying Cloudflare for tenant {$tenantId}");
+                $provisioningService->configureCloudflare($tenantId, $subdomain);
+            }
+
+            // Configurar Caddy si falta
+            if (!$tenant['caddy_route_id'] || $tenant['caddy_status'] !== 'active') {
+                Logger::info("[CustomerController] Retrying Caddy for tenant {$tenantId}");
+                $provisioningService->configureCaddy($tenantId, $tenant['domain']);
+            }
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Configuración reiniciada exitosamente'
+            ]);
+
+        } catch (\Exception $e) {
+            Logger::error("[CustomerController] Retry provisioning failed: " . $e->getMessage());
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al reintentar configuración: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Ejecutar health check manual de un tenant
+     *
+     * GET /customer/tenant/{id}/health-check
+     */
+    public function healthCheck(int $tenantId): void
+    {
+        SessionSecurity::startSession();
+
+        $customerId = $_SESSION['customer']['id'];
+
+        try {
+            $pdo = \Screenart\Musedock\Database::connect();
+
+            // Verificar que el tenant pertenece al customer
+            $stmt = $pdo->prepare("SELECT * FROM tenants WHERE id = ? AND customer_id = ?");
+            $stmt->execute([$tenantId, $customerId]);
+            $tenant = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$tenant) {
+                $this->jsonResponse(['success' => false, 'error' => 'Tenant no encontrado'], 404);
+                return;
+            }
+
+            // Ejecutar health check
+            $healthCheck = \CaddyDomainManager\Services\HealthCheckService::check(
+                $tenant['domain'],
+                $tenant['is_subdomain'],
+                $tenant['cloudflare_proxied']
+            );
+
+            $this->jsonResponse([
+                'success' => true,
+                'health_check' => $healthCheck
+            ]);
+
+        } catch (\Exception $e) {
+            Logger::error("[CustomerController] Health check failed: " . $e->getMessage());
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al verificar estado: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

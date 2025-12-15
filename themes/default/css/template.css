@@ -32,3 +32,46 @@
 .sidebar [class*="widget"]:last-child {
   margin-bottom: 0 !important;
 }
+
+/* Hacer imágenes responsivas en el contenido de páginas y posts */
+.page-body img,
+.post-content img,
+.page-content-wrapper img,
+.blog-post-single img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+}
+
+/* Asegurar que iframes y videos también sean responsivos */
+.page-body iframe,
+.post-content iframe,
+.page-content-wrapper iframe,
+.blog-post-single iframe,
+.page-body video,
+.post-content video,
+.page-content-wrapper video,
+.blog-post-single video {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* Prevenir overflow horizontal en contenido */
+.page-body,
+.post-content,
+.page-content-wrapper,
+.blog-post-single {
+  overflow-x: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Asegurar que tablas también sean responsivas */
+.page-body table,
+.post-content table,
+.page-content-wrapper table,
+.blog-post-single table {
+  max-width: 100%;
+  overflow-x: auto;
+  display: block;
+}

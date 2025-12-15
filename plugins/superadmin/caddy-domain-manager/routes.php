@@ -155,3 +155,13 @@ Route::get('/customer/profile', 'CaddyDomainManager\Controllers\CustomerControll
 Route::post('/customer/logout', 'CaddyDomainManager\Controllers\CustomerController@logout')
     ->middleware('customer')
     ->name('customer.logout');
+
+// Retry provisioning de un tenant
+Route::post('/customer/tenant/{id}/retry', 'CaddyDomainManager\Controllers\CustomerController@retryProvisioning')
+    ->middleware('customer')
+    ->name('customer.tenant.retry');
+
+// Health check manual de un tenant
+Route::get('/customer/tenant/{id}/health-check', 'CaddyDomainManager\Controllers\CustomerController@healthCheck')
+    ->middleware('customer')
+    ->name('customer.tenant.health-check');

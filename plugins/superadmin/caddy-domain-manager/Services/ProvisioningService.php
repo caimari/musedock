@@ -17,7 +17,8 @@ use Screenart\Musedock\Services\TenantCreationService;
  * 4. Aplicar configuración por defecto (permisos, roles, menús)
  * 5. Configurar Cloudflare (CNAME + proxy orange)
  * 6. Configurar Caddy (SSL automático)
- * 7. Enviar email de bienvenida
+ * 7. Ejecutar health check inicial
+ * 8. Enviar email de bienvenida
  *
  * Incluye IDEMPOTENCIA (mejora #6): puede resumir registros incompletos
  *
@@ -110,7 +111,11 @@ class ProvisioningService
         // Paso 4: Configurar Caddy (no bloquea si falla)
         $caddyConfigured = $this->configureCaddy($tenantId, $fullDomain);
 
-        // Paso 5: Enviar email de bienvenida (no bloquea si falla, solo si está habilitado)
+        // Paso 5: Health check inicial (esperar 5 segundos para que se propague)
+        sleep(5);
+        $healthCheck = $this->runHealthCheck($tenantId, $fullDomain, true);
+
+        // Paso 6: Enviar email de bienvenida (no bloquea si falla, solo si está habilitado)
         if ($sendWelcomeEmail) {
             $this->sendWelcomeEmail($customerData, $fullDomain, $language);
         }
@@ -125,6 +130,7 @@ class ProvisioningService
             'domain' => $fullDomain,
             'cloudflare_configured' => $cloudflareConfigured,
             'caddy_configured' => $caddyConfigured,
+            'health_check' => $healthCheck,
             'error' => null
         ];
     }
@@ -697,6 +703,44 @@ https://{$fullDomain}
             Logger::error("[ProvisioningService] Failed to apply tenant defaults: " . $e->getMessage());
             // Re-lanzar la excepción para que la transacción haga rollback
             throw new \Exception("Error aplicando configuración por defecto del tenant: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Ejecuta health check del dominio
+     *
+     * @param int $tenantId
+     * @param string $domain
+     * @param bool $isSubdomain
+     * @return array Health check result
+     */
+    private function runHealthCheck(int $tenantId, string $domain, bool $isSubdomain = true): array
+    {
+        try {
+            // Obtener info del tenant para saber si está proxied
+            $stmt = $this->pdo->prepare("SELECT cloudflare_proxied FROM tenants WHERE id = ?");
+            $stmt->execute([$tenantId]);
+            $tenant = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            $shouldBeProxied = $tenant ? (bool) $tenant['cloudflare_proxied'] : false;
+
+            // Ejecutar health check
+            $healthCheck = HealthCheckService::check($domain, $isSubdomain, $shouldBeProxied);
+
+            Logger::info("[ProvisioningService] Health check completed for {$domain}: " . $healthCheck['overall_status']);
+
+            return $healthCheck;
+
+        } catch (\Exception $e) {
+            Logger::warning("[ProvisioningService] Health check failed for {$domain}: " . $e->getMessage());
+            return [
+                'domain' => $domain,
+                'overall_status' => 'error',
+                'checks' => [],
+                'errors' => ['Health check failed: ' . $e->getMessage()],
+                'warnings' => [],
+                'timestamp' => date('Y-m-d H:i:s')
+            ];
         }
     }
 }

@@ -295,4 +295,38 @@ class Customer
             'cloudflare_protected' => $cloudflareProtected
         ];
     }
+
+    /**
+     * Obtiene tenants con información de health check
+     *
+     * @param int $customerId
+     * @return array Tenants con estado detallado
+     */
+    public static function getTenantsWithHealthCheck(int $customerId): array
+    {
+        $tenants = self::getTenants($customerId);
+
+        // Añadir health check a cada tenant
+        foreach ($tenants as &$tenant) {
+            $healthCheck = \CaddyDomainManager\Services\HealthCheckService::check(
+                $tenant['domain'],
+                $tenant['is_subdomain'],
+                $tenant['cloudflare_proxied']
+            );
+
+            $tenant['health_check'] = $healthCheck;
+            $tenant['health_status'] = $healthCheck['overall_status'];
+            $tenant['health_badge'] = \CaddyDomainManager\Services\HealthCheckService::getStatusBadge($healthCheck);
+
+            // Detectar si necesita retry
+            $tenant['needs_retry'] = (
+                !$tenant['cloudflare_record_id'] ||
+                !$tenant['caddy_route_id'] ||
+                $tenant['caddy_status'] !== 'active' ||
+                $healthCheck['overall_status'] === 'error'
+            );
+        }
+
+        return $tenants;
+    }
 }
