@@ -502,6 +502,99 @@ class SettingsController
     }
 
     /**
+     * Muestra la página de ajustes de cookies (por tenant)
+     */
+    public function cookies()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.view');
+
+        $tenantId = tenant_id();
+        if (!$tenantId) {
+            $_SESSION['error'] = 'No se ha detectado el tenant actual';
+            header('Location: /' . admin_path());
+            exit;
+        }
+
+        $settings = $this->getTenantSettings($tenantId);
+
+        // Páginas publicadas del tenant para links legales
+        $availablePages = [];
+        try {
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("
+              SELECT p.id, p.title, s.slug, s.prefix
+              FROM pages p
+              LEFT JOIN slugs s ON s.reference_id = p.id AND s.module = 'pages' AND s.tenant_id = p.tenant_id
+              WHERE p.status = 'published' AND p.tenant_id = ?
+              ORDER BY p.title ASC
+            ");
+            $stmt->execute([$tenantId]);
+            $availablePages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            error_log("Error getting tenant pages for cookies settings: " . $e->getMessage());
+        }
+
+        return View::renderTenantAdmin('settings/cookies', [
+            'title' => 'Configuración de Cookies',
+            'settings' => $settings,
+            'availablePages' => $availablePages,
+        ]);
+    }
+
+    /**
+     * Guarda los ajustes de cookies (por tenant)
+     */
+    public function updateCookies()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.edit');
+
+        $tenantId = tenant_id();
+        if (!$tenantId) {
+            $_SESSION['error'] = 'No se ha detectado el tenant actual';
+            header('Location: /' . admin_path());
+            exit;
+        }
+
+        try {
+            $pdo = Database::connect();
+            $pdo->beginTransaction();
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+            $keys = [
+                'cookies_enabled', 'cookies_text', 'cookies_accept_basic',
+                'cookies_accept_all', 'cookies_more_info', 'cookies_policy_url',
+                'cookies_terms_text', 'cookies_terms_url'
+            ];
+
+            foreach ($keys as $key) {
+                $value = $_POST[$key] ?? '';
+
+                if ($key === 'cookies_enabled') {
+                    $value = isset($_POST['cookies_enabled']) ? '1' : '0';
+                }
+
+                $this->saveTenantSetting($pdo, $tenantId, $key, $value, $driver);
+            }
+
+            $pdo->commit();
+            clear_tenant_settings_cache();
+
+            $_SESSION['success'] = 'Configuración de cookies guardada correctamente.';
+        } catch (\Exception $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log("Error updating tenant cookies settings: " . $e->getMessage());
+            $_SESSION['error'] = 'Error al guardar la configuración de cookies: ' . $e->getMessage();
+        }
+
+        header('Location: /' . admin_path() . '/settings/cookies');
+        exit;
+    }
+
+    /**
      * Guarda los ajustes SEO y Social
      */
     public function updateSeo()

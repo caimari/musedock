@@ -184,6 +184,14 @@ Route::post("$adminPath/settings/seo", 'tenant.SettingsController@updateSeo')
      ->middleware(['auth', 'permission:settings.edit'])
      ->name('tenant.settings.seo.update');
 
+// Settings - Cookies
+Route::get("$adminPath/settings/cookies", 'tenant.SettingsController@cookies')
+     ->middleware(['auth', 'permission:settings.view'])
+     ->name('tenant.settings.cookies');
+Route::post("$adminPath/settings/cookies", 'tenant.SettingsController@updateCookies')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.settings.cookies.update');
+
 // Languages (Idiomas del Tenant)
 Route::get("$adminPath/languages", 'tenant.LanguagesController@index')
      ->middleware(['auth', 'permission:settings.view'])

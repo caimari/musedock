@@ -10,7 +10,7 @@
 	      <div class="breadcrumb">
 	        <a href="{{ route('blog.posts.index') }}">Posts</a> <span class="mx-2">/</span> <span>{{ e($post->title ?? 'Editando...') }}</span>
 	      </div>
-	      <div class="btn-group">
+	      <div class="d-flex align-items-center gap-2">
 	        <a href="{{ route('blog.posts.revisions', ['id' => $post->id]) }}" class="btn btn-sm btn-outline-secondary" title="{{ __('pages.view_revisions') }}">
 	          <i class="bi bi-clock-history me-1"></i> {{ __('pages.revisions') }}@if(($post->revision_count ?? 0) > 0) ({{ $post->revision_count }})@endif
 	        </a>
