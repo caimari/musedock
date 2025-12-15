@@ -670,7 +670,8 @@ document.body.addEventListener('click', function(e) {
             .catch(err => {
                 console.error("[Modal Trigger] Error en fetch:", err);
                 Swal.close();
-                showError(`Error de red al obtener detalles (${err.message}). Usando datos básicos.`);
+                // No bloquear UX por fallo de detalles: abrir modal con datos básicos sin alerta extra.
+                console.warn(`[Modal Trigger] No se pudieron obtener detalles (HTTP). Usando datos básicos.`, err);
                 const basicInfo = { id: mediaId, url: mediaUrl, alt_text: mediaAlt, caption: mediaCaption, filename: mediaUrl ? mediaUrl.split('/').pop() : 'Archivo' };
                 createMediaModal(basicInfo);
             });
