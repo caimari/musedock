@@ -33,11 +33,15 @@
   margin-bottom: 0 !important;
 }
 
-/* Hacer imágenes responsivas en el contenido de páginas y posts */
+/* Hacer imágenes responsivas en TODO el contenido - Aplicación global */
 .page-body img,
 .post-content img,
 .page-content-wrapper img,
-.blog-post-single img {
+.blog-post-single img,
+article img,
+.container img,
+main img,
+.content img {
   max-width: 100% !important;
   height: auto !important;
   display: block;
@@ -48,10 +52,18 @@
 .post-content iframe,
 .page-content-wrapper iframe,
 .blog-post-single iframe,
+article iframe,
+.container iframe,
+main iframe,
+.content iframe,
 .page-body video,
 .post-content video,
 .page-content-wrapper video,
-.blog-post-single video {
+.blog-post-single video,
+article video,
+.container video,
+main video,
+.content video {
   max-width: 100% !important;
   height: auto !important;
 }
@@ -60,7 +72,10 @@
 .page-body,
 .post-content,
 .page-content-wrapper,
-.blog-post-single {
+.blog-post-single,
+article,
+.container,
+main {
   overflow-x: hidden;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -70,7 +85,10 @@
 .page-body table,
 .post-content table,
 .page-content-wrapper table,
-.blog-post-single table {
+.blog-post-single table,
+article table,
+.container table,
+main table {
   max-width: 100%;
   overflow-x: auto;
   display: block;
