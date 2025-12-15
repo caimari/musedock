@@ -288,12 +288,8 @@
               <div class="mb-3">
                 <select class="form-select @error('categories') is-invalid @enderror" name="categories[]" id="categories" multiple size="5">
                   @php
-                    // Extraer IDs de categorías del post (usando PHP nativo)
-                    $postCategories = $post->categories ?? [];
-                    $selectedCategoryIds = array_map(function($cat) {
-                        return is_object($cat) ? $cat->id : ($cat['id'] ?? null);
-                    }, $postCategories);
-                    $selectedCategoryIds = array_filter($selectedCategoryIds); // Eliminar nulls
+                    // Usar IDs precargados por el controlador (evita depender de propiedades inexistentes)
+                    $selectedCategoryIds = $postCategoryIds ?? [];
                     $selectedCategories = old('categories', $selectedCategoryIds);
                   @endphp
                   @foreach($categories as $category)
@@ -318,12 +314,8 @@
               <div class="mb-3">
                 <select class="form-select @error('tags') is-invalid @enderror" name="tags[]" id="tags" multiple size="5">
                   @php
-                    // Extraer IDs de tags del post (usando PHP nativo)
-                    $postTags = $post->tags ?? [];
-                    $selectedTagIds = array_map(function($tag) {
-                        return is_object($tag) ? $tag->id : ($tag['id'] ?? null);
-                    }, $postTags);
-                    $selectedTagIds = array_filter($selectedTagIds); // Eliminar nulls
+                    // Usar IDs precargados por el controlador (evita depender de propiedades inexistentes)
+                    $selectedTagIds = $postTagIds ?? [];
                     $selectedTags = old('tags', $selectedTagIds);
                   @endphp
                   @foreach($tags as $tag)

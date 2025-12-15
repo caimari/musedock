@@ -27,7 +27,9 @@
                 @endif
 
                 {{-- Título --}}
-                <h1 class="mb-3">{{ $translation->title ?? $post->title }}</h1>
+                @if(empty($post->hide_title))
+                    <h1 class="mb-3">{{ $translation->title ?? $post->title }}</h1>
+                @endif
 
                 {{-- Meta información --}}
                 <div class="post-meta mb-4 text-muted">
