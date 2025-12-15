@@ -86,6 +86,78 @@ class MediaController
         return $folder instanceof \MediaManager\Models\Folder ? $folder : ($folder ? new \MediaManager\Models\Folder((array)$folder) : null);
     }
 
+    private function getUploaderDisplayName(?int $userId): string
+    {
+        if (!$userId) {
+            return '-';
+        }
+        $tenantId = $this->getContextTenantId();
+
+        // Tenant: primero admins (panel), luego users (frontend).
+        if ($tenantId !== null) {
+            try {
+                $admin = Database::table('admins')
+                    ->where('id', $userId)
+                    ->where('tenant_id', $tenantId)
+                    ->first();
+                $adminName = is_array($admin) ? ($admin['name'] ?? '') : ($admin->name ?? '');
+                $adminName = trim((string)$adminName);
+                if ($adminName !== '') {
+                    return $adminName;
+                }
+            } catch (\Exception $e) {
+                // Ignorar
+            }
+
+            try {
+                $user = Database::table('users')
+                    ->where('id', $userId)
+                    ->where('tenant_id', $tenantId)
+                    ->first();
+                $userName = is_array($user) ? ($user['name'] ?? '') : ($user->name ?? '');
+                $userName = trim((string)$userName);
+                if ($userName !== '') {
+                    return $userName;
+                }
+            } catch (\Exception $e) {
+                // Ignorar
+            }
+
+            return 'Usuario';
+        }
+
+        // Superadmin (global): super_admins, luego users globales (tenant_id NULL).
+        try {
+            $sa = Database::table('super_admins')->where('id', $userId)->first();
+            $saName = is_array($sa) ? ($sa['name'] ?? '') : ($sa->name ?? '');
+            $saName = trim((string)$saName);
+            if ($saName !== '') {
+                return $saName;
+            }
+            if ($sa) {
+                return 'Super Admin';
+            }
+        } catch (\Exception $e) {
+            // Ignorar
+        }
+
+        try {
+            $user = Database::table('users')
+                ->where('id', $userId)
+                ->whereNull('tenant_id')
+                ->first();
+            $userName = is_array($user) ? ($user['name'] ?? '') : ($user->name ?? '');
+            $userName = trim((string)$userName);
+            if ($userName !== '') {
+                return $userName;
+            }
+        } catch (\Exception $e) {
+            // Ignorar
+        }
+
+        return 'Usuario';
+    }
+
     /**
      * Obtiene la información de cuota de almacenamiento del tenant actual
      * @return array ['quota_mb' => int, 'used_bytes' => int, 'available_bytes' => int, 'percentage' => float]
@@ -400,30 +472,15 @@ class MediaController
                     }
                 }
 
-                // Obtener usuario que subió el archivo
-                $uploader = 'Usuario';
-                if ($media->user_id) {
-                    // Intenta obtener el nombre del usuario si tienes una tabla de usuarios
-                    // Esto depende de tu estructura de base de datos
-                    try {
-                        $userModel = '\\App\\Models\\User'; // Ajusta según tu estructura
-                        if (class_exists($userModel)) {
-                            $user = $userModel::find($media->user_id);
-                            if ($user) {
-                                $uploader = $user->first_name . ' ' . $user->last_name;
-                            }
-                        }
-                    } catch (\Exception $e) {
-                        // Ignorar errores al buscar el usuario
-                    }
-                }
+            // Obtener usuario que subió el archivo
+            $uploader = $this->getUploaderDisplayName($media->user_id ? (int)$media->user_id : null);
 
-                // Determinar la ruta de subida
-                $uploadPath = $media->tenant_id ? 'Tenant ' . $media->tenant_id : 'Global';
+            // Determinar la ruta de subida
+            $uploadPath = $this->isTenantContext() ? '' : ($media->tenant_id ? 'Tenant ' . $media->tenant_id : 'Global');
 
-                $mediaItems[] = [
-                    'id' => $media->id,
-                    'filename' => $media->filename,
+            $mediaItems[] = [
+                'id' => $media->id,
+                'filename' => $media->filename,
                     'url' => $url,
                     'thumbnail_url' => $thumbnailUrl,
                     'mime_type' => $media->mime_type,
@@ -511,25 +568,21 @@ public function getMediaDetails($id)
             }
         }
 
-        // Solución para el nombre de usuario
-        $uploader = 'Super Admin';
-        if ($media->user_id == 1) {
-            $uploader = 'Super Admin';
-        }
-        else if ($media->user_id) {
-            $uploader = 'Usuario ' . $media->user_id;
-        }
+	        // Solución para el nombre de usuario
+	        $uploader = $this->getUploaderDisplayName($media->user_id ? (int)$media->user_id : null);
 
-        // Determinar la ruta de subida
-        $uploadPath = '';
-        if (strpos($media->path, 'global/') === 0) {
-            $uploadPath = 'Biblioteca Global';
-        } elseif (preg_match('/tenant_(\d+)\//', $media->path, $matches)) {
-            $tenantId = $matches[1];
-            $uploadPath = "Tenant {$tenantId}";
-        } else {
-            $uploadPath = dirname($media->path);
-        }
+	        // Determinar la ruta de subida
+	        $uploadPath = '';
+	        if (!$this->isTenantContext()) {
+	            if (strpos($media->path, 'global/') === 0) {
+	                $uploadPath = 'Biblioteca Global';
+	            } elseif (preg_match('/tenant_(\d+)\//', $media->path, $matches)) {
+	                $tenantId = $matches[1];
+	                $uploadPath = "Tenant {$tenantId}";
+	            } else {
+	                $uploadPath = dirname($media->path);
+	            }
+	        }
 
         // SOLUCIÓN ESPECÍFICA PARA LA FECHA
         // Usar una fecha en español directamente con los nombres de los meses correctos
