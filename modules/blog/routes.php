@@ -213,6 +213,10 @@ Route::post('/musedock/blog/posts/{postId}/revisions/{revisionId}/restore', 'Blo
     ->name('blog.posts.revision.restore')
     ->middleware('superadmin');
 
+Route::post('/musedock/blog/posts/{postId}/revisions/{revisionId}/delete', 'Blog\Controllers\Superadmin\BlogPostController@deleteRevision')
+    ->name('blog.posts.revision.delete')
+    ->middleware('superadmin');
+
 Route::get('/musedock/blog/posts/{postId}/revisions/{revisionId}/preview', 'Blog\Controllers\Superadmin\BlogPostController@previewRevision')
     ->name('blog.posts.revision.preview')
     ->middleware('superadmin');
@@ -246,6 +250,10 @@ Route::get("/{$adminPath}/blog/posts/{id}/revisions", 'Blog\Controllers\Tenant\B
 
 Route::post("/{$adminPath}/blog/posts/{postId}/revisions/{revisionId}/restore", 'Blog\Controllers\Tenant\BlogPostController@restoreRevision')
     ->name('tenant.blog.posts.revision.restore')
+    ->middleware('auth');
+
+Route::post("/{$adminPath}/blog/posts/{postId}/revisions/{revisionId}/delete", 'Blog\Controllers\Tenant\BlogPostController@deleteRevision')
+    ->name('tenant.blog.posts.revision.delete')
     ->middleware('auth');
 
 Route::get("/{$adminPath}/blog/posts/{postId}/revisions/{revisionId}/preview", 'Blog\Controllers\Tenant\BlogPostController@previewRevision')

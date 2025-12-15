@@ -24,8 +24,8 @@
 <td>{{ e($info['deleted_by_name'] ?? 'Desconocido') }}<br><small class="text-muted">{{ e($info['deleted_by_type'] ?? '') }}</small></td>
 <td>@if($info && $info['scheduled_permanent_delete'])<span class="text-danger">{{ date('d/m/Y', strtotime($info['scheduled_permanent_delete'])) }}</span>@else-@endif</td>
 <td>
-<div class="btn-group btn-group-sm">
-<form method="POST" action="/musedock/blog/posts/{{ $post->id }}/restore" style="display:inline;">
+<div class="d-inline-flex align-items-center gap-2">
+<form method="POST" action="/musedock/blog/posts/{{ $post->id }}/restore" style="display:inline;" class="restore-post-form" data-post-title="{{ htmlspecialchars($post->title, ENT_QUOTES, 'UTF-8') }}">
 <input type="hidden" name="_token" value="{{ csrf_token() }}">
 <button type="submit" class="btn btn-success" title="Restaurar"><i class="bi bi-arrow-counterclockwise"></i> Restaurar</button>
 </form>
@@ -50,6 +50,27 @@
 document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('submit', function(e) {
     const form = e.target;
+    if (form && form.classList && form.classList.contains('restore-post-form')) {
+      if (form.dataset.confirmed === '1') return;
+      e.preventDefault();
+
+      Swal.fire({
+        icon: 'warning',
+        title: {!! json_encode(__('blog.post.confirm_restore_from_trash_title')) !!},
+        text: {!! json_encode(__('blog.post.confirm_restore_from_trash_text')) !!},
+        showCancelButton: true,
+        confirmButtonText: {!! json_encode(__('blog.post.confirm_restore_from_trash_yes')) !!},
+        cancelButtonText: {!! json_encode(__('common.cancel')) !!},
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#6c757d'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          form.dataset.confirmed = '1';
+          form.submit();
+        }
+      });
+      return;
+    }
     if (!form || !form.classList || !form.classList.contains('force-delete-post-form')) return;
 
     if (form.dataset.confirmed === '1') return;

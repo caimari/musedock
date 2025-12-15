@@ -1483,6 +1483,59 @@ class BlogPostController
     }
 
     /**
+     * Eliminar permanentemente una revisión específica
+     */
+    public function deleteRevision($postId, $revisionId)
+    {
+        $this->checkPermission('blog.edit');
+        if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
+
+        $tenantId = getTenantId();
+        if (!$tenantId) {
+            flash('error', __('blog.post.error_invalid_session'));
+            header('Location: ' . admin_url('login'));
+            exit;
+        }
+
+        $adminPath = $_SESSION['admin']['tenant_url'] ?? 'admin';
+        $revision = \Blog\Models\BlogPostRevision::findWithTenant((int)$revisionId, $tenantId);
+
+        if (!$revision || (int)$revision->post_id !== (int)$postId) {
+            flash('error', __('blog.post.error_revision_not_found'));
+            header("Location: /{$adminPath}/blog/posts/{$postId}/revisions");
+            exit;
+        }
+
+        try {
+            $pdo = Database::connect();
+            $pdo->beginTransaction();
+
+            $deleteStmt = $pdo->prepare("DELETE FROM blog_post_revisions WHERE id = ? AND post_id = ? AND tenant_id = ?");
+            $deleteStmt->execute([(int)$revisionId, (int)$postId, (int)$tenantId]);
+
+            $updateCountStmt = $pdo->prepare("
+                UPDATE blog_posts
+                SET revision_count = GREATEST(COALESCE(revision_count, 0) - 1, 0)
+                WHERE id = ? AND tenant_id = ?
+            ");
+            $updateCountStmt->execute([(int)$postId, (int)$tenantId]);
+
+            $pdo->commit();
+
+            flash('success', __('blog.post.success_revision_deleted'));
+        } catch (\Throwable $e) {
+            if (isset($pdo) && $pdo instanceof \PDO && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log("Error al eliminar revisión {$revisionId} del post {$postId}: " . $e->getMessage());
+            flash('error', __('blog.post.error_revision_delete'));
+        }
+
+        header("Location: /{$adminPath}/blog/posts/{$postId}/revisions");
+        exit;
+    }
+
+    /**
      * Vista previa de una revisión
      */
     public function previewRevision($postId, $revisionId)

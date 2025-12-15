@@ -156,19 +156,30 @@
                   @endif
                 </td>
                 <td>
-                  <div class="btn-group btn-group-sm" role="group">
+                  <div class="d-inline-flex align-items-center gap-2">
                     <a href="{{ admin_url('blog') }}/posts/{{ $post->id }}/revisions/{{ $revision->id }}/preview"
-                       class="btn btn-outline-secondary"
-                       title="Vista previa">
+                       class="btn btn-outline-secondary btn-sm"
+                       title="{{ __('pages.preview_revision') }}">
                       <i class="bi bi-eye"></i>
                     </a>
                     <form method="POST"
                           action="{{ admin_url('blog') }}/posts/{{ $post->id }}/revisions/{{ $revision->id }}/restore"
-                          style="display: inline;"
-                          onsubmit="return confirm('¿Restaurar el post a esta versión? Se creará un backup automático de la versión actual.');">
+                          class="restore-revision-form"
+                          data-post-id="{{ $post->id }}"
+                          data-revision-id="{{ $revision->id }}">
                       <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                      <button type="submit" class="btn btn-outline-primary" title="Restaurar">
+                      <button type="submit" class="btn btn-outline-primary btn-sm" title="{{ __('pages.restore_revision') }}">
                         <i class="bi bi-arrow-counterclockwise"></i>
+                      </button>
+                    </form>
+                    <form method="POST"
+                          action="{{ admin_url('blog') }}/posts/{{ $post->id }}/revisions/{{ $revision->id }}/delete"
+                          class="delete-revision-form"
+                          data-post-id="{{ $post->id }}"
+                          data-revision-id="{{ $revision->id }}">
+                      <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="btn btn-outline-danger btn-sm" title="{{ __('common.delete') }}">
+                        <i class="bi bi-trash"></i>
                       </button>
                     </form>
                   </div>
@@ -215,5 +226,49 @@ function compareSelected() {
     window.location.href = `{{ admin_url('blog') }}/posts/{{ $post->id }}/revisions/${selectedRevisions[0]}/compare/${selectedRevisions[1]}`;
   }
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.restore-revision-form').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      Swal.fire({
+        icon: 'warning',
+        title: {!! json_encode(__('blog.post.confirm_restore_revision_title')) !!},
+        text: {!! json_encode(__('blog.post.confirm_restore_revision_text')) !!},
+        showCancelButton: true,
+        confirmButtonText: {!! json_encode(__('blog.post.confirm_restore_revision_yes')) !!},
+        cancelButtonText: {!! json_encode(__('common.cancel')) !!},
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#6c757d'
+      }).then(function (result) {
+        if (result.isConfirmed) {
+          form.submit();
+        }
+      });
+    });
+  });
+
+  document.querySelectorAll('.delete-revision-form').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      Swal.fire({
+        icon: 'warning',
+        title: {!! json_encode(__('blog.post.confirm_delete_revision_title')) !!},
+        text: {!! json_encode(__('blog.post.confirm_delete_revision_text')) !!},
+        showCancelButton: true,
+        confirmButtonText: {!! json_encode(__('blog.post.confirm_delete_revision_yes')) !!},
+        cancelButtonText: {!! json_encode(__('common.cancel')) !!},
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d'
+      }).then(function (result) {
+        if (result.isConfirmed) {
+          form.submit();
+        }
+      });
+    });
+  });
+});
 </script>
 @endsection

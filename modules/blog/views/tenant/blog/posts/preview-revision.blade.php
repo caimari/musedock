@@ -9,7 +9,7 @@
                 <a href="{{ admin_url('blog') }}/posts/{{ $post->id }}/revisions" class="btn btn-secondary me-2">
                     <i class="bi bi-arrow-left"></i> Volver a revisiones
                 </a>
-                <form method="POST" action="{{ admin_url('blog') }}/posts/{{ $post->id }}/revisions/{{ $revision->id }}/restore" style="display:inline;" onsubmit="return confirm('¿Restaurar a esta versión?');">
+                <form method="POST" action="{{ admin_url('blog') }}/posts/{{ $post->id }}/revisions/{{ $revision->id }}/restore" style="display:inline;" class="restore-revision-form">
                     <input type="hidden" name="_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-arrow-counterclockwise"></i> Restaurar esta versión
@@ -59,4 +59,31 @@
         </div>
     </div>
 </div>
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.querySelector('.restore-revision-form');
+  if (!form) return;
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    Swal.fire({
+      icon: 'warning',
+      title: {!! json_encode(__('blog.post.confirm_restore_revision_title')) !!},
+      text: {!! json_encode(__('blog.post.confirm_restore_revision_text')) !!},
+      showCancelButton: true,
+      confirmButtonText: {!! json_encode(__('blog.post.confirm_restore_revision_yes')) !!},
+      cancelButtonText: {!! json_encode(__('common.cancel')) !!},
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#6c757d'
+    }).then(function (result) {
+      if (result.isConfirmed) {
+        form.submit();
+      }
+    });
+  });
+});
+</script>
+@endpush
 @endsection
