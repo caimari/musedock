@@ -35,6 +35,20 @@ class SiteHelper
      */
     public static function getSetting($key, $default = null)
     {
+        // En multi-tenant, preferir tenant_settings si hay tenant activo,
+        // con fallback a settings globales para mantener compatibilidad.
+        if (function_exists('tenant_id') && function_exists('tenant_setting') && function_exists('setting')) {
+            $tenantId = tenant_id();
+            if ($tenantId !== null) {
+                $tenantValue = tenant_setting($key, null);
+                if ($tenantValue !== null) {
+                    return $tenantValue;
+                }
+
+                return setting($key, $default);
+            }
+        }
+
         $settings = self::getAllSettings();
         return $settings[$key] ?? $default;
     }

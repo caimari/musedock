@@ -76,11 +76,23 @@
       </div>
     </div>
 
-    {{-- Botón comparar (solo visible si hay 2 seleccionadas) --}}
-    <div id="compare-button-container" class="mb-3" style="display: none;">
-      <button type="button" class="btn btn-primary" onclick="compareSelected()">
-        <i class="bi bi-arrow-left-right"></i> Comparar revisiones seleccionadas
-      </button>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <form method="POST" action="{{ admin_url('blog') }}/posts/{{ $post->id }}/revisions/bulk" id="bulkRevisionsForm" class="d-flex align-items-center gap-2">
+        <input type="hidden" name="_token" value="{{ csrf_token() }}">
+        <select name="action" class="form-select form-select-sm" id="bulkRevisionAction" style="width: auto;" required>
+          <option value="">{{ __('blog.bulk.actions') }}</option>
+          <option value="delete_selected">{{ __('blog.post.bulk_delete_selected_revisions') }}</option>
+          <option value="delete_all">{{ __('blog.post.bulk_delete_all_revisions') }}</option>
+        </select>
+        <button type="submit" class="btn btn-secondary btn-sm" id="bulkRevisionsApply" disabled>{{ __('common.apply') }}</button>
+      </form>
+
+      {{-- Botón comparar (solo visible si hay 2 seleccionadas) --}}
+      <div id="compare-button-container" style="display: none;">
+        <button type="button" class="btn btn-primary btn-sm" onclick="compareSelected()">
+          <i class="bi bi-arrow-left-right"></i> Comparar revisiones seleccionadas
+        </button>
+      </div>
     </div>
 
     {{-- Tabla de revisiones --}}
@@ -93,7 +105,7 @@
             <thead>
               <tr>
                 <th style="width: 40px;">
-                  <input type="checkbox" id="toggle-all-compare" style="display: none;">
+                  <input type="checkbox" id="selectAllRevisions" class="form-check-input">
                 </th>
                 <th>Fecha y Hora</th>
                 <th>Tipo</th>
@@ -107,9 +119,11 @@
               <tr class="revision-row">
                 <td>
                   <input type="checkbox"
-                         class="compare-checkbox"
-                         data-revision-id="{{ $revision->id }}"
-                         onchange="toggleCompareButton()">
+                         class="compare-checkbox revision-checkbox form-check-input"
+                         name="revision_ids[]"
+                         value="{{ $revision->id }}"
+                         form="bulkRevisionsForm"
+                         data-revision-id="{{ $revision->id }}">
                 </td>
                 <td>
                   {{ date('d/m/Y H:i:s', strtotime($revision->created_at)) }}
@@ -208,17 +222,6 @@ function toggleCompareButton() {
   } else {
     compareContainer.style.display = 'none';
   }
-
-  // Deshabilitar otros checkboxes si ya hay 2 seleccionados
-  if (selectedRevisions.length === 2) {
-    document.querySelectorAll('.compare-checkbox:not(:checked)').forEach(cb => {
-      cb.disabled = true;
-    });
-  } else {
-    document.querySelectorAll('.compare-checkbox').forEach(cb => {
-      cb.disabled = false;
-    });
-  }
 }
 
 function compareSelected() {
@@ -228,6 +231,98 @@ function compareSelected() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+  const selectAllCheckbox = document.getElementById('selectAllRevisions');
+  const revisionCheckboxes = document.querySelectorAll('.revision-checkbox');
+  const bulkForm = document.getElementById('bulkRevisionsForm');
+  const actionSelect = document.getElementById('bulkRevisionAction');
+  const applyButton = document.getElementById('bulkRevisionsApply');
+
+  function updateBulkUi() {
+    toggleCompareButton();
+
+    const anyChecked = Array.from(revisionCheckboxes).some(cb => cb.checked);
+    const allChecked = revisionCheckboxes.length > 0 && Array.from(revisionCheckboxes).every(cb => cb.checked);
+
+    if (selectAllCheckbox) {
+      selectAllCheckbox.checked = allChecked;
+      selectAllCheckbox.indeterminate = anyChecked && !allChecked;
+    }
+
+    const action = actionSelect ? actionSelect.value : '';
+    if (applyButton) {
+      if (!action) {
+        applyButton.disabled = true;
+      } else if (action === 'delete_all') {
+        applyButton.disabled = false;
+      } else {
+        applyButton.disabled = !anyChecked;
+      }
+    }
+  }
+
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', function () {
+      revisionCheckboxes.forEach(cb => { cb.checked = selectAllCheckbox.checked; });
+      updateBulkUi();
+    });
+  }
+
+  revisionCheckboxes.forEach(cb => {
+    cb.addEventListener('change', updateBulkUi);
+  });
+
+  if (actionSelect) {
+    actionSelect.addEventListener('change', updateBulkUi);
+  }
+
+  updateBulkUi();
+
+  if (bulkForm) {
+    bulkForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const action = actionSelect ? actionSelect.value : '';
+      const selectedCount = document.querySelectorAll('.revision-checkbox:checked').length;
+
+      if (!action) {
+        Swal.fire({
+          icon: 'warning',
+          title: {!! json_encode(__('blog.bulk.action_required')) !!},
+          text: {!! json_encode(__('blog.bulk.select_action')) !!}
+        });
+        return false;
+      }
+
+      if (action === 'delete_selected' && selectedCount === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: {!! json_encode(__('blog.bulk.selection_required')) !!},
+          text: {!! json_encode(__('blog.post.bulk_revision_select_at_least_one')) !!}
+        });
+        return false;
+      }
+
+      const confirmText = (action === 'delete_all')
+        ? {!! json_encode(__('blog.post.confirm_bulk_delete_revisions_all')) !!}
+        : {!! json_encode(__('blog.post.confirm_bulk_delete_revisions_selected', ['count' => ':count'])) !!}.replace(':count', selectedCount);
+
+      Swal.fire({
+        title: {!! json_encode(__('common.are_you_sure')) !!},
+        text: confirmText,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: {!! json_encode(__('blog.bulk.confirm_delete_yes')) !!},
+        cancelButtonText: {!! json_encode(__('blog.bulk.confirm_cancel')) !!}
+      }).then((result) => {
+        if (result.isConfirmed) {
+          bulkForm.submit();
+        }
+      });
+    });
+  }
+
   document.querySelectorAll('.restore-revision-form').forEach(function (form) {
     form.addEventListener('submit', function (e) {
       e.preventDefault();

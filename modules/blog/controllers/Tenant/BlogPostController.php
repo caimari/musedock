@@ -1536,6 +1536,103 @@ class BlogPostController
     }
 
     /**
+     * Acciones en lote sobre revisiones de un post
+     * Acciones soportadas:
+     * - delete_selected: elimina revisiones seleccionadas
+     * - delete_all: elimina todas las revisiones del post
+     */
+    public function bulkRevisions($postId)
+    {
+        $this->checkPermission('blog.edit');
+        if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
+
+        $tenantId = getTenantId();
+        if (!$tenantId) {
+            flash('error', __('blog.post.error_invalid_session'));
+            header('Location: ' . admin_url('login'));
+            exit;
+        }
+
+        $adminPath = $_SESSION['admin']['tenant_url'] ?? 'admin';
+
+        $post = BlogPost::where('id', (int)$postId)->where('tenant_id', (int)$tenantId)->first();
+        if (!$post) {
+            flash('error', __('blog.post.error_not_found'));
+            header("Location: /{$adminPath}/blog/posts");
+            exit;
+        }
+
+        $action = $_POST['action'] ?? '';
+
+        try {
+            $pdo = Database::connect();
+            $pdo->beginTransaction();
+
+            $deletedCount = 0;
+
+            if ($action === 'delete_selected') {
+                $revisionIds = $_POST['revision_ids'] ?? [];
+                if (!is_array($revisionIds)) {
+                    $revisionIds = [];
+                }
+
+                $revisionIds = array_values(array_unique(array_filter(array_map('intval', $revisionIds), fn($v) => $v > 0)));
+
+                if (empty($revisionIds)) {
+                    $pdo->rollBack();
+                    flash('error', __('blog.post.error_bulk_revision_no_selection'));
+                    header("Location: /{$adminPath}/blog/posts/{$postId}/revisions");
+                    exit;
+                }
+
+                $placeholders = implode(',', array_fill(0, count($revisionIds), '?'));
+                $params = array_merge($revisionIds, [(int)$postId, (int)$tenantId]);
+                $deleteStmt = $pdo->prepare("
+                    DELETE FROM blog_post_revisions
+                    WHERE id IN ({$placeholders}) AND post_id = ? AND tenant_id = ?
+                ");
+                $deleteStmt->execute($params);
+                $deletedCount = (int)$deleteStmt->rowCount();
+
+                flash('success', __('blog.post.success_bulk_revisions_deleted', ['count' => $deletedCount]));
+            } elseif ($action === 'delete_all') {
+                $deleteStmt = $pdo->prepare("DELETE FROM blog_post_revisions WHERE post_id = ? AND tenant_id = ?");
+                $deleteStmt->execute([(int)$postId, (int)$tenantId]);
+                $deletedCount = (int)$deleteStmt->rowCount();
+
+                flash('success', __('blog.post.success_bulk_revisions_deleted', ['count' => $deletedCount]));
+            } else {
+                $pdo->rollBack();
+                flash('error', __('blog.post.error_bulk_revision_invalid_action'));
+                header("Location: /{$adminPath}/blog/posts/{$postId}/revisions");
+                exit;
+            }
+
+            $updateCountStmt = $pdo->prepare("
+                UPDATE blog_posts
+                SET revision_count = (
+                    SELECT COUNT(*)
+                    FROM blog_post_revisions
+                    WHERE post_id = ? AND tenant_id = ?
+                )
+                WHERE id = ? AND tenant_id = ?
+            ");
+            $updateCountStmt->execute([(int)$postId, (int)$tenantId, (int)$postId, (int)$tenantId]);
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if (isset($pdo) && $pdo instanceof \PDO && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log("Error en bulkRevisions post {$postId} tenant {$tenantId}: " . $e->getMessage());
+            flash('error', __('blog.post.error_revision_delete'));
+        }
+
+        header("Location: /{$adminPath}/blog/posts/{$postId}/revisions");
+        exit;
+    }
+
+    /**
      * Vista previa de una revisión
      */
     public function previewRevision($postId, $revisionId)
