@@ -376,3 +376,5 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
+
+@include('Blog::partials._slug_scripts')

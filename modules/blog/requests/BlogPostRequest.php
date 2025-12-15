@@ -37,7 +37,8 @@ class BlogPostRequest
                 $data['slug'],
                 $prefix,
                 $excludeId,
-                'blog'
+                'blog',
+                $tenantId
             );
 
             if ($slugExists) {

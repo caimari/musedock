@@ -498,4 +498,6 @@
 {{-- TinyMCE --}}
 @include('partials._tinymce')
 
+@include('Blog::partials._slug_scripts')
+
 @endsection
