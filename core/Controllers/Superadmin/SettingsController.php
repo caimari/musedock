@@ -697,7 +697,10 @@ public function deleteFavicon()
         SessionSecurity::startSession();
         $this->checkPermission('settings.view');
 
-        $languages = Language::all();
+        // En /musedock solo gestionamos idiomas globales (tenant_id IS NULL)
+        $languages = Language::whereNull('tenant_id')
+            ->orderBy('order_position')
+            ->get();
         return View::renderSuperadmin('settings.languages', [
             'title'     => 'Idiomas disponibles',
             'languages' => $languages
@@ -710,13 +713,16 @@ public function deleteFavicon()
         $this->checkPermission('settings.edit');
 
         $selected = json_decode($_POST['languages'] ?? '[]', true);
-        // Recuperar todos los idiomas
-        $allLanguages = \Screenart\Musedock\Database::table('languages')->get();
+        // Recuperar solo idiomas globales (evita tocar los del tenant)
+        $allLanguages = \Screenart\Musedock\Database::table('languages')
+            ->whereNull('tenant_id')
+            ->get();
         foreach ($allLanguages as $lang) {
             $code = is_array($lang) ? $lang['code'] : $lang->code;
             $isActive = in_array($code, $selected) ? 1 : 0;
             \Screenart\Musedock\Database::table('languages')
                 ->where('code', $code)
+                ->whereNull('tenant_id')
                 ->update(['active' => $isActive]);
         }
         

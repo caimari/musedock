@@ -507,7 +507,8 @@
                         $adminActiveLanguages = [];
                         try {
                             $pdo = \Screenart\Musedock\Database::connect();
-                            $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE active = 1 ORDER BY order_position ASC, id ASC");
+                            // En /musedock solo deben mostrarse los idiomas globales (tenant_id IS NULL)
+                            $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE tenant_id IS NULL AND active = 1 ORDER BY order_position ASC, id ASC");
                             $stmt->execute();
                             $adminActiveLanguages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                         } catch (\Exception $e) {

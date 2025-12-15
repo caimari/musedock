@@ -24,15 +24,6 @@
               <th>Código</th>
               <th>Nombre</th>
               <th>Estado</th>
-              @php
-                $multiTenantEnabled = \Screenart\Musedock\Env::get('MULTI_TENANT_ENABLED', null);
-                if ($multiTenantEnabled === null) {
-                    $multiTenantEnabled = setting('multi_tenant_enabled', false);
-                }
-              @endphp
-              @if($multiTenantEnabled)
-              <th>Tenant</th>
-              @endif
               <th>Acciones</th>
             </tr>
           </thead>
@@ -53,15 +44,6 @@
                   </button>
                 </form>
               </td>
-              @if($multiTenantEnabled)
-              <td>
-                @if($lang->tenant_id)
-                  <span class="badge bg-info">{{ $lang->tenant_domain ?? $lang->tenant_name ?? $lang->tenant_id }}</span>
-                @else
-                  <span class="badge bg-secondary">Global</span>
-                @endif
-              </td>
-              @endif
               <td>
                 <a href="{{ route('languages.edit', $lang->id) }}" class="btn btn-sm btn-primary">
                   <i class="bi bi-pencil"></i>

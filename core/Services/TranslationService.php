@@ -141,19 +141,10 @@ class TranslationService
 
         // Fallback manual para frontend
         // 1. Verificar force_lang en settings (solo para frontend)
-        try {
-            $pdo = \Screenart\Musedock\Database::connect();
-            $keyCol = \Screenart\Musedock\Database::qi('key');
-            $stmt = $pdo->prepare("SELECT value FROM settings WHERE {$keyCol} = 'force_lang' LIMIT 1");
-            $stmt->execute();
-            $forceLang = $stmt->fetchColumn();
-
-            if (!empty($forceLang)) {
-                self::$currentLocale = $forceLang;
-                return self::$currentLocale;
-            }
-        } catch (\Exception $e) {
-            // Ignorar errores de DB
+        $forceLang = function_exists('site_setting') ? site_setting('force_lang') : null;
+        if (!empty($forceLang)) {
+            self::$currentLocale = $forceLang;
+            return self::$currentLocale;
         }
 
         // 2. Verificar sesión

@@ -1243,8 +1243,11 @@ if (!function_exists('detectLanguage')) {
             session_start();
         }
 
-        // Usar el helper setting() que ya tiene su propia caché y funciona correctamente
-        $forcedLang = setting('force_lang');
+        // Los idiomas deben ser independientes por site:
+        // - Dominio master: settings
+        // - Tenant: tenant_settings (sin fallback a global)
+        $tenantId = tenant_id();
+        $forcedLang = $tenantId !== null ? tenant_setting('force_lang') : setting('force_lang');
 
         // Si existe 'force_lang', forzamos idioma y limpiamos cualquier preferencia anterior
         if (!empty($forcedLang)) {
@@ -1272,10 +1275,27 @@ if (!function_exists('detectLanguage')) {
             return $lang = $forcedLang;
         }
 
-        // Cargamos todos los idiomas activos
-        $available = \Screenart\Musedock\Database::table('languages')
-            ->where('active', 1)
-            ->pluck('code');
+        // Cargamos idiomas activos del site actual (tenant o global).
+        // No mezclar tenant + global en el selector.
+        if ($tenantId !== null) {
+            $available = \Screenart\Musedock\Database::table('languages')
+                ->where('active', 1)
+                ->where('tenant_id', $tenantId)
+                ->pluck('code');
+
+            // Fallback: si el tenant no tiene idiomas, usar globales
+            if (empty($available)) {
+                $available = \Screenart\Musedock\Database::table('languages')
+                    ->where('active', 1)
+                    ->whereNull('tenant_id')
+                    ->pluck('code');
+            }
+        } else {
+            $available = \Screenart\Musedock\Database::table('languages')
+                ->where('active', 1)
+                ->whereNull('tenant_id')
+                ->pluck('code');
+        }
 
         // Si hay ?lang= en la URL
         if (!empty($_GET['lang'])) {
@@ -1298,7 +1318,11 @@ if (!function_exists('detectLanguage')) {
             return $lang = $browserLang;
         }
 
-        // Idioma por defecto configurado en settings
+        // Idioma por defecto configurado por site
+        if ($tenantId !== null) {
+            return $lang = tenant_setting('default_lang', tenant_setting('language', 'es'));
+        }
+
         return $lang = setting('language', 'es');
     }
 }

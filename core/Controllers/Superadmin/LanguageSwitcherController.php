@@ -24,7 +24,8 @@ class LanguageSwitcherController
         $validLocales = ['es', 'en']; // Por defecto
         try {
             $pdo = \Screenart\Musedock\Database::connect();
-            $stmt = $pdo->query("SELECT code FROM languages WHERE active = 1");
+            // En /musedock solo se permiten idiomas globales (tenant_id IS NULL)
+            $stmt = $pdo->query("SELECT code FROM languages WHERE tenant_id IS NULL AND active = 1");
             $dbLocales = $stmt->fetchAll(\PDO::FETCH_COLUMN);
             if (!empty($dbLocales)) {
                 $validLocales = $dbLocales;
@@ -53,7 +54,10 @@ class LanguageSwitcherController
             setcookie('superadmin_locale', $locale, time() + (30 * 24 * 60 * 60), '/musedock/', '', false, true);
         }
 
-        // Redirigir de vuelta
+        // Redirigir de vuelta (evitar open redirect: solo paths internos)
+        if (!is_string($redirect) || $redirect === '' || $redirect[0] !== '/') {
+            $redirect = '/musedock/dashboard';
+        }
         header('Location: ' . $redirect);
         exit;
     }

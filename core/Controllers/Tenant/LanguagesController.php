@@ -38,7 +38,7 @@ class LanguagesController
         $languages = $stmt->fetchAll(\PDO::FETCH_OBJ);
 
         // Obtener idioma por defecto del tenant
-        $defaultLang = setting('default_lang', 'es');
+        $defaultLang = tenant_setting('default_lang', tenant_setting('language', 'es'));
 
         return View::renderTenantAdmin('languages.index', [
             'title' => 'Idiomas',
@@ -396,6 +396,28 @@ class LanguagesController
                 'key' => 'default_lang',
                 'value' => $defaultLang
             ]);
+        }
+
+        // Mantener compatibilidad: algunos temas usan site_setting('language')
+        $existingLanguageKey = Database::table('tenant_settings')
+            ->where('tenant_id', $tenantId)
+            ->where('key', 'language')
+            ->first();
+        if ($existingLanguageKey) {
+            Database::table('tenant_settings')
+                ->where('tenant_id', $tenantId)
+                ->where('key', 'language')
+                ->update(['value' => $defaultLang]);
+        } else {
+            Database::table('tenant_settings')->insert([
+                'tenant_id' => $tenantId,
+                'key' => 'language',
+                'value' => $defaultLang
+            ]);
+        }
+
+        if (function_exists('clear_tenant_settings_cache')) {
+            clear_tenant_settings_cache();
         }
 
         flash('success', 'Idioma por defecto actualizado a: ' . strtoupper($defaultLang));

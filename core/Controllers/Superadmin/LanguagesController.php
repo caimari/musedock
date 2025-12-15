@@ -16,12 +16,13 @@ class LanguagesController
         SessionSecurity::startSession();
         $this->checkPermission('languages.manage');
 
+        // En /musedock solo deben mostrarse idiomas globales (tenant_id IS NULL)
         // Usamos query raw para ORDER BY múltiple ya que QueryBuilder solo soporta un orderBy
         $pdo = Database::connect();
         $stmt = $pdo->query("
-            SELECT languages.*, tenants.name as tenant_name, tenants.domain as tenant_domain
+            SELECT languages.*
             FROM languages
-            LEFT JOIN tenants ON languages.tenant_id = tenants.id
+            WHERE languages.tenant_id IS NULL
             ORDER BY languages.order_position ASC, languages.id ASC
         ");
         $languages = $stmt->fetchAll(\PDO::FETCH_OBJ);
@@ -37,12 +38,8 @@ class LanguagesController
         SessionSecurity::startSession();
         $this->checkPermission('languages.manage');
 
-        // Obtener todos los tenants
-        $tenants = Database::table('tenants')->get();
-
         return View::renderSuperadmin('languages.create', [
             'title' => 'Añadir Idioma',
-            'tenants' => $tenants
         ]);
     }
 
@@ -54,10 +51,8 @@ class LanguagesController
         $data = $_POST;
         unset($data['_token'], $data['_csrf']);
 
-        // Convertir tenant_id vacío o "global" a NULL
-        if (empty($data['tenant_id']) || $data['tenant_id'] === 'global') {
-            $data['tenant_id'] = null;
-        }
+        // En /musedock los idiomas son globales; nunca asignar tenant_id desde este panel
+        $data['tenant_id'] = null;
 
         Database::table('languages')->insert($data);
         flash('success', 'Idioma añadido correctamente.');
@@ -70,13 +65,20 @@ class LanguagesController
         SessionSecurity::startSession();
         $this->checkPermission('languages.manage');
 
-        $language = Database::table('languages')->where('id', $id)->first();
-        $tenants = Database::table('tenants')->get();
+        $language = Database::table('languages')
+            ->where('id', $id)
+            ->whereNull('tenant_id')
+            ->first();
+
+        if (!$language) {
+            flash('error', 'Idioma no encontrado.');
+            header('Location: /musedock/languages');
+            exit;
+        }
 
         return View::renderSuperadmin('languages.edit', [
             'title' => 'Editar idioma',
             'language' => $language,
-            'tenants' => $tenants
         ]);
     }
 
@@ -93,13 +95,12 @@ class LanguagesController
             $data['active'] = 0;
         }
 
-        // Convertir tenant_id vacío o "global" a NULL
-        if (empty($data['tenant_id']) || $data['tenant_id'] === 'global') {
-            $data['tenant_id'] = null;
-        }
+        // En /musedock los idiomas son globales; nunca asignar tenant_id desde este panel
+        $data['tenant_id'] = null;
 
         Database::table('languages')
             ->where('id', $id)
+            ->whereNull('tenant_id')
             ->update($data);
 
         flash('success', 'Idioma actualizado.');
@@ -131,14 +132,17 @@ class LanguagesController
         }
 
         // Check if this is the last language
-        $count = Database::table('languages')->count();
+        $count = Database::table('languages')->whereNull('tenant_id')->count();
         if ($count <= 1) {
             flash('error', 'No se puede eliminar el último idioma.');
             header('Location: /musedock/languages');
             exit;
         }
 
-        Database::table('languages')->where('id', $id)->delete();
+        Database::table('languages')
+            ->where('id', $id)
+            ->whereNull('tenant_id')
+            ->delete();
         flash('success', 'Idioma eliminado.');
         header('Location: /musedock/languages');
         exit;
@@ -149,13 +153,24 @@ class LanguagesController
         SessionSecurity::startSession();
         $this->checkPermission('languages.manage');
 
-        $lang = Database::table('languages')->where('id', $id)->first();
+        $lang = Database::table('languages')
+            ->where('id', $id)
+            ->whereNull('tenant_id')
+            ->first();
+
+        if (!$lang) {
+            flash('error', 'Idioma no encontrado.');
+            header('Location: /musedock/languages');
+            exit;
+        }
+
         $newStatus = ($lang->active ?? 0) ? 0 : 1;
 
         // Check if trying to deactivate the last active language
         if ($newStatus === 0) {
             $activeCount = Database::table('languages')
                 ->where('active', 1)
+                ->whereNull('tenant_id')
                 ->count();
 
             if ($activeCount <= 1) {
@@ -167,6 +182,7 @@ class LanguagesController
 
         Database::table('languages')
             ->where('id', $id)
+            ->whereNull('tenant_id')
             ->update(['active' => $newStatus]);
 
         flash('success', 'Idioma actualizado.');
@@ -195,7 +211,7 @@ class LanguagesController
         $pdo = Database::connect();
 
         foreach ($order as $position => $id) {
-            $stmt = $pdo->prepare("UPDATE languages SET order_position = ? WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE languages SET order_position = ? WHERE id = ? AND tenant_id IS NULL");
             $stmt->execute([$position, $id]);
         }
 
@@ -218,6 +234,7 @@ class LanguagesController
             $langExists = Database::table('languages')
                 ->where('code', $forceLang)
                 ->where('active', 1)
+                ->whereNull('tenant_id')
                 ->first();
 
             if (!$langExists) {

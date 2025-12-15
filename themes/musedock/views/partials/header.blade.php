@@ -57,7 +57,7 @@ $headerSticky = themeOption('header.header_sticky', false);
             
             {{-- Login Button --}}
             <div class="ziph-flt_right ziph-headlogin_btn">
-              <a href="{{ url('/customer/login') }}" class="btn btn-info">{{ __('Login') }}</a>
+              <a href="{{ url('/cuçstomer/login') }}" class="btn btn-info">{{ __('Login') }}</a>
             </div>
             
           </div>
