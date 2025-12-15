@@ -249,6 +249,7 @@
       "error_not_found": "Post not found",
       "error_base_not_found": "Base post not found",
       "error_no_permission": "You don't have permission to perform this action",
+      "error_validation": "There are validation errors",
       "error_no_permission_edit": "Post not found or you don't have permission to edit it",
       "error_no_permission_delete": "Post not found or you don't have permission to delete it",
       "error_tenant_not_identified": "Could not identify tenant",
@@ -267,7 +268,8 @@
       "select_image": "Select image",
       "recommended_resolution": "Recommended resolution: 1200x630px. This image is used as the post header and in article listings.",
       "hide_featured_image": "Hide featured image on blog",
-      "hide_featured_image_help": "If checked, the image will not be displayed in the listing or individual post"
+      "hide_featured_image_help": "If checked, the image will not be displayed in the listing or individual post",
+      "featured_this_post": "Feature this post"
     },
     "bulk": {
       "actions": "Bulk actions",
@@ -358,6 +360,7 @@
       "edit": "Edit Tag",
       "delete": "Delete Tag",
       "add_tag": "Add tag",
+      "new_tag": "New tag",
       "name": "Name",
       "slug": "Slug",
       "description": "Description",

@@ -2250,26 +2250,34 @@ if (!function_exists('get_blog_templates')) {
     function get_blog_templates(): array
     {
         $templates = [];
-        $themeSlug = setting('default_theme', 'default');
 
-        // Plantillas excluidas (para listados, no para posts individuales)
-        $excludedTemplates = ['index', 'category', 'single'];
+        $activeThemeSlug = function_exists('get_active_theme_slug')
+            ? get_active_theme_slug()
+            : setting('default_theme', 'default');
 
-        // Verificar si existen las plantillas de páginas en el tema principal
-        $mainViewsPath = realpath(__DIR__ . "/../themes/{$themeSlug}/views");
-        if ($mainViewsPath) {
-            // Plantilla predeterminada: página completa sin sidebar (igual que páginas)
-            if (file_exists("{$mainViewsPath}/page.blade.php")) {
-                $templates['page'] = 'Plantilla Predeterminada (Ancho Completo)';
+        $candidateThemes = array_values(array_unique([
+            $activeThemeSlug,
+            'default',
+        ]));
+
+        $addIfExists = function (string $viewsPath, string $key, string $label) use (&$templates) {
+            if (isset($templates[$key])) {
+                return;
+            }
+            if (file_exists("{$viewsPath}/{$key}.blade.php")) {
+                $templates[$key] = $label;
+            }
+        };
+
+        foreach ($candidateThemes as $themeSlug) {
+            $viewsPath = realpath(__DIR__ . "/../themes/{$themeSlug}/views");
+            if (!$viewsPath) {
+                continue;
             }
 
-            // Plantillas con sidebar
-            if (file_exists("{$mainViewsPath}/template-sidebar-left.blade.php")) {
-                $templates['template-sidebar-left'] = 'Con Sidebar Izquierda';
-            }
-            if (file_exists("{$mainViewsPath}/template-sidebar-right.blade.php")) {
-                $templates['template-sidebar-right'] = 'Con Sidebar Derecha';
-            }
+            $addIfExists($viewsPath, 'page', 'Plantilla Predeterminada (Ancho Completo)');
+            $addIfExists($viewsPath, 'template-sidebar-left', 'Con Sidebar Izquierda');
+            $addIfExists($viewsPath, 'template-sidebar-right', 'Con Sidebar Derecha');
         }
 
         return $templates;

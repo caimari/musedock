@@ -157,6 +157,10 @@ class BlogPostController
         // Obtener etiquetas del tenant
         $tags = BlogTag::where('tenant_id', $tenantId)->orderBy('name', 'ASC')->get();
 
+        // Obtener plantillas disponibles
+        $availableTemplates = get_blog_templates();
+        $currentTemplate = 'page';
+
         return View::renderTenantAdmin('blog.posts.create', [
             'title' => 'Crear Post',
             'post'  => new BlogPost(),
@@ -164,6 +168,8 @@ class BlogPostController
             'tags' => $tags,
             'isNew' => true,
             'baseUrl' => $_SERVER['HTTP_HOST'],
+            'availableTemplates' => $availableTemplates,
+            'currentTemplate' => $currentTemplate,
         ]);
     }
 
@@ -405,6 +411,10 @@ class BlogPostController
         $postTags = $post->tags();
         $postTagIds = array_map(fn($tag) => $tag->id, $postTags);
 
+        // Obtener plantillas disponibles
+        $availableTemplates = get_blog_templates();
+        $currentTemplate = $post->template ?? 'page';
+
         return View::renderTenantAdmin('blog.posts.edit', [
             'title'               => 'Editar post: ' . e($post->title),
             'post'                => $post,
@@ -417,6 +427,8 @@ class BlogPostController
             'tags'                => $allTags,         // Cambio: la vista espera 'tags'
             'allTags'             => $allTags,
             'postTagIds'          => $postTagIds,
+            'availableTemplates'  => $availableTemplates,
+            'currentTemplate'     => $currentTemplate,
         ]);
     }
 
@@ -605,11 +617,23 @@ class BlogPostController
                 'tenant_id' => $tenantId
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             if ($pdo && $pdo->inTransaction()) { $pdo->rollBack(); }
             error_log("ERROR en transacción update post {$id}: " . $e->getMessage());
             $_SESSION['_old_input'] = $rawData;
-            flash('error', __('blog.post.error_update', ['error' => $e->getMessage()]));
+            $sqlState = (string) $e->getCode();
+            $isUnique = in_array($sqlState, ['23505', '23000'], true)
+                || stripos($e->getMessage(), 'duplicate') !== false
+                || stripos($e->getMessage(), 'unique') !== false;
+
+            if ($isUnique) {
+                flash('error', 'El slug ya está en uso.');
+            } else {
+                $message = config('debug', false)
+                    ? ('Error al actualizar el post: ' . $e->getMessage())
+                    : __('blog.post.error_update');
+                flash('error', $message);
+            }
             header("Location: /" . admin_path() . "/blog/posts/{$id}/edit");
             exit;
         }

@@ -558,11 +558,23 @@ class BlogPostController
                 error_log("Error al crear revisión: " . $revError->getMessage());
             }
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             if ($pdo && $pdo->inTransaction()) { $pdo->rollBack(); }
             error_log("ERROR en transacción update post {$id}: " . $e->getMessage());
             $_SESSION['_old_input'] = $rawData;
-            flash('error', __('blog.post.error_update', ['error' => $e->getMessage()]));
+            $sqlState = (string) $e->getCode();
+            $isUnique = in_array($sqlState, ['23505', '23000'], true)
+                || stripos($e->getMessage(), 'duplicate') !== false
+                || stripos($e->getMessage(), 'unique') !== false;
+
+            if ($isUnique) {
+                flash('error', 'El slug ya está en uso.');
+            } else {
+                $message = config('debug', false)
+                    ? ('Error al actualizar el post: ' . $e->getMessage())
+                    : __('blog.post.error_update');
+                flash('error', $message);
+            }
             header("Location: /musedock/blog/posts/{$id}/edit");
             exit;
         }
