@@ -110,6 +110,7 @@
     "publish_immediately_help": "Leave blank to publish immediately",
     "draft": "Draft",
     "trash": "Trash",
+    "trash_title": "Trash",
     "public": "Public",
     "private": "Private",
     "members": "Members",

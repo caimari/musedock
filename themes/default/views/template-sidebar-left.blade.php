@@ -44,7 +44,40 @@
 
 @section('content')
 
-<div class="container py-4 page-with-sidebar">
+{{-- Cabecera/slider para páginas (igual que template full) --}}
+@if(!isset($post) && isset($customizations))
+    @if($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")
+        @php
+            $sliderPath = !empty($customizations->slider_image) ? $customizations->slider_image : 'themes/default/img/hero/contact_hero.jpg';
+            $sliderUrl = (str_starts_with($sliderPath, '/media/') || str_starts_with($sliderPath, 'http')) ? $sliderPath : asset($sliderPath);
+        @endphp
+        <div class="slider-area">
+            <div class="single-slider slider-height2 d-flex align-items-center" data-background="{{ $sliderUrl }}">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <div class="hero-cap text-center">
+                                <h2>{{ $customizations->slider_title ?? $translation->title }}</h2>
+                                @if(!empty($customizations->slider_content))
+                                    <div class="hero-subtitle mt-3">
+                                        {!! $customizations->slider_content !!}
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+@endif
+
+@php
+    $showSlider = isset($customizations) && ($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1");
+    $containerPaddingClass = $showSlider ? 'py-0' : 'py-4';
+@endphp
+
+<div class="container {{ $containerPaddingClass }} page-with-sidebar">
     <div class="row">
         {{-- Sidebar izquierda --}}
         <div class="col-md-4 col-lg-3">

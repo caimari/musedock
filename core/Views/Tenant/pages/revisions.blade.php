@@ -114,12 +114,12 @@
                   </td>
                   <td>{!! e($revision->changes_summary) ?: '<span class="text-muted">Sin descripción</span>' !!}</td>
                   <td>
-                    <div class="btn-group btn-group-sm">
-                      <a href="{{ admin_url('pages') }}/{{ $page->id }}/revisions/{{ $revision->id }}/preview" class="btn btn-outline-secondary" title="Vista previa">
+                    <div class="d-inline-flex align-items-center gap-2">
+                      <a href="{{ admin_url('pages') }}/{{ $page->id }}/revisions/{{ $revision->id }}/preview" class="btn btn-outline-secondary btn-sm" title="Vista previa">
                         <i class="bi bi-eye"></i>
                       </a>
                       <button type="button"
-                              class="btn btn-outline-primary btn-restore"
+                              class="btn btn-outline-primary btn-sm btn-restore"
                               title="Restaurar"
                               data-revision-id="{{ $revision->id }}"
                               data-revision-date="{{ date('d/m/Y H:i', strtotime($revision->created_at)) }}">
@@ -274,4 +274,3 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endsection
-

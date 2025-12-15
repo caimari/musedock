@@ -123,6 +123,7 @@
     "publish_immediately_help": "Leave blank to publish immediately",
     "draft": "Draft",
     "trash": "Trash",
+    "trash_title": "Trash",
     "view_trash": "View trash",
     "public": "Public",
     "private": "Private",

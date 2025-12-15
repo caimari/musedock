@@ -123,6 +123,7 @@
     "publish_immediately_help": "Dejar en blanco para publicar inmediatamente",
     "draft": "Borrador",
     "trash": "Papelera",
+    "trash_title": "Papelera",
     "view_trash": "Ver papelera",
     "public": "Público",
     "private": "Privado",
