@@ -5,9 +5,14 @@
     $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? site_setting('language', 'es'));
     \Screenart\Musedock\Services\TranslationService::load($currentLang, 'tenant');
 
-    // Verificar si mostrar logo (mismo setting que el header)
-    // Usa site_setting() que automaticamente usa tenant_setting si hay tenant activo
+    // Verificar si mostrar logo/título (mismo setting que el header)
+    // site_setting() ya respeta tenant/global.
     $showFooterLogo = site_setting('show_logo', '1') === '1';
+    $showFooterTitle = site_setting('show_title', '0') === '1';
+    $footerSiteName = site_setting('site_name', 'MuseDock');
+    $footerLogoPath = site_setting('site_logo', '');
+    $footerDefaultLogo = asset('themes/default/img/logo/logo2_footer.png');
+    $showFooterBranding = $showFooterLogo || $showFooterTitle;
 @endphp
 <footer>
     <!-- Footer Start -->
@@ -19,9 +24,21 @@
                    <div class="single-footer-caption mb-50">
                      <div class="single-footer-caption mb-30">
                           <!-- logo (solo si show_logo está activo) -->
-                         @if($showFooterLogo)
-                         <div class="footer-logo">
-                             <a href="{{ url('/') }}"><img src="{{ asset('logo2_footer.png') }}" alt=""></a>
+                         @if($showFooterBranding)
+                         <div class="footer-logo" style="display:flex; align-items:center; gap:12px;">
+                             <a href="{{ url('/') }}" style="display:flex; align-items:center; gap:12px; text-decoration:none;">
+                                 @if($showFooterLogo)
+                                     <img src="{{ $footerLogoPath ? public_file_url($footerLogoPath) : $footerDefaultLogo }}"
+                                          alt="{{ $footerSiteName }}"
+                                          style="max-height: 60px; width: auto;"
+                                          onerror="this.onerror=null; this.src='{{ $footerDefaultLogo }}';">
+                                 @endif
+                                 @if($showFooterTitle)
+                                     <span style="font-size: 20px; font-weight: 700; color: var(--footer-heading-color, #333);">
+                                         {{ $footerSiteName }}
+                                     </span>
+                                 @endif
+                             </a>
                          </div>
                          @endif
                          <div class="footer-tittle">
@@ -153,7 +170,7 @@
                 </div>
 
                 <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
-                    <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterLogo ? '80px' : '0' }};">
+                    <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterBranding ? '80px' : '0' }};">
                         @php
                             // Verificar si existe un menú para el área footer2
                             $pdo = \Screenart\Musedock\Database::connect();
@@ -198,7 +215,7 @@
                 </div>
 
                 <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
-                    <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterLogo ? '80px' : '0' }};">
+                    <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterBranding ? '80px' : '0' }};">
                         @php
                             // Verificar si existe un menú para el área footer3
                             $pdo = \Screenart\Musedock\Database::connect();

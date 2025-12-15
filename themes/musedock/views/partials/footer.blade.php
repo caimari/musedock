@@ -6,6 +6,10 @@ $contactEmail = site_setting('contact_email', '');
 $contactPhone = site_setting('contact_phone', '');
 $contactAddress = site_setting('contact_address', '');
 $siteName = site_setting('site_name', 'MuseDock');
+$showLogo = site_setting('show_logo', '1') === '1';
+$showTitle = site_setting('show_title', '0') === '1';
+$logoPath = site_setting('site_logo', '');
+$defaultLogo = asset('themes/musedock/images/logo-1.png');
 
 // Redes sociales
 $socialFacebook = site_setting('social_facebook');
@@ -231,7 +235,21 @@ $footerBorderColor = themeOption('footer.footer_border_color', '#181d35');
     <div class="container">
       <div class="row">
         <div class="col-sm-4">
-          {{-- Logo del footer eliminado --}}
+          @if($showLogo || $showTitle)
+            <a href="{{ url('/') }}" style="display:flex; align-items:center; gap:12px; text-decoration:none;">
+              @if($showLogo)
+                <img src="{{ $logoPath ? public_file_url($logoPath, 'themes/musedock/images/logo-1.png') : $defaultLogo }}"
+                     alt="{{ $siteName }}"
+                     style="max-height: 40px; width: auto;"
+                     onerror="this.onerror=null; this.src='{{ $defaultLogo }}';">
+              @endif
+              @if($showTitle)
+                <span style="font-size: 18px; font-weight: 700; color: var(--footer-heading-color, #ffffff);">
+                  {{ $siteName }}
+                </span>
+              @endif
+            </a>
+          @endif
         </div>
         <div class="text-right col-sm-8">
           <p class="ziph-copyright">
