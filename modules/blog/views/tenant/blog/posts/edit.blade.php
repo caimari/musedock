@@ -307,7 +307,7 @@
                 @enderror
                 <small class="text-muted">{{ __('blog.post.select_multiple') }}</small>
               </div>
-              <a href="{{ route('blog.categories.create') }}" class="btn btn-sm btn-outline-primary" target="_blank">+ {{ __('blog.category.new_category') }}</a>
+              <a href="{{ admin_url('blog/categories/create') }}" class="btn btn-sm btn-outline-primary" target="_blank">+ {{ __('blog.category.new_category') }}</a>
             </div>
           </div>
 

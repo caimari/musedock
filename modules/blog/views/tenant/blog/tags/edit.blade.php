@@ -8,9 +8,9 @@
     {{-- Navegación --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="breadcrumb">
-        <a href="{{ route('blog.tags.index') }}">Etiquetas</a> <span class="mx-2">/</span> <span>{{ e($tag->name) }}</span>
+        <a href="{{ admin_url('blog/tags') }}">Etiquetas</a> <span class="mx-2">/</span> <span>{{ e($tag->name) }}</span>
       </div>
-      <a href="{{ route('blog.tags.index') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Volver a Etiquetas</a>
+      <a href="{{ admin_url('blog/tags') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Volver a Etiquetas</a>
     </div>
 
     {{-- Alertas --}}
@@ -21,7 +21,7 @@
       <script> document.addEventListener('DOMContentLoaded', function () { Swal.fire({ icon: 'error', title: {!! json_encode(__('common.error')) !!}, text: {!! json_encode(session('error')) !!}, confirmButtonColor: '#d33' }); }); </script>
     @endif
 
-    <form method="POST" action="{{ route('blog.tags.update', ['id' => $tag->id]) }}" id="tagForm">
+    <form method="POST" action="{{ admin_url('blog/tags/' . $tag->id) }}" id="tagForm">
       @csrf
       @method('PUT')
 

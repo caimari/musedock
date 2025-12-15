@@ -8,9 +8,9 @@
     {{-- Navegación --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="breadcrumb">
-        <a href="{{ route('blog.categories.index') }}">{{ __('blog.categories') }}</a> <span class="mx-2">/</span> <span>{{ __('blog.category.new_category') }}</span>
+        <a href="{{ admin_url('blog/categories') }}">{{ __('blog.categories') }}</a> <span class="mx-2">/</span> <span>{{ __('blog.category.new_category') }}</span>
       </div>
-      <a href="{{ route('blog.categories.index') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> {{ __('blog.category.back_to_categories') }}</a>
+      <a href="{{ admin_url('blog/categories') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> {{ __('blog.category.back_to_categories') }}</a>
     </div>
 
     {{-- Alertas --}}
@@ -21,7 +21,7 @@
       <script> document.addEventListener('DOMContentLoaded', function () { Swal.fire({ icon: 'error', title: {!! json_encode(__('common.error')) !!}, text: {!! json_encode(session('error')) !!}, confirmButtonColor: '#d33' }); }); </script>
     @endif
 
-    <form method="POST" action="{{ route('blog.categories.store') }}" id="categoryForm" enctype="multipart/form-data">
+    <form method="POST" action="{{ admin_url('blog/categories') }}" id="categoryForm" enctype="multipart/form-data">
       @csrf
 
       <div class="row">
@@ -136,7 +136,7 @@
           {{-- Card Cancelar --}}
           <div class="card">
             <div class="card-body text-center">
-              <a href="{{ route('blog.categories.index') }}" class="btn btn-sm btn-outline-secondary">{{ __('common.cancel') }}</a>
+              <a href="{{ admin_url('blog/categories') }}" class="btn btn-sm btn-outline-secondary">{{ __('common.cancel') }}</a>
             </div>
           </div>
         </div>
