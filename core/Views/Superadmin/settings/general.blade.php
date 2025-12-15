@@ -51,12 +51,17 @@
             <input type="file" name="site_logo" class="form-control" accept="image/*">
 
             <div class="mt-3">
-                <img src="{{ asset(!empty($settings['site_logo']) ? $settings['site_logo'] : 'logo-default.png') }}" 
+                @php
+                    $logoSetting = $settings['site_logo'] ?? '';
+                    $logoPreview = public_file_url($logoSetting, 'themes/default/img/logo/logo.png');
+                @endphp
+                <img src="{{ $logoPreview }}" 
                      alt="Logo actual" 
-                     style="max-height: 80px; max-width: 100%; border: 1px solid #ddd; padding: 5px;">
+                     style="max-height: 80px; max-width: 100%; border: 1px solid #ddd; padding: 5px;"
+                     onerror="this.onerror=null; this.src='{{ asset('themes/default/img/logo/logo.png') }}';">
 
-                @if(!empty($settings['site_logo']))
-                  <p class="text-muted mt-2">Logo actual: <code>{{ $settings['site_logo'] }}</code></p>
+                @if(!empty($logoSetting))
+                  <p class="text-muted mt-2">Logo actual: <code>{{ $logoSetting }}</code></p>
 
                   <!-- Botón eliminar logo -->
                   <button type="button" class="btn btn-danger btn-sm mt-2" id="delete-logo-btn">
@@ -72,17 +77,22 @@
             <input type="file" name="site_favicon" class="form-control" accept="image/x-icon, image/png">
 
             <div class="mt-3">
-                <img src="{{ asset(!empty($settings['site_favicon']) ? $settings['site_favicon'] : 'themes/default/favicon.ico') }}" 
+                @php
+                    $faviconSetting = $settings['site_favicon'] ?? '';
+                    $faviconPreview = public_file_url($faviconSetting, 'themes/default/img/favicon.ico');
+                @endphp
+                <img src="{{ $faviconPreview }}" 
                      alt="Favicon actual" 
-                     style="max-height: 40px; max-width: 40px; border: 1px solid #ddd; padding: 5px;">
+                     style="max-height: 40px; max-width: 40px; border: 1px solid #ddd; padding: 5px;"
+                     onerror="this.onerror=null; this.src='{{ asset('themes/default/img/favicon.ico') }}';">
 
-                @if(!empty($settings['site_favicon']))
-                  <p class="text-muted mt-2">Favicon actual: <code>{{ $settings['site_favicon'] }}</code></p>
+                @if(!empty($faviconSetting))
+                  <p class="text-muted mt-2">Favicon actual: <code>{{ $faviconSetting }}</code></p>
                 @endif
             </div>
           </div>
 
-			@if(!empty($settings['site_favicon']))
+			@if(!empty($faviconSetting))
 			  <button type="button" class="btn btn-danger btn-sm mt-2" id="delete-favicon-btn">
 				<i class="fas fa-trash-alt me-1"></i>Eliminar favicon actual
 			  </button>

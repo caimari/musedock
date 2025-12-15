@@ -343,40 +343,25 @@ public function update()
     SessionSecurity::startSession();
     $this->checkPermission('settings.edit');
 
-    $uploadedLogo = null;
-    $uploadedFavicon = null;
-
-    // Subida de LOGO
+    // Subida de LOGO (drive interno: /media/file/branding/global/...)
     if (isset($_FILES['site_logo']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
-        $uploadedLogo = $this->handleFileUpload($_FILES['site_logo']);
+        $uploadedLogo = $this->storeBrandingUpload($_FILES['site_logo'], 'global', 'logo');
         if ($uploadedLogo) {
-            $oldLogo = setting('site_logo');
-            if ($oldLogo && file_exists(public_path('assets/' . $oldLogo))) {
-                unlink(public_path('assets/' . $oldLogo));
-            }
+            $this->deleteBrandingFile(setting('site_logo'));
             $_POST['site_logo'] = $uploadedLogo;
         }
-    }
-
-    // Si no se subió logo nuevo pero ya existe uno, mantenerlo
-    if (!isset($_POST['site_logo']) && setting('site_logo')) {
+    } elseif (!isset($_POST['site_logo']) && setting('site_logo')) {
         $_POST['site_logo'] = setting('site_logo');
     }
 
-    // Subida de FAVICON
+    // Subida de FAVICON (drive interno: /media/file/branding/global/...)
     if (isset($_FILES['site_favicon']) && $_FILES['site_favicon']['error'] === UPLOAD_ERR_OK) {
-        $uploadedFavicon = $this->handleFileUpload($_FILES['site_favicon']);
+        $uploadedFavicon = $this->storeBrandingUpload($_FILES['site_favicon'], 'global', 'favicon');
         if ($uploadedFavicon) {
-            $oldFavicon = setting('site_favicon');
-            if ($oldFavicon && file_exists(public_path('assets/' . $oldFavicon))) {
-                unlink(public_path('assets/' . $oldFavicon));
-            }
+            $this->deleteBrandingFile(setting('site_favicon'));
             $_POST['site_favicon'] = $uploadedFavicon;
         }
-    }
-
-    // Si no se subió favicon nuevo pero ya existe uno, mantenerlo
-    if (!isset($_POST['site_favicon']) && setting('site_favicon')) {
+    } elseif (!isset($_POST['site_favicon']) && setting('site_favicon')) {
         $_POST['site_favicon'] = setting('site_favicon');
     }
 
@@ -418,7 +403,7 @@ public function update()
 /**
  * Gestiona la carga de archivos
  */
-protected function handleFileUpload($file)
+protected function handleFileUpload($file, string $directory = 'assets/uploads/logos')
 {
     // Validar tamaño máximo (2MB)
     if ($file['size'] > 2 * 1024 * 1024) {
@@ -434,8 +419,6 @@ protected function handleFileUpload($file)
         return null;
     }
 
-    // Guardar en ubicación pública persistente (no dentro del tema)
-    $directory = 'assets/uploads/logos';
     $targetDir = public_path($directory);
 
     if (!is_dir($targetDir)) {
@@ -462,6 +445,72 @@ protected function flashError($message)
     flash('error', $message);
 }
 
+protected function storeBrandingUpload(array $file, string $scope, string $kind): ?string
+{
+    $allowedTypes = $kind === 'favicon'
+        ? ['image/x-icon', 'image/png', 'image/svg+xml', 'image/vnd.microsoft.icon']
+        : ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+
+    if (empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+        return null;
+    }
+
+    if (!in_array(($file['type'] ?? ''), $allowedTypes, true)) {
+        $this->flashError('Formato de imagen no permitido.');
+        return null;
+    }
+
+    $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
+    if ($ext === '') {
+        $ext = $kind === 'favicon' ? 'ico' : 'png';
+    }
+    $safeExt = preg_replace('/[^a-z0-9]+/', '', $ext);
+    if ($safeExt === '') {
+        $safeExt = $kind === 'favicon' ? 'ico' : 'png';
+    }
+
+    $filename = "{$kind}-" . time() . '-' . bin2hex(random_bytes(4)) . ".{$safeExt}";
+    $relative = "branding/{$scope}/{$filename}";
+
+    $destDir = APP_ROOT . '/storage/app/media/branding/' . $scope;
+    if (!is_dir($destDir)) {
+        mkdir($destDir, 0775, true);
+    }
+
+    $destPath = APP_ROOT . '/storage/app/media/' . $relative;
+    if (!move_uploaded_file($file['tmp_name'], $destPath)) {
+        $this->flashError('Error al subir el archivo.');
+        return null;
+    }
+
+    return '/media/file/' . $relative;
+}
+
+protected function deleteBrandingFile(?string $storedPath): void
+{
+    $storedPath = trim((string)$storedPath);
+    if ($storedPath === '' || $storedPath === '0') return;
+
+    if (str_starts_with($storedPath, '/media/file/')) {
+        $relative = ltrim(substr($storedPath, strlen('/media/file/')), '/');
+        $fullPath = APP_ROOT . '/storage/app/media/' . $relative;
+        $real = realpath($fullPath);
+        $root = realpath(APP_ROOT . '/storage/app/media');
+        if ($real && $root && str_starts_with($real, $root) && is_file($real)) {
+            @unlink($real);
+        }
+        return;
+    }
+
+    // Legacy: assets/... o uploads/... en public
+    if (str_starts_with($storedPath, 'assets/') || str_starts_with($storedPath, '/assets/') || str_starts_with($storedPath, 'uploads/') || str_starts_with($storedPath, '/uploads/')) {
+        $legacyPath = public_path(ltrim($storedPath, '/'));
+        if (is_file($legacyPath)) {
+            @unlink($legacyPath);
+        }
+    }
+}
+
 	
 	public function deleteLogo()
 {
@@ -470,9 +519,7 @@ protected function flashError($message)
 
     $logo = setting('site_logo');
 
-    if ($logo && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . ltrim($logo, '/'))) {
-        unlink($_SERVER['DOCUMENT_ROOT'] . '/' . ltrim($logo, '/'));
-    }
+    $this->deleteBrandingFile($logo);
 
     // Borrar la referencia en la base de datos
     $pdo = \Screenart\Musedock\Database::connect();
@@ -490,10 +537,9 @@ public function deleteFavicon()
     SessionSecurity::startSession();
     $this->checkPermission('settings.edit');
 
+    $favicon = setting('site_favicon');
 
-    if ($favicon && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . ltrim($favicon, '/'))) {
-        unlink($_SERVER['DOCUMENT_ROOT'] . '/' . ltrim($favicon, '/'));
-    }
+    $this->deleteBrandingFile($favicon);
 
     // Borrar la referencia en la base de datos
     $pdo = \Screenart\Musedock\Database::connect();

@@ -45,7 +45,7 @@
 
     <!-- Favicon dinámico -->
     @if($_siteFavicon)
-        <link rel="icon" type="image/x-icon" href="{{ asset(ltrim($_siteFavicon, '/')) }}">
+        <link rel="icon" type="image/x-icon" href="{{ public_file_url($_siteFavicon) }}">
     @else
         <!-- Fallback favicon -->
         <link rel="shortcut icon" type="image/x-icon" href="{{ asset('img/favicon.png') }}">
@@ -82,7 +82,7 @@
     @endif
     <meta property="og:type" content="website">
     @if($_ogImage)
-    <meta property="og:image" content="{{ asset($_ogImage) }}">
+    <meta property="og:image" content="{{ public_file_url($_ogImage) }}">
     @endif
     <link rel="canonical" href="{{ url($_SERVER['REQUEST_URI']) }}">
     @if($_siteName)
@@ -102,9 +102,9 @@
     <meta name="twitter:site" content="{{ $_twitterSite }}">
     @endif
     @if($_twitterImage)
-    <meta name="twitter:image" content="{{ asset($_twitterImage) }}">
+    <meta name="twitter:image" content="{{ public_file_url($_twitterImage) }}">
     @elseif($_ogImage)
-    <meta name="twitter:image" content="{{ asset($_ogImage) }}">
+    <meta name="twitter:image" content="{{ public_file_url($_ogImage) }}">
     @endif
 
     <!-- Responsive (igual en ambos) -->
@@ -962,7 +962,7 @@ body.mobile-menu-open {
 
                     {{-- Mostrar logo si está habilitado --}}
                     @if($showLogo)
-                        <img src="{{ $logoPath ? asset($logoPath) : $defaultLogo }}"
+                        <img src="{{ $logoPath ? public_file_url($logoPath) : $defaultLogo }}"
                              alt="{{ $siteName }}"
                              style="max-height: 50px; width: auto;"
                              onerror="this.onerror=null; this.src='{{ $defaultLogo }}';">

@@ -28,7 +28,7 @@
                 <div class="row">
                     <div class="col-xl-12">
                         <div class="hero-cap text-center">
-                            <h1>{{ $heroTitle }}</h1>
+                            <h2>{{ $heroTitle }}</h2>
                             @if(!empty($post->hero_content))
                                 <div class="hero-subtitle mt-3">
                                     {!! $post->hero_content !!}

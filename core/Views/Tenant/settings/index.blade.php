@@ -151,30 +151,28 @@
                         <div class="card-header">
                             <h5 class="mb-0"><i class="bi bi-image"></i> Identidad visual</h5>
                         </div>
-                        <div class="card-body">
+                            <div class="card-body">
                             <!-- Logo -->
                             <div class="mb-4">
                                 <label class="form-label">Logotipo del sitio</label>
                                 <input type="file" name="site_logo" class="form-control" accept="image/*">
 
                                 <div class="mt-3 text-center">
-                                    @if(!empty($settings['site_logo']))
-                                        <img src="{{ asset($settings['site_logo']) }}"
-                                             alt="Logo actual"
-                                             style="max-height: 80px; max-width: 100%; border: 1px solid #ddd; padding: 5px;">
-                                        <p class="text-muted mt-2 small">
-                                            <code>{{ $settings['site_logo'] }}</code>
-                                        </p>
-                                        <a href="/{{ admin_path() }}/settings/delete-logo"
-                                           class="btn btn-outline-danger btn-sm"
-                                           onclick="return confirm('Estas seguro de eliminar el logo?')">
-                                            <i class="bi bi-trash"></i> Eliminar logo
-                                        </a>
-                                    @else
-                                        <div class="text-muted p-3 border rounded bg-light">
-                                            <i class="bi bi-image fs-1"></i>
-                                            <p class="mb-0 mt-2">Sin logo configurado</p>
-                                        </div>
+                                    @php
+                                        $logoSetting = $settings['site_logo'] ?? '';
+                                        $logoPreview = public_file_url($logoSetting, 'themes/default/img/logo/logo.png');
+                                    @endphp
+                                    <img src="{{ $logoPreview }}"
+                                         alt="Logo actual"
+                                         style="max-height: 80px; max-width: 100%; border: 1px solid #ddd; padding: 5px;"
+                                         onerror="this.onerror=null; this.src='{{ asset('themes/default/img/logo/logo.png') }}';">
+                                    @if(!empty($logoSetting))
+                                      <p class="text-muted mt-2 small"><code>{{ $logoSetting }}</code></p>
+                                      <a href="/{{ admin_path() }}/settings/delete-logo"
+                                         class="btn btn-outline-danger btn-sm"
+                                         onclick="return confirm('Estas seguro de eliminar el logo?')">
+                                          <i class="bi bi-trash"></i> Eliminar logo
+                                      </a>
                                     @endif
                                 </div>
                             </div>
@@ -187,23 +185,21 @@
                                 <input type="file" name="site_favicon" class="form-control" accept="image/x-icon,image/png">
 
                                 <div class="mt-3 text-center">
-                                    @if(!empty($settings['site_favicon']))
-                                        <img src="{{ asset($settings['site_favicon']) }}"
-                                             alt="Favicon actual"
-                                             style="max-height: 40px; max-width: 40px; border: 1px solid #ddd; padding: 5px;">
-                                        <p class="text-muted mt-2 small">
-                                            <code>{{ $settings['site_favicon'] }}</code>
-                                        </p>
-                                        <a href="/{{ admin_path() }}/settings/delete-favicon"
-                                           class="btn btn-outline-danger btn-sm"
-                                           onclick="return confirm('Estas seguro de eliminar el favicon?')">
-                                            <i class="bi bi-trash"></i> Eliminar favicon
-                                        </a>
-                                    @else
-                                        <div class="text-muted p-3 border rounded bg-light">
-                                            <i class="bi bi-bookmark-star fs-3"></i>
-                                            <p class="mb-0 mt-2 small">Sin favicon configurado</p>
-                                        </div>
+                                    @php
+                                        $faviconSetting = $settings['site_favicon'] ?? '';
+                                        $faviconPreview = public_file_url($faviconSetting, 'themes/default/img/favicon.ico');
+                                    @endphp
+                                    <img src="{{ $faviconPreview }}"
+                                         alt="Favicon actual"
+                                         style="max-height: 40px; max-width: 40px; border: 1px solid #ddd; padding: 5px;"
+                                         onerror="this.onerror=null; this.src='{{ asset('themes/default/img/favicon.ico') }}';">
+                                    @if(!empty($faviconSetting))
+                                      <p class="text-muted mt-2 small"><code>{{ $faviconSetting }}</code></p>
+                                      <a href="/{{ admin_path() }}/settings/delete-favicon"
+                                         class="btn btn-outline-danger btn-sm"
+                                         onclick="return confirm('Estas seguro de eliminar el favicon?')">
+                                          <i class="bi bi-trash"></i> Eliminar favicon
+                                      </a>
                                     @endif
                                 </div>
                             </div>

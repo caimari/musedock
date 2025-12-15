@@ -1042,6 +1042,43 @@ if (!function_exists('asset')) {
     }
 }
 
+if (!function_exists('public_file_url')) {
+    /**
+     * Resuelve una URL pública para un path guardado en BD.
+     *
+     * Soporta:
+     * - URLs absolutas: https://...
+     * - Rutas absolutas públicas: /media/file/..., /storage/..., /assets/..., /uploads/...
+     * - Paths legacy: assets/..., uploads/...
+     * - Paths relativos al helper asset(): themes/default/..., etc.
+     */
+    function public_file_url(?string $path, ?string $defaultAsset = null): string
+    {
+        $path = trim((string)$path);
+
+        if ($path === '' || $path === '0') {
+            return $defaultAsset ? asset($defaultAsset) : '';
+        }
+
+        if (preg_match('#^https?://#i', $path)) {
+            return $path;
+        }
+
+        // Absolutas (ya incluyen /)
+        if (str_starts_with($path, '/media/') || str_starts_with($path, '/storage/') || str_starts_with($path, '/uploads/') || str_starts_with($path, '/assets/')) {
+            return $path;
+        }
+
+        // Legacy: guardado como assets/... o uploads/... sin slash inicial
+        if (str_starts_with($path, 'assets/') || str_starts_with($path, 'uploads/')) {
+            return url($path);
+        }
+
+        // Fallback: tratar como asset() del sistema (/assets/{path})
+        return asset($path);
+    }
+}
+
 if (!function_exists('e')) {
     function e($value) {
         return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');

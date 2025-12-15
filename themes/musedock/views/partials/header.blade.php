@@ -76,7 +76,7 @@ $headerSticky = themeOption('header.header_sticky', false);
           <div class="ziph-logo" style="padding-top:;padding-bottom:;">
             <a href="{{ url('/') }}">
               @php
-              $finalLogo = ($showLogo && $logoPath) ? asset(ltrim($logoPath, '/')) : asset('themes/musedock/images/logo-1.png');
+              $finalLogo = ($showLogo && $logoPath) ? public_file_url($logoPath, 'themes/musedock/images/logo-1.png') : asset('themes/musedock/images/logo-1.png');
               @endphp
               <img src="{{ $finalLogo }}" alt="{{ $siteName }}" width="154" height="36" class="retina-logo">
               <img src="{{ $finalLogo }}" alt="{{ $siteName }}" width="154" height="36" class="default-logo">

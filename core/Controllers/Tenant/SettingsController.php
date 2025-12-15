@@ -10,6 +10,8 @@ use Screenart\Musedock\Traits\RequiresPermission;
 class SettingsController
 {
     use RequiresPermission;
+
+    private const BRANDING_DIR = 'branding';
     /**
      * Muestra la página de ajustes del tenant
      */
@@ -143,12 +145,7 @@ class SettingsController
 
         try {
             $currentLogo = tenant_setting('site_logo');
-            if ($currentLogo) {
-                $logoPath = $_SERVER['DOCUMENT_ROOT'] . '/public/' . $currentLogo;
-                if (file_exists($logoPath)) {
-                    unlink($logoPath);
-                }
-            }
+            $this->deleteBrandingFile($currentLogo);
 
             $pdo = Database::connect();
             $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
@@ -182,12 +179,7 @@ class SettingsController
 
         try {
             $currentFavicon = tenant_setting('site_favicon');
-            if ($currentFavicon) {
-                $faviconPath = $_SERVER['DOCUMENT_ROOT'] . '/public/' . $currentFavicon;
-                if (file_exists($faviconPath)) {
-                    unlink($faviconPath);
-                }
-            }
+            $this->deleteBrandingFile($currentFavicon);
 
             $pdo = Database::connect();
             $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
@@ -268,34 +260,13 @@ class SettingsController
             return;
         }
 
-        $file = $_FILES['site_logo'];
-        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-
-        if (!in_array($file['type'], $allowedTypes)) {
-            throw new \Exception('Tipo de archivo no permitido para el logo');
-        }
-
-        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $filename = 'tenant_' . $tenantId . '_logo_' . time() . '.' . $ext;
-        $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/public/uploads/tenants/';
-
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
-
-        $destination = $uploadDir . $filename;
-
-        if (move_uploaded_file($file['tmp_name'], $destination)) {
-            // Eliminar logo anterior si existe
-            $currentLogo = tenant_setting('site_logo');
-            if ($currentLogo && file_exists($_SERVER['DOCUMENT_ROOT'] . '/public/' . $currentLogo)) {
-                unlink($_SERVER['DOCUMENT_ROOT'] . '/public/' . $currentLogo);
-            }
-
-            $this->saveTenantSetting($pdo, $tenantId, 'site_logo', 'uploads/tenants/' . $filename, $driver);
-        } else {
+        $url = $this->storeBrandingUpload($_FILES['site_logo'], "tenant-{$tenantId}", 'logo');
+        if (!$url) {
             throw new \Exception('Error al subir el logo');
         }
+
+        $this->deleteBrandingFile(tenant_setting('site_logo'));
+        $this->saveTenantSetting($pdo, $tenantId, 'site_logo', $url, $driver);
     }
 
     /**
@@ -307,33 +278,87 @@ class SettingsController
             return;
         }
 
-        $file = $_FILES['site_favicon'];
-        $allowedTypes = ['image/x-icon', 'image/png', 'image/vnd.microsoft.icon'];
-
-        if (!in_array($file['type'], $allowedTypes)) {
-            throw new \Exception('Tipo de archivo no permitido para el favicon');
-        }
-
-        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $filename = 'tenant_' . $tenantId . '_favicon_' . time() . '.' . $ext;
-        $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/public/uploads/tenants/';
-
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
-
-        $destination = $uploadDir . $filename;
-
-        if (move_uploaded_file($file['tmp_name'], $destination)) {
-            // Eliminar favicon anterior si existe
-            $currentFavicon = tenant_setting('site_favicon');
-            if ($currentFavicon && file_exists($_SERVER['DOCUMENT_ROOT'] . '/public/' . $currentFavicon)) {
-                unlink($_SERVER['DOCUMENT_ROOT'] . '/public/' . $currentFavicon);
-            }
-
-            $this->saveTenantSetting($pdo, $tenantId, 'site_favicon', 'uploads/tenants/' . $filename, $driver);
-        } else {
+        $url = $this->storeBrandingUpload($_FILES['site_favicon'], "tenant-{$tenantId}", 'favicon');
+        if (!$url) {
             throw new \Exception('Error al subir el favicon');
+        }
+
+        $this->deleteBrandingFile(tenant_setting('site_favicon'));
+        $this->saveTenantSetting($pdo, $tenantId, 'site_favicon', $url, $driver);
+    }
+
+    private function storeBrandingUpload(array $file, string $scope, string $kind): ?string
+    {
+        $allowedTypes = $kind === 'favicon'
+            ? ['image/x-icon', 'image/png', 'image/svg+xml', 'image/vnd.microsoft.icon']
+            : ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+
+        if (empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+            return null;
+        }
+
+        if (!in_array(($file['type'] ?? ''), $allowedTypes, true)) {
+            return null;
+        }
+
+        $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
+        if ($ext === '') {
+            $ext = $kind === 'favicon' ? 'ico' : 'png';
+        }
+
+        $safeExt = preg_replace('/[^a-z0-9]+/', '', $ext);
+        if ($safeExt === '') {
+            $safeExt = $kind === 'favicon' ? 'ico' : 'png';
+        }
+
+        $filename = "{$kind}-" . time() . '-' . bin2hex(random_bytes(4)) . ".{$safeExt}";
+        $relative = self::BRANDING_DIR . '/' . $scope . '/' . $filename;
+
+        $destDir = APP_ROOT . '/storage/app/media/' . self::BRANDING_DIR . '/' . $scope;
+        if (!is_dir($destDir)) {
+            mkdir($destDir, 0775, true);
+        }
+
+        $destPath = APP_ROOT . '/storage/app/media/' . $relative;
+        if (!move_uploaded_file($file['tmp_name'], $destPath)) {
+            return null;
+        }
+
+        return '/media/file/' . $relative;
+    }
+
+    private function deleteBrandingFile(?string $storedPath): void
+    {
+        $storedPath = trim((string)$storedPath);
+        if ($storedPath === '' || $storedPath === '0') {
+            return;
+        }
+
+        if (str_starts_with($storedPath, '/media/file/')) {
+            $relative = ltrim(substr($storedPath, strlen('/media/file/')), '/');
+            $fullPath = APP_ROOT . '/storage/app/media/' . $relative;
+
+            $real = realpath($fullPath);
+            $root = realpath(APP_ROOT . '/storage/app/media');
+            if ($real && $root && str_starts_with($real, $root) && is_file($real)) {
+                @unlink($real);
+            }
+            return;
+        }
+
+        if (str_starts_with($storedPath, 'uploads/') || str_starts_with($storedPath, '/uploads/')) {
+            $legacyPath = public_path(ltrim($storedPath, '/'));
+            if (is_file($legacyPath)) {
+                @unlink($legacyPath);
+            }
+            return;
+        }
+
+        if (str_starts_with($storedPath, 'assets/') || str_starts_with($storedPath, '/assets/')) {
+            $legacyPath = public_path(ltrim($storedPath, '/'));
+            if (is_file($legacyPath)) {
+                @unlink($legacyPath);
+            }
         }
     }
 
