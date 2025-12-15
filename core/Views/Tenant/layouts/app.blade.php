@@ -463,7 +463,7 @@ function generate_id($prefix = 'menu-') {
 <div class="wrapper">
     <nav id="sidebar" class="sidebar js-sidebar">
         <div class="sidebar-content">
-            <a class="sidebar-brand" href="{{ $adminPath }}/dashboard">
+            <a class="sidebar-brand" href="{{ admin_url('dashboard') }}">
                 <img src="/assets/superadmin/img/AdminLTELogo.png" alt="MuseDock Logo" width="32" height="32" style="opacity: 0.9; margin-right: 10px; border-radius: 3px;">
                 <span class="align-middle">MuseDock</span>
             </a>

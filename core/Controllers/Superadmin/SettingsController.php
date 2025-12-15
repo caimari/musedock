@@ -390,7 +390,10 @@ public function update()
     ]);
 
     // Guardar traducciones de footer_short_description por idioma
-    $activeLanguages = Database::table('languages')->where('active', 1)->pluck('code');
+    $activeLanguages = Database::table('languages')
+        ->where('active', 1)
+        ->whereNull('tenant_id')
+        ->pluck('code');
     foreach ($activeLanguages as $langCode) {
         $key = 'footer_short_description_' . $langCode;
         if (isset($_POST[$key])) {

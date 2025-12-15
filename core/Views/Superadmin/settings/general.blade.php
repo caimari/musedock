@@ -119,6 +119,7 @@
               // Obtener idiomas activos para campos traducibles
               $activeLanguages = \Screenart\Musedock\Database::table('languages')
                   ->where('active', 1)
+                  ->whereNull('tenant_id')
                   ->orderBy('order_position')
                   ->get();
           @endphp
