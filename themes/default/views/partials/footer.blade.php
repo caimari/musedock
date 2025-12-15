@@ -11,7 +11,7 @@
     $showFooterTitle = site_setting('show_title', '0') === '1';
     $footerSiteName = site_setting('site_name', 'MuseDock');
     $footerLogoPath = site_setting('site_logo', '');
-    $footerDefaultLogo = asset('themes/default/img/logo/logo2_footer.png');
+    $footerDefaultLogo = asset('themes/default/img/logo/logo.png');
     $showFooterBranding = $showFooterLogo || $showFooterTitle;
 @endphp
 <footer>
