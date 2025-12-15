@@ -1373,7 +1373,7 @@ class BlogPostController
         $tenantId = getTenantId();
         if (!$tenantId) {
             flash('error', __('blog.post.error_invalid_session'));
-            header("Location: /login");
+            header('Location: ' . admin_url('login'));
             exit;
         }
 
@@ -1404,7 +1404,7 @@ class BlogPostController
         $tenantId = getTenantId();
         if (!$tenantId) {
             flash('error', __('blog.post.error_invalid_session'));
-            header("Location: /login");
+            header('Location: ' . admin_url('login'));
             exit;
         }
 
@@ -1437,7 +1437,7 @@ class BlogPostController
         $tenantId = getTenantId();
         if (!$tenantId) {
             flash('error', __('blog.post.error_invalid_session'));
-            header("Location: /login");
+            header('Location: ' . admin_url('login'));
             exit;
         }
 
@@ -1467,7 +1467,7 @@ class BlogPostController
         $tenantId = getTenantId();
         if (!$tenantId) {
             flash('error', __('blog.post.error_invalid_session'));
-            header("Location: /login");
+            header('Location: ' . admin_url('login'));
             exit;
         }
 
@@ -1502,7 +1502,7 @@ class BlogPostController
         $tenantId = getTenantId();
         if (!$tenantId) {
             flash('error', __('blog.post.error_invalid_session'));
-            header("Location: /login");
+            header('Location: ' . admin_url('login'));
             exit;
         }
 
@@ -1538,7 +1538,7 @@ class BlogPostController
         $tenantId = getTenantId();
         if (!$tenantId) {
             flash('error', __('blog.post.error_invalid_session'));
-            header("Location: /login");
+            header('Location: ' . admin_url('login'));
             exit;
         }
 
@@ -1586,7 +1586,7 @@ class BlogPostController
         $tenantId = getTenantId();
         if (!$tenantId) {
             flash('error', __('blog.post.error_invalid_session'));
-            header("Location: /login");
+            header('Location: ' . admin_url('login'));
             exit;
         }
 
@@ -1691,5 +1691,37 @@ class BlogPostController
         }
 
         exit;
+    }
+}
+
+/**
+ * Helper local para obtener tenant_id dentro del módulo Blog (tenant).
+ * Se define aquí para mantener compatibilidad con llamadas legacy a getTenantId().
+ */
+function getTenantId(): ?int
+{
+    try {
+        if (function_exists('\\tenant_id')) {
+            $tenantId = \tenant_id();
+            if (!empty($tenantId)) {
+                return (int) $tenantId;
+            }
+        }
+
+        if (class_exists(\Screenart\Musedock\Services\TenantManager::class)) {
+            $tenantId = \Screenart\Musedock\Services\TenantManager::currentTenantId();
+            if ($tenantId !== null) {
+                return (int) $tenantId;
+            }
+        }
+
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            @session_start();
+        }
+
+        $tenantId = $_SESSION['admin']['tenant_id'] ?? $_SESSION['user']['tenant_id'] ?? null;
+        return $tenantId !== null ? (int) $tenantId : null;
+    } catch (\Throwable $e) {
+        return null;
     }
 }
