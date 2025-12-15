@@ -48,7 +48,7 @@ class BlogTagController
 
         // Consulta de las etiquetas
         $query = BlogTag::query()
-            ->whereNull('tenant_id')
+            ->whereRaw('(tenant_id IS NULL OR tenant_id = 0)')
             ->orderBy('name', 'ASC');
 
         // Aplicar búsqueda si existe

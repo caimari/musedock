@@ -29,7 +29,7 @@ class BlogController
         if ($tenantId !== null) {
             $countQuery->where('tenant_id', $tenantId);
         } else {
-            $countQuery->whereRaw('tenant_id IS NULL');
+            $countQuery->whereRaw('(tenant_id IS NULL OR tenant_id = 0)');
         }
         $totalPosts = $countQuery->count();
         $totalPages = ceil($totalPosts / $postsPerPage);
@@ -41,14 +41,20 @@ class BlogController
         if ($tenantId !== null) {
             $query->where('tenant_id', $tenantId);
         } else {
-            $query->whereRaw('tenant_id IS NULL');
+            $query->whereRaw('(tenant_id IS NULL OR tenant_id = 0)');
         }
 
         // Aplicar límite y offset para paginación
         $posts = $query->limit($postsPerPage)->offset($offset)->get();
 
         // Obtener categorías para sidebar
-        $categories = BlogCategory::where('tenant_id', $tenantId)->get();
+        $categoriesQuery = BlogCategory::query();
+        if ($tenantId !== null) {
+            $categoriesQuery->where('tenant_id', $tenantId);
+        } else {
+            $categoriesQuery->whereRaw('(tenant_id IS NULL OR tenant_id = 0)');
+        }
+        $categories = $categoriesQuery->get();
 
         // Preparar datos de paginación
         $pagination = [
@@ -79,7 +85,7 @@ class BlogController
         if ($tenantId !== null) {
             $query->where('tenant_id', $tenantId);
         } else {
-            $query->whereRaw('tenant_id IS NULL');
+            $query->whereRaw('(tenant_id IS NULL OR tenant_id = 0)');
         }
 
         $post = $query->first();
@@ -115,8 +121,23 @@ class BlogController
         $displayData->featured_image = $post->featured_image;
         $displayData->published_at = $post->published_at;
 
+        // Cargar categorías y tags del post para el frontend
+        try {
+            $post->categories = $post->categories();
+            $post->tags = $post->tags();
+        } catch (\Throwable $e) {
+            $post->categories = [];
+            $post->tags = [];
+        }
+
         // Obtener categorías para sidebar
-        $categories = BlogCategory::where('tenant_id', $tenantId)->get();
+        $categoriesQuery = BlogCategory::query();
+        if ($tenantId !== null) {
+            $categoriesQuery->where('tenant_id', $tenantId);
+        } else {
+            $categoriesQuery->whereRaw('(tenant_id IS NULL OR tenant_id = 0)');
+        }
+        $categories = $categoriesQuery->get();
 
         // Para posts del blog, usar la plantilla del blog (evita renderizar page.blade.php sin $page)
         // Si en el futuro se soportan variantes, mapear aquí.
@@ -141,7 +162,7 @@ class BlogController
         if ($tenantId !== null) {
             $categoryQuery->where('tenant_id', $tenantId);
         } else {
-            $categoryQuery->whereRaw('tenant_id IS NULL');
+            $categoryQuery->whereRaw('(tenant_id IS NULL OR tenant_id = 0)');
         }
         $category = $categoryQuery->first();
 
@@ -168,7 +189,7 @@ class BlogController
             $countStmt = $pdo->prepare($countSql);
             $countStmt->execute([$category->id, $tenantId]);
         } else {
-            $countSql .= " AND p.tenant_id IS NULL";
+            $countSql .= " AND (p.tenant_id IS NULL OR p.tenant_id = 0)";
             $countStmt = $pdo->prepare($countSql);
             $countStmt->execute([$category->id]);
         }
@@ -187,7 +208,7 @@ class BlogController
         if ($tenantId !== null) {
             $sql .= " AND p.tenant_id = ?";
         } else {
-            $sql .= " AND p.tenant_id IS NULL";
+            $sql .= " AND (p.tenant_id IS NULL OR p.tenant_id = 0)";
         }
         $sql .= " GROUP BY p.id ORDER BY p.published_at DESC LIMIT " . (int)$postsPerPage . " OFFSET " . (int)$offset;
 
@@ -227,7 +248,7 @@ class BlogController
         if ($tenantId !== null) {
             $tagQuery->where('tenant_id', $tenantId);
         } else {
-            $tagQuery->whereRaw('tenant_id IS NULL');
+            $tagQuery->whereRaw('(tenant_id IS NULL OR tenant_id = 0)');
         }
         $tag = $tagQuery->first();
 
@@ -254,7 +275,7 @@ class BlogController
             $countStmt = $pdo->prepare($countSql);
             $countStmt->execute([$tag->id, $tenantId]);
         } else {
-            $countSql .= " AND p.tenant_id IS NULL";
+            $countSql .= " AND (p.tenant_id IS NULL OR p.tenant_id = 0)";
             $countStmt = $pdo->prepare($countSql);
             $countStmt->execute([$tag->id]);
         }
@@ -273,7 +294,7 @@ class BlogController
         if ($tenantId !== null) {
             $sql .= " AND p.tenant_id = ?";
         } else {
-            $sql .= " AND p.tenant_id IS NULL";
+            $sql .= " AND (p.tenant_id IS NULL OR p.tenant_id = 0)";
         }
         $sql .= " GROUP BY p.id ORDER BY p.published_at DESC LIMIT " . (int)$postsPerPage . " OFFSET " . (int)$offset;
 

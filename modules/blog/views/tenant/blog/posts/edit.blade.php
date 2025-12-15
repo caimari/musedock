@@ -339,7 +339,7 @@
           </div>
 
           {{-- Card Opciones de Cabecera --}}
-          @include('partials._header_options', ['Page' => $post])
+          @include('partials._header_options', ['context' => 'blog_post', 'Page' => $post])
 
           {{-- Card Info Fechas --}}
           <div class="card mb-4">

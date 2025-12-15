@@ -49,7 +49,7 @@ class BlogCategoryController
 
         // Consulta de las categorías
         $query = BlogCategory::query()
-            ->whereNull('tenant_id')
+            ->whereRaw('(tenant_id IS NULL OR tenant_id = 0)')
             ->orderBy('order', 'ASC')
             ->orderBy('name', 'ASC');
 
@@ -95,7 +95,7 @@ class BlogCategoryController
     {
         $this->checkPermission('blog.create');
         // Obtener todas las categorías para el selector de categoría padre
-        $categories = BlogCategory::whereNull('tenant_id')->orderBy('name', 'ASC')->get();
+        $categories = BlogCategory::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')->orderBy('name', 'ASC')->get();
 
         return View::renderSuperadmin('blog.categories.create', [
             'title' => 'Crear Categoría',
@@ -177,7 +177,7 @@ class BlogCategoryController
         }
 
         // Obtener todas las categorías para el selector de categoría padre (excluyendo la actual)
-        $categories = BlogCategory::whereNull('tenant_id')
+        $categories = BlogCategory::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')
             ->where('id', '!=', $id)
             ->orderBy('name', 'ASC')
             ->get();

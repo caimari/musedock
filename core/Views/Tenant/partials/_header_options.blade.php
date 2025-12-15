@@ -4,7 +4,17 @@
     <div class="card-body">
         {{-- Lógica para determinar la imagen a mostrar --}}
         @php
-            $sliderImage = $Page->slider_image ?? '';
+            $context = $context ?? null;
+            $isBlogPost = $context === 'blog_post';
+
+            $toggleName = $isBlogPost ? 'show_hero' : 'show_slider';
+            $imageField = $isBlogPost ? 'hero_image' : 'slider_image';
+            $currentImageField = $isBlogPost ? 'current_hero_image' : 'current_slider_image';
+            $removeImageField = $isBlogPost ? 'remove_hero_image' : 'remove_slider_image';
+            $titleField = $isBlogPost ? 'hero_title' : 'slider_title';
+            $contentField = $isBlogPost ? 'hero_content' : 'slider_content';
+
+            $sliderImage = $Page->{$imageField} ?? '';
             $imagePath = '';
             $isCustom = false;
             
@@ -15,22 +25,27 @@
             } else {
                 $imagePath = 'themes/default/img/hero/contact_hero.jpg';
             }
+
+            $imageUrl = $imagePath;
+            if (!(str_starts_with($imagePath, 'http') || str_starts_with($imagePath, '/media/'))) {
+                $imageUrl = asset($imagePath);
+            }
         @endphp
         
         {{-- Activar/desactivar la cabecera --}}
         <div class="mb-3 form-check">
-            <input type="checkbox" class="form-check-input" id="show-slider" name="show_slider" 
-                   {{ old('show_slider', $Page->show_slider ?? 0) == 1 ? 'checked' : '' }}>
+            <input type="checkbox" class="form-check-input" id="show-slider" name="{{ $toggleName }}" value="1"
+                   {{ old($toggleName, $Page->{$toggleName} ?? 0) == 1 ? 'checked' : '' }}>
             <label class="form-check-label" for="show-slider">Mostrar cabecera con imagen</label>
         </div>
 
         {{-- Imagen de fondo --}}
-        <div class="mb-3" id="slider-image-container" style="{{ old('show_slider', $Page->show_slider ?? 0) == 1 ? '' : 'display: none;' }}">
+        <div class="mb-3" id="slider-image-container" style="{{ old($toggleName, $Page->{$toggleName} ?? 0) == 1 ? '' : 'display: none;' }}">
             <label for="slider-image" class="form-label">Imagen de fondo</label>
             
             <div class="image-preview-container mb-3">
                 <div class="slider-preview" id="current-image-preview">
-                    <img src="{{ asset($imagePath) }}" 
+                    <img src="{{ $imageUrl }}"
                          alt="Vista previa de la imagen de cabecera" 
                          class="img-fluid img-thumbnail mb-2" 
                          style="max-height: 150px; max-width: 100%; {{ $isCustom ? '' : 'opacity: 0.7;' }}"
@@ -58,32 +73,32 @@
             
             <div class="mb-3">
                 <label for="slider-image" class="form-label">Subir nueva imagen</label>
-                <input type="file" class="form-control" id="slider-image" name="slider_image" accept="image/*">
-                <input type="hidden" name="current_slider_image" value="{{ $sliderImage }}" id="current-slider-image-input">
-                <input type="hidden" name="remove_slider_image" id="remove-slider-image-flag" value="0">
+                <input type="file" class="form-control" id="slider-image" name="{{ $imageField }}" accept="image/*">
+                <input type="hidden" name="{{ $currentImageField }}" value="{{ $sliderImage }}" id="current-slider-image-input">
+                <input type="hidden" name="{{ $removeImageField }}" id="remove-slider-image-flag" value="0">
                 <small class="text-muted">Recomendado: 1920x400px. La imagen se adaptará automáticamente a estas dimensiones.</small>
             </div>
         </div>
 
         {{-- Título personalizado para la cabecera (opcional) --}}
-        <div class="mb-3" id="slider-title-container" style="{{ old('show_slider', $Page->show_slider ?? 0) == 1 ? '' : 'display: none;' }}">
+        <div class="mb-3" id="slider-title-container" style="{{ old($toggleName, $Page->{$toggleName} ?? 0) == 1 ? '' : 'display: none;' }}">
             <label for="slider-title" class="form-label">Título para la cabecera <small class="text-muted">(opcional)</small></label>
-            <input type="text" class="form-control" id="slider-title" name="slider_title" 
-                   value="{{ old('slider_title', $Page->slider_title ?? '') }}" 
+            <input type="text" class="form-control" id="slider-title" name="{{ $titleField }}"
+                   value="{{ old($titleField, $Page->{$titleField} ?? '') }}"
                    placeholder="Dejar vacío para usar el título de la página">
         </div>
 
         {{-- Contenido personalizado para la cabecera (opcional) --}}
-        <div class="mb-3" id="slider-content-container" style="{{ old('show_slider', $Page->show_slider ?? 0) == 1 ? '' : 'display: none;' }}">
+        <div class="mb-3" id="slider-content-container" style="{{ old($toggleName, $Page->{$toggleName} ?? 0) == 1 ? '' : 'display: none;' }}">
             <label for="slider-content" class="form-label">Subtítulo <small class="text-muted">(opcional)</small></label>
-            <textarea class="form-control" id="slider-content" name="slider_content" rows="2" 
-                      placeholder="Texto adicional para mostrar debajo del título principal">{{ old('slider_content', $Page->slider_content ?? '') }}</textarea>
+            <textarea class="form-control" id="slider-content" name="{{ $contentField }}" rows="2"
+                      placeholder="Texto adicional para mostrar debajo del título principal">{{ old($contentField, $Page->{$contentField} ?? '') }}</textarea>
             <small class="text-muted">Texto breve que aparecerá debajo del título principal.</small>
         </div>
 
         {{-- Ocultar título H1 en el contenido principal --}}
         <div class="mb-3 form-check mt-4">
-            <input type="checkbox" class="form-check-input" id="hide-title" name="hide_title" 
+            <input type="checkbox" class="form-check-input" id="hide-title" name="hide_title" value="1"
                    {{ old('hide_title', $Page->hide_title ?? 0) == 1 ? 'checked' : '' }}>
             <label class="form-check-label" for="hide-title">Ocultar título H1 en el contenido principal</label>
             <small class="d-block text-muted">Útil cuando ya se muestra el título en la cabecera o en otro elemento de la página.</small>

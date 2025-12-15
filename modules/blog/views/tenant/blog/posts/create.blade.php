@@ -291,7 +291,7 @@
           </div>
 
           {{-- Card Opciones de Cabecera --}}
-          @include('partials._header_options', ['Page' => (object)['hero_title' => old('hero_title'), 'hero_subtitle' => old('hero_subtitle'), 'hero_image' => old('hero_image'), 'hero_height' => old('hero_height', 'medium'), 'hero_overlay' => old('hero_overlay', '0.3'), 'hero_text_color' => old('hero_text_color', 'white'), 'hide_title' => old('hide_title', 1)]])
+          @include('partials._header_options', ['context' => 'blog_post', 'Page' => (object)['show_hero' => old('show_hero', 0), 'hero_title' => old('hero_title'), 'hero_subtitle' => old('hero_subtitle'), 'hero_image' => old('hero_image'), 'hero_height' => old('hero_height', 'medium'), 'hero_overlay' => old('hero_overlay', '0.3'), 'hero_text_color' => old('hero_text_color', 'white'), 'hide_title' => old('hide_title', 1)]])
 
           {{-- Card Cancelar --}}
           <div class="card">

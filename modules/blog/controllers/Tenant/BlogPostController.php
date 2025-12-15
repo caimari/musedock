@@ -112,6 +112,13 @@ class BlogPostController
                     $post->visibility = $result['visibility'];
                 }
 
+                // Precargar categorías para el index
+                try {
+                    $post->categories = $post->categories();
+                } catch (\Throwable $e) {
+                    $post->categories = [];
+                }
+
                 $processedPosts[] = $post;
             }
         } catch (\Exception $e) {
@@ -119,12 +126,16 @@ class BlogPostController
             $processedPosts = array_map(fn($row) => ($row instanceof BlogPost) ? $row : new BlogPost((array) $row), $posts);
         }
 
-        // Cargar autores (usuarios del tenant)
+        // Cargar autores (soporta admin/user)
         $authors = [];
         foreach ($processedPosts as $post) {
             $userId = $post->user_id ?? null;
             if ($userId && !isset($authors[$userId])) {
-                $authors[$userId] = User::find($userId);
+                try {
+                    $authors[$userId] = method_exists($post, 'getAuthor') ? $post->getAuthor() : User::find($userId);
+                } catch (\Throwable $e) {
+                    $authors[$userId] = User::find($userId);
+                }
             }
         }
 
@@ -285,6 +296,10 @@ class BlogPostController
         if (!empty($selectedTags)) {
             $post->syncTags($selectedTags);
         }
+
+        // Actualizar contadores (incluye categorías/tags removidos)
+        $this->updateAllCategoryCounts($tenantId);
+        $this->updateAllTagCounts($tenantId);
 
         // ✅ Crear primera revisión del post
         try {
@@ -603,6 +618,10 @@ class BlogPostController
             $post->syncTags($selectedTags);
 
             $pdo->commit();
+
+            // Actualizar contadores (incluye categorías/tags removidos)
+            $this->updateAllCategoryCounts($tenantId);
+            $this->updateAllTagCounts($tenantId);
 
             // ✅ Crear revisión después de actualizar exitosamente
             try {

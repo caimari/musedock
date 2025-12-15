@@ -92,6 +92,13 @@ class BlogPostController
                     $post->visibility = $result['visibility'];
                 }
 
+                // Precargar categorías para el index
+                try {
+                    $post->categories = $post->categories();
+                } catch (\Throwable $e) {
+                    $post->categories = [];
+                }
+
                 $processedPosts[] = $post;
             }
         } catch (\Exception $e) {
@@ -105,8 +112,11 @@ class BlogPostController
         foreach ($processedPosts as $post) {
             $userId = $post->user_id ?? null;
             if ($userId && !isset($authors[$userId])) {
-                // Asumiendo que el autor siempre es SuperAdmin en este contexto
-                $authors[$userId] = SuperAdmin::find($userId);
+                try {
+                    $authors[$userId] = method_exists($post, 'getAuthor') ? $post->getAuthor() : SuperAdmin::find($userId);
+                } catch (\Throwable $e) {
+                    $authors[$userId] = SuperAdmin::find($userId);
+                }
             }
         }
 
@@ -124,10 +134,10 @@ class BlogPostController
     {
         $this->checkPermission('blog.create');
         // Obtener todas las categorías disponibles
-        $categories = BlogCategory::whereNull('tenant_id')->orderBy('name', 'ASC')->get();
+        $categories = BlogCategory::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')->orderBy('name', 'ASC')->get();
 
         // Obtener todas las etiquetas disponibles
-        $tags = BlogTag::whereNull('tenant_id')->orderBy('name', 'ASC')->get();
+        $tags = BlogTag::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')->orderBy('name', 'ASC')->get();
 
         // Obtener plantillas disponibles
         $availableTemplates = get_blog_templates();
@@ -260,6 +270,10 @@ class BlogPostController
             $post->syncTags($selectedTags);
         }
 
+        // Actualizar contadores (incluye categorías/tags removidos)
+        $this->updateAllCategoryCounts();
+        $this->updateAllTagCounts();
+
         // ✅ Crear primera revisión del post
         try {
             \Blog\Models\BlogPostRevision::createFromPost($post, 'initial', 'Versión inicial del post');
@@ -353,14 +367,14 @@ class BlogPostController
         }
 
         // Obtener todas las categorías disponibles
-        $allCategories = BlogCategory::whereNull('tenant_id')->orderBy('name', 'ASC')->get();
+        $allCategories = BlogCategory::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')->orderBy('name', 'ASC')->get();
 
         // Obtener categorías del post
         $postCategories = $post->categories();
         $postCategoryIds = array_map(fn($cat) => $cat->id, $postCategories);
 
         // Obtener todas las etiquetas disponibles
-        $allTags = BlogTag::whereNull('tenant_id')->orderBy('name', 'ASC')->get();
+        $allTags = BlogTag::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')->orderBy('name', 'ASC')->get();
 
         // Obtener etiquetas del post
         $postTags = $post->tags();
@@ -415,6 +429,7 @@ class BlogPostController
         $data['allow_comments'] = isset($data['allow_comments']) ? 1 : 0;
         $data['featured'] = isset($data['featured']) ? 1 : 0;
         $data['hide_featured_image'] = isset($data['hide_featured_image']) ? 1 : 0;
+        $data['hide_title'] = isset($data['hide_title']) ? 1 : 0;
 
         // Manejo de visibilidad
         $data['visibility'] = $data['visibility'] ?? 'public';
@@ -545,6 +560,10 @@ class BlogPostController
             $post->syncTags($selectedTags);
 
             $pdo->commit();
+
+            // Actualizar contadores (incluye categorías/tags removidos)
+            $this->updateAllCategoryCounts();
+            $this->updateAllTagCounts();
 
             // ✅ Crear revisión después de actualizar exitosamente
             try {
