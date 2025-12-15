@@ -61,7 +61,7 @@
                 <div class="mb-4">
                     <span class="font-semibold text-gray-900 mr-2">{{ __('blog.categories') }}:</span>
                     @foreach($post->categories as $category)
-                        <a href="/blog/categoria/{{ $category->slug }}" class="inline-block px-3 py-1 mr-2 mb-2 text-sm font-medium text-white bg-indigo-600 rounded-full hover:bg-indigo-700 transition-colors">{{ $category->name }}</a>
+                        <a href="/blog/category/{{ $category->slug }}" class="inline-block px-3 py-1 mr-2 mb-2 text-sm font-medium text-white bg-indigo-600 rounded-full hover:bg-indigo-700 transition-colors">{{ $category->name }}</a>
                     @endforeach
                 </div>
                 @endif
@@ -70,7 +70,7 @@
                 <div>
                     <span class="font-semibold text-gray-900 mr-2">{{ __('blog.tags') }}:</span>
                     @foreach($post->tags as $tag)
-                        <a href="/blog/etiqueta/{{ $tag->slug }}" class="inline-block px-3 py-1 mr-2 mb-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors">{{ $tag->name }}</a>
+                        <a href="/blog/tag/{{ $tag->slug }}" class="inline-block px-3 py-1 mr-2 mb-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors">{{ $tag->name }}</a>
                     @endforeach
                 </div>
                 @endif
@@ -118,7 +118,7 @@
                 <ul class="space-y-2">
                     @foreach($categories as $cat)
                     <li>
-                        <a href="/blog/categoria/{{ $cat->slug }}" class="flex items-center text-gray-600 hover:text-indigo-600 transition-colors">
+                        <a href="/blog/category/{{ $cat->slug }}" class="flex items-center text-gray-600 hover:text-indigo-600 transition-colors">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                             </svg>

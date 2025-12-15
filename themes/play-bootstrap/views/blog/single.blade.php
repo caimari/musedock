@@ -75,7 +75,7 @@
                         <ul class="ud-blog-tags">
                             @foreach($post->tags as $tag)
                             <li>
-                                <a href="/blog/etiqueta/{{ $tag->slug }}">{{ $tag->name }}</a>
+                                <a href="/blog/tag/{{ $tag->slug }}">{{ $tag->name }}</a>
                             </li>
                             @endforeach
                         </ul>
@@ -205,7 +205,7 @@
                         <ul class="ud-categories-list">
                             @foreach($post->categories as $category)
                             <li>
-                                <a href="/blog/categoria/{{ $category->slug }}">
+                                <a href="/blog/category/{{ $category->slug }}">
                                     {{ $category->name }}
                                 </a>
                             </li>

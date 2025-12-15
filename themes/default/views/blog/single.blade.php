@@ -82,7 +82,7 @@
                     <div class="mb-3">
                         <strong>{{ __('blog.categories') }}:</strong>
                         @foreach($post->categories as $category)
-                            <a href="/blog/categoria/{{ $category->slug }}" class="badge bg-primary text-decoration-none">{{ $category->name }}</a>
+                            <a href="/blog/category/{{ $category->slug }}" class="badge bg-primary text-decoration-none">{{ $category->name }}</a>
                         @endforeach
                     </div>
                     @endif
@@ -91,7 +91,7 @@
                     <div>
                         <strong>{{ __('blog.tags') }}:</strong>
                         @foreach($post->tags as $tag)
-                            <a href="/blog/etiqueta/{{ $tag->slug }}" class="badge bg-secondary text-decoration-none">{{ $tag->name }}</a>
+                            <a href="/blog/tag/{{ $tag->slug }}" class="badge bg-secondary text-decoration-none">{{ $tag->name }}</a>
                         @endforeach
                     </div>
                     @endif

@@ -210,7 +210,7 @@ class BlogController
         } else {
             $sql .= " AND (p.tenant_id IS NULL OR p.tenant_id = 0)";
         }
-        $sql .= " GROUP BY p.id ORDER BY p.published_at DESC LIMIT " . (int)$postsPerPage . " OFFSET " . (int)$offset;
+        $sql .= " ORDER BY p.published_at DESC LIMIT " . (int)$postsPerPage . " OFFSET " . (int)$offset;
 
         $currentLang = detectLanguage();
         $stmt = $pdo->prepare($sql);
@@ -296,7 +296,7 @@ class BlogController
         } else {
             $sql .= " AND (p.tenant_id IS NULL OR p.tenant_id = 0)";
         }
-        $sql .= " GROUP BY p.id ORDER BY p.published_at DESC LIMIT " . (int)$postsPerPage . " OFFSET " . (int)$offset;
+        $sql .= " ORDER BY p.published_at DESC LIMIT " . (int)$postsPerPage . " OFFSET " . (int)$offset;
 
         $currentLang = detectLanguage();
         $stmt = $pdo->prepare($sql);

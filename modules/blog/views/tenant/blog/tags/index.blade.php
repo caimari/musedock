@@ -91,7 +91,7 @@
                     <span class="text-muted">—</span>
                   @endif
                 </td>
-                <td><span class="badge bg-secondary">{{ $tag->posts_count ?? 0 }}</span></td>
+                <td><span class="badge bg-secondary">{{ $tag->post_count ?? 0 }}</span></td>
               </tr>
             @endforeach
             </tbody>

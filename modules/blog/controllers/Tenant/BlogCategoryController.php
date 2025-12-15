@@ -14,6 +14,25 @@ class BlogCategoryController
 {
     use RequiresPermission;
 
+    private function updateAllCategoryCounts(int $tenantId): void
+    {
+        try {
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("
+                UPDATE blog_categories c
+                SET post_count = (
+                    SELECT COUNT(*)
+                    FROM blog_post_categories pc
+                    WHERE pc.category_id = c.id
+                )
+                WHERE c.tenant_id = ?
+            ");
+            $stmt->execute([$tenantId]);
+        } catch (\Exception $e) {
+            error_log("Error al actualizar contadores de categorías: " . $e->getMessage());
+        }
+    }
+
     private function flashValidationErrors(array $errors): void
     {
         $errors = array_values(array_filter(array_map('trim', $errors)));
@@ -63,6 +82,9 @@ class BlogCategoryController
             header('Location: /' . admin_path() . '/dashboard');
             exit;
         }
+
+        // Mantener contadores consistentes aunque se hayan cambiado posts desde otro flujo
+        $this->updateAllCategoryCounts($tenantId);
 
         // Capturar parámetros de búsqueda y paginación
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';

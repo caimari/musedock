@@ -13,6 +13,24 @@ class BlogCategoryController
 {
     use RequiresPermission;
 
+    private function updateAllCategoryCounts(): void
+    {
+        try {
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("
+                UPDATE blog_categories c
+                SET post_count = (
+                    SELECT COUNT(*)
+                    FROM blog_post_categories pc
+                    WHERE pc.category_id = c.id
+                )
+            ");
+            $stmt->execute();
+        } catch (\Exception $e) {
+            error_log("Error al actualizar contadores de categorías: " . $e->getMessage());
+        }
+    }
+
     private function flashValidationErrors(array $errors): void
     {
         $errors = array_values(array_filter(array_map('trim', $errors)));
@@ -40,6 +58,7 @@ class BlogCategoryController
     public function index()
     {
         $this->checkPermission('blog.view');
+        $this->updateAllCategoryCounts();
         // Capturamos parámetros de búsqueda y paginación
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 

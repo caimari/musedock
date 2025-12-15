@@ -12,6 +12,24 @@ class BlogTagController
 {
     use RequiresPermission;
 
+    private function updateAllTagCounts(): void
+    {
+        try {
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("
+                UPDATE blog_tags t
+                SET post_count = (
+                    SELECT COUNT(*)
+                    FROM blog_post_tags pt
+                    WHERE pt.tag_id = t.id
+                )
+            ");
+            $stmt->execute();
+        } catch (\Exception $e) {
+            error_log("Error al actualizar contadores de etiquetas: " . $e->getMessage());
+        }
+    }
+
     private function flashValidationErrors(array $errors): void
     {
         $errors = array_values(array_filter(array_map('trim', $errors)));
@@ -39,6 +57,7 @@ class BlogTagController
     public function index()
     {
         $this->checkPermission('blog.view');
+        $this->updateAllTagCounts();
         // Capturamos parámetros de búsqueda y paginación
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
