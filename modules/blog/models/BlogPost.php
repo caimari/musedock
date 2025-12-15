@@ -31,6 +31,7 @@ class BlogPost extends Model
         'content',
         'featured_image',
         'hide_featured_image',
+        'hide_title',
         'status',
         'visibility',
         'password',
@@ -75,6 +76,7 @@ class BlogPost extends Model
         'view_count'          => 'int',
         'featured'            => 'boolean',
         'hide_featured_image' => 'boolean',
+        'hide_title'          => 'boolean',
         'show_hero'           => 'boolean',
     ];
 

@@ -201,6 +201,9 @@ class BlogPostController
         $data['show_hero'] = isset($data['show_hero']) ? 1 : 0;
         $data['allow_comments'] = isset($data['allow_comments']) ? 1 : 0;
         $data['featured'] = isset($data['featured']) ? 1 : 0;
+        $data['hide_featured_image'] = isset($rawData['hide_featured_image']) ? 1 : 0;
+        $data['hide_title'] = isset($rawData['hide_title']) ? 1 : 0;
+        $data['hide_title'] = isset($data['hide_title']) ? 1 : 0;
 
         // Visibilidad
         $data['visibility'] = $data['visibility'] ?? 'public';
@@ -548,6 +551,10 @@ class BlogPostController
 
         // Asegurar que tenant_id no cambie
         $data['tenant_id'] = $tenantId;
+        $data['content'] = $data['content'] ?? '';
+        if ($data['content'] === null) {
+            $data['content'] = '';
+        }
 
         // Validación
         $errors = BlogPostRequest::validate($rawData, $id);
@@ -561,6 +568,9 @@ class BlogPostController
 
         // Procesar datos
         $data = self::processFormData($data);
+        if (!isset($data['content']) || $data['content'] === null) {
+            $data['content'] = '';
+        }
 
         $newSlug = $data['slug'];
         $prefix = $rawData['prefix'] ?? 'blog';
