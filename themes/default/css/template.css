@@ -34,6 +34,7 @@
 }
 
 /* Hacer imágenes responsivas en TODO el contenido - Aplicación global */
+/* Forzar max-width para sobrescribir atributos width/height inline del HTML */
 .page-body img,
 .post-content img,
 .page-content-wrapper img,
@@ -43,11 +44,26 @@ article img,
 main img,
 .content img,
 p img,
-div img {
+div img,
+img {
   max-width: 100% !important;
-  width: 100% !important;
   height: auto !important;
   display: block;
+}
+
+/* Resetear width inline en imágenes con atributos width/height */
+.page-body img[width],
+.post-content img[width],
+.page-content-wrapper img[width],
+.blog-post-single img[width],
+article img[width],
+.container img[width],
+main img[width],
+p img[width],
+div img[width],
+img[width] {
+  width: auto !important;
+  max-width: 100% !important;
 }
 
 /* Asegurar que los párrafos contenedores también sean responsivos */
