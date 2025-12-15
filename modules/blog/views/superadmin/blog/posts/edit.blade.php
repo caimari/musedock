@@ -5,13 +5,20 @@
 @section('content')
 <div class="app-content">
   <div class="container-fluid">
-    {{-- Navegación y botón añadir post --}}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <div class="breadcrumb">
-        <a href="{{ route('blog.posts.index') }}">Posts</a> <span class="mx-2">/</span> <span>{{ e($post->title ?? 'Editando...') }}</span>
-      </div>
-      <a href="{{ route('blog.posts.create') }}" class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i> {{ __('blog.post.add_post') }}</a>
-    </div>
+	    {{-- Navegación y botón añadir post --}}
+	    <div class="d-flex justify-content-between align-items-center mb-3">
+	      <div class="breadcrumb">
+	        <a href="{{ route('blog.posts.index') }}">Posts</a> <span class="mx-2">/</span> <span>{{ e($post->title ?? 'Editando...') }}</span>
+	      </div>
+	      <div class="btn-group">
+	        <a href="{{ route('blog.posts.revisions', ['id' => $post->id]) }}" class="btn btn-sm btn-outline-secondary" title="{{ __('pages.view_revisions') }}">
+	          <i class="bi bi-clock-history me-1"></i> {{ __('pages.revisions') }}@if(($post->revision_count ?? 0) > 0) ({{ $post->revision_count }})@endif
+	        </a>
+	        <a href="{{ route('blog.posts.create') }}" class="btn btn-sm btn-primary">
+	          <i class="fas fa-plus me-1"></i> {{ __('blog.post.add_post') }}
+	        </a>
+	      </div>
+	    </div>
 
     {{-- Script para SweetAlert2 --}}
     @if (session('success'))
