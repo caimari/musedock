@@ -65,10 +65,10 @@ class DashboardController
         $tenantId = tenant_id();
         $stats = [
             'pages' => 0,
+            'posts' => 0,
             'menus' => 0,
             'modules_enabled' => 0,
             'modules_available' => 0,
-            'plugins' => 0,
         ];
 
         if ($tenantId) {
@@ -79,9 +79,17 @@ class DashboardController
                 $stmt->execute([$tenantId]);
                 $stats['pages'] = (int) $stmt->fetchColumn();
 
-                $stmt = $pdo->prepare("SELECT COUNT(*) FROM tenant_menus WHERE tenant_id = ? AND is_active = 1");
+                // Menús del sitio (no confundir con tenant_menus, que son entradas del sidebar del panel)
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM site_menus WHERE tenant_id = ?");
                 $stmt->execute([$tenantId]);
                 $stats['menus'] = (int) $stmt->fetchColumn();
+
+                // Posts del blog (si el módulo está activo y la tabla existe)
+                if (function_exists('blog_is_active') && blog_is_active()) {
+                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM blog_posts WHERE tenant_id = ? AND status <> 'trash'");
+                    $stmt->execute([$tenantId]);
+                    $stats['posts'] = (int) $stmt->fetchColumn();
+                }
 
                 $stmt = $pdo->prepare("SELECT COUNT(*) FROM modules WHERE active = 1");
                 $stmt->execute();
@@ -95,10 +103,6 @@ class DashboardController
                 ");
                 $stmt->execute([$tenantId]);
                 $stats['modules_enabled'] = (int) $stmt->fetchColumn();
-
-                $stmt = $pdo->prepare("SELECT COUNT(*) FROM tenant_plugins WHERE tenant_id = ?");
-                $stmt->execute([$tenantId]);
-                $stats['plugins'] = (int) $stmt->fetchColumn();
             } catch (\Throwable $e) {
                 error_log("DashboardController - Error cargando contadores: " . $e->getMessage());
             }

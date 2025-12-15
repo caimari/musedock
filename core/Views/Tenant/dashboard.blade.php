@@ -16,10 +16,10 @@
             </div>
         </div>
 
-        <div class="row">
+        <div class="row align-items-stretch">
             <div class="col-xl-3 col-sm-6 mb-4">
-                <div class="card dashboard-stat">
-                    <div class="card-body">
+                <div class="card dashboard-stat h-100">
+                    <div class="card-body d-flex flex-column">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0">
                                 <span class="stat-icon" aria-hidden="true">📄</span>
@@ -29,7 +29,7 @@
                                 <h3 class="mb-0">{{ $stats['pages'] ?? 0 }}</h3>
                             </div>
                         </div>
-                        <div class="mt-3">
+                        <div class="mt-auto pt-3">
                             <a href="{{ admin_url('pages') }}" class="btn btn-sm btn-soft-primary">{{ __('pages.view_all') }} →</a>
                         </div>
                     </div>
@@ -37,8 +37,27 @@
             </div>
 
             <div class="col-xl-3 col-sm-6 mb-4">
-                <div class="card dashboard-stat">
-                    <div class="card-body">
+                <div class="card dashboard-stat h-100">
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0">
+                                <span class="stat-icon" aria-hidden="true">📰</span>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5 class="mb-1">Posts</h5>
+                                <h3 class="mb-0">{{ $stats['posts'] ?? 0 }}</h3>
+                            </div>
+                        </div>
+                        <div class="mt-auto pt-3">
+                            <a href="{{ admin_url('blog/posts') }}" class="btn btn-sm btn-soft-primary">Gestionar →</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-sm-6 mb-4">
+                <div class="card dashboard-stat h-100">
+                    <div class="card-body d-flex flex-column">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0">
                                 <span class="stat-icon" aria-hidden="true">📋</span>
@@ -48,7 +67,7 @@
                                 <h3 class="mb-0">{{ $stats['menus'] ?? 0 }}</h3>
                             </div>
                         </div>
-                        <div class="mt-3">
+                        <div class="mt-auto pt-3">
                             <a href="{{ admin_url('menus') }}" class="btn btn-sm btn-soft-primary">{{ __('menus.manage') }} →</a>
                         </div>
                     </div>
@@ -56,8 +75,8 @@
             </div>
 
             <div class="col-xl-3 col-sm-6 mb-4">
-                <div class="card dashboard-stat">
-                    <div class="card-body">
+                <div class="card dashboard-stat h-100">
+                    <div class="card-body d-flex flex-column">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0">
                                 <span class="stat-icon" aria-hidden="true">🧩</span>
@@ -68,27 +87,8 @@
                                 <div class="small text-muted">{{ ($stats['modules_available'] ?? 0) }} disponibles</div>
                             </div>
                         </div>
-                        <div class="mt-3">
+                        <div class="mt-auto pt-3">
                             <a href="{{ admin_url('modules') }}" class="btn btn-sm btn-soft-primary">{{ __('modules.view_modules') }} →</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-3 col-sm-6 mb-4">
-                <div class="card dashboard-stat">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="flex-shrink-0">
-                                <span class="stat-icon" aria-hidden="true">🔌</span>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <h5 class="mb-1">{{ __('plugins.my_plugins') }}</h5>
-                                <h3 class="mb-0">{{ $stats['plugins'] ?? 0 }}</h3>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <a href="{{ admin_url('plugins') }}" class="btn btn-sm btn-soft-primary">{{ __('plugins.manage') }} →</a>
                         </div>
                     </div>
                 </div>
@@ -191,5 +191,4 @@
   }
 </style>
 @endpush
-
 
