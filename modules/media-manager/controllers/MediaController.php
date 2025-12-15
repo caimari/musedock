@@ -28,6 +28,8 @@ if (!function_exists('slugify')) {
 
 class MediaController
 {
+    private const DEFAULT_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+
     /**
      * Tenant actual para el contexto actual.
      * - Superadmin (/musedock/*): null (global)
@@ -311,9 +313,166 @@ class MediaController
      */
     private function isTenantContext(): bool
     {
-        // Verificar si la URL actual contiene /admin/ (tenant) o /musedock/ (superadmin)
+        // Verificar si la URL actual contiene /{ADMIN_PATH_TENANT}/ (tenant)
         $requestUri = $_SERVER['REQUEST_URI'] ?? '';
-        return strpos($requestUri, '/admin/') !== false;
+        $adminPath = function_exists('admin_path') ? admin_path() : 'admin';
+        $needle = '/' . trim((string)$adminPath, '/') . '/';
+        return strpos($requestUri, $needle) !== false;
+    }
+
+    private function getDiskNameForContext(?string $requestedDisk): string
+    {
+        $validDisks = ['local', 'media', 'r2', 's3'];
+        $diskName = in_array((string)$requestedDisk, $validDisks, true) ? (string)$requestedDisk : 'media';
+
+        $diskConfig = config("filesystems.disks.{$diskName}");
+        if (!$diskConfig || !is_array($diskConfig)) {
+            return 'media';
+        }
+
+        // Validar disponibilidad del disco en tenant (flags)
+        if ($this->isTenantContext()) {
+            if ($diskName === 'r2' && !\Screenart\Musedock\Env::get('TENANT_DISK_R2_ENABLED', true)) {
+                return 'media';
+            }
+            if ($diskName === 's3' && !\Screenart\Musedock\Env::get('TENANT_DISK_S3_ENABLED', false)) {
+                return 'media';
+            }
+            if ($diskName === 'local' && !\Screenart\Musedock\Env::get('TENANT_DISK_LOCAL_ENABLED', false)) {
+                return 'media';
+            }
+            if ($diskName === 'media' && !\Screenart\Musedock\Env::get('TENANT_DISK_MEDIA_ENABLED', true)) {
+                return 'media';
+            }
+        }
+
+        return $diskName;
+    }
+
+    private function createFilesystemForDisk(string $diskName): array
+    {
+        $diskConfig = config("filesystems.disks.{$diskName}");
+        if (!$diskConfig || !is_array($diskConfig)) {
+            $diskName = 'media';
+            $diskConfig = config('filesystems.disks.media') ?: [];
+        }
+
+        if (($diskConfig['driver'] ?? 'local') === 's3') {
+            $filesystem = $this->createS3Filesystem($diskConfig);
+            if (!$filesystem) {
+                throw new \Exception("No se pudo conectar con el almacenamiento en la nube ({$diskName})");
+            }
+            return [$filesystem, null, $diskConfig];
+        }
+
+        $localRoot = APP_ROOT . ($diskConfig['root'] ?? '/storage/app/media');
+        $adapter = new \League\Flysystem\Local\LocalFilesystemAdapter(
+            $localRoot,
+            null,
+            LOCK_EX,
+            \League\Flysystem\Local\LocalFilesystemAdapter::DISALLOW_LINKS
+        );
+        $filesystem = new \League\Flysystem\Filesystem($adapter);
+        return [$filesystem, $localRoot, $diskConfig];
+    }
+
+    private function buildWriteConfig(string $diskName, string $mimeType): array
+    {
+        $diskConfig = config("filesystems.disks.{$diskName}") ?: [];
+        $cfg = [
+            'visibility' => 'public',
+        ];
+
+        if (($diskConfig['driver'] ?? null) === 's3') {
+            $cfg['ContentType'] = $mimeType ?: 'application/octet-stream';
+            $cfg['CacheControl'] = self::DEFAULT_CACHE_CONTROL;
+        }
+
+        return $cfg;
+    }
+
+    private function createImageThumbnail(string $sourceFile, string $sourceMime, int $maxWidth = 420, int $maxHeight = 420): ?array
+    {
+        if (!file_exists($sourceFile)) {
+            return null;
+        }
+
+        if (!function_exists('imagecreatetruecolor')) {
+            return null;
+        }
+
+        $img = null;
+        switch ($sourceMime) {
+            case 'image/jpeg':
+                $img = @imagecreatefromjpeg($sourceFile);
+                break;
+            case 'image/png':
+                $img = @imagecreatefrompng($sourceFile);
+                break;
+            case 'image/gif':
+                $img = @imagecreatefromgif($sourceFile);
+                break;
+            case 'image/webp':
+                if (function_exists('imagecreatefromwebp')) {
+                    $img = @imagecreatefromwebp($sourceFile);
+                }
+                break;
+            default:
+                return null;
+        }
+
+        if (!$img) {
+            return null;
+        }
+
+        $srcWidth = imagesx($img);
+        $srcHeight = imagesy($img);
+        if ($srcWidth <= 0 || $srcHeight <= 0) {
+            imagedestroy($img);
+            return null;
+        }
+
+        $ratio = min($maxWidth / $srcWidth, $maxHeight / $srcHeight, 1);
+        $dstWidth = (int)max(1, floor($srcWidth * $ratio));
+        $dstHeight = (int)max(1, floor($srcHeight * $ratio));
+
+        $thumb = imagecreatetruecolor($dstWidth, $dstHeight);
+        if (!$thumb) {
+            imagedestroy($img);
+            return null;
+        }
+
+        // Fondo blanco para transparencias (output JPEG)
+        $white = imagecolorallocate($thumb, 255, 255, 255);
+        imagefilledrectangle($thumb, 0, 0, $dstWidth, $dstHeight, $white);
+
+        imagecopyresampled($thumb, $img, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
+        imagedestroy($img);
+
+        $tmp = tempnam(sys_get_temp_dir(), 'md_thumb_');
+        if (!$tmp) {
+            imagedestroy($thumb);
+            return null;
+        }
+
+        $tmpJpg = $tmp . '.jpg';
+        @unlink($tmp);
+
+        $ok = imagejpeg($thumb, $tmpJpg, 82);
+        imagedestroy($thumb);
+
+        if (!$ok || !file_exists($tmpJpg)) {
+            @unlink($tmpJpg);
+            return null;
+        }
+
+        return [
+            'tmp_path' => $tmpJpg,
+            'mime_type' => 'image/jpeg',
+            'size' => (int)filesize($tmpJpg),
+            'width' => $dstWidth,
+            'height' => $dstHeight,
+        ];
     }
 
     /**
@@ -456,9 +615,9 @@ class MediaController
                     $media = new Media((array)$media);
                 }
 
-                // Construir ruta pública
-                $url = $media->getPublicUrl();
-                $thumbnailUrl = $url; // Puedes personalizar si quieres miniaturas
+                // URLs: en cloud preferimos URL directa para el panel (evita hits al backend).
+                $url = in_array($media->disk, ['r2', 's3'], true) ? $media->getPublicUrl(false) : $media->getPublicUrl();
+                $thumbnailUrl = $media->getThumbnailUrl();
 
                 // Obtener dimensiones de imagen si es posible
                 $dimensions = '';
@@ -541,7 +700,7 @@ public function getMediaDetails($id)
         }
 
         // Obtener ruta completa al archivo físico usando el disco correcto
-        $url = $media->getPublicUrl();
+        $url = in_array($media->disk, ['r2', 's3'], true) ? $media->getPublicUrl(false) : $media->getPublicUrl();
         $filePath = $media->getFullPath();
 
         // Verificar si el archivo existe físicamente
@@ -716,6 +875,31 @@ public function upload()
         return $this->jsonResponse(['success' => false, 'message' => 'No se recibió ningún archivo.']);
     }
 
+    $maxFilesPerRequest = (int)\Screenart\Musedock\Env::get('MEDIA_MAX_FILES_PER_REQUEST', 1);
+    if ($maxFilesPerRequest > 0 && count($_FILES['file']['name']) > $maxFilesPerRequest) {
+        return $this->jsonResponse([
+            'success' => false,
+            'message' => "Máximo {$maxFilesPerRequest} archivo(s) por subida. Por favor, sube de uno en uno."
+        ], 429);
+    }
+
+    $minInterval = (int)\Screenart\Musedock\Env::get('MEDIA_UPLOAD_MIN_INTERVAL_SECONDS', 2);
+    $now = time();
+    $last = isset($_SESSION['media_upload_last_ts']) ? (int)$_SESSION['media_upload_last_ts'] : 0;
+    if ($minInterval > 0 && $last > 0 && ($now - $last) < $minInterval) {
+        return $this->jsonResponse([
+            'success' => false,
+            'message' => 'Demasiadas subidas. Espera unos segundos e inténtalo de nuevo.'
+        ], 429);
+    }
+    if (!empty($_SESSION['media_upload_in_progress'])) {
+        return $this->jsonResponse([
+            'success' => false,
+            'message' => 'Ya hay una subida activa. Espera a que termine.'
+        ], 429);
+    }
+    $_SESSION['media_upload_in_progress'] = true;
+
     // Tipos MIME permitidos (puedes personalizar esta lista según tus necesidades)
     $allowedMimeTypes = [
         // Imágenes
@@ -737,14 +921,15 @@ public function upload()
         'video/mp4', 'video/webm', 'video/ogg'
     ];
 
-    // Tamaño máximo de archivo en bytes (50MB por defecto)
-    $maxFileSize = config('media.max_file_size', 50 * 1024 * 1024);
+    // Tamaño máximo de archivo en bytes
+    $maxFileSize = (int)\Screenart\Musedock\Env::get('MEDIA_MAX_UPLOAD_SIZE', (int)config('filesystems.max_upload_size', 50 * 1024 * 1024));
 
     // Variables para tracking
     $uploadedFiles = [];
     $errors = [];
     $filesCount = count($_FILES['file']['name']);
 
+    try {
     // Procesar cada archivo
     for ($i = 0; $i < $filesCount; $i++) {
         $file = [
@@ -797,30 +982,7 @@ public function upload()
         }
 
         try {
-            // Determinar qué disco usar (desde POST o default 'media')
-            $requestedDisk = isset($_POST['disk']) ? $_POST['disk'] : 'media';
-
-            // Validar que el disco sea válido
-            $validDisks = ['local', 'media', 'r2', 's3'];
-            $diskName = in_array($requestedDisk, $validDisks) ? $requestedDisk : 'media';
-
-            $diskConfig = config("filesystems.disks.{$diskName}");
-
-            // Fallback a 'media' si el disco solicitado no está configurado
-            if (!$diskConfig || !is_array($diskConfig)) {
-                $diskName = 'media';
-                $diskConfig = config('filesystems.disks.media');
-            }
-
-            // Si aún no hay configuración, usar valores por defecto para disco 'media'
-            if (!$diskConfig || !is_array($diskConfig)) {
-                $diskConfig = [
-                    'driver' => 'local',
-                    'root' => '/storage/app/media',
-                    'url' => '/media/file',
-                    'visibility' => 'public'
-                ];
-            }
+            $diskName = $this->getDiskNameForContext($_POST['disk'] ?? 'media');
 
             // Preparar la ruta del archivo
             $tenantId = function_exists('tenant_id') ? tenant_id() : ($_SESSION['admin']['tenant_id'] ?? null);
@@ -830,25 +992,7 @@ public function upload()
             $relativePath = "{$subPath}/{$yearMonth}/{$safeFilename}";
             $dirPath = dirname($relativePath);
 
-            // Crear el filesystem según el tipo de disco
-            if ($diskConfig['driver'] === 's3') {
-                // Para S3/R2: usar el adaptador S3
-                $filesystem = $this->createS3Filesystem($diskConfig);
-                if (!$filesystem) {
-                    throw new \Exception("No se pudo conectar con el almacenamiento en la nube ({$diskName})");
-                }
-                $localRoot = null;
-            } else {
-                // Para discos locales
-                $localRoot = APP_ROOT . $diskConfig['root'];
-                $adapter = new \League\Flysystem\Local\LocalFilesystemAdapter(
-                    $localRoot,
-                    null, // visibility
-                    LOCK_EX, // write flags
-                    \League\Flysystem\Local\LocalFilesystemAdapter::DISALLOW_LINKS
-                );
-                $filesystem = new \League\Flysystem\Filesystem($adapter);
-            }
+            [$filesystem, $localRoot, $diskConfig] = $this->createFilesystemForDisk($diskName);
 
             // Crear directorio si no existe
             if (!$filesystem->directoryExists($dirPath)) {
@@ -867,7 +1011,7 @@ public function upload()
             }
 
             // Guardar el archivo en el sistema de archivos
-            $filesystem->writeStream($relativePath, $stream);
+            $filesystem->writeStream($relativePath, $stream, $this->buildWriteConfig($diskName, $realMimeType));
             fclose($stream);
 
             // Establecer permisos solo para discos locales
@@ -889,6 +1033,30 @@ public function upload()
                 }
             }
 
+            // Thumbnail real (solo imágenes raster)
+            $thumbnail = null;
+            $thumbRelativePath = null;
+            if (strpos($realMimeType, 'image/') === 0 && $realMimeType !== 'image/svg+xml') {
+                $thumbnail = $this->createImageThumbnail($file['tmp_name'], $realMimeType);
+                if ($thumbnail && !empty($thumbnail['tmp_path'])) {
+                    $thumbDir = "{$subPath}/{$yearMonth}/thumbs";
+                    if (!$filesystem->directoryExists($thumbDir)) {
+                        $filesystem->createDirectory($thumbDir);
+                        if ($localRoot) {
+                            @chmod($localRoot . '/' . $thumbDir, 0755);
+                        }
+                    }
+                    $thumbBasename = pathinfo($safeFilename, PATHINFO_FILENAME) . '_thumb.jpg';
+                    $thumbRelativePath = "{$thumbDir}/{$thumbBasename}";
+                    $thumbStream = fopen($thumbnail['tmp_path'], 'r+');
+                    if ($thumbStream) {
+                        $filesystem->writeStream($thumbRelativePath, $thumbStream, $this->buildWriteConfig($diskName, $thumbnail['mime_type']));
+                        fclose($thumbStream);
+                    }
+                    @unlink($thumbnail['tmp_path']);
+                }
+            }
+
             // Guardar en la base de datos
             $userId = $_SESSION['super_admin']['id'] ?? ($_SESSION['admin']['id'] ?? ($_SESSION['user']['id'] ?? null));
             $publicToken = Media::generatePublicToken();
@@ -896,24 +1064,36 @@ public function upload()
             $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
             $seoFilename = $slug . '-' . $publicToken . '.' . $extension;
 
+            $metadata = null;
+            if ($thumbRelativePath && $thumbnail) {
+                $metadata = [
+                    'thumbnail' => [
+                        'path' => $thumbRelativePath,
+                        'mime_type' => $thumbnail['mime_type'] ?? 'image/jpeg',
+                        'size' => $thumbnail['size'] ?? null,
+                        'width' => $thumbnail['width'] ?? null,
+                        'height' => $thumbnail['height'] ?? null,
+                    ],
+                ];
+            }
+
             $media = Media::create([
                 'tenant_id'    => $tenantId,
                 'user_id'      => $userId,
                 'folder_id'    => $folderId,
-                'disk'         => $diskName, // Usar el disco determinado (media o local)
+                'disk'         => $diskName,
                 'path'         => $relativePath,
-                'public_token' => $publicToken, // Token seguro para URL pública
-                'slug'         => $slug, // Slug SEO-friendly del nombre
-                'seo_filename' => $seoFilename, // Filename completo para URL SEO
+                'public_token' => $publicToken,
+                'slug'         => $slug,
+                'seo_filename' => $seoFilename,
                 'filename'     => $file['name'],
-                'mime_type'    => $file['type'],
+                'mime_type'    => $realMimeType,
                 'size'         => $file['size'],
-                'metadata'     => null,
+                'metadata'     => $metadata,
             ]);
 
-            // Verificar dimensiones para imágenes
             $dimensions = '';
-            if (strpos($file['type'], 'image/') === 0) {
+            if (strpos($realMimeType, 'image/') === 0) {
                 $imageInfo = @getimagesize($file['tmp_name']);
                 if ($imageInfo) {
                     $dimensions = $imageInfo[0] . 'x' . $imageInfo[1];
@@ -921,14 +1101,19 @@ public function upload()
             }
 
             // 📊 Actualizar el espacio usado por el tenant
-            $this->updateTenantStorageUsed($file['size']);
+            $bytesChange = (int)$file['size'];
+            if ($metadata && isset($metadata['thumbnail']['size']) && is_numeric($metadata['thumbnail']['size'])) {
+                $bytesChange += (int)$metadata['thumbnail']['size'];
+            }
+            $this->updateTenantStorageUsed($bytesChange);
 
             // Añadir a archivos subidos exitosamente
             $uploadedFiles[] = [
                 'id'            => $media->id,
                 'filename'      => $media->filename,
-                'url'           => $media->getPublicUrl(),
-                'thumbnail_url' => $media->getPublicUrl(),
+                // En cloud: usar URL directa para UX del panel; en local: SEO/token.
+                'url'           => in_array($media->disk, ['r2', 's3'], true) ? $media->getPublicUrl(false) : $media->getPublicUrl(),
+                'thumbnail_url' => $media->getThumbnailUrl(),
                 'mime_type'     => $media->mime_type,
                 'size'          => $media->size,
                 'dimensions'    => $dimensions,
@@ -945,6 +1130,10 @@ public function upload()
             }
             $errors[] = $errorMsg;
         }
+    }
+    } finally {
+        $_SESSION['media_upload_in_progress'] = false;
+        $_SESSION['media_upload_last_ts'] = time();
     }
 
     // Construir mensaje de respuesta
@@ -1030,19 +1219,28 @@ private function getUploadErrorMessage($errorCode)
 
             // Guardar el tamaño antes de eliminar para actualizar la cuota
             $fileSize = $media->size ?? 0;
+            $meta = is_array($media->metadata) ? $media->metadata : (is_string($media->metadata) ? json_decode($media->metadata, true) : []);
+            $thumbSize = isset($meta['thumbnail']['size']) && is_numeric($meta['thumbnail']['size']) ? (int)$meta['thumbnail']['size'] : 0;
+            $thumbPath = $meta['thumbnail']['path'] ?? null;
 
-            $filesystem = new \League\Flysystem\Filesystem(
-                new \League\Flysystem\Local\LocalFilesystemAdapter(APP_ROOT . config('filesystems.disks.local.root', '/public/assets/uploads'))
-            );
-
-            if ($filesystem->fileExists($media->path)) {
+            [$filesystem] = $this->createFilesystemForDisk($media->disk ?: 'media');
+            try {
                 $filesystem->delete($media->path);
+            } catch (\Throwable $e) {
+                // idempotente: si no existe, continuar
+            }
+            if ($thumbPath) {
+                try {
+                    $filesystem->delete((string)$thumbPath);
+                } catch (\Throwable $e) {
+                }
             }
 
             if ($media->delete()) {
                 // 📊 Restar el espacio usado del tenant
-                if ($fileSize > 0) {
-                    $this->updateTenantStorageUsed(-$fileSize);
+                $bytes = (int)$fileSize + (int)$thumbSize;
+                if ($bytes > 0) {
+                    $this->updateTenantStorageUsed(-$bytes);
                 }
 
                 return $this->jsonResponse(['success' => true, 'message' => 'Medio eliminado correctamente.']);
@@ -1104,30 +1302,35 @@ private function getUploadErrorMessage($errorCode)
                 ], 400);
             }
 
-            $oldPath = $media->path;
-            $oldFilename = $media->filename;
+            $oldPath = (string)$media->path;
 
-            // Actualizar el nombre del archivo
-            $media->filename = $newFilename;
-            $media->save();
+            // Nuevo nombre de objeto: mantener directorio, sanitizar nombre, evitar colisiones
+            $baseDir = dirname($oldPath);
+            $baseDir = $baseDir === '.' ? '' : $baseDir;
+            $extension = strtolower(pathinfo($newFilename, PATHINFO_EXTENSION));
+            $baseName = pathinfo($newFilename, PATHINFO_FILENAME);
+            $safeBase = slugify($baseName);
+            $suffix = substr((string)$media->public_token, 0, 6);
+            $newStorageName = $safeBase . '_' . $suffix . '.' . $extension;
+            $newPath = $baseDir ? ($baseDir . '/' . $newStorageName) : $newStorageName;
 
-            // Renombrar el archivo físico si existe
-            $filesystem = new \League\Flysystem\Filesystem(
-                new \League\Flysystem\Local\LocalFilesystemAdapter(APP_ROOT . config('filesystems.disks.local.root', '/public/assets/uploads'))
-            );
-
-            $basePath = dirname($oldPath);
-            $newPath = $basePath === '.' ? $newFilename : $basePath . '/' . $newFilename;
-
-            if ($filesystem->fileExists($oldPath)) {
+            // Renombrar objeto real en el disco activo
+            [$filesystem] = $this->createFilesystemForDisk($media->disk ?: 'media');
+            if ($newPath !== $oldPath) {
                 try {
+                    // Flysystem move para S3/R2 = COPY + DELETE
                     $filesystem->move($oldPath, $newPath);
-                    $media->path = $newPath;
-                    $media->save();
-                } catch (\Exception $e) {
-                    error_log("Error renaming physical file: " . $e->getMessage());
+                } catch (\Throwable $e) {
+                    return $this->jsonResponse(['success' => false, 'message' => 'No se pudo renombrar el archivo en el almacenamiento.'], 500);
                 }
             }
+
+            // Actualizar metadata y SEO (token se mantiene)
+            $media->filename = $newFilename;
+            $media->path = $newPath;
+            $media->slug = Media::generateSlug($newFilename);
+            $media->seo_filename = $media->slug . '-' . $media->public_token . '.' . $extension;
+            $media->save();
 
             return $this->jsonResponse([
                 'success' => true,
@@ -1372,13 +1575,7 @@ private function getUploadErrorMessage($errorCode)
             $folder->path = $folder->generatePath();
             $folder->save();
 
-            // Renombrar directorio físico
-            $oldPhysicalPath = APP_ROOT . config('filesystems.disks.local.root', '/public/assets/uploads') . $oldPath;
-            $newPhysicalPath = APP_ROOT . config('filesystems.disks.local.root', '/public/assets/uploads') . $folder->path;
-
-            if (is_dir($oldPhysicalPath)) {
-                rename($oldPhysicalPath, $newPhysicalPath);
-            }
+            // Carpetas son virtuales (DB). No renombrar storage físico (evita COPY/DELETE masivo en R2).
 
             return $this->jsonResponse([
                 'success' => true,
@@ -1427,15 +1624,9 @@ private function getUploadErrorMessage($errorCode)
                 ], 400);
             }
 
-            $physicalPath = APP_ROOT . config('filesystems.disks.local.root', '/public/assets/uploads') . $folder->path;
-
             // Eliminar carpeta
             if ($folder->delete()) {
-                // Eliminar directorio físico
-                if (is_dir($physicalPath)) {
-                    @rmdir($physicalPath);
-                }
-
+                // Carpetas son virtuales (DB). No eliminar storage físico aquí.
                 return $this->jsonResponse(['success' => true, 'message' => 'Carpeta eliminada correctamente.']);
             }
 
@@ -1545,15 +1736,78 @@ private function getUploadErrorMessage($errorCode)
 
             foreach ($mediaIds as $mediaId) {
                 $media = $this->findScopedMedia((int)$mediaId);
-                if ($media) {
-                    $copy = $media->copyToFolder($targetFolderId);
-                    if ($copy) {
-                        $copiedCount++;
-                    } else {
-                        $errors[] = "Error copiando archivo ID: {$mediaId}";
-                    }
-                } else {
+                if (!$media) {
                     $errors[] = "Archivo ID {$mediaId} no encontrado.";
+                    continue;
+                }
+
+                $oldPath = (string)$media->path;
+                $dir = dirname($oldPath);
+                $dir = $dir === '.' ? '' : $dir;
+                $info = pathinfo($oldPath);
+                $base = $info['filename'] ?? 'file';
+                $ext = isset($info['extension']) ? ('.' . $info['extension']) : '';
+                $newPath = ($dir ? ($dir . '/') : '') . $base . '-copy-' . time() . $ext;
+
+                try {
+                    [$filesystem] = $this->createFilesystemForDisk($media->disk ?: 'media');
+                    $filesystem->copy($oldPath, $newPath);
+                } catch (\Throwable $e) {
+                    $errors[] = "Error copiando archivo ID: {$mediaId}";
+                    continue;
+                }
+
+                $newToken = Media::generatePublicToken();
+                $newSlug = Media::generateSlug($media->filename);
+                $newSeoFilename = $newSlug . '-' . $newToken . '.' . strtolower(pathinfo($media->filename, PATHINFO_EXTENSION));
+
+                $meta = is_array($media->metadata) ? $media->metadata : (is_string($media->metadata) ? json_decode($media->metadata, true) : null);
+                if (is_array($meta) && !empty($meta['thumbnail']['path'])) {
+                    $thumbOld = (string)$meta['thumbnail']['path'];
+                    $thumbInfo = pathinfo($thumbOld);
+                    $thumbDir = $thumbInfo['dirname'] ?? '';
+                    $thumbDir = $thumbDir === '.' ? '' : $thumbDir;
+                    $thumbBase = $thumbInfo['filename'] ?? 'thumb';
+                    $thumbExt = isset($thumbInfo['extension']) ? ('.' . $thumbInfo['extension']) : '';
+                    $thumbNew = ($thumbDir ? ($thumbDir . '/') : '') . $thumbBase . '-copy-' . time() . $thumbExt;
+                    try {
+                        [$filesystem] = $this->createFilesystemForDisk($media->disk ?: 'media');
+                        $filesystem->copy($thumbOld, $thumbNew);
+                        $meta['thumbnail']['path'] = $thumbNew;
+                    } catch (\Throwable $e) {
+                        // si falla thumb, continuar sin thumb
+                        unset($meta['thumbnail']);
+                    }
+                }
+
+                $copy = Media::create([
+                    'tenant_id' => $media->tenant_id,
+                    'user_id' => $media->user_id,
+                    'folder_id' => $targetFolderId,
+                    'disk' => $media->disk,
+                    'path' => $newPath,
+                    'public_token' => $newToken,
+                    'slug' => $newSlug,
+                    'seo_filename' => $newSeoFilename,
+                    'filename' => $media->filename,
+                    'mime_type' => $media->mime_type,
+                    'size' => $media->size,
+                    'alt_text' => $media->alt_text,
+                    'caption' => $media->caption,
+                    'metadata' => $meta,
+                ]);
+
+                if ($copy) {
+                    $bytesChange = (int)($media->size ?? 0);
+                    if (is_array($meta) && isset($meta['thumbnail']['size']) && is_numeric($meta['thumbnail']['size'])) {
+                        $bytesChange += (int)$meta['thumbnail']['size'];
+                    }
+                    if ($bytesChange > 0) {
+                        $this->updateTenantStorageUsed($bytesChange);
+                    }
+                    $copiedCount++;
+                } else {
+                    $errors[] = "Error copiando archivo ID: {$mediaId}";
                 }
             }
 

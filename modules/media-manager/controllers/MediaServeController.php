@@ -302,6 +302,14 @@ class MediaServeController
                 return $this->serve($media->path);
             }
 
+            // Si está en CDN (r2, s3), redirigir a la URL del CDN
+            if (in_array($media->disk, ['r2', 's3'], true)) {
+                $cdnUrl = $media->getPublicUrl(false); // false = URL directa del CDN
+                header('Location: ' . $cdnUrl, true, 301);
+                header('Cache-Control: public, max-age=31536000, immutable');
+                exit;
+            }
+
             // Si está en el disco 'local' (sistema legacy en /public/)
             // Redirigir a la URL pública directa
             $publicUrl = '/assets/uploads/' . $media->path;

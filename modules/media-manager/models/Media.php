@@ -48,6 +48,10 @@ class Media extends Model
             switch ($this->disk) {
                 case 'r2':
                 case 's3':
+                    // Preferir URLs SEO/token para enlaces compartibles/estables (redirigen a CDN).
+                    if ($seoFriendly && !empty($this->seo_filename)) {
+                        return $this->getSeoUrl();
+                    }
                     // CDN/Cloud storage: usar URL configurada
                     if (!empty($diskConfig['url'])) {
                         return rtrim($diskConfig['url'], '/') . '/' . $path;
@@ -236,12 +240,25 @@ class Media extends Model
     public function getThumbnailUrl(): string
     {
         try {
+            $meta = is_array($this->metadata) ? $this->metadata : (is_string($this->metadata) ? json_decode($this->metadata, true) : []);
+            $thumbPath = $meta['thumbnail']['path'] ?? null;
+
             $path = ltrim($this->path, '/');
 
             switch ($this->disk) {
                 case 'r2':
                 case 's3':
-                    // CDN/Cloud: misma URL (thumbnails manejados por CDN o mismo origen)
+                    if ($thumbPath) {
+                        $diskConfig = config("filesystems.disks.{$this->disk}");
+                        $thumbPath = ltrim((string)$thumbPath, '/');
+                        if (!empty($diskConfig['url'])) {
+                            return rtrim($diskConfig['url'], '/') . '/' . $thumbPath;
+                        }
+                        if (!empty($diskConfig['endpoint']) && !empty($diskConfig['bucket'])) {
+                            return rtrim($diskConfig['endpoint'], '/') . '/' . $diskConfig['bucket'] . '/' . $thumbPath;
+                        }
+                    }
+                    // Fallback: misma URL
                     return $this->getPublicUrl();
 
                 case 'media':

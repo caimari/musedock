@@ -413,76 +413,96 @@ function handleFilesUpload() {
     progressBar.style.width = '0%';
     progressBar.setAttribute('aria-valuenow', 0);
 
-    // Crear FormData
-    const formData = new FormData();
-    files.forEach(file => {
-        formData.append('file[]', file); // IMPORTANTE: Mantener el nombre 'file[]' para compatibilidad
-    });
-
-    // Añadir CSRF token
     const csrfToken = document.querySelector('input[name="_token"]')?.value;
-    if (csrfToken) formData.append('_token', csrfToken);
+    const uploadFolderInput = document.getElementById('upload-folder-id');
+    const currentFolderId = uploadFolderInput?.value || window.FolderManager?.currentFolderId || window.currentFolderId;
+    const currentDisk = window.MediaManagerConfig?.currentDisk;
 
-    // Subida con XMLHttpRequest
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', uploadUrl, true);
+    let uploadedCount = 0;
+    let errorCount = 0;
 
-    // Progreso
-    xhr.upload.onprogress = function(event) {
-        if (event.lengthComputable) {
-            const percentComplete = Math.round((event.loaded / event.total) * 100);
-            progressBar.style.width = percentComplete + '%';
-            progressBar.setAttribute('aria-valuenow', percentComplete);
-            uploadStatus.textContent = `Subiendo... ${percentComplete}%`;
-        }
-    };
+    if (browseButton) browseButton.disabled = true;
+    fileInput.disabled = true;
 
-    // Finalización
-    xhr.onload = function() {
+    function finishQueue() {
         progressContainer.style.display = 'none';
         uploadStatus.textContent = '';
         fileInput.value = '';
+        if (browseButton) browseButton.disabled = false;
+        fileInput.disabled = false;
 
-        if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-                const response = JSON.parse(xhr.responseText);
+        if (uploadedCount > 0 && errorCount === 0) {
+            showSuccess(`${uploadedCount} archivo(s) subido(s) correctamente.`);
+        } else if (uploadedCount > 0 && errorCount > 0) {
+            showSuccess(`${uploadedCount} archivo(s) subido(s). ${errorCount} con errores.`);
+        } else if (errorCount > 0) {
+            showError(`No se pudo subir ningún archivo (${errorCount} error(es)).`);
+        }
+    }
 
-                if (response.success) {
-                    // Manejar tanto respuesta de archivo único como múltiple
-                    if (response.files && Array.isArray(response.files)) {
-                        // Respuesta de múltiples archivos
-                        response.files.forEach(media => {
-                            addMediaToGrid(media);
-                        });
-                        showSuccess(`${response.files.length} archivos subidos correctamente.`);
-                    } else if (response.media) {
-                        // Respuesta de archivo único (compatibilidad con versión anterior)
-                        addMediaToGrid(response.media);
-                        showSuccess('Archivo subido: ' + response.media.filename);
-                    } else {
-                        showError('Error al subir: formato de respuesta inválido');
-                    }
-                } else {
-                    showError('Error al subir: ' + (response.message || 'Respuesta inválida'));
-                }
-            } catch (e) {
-                showError('Error procesando respuesta del servidor.');
-                console.error("Error parsing upload response:", e, xhr.responseText);
+    function uploadOne(index) {
+        if (index >= totalFiles) {
+            finishQueue();
+            return;
+        }
+
+        const file = files[index];
+        uploadStatus.textContent = `Subiendo ${index + 1}/${totalFiles}: ${file.name}`;
+
+        const formData = new FormData();
+        formData.append('file[]', file);
+        if (csrfToken) formData.append('_token', csrfToken);
+        if (currentDisk) formData.append('disk', currentDisk);
+        if (currentFolderId && currentFolderId !== '' && currentFolderId !== '1') {
+            formData.append('folder_id', currentFolderId);
+        }
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', uploadUrl, true);
+
+        xhr.upload.onprogress = function(event) {
+            if (event.lengthComputable) {
+                const fileProgress = event.total > 0 ? (event.loaded / event.total) : 0;
+                const overall = Math.round(((index + fileProgress) / totalFiles) * 100);
+                progressBar.style.width = overall + '%';
+                progressBar.setAttribute('aria-valuenow', overall);
             }
-        } else {
-            showError(`Error de subida: ${xhr.status} ${xhr.statusText}`);
-        }
-    };
+        };
 
-    // Error de red
-    xhr.onerror = function() {
-        progressContainer.style.display = 'none';
-        uploadStatus.textContent = '';
-        fileInput.value = '';
-        showError('Error de red durante la subida.');
-    };
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        const uploaded = (response.files && Array.isArray(response.files) ? response.files : (response.media ? [response.media] : []));
+                        uploaded.forEach(media => addMediaToGrid(media));
+                        uploadedCount += uploaded.length || 1;
+                    } else {
+                        errorCount += 1;
+                        console.error('[Upload] Error:', response);
+                    }
+                } catch (e) {
+                    errorCount += 1;
+                    console.error("Error parsing upload response:", e, xhr.responseText);
+                }
+            } else {
+                errorCount += 1;
+                console.error(`[Upload] HTTP ${xhr.status} ${xhr.statusText}`, xhr.responseText);
+            }
 
-    xhr.send(formData);
+            uploadOne(index + 1);
+        };
+
+        xhr.onerror = function() {
+            errorCount += 1;
+            console.error('[Upload] Network error');
+            uploadOne(index + 1);
+        };
+
+        xhr.send(formData);
+    }
+
+    uploadOne(0);
 }
 
 // Función auxiliar para añadir un medio a la cuadrícula
