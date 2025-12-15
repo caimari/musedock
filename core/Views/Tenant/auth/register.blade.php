@@ -30,7 +30,7 @@
         </div>
 
         <div class="mb-3">
-          <label class="form-label">{{ __('email') ?? 'Correo electrónico' }}</label>
+          <label class="form-label">{{ __('auth.email') }}</label>
           <input type="email" name="email" class="form-control" placeholder="email@ejemplo.com" value="{{ old('email') }}" required>
         </div>
 

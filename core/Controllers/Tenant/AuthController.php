@@ -336,7 +336,7 @@ class AuthController
     public function forgotPasswordForm()
     {
         return View::renderTenantAdmin('auth.password', [
-            'title' => __('forgot_password')
+            'title' => __('auth.forgot_password_title')
         ]);
     }
 

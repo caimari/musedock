@@ -9,7 +9,33 @@
     </div>
     <div class="card">
         <div class="card-body login-card-body">
-            <p class="login-box-msg">{{ __('auth.login_as_superadmin') }}</p>
+            @php
+                $adminActiveLanguages = [];
+                try {
+                    $pdo = \Screenart\Musedock\Database::connect();
+                    $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE tenant_id IS NULL AND active = 1 ORDER BY order_position ASC, id ASC");
+                    $stmt->execute();
+                    $adminActiveLanguages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                } catch (\Exception $e) {
+                    $adminActiveLanguages = [
+                        ['code' => 'es', 'name' => 'Español'],
+                        ['code' => 'en', 'name' => 'English'],
+                    ];
+                }
+
+                if (session_status() !== PHP_SESSION_ACTIVE) {
+                    \Screenart\Musedock\Security\SessionSecurity::startSession();
+                }
+
+                $currentLocale = $_SESSION['superadmin_locale']
+                    ?? $_SESSION['locale']
+                    ?? $_SESSION['lang']
+                    ?? $_COOKIE['superadmin_locale']
+                    ?? 'es';
+
+                $currentUrl = $_SERVER['REQUEST_URI'] ?? '/musedock/login';
+                $showAdminLangSelector = count($adminActiveLanguages) > 1;
+            @endphp
 
             {{-- Mensajes flash - Sistema moderno (_flash array) --}}
             @php
@@ -114,6 +140,21 @@
                 </a>
             </div>
 
+            @if($showAdminLangSelector)
+                <div class="text-center mt-4">
+                    <select class="form-select form-select-sm mx-auto" style="max-width: 220px;"
+                            aria-label="{{ __('languages.select_language') ?? 'Select language' }}"
+                            onchange="if (this.value) window.location.href = this.value;">
+                        @foreach($adminActiveLanguages as $langItem)
+                            <option value="/musedock/language/switch?locale={{ $langItem['code'] }}&redirect={{ urlencode($currentUrl) }}"
+                                    {{ $currentLocale === $langItem['code'] ? 'selected' : '' }}>
+                                {{ $langItem['name'] }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
+
         </div>
     </div>
 </div>
@@ -164,4 +205,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
-

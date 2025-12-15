@@ -96,7 +96,7 @@
     </form>
 
     <div class="text-center text-secondary mt-3">
-      <a href="/{{ admin_path() }}/login" tabindex="-1">{{ __('back_to_login') ?? 'Volver a iniciar sesión' }}</a>
+      <a href="/{{ admin_path() }}/login" tabindex="-1">{{ __('auth.back_to_login') }}</a>
     </div>
   </div>
 </div>
