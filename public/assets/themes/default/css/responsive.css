@@ -28,5 +28,37 @@
 /* Large Mobile :480px. */
 @media only screen and (min-width: 480px) and (max-width: 767px) {
 .container {width:450px}
- 
+
+}
+
+/* ========== RESPONSIVE IMAGES FIX ========== */
+/* Forzar todas las imágenes a ser responsivas en dispositivos móviles */
+@media (max-width: 991px) {
+  /* Resetear atributos width/height inline en todas las imágenes */
+  img,
+  img[width],
+  img[height],
+  .page-body img,
+  .post-content img,
+  .page-content-wrapper img,
+  .blog-post-single img,
+  article img,
+  .container img,
+  main img,
+  p img,
+  div img {
+    max-width: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    display: block;
+  }
+
+  /* Asegurar overflow en contenedores */
+  .container,
+  .page-body,
+  .post-content,
+  article,
+  main {
+    overflow-x: hidden !important;
+  }
 }
