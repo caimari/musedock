@@ -1382,6 +1382,95 @@ public function restoreRevision($pageId, $revisionId)
 }
 
 /**
+ * Acciones masivas sobre revisiones de una página (CMS global)
+ * Acciones soportadas:
+ * - delete_selected: elimina revisiones seleccionadas
+ * - delete_all: elimina todas las revisiones de la página
+ */
+public function bulkRevisions($pageId)
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
+    $this->checkPermission('pages.edit');
+
+    $page = Page::where('id', (int)$pageId)->whereNull('tenant_id')->first();
+    if (!$page) {
+        flash('error', __('pages.error_not_found'));
+        header("Location: /musedock/pages");
+        exit;
+    }
+
+    $action = $_POST['action'] ?? '';
+
+    try {
+        $pdo = Database::connect();
+        $pdo->beginTransaction();
+
+        $deletedCount = 0;
+
+        if ($action === 'delete_selected') {
+            $revisionIds = $_POST['revision_ids'] ?? [];
+            if (!is_array($revisionIds)) {
+                $revisionIds = [];
+            }
+
+            $revisionIds = array_values(array_unique(array_filter(array_map('intval', $revisionIds), fn($v) => $v > 0)));
+
+            if (empty($revisionIds)) {
+                $pdo->rollBack();
+                flash('error', __('pages.error_bulk_revision_no_selection'));
+                header("Location: /musedock/pages/{$pageId}/revisions");
+                exit;
+            }
+
+            $placeholders = implode(',', array_fill(0, count($revisionIds), '?'));
+            $params = array_merge($revisionIds, [(int)$pageId]);
+            $deleteStmt = $pdo->prepare("
+                DELETE FROM page_revisions
+                WHERE id IN ({$placeholders}) AND page_id = ? AND (tenant_id IS NULL OR tenant_id = 0)
+            ");
+            $deleteStmt->execute($params);
+            $deletedCount = (int)$deleteStmt->rowCount();
+        } elseif ($action === 'delete_all') {
+            $deleteStmt = $pdo->prepare("
+                DELETE FROM page_revisions
+                WHERE page_id = ? AND (tenant_id IS NULL OR tenant_id = 0)
+            ");
+            $deleteStmt->execute([(int)$pageId]);
+            $deletedCount = (int)$deleteStmt->rowCount();
+        } else {
+            $pdo->rollBack();
+            flash('error', __('pages.error_bulk_revision_invalid_action'));
+            header("Location: /musedock/pages/{$pageId}/revisions");
+            exit;
+        }
+
+        $updateCountStmt = $pdo->prepare("
+            UPDATE pages
+            SET revision_count = (
+                SELECT COUNT(*)
+                FROM page_revisions
+                WHERE page_id = ? AND (tenant_id IS NULL OR tenant_id = 0)
+            )
+            WHERE id = ? AND (tenant_id IS NULL OR tenant_id = 0)
+        ");
+        $updateCountStmt->execute([(int)$pageId, (int)$pageId]);
+
+        $pdo->commit();
+
+        flash('success', __('pages.success_bulk_revisions_deleted', ['count' => $deletedCount]));
+    } catch (\Throwable $e) {
+        if (isset($pdo) && $pdo instanceof \PDO && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log("Error en bulkRevisions pages CMS page {$pageId}: " . $e->getMessage());
+        flash('error', __('pages.error_revision_delete_failed'));
+    }
+
+    header("Location: /musedock/pages/{$pageId}/revisions");
+    exit;
+}
+
+/**
  * Vista previa de una revisión
  */
 public function previewRevision($pageId, $revisionId)

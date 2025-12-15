@@ -337,6 +337,11 @@ Route::post('/musedock/pages/{pageId}/revisions/{revisionId}/restore', 'superadm
     ->middleware('superadmin')
     ->name('pages.revision.restore');
 
+// Acciones masivas sobre revisiones
+Route::post('/musedock/pages/{pageId}/revisions/bulk', 'superadmin.PageController@bulkRevisions')
+    ->middleware('superadmin')
+    ->name('pages.revisions.bulk');
+
 // Preview de revisión
 Route::get('/musedock/pages/{pageId}/revisions/{revisionId}/preview', 'superadmin.PageController@previewRevision')
     ->middleware('superadmin')

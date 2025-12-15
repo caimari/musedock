@@ -279,6 +279,11 @@ Route::post("$adminPath/pages/{pageId}/revisions/{revisionId}/restore", 'tenant.
      ->middleware(['auth'])
      ->name('tenant.pages.revision.restore');
 
+// Acciones masivas sobre revisiones
+Route::post("$adminPath/pages/{pageId}/revisions/bulk", 'tenant.PageController@bulkRevisions')
+     ->middleware(['auth'])
+     ->name('tenant.pages.revisions.bulk');
+
 // Preview de revisión
 Route::get("$adminPath/pages/{pageId}/revisions/{revisionId}/preview", 'tenant.PageController@previewRevision')
      ->middleware(['auth'])

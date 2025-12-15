@@ -1168,6 +1168,100 @@ class PageController
     }
 
     /**
+     * Acciones masivas sobre revisiones de una página
+     * Acciones soportadas:
+     * - delete_selected: elimina revisiones seleccionadas
+     * - delete_all: elimina todas las revisiones de la página
+     */
+    public function bulkRevisions($pageId)
+    {
+        $this->checkPermission('pages.edit');
+
+        if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
+
+        $tenantId = TenantManager::currentTenantId();
+        if (!$tenantId) {
+            flash('error', __('pages.error_invalid_session'));
+            header('Location: /login');
+            exit;
+        }
+
+        $page = Page::where('id', (int)$pageId)->where('tenant_id', (int)$tenantId)->first();
+        if (!$page) {
+            flash('error', __('pages.error_not_found'));
+            header('Location: ' . admin_url('pages'));
+            exit;
+        }
+
+        $action = $_POST['action'] ?? '';
+
+        try {
+            $pdo = Database::connect();
+            $pdo->beginTransaction();
+
+            $deletedCount = 0;
+
+            if ($action === 'delete_selected') {
+                $revisionIds = $_POST['revision_ids'] ?? [];
+                if (!is_array($revisionIds)) {
+                    $revisionIds = [];
+                }
+
+                $revisionIds = array_values(array_unique(array_filter(array_map('intval', $revisionIds), fn($v) => $v > 0)));
+
+                if (empty($revisionIds)) {
+                    $pdo->rollBack();
+                    flash('error', __('pages.error_bulk_revision_no_selection'));
+                    header('Location: ' . admin_url("pages/{$pageId}/revisions"));
+                    exit;
+                }
+
+                $placeholders = implode(',', array_fill(0, count($revisionIds), '?'));
+                $params = array_merge($revisionIds, [(int)$pageId, (int)$tenantId]);
+                $deleteStmt = $pdo->prepare("
+                    DELETE FROM page_revisions
+                    WHERE id IN ({$placeholders}) AND page_id = ? AND tenant_id = ?
+                ");
+                $deleteStmt->execute($params);
+                $deletedCount = (int)$deleteStmt->rowCount();
+            } elseif ($action === 'delete_all') {
+                $deleteStmt = $pdo->prepare("DELETE FROM page_revisions WHERE page_id = ? AND tenant_id = ?");
+                $deleteStmt->execute([(int)$pageId, (int)$tenantId]);
+                $deletedCount = (int)$deleteStmt->rowCount();
+            } else {
+                $pdo->rollBack();
+                flash('error', __('pages.error_bulk_revision_invalid_action'));
+                header('Location: ' . admin_url("pages/{$pageId}/revisions"));
+                exit;
+            }
+
+            $updateCountStmt = $pdo->prepare("
+                UPDATE pages
+                SET revision_count = (
+                    SELECT COUNT(*)
+                    FROM page_revisions
+                    WHERE page_id = ? AND tenant_id = ?
+                )
+                WHERE id = ? AND tenant_id = ?
+            ");
+            $updateCountStmt->execute([(int)$pageId, (int)$tenantId, (int)$pageId, (int)$tenantId]);
+
+            $pdo->commit();
+
+            flash('success', __('pages.success_bulk_revisions_deleted', ['count' => $deletedCount]));
+        } catch (\Throwable $e) {
+            if (isset($pdo) && $pdo instanceof \PDO && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log("Error en bulkRevisions pages tenant {$tenantId} page {$pageId}: " . $e->getMessage());
+            flash('error', __('pages.error_revision_delete_failed'));
+        }
+
+        header('Location: ' . admin_url("pages/{$pageId}/revisions"));
+        exit;
+    }
+
+    /**
      * Vista previa de una revisión
      */
     public function previewRevision($pageId, $revisionId)
