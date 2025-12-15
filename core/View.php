@@ -245,6 +245,15 @@ class View
         }
     }
 
+    /**
+     * Alias de compatibilidad: algunas partes del sistema/módulos usan renderTenant().
+     * El panel de tenant debe renderizarse con renderTenantAdmin().
+     */
+    public static function renderTenant($template, $data = [])
+    {
+        return self::renderTenantAdmin($template, $data);
+    }
+
    public static function renderTheme($template, $data = [])
 {
     // Asegurar traducciones del frontend en contexto tenant (antes de renderizar vistas)
