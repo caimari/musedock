@@ -38,8 +38,14 @@ class Folder extends Model
      */
     public function children()
     {
-        return static::query()
-            ->where('parent_id', $this->id)
+        $query = static::query()->where('parent_id', $this->id);
+        if ($this->tenant_id !== null) {
+            $query->where('tenant_id', $this->tenant_id);
+        } else {
+            $query->whereNull('tenant_id');
+        }
+        $query->where('disk', $this->disk);
+        return $query
             ->orderBy('name', 'ASC')
             ->get();
     }
@@ -49,8 +55,14 @@ class Folder extends Model
      */
     public function media()
     {
-        return Media::query()
-            ->where('folder_id', $this->id)
+        $query = Media::query()->where('folder_id', $this->id);
+        if ($this->tenant_id !== null) {
+            $query->where('tenant_id', $this->tenant_id);
+        } else {
+            $query->whereNull('tenant_id');
+        }
+        $query->where('disk', $this->disk);
+        return $query
             ->orderBy('created_at', 'DESC')
             ->get();
     }

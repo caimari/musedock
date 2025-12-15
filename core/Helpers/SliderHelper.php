@@ -147,12 +147,36 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
         $output .= '<div class="slider-full-width-wrapper" data-full-bleed="true">';
     }
 
-    $output .= '<div class="swiper slider-' . $sliderId . ' theme-' . \e($theme) . '" style="width:100%;height:' . intval($height) . 'px;">';
+    $themeClass = 'theme-' . \e($theme);
+    $sliderStyle = 'width:100%;height:' . intval($height) . 'px;';
+
+    // Preset robusto (inline) para garantizar que rounded-shadow se vea incluso si existe algún override externo.
+    if ($theme === 'rounded-shadow') {
+        $sliderStyle .= 'border-radius:22px !important;';
+        $sliderStyle .= 'overflow:hidden !important;';
+        $sliderStyle .= 'background:#ffffff !important;';
+        $sliderStyle .= 'box-shadow:0 18px 50px rgba(18, 38, 63, 0.18) !important;';
+        $sliderStyle .= 'border:1px solid rgba(18, 38, 63, 0.08) !important;';
+
+        // En full-width, dar inset horizontal para que se aprecien las esquinas/sombra.
+        if ($fullWidth) {
+            $sliderStyle .= 'width:calc(100% - 32px) !important;';
+            $sliderStyle .= 'margin-left:auto !important;margin-right:auto !important;';
+        }
+    }
+
+    $output .= '<div class="swiper slider-' . $sliderId . ' ' . $themeClass . '" style="' . $sliderStyle . '">';
     $output .= '<div class="swiper-wrapper">';
 
     foreach ($slides as $slide) {
-        $output .= '<div class="swiper-slide" style="position:relative;">';
-        $output .= '<img src="' . \e($slide->image_url) . '" style="width:100%;height:100%;object-fit:cover;">';
+        $slideStyle = 'position:relative;';
+        $imgStyle = 'width:100%;height:100%;object-fit:cover;';
+        if ($theme === 'rounded-shadow') {
+            $slideStyle .= 'border-radius:22px !important;overflow:hidden !important;';
+            $imgStyle .= 'border-radius:22px !important;';
+        }
+        $output .= '<div class="swiper-slide" style="' . $slideStyle . '">';
+        $output .= '<img src="' . \e($slide->image_url) . '" style="' . $imgStyle . '">';
 
         // Solo mostrar caption si está activado y hay contenido
         if (!empty($settings['show_caption']) && ($slide->title || $slide->description)) {

@@ -29,6 +29,64 @@ if (!function_exists('slugify')) {
 class MediaController
 {
     /**
+     * Tenant actual para el contexto actual.
+     * - Superadmin (/musedock/*): null (global)
+     * - Tenant (/admin/*): ID del tenant
+     */
+    private function getContextTenantId(): ?int
+    {
+        if (!$this->isTenantContext()) {
+            return null;
+        }
+
+        $tenantId = function_exists('tenant_id') ? tenant_id() : ($_SESSION['admin']['tenant_id'] ?? null);
+        return $tenantId ? (int)$tenantId : null;
+    }
+
+    /**
+     * Aplica el scope de tenant al query de Media.
+     * Tenant: solo su tenant_id. Superadmin: solo global (tenant_id NULL).
+     */
+    private function applyMediaTenantScope($query): void
+    {
+        $tenantId = $this->getContextTenantId();
+        if ($tenantId !== null) {
+            $query->where('tenant_id', $tenantId);
+        } else {
+            $query->whereNull('tenant_id');
+        }
+    }
+
+    /**
+     * Aplica el scope de tenant al query de Folder.
+     */
+    private function applyFolderTenantScope($query): void
+    {
+        $tenantId = $this->getContextTenantId();
+        if ($tenantId !== null) {
+            $query->where('tenant_id', $tenantId);
+        } else {
+            $query->whereNull('tenant_id');
+        }
+    }
+
+    private function findScopedMedia(int $id): ?Media
+    {
+        $query = Media::query()->where('id', $id);
+        $this->applyMediaTenantScope($query);
+        $media = $query->first();
+        return $media instanceof Media ? $media : ($media ? new Media((array)$media) : null);
+    }
+
+    private function findScopedFolder(int $id): ?\MediaManager\Models\Folder
+    {
+        $query = \MediaManager\Models\Folder::query()->where('id', $id);
+        $this->applyFolderTenantScope($query);
+        $folder = $query->first();
+        return $folder instanceof \MediaManager\Models\Folder ? $folder : ($folder ? new \MediaManager\Models\Folder((array)$folder) : null);
+    }
+
+    /**
      * Obtiene la información de cuota de almacenamiento del tenant actual
      * @return array ['quota_mb' => int, 'used_bytes' => int, 'available_bytes' => int, 'percentage' => float]
      */
@@ -274,13 +332,13 @@ class MediaController
         $perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 30;
         $search = isset($_GET['search']) ? $_GET['search'] : null;
         $typeFilter = isset($_GET['type']) ? $_GET['type'] : null;
-        $tenantFilter = isset($_GET['tenant_id']) ? $_GET['tenant_id'] : 'all';
         $folderId = isset($_GET['folder_id']) && $_GET['folder_id'] !== '' ? (int)$_GET['folder_id'] : null;
         $diskFilter = isset($_GET['disk']) ? $_GET['disk'] : null; // Nuevo: filtro por disco
 
         try {
             // Construir consulta
             $query = Media::query()->orderBy('created_at', 'DESC');
+            $this->applyMediaTenantScope($query);
 
             // Filtrar por disco (si se especifica)
             if ($diskFilter && in_array($diskFilter, ['local', 'media', 'r2', 's3'])) {
@@ -294,7 +352,11 @@ class MediaController
                 $query->whereRaw("(folder_id IS NULL OR folder_id = 1)");
             } else {
                 // Carpeta específica
-                $query->where('folder_id', $folderId);
+                $folder = $this->findScopedFolder($folderId);
+                if (!$folder) {
+                    return $this->jsonResponse(['success' => false, 'message' => 'Carpeta no encontrada.'], 404);
+                }
+                $query->where('folder_id', (int)$folderId);
             }
 
             if ($search) {
@@ -308,12 +370,6 @@ class MediaController
                 $query->where('mime_type', 'LIKE', 'image/%');
             } elseif ($typeFilter === 'document') {
                 $query->whereIn('mime_type', ['application/pdf', 'application/msword']);
-            }
-
-            if ($tenantFilter === 'global') {
-                $query->whereNull('tenant_id');
-            } elseif (is_numeric($tenantFilter)) {
-                $query->where('tenant_id', (int)$tenantFilter);
             }
 
             $pagination = $query->paginate($perPage, $page);
@@ -388,7 +444,7 @@ class MediaController
             $currentFolder = null;
             $folderPath = '/';
             if ($folderId) {
-                $folder = \MediaManager\Models\Folder::find($folderId);
+                $folder = $this->findScopedFolder($folderId);
                 if ($folder) {
                     $currentFolder = [
                         'id' => $folder->id,
@@ -422,7 +478,7 @@ public function getMediaDetails($id)
     SessionSecurity::startSession();
 
     try {
-        $media = Media::find($id);
+        $media = $this->findScopedMedia((int)$id);
         if (!$media) {
             return $this->jsonResponse(['success' => false, 'message' => 'Media no encontrado.'], 404);
         }
@@ -767,10 +823,17 @@ public function upload()
             }
 
             // Obtener folder_id si se especificó
-            // Si es folder_id=1 (Root), guardar como NULL para mantener consistencia
+            // Normalizar Root a NULL para mantener consistencia
             $folderId = isset($_POST['folder_id']) && $_POST['folder_id'] !== '' ? (int)$_POST['folder_id'] : null;
-            if ($folderId === 1) {
-                $folderId = null; // Root = NULL
+            if ($folderId !== null) {
+                $folder = $this->findScopedFolder($folderId);
+                if (!$folder) {
+                    $errors[] = "Carpeta no encontrada o sin permisos (ID {$folderId}).";
+                    continue;
+                }
+                if ($folder->path === '/') {
+                    $folderId = null; // Root = NULL
+                }
             }
 
             // Guardar en la base de datos
@@ -883,7 +946,7 @@ private function getUploadErrorMessage($errorCode)
         SessionSecurity::startSession();
 
         try {
-            $media = Media::find($id);
+            $media = $this->findScopedMedia((int)$id);
             if (!$media) {
                 return $this->jsonResponse(['success' => false, 'message' => 'Media no encontrado.'], 404);
             }
@@ -907,7 +970,7 @@ private function getUploadErrorMessage($errorCode)
         SessionSecurity::startSession();
 
         try {
-            $media = Media::find($id);
+            $media = $this->findScopedMedia((int)$id);
             if (!$media) {
                 return $this->jsonResponse(['success' => false, 'message' => 'Medio no encontrado.']);
             }
@@ -948,7 +1011,7 @@ private function getUploadErrorMessage($errorCode)
         SessionSecurity::startSession();
 
         try {
-            $media = Media::find($id);
+            $media = $this->findScopedMedia((int)$id);
             if (!$media) {
                 return $this->jsonResponse(['success' => false, 'message' => 'Medio no encontrado.'], 404);
             }
@@ -1164,6 +1227,11 @@ private function getUploadErrorMessage($errorCode)
             if ($parentId === null) {
                 $rootFolder = \MediaManager\Models\Folder::getRootFolder($tenantId, $disk);
                 $parentId = $rootFolder->id;
+            } else {
+                $parentFolder = $this->findScopedFolder($parentId);
+                if (!$parentFolder) {
+                    return $this->jsonResponse(['success' => false, 'message' => 'Carpeta padre no encontrada o sin permisos.'], 404);
+                }
             }
 
             // Generar slug único (incluyendo disco)
@@ -1227,7 +1295,7 @@ private function getUploadErrorMessage($errorCode)
         SessionSecurity::startSession();
 
         try {
-            $folder = \MediaManager\Models\Folder::find($id);
+            $folder = $this->findScopedFolder((int)$id);
 
             if (!$folder) {
                 return $this->jsonResponse(['success' => false, 'message' => 'Carpeta no encontrada.'], 404);
@@ -1235,7 +1303,7 @@ private function getUploadErrorMessage($errorCode)
 
             // Verificar si es la carpeta raíz (no puede ser renombrada)
             // La raíz tiene path === '/' y es la única con parent_id === null
-            if ($folder->id === 1 || $folder->path === '/') {
+            if ($folder->path === '/') {
                 return $this->jsonResponse(['success' => false, 'message' => 'No se puede renombrar la carpeta raíz.'], 403);
             }
 
@@ -1283,7 +1351,7 @@ private function getUploadErrorMessage($errorCode)
         SessionSecurity::startSession();
 
         try {
-            $folder = \MediaManager\Models\Folder::find($id);
+            $folder = $this->findScopedFolder((int)$id);
 
             if (!$folder) {
                 return $this->jsonResponse(['success' => false, 'message' => 'Carpeta no encontrada.'], 404);
@@ -1291,7 +1359,7 @@ private function getUploadErrorMessage($errorCode)
 
             // Verificar si es la carpeta raíz (no puede ser eliminada)
             // La raíz tiene id === 1 y path === '/'
-            if ($folder->id === 1 || $folder->path === '/') {
+            if ($folder->path === '/') {
                 return $this->jsonResponse(['success' => false, 'message' => 'No se puede eliminar la carpeta raíz.'], 403);
             }
 
@@ -1338,9 +1406,15 @@ private function getUploadErrorMessage($errorCode)
             $itemType = $_POST['item_type'] ?? 'media'; // 'media' o 'folder'
             $targetFolderId = isset($_POST['target_folder_id']) && $_POST['target_folder_id'] !== '' ? (int)$_POST['target_folder_id'] : null;
 
-            // Si target es Root (1), guardar como NULL para mantener consistencia
-            if ($targetFolderId === 1) {
-                $targetFolderId = null;
+            // Si target es raíz (path '/'), normalizar a NULL para mantener consistencia
+            if ($targetFolderId !== null) {
+                $targetFolder = $this->findScopedFolder($targetFolderId);
+                if (!$targetFolder) {
+                    return $this->jsonResponse(['success' => false, 'message' => 'Carpeta destino no encontrada.'], 404);
+                }
+                if ($targetFolder->path === '/') {
+                    $targetFolderId = null;
+                }
             }
 
             if (empty($itemIds) || !is_array($itemIds)) {
@@ -1352,7 +1426,7 @@ private function getUploadErrorMessage($errorCode)
 
             if ($itemType === 'media') {
                 foreach ($itemIds as $mediaId) {
-                    $media = Media::find($mediaId);
+                    $media = $this->findScopedMedia((int)$mediaId);
                     if ($media && $media->moveToFolder($targetFolderId)) {
                         $movedCount++;
                     } else {
@@ -1361,7 +1435,7 @@ private function getUploadErrorMessage($errorCode)
                 }
             } elseif ($itemType === 'folder') {
                 foreach ($itemIds as $folderId) {
-                    $folder = \MediaManager\Models\Folder::find($folderId);
+                    $folder = $this->findScopedFolder((int)$folderId);
                     if ($folder && $folder->moveTo($targetFolderId)) {
                         $movedCount++;
                     } else {
@@ -1406,8 +1480,18 @@ private function getUploadErrorMessage($errorCode)
             $copiedCount = 0;
             $errors = [];
 
+            if ($targetFolderId !== null) {
+                $targetFolder = $this->findScopedFolder($targetFolderId);
+                if (!$targetFolder) {
+                    return $this->jsonResponse(['success' => false, 'message' => 'Carpeta destino no encontrada.'], 404);
+                }
+                if ($targetFolder->path === '/') {
+                    $targetFolderId = null;
+                }
+            }
+
             foreach ($mediaIds as $mediaId) {
-                $media = Media::find($mediaId);
+                $media = $this->findScopedMedia((int)$mediaId);
                 if ($media) {
                     $copy = $media->copyToFolder($targetFolderId);
                     if ($copy) {

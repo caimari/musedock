@@ -9,12 +9,13 @@
   <title>@yield('title', 'Dashboard MuseDock')</title>
   
   <!-- AdminKit CSS (incluye Bootstrap 5) -->
-  <link href="/assets/superadmin/css/app.css" rel="stylesheet">
-  <link href="/assets/superadmin/css/pagination.css" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/vendor/bootstrap-icons/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-  <!-- Sistema de Tickets CSS -->
+	  <link href="/assets/superadmin/css/app.css" rel="stylesheet">
+	  <link href="/assets/superadmin/css/pagination.css" rel="stylesheet">
+	  <link rel="preload" href="/assets/vendor/bootstrap-icons/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6" as="font" type="font/woff2" crossorigin>
+	  <link rel="stylesheet" href="/assets/vendor/bootstrap-icons/bootstrap-icons.min.css">
+	  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+	  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+	  <!-- Sistema de Tickets CSS -->
   @if(setting('multi_tenant_enabled', config('multi_tenant_enabled', false)))
   <link href="/assets/superadmin/css/tickets.css" rel="stylesheet">
   @endif
@@ -275,7 +276,7 @@
       }
 
       /* Vista Móvil */
-      @media (max-width: 767.98px) {
+	      @media (max-width: 767.98px) {
           .wrapper { 
               display: block !important; 
           }
@@ -328,11 +329,38 @@
               z-index: 1; 
           }
           
-          .navbar a.sidebar-toggle { 
-              display: flex !important; 
-          }
-      }
-  </style>
+	          .navbar a.sidebar-toggle { 
+	              display: flex !important; 
+	          }
+	      }
+
+	      /* Hardening: evitar overrides de otras librerías */
+	      a.btn,
+	      a.btn:hover {
+	          text-decoration: none !important;
+	      }
+
+	      /* Asegurar Bootstrap Icons incluso si otra CSS pisa `.bi` */
+	      .bi {
+	          font-family: bootstrap-icons !important;
+	          font-style: normal;
+	          font-weight: 400;
+	          line-height: 1;
+	          vertical-align: -0.125em;
+	      }
+	      .bi::before {
+	          display: inline-block;
+	      }
+
+	      /* Evitar que iconos queden ocultos por reglas de `opacity/visibility` */
+	      .btn .bi,
+	      .btn i[class*="bi-"],
+	      .btn .fa,
+	      .btn svg {
+	          opacity: 1 !important;
+	          visibility: visible !important;
+	      }
+	  </style>
   
   @stack('styles')
   @stack('meta')

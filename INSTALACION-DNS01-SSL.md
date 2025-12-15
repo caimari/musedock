@@ -110,7 +110,7 @@ sudo journalctl -u caddy -f
 ## Paso 8: Probar subdominio existente
 
 ```bash
-curl -I https://gregorioabdon.musedock.com
+curl -I https://test.musedock.com
 ```
 
 Deberías ver `HTTP/2 200` sin errores SSL.
@@ -129,17 +129,17 @@ Deberías ver:
 
 1. **Cloudflare Dashboard**:
    - Ir a DNS → Ver registros
-   - ✅ `gregorioabdon` debe tener nube naranja (proxy activo)
+   - ✅ `test` debe tener nube naranja (proxy activo)
 
 2. **SSL Labs Test**:
    ```bash
-   https://www.ssllabs.com/ssltest/analyze.html?d=gregorioabdon.musedock.com
+   https://www.ssllabs.com/ssltest/analyze.html?d=test.musedock.com
    ```
    Debe mostrar grado A/A+ con certificado Let's Encrypt
 
 3. **Verificar IP oculta**:
    ```bash
-   dig gregorioabdon.musedock.com +short
+   dig test.musedock.com +short
    ```
    Debe mostrar IP de Cloudflare (NO tu IP real del servidor)
 

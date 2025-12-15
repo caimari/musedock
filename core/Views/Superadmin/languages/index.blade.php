@@ -45,8 +45,8 @@
                 </form>
               </td>
               <td>
-                <a href="{{ route('languages.edit', $lang->id) }}" class="btn btn-sm btn-primary">
-                  <i class="bi bi-pencil"></i>
+                <a href="{{ route('languages.edit', $lang->id) }}" class="btn btn-sm btn-primary text-white text-decoration-none" aria-label="Editar idioma">
+                  <i class="bi bi-pencil text-white"></i>
                 </a>
                 <button type="button" class="btn btn-sm btn-danger btn-delete-lang"
                         data-id="{{ $lang->id }}"

@@ -98,7 +98,8 @@
 
             // Agregar todas las carpetas
             folders.forEach(folder => {
-                if (folder.id !== 1) { // No incluir raíz
+                const isRoot = (folder.path === '/' || folder.parent_id === null);
+                if (!isRoot) { // No incluir raíz
                     const option = document.createElement('option');
                     option.value = folder.id;
                     const indent = folder.parent_id ? '&nbsp;&nbsp;' : '';
@@ -140,7 +141,7 @@
             nodes.forEach(node => {
                 const isActive = node.id === this.currentFolderId ? ' active' : '';
                 const hasChildren = node.children && node.children.length > 0;
-                const isRoot = node.id === 1; // Detectar carpeta raíz
+                const isRoot = (node.path === '/' || node.parent_id === null); // Detectar carpeta raíz real
 
                 html += `
                     <li>

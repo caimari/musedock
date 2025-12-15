@@ -10,12 +10,13 @@
 
 	
   <!-- AdminKit CSS (incluye Bootstrap 5) -->
-  <link href="/assets/superadmin/css/app.css" rel="stylesheet">
-  <link href="/assets/superadmin/css/pagination.css" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/vendor/bootstrap-icons/bootstrap-icons.min.css">
-	<!-- Font Awesome (LOCAL) -->
-	<link rel="stylesheet" href="/assets/vendor/fontawesome/css/all.min.css">
-  <!-- Sistema de Tickets CSS -->
+	  <link href="/assets/superadmin/css/app.css" rel="stylesheet">
+	  <link href="/assets/superadmin/css/pagination.css" rel="stylesheet">
+	  <link rel="preload" href="/assets/vendor/bootstrap-icons/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6" as="font" type="font/woff2" crossorigin>
+	  <link rel="stylesheet" href="/assets/vendor/bootstrap-icons/bootstrap-icons.min.css">
+		<!-- Font Awesome (LOCAL) -->
+		<link rel="stylesheet" href="/assets/vendor/fontawesome/css/all.min.css">
+	  <!-- Sistema de Tickets CSS -->
   @if(setting('multi_tenant_enabled', config('multi_tenant_enabled', false)))
   <link href="/assets/superadmin/css/tickets.css" rel="stylesheet">
   @endif
@@ -30,6 +31,13 @@
       html, body { overflow-x: hidden !important; }
       body { min-height: 100vh; overflow-y: auto !important; }
       .wrapper { display: flex !important; width: 100%; min-height: 100vh; align-items: stretch; }
+
+      /* Evitar apariencia de link dentro de botones <a class="btn ..."> */
+      a.btn,
+      a.btn:hover,
+      a.btn:focus {
+          text-decoration: none !important;
+      }
 
       /* Sidebar Base (Dark theme assumed based on AdminKit default) */
       nav#sidebar.sidebar {
@@ -142,7 +150,7 @@
       #sidebar-overlay.active { opacity: 1; pointer-events: auto; }
 
       /* Vista Móvil */
-      @media (max-width: 767.98px) {
+	      @media (max-width: 767.98px) {
           .wrapper { display: block !important; }
            nav#sidebar.sidebar {
                position: fixed !important; left: 0; top: 0; bottom: 0; height: 100vh !important;
@@ -155,9 +163,36 @@
            .main > .navbar { position: fixed !important; top: 0; right: 0; left: 0; z-index: 1030 !important; }
            .main > .content { padding: 1rem !important; overflow-y: visible; }
            .main > footer.footer { position: relative; z-index: 1; }
-           .navbar a.sidebar-toggle { display: flex !important; }
-      }
-  </style>
+	           .navbar a.sidebar-toggle { display: flex !important; }
+	      }
+
+	      /* Hardening: evitar overrides de otras librerías */
+	      a.btn,
+	      a.btn:hover {
+	          text-decoration: none !important;
+	      }
+
+	      /* Asegurar Bootstrap Icons incluso si otra CSS pisa `.bi` */
+	      .bi {
+	          font-family: bootstrap-icons !important;
+	          font-style: normal;
+	          font-weight: 400;
+	          line-height: 1;
+	          vertical-align: -0.125em;
+	      }
+	      .bi::before {
+	          display: inline-block;
+	      }
+
+	      /* Evitar que iconos queden ocultos por reglas de `opacity/visibility` */
+	      .btn .bi,
+	      .btn i[class*="bi-"],
+	      .btn .fa,
+	      .btn svg {
+	          opacity: 1 !important;
+	          visibility: visible !important;
+	      }
+	  </style>
 @stack('styles')
 @stack('meta')
 </head>

@@ -10,7 +10,7 @@
             <button class="btn btn-outline-secondary" id="btnUploadTheme">
                 <i class="bi bi-upload me-1"></i> Subir tema
             </button>
-            <a href="{{ route('themes.create') }}" class="btn btn-primary">
+            <a href="{{ route('themes.create') }}" class="btn btn-primary text-decoration-none">
                 <i class="bi bi-plus-lg me-1"></i> Crear nuevo tema
             </a>
         </div>
@@ -82,8 +82,8 @@
                     {{-- Personalizar --}}
                     <td>
                         @if ($isCustomizable)
-                            <a href="{{ route('themes.appearance.global', ['slug' => $theme['slug']]) }}" class="btn btn-sm btn-info" title="Personalizar Apariencia Global">
-                                <i class="bi bi-palette"></i> Apariencia
+                            <a href="{{ route('themes.appearance.global', ['slug' => $theme['slug']]) }}" class="btn btn-sm btn-info text-white text-decoration-none" title="Personalizar Apariencia Global">
+                                <i class="bi bi-palette me-1 text-white"></i> Apariencia
                             </a>
                         @else
                             <span class="text-muted small fst-italic">N/A</span>
@@ -94,16 +94,16 @@
                     <td>
                         <div class="d-flex flex-wrap gap-2">
                             @if (file_exists($homeViewPath))
-                                <a href="{{ route('themes.editor.customize', ['slug' => $theme['slug']]) }}" class="btn btn-sm btn-outline-secondary">
+                                <a href="{{ route('themes.editor.customize', ['slug' => $theme['slug']]) }}" class="btn btn-sm btn-outline-secondary text-decoration-none">
                                     <i class="bi bi-pencil-square me-1"></i> Editor
                                 </a>
                             @else
-                                <a href="{{ route('themes.editor.builder', ['slug' => $theme['slug'], 'file' => 'home.blade.php']) }}" class="btn btn-sm btn-danger">
-                                    <i class="bi bi-hammer me-1"></i> Construir
+                                <a href="{{ route('themes.editor.builder', ['slug' => $theme['slug'], 'file' => 'home.blade.php']) }}" class="btn btn-sm btn-danger text-white text-decoration-none">
+                                    <i class="bi bi-hammer me-1 text-white"></i> Construir
                                 </a>
                             @endif
 
-                            <a href="{{ route('themes.download', ['slug' => $theme['slug']]) }}" class="btn btn-sm btn-outline-primary">
+                            <a href="{{ route('themes.download', ['slug' => $theme['slug']]) }}" class="btn btn-sm btn-outline-primary text-decoration-none">
                                 <i class="bi bi-download me-1"></i> Descargar
                             </a>
 
