@@ -72,9 +72,37 @@
     @endif
 @endif
 
+{{-- Hero para posts de blog (a lo ancho, igual que pages/page.blade.php) --}}
+@if(isset($post) && ($post->show_hero === true || $post->show_hero === 1 || $post->show_hero === "1"))
+    @php
+        $heroPath = !empty($post->hero_image) ? $post->hero_image : 'themes/default/img/hero/contact_hero.jpg';
+        $heroUrl = (str_starts_with($heroPath, '/media/') || str_starts_with($heroPath, 'http')) ? $heroPath : asset($heroPath);
+        $heroTitle = $post->hero_title ?: ($translation->title ?? $post->title);
+    @endphp
+    <div class="slider-area">
+        <div class="single-slider slider-height2 d-flex align-items-center" data-background="{{ $heroUrl }}">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-12">
+                        <div class="hero-cap text-center">
+                            <h2>{{ $heroTitle }}</h2>
+                            @if(!empty($post->hero_content))
+                                <div class="hero-subtitle mt-3">
+                                    {!! $post->hero_content !!}
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+
 @php
     $showSlider = isset($customizations) && ($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1");
-    $containerPaddingClass = $showSlider ? 'py-0' : 'py-4';
+    $showHero = isset($post) && ($post->show_hero === true || $post->show_hero === 1 || $post->show_hero === "1");
+    $containerPaddingClass = ($showSlider || $showHero) ? 'pt-0 pb-4' : 'py-4';
 @endphp
 
 <div class="container {{ $containerPaddingClass }} page-with-sidebar">

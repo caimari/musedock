@@ -11,37 +11,46 @@
 
 @section('content')
 
-<div class="container py-5">
+@php
+    $showHero = !empty($post->show_hero);
+@endphp
+
+{{-- Hero (a lo ancho, pegado al header) --}}
+@if($showHero)
+    @php
+        $heroPath = !empty($post->hero_image) ? $post->hero_image : 'themes/default/img/hero/contact_hero.jpg';
+        $heroUrl = (str_starts_with($heroPath, '/media/') || str_starts_with($heroPath, 'http')) ? $heroPath : asset($heroPath);
+        $heroTitle = $post->hero_title ?: $post->title;
+    @endphp
+    <div class="slider-area">
+        <div class="single-slider slider-height2 d-flex align-items-center" data-background="{{ $heroUrl }}">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-12">
+                        <div class="hero-cap text-center">
+                            <h1>{{ $heroTitle }}</h1>
+                            @if(!empty($post->hero_content))
+                                <div class="hero-subtitle mt-3">
+                                    {!! $post->hero_content !!}
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+
+@php
+    $containerPaddingClass = $showHero ? 'pt-0 pb-5' : 'py-5';
+@endphp
+
+<div class="container {{ $containerPaddingClass }}">
     <div class="row">
         {{-- Contenido principal --}}
         <div class="col-lg-8">
-            <article class="blog-post">
-                {{-- Hero --}}
-                @if(!empty($post->show_hero))
-                    @php
-                        $heroPath = !empty($post->hero_image) ? $post->hero_image : 'themes/default/img/hero/contact_hero.jpg';
-                        $heroUrl = (str_starts_with($heroPath, '/media/') || str_starts_with($heroPath, 'http')) ? $heroPath : asset($heroPath);
-                        $heroTitle = $post->hero_title ?: $post->title;
-                    @endphp
-                    <div class="slider-area mb-4">
-                        <div class="single-slider slider-height2 d-flex align-items-center" data-background="{{ $heroUrl }}">
-                            <div class="container">
-                                <div class="row">
-                                    <div class="col-xl-12">
-                                        <div class="hero-cap text-center">
-                                            <h1>{{ $heroTitle }}</h1>
-                                            @if(!empty($post->hero_content))
-                                                <div class="hero-subtitle mt-3">
-                                                    {!! $post->hero_content !!}
-                                                </div>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endif
+            <article class="blog-post-single page-content-wrapper">
 
                 {{-- Imagen destacada --}}
                 @if($post->featured_image && !$post->hide_featured_image)
@@ -71,7 +80,7 @@
                 </div>
 
                 {{-- Contenido --}}
-                <div class="post-content">
+                <div class="post-content page-body">
                     {!! $post->content !!}
                 </div>
 
