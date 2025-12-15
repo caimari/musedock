@@ -164,6 +164,7 @@ class BlogPostController
         $data['featured'] = isset($data['featured']) ? 1 : 0;
         $data['hide_featured_image'] = isset($data['hide_featured_image']) ? 1 : 0;
         $data['hide_title'] = isset($data['hide_title']) ? 1 : 0;
+        $data['hide_title'] = isset($data['hide_title']) ? 1 : 0;
 
         // Manejo de visibilidad (con valor por defecto)
         $data['visibility'] = $data['visibility'] ?? 'public';

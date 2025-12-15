@@ -84,9 +84,6 @@ abstract class Model
     {
         $data = $this->getPreparedAttributes();
 
-        error_log("MODEL SAVE: Table: " . static::$table . ", Exists: " . ($this->exists ? 'yes' : 'no'));
-        error_log("MODEL SAVE: Data keys: " . implode(', ', array_keys($data)));
-
         if (static::$timestamps) {
             $now = date('Y-m-d H:i:s');
             $data['updated_at'] = $now;
@@ -99,12 +96,9 @@ abstract class Model
             // Excluir el primary key de los datos a actualizar
             // En PostgreSQL y otros DBMS, actualizar la PK puede causar conflictos
             unset($data[static::$primaryKey]);
-
-            error_log("MODEL SAVE: Ejecutando UPDATE para ID: " . $this->getKey());
             Database::table(static::$table)
                 ->where(static::$primaryKey, $this->getKey())
                 ->update($data);
-            error_log("MODEL SAVE: UPDATE completado");
         } else {
             // Para INSERT, también excluimos el ID si es auto-generado
             // Solo lo incluimos si fue explícitamente establecido y no es null
@@ -112,11 +106,9 @@ abstract class Model
                 unset($data[static::$primaryKey]);
             }
 
-            error_log("MODEL SAVE: Ejecutando INSERT");
             $id = Database::table(static::$table)->insert($data);
             $this->attributes[static::$primaryKey] = $id;
             $this->exists = true;
-            error_log("MODEL SAVE: INSERT completado con ID: " . $id);
         }
 
         return true;
@@ -149,16 +141,41 @@ abstract class Model
     protected function castForSave($key, $value)
     {
         $castType = $this->casts[$key] ?? null;
+        if (is_string($castType)) {
+            $castType = strtolower(trim($castType));
+        }
 
         if ($castType === 'datetime' && $value instanceof DateTime) {
             return $value->format('Y-m-d H:i:s');
         }
 
-        if ($castType === 'int') {
+        if ($castType === 'nullable') {
+            return $value === '' ? null : $value;
+        }
+
+        if ($castType === 'int' || $castType === 'integer') {
             return $value === null ? null : (int) $value;
         }
 
-        if ($castType === 'bool') {
+        if ($castType === 'bool' || $castType === 'boolean') {
+            if ($value === null) {
+                return 0;
+            }
+            if (is_bool($value)) {
+                return $value ? 1 : 0;
+            }
+            if (is_int($value) || is_float($value)) {
+                return ((int) $value) !== 0 ? 1 : 0;
+            }
+            if (is_string($value)) {
+                $normalized = strtolower(trim($value));
+                if ($normalized === '' || $normalized === '0' || $normalized === 'false' || $normalized === 'off' || $normalized === 'no' || $normalized === 'null') {
+                    return 0;
+                }
+                if ($normalized === '1' || $normalized === 'true' || $normalized === 'on' || $normalized === 'yes') {
+                    return 1;
+                }
+            }
             return $value ? 1 : 0;
         }
 
@@ -186,16 +203,41 @@ abstract class Model
         }
 
         $castType = $this->casts[$key];
+        if (is_string($castType)) {
+            $castType = strtolower(trim($castType));
+        }
 
         if ($castType === 'datetime' && $value && !($value instanceof DateTime)) {
             return new DateTime($value);
         }
 
-        if ($castType === 'int') {
+        if ($castType === 'nullable') {
+            return $value === '' ? null : $value;
+        }
+
+        if ($castType === 'int' || $castType === 'integer') {
             return $value === null ? null : (int) $value;
         }
 
-        if ($castType === 'bool') {
+        if ($castType === 'bool' || $castType === 'boolean') {
+            if ($value === null) {
+                return false;
+            }
+            if (is_bool($value)) {
+                return $value;
+            }
+            if (is_int($value) || is_float($value)) {
+                return ((int) $value) !== 0;
+            }
+            if (is_string($value)) {
+                $normalized = strtolower(trim($value));
+                if ($normalized === '' || $normalized === '0' || $normalized === 'false' || $normalized === 'off' || $normalized === 'no' || $normalized === 'null') {
+                    return false;
+                }
+                if ($normalized === '1' || $normalized === 'true' || $normalized === 'on' || $normalized === 'yes') {
+                    return true;
+                }
+            }
             return (bool) $value;
         }
 

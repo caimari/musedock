@@ -19,7 +19,8 @@
         
         {{-- Activar/desactivar la cabecera --}}
         <div class="mb-3 form-check">
-            <input type="checkbox" class="form-check-input" id="show-slider" name="show_slider" 
+            <input type="hidden" name="show_slider" value="0">
+            <input type="checkbox" class="form-check-input" id="show-slider" name="show_slider" value="1"
                    {{ old('show_slider', $Page->show_slider ?? 0) == 1 ? 'checked' : '' }}>
             <label class="form-check-label" for="show-slider">Mostrar cabecera con imagen</label>
         </div>
@@ -83,7 +84,8 @@
 
         {{-- Ocultar título H1 en el contenido principal --}}
         <div class="mb-3 form-check mt-4">
-            <input type="checkbox" class="form-check-input" id="hide-title" name="hide_title" 
+            <input type="hidden" name="hide_title" value="0">
+            <input type="checkbox" class="form-check-input" id="hide-title" name="hide_title" value="1"
                    {{ old('hide_title', $Page->hide_title ?? 0) == 1 ? 'checked' : '' }}>
             <label class="form-check-label" for="hide-title">Ocultar título H1 en el contenido principal</label>
             <small class="d-block text-muted">Útil cuando ya se muestra el título en la cabecera o en otro elemento de la página.</small>
