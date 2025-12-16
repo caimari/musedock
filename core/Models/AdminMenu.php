@@ -32,18 +32,26 @@ class AdminMenu
         $stmt->execute();
         $menus = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
+        // Obtener paths desde .env para reemplazar placeholders
+        $adminPathMusedock = '/' . trim(\Screenart\Musedock\Env::get('ADMIN_PATH_MUSEDOCK', 'musedock'), '/');
+        $adminPathTenant = '/' . trim(\Screenart\Musedock\Env::get('ADMIN_PATH_TENANT', 'admin'), '/');
+
         // Construir jerarquía
         $result = [];
         $children = [];
 
         foreach ($menus as $menu) {
+            // Reemplazar placeholders con valores del .env
+            $url = str_replace('{musedock_path}', $adminPathMusedock, $menu['url']);
+            $url = str_replace('{admin_path}', $adminPathTenant, $url);
+
             if ($menu['parent_id'] === null) {
                 // Menú padre
                 $result[$menu['slug']] = [
                     'id' => $menu['id'],
                     'title' => $menu['title'],
                     'slug' => $menu['slug'],
-                    'url' => $menu['url'],
+                    'url' => $url,
                     'icon' => $menu['icon'],
                     'icon_type' => $menu['icon_type'],
                     'order' => $menu['order_position'],
@@ -53,7 +61,7 @@ class AdminMenu
                 ];
             } else {
                 // Menú hijo - lo guardaremos temporalmente
-                $children[] = $menu;
+                $children[] = array_merge($menu, ['url' => $url]);
             }
         }
 
@@ -158,13 +166,17 @@ class AdminMenu
         $stmt->execute(['tenant_id' => $tenantId]);
         $menus = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
+        // Obtener paths desde .env para reemplazar placeholders
+        $adminPathMusedock = '/' . trim(\Screenart\Musedock\Env::get('ADMIN_PATH_MUSEDOCK', 'musedock'), '/');
+
         // Construir jerarquía
         $result = [];
         $children = [];
 
         foreach ($menus as $menu) {
             // Reemplazar placeholders en URLs para tenant
-            $url = str_replace('{admin_path}', rtrim($adminPath, '/'), $menu['url']);
+            $url = str_replace('{musedock_path}', $adminPathMusedock, $menu['url']);
+            $url = str_replace('{admin_path}', rtrim($adminPath, '/'), $url);
 
             if ($menu['parent_id'] === null) {
                 $result[$menu['slug']] = [
@@ -309,16 +321,18 @@ class AdminMenu
 
         $menus = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Obtener admin_path desde .env para reemplazar placeholders
+        // Obtener paths desde .env para reemplazar placeholders
         $adminPathMusedock = '/' . trim(\Screenart\Musedock\Env::get('ADMIN_PATH_MUSEDOCK', 'musedock'), '/');
+        $adminPathTenant = '/' . trim(\Screenart\Musedock\Env::get('ADMIN_PATH_TENANT', 'admin'), '/');
 
         // Construir jerarquía
         $result = [];
         $children = [];
 
         foreach ($menus as $menu) {
-            // Reemplazar placeholder {admin_path} con el valor de ADMIN_PATH_MUSEDOCK del .env
-            $url = str_replace('{admin_path}', $adminPathMusedock, $menu['url']);
+            // Reemplazar placeholders con valores del .env
+            $url = str_replace('{musedock_path}', $adminPathMusedock, $menu['url']);
+            $url = str_replace('{admin_path}', $adminPathTenant, $url);
 
             if ($menu['parent_id'] === null) {
                 $result[$menu['slug']] = [
@@ -423,16 +437,18 @@ class AdminMenu
         $stmt->execute([$tenantId]);
         $menus = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Obtener admin_path desde .env para reemplazar placeholders
+        // Obtener paths desde .env para reemplazar placeholders
         $adminPathTenant = '/' . trim(\Screenart\Musedock\Env::get('ADMIN_PATH_TENANT', 'admin'), '/');
+        $adminPathMusedock = '/' . trim(\Screenart\Musedock\Env::get('ADMIN_PATH_MUSEDOCK', 'musedock'), '/');
 
         // Construir jerarquía
         $result = [];
         $children = [];
 
         foreach ($menus as $menu) {
-            // Reemplazar placeholder {admin_path} con el valor de ADMIN_PATH_TENANT del .env
-            $url = str_replace('{admin_path}', $adminPathTenant, $menu['url']);
+            // Reemplazar placeholders con valores del .env
+            $url = str_replace('{musedock_path}', $adminPathMusedock, $menu['url']);
+            $url = str_replace('{admin_path}', $adminPathTenant, $url);
 
             if ($menu['parent_id'] === null) {
                 $result[$menu['slug']] = [

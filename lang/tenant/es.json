@@ -432,7 +432,8 @@
       "error_tenant_not_identified": "No se pudo identificar el tenant",
       "error_image_upload": "Error al subir la imagen",
       "error_update": "Error al actualizar la categoría",
-      "error_delete": "Error al eliminar la categoría"
+      "error_delete": "Error al eliminar la categoría",
+      "error_no_permission": "No tienes permiso para gestionar categorías"
     },
     "tag": {
       "title": "Etiquetas",
@@ -461,7 +462,8 @@
       "error_has_posts": "No se puede eliminar la etiqueta porque tiene posts asociados",
       "error_tenant_not_identified": "No se pudo identificar el tenant",
       "error_update": "Error al actualizar la etiqueta",
-      "error_delete": "Error al eliminar la etiqueta"
+      "error_delete": "Error al eliminar la etiqueta",
+      "error_no_permission": "No tienes permiso para gestionar etiquetas"
     },
     "recent_posts": "Publicaciones Recientes",
     "view_all": "Ver Todos",
@@ -483,6 +485,100 @@
     "comments": "Comentarios",
     "no_comments": "No hay comentarios todavía.",
     "leave_comment": "Dejar un Comentario"
+  },
+  "image_gallery": {
+    "title": "Galería de Imágenes",
+    "list": "Listado de Galerías",
+    "create": "Crear Galería",
+    "edit": "Editar Galería",
+    "delete": "Eliminar Galería",
+    "view": "Ver Galería",
+    "galleries": "Galerías",
+    "gallery": "Galería",
+    "images": "Imágenes",
+    "upload_images": "Subir Imágenes",
+    "no_galleries_found": "No se encontraron galerías.",
+    "create_first_gallery": "Crear la primera galería",
+    "success_created": "Galería creada correctamente",
+    "success_updated": "Galería actualizada correctamente",
+    "success_deleted": "Galería eliminada correctamente",
+    "error_not_found": "Galería no encontrada",
+    "error_no_permission": "No tienes permiso para gestionar galerías"
+  },
+  "seo_social": {
+    "title": "SEO y Redes Sociales",
+    "meta_title": "Título Meta",
+    "meta_description": "Descripción Meta",
+    "og_image": "Imagen para Redes Sociales",
+    "canonical_url": "URL Canónica"
+  },
+  "settings_email": {
+    "title": "Email",
+    "smtp_settings": "Configuración SMTP",
+    "from_email": "Email de origen",
+    "from_name": "Nombre de origen"
+  },
+  "settings_storage": {
+    "title": "Almacenamiento",
+    "storage_driver": "Driver de almacenamiento",
+    "local": "Local",
+    "s3": "Amazon S3",
+    "r2": "Cloudflare R2"
+  },
+  "audit_logs": {
+    "title": "Logs de Auditoría",
+    "action": "Acción",
+    "user": "Usuario",
+    "date": "Fecha",
+    "details": "Detalles"
+  },
+  "email_settings": {
+    "title": "Configuración de Email",
+    "test_email": "Enviar Email de Prueba"
+  },
+  "admin_menus": {
+    "title": "Menús de Admin",
+    "manage_menus": "Gestionar Menús"
+  },
+  "storage_settings": {
+    "title": "Configuración de Almacenamiento",
+    "quota": "Cuota",
+    "used": "Usado"
+  },
+  "marketplace": {
+    "title": "Marketplace",
+    "browse": "Explorar",
+    "install": "Instalar"
+  },
+  "settings_reading": {
+    "title": "Lectura",
+    "posts_per_page": "Posts por página",
+    "homepage_settings": "Configuración de Inicio"
+  },
+  "ai_dashboard": {
+    "title": "Dashboard IA",
+    "usage": "Uso",
+    "tokens": "Tokens"
+  },
+  "ai_settings": {
+    "title": "Ajustes IA",
+    "api_key": "Clave API",
+    "model": "Modelo"
+  },
+  "ai_providers": {
+    "title": "Proveedores IA",
+    "openai": "OpenAI",
+    "anthropic": "Anthropic"
+  },
+  "ai_logs": {
+    "title": "Logs IA",
+    "request": "Petición",
+    "response": "Respuesta"
+  },
+  "caddy_domain_manager": {
+    "title": "Domain Manager",
+    "domains": "Dominios",
+    "add_domain": "Añadir Dominio"
   },
   "users": {
     "title": "Usuarios",
@@ -547,8 +643,10 @@
     "version": "Versión",
     "author": "Autor",
     "description": "Descripción",
-    "requirements": "Requisitos"
+    "requirements": "Requisitos",
+    "updated": "Configuración de módulos actualizada"
   },
+  "modules_updated": "Configuración de módulos actualizada",
   "plugins": {
     "title": "Plugins",
     "list": "Listado de Plugins",

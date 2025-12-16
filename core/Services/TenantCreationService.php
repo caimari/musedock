@@ -437,13 +437,16 @@ class TenantCreationService
                 continue;
             }
 
+            // Convertir {musedock_path} a {admin_path} para menús de tenant
+            $tenantUrl = str_replace('{musedock_path}', '{admin_path}', $menu['url']);
+
             $insertStmt->execute([
                 'tenant_id' => $tenantId,
                 'parent_id' => $newParentId,
                 'module_id' => $menu['module_id'],
                 'title' => $menu['title'],
                 'slug' => $menu['slug'],
-                'url' => $menu['url'],
+                'url' => $tenantUrl,
                 'icon' => $menu['icon'],
                 'icon_type' => $menu['icon_type'] ?? 'bi',
                 'order_position' => $menu['order_position'],

@@ -68,20 +68,23 @@ public function toggle($moduleId)
         exit;
     }
 
-    // Verificar contraseña del usuario actual
-    $userId = $_SESSION['user_id'] ?? null;
-    if (!$userId) {
+    // Verificar que hay sesión de admin activa
+    $admin = $_SESSION['admin'] ?? null;
+    if (!$admin || empty($admin['id'])) {
         flash('error', 'Sesión no válida.');
         header('Location: ' . admin_url('/modules'));
         exit;
     }
 
+    $userId = $admin['id'];
     $pdo = Database::connect();
-    $stmt = $pdo->prepare("SELECT password FROM users WHERE id = ?");
-    $stmt->execute([$userId]);
-    $user = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-    if (!$user || !password_verify($password, $user['password'])) {
+    // Los administradores de tenant están en la tabla 'admins', no 'users'
+    $stmt = $pdo->prepare("SELECT password FROM admins WHERE id = ?");
+    $stmt->execute([$userId]);
+    $adminUser = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+    if (!$adminUser || !password_verify($password, $adminUser['password'])) {
         flash('error', 'Contraseña incorrecta.');
         header('Location: ' . admin_url('/modules'));
         exit;

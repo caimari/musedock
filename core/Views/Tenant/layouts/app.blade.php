@@ -371,8 +371,9 @@
 $currentUrl = $_SERVER['REQUEST_URI'];
 $adminPath = rtrim(admin_path(), '/');
 
-// Obtener el admin_path desde .env para las URLs de tenant_menus
+// Obtener paths desde .env para las URLs de tenant_menus
 $adminPathTenant = '/' . trim(\Screenart\Musedock\Env::get('ADMIN_PATH_TENANT', 'admin'), '/');
+$adminPathMusedock = '/' . trim(\Screenart\Musedock\Env::get('ADMIN_PATH_MUSEDOCK', 'musedock'), '/');
 
 // Cargar menús del tenant
 $tenantId = function_exists('tenant_id') ? tenant_id() : null;
@@ -416,8 +417,11 @@ try {
         $children = [];
 
         foreach ($menus as $menu) {
-            // Reemplazar {admin_path} con el valor de ADMIN_PATH_TENANT del .env
+            // Reemplazar placeholders con valores del .env
             $url = $menu['url'];
+            if (str_contains($url, '{musedock_path}')) {
+                $url = str_replace('{musedock_path}', $adminPathMusedock, $url);
+            }
             if (str_contains($url, '{admin_path}')) {
                 $url = str_replace('{admin_path}', $adminPathTenant, $url);
             }

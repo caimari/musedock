@@ -24,7 +24,9 @@ $modulesPath = APP_ROOT . '/modules';
 $loadedSlugs = [];
 
 // Determinar el modo multi-tenant
-$multiTenant = setting('multi_tenant_enabled', false);
+// IMPORTANTE: Leer directamente del config, no de setting() que lee de DB
+$config = require APP_ROOT . '/config/config.php';
+$multiTenant = $config['multi_tenant_enabled'] ?? false;
 $tenantId = tenant_id();
 
 // Obtener módulos activos según el contexto
