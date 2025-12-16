@@ -606,7 +606,12 @@ function addMediaToGrid(media) {
         const mediaId = button.dataset.id;
         const itemElement = button.closest('.media-item');
 
-        if (!mediaId || !itemElement) return;
+        console.log('[Delete] Button:', button, 'MediaId:', mediaId, 'ItemElement:', itemElement);
+
+        if (!mediaId || !itemElement) {
+            console.error('[Delete] Missing mediaId or itemElement');
+            return;
+        }
 
         Swal.fire({
             title: '¿Eliminar este archivo?',
@@ -629,8 +634,9 @@ function addMediaToGrid(media) {
         }).then((result) => {
             if (result.isConfirmed) {
                 const deleteUrl = deleteUrlBase.replace(':id', mediaId);
-                // Añadir CSRF si es necesario para DELETE (mejor usar header)
                 const csrfToken = document.querySelector('input[name="_token"]')?.value;
+
+                console.log('[Delete] Confirmed. URL:', deleteUrl, 'CSRF:', csrfToken);
 
                 fetch(deleteUrl, {
                     method: 'POST', // O 'DELETE' si tu router y servidor lo soportan
@@ -646,24 +652,29 @@ function addMediaToGrid(media) {
                 })
                 .then(response => response.json().then(data => ({ ok: response.ok, status: response.status, data })))
                 .then(({ ok, status, data }) => {
+                    console.log('[Delete] Response:', { ok, status, data });
+
                     if (ok && data.success) {
+                        console.log('[Delete] Success! Removing item from DOM');
                         itemElement.remove(); // Quitar del DOM
                         showSuccess(data.message || 'Medio eliminado.');
+
                         // Comprobar si la rejilla quedó vacía
                         if (!gridContainer.querySelector('.media-item')) {
                             gridContainer.innerHTML = '<p class="text-center text-muted w-100">No se encontraron medios.</p>';
                         }
-                        
+
                         // También refrescar el modal si está abierto
                         if (modalElement && modalElement.classList.contains('show')) {
                             loadMediaModal(1);
                         }
                     } else {
+                        console.error('[Delete] Failed:', data.message);
                         showError(data.message || `Error ${status}`);
                     }
                 })
                 .catch(error => {
-                    console.error("Error deleting media:", error);
+                    console.error("[Delete] Network error:", error);
                     showError('Error de red al eliminar.');
                 });
             }
@@ -1473,7 +1484,7 @@ for (const key in detailFields) {
 deleteButton.addEventListener('click', function(e) {
     e.preventDefault();
     const currentZIndex = parseInt(overlay.style.zIndex || 999999);
-    const targetZIndex = currentZIndex + 100;
+    const targetZIndex = currentZIndex + 1000;
     const swalConfig = {
         title: '¿Eliminar este archivo?',
         text: "Esta acción no se puede deshacer.",
@@ -1483,16 +1494,24 @@ deleteButton.addEventListener('click', function(e) {
         cancelButtonColor: '#6c757d',
         confirmButtonText: 'Sí, eliminar',
         cancelButtonText: 'Cancelar',
-        customClass: { container: 'swal-higher-z-index' },
+        customClass: { container: 'swal-modal-delete-confirm' },
         didOpen: () => {
             const swalContainer = document.querySelector('.swal2-container');
+            const swalPopup = document.querySelector('.swal2-popup');
             if (swalContainer) {
-                swalContainer.style.zIndex = targetZIndex;
+                swalContainer.style.zIndex = String(targetZIndex);
+            }
+            if (swalPopup) {
+                swalPopup.style.zIndex = String(targetZIndex + 1);
             }
         }
     };
     const styleEl = document.createElement('style');
-    styleEl.textContent = `.swal-higher-z-index { z-index: ${targetZIndex} !important; }`;
+    styleEl.id = 'swal-modal-delete-style';
+    styleEl.textContent = `
+        .swal2-container.swal-modal-delete-confirm { z-index: ${targetZIndex} !important; }
+        .swal2-container.swal-modal-delete-confirm .swal2-popup { z-index: ${targetZIndex + 1} !important; }
+    `;
     document.head.appendChild(styleEl);
 
     Swal.fire(swalConfig).then((result) => {

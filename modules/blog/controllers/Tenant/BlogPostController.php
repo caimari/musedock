@@ -550,15 +550,21 @@ class BlogPostController
         }
 
         if ($_FILES && isset($_FILES['hero_image']) && $_FILES['hero_image']['error'] == 0) {
+            error_log("HERO_IMAGE: Nueva imagen detectada - " . $_FILES['hero_image']['name']);
             $uploadResult = $this->processHeroImageUpload($_FILES['hero_image'], $currentHeroImage);
             if (isset($uploadResult['error'])) {
+                error_log("HERO_IMAGE: Error en upload - " . $uploadResult['error']);
                 flash('error', __('blog.post.error_upload_hero_image', ['error' => $uploadResult['error']]));
                 header("Location: /" . admin_path() . "/blog/posts/{$id}/edit");
                 exit;
             }
             $data['hero_image'] = $uploadResult['path'];
+            error_log("HERO_IMAGE: Path guardado en data - " . $data['hero_image']);
         } elseif ($removeHeroImage !== '1') {
             $data['hero_image'] = $currentHeroImage;
+            error_log("HERO_IMAGE: Manteniendo imagen actual - " . ($currentHeroImage ?? 'null'));
+        } else {
+            error_log("HERO_IMAGE: Imagen marcada para eliminación");
         }
 
         // Guardar categorías y etiquetas seleccionadas
@@ -600,7 +606,10 @@ class BlogPostController
 
             // Actualizar datos principales del post
             unset($data['prefix']);
+            error_log("HERO_IMAGE: Antes de update - data[hero_image] = " . ($data['hero_image'] ?? 'NO SET'));
+            error_log("HERO_IMAGE: Antes de update - data keys = " . implode(', ', array_keys($data)));
             $post->update($data);
+            error_log("HERO_IMAGE: Después de update - post->hero_image = " . ($post->hero_image ?? 'null'));
 
             // Actualizar slug
             $deleteSlugStmt = $pdo->prepare("DELETE FROM slugs WHERE module = 'blog' AND reference_id = ?");

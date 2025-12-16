@@ -201,8 +201,12 @@
               </div>
 
               <div class="d-grid">
-                <button type="submit" class="btn btn-primary">
-                  {{ isset($Page) && $Page->id ? __('common.update') : __('pages.publish') }}
+                <button type="submit" class="btn btn-primary" id="page-submit-btn">
+                  <span class="btn-text">{{ isset($Page) && $Page->id ? __('common.update') : __('pages.publish') }}</span>
+                  <span class="btn-spinner d-none">
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    {{ __('common.saving') ?? 'Guardando...' }}
+                  </span>
                 </button>
               </div>
             </div>
@@ -422,6 +426,26 @@
           });
         }
         // ===================================================
+
+        // === SPINNER EN BOTÓN GUARDAR ===
+        const pageForm = document.getElementById('pageForm');
+        const submitBtn = document.getElementById('page-submit-btn');
+
+        if (pageForm && submitBtn) {
+          pageForm.addEventListener('submit', function(e) {
+            // Mostrar spinner y deshabilitar botón
+            const btnText = submitBtn.querySelector('.btn-text');
+            const btnSpinner = submitBtn.querySelector('.btn-spinner');
+
+            if (btnText && btnSpinner) {
+              btnText.classList.add('d-none');
+              btnSpinner.classList.remove('d-none');
+            }
+
+            submitBtn.disabled = true;
+          });
+        }
+        // ================================
 
       }); // Fin DOMContentLoaded
     </script>

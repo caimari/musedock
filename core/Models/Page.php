@@ -176,7 +176,8 @@ class Page extends Model
     public function save(): bool
     {
         error_log("PAGE SAVE: Iniciando save() del modelo Page");
-        error_log("PAGE SAVE: Attributes: " . json_encode(array_keys($this->attributes)));
+        error_log("PAGE SAVE: Attributes keys: " . json_encode(array_keys($this->attributes)));
+        error_log("PAGE SAVE: slider_image = " . ($this->attributes['slider_image'] ?? 'NOT SET'));
 
         // Si tenant_id es una cadena vacía o null, lo forzamos a NULL explícitamente
         if (isset($this->attributes['tenant_id']) && ($this->attributes['tenant_id'] === '' || $this->attributes['tenant_id'] === null)) {

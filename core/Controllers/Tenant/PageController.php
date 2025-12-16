@@ -474,15 +474,21 @@ class PageController
 
         // Nueva imagen
         if ($_FILES && isset($_FILES['slider_image']) && $_FILES['slider_image']['error'] == 0) {
+            error_log("SLIDER_IMAGE: Nueva imagen detectada - " . $_FILES['slider_image']['name']);
             $uploadResult = $this->processSliderImageUpload($_FILES['slider_image'], $currentSliderImage);
             if (isset($uploadResult['error'])) {
+                error_log("SLIDER_IMAGE: Error en upload - " . $uploadResult['error']);
                 flash('error', __('pages.error_image_upload') . ': ' . $uploadResult['error']);
                 header('Location: ' . admin_url("pages/{$id}/edit"));
                 exit;
             }
             $data['slider_image'] = $uploadResult['path'];
+            error_log("SLIDER_IMAGE: Path guardado en data - " . $data['slider_image']);
         } elseif ($removeImage !== '1') {
             $data['slider_image'] = $currentSliderImage;
+            error_log("SLIDER_IMAGE: Manteniendo imagen actual - " . ($currentSliderImage ?? 'null'));
+        } else {
+            error_log("SLIDER_IMAGE: Imagen marcada para eliminación");
         }
 
         // Asegurar que tenant_id no cambie
@@ -520,7 +526,10 @@ class PageController
 
             // 2. Actualizar datos principales de la página
             unset($data['prefix']);
+            error_log("SLIDER_IMAGE: Antes de update - data[slider_image] = " . ($data['slider_image'] ?? 'NO SET'));
+            error_log("SLIDER_IMAGE: Antes de update - data keys = " . implode(', ', array_keys($data)));
             $page->update($data);
+            error_log("SLIDER_IMAGE: Después de update - page->slider_image = " . ($page->slider_image ?? 'null'));
 
             // 3. Actualizar is_homepage
             $updateCurrentStmt = $pdo->prepare(
