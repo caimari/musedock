@@ -147,3 +147,38 @@ main table {
     height: auto !important;
   }
 }
+
+/* Ajustar espaciado de párrafos en contenido de páginas */
+.page-content p,
+.page-body p,
+.content p {
+  margin-bottom: 1rem;
+}
+
+/* Eliminar espaciado de párrafos vacíos o con solo espacios */
+.page-content p:empty,
+.page-body p:empty,
+.content p:empty,
+.page-content p:has(> br:only-child),
+.page-body p:has(> br:only-child),
+.content p:has(> br:only-child) {
+  margin: 0;
+  padding: 0;
+  line-height: 0;
+  height: 0;
+}
+
+/* Ajustar espaciado de títulos h2, h3 */
+.page-content h2,
+.page-body h2,
+.content h2 {
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.page-content h3,
+.page-body h3,
+.content h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
