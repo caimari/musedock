@@ -18,27 +18,25 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .navbar-custom {
-            background: #f8f9fa;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            border-bottom: 1px solid #e0e0e0;
         }
         .navbar-custom .navbar-brand {
-            color: #333 !important;
+            color: white !important;
             font-weight: bold;
             font-size: 1.5rem;
             display: flex;
             align-items: center;
-            gap: 10px;
         }
         .navbar-custom .navbar-brand img {
-            max-height: 40px;
-            width: auto;
+            height: 35px;
+            margin-right: 10px;
         }
         .navbar-custom .nav-link {
-            color: #555 !important;
+            color: rgba(255,255,255,0.9) !important;
         }
         .navbar-custom .nav-link:hover {
-            color: var(--primary-color) !important;
+            color: white !important;
         }
         .sidebar {
             background: white;
@@ -109,26 +107,31 @@
             font-size: 2rem;
             font-weight: bold;
             color: #333;
+            margin-bottom: 5px;
         }
         .stats-card .label {
-            color: #666;
+            color: #999;
             font-size: 0.9rem;
         }
         .tenant-card {
             background: white;
             border-radius: 15px;
             padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+        }
+        .tenant-card:hover {
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
         }
         .tenant-card .domain {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 600;
-            color: #333;
+            color: #667eea;
             margin-bottom: 10px;
         }
         .tenant-card .domain a {
-            color: var(--primary-color);
+            color: #667eea;
             text-decoration: none;
         }
         .tenant-card .domain a:hover {
@@ -136,33 +139,32 @@
         }
         .tenant-card .info {
             display: flex;
-            gap: 15px;
+            gap: 10px;
             flex-wrap: wrap;
-            margin-top: 10px;
-        }
-        .tenant-card .info .badge {
-            padding: 6px 12px;
+            margin-bottom: 15px;
         }
         .badge-plan-free {
-            background: #28a745;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
         }
-        .badge-plan-starter {
-            background: #ffc107;
-        }
-        .badge-plan-business {
-            background: #dc3545;
+        .badge-plan-custom {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
         }
         .badge-status-active {
             background: #28a745;
+            color: white;
         }
         .badge-status-error {
             background: #dc3545;
+            color: white;
         }
-        .alert-verification {
-            background: linear-gradient(135deg, #fff3cd, #ffe5a0);
-            border: none;
-            border-left: 4px solid #ffc107;
-            border-radius: 10px;
+        .badge-status-waiting_ns_change {
+            background: #ffc107;
+            color: #333;
+        }
+        .main-content {
+            padding: 30px;
         }
     </style>
 </head>
@@ -171,8 +173,7 @@
     <nav class="navbar navbar-expand-lg navbar-custom">
         <div class="container-fluid">
             <a class="navbar-brand" href="/customer/dashboard">
-                <img src="/themes/play-bootstrap/img/logo/logo.svg" alt="MuseDock" onerror="this.style.display='none';">
-                <span>MuseDock</span>
+                <img src="/assets/logo2_footer.png" alt="MuseDock" style="height: 35px; filter: brightness(0) invert(1);">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -180,9 +181,9 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/customer/profile">
+                        <span class="nav-link">
                             <i class="bi bi-person-circle"></i> <?= htmlspecialchars($customer['name']) ?>
-                        </a>
+                        </span>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#" onclick="logout(); return false;">
@@ -214,15 +215,8 @@
             </div>
 
             <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 p-4">
-                <h2 class="mb-4">Bienvenido, <?= htmlspecialchars($customer['name']) ?></h2>
-
-                <?php if ($show_verification_warning): ?>
-                <div class="alert alert-verification" role="alert">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    <strong>Verifica tu email</strong> - Revisa tu bandeja de entrada para activar todas las funcionalidades.
-                </div>
-                <?php endif; ?>
+            <div class="col-md-9 col-lg-10 main-content">
+                <h2 class="mb-4">Dashboard</h2>
 
                 <!-- Estadísticas -->
                 <div class="row">
@@ -231,7 +225,7 @@
                             <div class="icon" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
                                 <i class="bi bi-globe"></i>
                             </div>
-                            <div class="number"><?= $stats['total_tenants'] ?></div>
+                            <div class="number"><?= $stats['total_tenants'] ?? 0 ?></div>
                             <div class="label">Total de sitios</div>
                         </div>
                     </div>
@@ -240,7 +234,7 @@
                             <div class="icon" style="background: linear-gradient(135deg, #28a745, #20c997); color: white;">
                                 <i class="bi bi-check-circle"></i>
                             </div>
-                            <div class="number"><?= $stats['active_tenants'] ?></div>
+                            <div class="number"><?= $stats['active_tenants'] ?? 0 ?></div>
                             <div class="label">Sitios activos</div>
                         </div>
                     </div>
@@ -249,7 +243,7 @@
                             <div class="icon" style="background: linear-gradient(135deg, #ffc107, #ff9800); color: white;">
                                 <i class="bi bi-shield-check"></i>
                             </div>
-                            <div class="number"><?= $stats['cloudflare_protected'] ?></div>
+                            <div class="number"><?= $stats['cloudflare_protected'] ?? 0 ?></div>
                             <div class="label">Protegidos con Cloudflare</div>
                         </div>
                     </div>
@@ -261,7 +255,7 @@
                 <?php if (empty($tenants)): ?>
                 <div class="alert alert-info">
                     <i class="bi bi-info-circle me-2"></i>
-                    Aún no tienes sitios web. ¡Tu primer sitio ya está configurado! Accede desde la lista cuando esté listo.
+                    Aún no tienes sitios web. ¡Solicita tu primer subdominio FREE o incorpora tu dominio personalizado!
                 </div>
                 <?php else: ?>
                     <?php foreach ($tenants as $tenant): ?>
@@ -278,17 +272,34 @@
                                 Plan <?= strtoupper($tenant['plan']) ?>
                             </span>
 
-                            <span class="badge badge-status-<?= $tenant['status'] === 'active' ? 'active' : 'error' ?>">
-                                <?= $tenant['status'] === 'active' ? '✅ Activo' : '❌ ' . ucfirst($tenant['status']) ?>
+                            <span class="badge badge-status-<?= $tenant['status'] ?>">
+                                <?php
+                                $statusLabels = [
+                                    'active' => '✅ Activo',
+                                    'pending' => '⏳ Pendiente',
+                                    'waiting_ns_change' => '🔄 Esperando DNS',
+                                    'error' => '❌ Error',
+                                    'suspended' => '⛔ Suspendido'
+                                ];
+                                echo $statusLabels[$tenant['status']] ?? ucfirst($tenant['status']);
+                                ?>
                             </span>
 
-                            <?php if ($tenant['cloudflare_proxied']): ?>
-                            <span class="badge bg-warning text-dark">
-                                <i class="bi bi-shield-fill-check"></i> Cloudflare Proxy
+                            <!-- Health Check Status -->
+                            <?php if (isset($tenant['health_badge'])): ?>
+                            <span class="badge <?= $tenant['health_status'] === 'healthy' ? 'bg-success' : ($tenant['health_status'] === 'degraded' ? 'bg-warning' : 'bg-danger') ?>"
+                                  title="<?= htmlspecialchars(implode(', ', $tenant['health_check']['errors'] ?? [])) ?>">
+                                <?= $tenant['health_badge'] ?>
                             </span>
                             <?php endif; ?>
 
-                            <?php if ($tenant['is_subdomain']): ?>
+                            <?php if (!empty($tenant['cloudflare_proxied'])): ?>
+                            <span class="badge bg-warning text-dark">
+                                <i class="bi bi-shield-fill-check"></i> Cloudflare
+                            </span>
+                            <?php endif; ?>
+
+                            <?php if (!empty($tenant['is_subdomain'])): ?>
                             <span class="badge bg-info">
                                 <i class="bi bi-link-45deg"></i> Subdominio
                             </span>
@@ -296,6 +307,7 @@
                         </div>
 
                         <div class="mt-3">
+                            <?php if ($tenant['status'] === 'active'): ?>
                             <a href="https://<?= htmlspecialchars($tenant['domain']) ?>/<?= \Screenart\Musedock\Env::get('ADMIN_PATH_TENANT', 'admin') ?>"
                                class="btn btn-sm btn-primary" target="_blank">
                                 <i class="bi bi-gear"></i> Panel de Admin
@@ -304,10 +316,39 @@
                                class="btn btn-sm btn-outline-primary" target="_blank">
                                 <i class="bi bi-eye"></i> Ver Sitio
                             </a>
+                            <?php elseif ($tenant['status'] === 'waiting_ns_change'): ?>
+                            <span class="text-warning">
+                                <i class="bi bi-hourglass-split"></i> Esperando cambio de nameservers...
+                            </span>
+                            <?php endif; ?>
+
+                            <!-- Botón de Retry si hay problemas -->
+                            <?php if (isset($tenant['needs_retry']) && $tenant['needs_retry']): ?>
+                            <button class="btn btn-sm btn-warning" onclick="retryProvisioning(<?= $tenant['id'] ?>, '<?= htmlspecialchars($tenant['domain']) ?>')">
+                                <i class="bi bi-arrow-clockwise"></i> Reintentar
+                            </button>
+                            <?php endif; ?>
+
+                            <!-- Botón Health Check Manual -->
+                            <?php if ($tenant['status'] === 'active'): ?>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="runHealthCheck(<?= $tenant['id'] ?>, '<?= htmlspecialchars($tenant['domain']) ?>')">
+                                <i class="bi bi-heart-pulse"></i> Verificar
+                            </button>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
+
+                <!-- Botones de acción -->
+                <div class="text-center mt-4 mb-4">
+                    <a href="/customer/request-free-subdomain" class="btn btn-success btn-lg me-2">
+                        <i class="bi bi-gift"></i> Solicitar Subdominio FREE
+                    </a>
+                    <a href="/customer/request-custom-domain" class="btn btn-primary btn-lg">
+                        <i class="bi bi-plus-circle"></i> Solicitar Dominio Personalizado
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -327,28 +368,129 @@
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    const formData = new FormData();
-                    formData.append('_csrf_token', '<?= csrf_token() ?>');
+                    window.location.href = '/customer/logout';
+                }
+            });
+        }
 
-                    fetch('/customer/logout', {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
+        function retryProvisioning(tenantId, domain) {
+            Swal.fire({
+                title: '¿Reintentar configuración?',
+                html: `¿Deseas reintentar la configuración de <strong>${domain}</strong>?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#667eea',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, reintentar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Procesando...',
+                        html: 'Reintentando configuración...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
                         }
+                    });
+
+                    fetch(`/customer/tenant/${tenantId}/retry`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `_csrf_token=${encodeURIComponent('<?= generate_csrf_token() ?>')}`
                     })
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            window.location.href = data.redirect || '/customer/login';
+                            Swal.fire({
+                                icon: 'success',
+                                title: '¡Éxito!',
+                                text: data.message,
+                                confirmButtonColor: '#667eea'
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.error || 'Error al reintentar la configuración',
+                                confirmButtonColor: '#667eea'
+                            });
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        window.location.href = '/customer/login';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error de red. Por favor intenta de nuevo.',
+                            confirmButtonColor: '#667eea'
+                        });
                     });
                 }
             });
+        }
+
+        function runHealthCheck(tenantId, domain) {
+            Swal.fire({
+                title: 'Verificando estado...',
+                html: `Ejecutando health check de <strong>${domain}</strong>...`,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            fetch(`/customer/tenant/${tenantId}/health-check`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const healthCheck = data.health_check;
+                        let htmlContent = '<div class="text-start">';
+
+                        // DNS
+                        htmlContent += `<p class="mb-2"><strong>DNS:</strong> ${healthCheck.checks.dns.passed ? '✅' : '❌'} ${healthCheck.checks.dns.message}</p>`;
+
+                        // HTTP
+                        htmlContent += `<p class="mb-2"><strong>HTTP:</strong> ${healthCheck.checks.http.passed ? '✅' : '❌'} ${healthCheck.checks.http.message}</p>`;
+
+                        // SSL
+                        htmlContent += `<p class="mb-2"><strong>SSL:</strong> ${healthCheck.checks.ssl.passed ? '✅' : '❌'} ${healthCheck.checks.ssl.message}</p>`;
+
+                        // Cloudflare
+                        if (healthCheck.checks.cloudflare) {
+                            htmlContent += `<p class="mb-0"><strong>Cloudflare:</strong> ${healthCheck.checks.cloudflare.passed ? '✅' : '❌'} ${healthCheck.checks.cloudflare.message}</p>`;
+                        }
+
+                        htmlContent += '</div>';
+
+                        Swal.fire({
+                            icon: healthCheck.overall_status === 'healthy' ? 'success' : (healthCheck.overall_status === 'degraded' ? 'warning' : 'error'),
+                            title: 'Estado del Sitio',
+                            html: htmlContent,
+                            confirmButtonColor: '#667eea'
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.error || 'Error al verificar el estado',
+                            confirmButtonColor: '#667eea'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Error de red. Por favor intenta de nuevo.',
+                        confirmButtonColor: '#667eea'
+                    });
+                });
         }
     </script>
 </body>
