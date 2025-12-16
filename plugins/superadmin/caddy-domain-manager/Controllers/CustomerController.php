@@ -205,14 +205,17 @@ class CustomerController
             exit;
         }
 
+        // Obtener estadísticas
+        $stats = Customer::getStats($customerId);
+
         $data = [
             'page_title' => 'Mi Perfil - MuseDock',
             'customer' => $customer,
+            'stats' => $stats,
             'csrf_token' => csrf_token()
         ];
 
-        // DEBUG: Usar dashboard temporalmente para verificar si el problema es solo la vista nueva
-        $this->render('Customer.dashboard', $data);
+        $this->render('Customer.profile', $data);
     }
 
     /**
