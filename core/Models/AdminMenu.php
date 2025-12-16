@@ -32,18 +32,17 @@ class AdminMenu
         $stmt->execute();
         $menus = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Obtener paths desde .env para reemplazar placeholders
+        // Obtener path de superadmin desde .env
         $adminPathMusedock = '/' . trim(\Screenart\Musedock\Env::get('ADMIN_PATH_MUSEDOCK', 'musedock'), '/');
-        $adminPathTenant = '/' . trim(\Screenart\Musedock\Env::get('ADMIN_PATH_TENANT', 'admin'), '/');
 
         // Construir jerarquía
         $result = [];
         $children = [];
 
         foreach ($menus as $menu) {
-            // Reemplazar placeholders con valores del .env
+            // En superadmin, tanto {musedock_path} como {admin_path} usan el path de musedock
             $url = str_replace('{musedock_path}', $adminPathMusedock, $menu['url']);
-            $url = str_replace('{admin_path}', $adminPathTenant, $url);
+            $url = str_replace('{admin_path}', $adminPathMusedock, $url);
 
             if ($menu['parent_id'] === null) {
                 // Menú padre
@@ -321,18 +320,17 @@ class AdminMenu
 
         $menus = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Obtener paths desde .env para reemplazar placeholders
+        // Obtener path de superadmin desde .env (este método es para superadmin)
         $adminPathMusedock = '/' . trim(\Screenart\Musedock\Env::get('ADMIN_PATH_MUSEDOCK', 'musedock'), '/');
-        $adminPathTenant = '/' . trim(\Screenart\Musedock\Env::get('ADMIN_PATH_TENANT', 'admin'), '/');
 
         // Construir jerarquía
         $result = [];
         $children = [];
 
         foreach ($menus as $menu) {
-            // Reemplazar placeholders con valores del .env
+            // En superadmin, tanto {musedock_path} como {admin_path} usan el path de musedock
             $url = str_replace('{musedock_path}', $adminPathMusedock, $menu['url']);
-            $url = str_replace('{admin_path}', $adminPathTenant, $url);
+            $url = str_replace('{admin_path}', $adminPathMusedock, $url);
 
             if ($menu['parent_id'] === null) {
                 $result[$menu['slug']] = [

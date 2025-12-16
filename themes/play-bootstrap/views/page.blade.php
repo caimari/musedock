@@ -91,9 +91,9 @@
                 <div class="page-body">
                     @php
                         $content = apply_filters('the_content', $translation->content ?? '<p class="text-muted">Contenido no disponible.</p>');
-                        // Si hay slider activo, eliminar el primer h1, h2 o h3 del contenido para evitar duplicados
+                        // Solo eliminar el primer h1 si hay slider, no h2 ni h3
                         if (isset($customizations) && ($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")) {
-                            $content = preg_replace('/<h[123][^>]*>.*?<\/h[123]>/', '', $content, 1);
+                            $content = preg_replace('/<h1[^>]*>.*?<\/h1>/', '', $content, 1);
                         }
                     @endphp
                     {!! $content !!}

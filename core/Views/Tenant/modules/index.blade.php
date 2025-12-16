@@ -311,6 +311,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Traducciones pre-procesadas para JavaScript (sin escapar HTML)
+    const translations = {
+        confirmationRequired: {!! json_encode(__("confirmation_required") ?? "Confirmación requerida") !!},
+        enterPassword: {!! json_encode(__("enter_password") ?? "Introduce tu contraseña") !!},
+        activate: {!! json_encode(__("activate") ?? "Activar") !!},
+        deactivate: {!! json_encode(__("deactivate") ?? "Desactivar") !!},
+        cancel: {!! json_encode(__("cancel") ?? "Cancelar") !!},
+        passwordRequired: {!! json_encode(__("password_required") ?? "Debes introducir tu contraseña") !!},
+        aboutToAction: {!! json_encode(__("about_to_action") ?? "Estás a punto de") !!},
+        theModule: {!! json_encode(__("the_module") ?? "el módulo") !!},
+        securityConfirm: {!! json_encode(__("security_confirm_password") ?? "Por seguridad, introduce tu contraseña para confirmar:") !!}
+    };
+
     document.querySelectorAll('.toggle-module-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             const form = this.closest('.module-toggle-form');
@@ -319,29 +332,29 @@ document.addEventListener('DOMContentLoaded', function() {
             const isActivating = action === 'activar';
 
             Swal.fire({
-                title: '<i class="bi bi-shield-lock text-primary"></i> {{ __("confirmation_required") ?? "Confirmación requerida" }}',
+                title: '<i class="bi bi-shield-lock text-primary"></i> ' + translations.confirmationRequired,
                 html: `
                     <div class="text-start">
-                        <p class="mb-3">Estás a punto de <strong>${action}</strong> el módulo <strong>${moduleName}</strong>.</p>
-                        <p class="mb-2 text-muted small">Por seguridad, introduce tu contraseña para confirmar:</p>
+                        <p class="mb-3">${translations.aboutToAction} <strong>${action}</strong> ${translations.theModule} <strong>${moduleName}</strong>.</p>
+                        <p class="mb-2 text-muted small">${translations.securityConfirm}</p>
                     </div>
                 `,
                 input: 'password',
-                inputPlaceholder: '{{ __("enter_password") ?? "Introduce tu contraseña" }}',
+                inputPlaceholder: translations.enterPassword,
                 inputAttributes: {
                     autocapitalize: 'off',
                     autocorrect: 'off',
                     autocomplete: 'current-password'
                 },
                 showCancelButton: true,
-                confirmButtonText: `<i class="bi ${isActivating ? 'bi-check-lg' : 'bi-x-lg'} me-1"></i> ${isActivating ? '{{ __("activate") ?? "Activar" }}' : '{{ __("deactivate") ?? "Desactivar" }}'}`,
-                cancelButtonText: '{{ __("cancel") ?? "Cancelar" }}',
+                confirmButtonText: `<i class="bi ${isActivating ? 'bi-check-lg' : 'bi-x-lg'} me-1"></i> ${isActivating ? translations.activate : translations.deactivate}`,
+                cancelButtonText: translations.cancel,
                 confirmButtonColor: isActivating ? '#198754' : '#dc3545',
                 cancelButtonColor: '#6c757d',
                 showLoaderOnConfirm: true,
                 preConfirm: (password) => {
                     if (!password) {
-                        Swal.showValidationMessage('{{ __("password_required") ?? "Debes introducir tu contraseña" }}');
+                        Swal.showValidationMessage(translations.passwordRequired);
                         return false;
                     }
                     return password;
