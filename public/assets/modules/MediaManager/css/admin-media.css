@@ -40,7 +40,8 @@
     z-index: 999998 !important;
 }
 
-.swal2-top-layer {
+.swal2-top-layer,
+.swal2-media-top-layer {
     z-index: 999999 !important;
 }
 

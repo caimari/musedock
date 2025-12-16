@@ -118,6 +118,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             </div>
             <div class="media-item-filename" title="${escapeHtml(item.filename)}">${escapeHtml(item.filename)}</div>
+            <div class="media-item-actions">
+                <button type="button" class="btn-delete-media" data-id="${item.id}" title="Eliminar">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
         `;
 
         // Evento: Click en checkbox
@@ -608,7 +613,16 @@ function addMediaToGrid(media) {
             confirmButtonColor: '#d33',
             cancelButtonColor: '#6c757d',
             confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar'
+            cancelButtonText: 'Cancelar',
+            customClass: {
+                container: 'swal2-media-top-layer'
+            },
+            didOpen: () => {
+                const swalContainer = document.querySelector('.swal2-container');
+                if (swalContainer) {
+                    swalContainer.style.zIndex = '999999';
+                }
+            }
         }).then((result) => {
             if (result.isConfirmed) {
                 const deleteUrl = deleteUrlBase.replace(':id', mediaId);
@@ -652,6 +666,14 @@ function addMediaToGrid(media) {
             }
         });
     }
+
+    // Event delegation para botones de borrar individuales
+    document.body.addEventListener('click', function(e) {
+        const deleteButton = e.target.closest('.btn-delete-media');
+        if (deleteButton) {
+            handleDeleteMedia(e);
+        }
+    });
 
 // ========================================================
 // SECTION 11: EDIT METADATA HANDLING - MODAL MEJORADO CON AJAX NAV (v2 - Debugging)
@@ -730,7 +752,16 @@ document.body.addEventListener('click', function(e) {
             title: 'Cargando...',
             text: 'Obteniendo información del archivo',
             allowOutsideClick: false, showConfirmButton: false,
-            willOpen: () => { Swal.showLoading(); }
+            willOpen: () => { Swal.showLoading(); },
+            customClass: {
+                container: 'swal2-media-top-layer'
+            },
+            didOpen: () => {
+                const swalContainer = document.querySelector('.swal2-container');
+                if (swalContainer) {
+                    swalContainer.style.zIndex = '999999';
+                }
+            }
         });
 
         fetch(buildUrl(detailsUrlTemplate, mediaId))
@@ -1860,7 +1891,16 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
             showCancelButton: true,
             confirmButtonText: 'Sí, eliminar',
             cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#dc3545'
+            confirmButtonColor: '#dc3545',
+            customClass: {
+                container: 'swal2-media-top-layer'
+            },
+            didOpen: () => {
+                const swalContainer = document.querySelector('.swal2-container');
+                if (swalContainer) {
+                    swalContainer.style.zIndex = '999999';
+                }
+            }
         }).then(result => {
             if (result.isConfirmed) {
                 // Eliminar cada archivo
@@ -2039,7 +2079,16 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
                 icon: 'success',
                 title: message,
                 showConfirmButton: false,
-                timer: 2000
+                timer: 2000,
+                customClass: {
+                    container: 'swal2-media-top-layer'
+                },
+                didOpen: () => {
+                    const swalContainer = document.querySelector('.swal2-container');
+                    if (swalContainer) {
+                        swalContainer.style.zIndex = '999999';
+                    }
+                }
             });
         } else {
             alert(message);

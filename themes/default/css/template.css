@@ -266,3 +266,29 @@ article li p {
   font-weight: 700;
   color: #333;
 }
+
+/* ===============================================
+   ESTILOS DEL FOOTER
+   =============================================== */
+
+/* Eliminar decoración de enlaces en el footer */
+footer a,
+.footer-area a,
+.footer-tittle a,
+.single-footer-caption a {
+  text-decoration: none !important;
+}
+
+/* Mantener decoración solo en el enlace de configuración de cookies */
+.cookie-settings-link a {
+  text-decoration: underline !important;
+}
+
+/* Igualar tamaño de todos los títulos en el footer */
+.footer-tittle h4,
+.single-footer-caption h4 {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  margin-bottom: 12px !important;
+  color: var(--footer-heading-color, #333);
+}
