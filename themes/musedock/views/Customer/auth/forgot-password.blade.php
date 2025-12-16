@@ -6,15 +6,16 @@
 
 @section('content')
 <div class="padding-none ziph-page_content">
-  <div class="container" style="padding-top:10px;padding-bottom:10px;">
+  <div class="container" style="padding-top:40px;padding-bottom:40px;">
     <div class="row justify-content-center">
       <div class="col-md-6 col-lg-5">
+        <!-- Título fuera del card -->
+        <div class="text-center mb-4">
+          <h1 class="h4 mb-0" style="color:#243141;">{{ __('Recuperar contraseña') }}</h1>
+        </div>
+
         <div class="card shadow-lg border-0">
           <div class="card-body p-5">
-            <div class="text-center mb-4">
-              <h1 class="h2 fw-bold mb-2" style="color:#243141;">{{ __('Recuperar Contraseña') }}</h1>
-              <p class="text-muted mb-0">{{ __('Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña') }}</p>
-            </div>
 
             <form id="forgotForm" method="POST" action="/customer/forgot-password">
               <input type="hidden" name="_csrf_token" value="{{ $csrf_token ?? csrf_token() }}">

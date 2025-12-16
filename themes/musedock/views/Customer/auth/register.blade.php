@@ -10,16 +10,16 @@
 @endphp
 
 <div class="padding-none ziph-page_content">
-  <div class="container" style="padding-top:10px;padding-bottom:10px;">
+  <div class="container" style="padding-top:40px;padding-bottom:40px;">
     <div class="row justify-content-center">
       <div class="col-md-8 col-lg-6">
+        <!-- Título fuera del card -->
+        <div class="text-center mb-4">
+          <h1 class="h4 mb-0" style="color:#243141;">{{ __('Crea tu sitio web gratis en segundos') }}</h1>
+        </div>
+
         <div class="card shadow-lg border-0">
           <div class="card-body p-5">
-            <div class="text-center mb-4">
-              <h1 class="h2 fw-bold mb-2" style="color:#243141;">{{ __('MuseDock') }}</h1>
-              <p class="text-muted mb-0">{{ __('Crea tu sitio web gratis en segundos') }}</p>
-            </div>
-
             <form id="registerForm" method="POST" action="/register">
               <input type="hidden" name="_csrf_token" value="{{ $csrf_token ?? csrf_token() }}">
               <input type="hidden" name="language" value="{{ detectLanguage() }}">

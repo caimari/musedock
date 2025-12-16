@@ -841,6 +841,14 @@
     "contact_now": "Contact now",
     "powered_by": "Powered by"
   },
+  "home": {
+    "find_perfect_domain": "Find your perfect domain here",
+    "enter_domain": "Enter your domain here",
+    "search": "Search",
+    "view_domain_price_list": "View Domain Price List",
+    "bulk_domain_search": "Bulk Domain Search",
+    "transfer_domain": "Transfer Domain"
+  },
 
   "header": {
     "login_button": "Login",

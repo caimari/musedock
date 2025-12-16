@@ -292,33 +292,23 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
             $showFooterLangSelector = count($activeLanguages) > 1 && empty($forceLang);
           @endphp
 
-          <div style="display: flex; align-items: center; justify-content: flex-end; gap: 15px;">
-            <p class="ziph-copyright" style="margin: 0;">
-              {!! $footerCopyright !!} {{ __('footer.powered_by') }} <a href="https://musedock.net" target="_blank">MuseDock CMS</a>
-            </p>
+          <p class="ziph-copyright">
+            {!! $footerCopyright !!} {{ __('footer.powered_by') }} <a href="https://musedock.net" target="_blank">MuseDock CMS</a>
+          </p>
 
-            @if($showFooterLangSelector)
-            <div class="footer-language-selector">
-              <form action="" method="get" id="footer-language-form" style="margin: 0;">
-                <select name="lang" id="footer-language-select" onchange="this.form.submit();" style="
-                  border: 1px solid #333;
-                  border-radius: 4px;
-                  padding: 6px 10px;
-                  font-size: 13px;
-                  color: #333;
-                  background-color: #fff;
-                  cursor: pointer;
-                ">
-                  @foreach($activeLanguages as $lang)
-                    <option value="{{ $lang['code'] }}" {{ $currentLang == $lang['code'] ? 'selected' : '' }}>
-                      {{ $lang['name'] }}
-                    </option>
-                  @endforeach
-                </select>
-              </form>
-            </div>
-            @endif
+          @if($showFooterLangSelector)
+          <div class="footer-language-selector" style="margin-top: 10px;">
+            <form action="" method="get" id="footer-language-form" style="display: inline-block;">
+              <select name="lang" id="footer-language-select" onchange="this.form.submit();">
+                @foreach($activeLanguages as $lang)
+                  <option value="{{ $lang['code'] }}" {{ $currentLang == $lang['code'] ? 'selected' : '' }}>
+                    {{ $lang['name'] }}
+                  </option>
+                @endforeach
+              </select>
+            </form>
           </div>
+          @endif
         </div>
       </div>
     </div>

@@ -968,6 +968,14 @@
     "contact_now": "Contactar ahora",
     "powered_by": "Desarrollado por"
   },
+  "home": {
+    "find_perfect_domain": "Encuentra tu dominio perfecto aquí",
+    "enter_domain": "Introduce tu dominio aquí",
+    "search": "Buscar",
+    "view_domain_price_list": "Ver lista de precios de dominios",
+    "bulk_domain_search": "Búsqueda masiva de dominios",
+    "transfer_domain": "Transferir dominio"
+  },
   "header": {
     "login_button": "Iniciar sesión",
     "mail": "Mail",

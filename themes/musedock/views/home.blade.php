@@ -96,16 +96,16 @@
             <div class="ziph-domainsearch_area">
               <div class="ziph-domainsearch">
                 <div class="ziph-fix ziph-domainsrch_warp">
-                  <h3 class="ziph-flt_left ziph-domainsrch_title">{{ __('Find your perfect domain here') }}</h3>
+                  <h3 class="ziph-flt_left ziph-domainsrch_title">{{ __('home.find_perfect_domain') }}</h3>
                   <div class="ziph-flt_right ziph-domainsrch_form">
                     <form method="get" action="{{ url('/domain') }}">
-                      <input type="search" id="whmcs_domain_search" name="query" placeholder="{{ __('Enter your domain here') }}">
-                      <input id="domsrch_btn" value="{{ __('Search') }}" type="submit">
+                      <input type="search" id="whmcs_domain_search" name="query" placeholder="{{ __('home.enter_domain') }}">
+                      <input id="domsrch_btn" value="{{ __('home.search') }}" type="submit">
                     </form>
                     <div class="text-right ziph-domainsrch_links">
-                      <a href="{{ url('/domain') }}">{{ __('View Domain Price List') }}</a>
-                      <a href="{{ url('/domain') }}">{{ __('Bulk Domain Search') }}</a>
-                      <a href="{{ url('/domain') }}">{{ __('Transfer Domain') }}</a>
+                      <a href="{{ url('/domain') }}">{{ __('home.view_domain_price_list') }}</a>
+                      <a href="{{ url('/domain') }}">{{ __('home.bulk_domain_search') }}</a>
+                      <a href="{{ url('/domain') }}">{{ __('home.transfer_domain') }}</a>
                     </div>
                   </div>
                 </div>
