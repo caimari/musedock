@@ -69,6 +69,39 @@
     display: inline-block;
     text-align: center;
 }
+.module-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+.module-card {
+    border: 1px solid #e9ecef;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: all 0.2s;
+}
+.module-card:hover {
+    border-color: #0d6efd;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.module-card.active {
+    border-color: #198754;
+    background-color: rgba(25, 135, 84, 0.05);
+}
+.module-card .module-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-size: 1.25rem;
+}
+.module-card .form-switch {
+    margin-left: auto;
+}
 </style>
 @endpush
 
@@ -132,6 +165,57 @@
                             </div>
                             <small class="text-muted">El usuario administrador creado tendrá el rol Admin automáticamente</small>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Módulos por Defecto -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-puzzle me-2"></i>Módulos Activos por Defecto</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">
+                        Selecciona los módulos que estarán <strong>activos por defecto</strong> para los nuevos tenants.
+                        Los módulos desactivados no aparecerán en el sidebar ni estarán disponibles.
+                    </p>
+
+                    <div class="select-actions">
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllModules">
+                            <i class="bi bi-check-all me-1"></i>Activar todos
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllModules">
+                            <i class="bi bi-x-lg me-1"></i>Desactivar todos
+                        </button>
+                    </div>
+
+                    <div class="module-grid">
+                        @foreach($allModules as $module)
+                        <div class="module-card {{ in_array($module['id'], $selectedModules) ? 'active' : '' }}" data-module-id="{{ $module['id'] }}">
+                            <div class="d-flex align-items-start">
+                                <div class="module-icon me-3">
+                                    <i class="bi bi-puzzle"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ $module['name'] }}</h6>
+                                    <small class="text-muted">{{ $module['slug'] }}</small>
+                                    @if($module['description'])
+                                    <p class="mb-0 mt-1 small text-muted">{{ Str::limit($module['description'], 60) }}</p>
+                                    @endif
+                                </div>
+                                <div class="form-check form-switch ms-2">
+                                    <input class="form-check-input module-checkbox" type="checkbox"
+                                           name="modules[]" value="{{ $module['id'] }}" id="module_{{ $module['id'] }}"
+                                           {{ in_array($module['id'], $selectedModules) ? 'checked' : '' }}>
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+
+                    <div class="mt-3">
+                        <span class="badge bg-success" id="moduleCount">{{ count($selectedModules) }}</span>
+                        <span class="text-muted">módulos activos por defecto</span>
                     </div>
                 </div>
             </div>
@@ -371,6 +455,43 @@ document.addEventListener('DOMContentLoaded', function() {
             cb.checked = cb.dataset.isView === '1';
         });
         updatePermissionCount();
+    });
+
+    // Módulos - Activar/desactivar
+    const moduleCheckboxes = document.querySelectorAll('.module-checkbox');
+    const moduleCount = document.getElementById('moduleCount');
+
+    function updateModuleCount() {
+        const checked = document.querySelectorAll('.module-checkbox:checked').length;
+        moduleCount.textContent = checked;
+    }
+
+    moduleCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            const card = this.closest('.module-card');
+            if (this.checked) {
+                card.classList.add('active');
+            } else {
+                card.classList.remove('active');
+            }
+            updateModuleCount();
+        });
+    });
+
+    document.getElementById('selectAllModules').addEventListener('click', function() {
+        moduleCheckboxes.forEach(cb => {
+            cb.checked = true;
+            cb.closest('.module-card').classList.add('active');
+        });
+        updateModuleCount();
+    });
+
+    document.getElementById('deselectAllModules').addEventListener('click', function() {
+        moduleCheckboxes.forEach(cb => {
+            cb.checked = false;
+            cb.closest('.module-card').classList.remove('active');
+        });
+        updateModuleCount();
     });
 
     // Menús - Mostrar/ocultar sección según el checkbox de copiar menús

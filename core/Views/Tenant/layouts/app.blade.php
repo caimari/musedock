@@ -384,7 +384,11 @@ try {
 
         // Filtrar menús:
         // 1. Menús sin module_id (menús del sistema) siempre se muestran
-        // 2. Menús con module_id solo si el módulo está activo globalmente Y habilitado para el tenant
+        // 2. Menús con module_id solo si:
+        //    - El módulo está activo globalmente (m.active = 1)
+        //    - Y está habilitado para el tenant:
+        //      - Si existe registro en tenant_modules: usar tmod.enabled
+        //      - Si NO existe registro: usar m.tenant_enabled_default
         $stmt = $pdo->prepare("
             SELECT tm.*
             FROM tenant_menus tm
@@ -396,7 +400,10 @@ try {
                 tm.module_id IS NULL  -- Menús del sistema
                 OR (
                   m.active = 1  -- Módulo activo globalmente
-                  AND (tmod.enabled IS NULL OR tmod.enabled = 1)  -- Habilitado para el tenant (o sin configuración)
+                  AND (
+                    (tmod.enabled IS NOT NULL AND tmod.enabled = 1)  -- Registro explícito: habilitado
+                    OR (tmod.enabled IS NULL AND m.tenant_enabled_default = 1)  -- Sin registro: usar default del módulo
+                  )
                 )
               )
             ORDER BY tm.parent_id IS NOT NULL, tm.parent_id, tm.order_position ASC
@@ -497,6 +504,21 @@ function generate_id($prefix = 'menu-') {
             </a>
             
             <ul class="sidebar-nav">
+                {{-- Dashboard - Siempre visible como primer item (hardcodeado) --}}
+                @php
+                    $dashboardUrl = admin_url('dashboard');
+                    $isDashboardActive = $currentUrl === $dashboardUrl
+                        || $currentUrl === admin_url('/')
+                        || $currentUrl === admin_url('')
+                        || preg_match('#^' . preg_quote($adminPathTenant, '#') . '/?$#', $currentUrl);
+                @endphp
+                <li class="sidebar-item {{ $isDashboardActive ? 'active' : '' }}">
+                    <a class="sidebar-link" href="{{ $dashboardUrl }}">
+                        <i class="align-middle bi bi-speedometer2"></i>
+                        <span class="align-middle">Dashboard</span>
+                    </a>
+                </li>
+
                 @foreach($adminMenus as $menuKey => $menuData)
                     @php
                         $menuUrl = $menuData['url'] ?? '#';

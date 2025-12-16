@@ -43,6 +43,12 @@ class TenantDefaultsController
         // Menús actualmente seleccionados (si no hay ninguno guardado, usar todos por defecto)
         $selectedMenus = $settings['default_menu_slugs'] ?? array_column($allMenus, 'slug');
 
+        // Obtener todos los módulos activos globalmente
+        $allModules = $this->getAllActiveModules($pdo);
+
+        // Módulos seleccionados por defecto (IDs de módulos que se activarán para nuevos tenants)
+        $selectedModules = $settings['default_modules'] ?? array_column($allModules, 'id');
+
         return View::renderSuperadmin('settings.tenant-defaults', [
             'title' => 'Configuración de Nuevos Tenants',
             'settings' => $settings,
@@ -50,7 +56,9 @@ class TenantDefaultsController
             'selectedPermissions' => $selectedPermissions,
             'defaultRoles' => $defaultRoles,
             'allMenus' => $allMenus,
-            'selectedMenus' => $selectedMenus
+            'selectedMenus' => $selectedMenus,
+            'allModules' => $allModules,
+            'selectedModules' => $selectedModules
         ]);
     }
 
@@ -95,6 +103,10 @@ class TenantDefaultsController
             // Menús seleccionados para copiar a tenants
             $selectedMenus = $_POST['menus'] ?? [];
             $this->updateSetting($pdo, 'default_menu_slugs', json_encode($selectedMenus), 'json');
+
+            // Módulos activos por defecto (convertir a integers)
+            $selectedModules = array_map('intval', $_POST['modules'] ?? []);
+            $this->updateSetting($pdo, 'default_modules', json_encode($selectedModules), 'json');
 
             $pdo->commit();
 
@@ -266,5 +278,20 @@ class TenantDefaultsController
         }
 
         return $menuTree;
+    }
+
+    /**
+     * Obtiene todos los módulos activos globalmente
+     * Solo módulos con active = 1 (activos en el sistema)
+     */
+    private function getAllActiveModules(PDO $pdo): array
+    {
+        $stmt = $pdo->query("
+            SELECT id, slug, name, description, version, tenant_enabled_default
+            FROM modules
+            WHERE active = 1
+            ORDER BY name ASC
+        ");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

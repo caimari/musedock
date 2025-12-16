@@ -146,6 +146,9 @@ class TenantCreationService
                 $this->createDefaultTenantMenus($tenantId);
             }
 
+            // 6. Crear configuración de módulos para el tenant
+            $this->createDefaultTenantModules($tenantId);
+
             $this->pdo->commit();
 
             return [
@@ -196,12 +199,19 @@ class TenantCreationService
                 $this->createDefaultTenantMenus($tenantId);
             }
 
+            // Crear/actualizar módulos del tenant
+            $hasModules = $this->tenantHasModules($tenantId);
+            if (!$hasModules) {
+                $this->createDefaultTenantModules($tenantId);
+            }
+
             $this->pdo->commit();
 
             return [
                 'success' => true,
                 'roles_created' => !$hasRoles,
                 'menus_created' => !$hasMenus,
+                'modules_created' => !$hasModules,
                 'error' => null
             ];
 
@@ -463,6 +473,68 @@ class TenantCreationService
         $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM tenant_menus WHERE tenant_id = :tenant_id");
         $stmt->execute(['tenant_id' => $tenantId]);
         return $stmt->fetchColumn() > 0;
+    }
+
+    /**
+     * Verificar si el tenant ya tiene módulos configurados
+     */
+    private function tenantHasModules(int $tenantId): bool
+    {
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM tenant_modules WHERE tenant_id = :tenant_id");
+        $stmt->execute(['tenant_id' => $tenantId]);
+        return $stmt->fetchColumn() > 0;
+    }
+
+    /**
+     * Crear configuración de módulos por defecto para el tenant
+     *
+     * Inserta registros en tenant_modules basándose en:
+     * 1. Los módulos seleccionados en tenant_default_settings.default_modules
+     * 2. O si no existe esa configuración, usa modules.tenant_enabled_default
+     */
+    private function createDefaultTenantModules(int $tenantId): void
+    {
+        // Obtener módulos seleccionados en defaults
+        $defaultModules = $this->getSetting('default_modules', null);
+
+        if ($defaultModules !== null && is_array($defaultModules)) {
+            // Usar la configuración de tenant_default_settings
+            // Obtener todos los módulos activos globalmente
+            $stmt = $this->pdo->query("SELECT id FROM modules WHERE active = 1");
+            $allModuleIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            $insertStmt = $this->pdo->prepare("
+                INSERT INTO tenant_modules (tenant_id, module_id, enabled, installed_at)
+                VALUES (:tenant_id, :module_id, :enabled, NOW())
+            ");
+
+            foreach ($allModuleIds as $moduleId) {
+                // Activar solo si está en la lista de defaults
+                $enabled = in_array((int)$moduleId, $defaultModules) ? 1 : 0;
+                $insertStmt->execute([
+                    'tenant_id' => $tenantId,
+                    'module_id' => $moduleId,
+                    'enabled' => $enabled
+                ]);
+            }
+        } else {
+            // Fallback: usar tenant_enabled_default de cada módulo
+            $stmt = $this->pdo->query("SELECT id, tenant_enabled_default FROM modules WHERE active = 1");
+            $modules = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $insertStmt = $this->pdo->prepare("
+                INSERT INTO tenant_modules (tenant_id, module_id, enabled, installed_at)
+                VALUES (:tenant_id, :module_id, :enabled, NOW())
+            ");
+
+            foreach ($modules as $module) {
+                $insertStmt->execute([
+                    'tenant_id' => $tenantId,
+                    'module_id' => $module['id'],
+                    'enabled' => $module['tenant_enabled_default'] ?? 1
+                ]);
+            }
+        }
     }
 
     /**
