@@ -210,7 +210,13 @@
               </div>
 
               <div class="d-grid">
-                <button type="submit" class="btn btn-primary">{{ __('common.update') }}</button>
+                <button type="submit" class="btn btn-primary" id="blog-submit-btn">
+                  <span class="btn-text">{{ __('common.update') }}</span>
+                  <span class="btn-spinner d-none">
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    {{ __('common.saving') ?? 'Guardando...' }}
+                  </span>
+                </button>
               </div>
             </div>
           </div>
@@ -489,6 +495,26 @@
             }
           });
         }
+
+        // === SPINNER EN BOTÓN GUARDAR ===
+        const blogForm = document.getElementById('postForm');
+        const blogSubmitBtn = document.getElementById('blog-submit-btn');
+
+        if (blogForm && blogSubmitBtn) {
+          blogForm.addEventListener('submit', function(e) {
+            // Mostrar spinner y deshabilitar botón
+            const btnText = blogSubmitBtn.querySelector('.btn-text');
+            const btnSpinner = blogSubmitBtn.querySelector('.btn-spinner');
+
+            if (btnText && btnSpinner) {
+              btnText.classList.add('d-none');
+              btnSpinner.classList.remove('d-none');
+            }
+
+            blogSubmitBtn.disabled = true;
+          });
+        }
+        // ================================
       });
 
       // Función para confirmar eliminación

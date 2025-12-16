@@ -510,9 +510,35 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
     {
         if (empty($content)) return '';
 
+        // PASO 1: Procesar shortcodes de slider y reemplazar por marcadores temporales
         $pattern = '/\[slider\s+id=["\']?(\d+)["\']?\s*\]/i';
-        return preg_replace_callback($pattern, function ($matches) {
-            return (string) self::renderSlider((int)$matches[1]);
+        $sliders = [];
+        $content = preg_replace_callback($pattern, function ($matches) use (&$sliders) {
+            $sliderId = (int)$matches[1];
+            $marker = '<!--SLIDER_PLACEHOLDER_' . $sliderId . '_' . count($sliders) . '-->';
+            $sliders[] = [
+                'marker' => $marker,
+                'html' => (string) self::renderSlider($sliderId)
+            ];
+            return $marker;
         }, $content) ?? $content;
+
+        // PASO 2: Limpiar cualquier <p> que envuelva los marcadores de slider
+        // Esto evita que el HTML del slider quede dentro de párrafos
+        foreach ($sliders as $slider) {
+            // Eliminar <p> que envuelven el marcador (puede haber espacios/saltos de línea)
+            $content = preg_replace(
+                '/<p[^>]*>\s*' . preg_quote($slider['marker'], '/') . '\s*<\/p>/is',
+                $slider['marker'],
+                $content
+            );
+        }
+
+        // PASO 3: Reemplazar los marcadores por el HTML real del slider
+        foreach ($sliders as $slider) {
+            $content = str_replace($slider['marker'], $slider['html'], $content);
+        }
+
+        return $content;
     }
 }

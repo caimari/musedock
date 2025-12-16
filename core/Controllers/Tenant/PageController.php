@@ -456,39 +456,18 @@ class PageController
             $data['visibility'] = 'public';
         }
 
-        // Procesar imagen del slider
-        $currentSliderImage = $data['current_slider_image'] ?? null;
-        $removeImage = $data['remove_slider_image'] ?? '0';
-        unset($data['current_slider_image'], $data['remove_slider_image']);
+        // Procesar imagen del slider (ahora usa URL del Media Manager)
+        // El campo slider_image viene directamente del input hidden con la URL seleccionada
+        $sliderImage = $data['slider_image'] ?? '';
 
-        if ($removeImage === '1' && !empty($currentSliderImage)) {
-            $fileName = basename($currentSliderImage);
-            $fullPath = APP_ROOT . "/public/assets/uploads/headers/{$fileName}";
-
-            if (file_exists($fullPath)) {
-                @unlink($fullPath);
-            }
-
+        // Si está vacío, se guarda como null
+        if (empty($sliderImage)) {
             $data['slider_image'] = null;
-        }
-
-        // Nueva imagen
-        if ($_FILES && isset($_FILES['slider_image']) && $_FILES['slider_image']['error'] == 0) {
-            error_log("SLIDER_IMAGE: Nueva imagen detectada - " . $_FILES['slider_image']['name']);
-            $uploadResult = $this->processSliderImageUpload($_FILES['slider_image'], $currentSliderImage);
-            if (isset($uploadResult['error'])) {
-                error_log("SLIDER_IMAGE: Error en upload - " . $uploadResult['error']);
-                flash('error', __('pages.error_image_upload') . ': ' . $uploadResult['error']);
-                header('Location: ' . admin_url("pages/{$id}/edit"));
-                exit;
-            }
-            $data['slider_image'] = $uploadResult['path'];
-            error_log("SLIDER_IMAGE: Path guardado en data - " . $data['slider_image']);
-        } elseif ($removeImage !== '1') {
-            $data['slider_image'] = $currentSliderImage;
-            error_log("SLIDER_IMAGE: Manteniendo imagen actual - " . ($currentSliderImage ?? 'null'));
+            error_log("SLIDER_IMAGE: Sin imagen (vacío o eliminada)");
         } else {
-            error_log("SLIDER_IMAGE: Imagen marcada para eliminación");
+            // Guardar la URL tal cual viene del Media Manager
+            $data['slider_image'] = $sliderImage;
+            error_log("SLIDER_IMAGE: URL guardada - " . $sliderImage);
         }
 
         // Asegurar que tenant_id no cambie

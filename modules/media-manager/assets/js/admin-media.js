@@ -604,9 +604,15 @@ function addMediaToGrid(media) {
     // ========================================================
     
     // --- Manejo de Borrado ---
-    function handleDeleteMedia(event) {
-        event.stopPropagation(); // Evitar que se seleccione el item al borrar
-        const button = event.currentTarget;
+    let isDeleting = false; // Flag para prevenir doble-clic
+
+    function handleDeleteMedia(button) {
+        // Prevenir doble clic
+        if (isDeleting) {
+            console.log('[Delete] Already deleting, ignoring click');
+            return;
+        }
+
         const mediaId = button.dataset.id;
         const itemElement = button.closest('.media-item');
 
@@ -637,21 +643,23 @@ function addMediaToGrid(media) {
             }
         }).then((result) => {
             if (result.isConfirmed) {
+                isDeleting = true; // Marcar que estamos eliminando
                 const deleteUrl = deleteUrlBase.replace(':id', mediaId);
                 const csrfToken = document.querySelector('input[name="_token"]')?.value;
 
                 console.log('[Delete] Confirmed. URL:', deleteUrl, 'CSRF:', csrfToken);
 
+                // Deshabilitar el botón visualmente
+                button.disabled = true;
+                button.style.opacity = '0.5';
+
                 fetch(deleteUrl, {
-                    method: 'POST', // O 'DELETE' si tu router y servidor lo soportan
+                    method: 'POST',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
-                        // Incluir CSRF en headers es más estándar para AJAX DELETE/POST
                         'X-CSRF-TOKEN': csrfToken,
-                        // Si usas POST con _method:
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    // Route is POST, no _method needed
                     body: new URLSearchParams({'_token': csrfToken})
                 })
                 .then(response => response.json().then(data => ({ ok: response.ok, status: response.status, data })))
@@ -667,33 +675,28 @@ function addMediaToGrid(media) {
                         // Mostrar mensaje de éxito
                         showSuccess(data.message || 'Medio eliminado.');
 
-                        // Recargar la librería completa para actualizar la vista
-                        console.log('[Delete] Reloading media library...');
+                        // Recargar la página para refrescar completamente
+                        console.log('[Delete] Reloading page...');
                         setTimeout(() => {
-                            if (typeof window.loadMedia === 'function') {
-                                const currentPageNum = window.currentPage || 1;
-                                console.log('[Delete] Calling loadMedia with page:', currentPageNum);
-                                window.loadMedia(currentPageNum);
-                            } else {
-                                console.warn('[Delete] loadMedia function not available in window scope');
-                            }
-                        }, 500);
+                            window.location.reload();
+                        }, 800);
 
-                        // También refrescar el modal si está abierto
-                        const mediaModal = document.getElementById('mediaManagerModal');
-                        if (mediaModal && mediaModal.classList.contains('show')) {
-                            if (typeof loadMediaModal === 'function') {
-                                loadMediaModal(1);
-                            }
-                        }
                     } else {
                         console.error('[Delete] Failed:', data.message);
                         showError(data.message || `Error ${status}`);
+                        // Rehabilitar botón en caso de error
+                        button.disabled = false;
+                        button.style.opacity = '1';
+                        isDeleting = false;
                     }
                 })
                 .catch(error => {
                     console.error("[Delete] Network error:", error);
                     showError('Error de red al eliminar.');
+                    // Rehabilitar botón en caso de error
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                    isDeleting = false;
                 });
             }
         });
@@ -703,7 +706,8 @@ function addMediaToGrid(media) {
     document.body.addEventListener('click', function(e) {
         const deleteButton = e.target.closest('.btn-delete-media');
         if (deleteButton) {
-            handleDeleteMedia(e);
+            e.stopPropagation(); // Evitar que se seleccione el item al borrar
+            handleDeleteMedia(deleteButton); // Pasar el botón directamente, no el evento
         }
     });
 

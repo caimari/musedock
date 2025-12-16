@@ -533,38 +533,18 @@ class BlogPostController
             $data['featured_image'] = $currentFeaturedImage;
         }
 
-        // Procesar imagen hero
-        $currentHeroImage = $data['current_hero_image'] ?? null;
-        $removeHeroImage = $data['remove_hero_image'] ?? '0';
-        unset($data['current_hero_image'], $data['remove_hero_image']);
+        // Procesar imagen hero (ahora usa URL del Media Manager)
+        // El campo hero_image viene directamente del input hidden con la URL seleccionada
+        $heroImage = $data['hero_image'] ?? '';
 
-        if ($removeHeroImage === '1' && !empty($currentHeroImage)) {
-            $fileName = basename($currentHeroImage);
-            $fullPath = APP_ROOT . "/public/assets/uploads/blog/hero/{$fileName}";
-
-            if (file_exists($fullPath)) {
-                @unlink($fullPath);
-            }
-
+        // Si está vacío, se guarda como null
+        if (empty($heroImage)) {
             $data['hero_image'] = null;
-        }
-
-        if ($_FILES && isset($_FILES['hero_image']) && $_FILES['hero_image']['error'] == 0) {
-            error_log("HERO_IMAGE: Nueva imagen detectada - " . $_FILES['hero_image']['name']);
-            $uploadResult = $this->processHeroImageUpload($_FILES['hero_image'], $currentHeroImage);
-            if (isset($uploadResult['error'])) {
-                error_log("HERO_IMAGE: Error en upload - " . $uploadResult['error']);
-                flash('error', __('blog.post.error_upload_hero_image', ['error' => $uploadResult['error']]));
-                header("Location: /" . admin_path() . "/blog/posts/{$id}/edit");
-                exit;
-            }
-            $data['hero_image'] = $uploadResult['path'];
-            error_log("HERO_IMAGE: Path guardado en data - " . $data['hero_image']);
-        } elseif ($removeHeroImage !== '1') {
-            $data['hero_image'] = $currentHeroImage;
-            error_log("HERO_IMAGE: Manteniendo imagen actual - " . ($currentHeroImage ?? 'null'));
+            error_log("HERO_IMAGE: Sin imagen (vacío o eliminada)");
         } else {
-            error_log("HERO_IMAGE: Imagen marcada para eliminación");
+            // Guardar la URL tal cual viene del Media Manager
+            $data['hero_image'] = $heroImage;
+            error_log("HERO_IMAGE: URL guardada - " . $heroImage);
         }
 
         // Guardar categorías y etiquetas seleccionadas

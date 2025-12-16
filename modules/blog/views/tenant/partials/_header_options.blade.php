@@ -1,27 +1,29 @@
 {{-- views/partials/_header_options.blade.php --}}
+{{-- Versión con Media Manager integrado para Blog --}}
 <div class="card mb-4">
     <div class="card-header"><strong>Opciones de Cabecera</strong></div>
     <div class="card-body">
         {{-- Lógica para determinar la imagen a mostrar --}}
         @php
             $heroImage = $Page->hero_image ?? '';
-            $imagePath = '';
-            $isCustom = false;
-            
-            if (!empty($heroImage)) {
-                $isCustom = strpos($heroImage, 'themes/default') === false;
-                // No añadimos 'assets/' al inicio si ya existe una imagen personalizada
-                $imagePath = $isCustom ? $heroImage : 'themes/default/img/hero/contact_hero.jpg';
-            } else {
-                $imagePath = 'themes/default/img/hero/contact_hero.jpg';
-            }
+            $defaultImage = 'themes/default/img/hero/contact_hero.jpg';
 
-            $imageUrl = $imagePath;
-            if (!(str_starts_with($imagePath, 'http') || str_starts_with($imagePath, '/media/'))) {
-                $imageUrl = asset($imagePath);
+            // Determinar URL de la imagen
+            if (!empty($heroImage)) {
+                $isCustom = true;
+                // Si es URL de media manager (/media/...) o URL completa, usar directamente
+                if (str_starts_with($heroImage, '/media/') || str_starts_with($heroImage, 'http')) {
+                    $imageUrl = $heroImage;
+                } else {
+                    // Ruta de assets local
+                    $imageUrl = asset($heroImage);
+                }
+            } else {
+                $isCustom = false;
+                $imageUrl = asset($defaultImage);
             }
         @endphp
-        
+
         {{-- Activar/desactivar la cabecera --}}
         <div class="mb-3 form-check">
             <input type="checkbox" class="form-check-input" id="show-slider" name="show_hero" value="1"
@@ -31,43 +33,46 @@
 
         {{-- Imagen de fondo --}}
         <div class="mb-3" id="slider-image-container" style="{{ old('show_hero', $Page->show_hero ?? 0) == 1 ? '' : 'display: none;' }}">
-            <label for="slider-image" class="form-label">Imagen de fondo</label>
-            
+            <label class="form-label">Imagen de fondo</label>
+
+            {{-- Preview de la imagen actual --}}
             <div class="image-preview-container mb-3">
                 <div class="slider-preview" id="current-image-preview">
                     <img src="{{ $imageUrl }}"
-                         alt="Vista previa de la imagen de cabecera" 
-                         class="img-fluid img-thumbnail mb-2" 
-                         style="max-height: 150px; max-width: 100%; {{ $isCustom ? '' : 'opacity: 0.7;' }}"
-                         id="preview-image-display"
-                         data-path="{{ $imagePath }}"
-                         data-is-custom="{{ $isCustom ? 'true' : 'false' }}"
-                         data-original-value="{{ $heroImage }}">
-                    
-                    @if($isCustom)
-                        <div class="mt-1 d-flex" id="custom-image-controls">
-                            <button type="button" class="btn btn-sm btn-outline-danger me-2" id="remove-slider-image">
-                                <i class="bi bi-x-circle"></i> Eliminar imagen
-                            </button>
-                            <small class="text-muted align-self-center">
-                                (Imagen personalizada)
-                            </small>
-                        </div>
-                    @else
-                        <div class="mt-1" id="default-image-notice">
-                            <small class="text-muted d-block">(Imagen predeterminada)</small>
-                        </div>
-                    @endif
+                         alt="Vista previa de la imagen de cabecera"
+                         class="img-fluid img-thumbnail mb-2"
+                         style="max-height: 200px; max-width: 100%; {{ $isCustom ? '' : 'opacity: 0.7;' }}"
+                         id="header-image-preview">
+
+                    <div class="mt-1" id="image-status">
+                        @if($isCustom)
+                            <span class="badge bg-success">Imagen personalizada</span>
+                        @else
+                            <span class="badge bg-secondary">Imagen predeterminada</span>
+                        @endif
+                    </div>
                 </div>
             </div>
-            
-            <div class="mb-3">
-                <label for="slider-image" class="form-label">Subir nueva imagen</label>
-                <input type="file" class="form-control" id="slider-image" name="hero_image" accept="image/*">
-                <input type="hidden" name="current_hero_image" value="{{ $heroImage }}" id="current-hero-image-input">
-                <input type="hidden" name="remove_hero_image" id="remove-slider-image-flag" value="0">
-                <small class="text-muted">Recomendado: 1920x400px. La imagen se adaptará automáticamente a estas dimensiones.</small>
+
+            {{-- Input hidden para guardar la URL de la imagen --}}
+            <input type="hidden" name="hero_image" id="header-image-input" value="{{ $heroImage }}">
+
+            {{-- Botones de acción --}}
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-outline-primary" id="select-header-image-btn">
+                    <i class="bi bi-image"></i> Seleccionar imagen
+                </button>
+
+                @if($isCustom)
+                <button type="button" class="btn btn-outline-danger" id="remove-header-image-btn">
+                    <i class="bi bi-x-circle"></i> Eliminar imagen
+                </button>
+                @endif
             </div>
+
+            <small class="text-muted d-block mt-2">
+                <i class="bi bi-info-circle"></i> Recomendado: 1920x600px para blog.
+            </small>
         </div>
 
         {{-- Título personalizado para la cabecera (opcional) --}}
@@ -75,7 +80,7 @@
             <label for="slider-title" class="form-label">Título para la cabecera <small class="text-muted">(opcional)</small></label>
             <input type="text" class="form-control" id="slider-title" name="hero_title"
                    value="{{ old('hero_title', $Page->hero_title ?? '') }}"
-                   placeholder="Dejar vacío para usar el título">
+                   placeholder="Dejar vacío para usar el título del post">
         </div>
 
         {{-- Contenido personalizado para la cabecera (opcional) --}}
@@ -104,32 +109,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const sliderImageContainer = document.getElementById('slider-image-container');
     const sliderTitleContainer = document.getElementById('slider-title-container');
     const sliderContentContainer = document.getElementById('slider-content-container');
-    const removeSliderImageBtn = document.getElementById('remove-slider-image');
-    const removeSliderImageFlag = document.getElementById('remove-slider-image-flag');
-    const sliderImageInput = document.getElementById('slider-image');
-    const currentImagePreview = document.getElementById('current-image-preview');
-    const previewImageDisplay = document.getElementById('preview-image-display');
-    const currentSliderImageInput = document.getElementById('current-hero-image-input');
-    
-    // Logs para depuración detallada
-    console.log('Estado inicial:');
-    console.log('- Valor de current_hero_image:', currentSliderImageInput ? currentSliderImageInput.value : 'no encontrado');
-    if (previewImageDisplay) {
-        console.log('- Valor original de slider_image:', previewImageDisplay.getAttribute('data-original-value'));
-        console.log('- Ruta de la imagen mostrada:', previewImageDisplay.getAttribute('data-path'));
-        console.log('- ¿Es imagen personalizada?:', previewImageDisplay.getAttribute('data-is-custom'));
-        console.log('- URL completa de la imagen:', previewImageDisplay.src);
-    }
-    
-    // Comprobar si estamos detectando correctamente la imagen personalizada
-    if (currentSliderImageInput && currentSliderImageInput.value) {
-        console.log('- Análisis de imagen personalizada:');
-        console.log('  * Valor slider_image:', currentSliderImageInput.value);
-        console.log('  * Está vacío:', !currentSliderImageInput.value);
-        console.log('  * Contiene themes/default:', currentSliderImageInput.value.indexOf('themes/default') !== -1);
-        console.log('  * DEBERÍA ser imagen personalizada:', !!currentSliderImageInput.value && currentSliderImageInput.value.indexOf('themes/default') === -1);
-    }
-    
+    const headerImageInput = document.getElementById('header-image-input');
+    const headerImagePreview = document.getElementById('header-image-preview');
+    const selectImageBtn = document.getElementById('select-header-image-btn');
+    const removeImageBtn = document.getElementById('remove-header-image-btn');
+    const imageStatus = document.getElementById('image-status');
+
+    const defaultImageUrl = '{{ asset($defaultImage) }}';
+
     // Función para mostrar/ocultar los campos del slider según checkbox
     function toggleSliderOptions() {
         const showSlider = showSliderCheckbox.checked;
@@ -137,160 +124,90 @@ document.addEventListener('DOMContentLoaded', function() {
         sliderTitleContainer.style.display = showSlider ? 'block' : 'none';
         sliderContentContainer.style.display = showSlider ? 'block' : 'none';
     }
-    
-    // Event listeners
-    showSliderCheckbox.addEventListener('change', toggleSliderOptions);
-    
-// Eliminar imagen
-if (removeSliderImageBtn) {
-    console.log('Botón eliminar imagen encontrado');
-    removeSliderImageBtn.addEventListener('click', function() {
-        console.log('Botón eliminar imagen pulsado');
-        
-        // Marcar como eliminada
-        removeSliderImageFlag.value = '1';
-        console.log('Flag de eliminación activado:', removeSliderImageFlag.value);
-        
-        // Cambiar la imagen a la predeterminada inmediatamente
-        if (previewImageDisplay) {
-            const baseUrl = window.location.origin;
-            // Usamos una URL absoluta para asegurar que la imagen se cargue correctamente
-            const defaultImagePath = baseUrl + '/themes/default/img/hero/contact_hero.jpg';
-            
-            // Precargamos la imagen para evitar que aparezca como "rota"
-            const img = new Image();
-            img.onload = function() {
-                // Una vez cargada, la asignamos a la vista previa
-                previewImageDisplay.src = defaultImagePath;
-                previewImageDisplay.style.opacity = '0.7';
-                previewImageDisplay.setAttribute('data-is-custom', 'false');
-                console.log('Imagen cambiada a predeterminada:', previewImageDisplay.src);
-            };
-            img.onerror = function() {
-                console.error('Error al cargar la imagen predeterminada');
-                // Intentar con otra ruta alternativa si la primera falla
-                previewImageDisplay.src = baseUrl + '/assets/themes/default/img/hero/contact_hero.jpg';
-            };
-            img.src = defaultImagePath;
-        }
-        
-        // Eliminar los controles de imagen personalizada
-        const customControls = document.getElementById('custom-image-controls');
-        if (customControls) {
-            customControls.remove();
-            
-            // Agregar texto de imagen predeterminada
-            const defaultNotice = document.createElement('div');
-            defaultNotice.id = 'default-image-notice';
-            defaultNotice.innerHTML = '<small class="text-muted d-block">(Imagen predeterminada)</small>';
-            currentImagePreview.appendChild(defaultNotice);
-            
-            console.log('Controles de imagen personalizada eliminados y texto predeterminado añadido');
-        }
-    });
-} else {
-    console.log('Botón de eliminar imagen no encontrado');
 
-        
-        // Verificar si debería haber un botón de eliminar
-        if (previewImageDisplay && previewImageDisplay.getAttribute('data-is-custom') === 'true') {
-            console.error('ERROR: Debería haber un botón de eliminar para una imagen personalizada, pero no se encontró');
-            console.log('- Forzando recarga para corregir inconsistencia de estado...');
-            
-            // Opcional: forzar la recarga de la página si está en un estado inconsistente
-            // window.location.reload();
+    // Event listener para checkbox
+    if (showSliderCheckbox) {
+        showSliderCheckbox.addEventListener('change', toggleSliderOptions);
+    }
+
+    // Seleccionar imagen desde Media Manager
+    if (selectImageBtn) {
+        selectImageBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Abriendo Media Manager para seleccionar imagen de cabecera...');
+
+            if (typeof window.openMediaManagerForTinyMCE === 'function') {
+                window.openMediaManagerForTinyMCE(function(url, meta) {
+                    console.log('Imagen seleccionada:', url);
+
+                    // Actualizar input hidden
+                    if (headerImageInput) {
+                        headerImageInput.value = url;
+                    }
+
+                    // Actualizar preview
+                    if (headerImagePreview) {
+                        headerImagePreview.src = url;
+                        headerImagePreview.style.opacity = '1';
+                    }
+
+                    // Actualizar estado
+                    if (imageStatus) {
+                        imageStatus.innerHTML = '<span class="badge bg-success">Imagen personalizada</span>';
+                    }
+
+                    // Mostrar botón de eliminar si no existe
+                    if (!removeImageBtn) {
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'btn btn-outline-danger';
+                        removeBtn.id = 'remove-header-image-btn';
+                        removeBtn.innerHTML = '<i class="bi bi-x-circle"></i> Eliminar imagen';
+                        removeBtn.addEventListener('click', removeImage);
+                        selectImageBtn.parentNode.appendChild(removeBtn);
+                    }
+
+                }, headerImageInput ? headerImageInput.value : '', { filetype: 'image' });
+            } else {
+                console.error('Media Manager no disponible');
+                alert('El gestor de medios no está disponible. Por favor, recarga la página.');
+            }
+        });
+    }
+
+    // Función para eliminar imagen
+    function removeImage(e) {
+        e.preventDefault();
+        console.log('Eliminando imagen de cabecera...');
+
+        // Limpiar input hidden
+        if (headerImageInput) {
+            headerImageInput.value = '';
+        }
+
+        // Restaurar preview a imagen predeterminada
+        if (headerImagePreview) {
+            headerImagePreview.src = defaultImageUrl;
+            headerImagePreview.style.opacity = '0.7';
+        }
+
+        // Actualizar estado
+        if (imageStatus) {
+            imageStatus.innerHTML = '<span class="badge bg-secondary">Imagen predeterminada</span>';
+        }
+
+        // Eliminar botón de eliminar
+        const removeBtn = document.getElementById('remove-header-image-btn');
+        if (removeBtn) {
+            removeBtn.remove();
         }
     }
-    
-    // Vista previa de imagen seleccionada
-    if (sliderImageInput) {
-        sliderImageInput.addEventListener('change', function() {
-            console.log('Archivo seleccionado para subir:', this.files && this.files[0] ? this.files[0].name : 'ninguno');
-            
-            if (this.files && this.files[0]) {
-                // Cancelar eliminación si se había marcado
-                if (removeSliderImageFlag) {
-                    removeSliderImageFlag.value = '0';
-                    console.log('Flag de eliminación desactivado por selección de nueva imagen');
-                }
-                
-                // Crear vista previa
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    console.log('Imagen cargada para previsualización');
-                    
-                    const previewContainer = document.createElement('div');
-                    previewContainer.className = 'mt-3';
-                    previewContainer.innerHTML = `
-                        <div class="alert alert-success">
-                            <strong>Vista previa:</strong><br>
-                            <img src="${e.target.result}" class="img-fluid img-thumbnail mt-2" style="max-height: 150px;">
-                            <p class="mb-0 mt-2"><small>La imagen se guardará al actualizar la página</small></p>
-                        </div>
-                    `;
-                    
-                    // Agregar después del input
-                    const existingPreview = sliderImageInput.nextElementSibling.nextElementSibling.nextElementSibling;
-                    if (existingPreview && existingPreview.classList.contains('mt-3')) {
-                        existingPreview.replaceWith(previewContainer);
-                        console.log('Previsualización existente reemplazada');
-                    } else {
-                        const container = sliderImageInput.parentNode;
-                        container.appendChild(previewContainer);
-                        console.log('Nueva previsualización añadida');
-                    }
-                };
-                reader.readAsDataURL(this.files[0]);
-            }
-        });
-    } else {
-        console.log('Input de selección de imagen no encontrado');
+
+    // Event listener para botón eliminar
+    if (removeImageBtn) {
+        removeImageBtn.addEventListener('click', removeImage);
     }
-    
-    // Comprobar si la imagen se carga correctamente
-    if (previewImageDisplay) {
-        previewImageDisplay.addEventListener('load', function() {
-            console.log('Imagen cargada correctamente:', this.src);
-        });
-        
-        previewImageDisplay.addEventListener('error', function() {
-            console.error('Error al cargar la imagen:', this.src);
-            
-            // Verificar si la URL tiene 'assets/' duplicado
-            const src = this.src;
-            if (src.includes('/assets/assets/')) {
-                console.error('ERROR: URL de imagen con "assets/" duplicado. Corrigiendo...');
-                // Corregir la URL de la imagen
-                const correctedSrc = src.replace('/assets/assets/', '/assets/');
-                this.src = correctedSrc;
-                console.log('URL corregida:', correctedSrc);
-                return;
-            }
-            
-            // Intentar cargar la imagen predeterminada como fallback
-            const baseUrl = window.location.origin;
-            if (this.src !== baseUrl + '/themes/default/img/hero/contact_hero.jpg') {
-                console.log('Intentando cargar imagen predeterminada como fallback');
-                this.src = baseUrl + '/themes/default/img/hero/contact_hero.jpg';
-                this.style.opacity = '0.7';
-                
-                // Actualizar controles si existen
-                const customControls = document.getElementById('custom-image-controls');
-                if (customControls) {
-                    customControls.remove();
-                    
-                    // Agregar texto de imagen predeterminada
-                    const defaultNotice = document.createElement('div');
-                    defaultNotice.id = 'default-image-notice';
-                    defaultNotice.innerHTML = '<small class="text-muted d-block">(Imagen predeterminada - original no encontrada)</small>';
-                    currentImagePreview.appendChild(defaultNotice);
-                    
-                    console.log('Controles actualizados para mostrar imagen predeterminada');
-                }
-            }
-        });
-    }
-    
+
     // Inicializar estado
     toggleSliderOptions();
 });

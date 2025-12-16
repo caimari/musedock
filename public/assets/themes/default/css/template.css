@@ -99,16 +99,60 @@ main video,
 }
 
 /* Prevenir overflow horizontal en contenido */
+/* NOTA: NO usar overflow-x: hidden en contenedores que pueden tener sliders full-width */
 .page-body,
 .post-content,
 .page-content-wrapper,
 .blog-post-single,
-article,
-.container,
-main {
-  overflow-x: hidden;
+article {
+  /* overflow-x: hidden eliminado para permitir sliders full-bleed */
   word-wrap: break-word;
   overflow-wrap: break-word;
+}
+
+/* Solo aplicar overflow-x: hidden a .container cuando NO tiene slider full-width */
+.container:not(:has(.slider-full-width-wrapper)),
+main:not(:has(.slider-full-width-wrapper)) {
+  overflow-x: hidden;
+}
+
+/* ===============================================
+   SLIDERS FULL-WIDTH (A SANGRE) - TEMA DEFAULT
+   =============================================== */
+
+/* Wrapper que permite que el slider salga del container */
+.slider-full-width-wrapper {
+  position: relative !important;
+  /* Técnica full-bleed: salir del container y ocupar todo el viewport */
+  width: 100vw !important;
+  max-width: 100vw !important;
+  left: 50% !important;
+  right: 50% !important;
+  margin-left: -50vw !important;
+  margin-right: -50vw !important;
+  /* Evitar márgenes adicionales que pudiera tener el contenedor padre */
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Asegurar que el swiper/gallery ocupe todo el ancho del wrapper */
+.slider-full-width-wrapper > .swiper,
+.slider-full-width-wrapper > .gallery-container {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Cuando el slider está en la primera posición del contenido, pegarlo más al header */
+.page-body > .slider-full-width-wrapper:first-child,
+.page-content-wrapper > .slider-full-width-wrapper:first-child,
+article > .slider-full-width-wrapper:first-child {
+  margin-top: -1rem !important; /* Compensar el padding-top del container */
+}
+
+/* Si la página NO tiene cabecera/slider del tema, pegar aún más */
+.page-container > article > .slider-full-width-wrapper:first-child,
+.container.py-4 > article > .slider-full-width-wrapper:first-child {
+  margin-top: -1.5rem !important;
 }
 
 /* Asegurar que tablas también sean responsivas */
