@@ -326,18 +326,18 @@
                     </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
+
+                <!-- Botones de acción -->
+                <div class="text-center mt-4">
+                    <a href="/customer/request-free-subdomain" class="btn btn-success me-2">
+                        <i class="bi bi-gift"></i> Solicitar Subdominio FREE
+                    </a>
+                    <a href="/customer/request-custom-domain" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle"></i> Solicitar Dominio Personalizado
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
-
-    <!-- Botones de acción -->
-    <div class="text-center mt-4">
-        <a href="/customer/request-free-subdomain" class="btn btn-success me-2">
-            <i class="bi bi-gift"></i> Solicitar Subdominio FREE
-        </a>
-        <a href="/customer/request-custom-domain" class="btn btn-outline-primary">
-            <i class="bi bi-plus-circle"></i> Solicitar Dominio Personalizado
-        </a>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
