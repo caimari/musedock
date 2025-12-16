@@ -20,11 +20,16 @@
         document.addEventListener('DOMContentLoaded', function() {
             Swal.fire({
                 icon: 'success',
-                title: '¡Éxito!',
-                text: '{!! $success !!}',
-                confirmButtonText: 'Aceptar',
+                title: '{!! $success !!}',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
                 timer: 3000,
-                timerProgressBar: true
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
             });
         });
     </script>
@@ -35,9 +40,16 @@
         document.addEventListener('DOMContentLoaded', function() {
             Swal.fire({
                 icon: 'error',
-                title: 'Error',
-                text: '{!! $error !!}',
-                confirmButtonText: 'Aceptar'
+                title: '{!! $error !!}',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 5000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
             });
         });
     </script>
@@ -48,9 +60,16 @@
         document.addEventListener('DOMContentLoaded', function() {
             Swal.fire({
                 icon: 'warning',
-                title: 'Atención',
-                text: '{!! $warning !!}',
-                confirmButtonText: 'Aceptar'
+                title: '{!! $warning !!}',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 4000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
             });
         });
     </script>
@@ -61,9 +80,16 @@
         document.addEventListener('DOMContentLoaded', function() {
             Swal.fire({
                 icon: 'info',
-                title: 'Información',
-                text: '{!! $info !!}',
-                confirmButtonText: 'Aceptar'
+                title: '{!! $info !!}',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3500,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
             });
         });
     </script>

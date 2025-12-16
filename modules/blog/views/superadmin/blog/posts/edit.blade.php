@@ -20,12 +20,44 @@
 	      </div>
 	    </div>
 
-    {{-- Script para SweetAlert2 --}}
+    {{-- Script para SweetAlert2 Toast --}}
     @if (session('success'))
-      <script> document.addEventListener('DOMContentLoaded', function () { Swal.fire({ icon: 'success', title: {!! json_encode(__('common.success')) !!}, text: {!! json_encode(session('success')) !!}, confirmButtonColor: '#3085d6' }); }); </script>
+      <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          Swal.fire({
+            icon: 'success',
+            title: {!! json_encode(session('success')) !!},
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+              toast.addEventListener('mouseenter', Swal.stopTimer);
+              toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+          });
+        });
+      </script>
     @endif
     @if (session('error'))
-      <script> document.addEventListener('DOMContentLoaded', function () { Swal.fire({ icon: 'error', title: {!! json_encode(__('common.error')) !!}, text: {!! json_encode(session('error')) !!}, confirmButtonColor: '#d33' }); }); </script>
+      <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          Swal.fire({
+            icon: 'error',
+            title: {!! json_encode(session('error')) !!},
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 5000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+              toast.addEventListener('mouseenter', Swal.stopTimer);
+              toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+          });
+        });
+      </script>
     @endif
 
     <form method="POST" action="{{ route('blog.posts.update', ['id' => $post->id]) }}" id="postForm" enctype="multipart/form-data">

@@ -6,7 +6,21 @@
 <h2>{{ $title }}</h2>
 <a href="/musedock/pages" class="btn btn-outline-secondary"><i class="bi bi-list"></i> Volver a lista de páginas</a>
 </div>
-@if (session('success'))<script>document.addEventListener('DOMContentLoaded',function(){Swal.fire({icon:'success',title:'Correcto',text:{!!json_encode(session('success'))!!},confirmButtonColor:'#3085d6'});});</script>@endif
+@if (session('success'))
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  Swal.fire({
+    icon: 'success',
+    title: {!! json_encode(session('success')) !!},
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true
+  });
+});
+</script>
+@endif
 <div class="alert alert-warning"><i class="bi bi-info-circle"></i> Las páginas en la papelera se eliminarán permanentemente después de 30 días.</div>
 <div class="card"><div class="card-body">
 @if (empty($pages))

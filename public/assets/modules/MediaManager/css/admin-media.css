@@ -28,3 +28,17 @@
 .file-manager-container { display: flex; }
 .folders-panel { display: none !important; }
 .files-panel { width: 100% !important; }
+
+/* ========================================
+   FIX: SweetAlert z-index sobre modales
+   ======================================== */
+.swal2-container {
+    z-index: 99999 !important;
+}
+
+.swal2-overlay {
+    z-index: 99998 !important;
+}
+
+/* Bootstrap modal z-index (default 1050) */
+/* SweetAlert debe estar por encima (99999) */

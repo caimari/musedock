@@ -180,7 +180,9 @@
 
     {{-- CSS Personalizado - Espaciado y estilos del tema --}}
     <link rel="stylesheet" href="{{ asset('themes/default/css/template.css') }}?v={{ time() }}">
-    
+
+    {{-- Nice Select 2 CSS --}}
+    <link rel="stylesheet" href="/assets/vendor/nice-select2/nice-select2.min.css">
 
 	{{-- CSS Variables dinámicas desde la base de datos (tenant-aware) --}}
     <style>
@@ -669,8 +671,6 @@ body.mobile-menu-open {
     z-index: 1000; /* Encima de otros elementos */
     display: none; /* Oculto por defecto */
     padding: 0; /* Evitar espacio extra encima/debajo de la primera opción */
-    max-height: 200px; /* Altura máxima si hay muchos idiomas */
-    overflow-y: auto; /* Scroll si es necesario */
 }
 
 /* Opciones individuales de idioma en el dropdown */
@@ -1461,6 +1461,10 @@ if (header && header.classList.contains('enable-sticky')) {
     @endif
 
     <script src="{{ asset('themes/default/js/vendor/jquery-1.12.4.min.js') }}"></script>
+
+{{-- Nice Select 2 JS --}}
+<script src="/assets/vendor/nice-select2/nice-select2.min.js"></script>
+
 <script src="{{ asset('themes/default/js/popper.min.js') }}"></script>
 <script src="{{ asset('themes/default/js/bootstrap.min.js') }}"></script>
 <script src="{{ asset('themes/default/js/jquery.slicknav.min.js') }}"></script>
@@ -1561,8 +1565,30 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+{{-- Nice Select 2 Initialization --}}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar Nice Select 2 en el select de idiomas del footer
+    var footerLangSelect = document.getElementById('language-select');
+    if (footerLangSelect && typeof NiceSelect !== 'undefined') {
+        NiceSelect.bind(footerLangSelect, {
+            searchable: false,
+            placeholder: 'select'
+        });
+    }
 
-	
+    // Inicializar Nice Select 2 en el select de idiomas móvil
+    var mobileLangSelect = document.getElementById('mobile-lang-switcher');
+    if (mobileLangSelect && typeof NiceSelect !== 'undefined') {
+        NiceSelect.bind(mobileLangSelect, {
+            searchable: false,
+            placeholder: 'select'
+        });
+    }
+});
+</script>
+
+
 {{-- Scripts adicionales  --}}
 @stack('scripts')
 

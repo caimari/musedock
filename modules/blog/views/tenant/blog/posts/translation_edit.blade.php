@@ -20,12 +20,36 @@
          </a>
     </div>
 
-    {{-- Mensajes de alerta --}}
+    {{-- Mensajes de alerta Toast --}}
     @if (session('success'))
-      <script> document.addEventListener('DOMContentLoaded', function () { Swal.fire({ icon: 'success', title: 'Correcto', text: {!! json_encode(session('success')) !!}, confirmButtonColor: '#3085d6' }); }); </script>
+      <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          Swal.fire({
+            icon: 'success',
+            title: {!! json_encode(session('success')) !!},
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+          });
+        });
+      </script>
     @endif
     @if (session('error'))
-      <script> document.addEventListener('DOMContentLoaded', function () { Swal.fire({ icon: 'error', title: 'Error', text: {!! json_encode(session('error')) !!}, confirmButtonColor: '#d33' }); }); </script>
+      <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          Swal.fire({
+            icon: 'error',
+            title: {!! json_encode(session('error')) !!},
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 5000,
+            timerProgressBar: true
+          });
+        });
+      </script>
     @endif
 
     <form method="POST" action="{{ admin_url('blog/posts/' . $post->id . '/translate/' . $locale) }}" id="translationForm">

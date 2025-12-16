@@ -21,15 +21,47 @@
       </div>
     </div>
 
-    {{-- Script para SweetAlert2 (MANTENER ESTO) --}}
+    {{-- Script para SweetAlert2 Toast (MANTENER ESTO) --}}
     {{-- 🔒 SECURITY: JSON encoding con flags de escape para prevenir XSS --}}
     @if (session('success'))
-      <script> document.addEventListener('DOMContentLoaded', function () { Swal.fire({ icon: 'success', title: 'Correcto', text: <?php echo json_encode(session('success'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>, confirmButtonColor: '#3085d6' }); }); </script>
+      <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          Swal.fire({
+            icon: 'success',
+            title: <?php echo json_encode(session('success'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+              toast.addEventListener('mouseenter', Swal.stopTimer);
+              toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+          });
+        });
+      </script>
     @endif
     @if (session('error'))
-      <script> document.addEventListener('DOMContentLoaded', function () { Swal.fire({ icon: 'error', title: 'Error', text: <?php echo json_encode(session('error'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>, confirmButtonColor: '#d33' }); }); </script>
+      <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          Swal.fire({
+            icon: 'error',
+            title: <?php echo json_encode(session('error'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 5000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+              toast.addEventListener('mouseenter', Swal.stopTimer);
+              toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+          });
+        });
+      </script>
     @endif
-    {{-- Fin Scripts SweetAlert2 --}}
+    {{-- Fin Scripts SweetAlert2 Toast --}}
 
     <form method="POST" action="{{ route('pages.update', ['id' => $Page->id]) }}" id="pageForm" enctype="multipart/form-data">
       @method('PUT') {!! csrf_field() !!}
