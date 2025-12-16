@@ -1473,21 +1473,28 @@ for (const key in detailFields) {
 deleteButton.addEventListener('click', function(e) {
     e.preventDefault();
     const currentZIndex = parseInt(overlay.style.zIndex || 999999);
-    const swalConfig = { 
-        title: '¿Eliminar este archivo?', 
-        text: "Esta acción no se puede deshacer.", 
-        icon: 'warning', 
-        showCancelButton: true, 
-        confirmButtonColor: '#d33', 
-        cancelButtonColor: '#6c757d', 
-        confirmButtonText: 'Sí, eliminar', 
-        cancelButtonText: 'Cancelar', 
-        customClass: { container: 'swal-higher-z-index' } 
+    const targetZIndex = currentZIndex + 100;
+    const swalConfig = {
+        title: '¿Eliminar este archivo?',
+        text: "Esta acción no se puede deshacer.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        customClass: { container: 'swal-higher-z-index' },
+        didOpen: () => {
+            const swalContainer = document.querySelector('.swal2-container');
+            if (swalContainer) {
+                swalContainer.style.zIndex = targetZIndex;
+            }
+        }
     };
-    const styleEl = document.createElement('style'); 
-    styleEl.textContent = `.swal-higher-z-index { z-index: ${currentZIndex + 100} !important; }`;
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `.swal-higher-z-index { z-index: ${targetZIndex} !important; }`;
     document.head.appendChild(styleEl);
-    
+
     Swal.fire(swalConfig).then((result) => {
         if (document.head.contains(styleEl)) document.head.removeChild(styleEl);
         if (result.isConfirmed) {

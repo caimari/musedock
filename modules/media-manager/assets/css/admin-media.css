@@ -24,10 +24,6 @@
 .context-menu-divider { margin: 0.25rem 0; border: 0; border-top: 1px solid #e0e0e0; }
 /* Action Buttons Group */
 .action-buttons-group { display: flex; gap: 0.5rem; padding-left: 1rem; border-left: 1px solid #e0e0e0; }
-/* Hide folders panel sidebar */
-.file-manager-container { display: flex; }
-.folders-panel { display: none !important; }
-.files-panel { width: 100% !important; }
 
 /* ========================================
    FIX: SweetAlert z-index sobre modales
