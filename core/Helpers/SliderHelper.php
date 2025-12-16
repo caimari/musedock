@@ -144,9 +144,9 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
     if ($fullWidth) {
         // Full-bleed wrapper robusto con estilos inline para máxima compatibilidad
         // Los estilos inline garantizan que funcione incluso con overflow:hidden en contenedores padre
-        $output .= '<div class="slider-full-width-wrapper" data-full-bleed="true" style="position:relative !important;left:50% !important;width:100vw !important;max-width:100vw !important;margin-left:-50vw !important;margin-right:-50vw !important;box-sizing:border-box !important;">';
+        $output .= '<div class="slider-full-width-wrapper" data-full-bleed="true" style="position:relative !important;left:50% !important;width:100vw !important;max-width:100vw !important;margin-left:-50vw !important;margin-right:-50vw !important;box-sizing:border-box !important;margin-top:0 !important;">';
 
-        // Añadir script para forzar overflow visible en contenedores padre
+        // Añadir script para forzar overflow visible en contenedores padre y eliminar márgenes/paddings
         $output .= '<script>
         (function(){
             var wrapper = document.querySelector(\'.slider-full-width-wrapper[data-full-bleed="true"]\');
@@ -155,7 +155,23 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
                 while(parent && parent !== document.body){
                     parent.style.overflow = "visible";
                     parent.style.overflowX = "visible";
+                    // Eliminar padding-top de todos los contenedores padre
+                    parent.style.paddingTop = "0";
+                    parent.style.marginTop = "0";
                     parent = parent.parentElement;
+                }
+                // También eliminar margen del main y container
+                var main = document.querySelector("main");
+                if(main){ main.style.paddingTop = "0"; main.style.marginTop = "0"; }
+                var containers = document.querySelectorAll(".container.py-4, .page-container, .has-slider-content");
+                containers.forEach(function(c){ c.style.paddingTop = "0"; c.style.marginTop = "0"; });
+                // Ocultar elementos vacíos antes del slider (párrafos vacíos del editor)
+                var prev = wrapper.previousElementSibling;
+                while(prev){
+                    if(prev.tagName === "P" && prev.textContent.trim() === ""){
+                        prev.style.display = "none";
+                    }
+                    prev = prev.previousElementSibling;
                 }
             }
         })();
@@ -443,9 +459,9 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
         // Wrapper para full-width (a sangre)
         if ($fullWidth) {
             // Full-bleed wrapper robusto con estilos inline para máxima compatibilidad
-            $output .= '<div class="slider-full-width-wrapper" data-full-bleed="true" style="position:relative !important;left:50% !important;width:100vw !important;max-width:100vw !important;margin-left:-50vw !important;margin-right:-50vw !important;box-sizing:border-box !important;">';
+            $output .= '<div class="slider-full-width-wrapper" data-full-bleed="true" style="position:relative !important;left:50% !important;width:100vw !important;max-width:100vw !important;margin-left:-50vw !important;margin-right:-50vw !important;box-sizing:border-box !important;margin-top:0 !important;">';
 
-            // Añadir script para forzar overflow visible en contenedores padre
+            // Añadir script para forzar overflow visible en contenedores padre y eliminar márgenes/paddings
             $output .= '<script>
             (function(){
                 var wrapper = document.querySelector(\'.slider-full-width-wrapper[data-full-bleed="true"]\');
@@ -454,7 +470,20 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
                     while(parent && parent !== document.body){
                         parent.style.overflow = "visible";
                         parent.style.overflowX = "visible";
+                        parent.style.paddingTop = "0";
+                        parent.style.marginTop = "0";
                         parent = parent.parentElement;
+                    }
+                    var main = document.querySelector("main");
+                    if(main){ main.style.paddingTop = "0"; main.style.marginTop = "0"; }
+                    var containers = document.querySelectorAll(".container.py-4, .page-container, .has-slider-content");
+                    containers.forEach(function(c){ c.style.paddingTop = "0"; c.style.marginTop = "0"; });
+                    var prev = wrapper.previousElementSibling;
+                    while(prev){
+                        if(prev.tagName === "P" && prev.textContent.trim() === ""){
+                            prev.style.display = "none";
+                        }
+                        prev = prev.previousElementSibling;
                     }
                 }
             })();

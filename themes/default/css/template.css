@@ -140,6 +140,27 @@ main:has(.slider-full-width-wrapper) {
   z-index: 10;
 }
 
+/* Cuando hay slider a sangre, eliminar el margen superior del contenedor */
+/* para que el slider quede pegado al header */
+.container:has(.slider-full-width-wrapper:first-child),
+.page-container:has(.slider-full-width-wrapper:first-child),
+.page-body:has(.slider-full-width-wrapper:first-child),
+main:has(.slider-full-width-wrapper:first-child) {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Si el slider a sangre es el primer elemento dentro del page-body */
+.page-body > .slider-full-width-wrapper:first-child {
+  margin-top: -1rem !important; /* Compensar el py-4 del container */
+}
+
+/* Eliminar padding del container.py-4 cuando tiene slider a sangre como primer hijo */
+.container.py-4:has(> article > .page-body > .slider-full-width-wrapper:first-child),
+.container.py-4:has(> .page-content-wrapper > .page-body > .slider-full-width-wrapper:first-child) {
+  padding-top: 0 !important;
+}
+
 /* Asegurar que tablas también sean responsivas */
 .page-body table,
 .post-content table,
