@@ -26,7 +26,7 @@
 
 /* Banner tema activo */
 .active-theme-card {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
     border-radius: 16px;
     padding: 1.5rem;
     color: white;
@@ -356,7 +356,7 @@
                     @endphp
                     <div class="theme-card {{ $isActive ? 'is-active' : '' }}">
                         @if($isActive)
-                            <div class="active-badge">{{ __('active') ?? 'ACTIVO' }}</div>
+                            <div class="active-badge">{{ __('themes.active') ?? 'ACTIVO' }}</div>
                         @endif
 
                         <div class="theme-preview">
@@ -397,7 +397,7 @@
                                 <button type="button" class="btn btn-activate flex-grow-1 btn-activate-global"
                                         data-slug="{{ $theme['slug'] }}"
                                         data-name="{{ $theme['name'] }}">
-                                    <i class="bi bi-power me-1"></i>{{ __('activate') ?? 'Activar' }}
+                                    <i class="bi bi-power me-1"></i>{{ __('themes.activate') ?? 'Activar' }}
                                 </button>
                                 <a href="/{{ admin_path() }}/themes/appearance/{{ $theme['slug'] }}" class="btn btn-icon" title="{{ __('themes.preview') ?? 'Ver opciones' }}">
                                     <i class="bi bi-eye"></i>
@@ -444,7 +444,7 @@
                     @endphp
                     <div class="theme-card {{ $isActive ? 'is-active' : '' }}">
                         @if($isActive)
-                            <div class="active-badge">{{ __('active') ?? 'ACTIVO' }}</div>
+                            <div class="active-badge">{{ __('themes.active') ?? 'ACTIVO' }}</div>
                         @endif
 
                         <div class="theme-preview">
@@ -479,7 +479,7 @@
                         <div class="theme-actions">
                             @if($isActive)
                                 <button class="btn btn-active flex-grow-1" disabled>
-                                    <i class="bi bi-check2 me-1"></i>{{ __('active') ?? 'Activo' }}
+                                    <i class="bi bi-check2 me-1"></i>{{ __('themes.active') ?? 'Activo' }}
                                 </button>
                                 <a href="/{{ admin_path() }}/widgets" class="btn btn-icon" title="{{ __('themes.widgets') ?? 'Widgets' }}">
                                     <i class="bi bi-sliders"></i>
@@ -488,7 +488,7 @@
                                 <button type="button" class="btn btn-activate flex-grow-1 btn-activate-custom"
                                         data-slug="{{ $theme['slug'] }}"
                                         data-name="{{ $theme['name'] }}">
-                                    <i class="bi bi-power me-1"></i>{{ __('activate') ?? 'Activar' }}
+                                    <i class="bi bi-power me-1"></i>{{ __('themes.activate') ?? 'Activar' }}
                                 </button>
                             @else
                                 <button class="btn btn-secondary flex-grow-1" disabled>

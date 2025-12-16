@@ -314,30 +314,42 @@
         margin-top: 0 !important;
     }
     .page-content hr, .page-body hr, .content hr, article hr {
-        margin: 1.5rem 0 !important;
+        margin: 2rem 0 !important;
         border: 0;
-        border-top: 1px solid rgba(0,0,0,0.1);
+        border-top: 2px solid #ddd !important;
+        height: 0;
     }
     .page-content hr + h2, .page-body hr + h2, .content hr + h2,
     .page-content hr + h3, .page-body hr + h3, .content hr + h3 {
-        margin-top: 1rem !important;
+        margin-top: 1.5rem !important;
     }
     .page-content ul, .page-body ul, .content ul,
     .page-content ol, .page-body ol, .content ol, article ul, article ol {
-        margin: 1rem 0;
-        padding-left: 2rem;
+        margin: 1.2rem 0 !important;
+        padding-left: 2.5rem !important;
         list-style-position: outside !important;
     }
     .page-content ul, .page-body ul, .content ul, article ul {
         list-style-type: disc !important;
+        list-style: disc !important;
     }
     .page-content ol, .page-body ol, .content ol, article ol {
         list-style-type: decimal !important;
+        list-style: decimal !important;
     }
     .page-content li, .page-body li, .content li, article li {
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.35rem !important;
+        margin-left: 0 !important;
+        padding-left: 0.5rem !important;
         line-height: 1.6;
         display: list-item !important;
+        list-style-position: outside !important;
+    }
+    .page-content ul li, .page-body ul li, .content ul li, article ul li {
+        list-style-type: disc !important;
+    }
+    .page-content ol li, .page-body ol li, .content ol li, article ol li {
+        list-style-type: decimal !important;
     }
     .page-content li:last-child, .page-body li:last-child, .content li:last-child {
         margin-bottom: 0;
@@ -348,6 +360,18 @@
     .page-content strong, .page-body strong, .content strong {
         font-weight: 700;
         color: #333;
+    }
+    /* === ENLACES - Links tradicionales azules === */
+    .page-content a, .page-body a, .content a, article a {
+        color: #0066cc !important;
+        text-decoration: underline;
+    }
+    .page-content a:hover, .page-body a:hover, .content a:hover, article a:hover {
+        color: #0052a3 !important;
+        text-decoration: underline;
+    }
+    .page-content a:visited, .page-body a:visited, .content a:visited, article a:visited {
+        color: #551a8b !important;
     }
     </style>
 	
