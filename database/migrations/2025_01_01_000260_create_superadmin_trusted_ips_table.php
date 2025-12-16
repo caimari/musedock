@@ -25,8 +25,8 @@ class CreateSuperadminTrustedIpsTable_2025_01_01_000260
     {
         $sql = "
             CREATE TABLE IF NOT EXISTS `superadmin_trusted_ips` (
-              `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID único',
-              `super_admin_id` int(11) unsigned NOT NULL COMMENT 'ID del superadmin',
+              `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'ID único',
+              `super_admin_id` int(11) NOT NULL COMMENT 'ID del superadmin',
               `ip_address` varchar(45) NOT NULL COMMENT 'Dirección IP (IPv4 o IPv6)',
               `description` varchar(255) DEFAULT NULL COMMENT 'Descripción de la IP (ej: Oficina, Casa)',
               `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha de creación',
