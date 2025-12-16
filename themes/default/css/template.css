@@ -1,6 +1,13 @@
 :root {
   /* Solo la variable que nos interesa */
   --header-bg-color: #ffffff;
+
+  /* Variables del Hero */
+  --hero-title-color: #ffffff;
+  --hero-title-font: inherit;
+  --hero-subtitle-color: #ffffff;
+  --hero-overlay-color: #000000;
+  --hero-overlay-opacity: 0.5;
 }
 
 /* Aplicación de la variable al elemento HTML correcto */
@@ -304,4 +311,50 @@ footer .single-footer-caption h4,
   margin-bottom: 12px !important;
   line-height: 1.4 !important;
   color: var(--footer-heading-color, #333) !important;
+}
+
+/* ===============================================
+   ESTILOS DEL HERO / SLIDER
+   =============================================== */
+
+/* Asegurar posición relativa para el overlay */
+.single-slider,
+.slider-area .single-slider {
+  position: relative;
+}
+
+/* Título del hero - usa variables CSS */
+.hero-cap h2,
+.slider-area .hero-cap h2 {
+  color: var(--hero-title-color, #ffffff) !important;
+  font-family: var(--hero-title-font, inherit) !important;
+}
+
+/* Subtítulo del hero */
+.hero-cap .hero-subtitle,
+.slider-area .hero-cap .hero-subtitle,
+.hero-cap p,
+.slider-area .hero-cap p {
+  color: var(--hero-subtitle-color, #ffffff) !important;
+}
+
+/* Overlay del hero (capa oscura sobre la imagen) */
+.single-slider::before,
+.slider-area .single-slider::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--hero-overlay-color, #000000);
+  opacity: var(--hero-overlay-opacity, 0.5);
+  z-index: 1;
+}
+
+/* Asegurar que el contenido del hero esté encima del overlay */
+.single-slider .container,
+.slider-area .single-slider .container {
+  position: relative;
+  z-index: 2;
 }

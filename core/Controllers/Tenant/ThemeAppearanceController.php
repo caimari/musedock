@@ -589,15 +589,31 @@ class ThemeAppearanceController
     protected function buildCssVariables(array $options): array
     {
         $mappings = [
+            // Top Bar
             'topbar.topbar_bg_color' => '--topbar-bg-color',
             'topbar.topbar_text_color' => '--topbar-text-color',
+            // Hero
+            'hero.hero_title_color' => '--hero-title-color',
+            'hero.hero_title_font' => '--hero-title-font',
+            'hero.hero_subtitle_color' => '--hero-subtitle-color',
+            'hero.hero_overlay_color' => '--hero-overlay-color',
+            'hero.hero_overlay_opacity' => '--hero-overlay-opacity',
+            // Header
             'header.header_bg_color' => '--header-bg-color',
+            'header.header_logo_text_color' => '--header-logo-text-color',
+            'header.header_logo_font' => '--header-logo-font',
+            'header.header_link_color' => '--header-link-color',
+            'header.header_link_hover_color' => '--header-link-hover-color',
             'header.header_cta_bg_color' => '--header-cta-bg-color',
             'header.header_cta_text_color' => '--header-cta-text-color',
+            // Footer
             'footer.footer_bg_color' => '--footer-bg-color',
             'footer.footer_text_color' => '--footer-text-color',
+            'footer.footer_heading_color' => '--footer-heading-color',
             'footer.footer_link_color' => '--footer-link-color',
             'footer.footer_link_hover_color' => '--footer-link-hover-color',
+            'footer.footer_icon_color' => '--footer-icon-color',
+            'footer.footer_border_color' => '--footer-border-color',
         ];
 
         $cssVars = [];

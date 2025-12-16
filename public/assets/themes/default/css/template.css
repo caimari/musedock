@@ -1,6 +1,13 @@
 :root {
   /* Solo la variable que nos interesa */
   --header-bg-color: #ffffff;
+
+  /* Variables del Hero */
+  --hero-title-color: #ffffff;
+  --hero-title-font: inherit;
+  --hero-subtitle-color: #ffffff;
+  --hero-overlay-color: #000000;
+  --hero-overlay-opacity: 0.5;
 }
 
 /* Aplicación de la variable al elemento HTML correcto */
@@ -99,85 +106,16 @@ main video,
 }
 
 /* Prevenir overflow horizontal en contenido */
-/* NOTA: NO usar overflow-x: hidden en contenedores que pueden tener sliders full-width */
 .page-body,
 .post-content,
 .page-content-wrapper,
 .blog-post-single,
-article {
-  /* overflow-x: hidden eliminado para permitir sliders full-bleed */
+article,
+.container,
+main {
+  overflow-x: hidden;
   word-wrap: break-word;
   overflow-wrap: break-word;
-}
-
-/* Solo aplicar overflow-x: hidden a .container cuando NO tiene slider full-width */
-.container:not(:has(.slider-full-width-wrapper)),
-main:not(:has(.slider-full-width-wrapper)) {
-  overflow-x: hidden;
-}
-
-/* ===============================================
-   SLIDERS FULL-WIDTH (A SANGRE) - TEMA DEFAULT
-   =============================================== */
-
-/* Wrapper que permite que el slider salga del container */
-.slider-full-width-wrapper {
-  position: relative !important;
-  /* Técnica full-bleed: salir del container y ocupar todo el viewport */
-  width: 100vw !important;
-  max-width: 100vw !important;
-  left: 50% !important;
-  right: 50% !important;
-  margin-left: -50vw !important;
-  margin-right: -50vw !important;
-  /* Evitar márgenes adicionales que pudiera tener el contenedor padre */
-  padding: 0 !important;
-  box-sizing: border-box !important;
-  /* Margen vertical */
-  margin-top: 0 !important;
-  margin-bottom: 1.5rem !important;
-}
-
-/* Asegurar que el swiper/gallery ocupe todo el ancho del wrapper */
-.slider-full-width-wrapper > .swiper,
-.slider-full-width-wrapper > .gallery-container {
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-/* Cuando el slider full-width está al INICIO del page-body, pegarlo al header */
-/* Usar selectores que consideren los <link> que se insertan antes del slider */
-.page-body > .slider-full-width-wrapper:first-child,
-.page-body > link:first-child + .slider-full-width-wrapper,
-.page-body > link + link + .slider-full-width-wrapper,
-.page-body > link + link + link + .slider-full-width-wrapper {
-  /* Compensar el padding del container padre (.py-4 = 1.5rem) */
-  margin-top: -1.5rem !important;
-}
-
-/* Contenedor con slider: permitir overflow para full-bleed */
-.has-slider-content {
-  overflow: visible !important;
-  overflow-x: visible !important;
-}
-
-.has-slider-content .page-body,
-.has-slider-content .page-content-wrapper,
-.has-slider-content article {
-  overflow: visible !important;
-}
-
-/* IMPORTANTE: Evitar que las imágenes del slider se vean afectadas por las reglas de img responsivo */
-.slider-full-width-wrapper img,
-.swiper-slide img,
-.gallery-container img,
-.gallery-top img,
-.gallery-thumbs img {
-  max-width: none !important;
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  display: block !important;
 }
 
 /* Asegurar que tablas también sean responsivas */
@@ -214,20 +152,6 @@ main table {
   img[height] {
     width: auto !important;
     height: auto !important;
-  }
-
-  /* EXCEPCIÓN: Las imágenes del slider SIEMPRE deben ocupar 100% del contenedor */
-  .slider-full-width-wrapper img,
-  .swiper img,
-  .swiper-slide img,
-  .gallery-container img,
-  .gallery-top img,
-  .gallery-thumbs img,
-  .theme-moon-crescent img {
-    width: 100% !important;
-    max-width: none !important;
-    height: 100% !important;
-    object-fit: cover !important;
   }
 }
 
@@ -348,4 +272,89 @@ article li p {
 .content strong {
   font-weight: 700;
   color: #333;
+}
+
+/* ===============================================
+   ESTILOS DEL FOOTER
+   =============================================== */
+
+/* Eliminar decoración de enlaces en el footer - Máxima especificidad */
+footer a,
+footer .footer-area a,
+footer .footer-tittle a,
+footer .single-footer-caption a,
+footer .footer-tittle ul li a,
+.footer-area .footer-tittle a,
+.footer-area a,
+.footer-tittle a,
+.single-footer-caption a,
+.footer-tittle ul li a {
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
+/* Mantener decoración solo en el enlace de configuración de cookies */
+.cookie-settings-link a,
+footer .cookie-settings-link a {
+  text-decoration: underline !important;
+}
+
+/* Igualar tamaño de todos los títulos en el footer - Máxima especificidad */
+footer .footer-tittle h4,
+footer .single-footer-caption h4,
+.footer-area .footer-tittle h4,
+.footer-area .single-footer-caption h4,
+.footer-tittle h4,
+.single-footer-caption h4 {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  margin-bottom: 12px !important;
+  line-height: 1.4 !important;
+  color: var(--footer-heading-color, #333) !important;
+}
+
+/* ===============================================
+   ESTILOS DEL HERO / SLIDER
+   =============================================== */
+
+/* Asegurar posición relativa para el overlay */
+.single-slider,
+.slider-area .single-slider {
+  position: relative;
+}
+
+/* Título del hero - usa variables CSS */
+.hero-cap h2,
+.slider-area .hero-cap h2 {
+  color: var(--hero-title-color, #ffffff) !important;
+  font-family: var(--hero-title-font, inherit) !important;
+}
+
+/* Subtítulo del hero */
+.hero-cap .hero-subtitle,
+.slider-area .hero-cap .hero-subtitle,
+.hero-cap p,
+.slider-area .hero-cap p {
+  color: var(--hero-subtitle-color, #ffffff) !important;
+}
+
+/* Overlay del hero (capa oscura sobre la imagen) */
+.single-slider::before,
+.slider-area .single-slider::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--hero-overlay-color, #000000);
+  opacity: var(--hero-overlay-opacity, 0.5);
+  z-index: 1;
+}
+
+/* Asegurar que el contenido del hero esté encima del overlay */
+.single-slider .container,
+.slider-area .single-slider .container {
+  position: relative;
+  z-index: 2;
 }

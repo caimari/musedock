@@ -1580,50 +1580,143 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleDeleteMedia(mediaId) {
         if (!mediaId) return;
 
-        if (confirm('¿Estás seguro de que quieres eliminar este archivo? Esta acción no se puede deshacer.')) {
-            const deleteUrl = deleteUrlBase.replace(':id', mediaId);
-
-            fetch(deleteUrl, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({'_csrf': csrfToken})
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Mostrar mensaje
-                    showNotification('Archivo eliminado correctamente', 'success');
-
-                    // Recargar biblioteca
-                    loadMedia(currentPage, searchTerm, filterType);
-
-                    // Si era el elemento seleccionado, deseleccionar
-                    if (selectedMediaId === mediaId) {
-                        selectedMediaId = null;
-                        selectedMediaData = null;
-                        selectButton.disabled = true;
-                        updateFileDetails();
+        // Usar SweetAlert2 si está disponible, sino confirm nativo
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: '¿Eliminar este archivo?',
+                text: 'Esta acción no se puede deshacer.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                customClass: { container: 'swal-above-modal' },
+                didOpen: () => {
+                    // Forzar z-index mayor que el modal (999999)
+                    const swalContainer = document.querySelector('.swal2-container');
+                    if (swalContainer) {
+                        swalContainer.style.zIndex = '10000000';
                     }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    executeDeleteMedia(mediaId);
+                }
+            });
+        } else {
+            if (confirm('¿Estás seguro de que quieres eliminar este archivo? Esta acción no se puede deshacer.')) {
+                executeDeleteMedia(mediaId);
+            }
+        }
+    }
+
+    // Función auxiliar para ejecutar la eliminación
+    function executeDeleteMedia(mediaId) {
+        const deleteUrl = deleteUrlBase.replace(':id', mediaId);
+
+        fetch(deleteUrl, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({'_csrf': csrfToken})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mostrar mensaje con SweetAlert si está disponible
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Eliminado',
+                        text: 'Archivo eliminado correctamente',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        customClass: { container: 'swal-above-modal' },
+                        didOpen: () => {
+                            const swalContainer = document.querySelector('.swal2-container');
+                            if (swalContainer) {
+                                swalContainer.style.zIndex = '10000000';
+                            }
+                        }
+                    });
+                } else {
+                    showNotification('Archivo eliminado correctamente', 'success');
+                }
+
+                // Recargar biblioteca
+                loadMedia(currentPage, searchTerm, filterType);
+
+                // Si era el elemento seleccionado, deseleccionar
+                if (selectedMediaId === mediaId) {
+                    selectedMediaId = null;
+                    selectedMediaData = null;
+                    selectButton.disabled = true;
+                    updateFileDetails();
+                }
+            } else {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Error al eliminar el archivo',
+                        customClass: { container: 'swal-above-modal' },
+                        didOpen: () => {
+                            const swalContainer = document.querySelector('.swal2-container');
+                            if (swalContainer) {
+                                swalContainer.style.zIndex = '10000000';
+                            }
+                        }
+                    });
                 } else {
                     showNotification(data.message || 'Error al eliminar el archivo', 'error');
                 }
-            })
-            .catch(error => {
-                console.error("Error deleting media:", error);
+            }
+        })
+        .catch(error => {
+            console.error("Error deleting media:", error);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error de red al eliminar',
+                    customClass: { container: 'swal-above-modal' },
+                    didOpen: () => {
+                        const swalContainer = document.querySelector('.swal2-container');
+                        if (swalContainer) {
+                            swalContainer.style.zIndex = '10000000';
+                        }
+                    }
+                });
+            } else {
                 showNotification('Error de red al eliminar', 'error');
-            });
-        }
+            }
+        });
     }
 
     // Función para manejar la edición de medios
     function handleEditMedia(mediaItem) {
         // Implementar modal de edición de metadatos si se requiere
         console.log('Edit media:', mediaItem);
-        alert('Funcionalidad de edición en desarrollo');
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'info',
+                title: 'Próximamente',
+                text: 'Funcionalidad de edición en desarrollo',
+                customClass: { container: 'swal-above-modal' },
+                didOpen: () => {
+                    const swalContainer = document.querySelector('.swal2-container');
+                    if (swalContainer) {
+                        swalContainer.style.zIndex = '10000000';
+                    }
+                }
+            });
+        } else {
+            alert('Funcionalidad de edición en desarrollo');
+        }
     }
 
     // Función para actualizar el panel de detalles

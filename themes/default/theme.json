@@ -121,6 +121,70 @@
         }
       }
     },
+    "hero": {
+      "type": "section",
+      "label": "Hero / Cabecera de páginas",
+      "options": {
+        "hero_title_color": {
+          "type": "color",
+          "label": "Color del título del hero",
+          "default": "#ffffff",
+          "description": "Color del título en las cabeceras hero de páginas y blog"
+        },
+        "hero_title_font": {
+          "type": "select",
+          "label": "Tipografía del título del hero",
+          "default": "inherit",
+          "options": {
+            "inherit": "Por defecto del tema",
+            "Arial, sans-serif": "Arial",
+            "Georgia, serif": "Georgia",
+            "Helvetica, sans-serif": "Helvetica",
+            "'Times New Roman', serif": "Times New Roman",
+            "'Playfair Display', serif": "Playfair Display",
+            "'Montserrat', sans-serif": "Montserrat",
+            "'Roboto', sans-serif": "Roboto",
+            "'Open Sans', sans-serif": "Open Sans",
+            "'Lato', sans-serif": "Lato",
+            "'Poppins', sans-serif": "Poppins",
+            "'Oswald', sans-serif": "Oswald",
+            "'Raleway', sans-serif": "Raleway",
+            "'Merriweather', serif": "Merriweather",
+            "'Nunito', sans-serif": "Nunito",
+            "'Quicksand', sans-serif": "Quicksand"
+          },
+          "description": "Tipografía para el título en las cabeceras hero"
+        },
+        "hero_subtitle_color": {
+          "type": "color",
+          "label": "Color del subtítulo del hero",
+          "default": "#ffffff",
+          "description": "Color del subtítulo/contenido en las cabeceras hero"
+        },
+        "hero_overlay_color": {
+          "type": "color",
+          "label": "Color de la capa de oscurecimiento",
+          "default": "#000000",
+          "description": "Color de la capa semitransparente sobre la imagen del hero"
+        },
+        "hero_overlay_opacity": {
+          "type": "select",
+          "label": "Opacidad de la capa de oscurecimiento",
+          "default": "0.5",
+          "options": {
+            "0": "Sin overlay (0%)",
+            "0.2": "Muy suave (20%)",
+            "0.3": "Suave (30%)",
+            "0.4": "Media-suave (40%)",
+            "0.5": "Media (50%)",
+            "0.6": "Media-oscura (60%)",
+            "0.7": "Oscura (70%)",
+            "0.8": "Muy oscura (80%)"
+          },
+          "description": "Opacidad de la capa sobre la imagen (0 = transparente, 1 = opaco)"
+        }
+      }
+    },
     "header": {
       "type": "section",
       "label": "Cabecera principal",
