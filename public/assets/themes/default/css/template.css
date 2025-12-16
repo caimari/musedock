@@ -215,6 +215,20 @@ main table {
     width: auto !important;
     height: auto !important;
   }
+
+  /* EXCEPCIÓN: Las imágenes del slider SIEMPRE deben ocupar 100% del contenedor */
+  .slider-full-width-wrapper img,
+  .swiper img,
+  .swiper-slide img,
+  .gallery-container img,
+  .gallery-top img,
+  .gallery-thumbs img,
+  .theme-moon-crescent img {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
 }
 
 /* ===============================================

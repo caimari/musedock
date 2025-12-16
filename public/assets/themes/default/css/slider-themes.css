@@ -457,6 +457,9 @@
     border-radius: 0 !important;
     overflow: hidden !important;
     background: #0b2232 !important;
+    /* CRÍTICO: Asegurar que el swiper ocupe todo el ancho disponible */
+    width: 100% !important;
+    max-width: 100% !important;
     /* Recorte real tipo "media luna" (evita que se vea la imagen rectangular abajo) */
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill='white' d='M0 0 H100 V80 Q50 100 0 80 Z'/%3E%3C/svg%3E");
     -webkit-mask-size: 100% 100% !important;
@@ -466,6 +469,22 @@
     mask-size: 100% 100% !important;
     mask-repeat: no-repeat !important;
     mask-position: 0 0 !important;
+}
+
+/* Moon Crescent - Asegurar que slides e imágenes ocupen todo el ancho */
+.swiper.theme-moon-crescent .swiper-slide,
+.theme-moon-crescent .swiper-slide {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.swiper.theme-moon-crescent .swiper-slide img,
+.theme-moon-crescent .swiper-slide img {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center !important;
 }
 
 /* Overlay de color (encima de la imagen, debajo del texto) */
