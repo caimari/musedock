@@ -54,9 +54,11 @@
         if (isset($customizations) && ($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")) {
             $content = preg_replace('/<h1[^>]*>.*?<\/h1>/', '', $content, 1);
         }
+        // Detectar si el contenido empieza con un slider a sangre (full-width)
+        $hasFullWidthSlider = strpos($content, 'slider-full-width-wrapper') !== false;
     @endphp
 
-    <div class="{{ (isset($customizations) ? $customizations->container_class : null) ?? 'container py-4 page-container' }} has-slider-content">
+    <div class="{{ (isset($customizations) ? $customizations->container_class : null) ?? 'container py-4 page-container' }} has-slider-content{{ $hasFullWidthSlider ? ' has-full-width-slider' : '' }}" @if($hasFullWidthSlider) style="padding-top:0 !important;" @endif>
         <article class="{{ (isset($customizations) ? $customizations->content_class : null) ?? 'page-content-wrapper' }}">
             @if(isset($customizations) && $customizations->hide_title !== true && isset($page) && !$page->is_homepage)
                 <h1 class="page-title">{{ $translation->title ?? '' }}</h1>

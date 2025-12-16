@@ -324,6 +324,36 @@
         }
       }
     },
+    "scroll_to_top": {
+      "type": "section",
+      "label": "Botón Volver Arriba",
+      "options": {
+        "scroll_to_top_enabled": {
+          "type": "toggle",
+          "label": "Mostrar botón volver arriba",
+          "default": true,
+          "description": "Muestra un botón para volver al inicio de la página al hacer scroll"
+        },
+        "scroll_to_top_bg_color": {
+          "type": "color",
+          "label": "Color de fondo del botón",
+          "default": "#ff5e15",
+          "description": "Color de fondo del botón volver arriba"
+        },
+        "scroll_to_top_icon_color": {
+          "type": "color",
+          "label": "Color del icono",
+          "default": "#ffffff",
+          "description": "Color del icono de flecha"
+        },
+        "scroll_to_top_hover_bg_color": {
+          "type": "color",
+          "label": "Color de fondo al pasar el ratón",
+          "default": "#e54c08",
+          "description": "Color de fondo cuando el usuario pasa el ratón sobre el botón"
+        }
+      }
+    },
     "custom_code": {
       "type": "section",
       "label": "Código personalizado",

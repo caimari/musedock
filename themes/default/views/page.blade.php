@@ -126,7 +126,13 @@
 @endif
 
 {{-- Contenido principal de la página --}}
-<div class="{{ isset($post) ? 'container py-4' : ((isset($customizations) ? $customizations->container_class : null) ?? 'container py-4 page-container') }} has-slider-content">
+@php
+    // Pre-procesar contenido para detectar si tiene slider a sangre
+    $rawContent = $translation->content ?? '';
+    $processedContent = apply_filters('the_content', $rawContent);
+    $pageHasFullWidthSlider = strpos($processedContent, 'slider-full-width-wrapper') !== false;
+@endphp
+<div class="{{ isset($post) ? 'container py-4' : ((isset($customizations) ? $customizations->container_class : null) ?? 'container py-4 page-container') }} has-slider-content" @if($pageHasFullWidthSlider) style="padding-top:0 !important;" @endif>
     <article class="{{ isset($post) ? 'blog-post-single' : ((isset($customizations) ? $customizations->content_class : null) ?? 'page-content-wrapper') }}">
         @if(isset($post))
             {{-- Es un post de blog - mostrar imagen destacada si no está oculta --}}
@@ -176,10 +182,24 @@
                     if (isset($customizations) && ($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")) {
                         $content = preg_replace('/<h1[^>]*>.*?<\/h1>/', '', $content, 1);
                     }
+                    // Detectar si el contenido tiene un slider a sangre (full-width)
+                    $hasFullWidthSlider = strpos($content, 'slider-full-width-wrapper') !== false;
                 @endphp
                 {!! $content !!}
             </div>
         @endif
     </article>
 </div>
+
+@if(isset($hasFullWidthSlider) && $hasFullWidthSlider)
+<script>
+// Eliminar padding del contenedor cuando hay slider a sangre
+document.addEventListener('DOMContentLoaded', function() {
+    var container = document.querySelector('.has-slider-content');
+    if(container && document.querySelector('.slider-full-width-wrapper')) {
+        container.style.paddingTop = '0';
+    }
+});
+</script>
+@endif
 @endsection

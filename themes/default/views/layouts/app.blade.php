@@ -211,6 +211,10 @@
         --footer-link-hover-color: {{ themeOption('footer.footer_link_hover_color', '#ff5e15') }};
         --footer-icon-color: {{ themeOption('footer.footer_icon_color', '#333333') }};
         --footer-border-color: {{ themeOption('footer.footer_border_color', '#e5e5e5') }};
+        /* Scroll to top button */
+        --scroll-to-top-bg-color: {{ themeOption('scroll_to_top.scroll_to_top_bg_color', '#ff5e15') }};
+        --scroll-to-top-icon-color: {{ themeOption('scroll_to_top.scroll_to_top_icon_color', '#ffffff') }};
+        --scroll-to-top-hover-bg-color: {{ themeOption('scroll_to_top.scroll_to_top_hover_bg_color', '#e54c08') }};
     }
 
     /* ===== Estilos del Header usando CSS Variables ===== */
@@ -301,6 +305,35 @@
 
     .footer-border {
         border-top: 1px solid var(--footer-border-color) !important;
+    }
+
+    /* ===============================================
+       BOTÓN VOLVER ARRIBA (SCROLL TO TOP)
+       =============================================== */
+    #scrollUp {
+        background-color: var(--scroll-to-top-bg-color) !important;
+        color: var(--scroll-to-top-icon-color) !important;
+        text-decoration: none !important;
+        border: none !important;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: all 0.3s ease;
+    }
+
+    #scrollUp:hover {
+        background-color: var(--scroll-to-top-hover-bg-color) !important;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    }
+
+    #scrollUp i {
+        color: var(--scroll-to-top-icon-color) !important;
+        font-size: 18px;
     }
 
     /* ===============================================
@@ -1541,7 +1574,13 @@ if (header && header.classList.contains('enable-sticky')) {
 <script src="{{ asset('themes/default/js/wow.min.js') }}"></script>
 <script src="{{ asset('themes/default/js/animated.headline.js') }}"></script>
 <script src="{{ asset('themes/default/js/jquery.magnific-popup.js') }}"></script>
+@php
+    $scrollToTopEnabled = themeOption('scroll_to_top.scroll_to_top_enabled', true);
+    $showScrollToTop = $scrollToTopEnabled === true || $scrollToTopEnabled === 1 || $scrollToTopEnabled === '1' || $scrollToTopEnabled === null;
+@endphp
+@if($showScrollToTop)
 <script src="{{ asset('themes/default/js/jquery.scrollUp.min.js') }}"></script>
+@endif
 {{-- DESACTIVADO - nice-select interfiere con selectores de idioma --}}
 {{-- <script src="{{ asset('themes/default/js/jquery.nice-select.min.js') }}"></script> --}}
 <script src="{{ asset('themes/default/js/jquery.sticky.js') }}"></script>
