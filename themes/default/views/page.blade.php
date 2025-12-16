@@ -122,7 +122,7 @@
 @endif
 
 {{-- Contenido principal de la página --}}
-<div class="{{ isset($post) ? 'container py-4' : ((isset($customizations) ? $customizations->container_class : null) ?? 'container py-4 page-container') }}">
+<div class="{{ isset($post) ? 'container py-4' : ((isset($customizations) ? $customizations->container_class : null) ?? 'container py-4 page-container') }} has-slider-content">
     <article class="{{ isset($post) ? 'blog-post-single' : ((isset($customizations) ? $customizations->content_class : null) ?? 'page-content-wrapper') }}">
         @if(isset($post))
             {{-- Es un post de blog - mostrar imagen destacada si no está oculta --}}

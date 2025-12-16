@@ -534,7 +534,19 @@ function handleFilesUpload() {
                         console.error('Folder ID:', currentFolderId);
                         console.error('Respuesta completa:', response);
                         console.error('Mensaje de error:', response.message || 'Sin mensaje específico');
-                        console.error('Detalles adicionales:', response.error || response.errors || 'No disponible');
+                        // Mostrar errores detallados
+                        const errorsArray = response.error || response.errors || [];
+                        if (Array.isArray(errorsArray) && errorsArray.length > 0) {
+                            console.error('Errores detallados:');
+                            errorsArray.forEach((err, idx) => {
+                                console.error(`  ${idx + 1}. ${err}`);
+                            });
+                            // También mostrar al usuario
+                            showError(errorsArray.join('\n'));
+                        } else if (typeof errorsArray === 'string') {
+                            console.error('Error:', errorsArray);
+                            showError(errorsArray);
+                        }
                         console.error('═══════════════════════════════════════════');
                     }
                 } catch (e) {
@@ -1954,27 +1966,47 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
             }
         }).then(result => {
             if (result.isConfirmed) {
-                // Eliminar cada archivo
+                // Eliminar cada archivo secuencialmente con Promise
                 let deleted = 0;
-                ids.forEach(id => {
-                    fetch(buildUrl(deleteUrlTemplate, id), {
+                let errors = 0;
+                const csrfToken = document.querySelector('input[name="_token"]')?.value;
+
+                const deletePromises = ids.map(id => {
+                    return fetch(buildUrl(deleteUrlBase, id), {
                         method: 'POST',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-Token': getCsrfToken(),
-                        }
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({'_token': csrfToken})
                     })
                     .then(r => r.json())
                     .then(data => {
                         if (data.success) {
                             deleted++;
-                            if (deleted === ids.length) {
-                                showNotification('Archivos eliminados correctamente');
-                                loadMedia(1);
-                            }
+                        } else {
+                            errors++;
                         }
                     })
-                    .catch(err => showError('Error al eliminar: ' + err.message));
+                    .catch(err => {
+                        errors++;
+                        console.error('Error al eliminar:', err);
+                    });
+                });
+
+                // Esperar a que todas las eliminaciones terminen
+                Promise.all(deletePromises).then(() => {
+                    if (deleted > 0) {
+                        showSuccess(`${deleted} archivo(s) eliminado(s) correctamente`);
+                    }
+                    if (errors > 0) {
+                        showError(`${errors} archivo(s) no se pudieron eliminar`);
+                    }
+                    // Recargar página para refrescar
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 800);
                 });
             }
         });

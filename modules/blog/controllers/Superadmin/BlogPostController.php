@@ -201,15 +201,12 @@ class BlogPostController
             $data['featured_image'] = null;
         }
 
-        // Procesar la subida de imagen hero si existe
-        if ($_FILES && isset($_FILES['hero_image']) && $_FILES['hero_image']['error'] == 0) {
-            $uploadResult = $this->processHeroImageUpload($_FILES['hero_image']);
-            if (isset($uploadResult['error'])) {
-                flash('error', __('blog.post.error_upload_hero_image', ['error' => $uploadResult['error']]));
-                header("Location: /musedock/blog/posts/create");
-                exit;
-            }
-            $data['hero_image'] = $uploadResult['path'];
+        // Procesar imagen hero (ahora usa URL del Media Manager)
+        $heroImage = $data['hero_image'] ?? '';
+        if (empty($heroImage)) {
+            $data['hero_image'] = null;
+        } else {
+            $data['hero_image'] = $heroImage;
         }
 
         // Establecer el valor predeterminado de status a 'published' si no se especifica
@@ -474,33 +471,12 @@ class BlogPostController
             $data['featured_image'] = !empty($featuredImageUrl) ? $featuredImageUrl : $currentFeaturedImage;
         }
 
-        // Procesar imagen hero de manera similar
-        $currentHeroImage = $data['current_hero_image'] ?? null;
-        $removeHeroImage = $data['remove_hero_image'] ?? '0';
-
-        unset($data['current_hero_image'], $data['remove_hero_image']);
-
-        if ($removeHeroImage === '1' && !empty($currentHeroImage)) {
-            $fileName = basename($currentHeroImage);
-            $fullPath = APP_ROOT . "/public/assets/uploads/blog/hero/{$fileName}";
-
-            if (file_exists($fullPath)) {
-                @unlink($fullPath);
-            }
-
+        // Procesar imagen hero (ahora usa URL del Media Manager)
+        $heroImage = $data['hero_image'] ?? '';
+        if (empty($heroImage)) {
             $data['hero_image'] = null;
-        }
-
-        if ($_FILES && isset($_FILES['hero_image']) && $_FILES['hero_image']['error'] == 0) {
-            $uploadResult = $this->processHeroImageUpload($_FILES['hero_image'], $currentHeroImage);
-            if (isset($uploadResult['error'])) {
-                flash('error', __('blog.post.error_upload_hero_image', ['error' => $uploadResult['error']]));
-                header("Location: /musedock/blog/posts/{$id}/edit");
-                exit;
-            }
-            $data['hero_image'] = $uploadResult['path'];
-        } elseif ($removeHeroImage !== '1') {
-            $data['hero_image'] = $currentHeroImage;
+        } else {
+            $data['hero_image'] = $heroImage;
         }
 
         // Guardar categorías y etiquetas seleccionadas

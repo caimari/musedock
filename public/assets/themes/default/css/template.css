@@ -133,6 +133,9 @@ main:not(:has(.slider-full-width-wrapper)) {
   /* Evitar márgenes adicionales que pudiera tener el contenedor padre */
   padding: 0 !important;
   box-sizing: border-box !important;
+  /* Margen vertical */
+  margin-top: 0 !important;
+  margin-bottom: 1.5rem !important;
 }
 
 /* Asegurar que el swiper/gallery ocupe todo el ancho del wrapper */
@@ -142,17 +145,39 @@ main:not(:has(.slider-full-width-wrapper)) {
   max-width: 100% !important;
 }
 
-/* Cuando el slider está en la primera posición del contenido, pegarlo más al header */
+/* Cuando el slider full-width está al INICIO del page-body, pegarlo al header */
+/* Usar selectores que consideren los <link> que se insertan antes del slider */
 .page-body > .slider-full-width-wrapper:first-child,
-.page-content-wrapper > .slider-full-width-wrapper:first-child,
-article > .slider-full-width-wrapper:first-child {
-  margin-top: -1rem !important; /* Compensar el padding-top del container */
+.page-body > link:first-child + .slider-full-width-wrapper,
+.page-body > link + link + .slider-full-width-wrapper,
+.page-body > link + link + link + .slider-full-width-wrapper {
+  /* Compensar el padding del container padre (.py-4 = 1.5rem) */
+  margin-top: -1.5rem !important;
 }
 
-/* Si la página NO tiene cabecera/slider del tema, pegar aún más */
-.page-container > article > .slider-full-width-wrapper:first-child,
-.container.py-4 > article > .slider-full-width-wrapper:first-child {
-  margin-top: -1.5rem !important;
+/* Contenedor con slider: permitir overflow para full-bleed */
+.has-slider-content {
+  overflow: visible !important;
+  overflow-x: visible !important;
+}
+
+.has-slider-content .page-body,
+.has-slider-content .page-content-wrapper,
+.has-slider-content article {
+  overflow: visible !important;
+}
+
+/* IMPORTANTE: Evitar que las imágenes del slider se vean afectadas por las reglas de img responsivo */
+.slider-full-width-wrapper img,
+.swiper-slide img,
+.gallery-container img,
+.gallery-top img,
+.gallery-thumbs img {
+  max-width: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
 }
 
 /* Asegurar que tablas también sean responsivas */

@@ -187,15 +187,12 @@ public function store()
         $data['visibility'] = 'public';
     }
     
-    // Procesar la subida de imagen del slider si existe
-    if ($_FILES && isset($_FILES['slider_image']) && $_FILES['slider_image']['error'] == 0) {
-        $uploadResult = $this->processSliderImageUpload($_FILES['slider_image']);
-        if (isset($uploadResult['error'])) {
-            flash('error', __('pages.error_image_upload') . ': ' . $uploadResult['error']);
-            header("Location: /musedock/pages/create");
-            exit;
-        }
-        $data['slider_image'] = $uploadResult['path'];
+    // Procesar imagen del slider (ahora usa URL del Media Manager)
+    $sliderImage = $data['slider_image'] ?? '';
+    if (empty($sliderImage)) {
+        $data['slider_image'] = null;
+    } else {
+        $data['slider_image'] = $sliderImage;
     }
     
     // Establecer el valor predeterminado de status a 'published' si no se especifica
@@ -413,51 +410,18 @@ public function update($id)
         $data['visibility'] = 'public';
     }
     
-    // Procesar imagen del slider
-    $currentSliderImage = $data['current_slider_image'] ?? null;
-    $removeImage = $data['remove_slider_image'] ?? '0';
-    
-    // Eliminar estos campos para no guardarlos en la BD
-    unset($data['current_slider_image'], $data['remove_slider_image']);
-    
-    // Si marca eliminar imagen, borramos la referencia y el archivo
-    if ($removeImage === '1' && !empty($currentSliderImage)) {
-        // Log para depuración
-        error_log("Eliminando imagen: {$currentSliderImage}");
-        
-        // Obtener solo el nombre de archivo
-        $fileName = basename($currentSliderImage);
-        
-        // Construir la ruta basada en APP_ROOT
-        $fullPath = APP_ROOT . "/public/assets/uploads/headers/{$fileName}";
-        
-        if (file_exists($fullPath)) {
-            error_log("Intentando eliminar archivo: {$fullPath}");
-            if (@unlink($fullPath)) {
-                error_log("Archivo eliminado con éxito: {$fullPath}");
-            } else {
-                error_log("Error al eliminar el archivo: " . error_get_last()['message'] ?? 'desconocido');
-            }
-        } else {
-            error_log("Archivo no encontrado en la ruta: {$fullPath}");
-        }
-        
-        // En cualquier caso, establecer el campo a NULL en la base de datos
+    // Procesar imagen del slider (ahora usa URL del Media Manager)
+    // El campo slider_image viene directamente del input hidden con la URL seleccionada
+    $sliderImage = $data['slider_image'] ?? '';
+
+    // Si está vacío, se guarda como null
+    if (empty($sliderImage)) {
         $data['slider_image'] = null;
-    }
-    
-    // Procesar la nueva imagen si se sube una
-    if ($_FILES && isset($_FILES['slider_image']) && $_FILES['slider_image']['error'] == 0) {
-        $uploadResult = $this->processSliderImageUpload($_FILES['slider_image'], $currentSliderImage);
-        if (isset($uploadResult['error'])) {
-            flash('error', __('pages.error_image_upload') . ': ' . $uploadResult['error']);
-            header("Location: /musedock/pages/{$id}/edit");
-            exit;
-        }
-        $data['slider_image'] = $uploadResult['path'];
-    } elseif ($removeImage !== '1') {
-        // Mantener la imagen actual si no se marca eliminar y no se sube una nueva
-        $data['slider_image'] = $currentSliderImage;
+        error_log("SLIDER_IMAGE: Sin imagen (vacío o eliminada)");
+    } else {
+        // Guardar la URL tal cual viene del Media Manager
+        $data['slider_image'] = $sliderImage;
+        error_log("SLIDER_IMAGE: URL guardada - " . $sliderImage);
     }
 
     // Validación

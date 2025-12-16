@@ -44,20 +44,21 @@
         @endif
     @endif
 
-    <div class="{{ (isset($customizations) ? $customizations->container_class : null) ?? 'container py-4 page-container' }}">
+    @php
+        $content = apply_filters('the_content', $translation->content ?? $page->content ?? '<p>' . __('home_intro') . '</p>');
+        // Solo eliminar el primer h1 si hay slider, no h2 ni h3
+        if (isset($customizations) && ($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")) {
+            $content = preg_replace('/<h1[^>]*>.*?<\/h1>/', '', $content, 1);
+        }
+    @endphp
+
+    <div class="{{ (isset($customizations) ? $customizations->container_class : null) ?? 'container py-4 page-container' }} has-slider-content">
         <article class="{{ (isset($customizations) ? $customizations->content_class : null) ?? 'page-content-wrapper' }}">
             @if(isset($customizations) && $customizations->hide_title !== true && isset($page) && !$page->is_homepage)
                 <h1 class="page-title">{{ $translation->title ?? '' }}</h1>
             @endif
 
             <div class="page-body">
-                @php
-                    $content = apply_filters('the_content', $translation->content ?? $page->content ?? '<p>' . __('home_intro') . '</p>');
-                    // Solo eliminar el primer h1 si hay slider, no h2 ni h3
-                    if (isset($customizations) && ($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")) {
-                        $content = preg_replace('/<h1[^>]*>.*?<\/h1>/', '', $content, 1);
-                    }
-                @endphp
                 {!! $content !!}
             </div>
         </article>
