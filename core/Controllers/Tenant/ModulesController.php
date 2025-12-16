@@ -32,6 +32,25 @@ class ModulesController
 		$stmt->execute([$tenantId]);
 		$modules = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
+		// Sincronizar versiones desde module.json (fuente de verdad)
+		$modulesPath = APP_ROOT . '/modules';
+		foreach ($modules as &$module) {
+			$jsonFile = $modulesPath . '/' . $module['slug'] . '/module.json';
+			if (file_exists($jsonFile)) {
+				$meta = json_decode(file_get_contents($jsonFile), true);
+				if ($meta && isset($meta['version'])) {
+					// Actualizar en memoria para la vista
+					$module['version'] = $meta['version'];
+					// Actualizar en BD si es diferente
+					if ($module['version'] !== ($meta['version'] ?? '')) {
+						$pdo->prepare("UPDATE modules SET version = ? WHERE id = ?")
+							->execute([$meta['version'], $module['id']]);
+					}
+				}
+			}
+		}
+		unset($module);
+
 		return View::renderTenantAdmin('modules.index', [
 			'title' => __('modules_title'),
 			'modules' => $modules
