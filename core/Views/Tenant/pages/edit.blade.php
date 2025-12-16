@@ -23,12 +23,16 @@
 
     {{-- Script para SweetAlert2 Toast (MANTENER ESTO) --}}
     {{-- 🔒 SECURITY: JSON encoding con flags de escape para prevenir XSS --}}
-    @if (session('success'))
+    @php
+      $flashSuccess = consume_flash('success');
+      $flashError = consume_flash('error');
+    @endphp
+    @if ($flashSuccess)
       <script>
         document.addEventListener('DOMContentLoaded', function () {
           Swal.fire({
             icon: 'success',
-            title: <?php echo json_encode(session('success'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            title: <?php echo json_encode($flashSuccess, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             toast: true,
             position: 'top-end',
             showConfirmButton: false,
@@ -42,12 +46,12 @@
         });
       </script>
     @endif
-    @if (session('error'))
+    @if ($flashError)
       <script>
         document.addEventListener('DOMContentLoaded', function () {
           Swal.fire({
             icon: 'error',
-            title: <?php echo json_encode(session('error'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            title: <?php echo json_encode($flashError, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             toast: true,
             position: 'top-end',
             showConfirmButton: false,

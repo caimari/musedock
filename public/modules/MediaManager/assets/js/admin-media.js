@@ -47,6 +47,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const uploadUrl = window.MediaManagerConfig.uploadUrl;
     const dataUrl = window.MediaManagerConfig.dataUrl;
     const deleteUrlBase = window.MediaManagerConfig.deleteUrlTemplate;
+    const detailsUrlTemplate = window.MediaManagerConfig?.detailsUrlTemplate || '/musedock/media/:id/details';
+    const updateUrlTemplate = window.MediaManagerConfig?.updateUrlTemplate || '/musedock/media/:id/update';
+    const renameUrlTemplate = window.MediaManagerConfig?.renameUrlTemplate || '/musedock/media/:id/rename';
+    const moveUrl = window.MediaManagerConfig?.moveUrl || '/musedock/media/move';
+
+    function buildUrl(template, id) {
+        return (template || '').replace(':id', id);
+    }
     
     // ========================================================
     // SECTION 6: MAIN LIBRARY FUNCTIONS
@@ -94,6 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function createMediaItemElement(item) {
         const div = document.createElement('div');
         div.className = 'media-item';
+        div.draggable = true; // Hacer draggable
         div.dataset.mediaId = item.id; // Guardar ID
         div.dataset.url = item.url; // Guardar URL para uso en modal
 
@@ -101,30 +110,54 @@ document.addEventListener('DOMContentLoaded', function() {
         const isImage = item.mime_type && item.mime_type.startsWith('image/');
 
         div.innerHTML = `
+            <input type="checkbox" class="media-item-checkbox" data-id="${item.id}" style="position: absolute; top: 5px; left: 5px; z-index: 10;">
             <div class="media-item-thumbnail">
                 ${isImage ?
-                    `<img src="${escapeHtml(thumbnailUrl)}" alt="${escapeHtml(item.alt_text || item.filename)}" loading="lazy">` :
-                    `<i class="bi bi-file-earmark file-icon"></i>` /* Icono genérico */
+                    `<img src="${escapeHtml(thumbnailUrl)}" alt="${escapeHtml(item.alt_text || item.filename)}" loading="lazy" style="cursor: pointer;">` :
+                    `<i class="bi bi-file-earmark file-icon" style="cursor: pointer;"></i>` /* Icono genérico */
                 }
             </div>
             <div class="media-item-filename" title="${escapeHtml(item.filename)}">${escapeHtml(item.filename)}</div>
-            <div class="media-item-actions">
-                <button class="delete-media-btn" data-id="${item.id}" title="Eliminar">
-                    <i class="bi bi-trash"></i>
-                </button>
-                <button class="edit-media-meta-btn" 
-                  data-id="${item.id}" 
-                  data-url="${escapeHtml(item.url)}" 
-                  data-alt="${escapeHtml(item.alt_text || '')}" 
-                  data-caption="${escapeHtml(item.caption || '')}" 
-                  title="Editar metadatos">
-                    <i class="bi bi-pencil-square"></i>
-                </button>
-            </div>
         `;
-        
-        // Añadir listeners para acciones
-        div.querySelector('.delete-media-btn').addEventListener('click', handleDeleteMedia);
+
+        // Evento: Click en checkbox
+        const checkbox = div.querySelector('.media-item-checkbox');
+        checkbox.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (this.checked) {
+                div.classList.add('selected');
+                updateActionButtons();
+            } else {
+                div.classList.remove('selected');
+                updateActionButtons();
+            }
+        });
+
+        // Evento: Click en imagen abre preview (modal)
+        const thumbnail = div.querySelector('.media-item-thumbnail img, .media-item-thumbnail .file-icon');
+        if (thumbnail) {
+            thumbnail.addEventListener('click', function(e) {
+                e.stopPropagation();
+                // Simular click en el contenedor .media-item para que el manejador global lo procese
+                // El manejador global (línea 643) buscará el botón .edit-media-meta-btn dentro
+                const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                });
+                div.dispatchEvent(clickEvent);
+            });
+        }
+
+        // Crear botón oculto con los datos del media para que el manejador global pueda encontrarlo
+        const hiddenEditBtn = document.createElement('button');
+        hiddenEditBtn.className = 'edit-media-meta-btn';
+        hiddenEditBtn.dataset.id = item.id;
+        hiddenEditBtn.dataset.url = item.url;
+        hiddenEditBtn.dataset.alt = item.alt_text || '';
+        hiddenEditBtn.dataset.caption = item.caption || '';
+        hiddenEditBtn.style.display = 'none';
+        div.appendChild(hiddenEditBtn);
         
         return div;
     }
@@ -325,11 +358,45 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // --- Funciones Helper para Notificaciones (usando SweetAlert2) ---
     function showSuccess(message) {
-        Swal.fire({ icon: 'success', title: 'Éxito', text: message, timer: 2000, showConfirmButton: false });
+        // Asegurar que el toast aparezca SIEMPRE sobre cualquier modal
+        Swal.fire({
+            icon: 'success',
+            title: 'Éxito',
+            text: message,
+            timer: 2000,
+            showConfirmButton: false,
+            customClass: {
+                container: 'swal2-top-layer'
+            },
+            didOpen: () => {
+                // Forzar z-index inline para garantizar visibilidad
+                const swalContainer = document.querySelector('.swal2-container');
+                if (swalContainer) {
+                    swalContainer.style.zIndex = '999999';
+                }
+            }
+        });
     }
-    
+
     function showError(message) {
-        Swal.fire({ icon: 'error', title: 'Error', text: message });
+        console.error('🚨 Mostrando error al usuario:', message);
+        // Asegurar que el error aparezca SIEMPRE sobre cualquier modal
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: message,
+            customClass: {
+                container: 'swal2-top-layer'
+            },
+            didOpen: () => {
+                // Forzar z-index inline para garantizar visibilidad
+                const swalContainer = document.querySelector('.swal2-container');
+                if (swalContainer) {
+                    swalContainer.style.zIndex = '999999';
+                    console.log('✅ Z-index del modal de error establecido a 999999');
+                }
+            }
+        });
     }
 
 // ========================================================
@@ -380,76 +447,125 @@ function handleFilesUpload() {
     progressBar.style.width = '0%';
     progressBar.setAttribute('aria-valuenow', 0);
 
-    // Crear FormData
-    const formData = new FormData();
-    files.forEach(file => {
-        formData.append('file[]', file); // IMPORTANTE: Mantener el nombre 'file[]' para compatibilidad
-    });
-
-    // Añadir CSRF token
     const csrfToken = document.querySelector('input[name="_token"]')?.value;
-    if (csrfToken) formData.append('_token', csrfToken);
+    const uploadFolderInput = document.getElementById('upload-folder-id');
+    const currentFolderId = uploadFolderInput?.value || window.FolderManager?.currentFolderId || window.currentFolderId;
+    const currentDisk = window.MediaManagerConfig?.currentDisk;
 
-    // Subida con XMLHttpRequest
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', uploadUrl, true);
+    let uploadedCount = 0;
+    let errorCount = 0;
 
-    // Progreso
-    xhr.upload.onprogress = function(event) {
-        if (event.lengthComputable) {
-            const percentComplete = Math.round((event.loaded / event.total) * 100);
-            progressBar.style.width = percentComplete + '%';
-            progressBar.setAttribute('aria-valuenow', percentComplete);
-            uploadStatus.textContent = `Subiendo... ${percentComplete}%`;
-        }
-    };
+    if (browseButton) browseButton.disabled = true;
+    fileInput.disabled = true;
 
-    // Finalización
-    xhr.onload = function() {
+    function finishQueue() {
         progressContainer.style.display = 'none';
         uploadStatus.textContent = '';
         fileInput.value = '';
+        if (browseButton) browseButton.disabled = false;
+        fileInput.disabled = false;
 
-        if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-                const response = JSON.parse(xhr.responseText);
+        if (uploadedCount > 0 && errorCount === 0) {
+            showSuccess(`${uploadedCount} archivo(s) subido(s) correctamente.`);
+        } else if (uploadedCount > 0 && errorCount > 0) {
+            showSuccess(`${uploadedCount} archivo(s) subido(s). ${errorCount} con errores.`);
+        } else if (errorCount > 0) {
+            showError(`Error al subir ${errorCount} archivo(s). Por favor, revisa la consola (F12) para ver los detalles del error.`);
+            console.log('%c💡 AYUDA: Abre la consola del navegador (F12) para ver los detalles completos del error', 'background: #4CAF50; color: white; padding: 5px 10px; border-radius: 3px; font-weight: bold;');
+        }
+    }
 
-                if (response.success) {
-                    // Manejar tanto respuesta de archivo único como múltiple
-                    if (response.files && Array.isArray(response.files)) {
-                        // Respuesta de múltiples archivos
-                        response.files.forEach(media => {
-                            addMediaToGrid(media);
-                        });
-                        showSuccess(`${response.files.length} archivos subidos correctamente.`);
-                    } else if (response.media) {
-                        // Respuesta de archivo único (compatibilidad con versión anterior)
-                        addMediaToGrid(response.media);
-                        showSuccess('Archivo subido: ' + response.media.filename);
-                    } else {
-                        showError('Error al subir: formato de respuesta inválido');
-                    }
-                } else {
-                    showError('Error al subir: ' + (response.message || 'Respuesta inválida'));
-                }
-            } catch (e) {
-                showError('Error procesando respuesta del servidor.');
-                console.error("Error parsing upload response:", e, xhr.responseText);
+    function uploadOne(index) {
+        if (index >= totalFiles) {
+            finishQueue();
+            return;
+        }
+
+        const file = files[index];
+        uploadStatus.textContent = `Subiendo ${index + 1}/${totalFiles}: ${file.name}`;
+
+        const formData = new FormData();
+        formData.append('file[]', file);
+        if (csrfToken) formData.append('_token', csrfToken);
+        if (currentDisk) formData.append('disk', currentDisk);
+        if (currentFolderId && currentFolderId !== '' && currentFolderId !== '1') {
+            formData.append('folder_id', currentFolderId);
+        }
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', uploadUrl, true);
+
+        xhr.upload.onprogress = function(event) {
+            if (event.lengthComputable) {
+                const fileProgress = event.total > 0 ? (event.loaded / event.total) : 0;
+                const overall = Math.round(((index + fileProgress) / totalFiles) * 100);
+                progressBar.style.width = overall + '%';
+                progressBar.setAttribute('aria-valuenow', overall);
             }
-        } else {
-            showError(`Error de subida: ${xhr.status} ${xhr.statusText}`);
-        }
-    };
+        };
 
-    // Error de red
-    xhr.onerror = function() {
-        progressContainer.style.display = 'none';
-        uploadStatus.textContent = '';
-        fileInput.value = '';
-        showError('Error de red durante la subida.');
-    };
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        const uploaded = (response.files && Array.isArray(response.files) ? response.files : (response.media ? [response.media] : []));
+                        uploaded.forEach(media => addMediaToGrid(media));
+                        uploadedCount += uploaded.length || 1;
+                    } else {
+                        errorCount += 1;
+                        console.error('═══════════════════════════════════════════');
+                        console.error('❌ ERROR DE SUBIDA - Respuesta del servidor');
+                        console.error('═══════════════════════════════════════════');
+                        console.error('Archivo:', file.name);
+                        console.error('Disco seleccionado:', currentDisk);
+                        console.error('Folder ID:', currentFolderId);
+                        console.error('Respuesta completa:', response);
+                        console.error('Mensaje de error:', response.message || 'Sin mensaje específico');
+                        console.error('Detalles adicionales:', response.error || response.errors || 'No disponible');
+                        console.error('═══════════════════════════════════════════');
+                    }
+                } catch (e) {
+                    errorCount += 1;
+                    console.error('═══════════════════════════════════════════');
+                    console.error('❌ ERROR AL PARSEAR RESPUESTA DEL SERVIDOR');
+                    console.error('═══════════════════════════════════════════');
+                    console.error('Archivo:', file.name);
+                    console.error('Error de parsing:', e);
+                    console.error('Respuesta raw del servidor:', xhr.responseText);
+                    console.error('═══════════════════════════════════════════');
+                }
+            } else {
+                errorCount += 1;
+                console.error('═══════════════════════════════════════════');
+                console.error('❌ ERROR HTTP - Código de estado:', xhr.status);
+                console.error('═══════════════════════════════════════════');
+                console.error('Archivo:', file.name);
+                console.error('Status:', xhr.status, xhr.statusText);
+                console.error('Respuesta del servidor:', xhr.responseText);
+                console.error('Headers:', xhr.getAllResponseHeaders());
+                console.error('═══════════════════════════════════════════');
+            }
 
-    xhr.send(formData);
+            uploadOne(index + 1);
+        };
+
+        xhr.onerror = function() {
+            errorCount += 1;
+            console.error('═══════════════════════════════════════════');
+            console.error('❌ ERROR DE RED - No se pudo conectar al servidor');
+            console.error('═══════════════════════════════════════════');
+            console.error('Archivo:', file.name);
+            console.error('URL destino:', uploadUrl);
+            console.error('Posible causa: Problema de conexión, CORS, o servidor no disponible');
+            console.error('═══════════════════════════════════════════');
+            uploadOne(index + 1);
+        };
+
+        xhr.send(formData);
+    }
+
+    uploadOne(0);
 }
 
 // Función auxiliar para añadir un medio a la cuadrícula
@@ -508,8 +624,8 @@ function addMediaToGrid(media) {
                         // Si usas POST con _method:
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    // Si usas POST con _method:
-                    body: new URLSearchParams({'_method': 'DELETE', '_token': csrfToken}) // Enviar _method=DELETE
+                    // Route is POST, no _method needed
+                    body: new URLSearchParams({'_token': csrfToken})
                 })
                 .then(response => response.json().then(data => ({ ok: response.ok, status: response.status, data })))
                 .then(({ ok, status, data }) => {
@@ -584,10 +700,21 @@ if (!Element.prototype.hasOwnProperty(':contains')) {
 
 // Manejador principal para edición de metadatos
 document.body.addEventListener('click', function(e) {
-    const editBtn = e.target.closest('.edit-media-meta-btn');
+    // Primero buscar click en botón de edición directo
+    let editBtn = e.target.closest('.edit-media-meta-btn');
+
+    // Si no, buscar si se hizo clic en la imagen o su contenedor
+    if (!editBtn) {
+        const mediaItem = e.target.closest('.media-item, .attachment');
+        if (mediaItem && !e.target.closest('.media-item-actions')) {
+            // Si no se hizo clic en las acciones, buscar el botón de edición dentro del elemento
+            editBtn = mediaItem.querySelector('.edit-media-meta-btn');
+        }
+    }
+
     if (editBtn) {
         e.preventDefault();
-        console.log('[Modal Trigger] Botón de edición clickeado:', editBtn);
+        console.log('[Modal Trigger] Edición activada (click en imagen o botón):', editBtn);
 
         const mediaId = editBtn.dataset.id || editBtn.dataset.mediaId;
         if (!mediaId) {
@@ -606,7 +733,7 @@ document.body.addEventListener('click', function(e) {
             willOpen: () => { Swal.showLoading(); }
         });
 
-        fetch(`/musedock/media/${mediaId}/details`)
+        fetch(buildUrl(detailsUrlTemplate, mediaId))
             .then(response => {
                 if (!response.ok) throw new Error(`HTTP error ${response.status}`);
                 return response.json();
@@ -626,7 +753,8 @@ document.body.addEventListener('click', function(e) {
             .catch(err => {
                 console.error("[Modal Trigger] Error en fetch:", err);
                 Swal.close();
-                showError(`Error de red al obtener detalles (${err.message}). Usando datos básicos.`);
+                // No bloquear UX por fallo de detalles: abrir modal con datos básicos sin alerta extra.
+                console.warn(`[Modal Trigger] No se pudieron obtener detalles (HTTP). Usando datos básicos.`, err);
                 const basicInfo = { id: mediaId, url: mediaUrl, alt_text: mediaAlt, caption: mediaCaption, filename: mediaUrl ? mediaUrl.split('/').pop() : 'Archivo' };
                 createMediaModal(basicInfo);
             });
@@ -634,7 +762,8 @@ document.body.addEventListener('click', function(e) {
         function createMediaModal(mediaInfo) {
              console.log("[Modal Init] Creando modal para ID:", mediaInfo.id, mediaInfo);
             // Llamada a la función principal que ahora contiene toda la lógica AJAX
-            createCustomWPModal({
+            let modalInstance;
+            modalInstance = createCustomWPModal({
                 mediaId: mediaInfo.id,
                 mediaUrl: mediaInfo.url,
                 mediaAlt: mediaInfo.alt_text || '',
@@ -650,7 +779,7 @@ document.body.addEventListener('click', function(e) {
     const csrfToken = document.querySelector('input[name="_token"]')?.value;
     if (csrfToken) formData.append('_token', csrfToken);
 
-    fetch(`/musedock/media/${data.id}/update`, {
+	    fetch(buildUrl(updateUrlTemplate, data.id), {
         method: 'POST',
         headers: {'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded'},
         body: formData
@@ -740,11 +869,17 @@ onDelete: function(id) {
     const deleteUrlTemplate = window.MediaManagerConfig?.deleteUrlTemplate || '/musedock/media/:id/delete';
     const deleteUrl = deleteUrlTemplate.replace(':id', id);
 
+    const extractItemId = (item) => {
+        const raw = item?.dataset?.mediaId || item?.dataset?.id || item?.getAttribute?.('data-id') || item?.id || '';
+        const match = String(raw).match(/(\d+)/);
+        return match ? match[1] : raw;
+    };
+
     // Verificar si hay más elementos para navegar
     const galleryItemsSelector = '.media-item[data-media-id], .attachment[data-id], .attachment[data-media-id]';
     const allMediaItems = Array.from(document.querySelectorAll(galleryItemsSelector));
     const currentIndex = allMediaItems.findIndex(item => {
-        const itemId = item.dataset.mediaId || item.dataset.id || item.id;
+        const itemId = extractItemId(item);
         return itemId == id;
     });
     
@@ -754,25 +889,29 @@ onDelete: function(id) {
         // Si hay un elemento siguiente, usarlo
         if (currentIndex < allMediaItems.length - 1) {
             const nextItem = allMediaItems[currentIndex + 1];
-            nextItemId = nextItem.dataset.mediaId || nextItem.dataset.id || nextItem.id;
+            nextItemId = extractItemId(nextItem);
         } 
         // Si no hay siguiente pero hay anterior, usar el anterior
         else if (currentIndex > 0) {
             const prevItem = allMediaItems[currentIndex - 1];
-            nextItemId = prevItem.dataset.mediaId || prevItem.dataset.id || prevItem.id;
+            nextItemId = extractItemId(prevItem);
+        } else if (currentIndex < 0) {
+            // Fallback si no encontramos el actual en DOM: tomar el primero distinto
+            const fallbackItem = allMediaItems.find(item => extractItemId(item) != id);
+            nextItemId = fallbackItem ? extractItemId(fallbackItem) : null;
         }
     }
 
     fetch(deleteUrl, {
-        method: 'POST', // O 'DELETE'
+        method: 'POST',
         headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded'},
-        body: new URLSearchParams({'_method': 'DELETE', '_token': csrfToken}) // Si usas POST para simular DELETE
+        body: new URLSearchParams({'_token': csrfToken})
     })
     .then(response => response.json().then(data => ({ ok: response.ok, status: response.status, data })))
     .then(({ ok, status, data }) => {
         if (ok && data.success) {
             // Eliminar del DOM
-            const itemElement = document.querySelector(`.media-item[data-media-id="${id}"], .attachment[data-id="${id}"]`);
+            const itemElement = document.querySelector(`.media-item[data-media-id="${id}"], .attachment[data-id="${id}"], .attachment[data-media-id="${id}"]`);
             if (itemElement) itemElement.remove();
             
             // Actualizar la vista de grid si quedó vacía
@@ -814,12 +953,10 @@ onDelete: function(id) {
                 
                 // Cargar el siguiente elemento
                 setTimeout(() => {
-                    const modalInstance = window.currentModalInstance;
                     if (modalInstance && typeof modalInstance.loadMedia === 'function') {
                         modalInstance.loadMedia(nextItemId);
                     } else {
-                        // Fallback: Si no podemos acceder a la instancia del modal, recargar toda la página
-                        loadMediaData(nextItemId);
+                        console.warn("[Modal Delete] No se pudo acceder a la instancia del modal para navegar.");
                     }
                 }, 100);
                 
@@ -828,6 +965,9 @@ onDelete: function(id) {
             
             // Si no hay más elementos, cerrar modal y mostrar mensaje
             Swal.fire(swalConfig);
+            if (modalInstance && typeof modalInstance.close === 'function') {
+                setTimeout(() => modalInstance.close(), 150);
+            }
         } else {
             // Error al eliminar
             showError(data?.message || `Error al eliminar (${status})`);
@@ -1206,7 +1346,7 @@ for (const key in detailFields) {
         loadingIndicator.style.display = 'block';
 
         // --- Petición AJAX ---
-        fetch(`/musedock/media/${mediaId}/details`)
+        fetch(buildUrl(detailsUrlTemplate, mediaId))
             .then(response => {
                 if (!response.ok) {
                     console.error(`[Modal Load] HTTP error ${response.status} para ID ${mediaId}`);
@@ -1595,9 +1735,321 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
     document.head.appendChild(styleElement);
     
     // ========================================================
-    // SECTION 13: INITIALIZATION
+    // SECTION 13: DRAG AND DROP
     // ========================================================
-    
+
+    document.addEventListener('dragstart', function(e) {
+        const mediaItem = e.target.closest('.media-item, .attachment');
+        if (mediaItem) {
+            const mediaId = mediaItem.dataset.mediaId || mediaItem.dataset.id;
+            if (mediaId) {
+                e.dataTransfer.effectAllowed = 'move';
+                // Guardar múltiples IDs si hay selección
+                const selectedItems = document.querySelectorAll('.media-item.selected, .attachment.selected');
+                const ids = selectedItems.length > 0 ?
+                    Array.from(selectedItems).map(item => item.dataset.mediaId || item.dataset.id) :
+                    [mediaId];
+                e.dataTransfer.setData('media-ids', JSON.stringify(ids));
+            }
+        }
+    });
+
+    // ========================================================
+    // SECTION 13B: ACTION BUTTONS
+    // ========================================================
+
+    function getSelectedMediaIds() {
+        return Array.from(document.querySelectorAll('.media-item-checkbox:checked')).map(cb => cb.dataset.id);
+    }
+
+    function updateActionButtons() {
+        const selectedCount = getSelectedMediaIds().length;
+        const fileCountSpan = document.getElementById('files-count');
+
+        if (fileCountSpan) {
+            if (selectedCount > 0) {
+                fileCountSpan.textContent = `${selectedCount} archivo(s) seleccionado(s)`;
+            } else {
+                const totalCount = document.querySelectorAll('.media-item-checkbox').length;
+                fileCountSpan.textContent = `${totalCount} archivo(s)`;
+            }
+        }
+
+        // Mostrar/ocultar botones de acciones según selección
+        const toolbar = document.querySelector('.toolbar-right');
+        let actionButtons = toolbar?.querySelector('.action-buttons-group');
+
+        // Determinar qué botones mostrar
+        let buttonsHtml = '';
+
+        if (selectedCount > 0) {
+            buttonsHtml = `
+                <button id="btn-copy-selected" class="btn btn-sm btn-outline-secondary" title="Copiar seleccionados">
+                    <i class="bi bi-files"></i> Copiar
+                </button>
+                <button id="btn-cut-selected" class="btn btn-sm btn-outline-secondary" title="Cortar seleccionados">
+                    <i class="bi bi-scissors"></i> Cortar
+                </button>
+                <button id="btn-delete-selected" class="btn btn-sm btn-outline-danger" title="Eliminar seleccionados">
+                    <i class="bi bi-trash"></i> Eliminar
+                </button>
+            `;
+        }
+
+        // Agregar botón de pegar si hay algo en el portapapeles
+        if (clipboardData.ids && clipboardData.ids.length > 0) {
+            if (buttonsHtml) buttonsHtml += '<span style="margin: 0 0.5rem; border-left: 1px solid #e0e0e0;"></span>';
+            buttonsHtml += `
+                <button id="btn-paste" class="btn btn-sm btn-outline-success" title="Pegar aquí">
+                    <i class="bi bi-clipboard"></i> Pegar
+                </button>
+            `;
+        }
+
+        if (buttonsHtml) {
+            if (!actionButtons) {
+                actionButtons = document.createElement('div');
+                actionButtons.className = 'action-buttons-group';
+                if (toolbar) {
+                    toolbar.appendChild(actionButtons);
+                }
+            }
+            actionButtons.innerHTML = buttonsHtml;
+
+            // Agregar eventos a los botones
+            if (selectedCount > 0) {
+                document.getElementById('btn-copy-selected')?.addEventListener('click', copySelected);
+                document.getElementById('btn-cut-selected')?.addEventListener('click', cutSelected);
+                document.getElementById('btn-delete-selected')?.addEventListener('click', deleteSelected);
+            }
+            document.getElementById('btn-paste')?.addEventListener('click', pasteClipboard);
+        } else if (actionButtons) {
+            // Remover botones si no hay nada que mostrar
+            actionButtons.remove();
+        }
+    }
+
+    function copySelected() {
+        const ids = getSelectedMediaIds();
+        if (ids.length === 0) return;
+        clipboardData = { action: 'copy', ids };
+        showNotification(`${ids.length} archivo(s) copiado(s) al portapapeles`);
+    }
+
+    function cutSelected() {
+        const ids = getSelectedMediaIds();
+        if (ids.length === 0) return;
+        clipboardData = { action: 'cut', ids };
+        document.querySelectorAll('.media-item-checkbox:checked').forEach(cb => {
+            const item = cb.closest('.media-item');
+            if (item) item.style.opacity = '0.5';
+        });
+        showNotification(`${ids.length} archivo(s) cortado(s) al portapapeles`);
+    }
+
+    function deleteSelected() {
+        const ids = getSelectedMediaIds();
+        if (ids.length === 0) return;
+
+        const msg = ids.length === 1 ? '¿Eliminar este archivo?' : `¿Eliminar ${ids.length} archivos?`;
+
+        Swal.fire({
+            title: 'Confirmación',
+            text: msg,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc3545'
+        }).then(result => {
+            if (result.isConfirmed) {
+                // Eliminar cada archivo
+                let deleted = 0;
+                ids.forEach(id => {
+                    fetch(buildUrl(deleteUrlTemplate, id), {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-Token': getCsrfToken(),
+                        }
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            deleted++;
+                            if (deleted === ids.length) {
+                                showNotification('Archivos eliminados correctamente');
+                                loadMedia(1);
+                            }
+                        }
+                    })
+                    .catch(err => showError('Error al eliminar: ' + err.message));
+                });
+            }
+        });
+    }
+
+    // ========================================================
+    // SECTION 14: CONTEXT MENU
+    // ========================================================
+
+    let clipboardData = { action: null, ids: [] }; // Copiar/Cortar clipboard
+    const contextMenu = document.getElementById('media-context-menu');
+    let currentContextItem = null;
+
+    // Mostrar menú contextual
+    document.addEventListener('contextmenu', function(e) {
+        const mediaItem = e.target.closest('.media-item, .attachment');
+        if (mediaItem && gridContainer && gridContainer.contains(mediaItem)) {
+            e.preventDefault();
+            currentContextItem = mediaItem;
+            const mediaId = mediaItem.dataset.mediaId || mediaItem.dataset.id;
+
+            // Posicionar el menú
+            contextMenu.style.left = e.pageX + 'px';
+            contextMenu.style.top = e.pageY + 'px';
+            contextMenu.style.display = 'block';
+
+            // Mostrar/ocultar opción de pegar
+            const pasteItem = contextMenu.querySelector('[data-action="paste"]');
+            const pasteDivider = contextMenu.querySelector('[data-divider="paste"]');
+            if (clipboardData.ids.length > 0) {
+                pasteItem.style.display = 'block';
+                pasteDivider.style.display = 'block';
+            } else {
+                pasteItem.style.display = 'none';
+                pasteDivider.style.display = 'none';
+            }
+        }
+    });
+
+    // Ocultar menú contextual
+    document.addEventListener('click', function(e) {
+        if (!contextMenu.contains(e.target)) {
+            contextMenu.style.display = 'none';
+        }
+    });
+
+    // Manejar acciones del menú contextual
+    document.querySelectorAll('.context-menu-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            const action = this.dataset.action;
+            const mediaId = currentContextItem ? (currentContextItem.dataset.mediaId || currentContextItem.dataset.id) : null;
+
+            if (!mediaId && action !== 'paste') return;
+
+            switch(action) {
+                case 'rename':
+                    showRenameDialog(mediaId);
+                    break;
+                case 'copy':
+                    clipboardData = { action: 'copy', ids: [mediaId] };
+                    showNotification('Archivo copiado al portapapeles');
+                    break;
+                case 'cut':
+                    clipboardData = { action: 'cut', ids: [mediaId] };
+                    currentContextItem.style.opacity = '0.5';
+                    showNotification('Archivo cortado al portapapeles');
+                    break;
+                case 'paste':
+                    pasteClipboard();
+                    break;
+                case 'delete':
+                    confirmDelete(mediaId);
+                    break;
+            }
+            contextMenu.style.display = 'none';
+        });
+    });
+
+    // Función para renombrar
+    function showRenameDialog(mediaId) {
+        const mediaItem = document.querySelector(`.media-item[data-media-id="${mediaId}"], .attachment[data-id="${mediaId}"]`);
+        if (!mediaItem) return;
+
+        const currentName = mediaItem.querySelector('.media-item-filename')?.textContent || 'archivo';
+        const newName = prompt('Renombrar archivo:', currentName);
+
+        if (newName && newName !== currentName) {
+            renameMedia(mediaId, newName);
+        }
+    }
+
+    // Función para renombrar media via AJAX
+    function renameMedia(mediaId, newName) {
+        fetch(buildUrl(renameUrlTemplate, mediaId), {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `filename=${encodeURIComponent(newName)}&_token=${document.querySelector('input[name="_token"]')?.value || ''}`
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Archivo renombrado correctamente');
+                loadMedia(currentPage);
+            } else {
+                showError(data.message || 'Error al renombrar');
+            }
+        })
+        .catch(err => showError('Error: ' + err.message));
+    }
+
+    // Función para pegar
+    function pasteClipboard() {
+        if (clipboardData.ids.length === 0) return;
+
+        const targetFolderId = window.currentFolderId || '';
+        const ids = clipboardData.ids;
+        const action = clipboardData.action;
+
+        fetch(moveUrl, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `items[]=${ids.map(id => JSON.stringify({id, type: 'media'})).join('&items[]=')}&target_folder_id=${targetFolderId}&_token=${document.querySelector('input[name="_token"]')?.value || ''}`
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(action === 'cut' ? 'Archivo movido' : 'Archivo copiado');
+                if (action === 'cut') {
+                    clipboardData = { action: null, ids: [] };
+                    document.querySelectorAll('.media-item, .attachment').forEach(item => item.style.opacity = '1');
+                }
+                loadMedia(currentPage);
+            } else {
+                showError(data.message || 'Error al pegar');
+            }
+        })
+        .catch(err => showError('Error: ' + err.message));
+    }
+
+    // Función para mostrar notificaciones
+    function showNotification(message) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true,
+                position: 'top-right',
+                icon: 'success',
+                title: message,
+                showConfirmButton: false,
+                timer: 2000
+            });
+        } else {
+            alert(message);
+        }
+    }
+
+    // ========================================================
+    // SECTION 13A: INITIALIZATION
+    // ========================================================
+
     // --- Carga Inicial de la biblioteca principal ---
     if (gridContainer) {
         loadMedia(currentPage);

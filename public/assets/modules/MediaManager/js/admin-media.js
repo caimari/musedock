@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ========================================================
     const uploadUrl = window.MediaManagerConfig.uploadUrl;
     const dataUrl = window.MediaManagerConfig.dataUrl;
-    let deleteUrlBase = window.MediaManagerConfig.deleteUrlTemplate;
+    const deleteUrlBase = window.MediaManagerConfig.deleteUrlTemplate;
     const detailsUrlTemplate = window.MediaManagerConfig?.detailsUrlTemplate || '/musedock/media/:id/details';
     const updateUrlTemplate = window.MediaManagerConfig?.updateUrlTemplate || '/musedock/media/:id/update';
     const renameUrlTemplate = window.MediaManagerConfig?.renameUrlTemplate || '/musedock/media/:id/rename';
@@ -54,10 +54,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function buildUrl(template, id) {
         return (template || '').replace(':id', id);
-    }
-    // Verificar si la ruta no se resolvió correctamente
-    if (deleteUrlBase && deleteUrlBase.includes('#ruta-no-encontrada')) {
-        deleteUrlBase = '/musedock/media/:id/delete';
     }
     
     // ========================================================
@@ -76,11 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Construir URL con parámetros
         const url = new URL(dataUrl, window.location.origin);
         url.searchParams.append('page', page);
-
-        // Añadir disco actual si está definido
-        if (window.MediaManagerConfig && window.MediaManagerConfig.currentDisk) {
-            url.searchParams.append('disk', window.MediaManagerConfig.currentDisk);
-        }
+        // TODO: Añadir per_page, search, type, tenant_id si se implementan filtros
 
         fetch(url)
             .then(response => {
@@ -366,11 +358,45 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // --- Funciones Helper para Notificaciones (usando SweetAlert2) ---
     function showSuccess(message) {
-        Swal.fire({ icon: 'success', title: 'Éxito', text: message, timer: 2000, showConfirmButton: false });
+        // Asegurar que el toast aparezca SIEMPRE sobre cualquier modal
+        Swal.fire({
+            icon: 'success',
+            title: 'Éxito',
+            text: message,
+            timer: 2000,
+            showConfirmButton: false,
+            customClass: {
+                container: 'swal2-top-layer'
+            },
+            didOpen: () => {
+                // Forzar z-index inline para garantizar visibilidad
+                const swalContainer = document.querySelector('.swal2-container');
+                if (swalContainer) {
+                    swalContainer.style.zIndex = '999999';
+                }
+            }
+        });
     }
-    
+
     function showError(message) {
-        Swal.fire({ icon: 'error', title: 'Error', text: message });
+        console.error('🚨 Mostrando error al usuario:', message);
+        // Asegurar que el error aparezca SIEMPRE sobre cualquier modal
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: message,
+            customClass: {
+                container: 'swal2-top-layer'
+            },
+            didOpen: () => {
+                // Forzar z-index inline para garantizar visibilidad
+                const swalContainer = document.querySelector('.swal2-container');
+                if (swalContainer) {
+                    swalContainer.style.zIndex = '999999';
+                    console.log('✅ Z-index del modal de error establecido a 999999');
+                }
+            }
+        });
     }
 
 // ========================================================
@@ -421,7 +447,6 @@ function handleFilesUpload() {
     progressBar.style.width = '0%';
     progressBar.setAttribute('aria-valuenow', 0);
 
-    // Subir en cola: 1 archivo por request (mejor control y rate-limit)
     const csrfToken = document.querySelector('input[name="_token"]')?.value;
     const uploadFolderInput = document.getElementById('upload-folder-id');
     const currentFolderId = uploadFolderInput?.value || window.FolderManager?.currentFolderId || window.currentFolderId;
@@ -430,7 +455,6 @@ function handleFilesUpload() {
     let uploadedCount = 0;
     let errorCount = 0;
 
-    // Bloquear UI mientras sube
     if (browseButton) browseButton.disabled = true;
     fileInput.disabled = true;
 
@@ -446,7 +470,8 @@ function handleFilesUpload() {
         } else if (uploadedCount > 0 && errorCount > 0) {
             showSuccess(`${uploadedCount} archivo(s) subido(s). ${errorCount} con errores.`);
         } else if (errorCount > 0) {
-            showError(`No se pudo subir ningún archivo (${errorCount} error(es)).`);
+            showError(`Error al subir ${errorCount} archivo(s). Por favor, revisa la consola (F12) para ver los detalles del error.`);
+            console.log('%c💡 AYUDA: Abre la consola del navegador (F12) para ver los detalles completos del error', 'background: #4CAF50; color: white; padding: 5px 10px; border-radius: 3px; font-weight: bold;');
         }
     }
 
@@ -489,15 +514,37 @@ function handleFilesUpload() {
                         uploadedCount += uploaded.length || 1;
                     } else {
                         errorCount += 1;
-                        console.error('[Upload] Error:', response);
+                        console.error('═══════════════════════════════════════════');
+                        console.error('❌ ERROR DE SUBIDA - Respuesta del servidor');
+                        console.error('═══════════════════════════════════════════');
+                        console.error('Archivo:', file.name);
+                        console.error('Disco seleccionado:', currentDisk);
+                        console.error('Folder ID:', currentFolderId);
+                        console.error('Respuesta completa:', response);
+                        console.error('Mensaje de error:', response.message || 'Sin mensaje específico');
+                        console.error('Detalles adicionales:', response.error || response.errors || 'No disponible');
+                        console.error('═══════════════════════════════════════════');
                     }
                 } catch (e) {
                     errorCount += 1;
-                    console.error("Error parsing upload response:", e, xhr.responseText);
+                    console.error('═══════════════════════════════════════════');
+                    console.error('❌ ERROR AL PARSEAR RESPUESTA DEL SERVIDOR');
+                    console.error('═══════════════════════════════════════════');
+                    console.error('Archivo:', file.name);
+                    console.error('Error de parsing:', e);
+                    console.error('Respuesta raw del servidor:', xhr.responseText);
+                    console.error('═══════════════════════════════════════════');
                 }
             } else {
                 errorCount += 1;
-                console.error(`[Upload] HTTP ${xhr.status} ${xhr.statusText}`, xhr.responseText);
+                console.error('═══════════════════════════════════════════');
+                console.error('❌ ERROR HTTP - Código de estado:', xhr.status);
+                console.error('═══════════════════════════════════════════');
+                console.error('Archivo:', file.name);
+                console.error('Status:', xhr.status, xhr.statusText);
+                console.error('Respuesta del servidor:', xhr.responseText);
+                console.error('Headers:', xhr.getAllResponseHeaders());
+                console.error('═══════════════════════════════════════════');
             }
 
             uploadOne(index + 1);
@@ -505,7 +552,13 @@ function handleFilesUpload() {
 
         xhr.onerror = function() {
             errorCount += 1;
-            console.error('[Upload] Network error');
+            console.error('═══════════════════════════════════════════');
+            console.error('❌ ERROR DE RED - No se pudo conectar al servidor');
+            console.error('═══════════════════════════════════════════');
+            console.error('Archivo:', file.name);
+            console.error('URL destino:', uploadUrl);
+            console.error('Posible causa: Problema de conexión, CORS, o servidor no disponible');
+            console.error('═══════════════════════════════════════════');
             uploadOne(index + 1);
         };
 
@@ -726,7 +779,7 @@ document.body.addEventListener('click', function(e) {
     const csrfToken = document.querySelector('input[name="_token"]')?.value;
     if (csrfToken) formData.append('_token', csrfToken);
 
-    fetch(buildUrl(updateUrlTemplate, data.id), {
+	    fetch(buildUrl(updateUrlTemplate, data.id), {
         method: 'POST',
         headers: {'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded'},
         body: formData
@@ -813,11 +866,7 @@ document.body.addEventListener('click', function(e) {
 onDelete: function(id) {
     console.log("[Modal Callback] onDelete llamado para ID:", id);
     const csrfToken = document.querySelector('input[name="_token"]')?.value;
-    let deleteUrlTemplate = window.MediaManagerConfig?.deleteUrlTemplate || '/musedock/media/:id/delete';
-    // Verificar si la ruta no se resolvió correctamente
-    if (deleteUrlTemplate.includes('#ruta-no-encontrada')) {
-        deleteUrlTemplate = '/musedock/media/:id/delete';
-    }
+    const deleteUrlTemplate = window.MediaManagerConfig?.deleteUrlTemplate || '/musedock/media/:id/delete';
     const deleteUrl = deleteUrlTemplate.replace(':id', id);
 
     const extractItemId = (item) => {
@@ -1747,13 +1796,12 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
             `;
         }
 
-        // Agregar botón de pegar si hay algo en el portapapeles (usar window.clipboardData)
-        const clipboard = window.clipboardData || { ids: [] };
-        if (clipboard.ids && clipboard.ids.length > 0) {
+        // Agregar botón de pegar si hay algo en el portapapeles
+        if (clipboardData.ids && clipboardData.ids.length > 0) {
             if (buttonsHtml) buttonsHtml += '<span style="margin: 0 0.5rem; border-left: 1px solid #e0e0e0;"></span>';
             buttonsHtml += `
-                <button id="btn-paste" class="btn btn-sm btn-outline-success" title="Pegar ${clipboard.ids.length} archivo(s) aquí">
-                    <i class="bi bi-clipboard"></i> Pegar (${clipboard.ids.length})
+                <button id="btn-paste" class="btn btn-sm btn-outline-success" title="Pegar aquí">
+                    <i class="bi bi-clipboard"></i> Pegar
                 </button>
             `;
         }
@@ -1784,21 +1832,19 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
     function copySelected() {
         const ids = getSelectedMediaIds();
         if (ids.length === 0) return;
-        window.clipboardData = { action: 'copy', ids };
+        clipboardData = { action: 'copy', ids };
         showNotification(`${ids.length} archivo(s) copiado(s) al portapapeles`);
-        updateActionButtons(); // Mostrar botón pegar
     }
 
     function cutSelected() {
         const ids = getSelectedMediaIds();
         if (ids.length === 0) return;
-        window.clipboardData = { action: 'cut', ids };
+        clipboardData = { action: 'cut', ids };
         document.querySelectorAll('.media-item-checkbox:checked').forEach(cb => {
             const item = cb.closest('.media-item');
             if (item) item.style.opacity = '0.5';
         });
         showNotification(`${ids.length} archivo(s) cortado(s) al portapapeles`);
-        updateActionButtons(); // Mostrar botón pegar
     }
 
     function deleteSelected() {
@@ -1847,11 +1893,7 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
     // SECTION 14: CONTEXT MENU
     // ========================================================
 
-    // Usar window.clipboardData para persistir entre recargas de carpetas
-    if (!window.clipboardData) {
-        window.clipboardData = { action: null, ids: [] };
-    }
-    const clipboardData = window.clipboardData; // Referencia local
+    let clipboardData = { action: null, ids: [] }; // Copiar/Cortar clipboard
     const contextMenu = document.getElementById('media-context-menu');
     let currentContextItem = null;
 
@@ -1871,8 +1913,7 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
             // Mostrar/ocultar opción de pegar
             const pasteItem = contextMenu.querySelector('[data-action="paste"]');
             const pasteDivider = contextMenu.querySelector('[data-divider="paste"]');
-            const clipboard = window.clipboardData || { ids: [] };
-            if (clipboard.ids && clipboard.ids.length > 0) {
+            if (clipboardData.ids.length > 0) {
                 pasteItem.style.display = 'block';
                 pasteDivider.style.display = 'block';
             } else {
@@ -1903,15 +1944,13 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
                     showRenameDialog(mediaId);
                     break;
                 case 'copy':
-                    window.clipboardData = { action: 'copy', ids: [mediaId] };
+                    clipboardData = { action: 'copy', ids: [mediaId] };
                     showNotification('Archivo copiado al portapapeles');
-                    updateActionButtons();
                     break;
                 case 'cut':
-                    window.clipboardData = { action: 'cut', ids: [mediaId] };
+                    clipboardData = { action: 'cut', ids: [mediaId] };
                     currentContextItem.style.opacity = '0.5';
                     showNotification('Archivo cortado al portapapeles');
-                    updateActionButtons();
                     break;
                 case 'paste':
                     pasteClipboard();
@@ -1961,22 +2000,11 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
 
     // Función para pegar
     function pasteClipboard() {
-        const clipboard = window.clipboardData || { ids: [] };
-        if (!clipboard.ids || clipboard.ids.length === 0) return;
+        if (clipboardData.ids.length === 0) return;
 
-        const targetFolderId = window.FolderManager?.currentFolderId || window.currentFolderId || '';
-        const ids = clipboard.ids;
-        const action = clipboard.action;
-        const csrfToken = document.querySelector('input[name="_token"]')?.value || '';
-
-        console.log('[Paste] action:', action, 'ids:', ids, 'targetFolderId:', targetFolderId);
-
-        // Construir el body correctamente
-        const bodyParams = new URLSearchParams();
-        ids.forEach(id => bodyParams.append('item_ids[]', id));
-        bodyParams.append('item_type', 'media');
-        bodyParams.append('target_folder_id', targetFolderId);
-        bodyParams.append('_token', csrfToken);
+        const targetFolderId = window.currentFolderId || '';
+        const ids = clipboardData.ids;
+        const action = clipboardData.action;
 
         fetch(moveUrl, {
             method: 'POST',
@@ -1984,20 +2012,17 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
                 'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
-            body: bodyParams.toString()
+            body: `items[]=${ids.map(id => JSON.stringify({id, type: 'media'})).join('&items[]=')}&target_folder_id=${targetFolderId}&_token=${document.querySelector('input[name="_token"]')?.value || ''}`
         })
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                showNotification(action === 'cut' ? 'Archivo(s) movido(s)' : 'Archivo(s) copiado(s)');
-                // Limpiar clipboard después de pegar (tanto para cut como para copy)
-                window.clipboardData = { action: null, ids: [] };
-                document.querySelectorAll('.media-item, .attachment').forEach(item => item.style.opacity = '1');
-                // Recargar usando la función global que tiene soporte de carpetas
-                if (window.loadMedia) {
-                    window.loadMedia(1);
+                showNotification(action === 'cut' ? 'Archivo movido' : 'Archivo copiado');
+                if (action === 'cut') {
+                    clipboardData = { action: null, ids: [] };
+                    document.querySelectorAll('.media-item, .attachment').forEach(item => item.style.opacity = '1');
                 }
-                updateActionButtons();
+                loadMedia(currentPage);
             } else {
                 showError(data.message || 'Error al pegar');
             }
@@ -2022,28 +2047,12 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
     }
 
     // ========================================================
-    // SECTION 13A: EXPOSE FUNCTIONS TO WINDOW
-    // ========================================================
-
-    // Exponer funciones necesarias para integración con folder-manager
-    window.loadMedia = loadMedia;
-    window.createMediaItemElement = createMediaItemElement;
-    window.renderPagination = renderPagination;
-    window.showError = showError;
-    window.showSuccess = showSuccess;
-    window.currentPage = currentPage;
-    window.updateActionButtons = updateActionButtons;
-    // window.clipboardData ya se define al inicio de SECTION 14
-
-    // ========================================================
-    // SECTION 13B: INITIALIZATION
+    // SECTION 13A: INITIALIZATION
     // ========================================================
 
     // --- Carga Inicial de la biblioteca principal ---
-    // NOTA: folder-media-integration.js sobrescribirá loadMedia y la llamará
-    // No cargar aquí para evitar doble carga
-    // if (gridContainer) {
-    //     loadMedia(currentPage);
-    // }
+    if (gridContainer) {
+        loadMedia(currentPage);
+    }
 
 }); // Fin DOMContentLoaded

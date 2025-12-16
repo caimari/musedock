@@ -6,12 +6,13 @@
 <h2>{{ $title }}</h2>
 <a href="{{ admin_url('pages') }}" class="btn btn-outline-secondary"><i class="bi bi-list"></i> Volver a lista de páginas</a>
 </div>
-@if (session('success'))
+@php $flashSuccess = consume_flash('success'); @endphp
+@if ($flashSuccess)
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   Swal.fire({
     icon: 'success',
-    title: {!! json_encode(session('success')) !!},
+    title: {!! json_encode($flashSuccess) !!},
     toast: true,
     position: 'top-end',
     showConfirmButton: false,

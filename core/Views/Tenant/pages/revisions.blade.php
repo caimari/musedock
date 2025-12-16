@@ -25,12 +25,16 @@
       </div>
     </div>
 
-    @if (session('success'))
+    @php
+      $flashSuccess = consume_flash('success');
+      $flashError = consume_flash('error');
+    @endphp
+    @if ($flashSuccess)
       <script>
         document.addEventListener('DOMContentLoaded', function () {
           Swal.fire({
             icon: 'success',
-            title: {!! json_encode(session('success')) !!},
+            title: {!! json_encode($flashSuccess) !!},
             toast: true,
             position: 'top-end',
             showConfirmButton: false,
@@ -40,12 +44,12 @@
         });
       </script>
     @endif
-    @if (session('error'))
+    @if ($flashError)
       <script>
         document.addEventListener('DOMContentLoaded', function () {
           Swal.fire({
             icon: 'error',
-            title: {!! json_encode(session('error')) !!},
+            title: {!! json_encode($flashError) !!},
             toast: true,
             position: 'top-end',
             showConfirmButton: false,

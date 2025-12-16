@@ -9,7 +9,8 @@ $siteName = site_setting('site_name', 'MuseDock');
 $showLogo = site_setting('show_logo', '1') === '1';
 $showTitle = site_setting('show_title', '0') === '1';
 $logoPath = site_setting('site_logo', '');
-$defaultLogo = asset('themes/musedock/images/logo-1.png');
+// Logo por defecto de MuseDock para el footer
+$defaultLogo = asset('assets/logo2_footer.png');
 
 // Redes sociales
 $socialFacebook = site_setting('social_facebook');
@@ -20,10 +21,53 @@ $socialYoutube = site_setting('social_youtube');
 $socialPinterest = site_setting('social_pinterest');
 $socialTiktok = site_setting('social_tiktok');
 
-// Opciones del tema footer (defaults Zipprich)
-$footerBgColor = themeOption('footer.footer_bg_color', '#0C112A');
-$footerBorderColor = themeOption('footer.footer_border_color', '#181d35');
+// Opciones del tema footer - MuseDock defaults (fondo blanco)
+$footerBgColor = themeOption('footer.footer_bg_color', '#ffffff');
+$footerBorderColor = themeOption('footer.footer_border_color', '#e5e5e5');
 @endphp
+
+<style>
+/* Estilos para footer con fondo blanco - tema MuseDock */
+.ziph-footer_area,
+.ziph-footer_top,
+.ziph-footer_bottom {
+    color: #333 !important;
+}
+
+.ziph-footer_area h4,
+.ziph-footrwidget_title {
+    color: #1a1a1a !important;
+}
+
+.ziph-footer_area a,
+.ziph-footer_widget a,
+.zipprich-link-widget a {
+    color: #555 !important;
+}
+
+.ziph-footer_area a:hover,
+.ziph-footer_widget a:hover {
+    color: #0066cc !important;
+}
+
+.ziph-copyright,
+.ziph-copyright a {
+    color: #666 !important;
+}
+
+.ziph-footrwidget_loc,
+.ziph-footrwidget_loc a {
+    color: #555 !important;
+}
+
+.ziph-footrwidget_social a {
+    color: #555 !important;
+}
+
+.ziph-footrwidget_social a:hover {
+    color: #0066cc !important;
+}
+</style>
 
 <!-- Footer -->
 <footer class="ziph-footer_area">
@@ -238,13 +282,17 @@ $footerBorderColor = themeOption('footer.footer_border_color', '#181d35');
           @if($showLogo || $showTitle)
             <a href="{{ url('/') }}" style="display:flex; align-items:center; gap:12px; text-decoration:none;">
               @if($showLogo)
-                <img src="{{ $logoPath ? public_file_url($logoPath, 'themes/musedock/images/logo-1.png') : $defaultLogo }}"
+                @php
+                  // Logo del footer: si hay custom logo usar ese, sino usar el logo2_footer.png de MuseDock
+                  $footerLogoFinal = $logoPath ? public_file_url($logoPath) : $defaultLogo;
+                @endphp
+                <img src="{{ $footerLogoFinal }}"
                      alt="{{ $siteName }}"
-                     style="max-height: 40px; width: auto;"
+                     style="max-height: 60px; width: auto;"
                      onerror="this.onerror=null; this.src='{{ $defaultLogo }}';">
               @endif
               @if($showTitle)
-                <span style="font-size: 18px; font-weight: 700; color: var(--footer-heading-color, #ffffff);">
+                <span style="font-size: 18px; font-weight: 700; color: #333;">
                   {{ $siteName }}
                 </span>
               @endif

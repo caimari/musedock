@@ -33,12 +33,25 @@
    FIX: SweetAlert z-index sobre modales
    ======================================== */
 .swal2-container {
-    z-index: 99999 !important;
+    z-index: 999999 !important;
 }
 
 .swal2-overlay {
-    z-index: 99998 !important;
+    z-index: 999998 !important;
+}
+
+.swal2-top-layer {
+    z-index: 999999 !important;
 }
 
 /* Bootstrap modal z-index (default 1050) */
-/* SweetAlert debe estar por encima (99999) */
+/* SweetAlert debe estar por encima (999999) */
+
+/* Asegurar que los modales de Bootstrap no superen a SweetAlert */
+.modal {
+    z-index: 1050 !important;
+}
+
+.modal-backdrop {
+    z-index: 1040 !important;
+}

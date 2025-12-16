@@ -76,10 +76,12 @@ $headerSticky = themeOption('header.header_sticky', false);
           <div class="ziph-logo" style="padding-top:;padding-bottom:;">
             <a href="{{ url('/') }}">
               @php
-              $finalLogo = ($showLogo && $logoPath) ? public_file_url($logoPath, 'themes/musedock/images/logo-1.png') : asset('themes/musedock/images/logo-1.png');
+              // Logo por defecto de MuseDock
+              $defaultLogo = asset('assets/logo-default.png');
+              $finalLogo = ($showLogo && $logoPath) ? public_file_url($logoPath) : $defaultLogo;
               @endphp
-              <img src="{{ $finalLogo }}" alt="{{ $siteName }}" width="154" height="36" class="retina-logo">
-              <img src="{{ $finalLogo }}" alt="{{ $siteName }}" width="154" height="36" class="default-logo">
+              <img src="{{ $finalLogo }}" alt="{{ $siteName }}" class="retina-logo" style="max-height: 50px; width: auto;">
+              <img src="{{ $finalLogo }}" alt="{{ $siteName }}" class="default-logo" style="max-height: 50px; width: auto;">
               @if($showTitle)
               <span>{{ $siteName }}</span>
               @endif
