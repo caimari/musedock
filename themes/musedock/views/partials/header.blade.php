@@ -39,25 +39,25 @@ $headerSticky = themeOption('header.header_sticky', false);
           <div class="ziph-head_info ziph-flt_right">
             @if($topbarShowEmail && $contactEmail)
             <a href="mailto:{{ $contactEmail }}" class="icon-fa-envelope">
-              <i class="fa fa-envelope"></i> {{ __('Web Mail') }}
+              <i class="fa fa-envelope"></i> {{ __('header.mail') }}
             </a>
             @endif
-            
+
             @if($topbarShowWhatsapp && $contactWhatsapp)
             <a href="https://wa.me/{{ str_replace(['+', '-', ' '], '', $contactWhatsapp) }}" target="_blank" class="icon-fa-whatsapp">
-              <i class="fa fa-whatsapp"></i> {{ __('WhatsApp') }}
+              <i class="fa fa-whatsapp"></i> {{ __('header.whatsapp') }}
             </a>
             @endif
-            
 
-            
+
+
             <a href="{{ url('/contact') }}" class="icon-fa-question-circle">
-              <i class="fa fa-question-circle"></i> {{ __('Support') }}
+              <i class="fa fa-question-circle"></i> {{ __('header.support') }}
             </a>
             
             {{-- Login Button --}}
             <div class="ziph-flt_right ziph-headlogin_btn">
-              <a href="{{ url('/cuçstomer/login') }}" class="btn btn-info">{{ __('Login') }}</a>
+              <a href="{{ url('/customer/login') }}" class="btn btn-info">{{ __('header.login') }}</a>
             </div>
             
           </div>

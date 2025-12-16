@@ -1077,6 +1077,9 @@ public function upload()
                 ];
             }
 
+            // Asegurar que metadata sea NULL o JSON válido (no pasar null directamente)
+            $metadataValue = $metadata ? json_encode($metadata) : null;
+
             $media = Media::create([
                 'tenant_id'    => $tenantId,
                 'user_id'      => $userId,
@@ -1089,7 +1092,7 @@ public function upload()
                 'filename'     => $file['name'],
                 'mime_type'    => $realMimeType,
                 'size'         => $file['size'],
-                'metadata'     => $metadata,
+                'metadata'     => $metadataValue,
             ]);
 
             $dimensions = '';

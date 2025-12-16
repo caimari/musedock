@@ -48,7 +48,7 @@
                                     $dateVal = $post->published_at ?? $post->created_at;
                                     $dateStr = $dateVal instanceof \DateTime ? $dateVal->format('d/m/Y') : date('d/m/Y', strtotime($dateVal));
                                 @endphp
-                                <span><i class="far fa-calendar"></i> {{ $dateStr }}</span>
+                                <span>📅 {{ $dateStr }}</span>
                             </div>
 
                             {{-- Excerpt --}}

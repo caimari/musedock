@@ -57,61 +57,61 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
               <!-- Hosting Packages Widget -->
               <div class="ziph-footer_widget zipprich-link-widget">
                 <h4 class="ziph-footrwidget_title">
-                  {{ __('Hosting Packages') }}
+                  {{ __('footer.hosting_packages') }}
                 </h4>
                 <ul>
                   <li>
                     <a href="{{ url('/hosting') }}">
-                      {{ __('Web Hosting') }}
+                      {{ __('footer.web_hosting') }}
                     </a>
                   </li>
                   <li>
                     <a href="{{ url('/shared-hosting') }}">
-                      {{ __('Shared Hosting') }}
+                      {{ __('footer.shared_hosting') }}
                     </a>
                   </li>
                   <li>
                     <a href="{{ url('/cloud-hosting') }}">
-                      {{ __('Cloud Server') }}
+                      {{ __('footer.cloud_server') }}
                     </a>
                   </li>
                   <li>
                     <a href="{{ url('/dedicated-hosting') }}">
-                      {{ __('Dedicated Hosting') }}
+                      {{ __('footer.dedicated_hosting') }}
                     </a>
                   </li>
                   <li>
                     <a href="{{ url('/reseller-hosting') }}">
-                      {{ __('Reseller Hosting') }}
+                      {{ __('footer.reseller_hosting') }}
                     </a>
                   </li>
                 </ul>
               </div>
-              
+
               <!-- Support Widget -->
               <div class="ziph-footer_widget zipprich-link-widget">
                 <h4 class="ziph-footrwidget_title">
-                  {{ __('Support') }}
+                  {{ __('footer.support') }}
                 </h4>
                 <ul>
                   <li>
                     <a href="{{ url('/contact') }}">
-                      {{ __('Contact') }}
+                      {{ __('footer.contact') }}
                     </a>
                   </li>
                   <li>
                     <a href="{{ url('/domain') }}">
-                      {{ __('Domain') }}
+                      {{ __('footer.domain') }}
                     </a>
                   </li>
                   <li>
                     <a href="{{ url('/services') }}">
-                      {{ __('Services') }}
+                      {{ __('footer.services') }}
                     </a>
                   </li>
                   <li>
                     <a href="{{ url('/faq') }}">
-                      {{ __('FAQ') }}
+                      {{ __('footer.faq') }}
                     </a>
                   </li>
                 </ul>
@@ -122,41 +122,41 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
               <!-- Company Widget -->
               <div class="ziph-footer_widget zipprich-link-widget">
                 <h4 class="ziph-footrwidget_title">
-                  {{ __('Company') }}
+                  {{ __('footer.company') }}
                 </h4>
                 <ul>
                   <li>
                     <a href="{{ url('/about') }}">
-                      {{ __('About us') }}
+                      {{ __('footer.about_us') }}
                     </a>
                   </li>
                   <li>
                     <a href="{{ url('/affiliate') }}">
-                      {{ __('Affiliate') }}
+                      {{ __('footer.affiliate') }}
                     </a>
                   </li>
                   <li>
                     <a href="{{ url('/contact') }}">
-                      {{ __('Contact') }}
+                      {{ __('footer.contact') }}
                     </a>
                   </li>
                   <li>
                     <a href="{{ url('/terms') }}">
-                      {{ __('Terms') }}
+                      {{ __('footer.terms') }}
                     </a>
                   </li>
                   <li>
                     <a href="{{ url('/privacy') }}">
-                      {{ __('Privacy') }}
+                      {{ __('footer.privacy') }}
                     </a>
                   </li>
                 </ul>
               </div>
-              
+
               <!-- Contact Details Widget -->
               <div class="ziph-footer_widget vt-text-widget">
                 <h4 class="ziph-footrwidget_title">
-                  {{ __('Contact Details') }}
+                  {{ __('footer.contact_details') }}
                 </h4>
                 <div>
                   @if($contactAddress)
@@ -186,21 +186,21 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
               <!-- Domain Names Widget -->
               <div class="ziph-footer_widget zipprich-link-widget">
                 <h4 class="ziph-footrwidget_title">
-                  {{ __('Domain Names') }}
+                  {{ __('footer.domain_names') }}
                 </h4>
                 <ul>
-                  <li><a href="{{ url('/domain') }}">{{ __('Buy a Domain') }}</a></li>
-                  <li><a href="{{ url('/domain') }}">{{ __('Premium Domains') }}</a></li>
-                  <li><a href="{{ url('/hosting') }}">{{ __('Hosting') }}</a></li>
-                  <li><a href="{{ url('/services') }}">{{ __('Domain Services') }}</a></li>
-                  <li><a href="{{ url('/domain') }}">{{ __('Domain Check') }}</a></li>
+                  <li><a href="{{ url('/domain') }}">{{ __('footer.buy_a_domain') }}</a></li>
+                  <li><a href="{{ url('/domain') }}">{{ __('footer.premium_domains') }}</a></li>
+                  <li><a href="{{ url('/hosting') }}">{{ __('footer.hosting') }}</a></li>
+                  <li><a href="{{ url('/services') }}">{{ __('footer.domain_services') }}</a></li>
+                  <li><a href="{{ url('/domain') }}">{{ __('footer.domain_check') }}</a></li>
                 </ul>
               </div>
 
               <!-- Social Media Widget -->
               <div class="ziph-footer_widget zipprich-social-widget">
                 <h4 class="ziph-footrwidget_title">
-                  {{ __('Follow Us') }}
+                  {{ __('footer.follow_us') }}
                 </h4>
                 <ul class="textwidget list-inline ziph-footrwidget_social">
                   @if($socialFacebook)<li><a href="{{ $socialFacebook }}" target="_blank"><i class="fa fa-facebook"></i></a></li>@endif
@@ -222,23 +222,23 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
         <div class="ziph-footer_widget ziph-get-contactform">
             <div class="ziph-footer_conform">
               <h4 class="ziph-footrwidget_title">
-                {{ __('Contact Form') }}
+                {{ __('footer.contact_form') }}
               </h4>
               <div class="ziph-ftrform_warp">
                 <form action="{{ url('/contact') }}" method="POST" class="wpcf7-form">
                   @csrf
                   <div class="row ziph-input_group ziph-m-0">
                     <div class="col-md-6 ">
-                      <input size="40" class="wpcf7-form-control wpcf7-text wpcf7-validates-as-required" aria-required="true" aria-invalid="false" placeholder="{{ __('Name') }}" value="" type="text" name="name" required>
+                      <input size="40" class="wpcf7-form-control wpcf7-text wpcf7-validates-as-required" aria-required="true" aria-invalid="false" placeholder="{{ __('footer.name') }}" value="" type="text" name="name" required>
                     </div>
                     <div class="col-md-6 ">
-                      <input size="40" class="wpcf7-form-control wpcf7-email wpcf7-validates-as-required wpcf7-text wpcf7-validates-as-email" aria-required="true" aria-invalid="false" placeholder="{{ __('Email') }}" value="" type="email" name="email" required>
+                      <input size="40" class="wpcf7-form-control wpcf7-email wpcf7-validates-as-required wpcf7-text wpcf7-validates-as-email" aria-required="true" aria-invalid="false" placeholder="{{ __('footer.email') }}" value="" type="email" name="email" required>
                     </div>
                   </div>
                   <div class="ziph-input_single ziph-m-0">
-                    <textarea cols="40" rows="10" class="wpcf7-form-control wpcf7-textarea" aria-invalid="false" placeholder="{{ __('Message') }}" name="message" required></textarea>
+                    <textarea cols="40" rows="10" class="wpcf7-form-control wpcf7-textarea" aria-invalid="false" placeholder="{{ __('footer.message') }}" name="message" required></textarea>
                   </div>
-                  <p><input class="wpcf7-form-control wpcf7-submit has-spinner ziph-submit-btn" type="submit" value="{{ __('Contact now') }}"><span class="wpcf7-spinner"></span></p>
+                  <p><input class="wpcf7-form-control wpcf7-submit has-spinner ziph-submit-btn" type="submit" value="{{ __('footer.contact_now') }}"><span class="wpcf7-spinner"></span></p>
                 </form>
               </div>
             </div>
@@ -275,9 +275,50 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
           @endif
         </div>
         <div class="text-right col-sm-8">
-          <p class="ziph-copyright">
-            {!! $footerCopyright !!} {{ __('Powered by') }} <a href="https://musedock.net" target="_blank">MuseDock CMS</a>
-          </p>
+          @php
+            // Selector de idiomas en el footer
+            $pdo = \Screenart\Musedock\Database::connect();
+            $tenantId = tenant_id();
+            if ($tenantId) {
+                $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE tenant_id = ? AND active = 1 ORDER BY order_position ASC, id ASC");
+                $stmt->execute([$tenantId]);
+            } else {
+                $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE tenant_id IS NULL AND active = 1 ORDER BY order_position ASC, id ASC");
+                $stmt->execute();
+            }
+            $activeLanguages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? site_setting('language', 'es'));
+            $forceLang = site_setting('force_lang', '');
+            $showFooterLangSelector = count($activeLanguages) > 1 && empty($forceLang);
+          @endphp
+
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: 15px;">
+            <p class="ziph-copyright" style="margin: 0;">
+              {!! $footerCopyright !!} {{ __('footer.powered_by') }} <a href="https://musedock.net" target="_blank">MuseDock CMS</a>
+            </p>
+
+            @if($showFooterLangSelector)
+            <div class="footer-language-selector">
+              <form action="" method="get" id="footer-language-form" style="margin: 0;">
+                <select name="lang" id="footer-language-select" onchange="this.form.submit();" style="
+                  border: 1px solid #333;
+                  border-radius: 4px;
+                  padding: 6px 10px;
+                  font-size: 13px;
+                  color: #333;
+                  background-color: #fff;
+                  cursor: pointer;
+                ">
+                  @foreach($activeLanguages as $lang)
+                    <option value="{{ $lang['code'] }}" {{ $currentLang == $lang['code'] ? 'selected' : '' }}>
+                      {{ $lang['name'] }}
+                    </option>
+                  @endforeach
+                </select>
+              </form>
+            </div>
+            @endif
+          </div>
         </div>
       </div>
     </div>

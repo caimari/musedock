@@ -810,11 +810,44 @@
 
   "footer": {
     "cookie_settings": "Cookie settings",
-    "contact": "Contact"
+    "contact": "Contact",
+    "hosting_packages": "Hosting Packages",
+    "web_hosting": "Web Hosting",
+    "shared_hosting": "Shared Hosting",
+    "cloud_server": "Cloud Server",
+    "dedicated_hosting": "Dedicated Hosting",
+    "reseller_hosting": "Reseller Hosting",
+    "support": "Support",
+    "domain": "Domain",
+    "services": "Services",
+    "faq": "FAQ",
+    "company": "Company",
+    "about_us": "About us",
+    "affiliate": "Affiliate",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "contact_details": "Contact Details",
+    "domain_names": "Domain Names",
+    "buy_a_domain": "Buy a Domain",
+    "premium_domains": "Premium Domains",
+    "hosting": "Hosting",
+    "domain_services": "Domain Services",
+    "domain_check": "Domain Check",
+    "follow_us": "Follow Us",
+    "contact_form": "Contact Form",
+    "name": "Name",
+    "email": "Email",
+    "message": "Message",
+    "contact_now": "Contact now",
+    "powered_by": "Powered by"
   },
 
   "header": {
-    "login_button": "Login"
+    "login_button": "Login",
+    "mail": "Mail",
+    "whatsapp": "WhatsApp",
+    "support": "Support",
+    "login": "Login"
   },
 
   "cookies": {

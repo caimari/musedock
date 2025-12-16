@@ -64,9 +64,9 @@
                         $dateVal = $post->published_at ?? $post->created_at;
                         $dateStr = $dateVal instanceof \DateTime ? $dateVal->format('d/m/Y') : date('d/m/Y', strtotime($dateVal));
                     @endphp
-                    <span><i class="far fa-calendar"></i> {{ $dateStr }}</span>
+                    <span>📅 {{ $dateStr }}</span>
                     @if($post->view_count > 0)
-                        <span class="ms-3"><i class="far fa-eye"></i> {{ $post->view_count }} {{ __('blog.views') }}</span>
+                        <span class="ms-3">👁️ {{ $post->view_count }} {{ __('blog.views') }}</span>
                     @endif
                 </div>
 

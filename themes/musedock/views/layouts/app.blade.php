@@ -112,7 +112,10 @@ $_contactAddress = site_setting('contact_address', '');
   <link rel="stylesheet" href="{{ asset('themes/musedock/css/colors.css') }}">
   <link rel="stylesheet" href="{{ asset('themes/musedock/css/responsive.css') }}">
   <link rel="stylesheet" href="{{ asset('themes/musedock/css/simple-slider.css') }}">
-  
+
+  {{-- Nice Select 2 --}}
+  <link rel="stylesheet" href="{{ asset('themes/musedock/assets/vendor/nice-select2/nice-select2.min.css') }}">
+
   {{-- CSS Variables dinámicas --}}
   <style>
     :root {
@@ -169,7 +172,10 @@ $_contactAddress = site_setting('contact_address', '');
   <script src="{{ asset('themes/musedock/js/matchHeight.min.js') }}"></script>
   <script src="{{ asset('themes/musedock/js/scripts.js') }}"></script>
   <script src="{{ asset('themes/musedock/js/simple-slider.js') }}"></script>
-  
+
+  {{-- Nice Select 2 --}}
+  <script src="{{ asset('themes/musedock/assets/vendor/nice-select2/nice-select2.min.js') }}"></script>
+
   @stack('scripts')
   
   {{-- Script para inicializar el slider si existe --}}
@@ -186,5 +192,18 @@ $_contactAddress = site_setting('contact_address', '');
     });
   </script>
   @endif
+
+  {{-- Inicializar Nice Select 2 para el selector de idiomas del footer --}}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var footerLangSelect = document.getElementById('footer-language-select');
+      if (footerLangSelect && typeof NiceSelect !== 'undefined') {
+        NiceSelect.bind(footerLangSelect, {
+          searchable: false,
+          placeholder: 'select'
+        });
+      }
+    });
+  </script>
 </body>
 </html>
