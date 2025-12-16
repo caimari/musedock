@@ -70,10 +70,14 @@
 @if(!isset($post) && isset($customizations))
     {{-- Verificar si se debe mostrar la cabecera para esta página --}}
     @if($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")
+    @php
+        $sliderPath = !empty($customizations->slider_image) ? $customizations->slider_image : 'themes/default/img/hero/contact_hero.jpg';
+        $sliderUrl = (str_starts_with($sliderPath, '/media/') || str_starts_with($sliderPath, 'http')) ? $sliderPath : asset($sliderPath);
+    @endphp
     <!-- Cabecera Area Start-->
     <div class="slider-area">
         <div class="single-slider slider-height2 d-flex align-items-center"
-             data-background="{{ asset($customizations->slider_image ? $customizations->slider_image : 'themes/default/img/hero/contact_hero.jpg') }}">
+             data-background="{{ $sliderUrl }}">
             <div class="container">
                 <div class="row">
                     <div class="col-xl-12">
