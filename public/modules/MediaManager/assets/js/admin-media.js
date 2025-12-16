@@ -166,7 +166,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         return div;
     }
-    
+
+    // Exponer funciones al scope global para folder-media-integration.js
+    window.createMediaItemElement = createMediaItemElement;
+
     // ========================================================
     // SECTION 7: MODAL LIBRARY FUNCTIONS
     // ========================================================
@@ -2103,5 +2106,15 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
     if (gridContainer) {
         loadMedia(currentPage);
     }
+
+    // ========================================================
+    // SECTION 13B: EXPOSE FUNCTIONS TO GLOBAL SCOPE
+    // ========================================================
+    // Exponer funciones necesarias para folder-media-integration.js
+    window.loadMedia = loadMedia;
+    window.renderPagination = renderPagination;
+    window.showError = showError;
+    window.showSuccess = showSuccess;
+    window.currentPage = currentPage;
 
 }); // Fin DOMContentLoaded

@@ -243,25 +243,35 @@
         color: var(--footer-text-color) !important;
     }
 
-    /* Títulos del footer */
+    /* Títulos del footer - tamaño uniforme */
     .footer-area h4,
     .footer-area .footer-tittle h4,
     .footer-tittle h4,
     .single-footer-caption h4 {
         color: var(--footer-heading-color) !important;
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        margin-bottom: 12px !important;
     }
 
-    /* Enlaces del footer */
+    /* Enlaces del footer - SIN decoración */
     .footer-area a,
     .footer-tittle ul li a,
     .footer-area .footer-tittle a {
         color: var(--footer-link-color) !important;
+        text-decoration: none !important;
     }
 
     .footer-area a:hover,
     .footer-tittle ul li a:hover,
     .footer-area .footer-tittle a:hover {
         color: var(--footer-link-hover-color) !important;
+        text-decoration: none !important;
+    }
+
+    /* Mantener subrayado solo en enlace de cookies */
+    .cookie-settings-link a {
+        text-decoration: underline !important;
     }
 
     /* Iconos sociales del footer */

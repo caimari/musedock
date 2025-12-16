@@ -3,6 +3,7 @@
 @section('title', $title ?? 'Biblioteca de Medios')
 
 @push('styles')
+<link rel="stylesheet" href="/assets/modules/MediaManager/css/admin-media.css?v={{ time() }}">
 <style>
     /* === FILE MANAGER LAYOUT === */
     .file-manager-container {
