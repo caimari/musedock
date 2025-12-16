@@ -271,24 +271,37 @@ article li p {
    ESTILOS DEL FOOTER
    =============================================== */
 
-/* Eliminar decoración de enlaces en el footer */
+/* Eliminar decoración de enlaces en el footer - Máxima especificidad */
 footer a,
+footer .footer-area a,
+footer .footer-tittle a,
+footer .single-footer-caption a,
+footer .footer-tittle ul li a,
+.footer-area .footer-tittle a,
 .footer-area a,
 .footer-tittle a,
-.single-footer-caption a {
+.single-footer-caption a,
+.footer-tittle ul li a {
   text-decoration: none !important;
+  border-bottom: none !important;
 }
 
 /* Mantener decoración solo en el enlace de configuración de cookies */
-.cookie-settings-link a {
+.cookie-settings-link a,
+footer .cookie-settings-link a {
   text-decoration: underline !important;
 }
 
-/* Igualar tamaño de todos los títulos en el footer */
+/* Igualar tamaño de todos los títulos en el footer - Máxima especificidad */
+footer .footer-tittle h4,
+footer .single-footer-caption h4,
+.footer-area .footer-tittle h4,
+.footer-area .single-footer-caption h4,
 .footer-tittle h4,
 .single-footer-caption h4 {
   font-size: 16px !important;
   font-weight: 600 !important;
   margin-bottom: 12px !important;
-  color: var(--footer-heading-color, #333);
+  line-height: 1.4 !important;
+  color: var(--footer-heading-color, #333) !important;
 }
