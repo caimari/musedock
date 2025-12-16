@@ -54,9 +54,11 @@ class FreeSubdomainController
             exit;
         }
 
-        echo View::renderCustomer('request-free-subdomain', [
-            'title' => 'Solicitar Subdominio FREE',
-            'customer' => $_SESSION['customer']
+        echo View::renderTheme('Customer/request-free-subdomain', [
+            'page_title' => 'Solicitar Subdominio FREE - MuseDock',
+            'current_page' => 'free-subdomain',
+            'customer' => $_SESSION['customer'],
+            'csrf_token' => csrf_token()
         ]);
     }
 

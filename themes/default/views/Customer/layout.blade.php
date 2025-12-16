@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $page_title ?? 'Customer Panel - MuseDock' ?></title>
+    <link rel="shortcut icon" type="image/x-icon" href="/img/favicon.png">
     <link rel="stylesheet" href="/assets/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -30,6 +31,7 @@
         .navbar-custom .navbar-brand img {
             height: 35px;
             margin-right: 10px;
+            filter: brightness(0) invert(1);
         }
         .navbar-custom .nav-link {
             color: rgba(255,255,255,0.9) !important;
@@ -84,13 +86,14 @@
             padding: 30px;
         }
     </style>
+    @yield('styles')
 </head>
 <body>
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-custom">
         <div class="container-fluid">
             <a class="navbar-brand" href="/customer/dashboard">
-                <img src="/assets/logo2_footer.png" alt="MuseDock" style="height: 35px; filter: brightness(0) invert(1);">
+                <img src="/assets/logo2_footer.png" alt="MuseDock">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -98,18 +101,13 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/customer/dashboard">
-                            <i class="bi bi-speedometer2"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/customer/profile">
-                            <i class="bi bi-person"></i> Perfil
-                        </a>
+                        <span class="nav-link">
+                            <i class="bi bi-person-circle"></i> <?= htmlspecialchars($customer['name'] ?? '') ?>
+                        </span>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#" onclick="logout(); return false;">
-                            <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+                            <i class="bi bi-box-arrow-right"></i> Cerrar sesion
                         </a>
                     </li>
                 </ul>
@@ -122,29 +120,23 @@
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 sidebar d-none d-md-block">
                 <div class="user-info">
-                    <div class="avatar"><?= strtoupper(substr($customer['name'], 0, 1)) ?></div>
-                    <h6><?= htmlspecialchars($customer['name']) ?></h6>
-                    <small class="text-muted"><?= htmlspecialchars($customer['email']) ?></small>
+                    <div class="avatar"><?= strtoupper(substr($customer['name'] ?? 'U', 0, 1)) ?></div>
+                    <h6><?= htmlspecialchars($customer['name'] ?? '') ?></h6>
+                    <small class="text-muted"><?= htmlspecialchars($customer['email'] ?? '') ?></small>
                 </div>
                 <nav class="nav flex-column">
-                    <a class="nav-link <?= $current_page === 'dashboard' ? 'active' : '' ?>" href="/customer/dashboard">
+                    <a class="nav-link <?= ($current_page ?? '') === 'dashboard' ? 'active' : '' ?>" href="/customer/dashboard">
                         <i class="bi bi-speedometer2"></i> Dashboard
                     </a>
-                    <a class="nav-link <?= $current_page === 'profile' ? 'active' : '' ?>" href="/customer/profile">
+                    <a class="nav-link <?= ($current_page ?? '') === 'profile' ? 'active' : '' ?>" href="/customer/profile">
                         <i class="bi bi-person"></i> Mi Perfil
-                    </a>
-                    <a class="nav-link <?= $current_page === 'sites' ? 'active' : '' ?>" href="/customer/sites">
-                        <i class="bi bi-globe"></i> Mis Sitios
-                    </a>
-                    <a class="nav-link <?= $current_page === 'domains' ? 'active' : '' ?>" href="/customer/domains">
-                        <i class="bi bi-link-45deg"></i> Mis Dominios
                     </a>
                 </nav>
             </div>
 
             <!-- Main Content -->
             <div class="col-md-9 col-lg-10 main-content">
-                <?= $content ?>
+                @yield('content')
             </div>
         </div>
     </div>
@@ -154,13 +146,13 @@
     <script>
         function logout() {
             Swal.fire({
-                title: '¿Cerrar sesión?',
-                text: "¿Estás seguro que deseas salir?",
+                title: 'Cerrar sesion?',
+                text: "Estas seguro que deseas salir?",
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#667eea',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Sí, cerrar sesión',
+                confirmButtonText: 'Si, cerrar sesion',
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -169,5 +161,6 @@
             });
         }
     </script>
+    @yield('scripts')
 </body>
 </html>

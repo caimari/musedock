@@ -179,6 +179,7 @@ class CustomerController
 
         $data = [
             'page_title' => 'Dashboard - MuseDock',
+            'current_page' => 'dashboard',
             'customer' => $customer,
             'tenants' => $tenants,
             'stats' => $stats,
@@ -210,6 +211,7 @@ class CustomerController
 
         $data = [
             'page_title' => 'Mi Perfil - MuseDock',
+            'current_page' => 'profile',
             'customer' => $customer,
             'stats' => $stats,
             'csrf_token' => csrf_token()

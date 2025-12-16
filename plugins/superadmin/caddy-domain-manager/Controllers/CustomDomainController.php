@@ -38,9 +38,11 @@ class CustomDomainController
             exit;
         }
 
-        echo View::renderCustomer('request-custom-domain', [
-            'title' => 'Incorporar Dominio Personalizado',
-            'customer' => $_SESSION['customer']
+        echo View::renderTheme('Customer/request-custom-domain', [
+            'page_title' => 'Incorporar Dominio Personalizado - MuseDock',
+            'current_page' => 'custom-domain',
+            'customer' => $_SESSION['customer'],
+            'csrf_token' => csrf_token()
         ]);
     }
 
