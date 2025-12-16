@@ -152,12 +152,52 @@ main:has(.slider-full-width-wrapper:first-child) {
 
 /* Si el slider a sangre es el primer elemento dentro del page-body */
 .page-body > .slider-full-width-wrapper:first-child {
-  margin-top: -1rem !important; /* Compensar el py-4 del container */
+  margin-top: 0 !important;
 }
 
 /* Eliminar padding del container.py-4 cuando tiene slider a sangre como primer hijo */
 .container.py-4:has(> article > .page-body > .slider-full-width-wrapper:first-child),
 .container.py-4:has(> .page-content-wrapper > .page-body > .slider-full-width-wrapper:first-child) {
+  padding-top: 0 !important;
+}
+
+/* FORZAR: Cuando hay slider a sangre, eliminar TODO el espacio superior */
+.has-full-width-slider,
+.has-slider-content.has-full-width-slider,
+.container.has-full-width-slider {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Main sin margen cuando tiene slider a sangre */
+main:has(.slider-full-width-wrapper) {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Article y page-body sin margen cuando tienen slider a sangre */
+article:has(.slider-full-width-wrapper),
+.page-content-wrapper:has(.slider-full-width-wrapper),
+.page-body:has(.slider-full-width-wrapper) {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Header sin borde inferior cuando la siguiente sección tiene slider a sangre */
+.musedock-header:has(+ main .slider-full-width-wrapper),
+header:has(+ main .slider-full-width-wrapper) {
+  border-bottom: none !important;
+  margin-bottom: 0 !important;
+}
+
+/* Eliminar cualquier espacio entre header y main */
+body:has(.slider-full-width-wrapper) .musedock-header,
+body:has(.slider-full-width-wrapper) header {
+  margin-bottom: 0 !important;
+}
+
+body:has(.slider-full-width-wrapper) main {
+  margin-top: 0 !important;
   padding-top: 0 !important;
 }
 

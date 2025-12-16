@@ -155,17 +155,19 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
                 while(parent && parent !== document.body){
                     parent.style.overflow = "visible";
                     parent.style.overflowX = "visible";
-                    // Eliminar padding-top de todos los contenedores padre
                     parent.style.paddingTop = "0";
                     parent.style.marginTop = "0";
                     parent = parent.parentElement;
                 }
-                // También eliminar margen del main y container
+                // Eliminar margen del main y container
                 var main = document.querySelector("main");
                 if(main){ main.style.paddingTop = "0"; main.style.marginTop = "0"; }
                 var containers = document.querySelectorAll(".container.py-4, .page-container, .has-slider-content");
                 containers.forEach(function(c){ c.style.paddingTop = "0"; c.style.marginTop = "0"; });
-                // Ocultar elementos vacíos antes del slider (párrafos vacíos del editor)
+                // Eliminar borde del header para que quede pegado al slider
+                var header = document.querySelector("header, .musedock-header");
+                if(header){ header.style.marginBottom = "0"; header.style.borderBottom = "none"; }
+                // Ocultar elementos vacíos antes del slider
                 var prev = wrapper.previousElementSibling;
                 while(prev){
                     if(prev.tagName === "P" && prev.textContent.trim() === ""){
@@ -478,6 +480,8 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
                     if(main){ main.style.paddingTop = "0"; main.style.marginTop = "0"; }
                     var containers = document.querySelectorAll(".container.py-4, .page-container, .has-slider-content");
                     containers.forEach(function(c){ c.style.paddingTop = "0"; c.style.marginTop = "0"; });
+                    var header = document.querySelector("header, .musedock-header");
+                    if(header){ header.style.marginBottom = "0"; header.style.borderBottom = "none"; }
                     var prev = wrapper.previousElementSibling;
                     while(prev){
                         if(prev.tagName === "P" && prev.textContent.trim() === ""){
