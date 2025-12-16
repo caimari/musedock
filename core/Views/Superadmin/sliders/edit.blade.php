@@ -979,11 +979,13 @@
 <div class="mb-2">
     <label class="form-label">Posición del texto</label>
     <select name="settings[caption_position]" class="form-select">
-        <option value="bottom-left" @if(($settings['caption_position'] ?? '') == 'bottom-left') selected @endif>Abajo Izquierda</option>
-        <option value="bottom-right" @if(($settings['caption_position'] ?? '') == 'bottom-right') selected @endif>Abajo Derecha</option>
         <option value="top-left" @if(($settings['caption_position'] ?? '') == 'top-left') selected @endif>Arriba Izquierda</option>
+        <option value="top-center" @if(($settings['caption_position'] ?? '') == 'top-center') selected @endif>Arriba Centro</option>
         <option value="top-right" @if(($settings['caption_position'] ?? '') == 'top-right') selected @endif>Arriba Derecha</option>
-        <option value="center" @if(($settings['caption_position'] ?? '') == 'center') selected @endif>Centro Centrado</option>
+        <option value="center" @if(($settings['caption_position'] ?? '') == 'center') selected @endif>Centro</option>
+        <option value="bottom-left" @if(($settings['caption_position'] ?? '') == 'bottom-left') selected @endif>Abajo Izquierda</option>
+        <option value="bottom-center" @if(($settings['caption_position'] ?? '') == 'bottom-center') selected @endif>Abajo Centro</option>
+        <option value="bottom-right" @if(($settings['caption_position'] ?? '') == 'bottom-right') selected @endif>Abajo Derecha</option>
     </select>
 </div>
 
@@ -2301,20 +2303,34 @@ function updateCaptionStyles() {
 
         // Aplicar posición
         switch(position) {
-            case 'bottom-left':
-                caption.style.bottom = '60px';
-                caption.style.left = '20px';
-                break;
-            case 'bottom-right':
-                caption.style.bottom = '60px';
-                caption.style.right = '20px';
-                break;
             case 'top-left':
                 caption.style.top = '20px';
                 caption.style.left = '20px';
                 break;
+            case 'top-center':
+                caption.style.top = '20px';
+                caption.style.left = '50%';
+                caption.style.transform = 'translateX(-50%)';
+                caption.style.textAlign = 'center';
+                caption.style.maxWidth = '80%';
+                break;
             case 'top-right':
                 caption.style.top = '20px';
+                caption.style.right = '20px';
+                break;
+            case 'bottom-left':
+                caption.style.bottom = '60px';
+                caption.style.left = '20px';
+                break;
+            case 'bottom-center':
+                caption.style.bottom = '60px';
+                caption.style.left = '50%';
+                caption.style.transform = 'translateX(-50%)';
+                caption.style.textAlign = 'center';
+                caption.style.maxWidth = '80%';
+                break;
+            case 'bottom-right':
+                caption.style.bottom = '60px';
                 caption.style.right = '20px';
                 break;
             case 'center':

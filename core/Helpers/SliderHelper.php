@@ -178,16 +178,24 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
         $output .= '<div class="swiper-slide" style="' . $slideStyle . '">';
         $output .= '<img src="' . \e($slide->image_url) . '" style="' . $imgStyle . '">';
 
-        // Solo mostrar caption si está activado y hay contenido
-        if (!empty($settings['show_caption']) && ($slide->title || $slide->description)) {
+        // Verificar si hay botones configurados
+        $linkText = isset($slide->link_text) ? trim((string) $slide->link_text) : '';
+        $link2Text = isset($slide->link2_text) ? trim((string) $slide->link2_text) : '';
+        $hasBtn1 = !empty($slide->link_url) && $linkText !== '';
+        $hasBtn2 = !empty($slide->link2_url) && $link2Text !== '';
+
+        // Solo mostrar caption si está activado y hay contenido (título, descripción o botones)
+        if (!empty($settings['show_caption']) && ($slide->title || $slide->description || $hasBtn1 || $hasBtn2)) {
             // Configurar estilo básico del caption con todos los estilos personalizados
             $captionStyle = 'position:absolute;z-index:15;';
             
             // Aplicar posición según selección
             switch ($captionPosition) {
                 case 'top-left':    $captionStyle .= 'top:20px;left:20px;text-align:left;'; break;
+                case 'top-center':  $captionStyle .= 'top:20px;left:50%;transform:translateX(-50%);text-align:center;'; break;
                 case 'top-right':   $captionStyle .= 'top:20px;right:20px;text-align:right;'; break;
                 case 'bottom-left': $captionStyle .= 'bottom:20px;left:20px;text-align:left;'; break;
+                case 'bottom-center': $captionStyle .= 'bottom:20px;left:50%;transform:translateX(-50%);text-align:center;'; break;
                 case 'bottom-right': $captionStyle .= 'bottom:20px;right:20px;text-align:right;'; break;
                 case 'center': default: $captionStyle .= 'top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;'; break;
             }
@@ -238,15 +246,13 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
                 $output .= '<div style="' . $descStyle . '">' . \e($slide->description) . '</div>';
             }
 
-            // Botón opcional (si hay link_url + link_text)
-            $linkText = isset($slide->link_text) ? trim((string) $slide->link_text) : '';
-            $link2Text = isset($slide->link2_text) ? trim((string) $slide->link2_text) : '';
-            $hasBtn1 = !empty($slide->link_url) && $linkText !== '';
-            $hasBtn2 = !empty($slide->link2_url) && $link2Text !== '';
+            // Botón opcional (si hay link_url + link_text) - variables ya definidas arriba
             $buttonShape = isset($slide->button_shape) && $slide->button_shape === 'square' ? 'shape-square' : '';
 
             if ($hasBtn1 || $hasBtn2) {
-                $output .= '<div style="margin-top:14px;" class="slider-cta-buttons ' . $buttonShape . '">';
+                // Solo añadir margin-top si hay título o descripción antes
+                $btnMargin = ($slide->title || $slide->description) ? 'margin-top:14px;' : '';
+                $output .= '<div style="' . $btnMargin . '" class="slider-cta-buttons ' . $buttonShape . '">';
 
                 if ($hasBtn1) {
                     $linkText = preg_replace('/[\\r\\n]/', '', $linkText);
