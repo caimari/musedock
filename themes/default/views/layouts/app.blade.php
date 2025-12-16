@@ -375,6 +375,57 @@
     .page-content a:visited, .page-body a:visited, .content a:visited, article a:visited {
         color: #551a8b !important;
     }
+
+    /* === EVITAR BARRAS DE DESPLAZAMIENTO NO DESEADAS === */
+    /* Prevenir scroll en Nice Select y todos sus componentes */
+    .nice-select,
+    .nice-select .list,
+    .nice-select-dropdown {
+        overflow: visible !important;
+        overflow-y: visible !important;
+        overflow-x: visible !important;
+        max-height: none !important;
+    }
+
+    /* Forzar todos los divs del header y footer a no tener scroll */
+    header, header *,
+    .header-area, .header-area *,
+    .main-header, .main-header *,
+    .header-bottom, .header-bottom *,
+    footer, footer *,
+    .footer-area, .footer-area *,
+    .footer-padding, .footer-padding *,
+    .single-footer-caption, .single-footer-caption * {
+        overflow: visible !important;
+        overflow-y: visible !important;
+        overflow-x: visible !important;
+    }
+
+    /* Excepción: permitir scroll solo en el menú móvil */
+    .mobile-menu {
+        overflow-y: auto !important;
+    }
+
+    /* Prevenir scroll en lang-dropdown */
+    .lang-dropdown {
+        overflow: visible !important;
+    }
+
+    /* Asegurar que body y html no tengan scroll horizontal */
+    html {
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+    }
+
+    body {
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+    }
+
+    /* Cuando el menú móvil está abierto, bloquear scroll del body */
+    body.mobile-menu-open {
+        overflow: hidden !important;
+    }
     </style>
 	
     <!-- Modernizr  -->

@@ -358,11 +358,45 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // --- Funciones Helper para Notificaciones (usando SweetAlert2) ---
     function showSuccess(message) {
-        Swal.fire({ icon: 'success', title: 'Éxito', text: message, timer: 2000, showConfirmButton: false });
+        // Asegurar que el toast aparezca SIEMPRE sobre cualquier modal
+        Swal.fire({
+            icon: 'success',
+            title: 'Éxito',
+            text: message,
+            timer: 2000,
+            showConfirmButton: false,
+            customClass: {
+                container: 'swal2-top-layer'
+            },
+            didOpen: () => {
+                // Forzar z-index inline para garantizar visibilidad
+                const swalContainer = document.querySelector('.swal2-container');
+                if (swalContainer) {
+                    swalContainer.style.zIndex = '999999';
+                }
+            }
+        });
     }
-    
+
     function showError(message) {
-        Swal.fire({ icon: 'error', title: 'Error', text: message });
+        console.error('🚨 Mostrando error al usuario:', message);
+        // Asegurar que el error aparezca SIEMPRE sobre cualquier modal
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: message,
+            customClass: {
+                container: 'swal2-top-layer'
+            },
+            didOpen: () => {
+                // Forzar z-index inline para garantizar visibilidad
+                const swalContainer = document.querySelector('.swal2-container');
+                if (swalContainer) {
+                    swalContainer.style.zIndex = '999999';
+                    console.log('✅ Z-index del modal de error establecido a 999999');
+                }
+            }
+        });
     }
 
 // ========================================================
@@ -436,7 +470,8 @@ function handleFilesUpload() {
         } else if (uploadedCount > 0 && errorCount > 0) {
             showSuccess(`${uploadedCount} archivo(s) subido(s). ${errorCount} con errores.`);
         } else if (errorCount > 0) {
-            showError(`No se pudo subir ningún archivo (${errorCount} error(es)).`);
+            showError(`Error al subir ${errorCount} archivo(s). Por favor, revisa la consola (F12) para ver los detalles del error.`);
+            console.log('%c💡 AYUDA: Abre la consola del navegador (F12) para ver los detalles completos del error', 'background: #4CAF50; color: white; padding: 5px 10px; border-radius: 3px; font-weight: bold;');
         }
     }
 
@@ -479,15 +514,37 @@ function handleFilesUpload() {
                         uploadedCount += uploaded.length || 1;
                     } else {
                         errorCount += 1;
-                        console.error('[Upload] Error:', response);
+                        console.error('═══════════════════════════════════════════');
+                        console.error('❌ ERROR DE SUBIDA - Respuesta del servidor');
+                        console.error('═══════════════════════════════════════════');
+                        console.error('Archivo:', file.name);
+                        console.error('Disco seleccionado:', currentDisk);
+                        console.error('Folder ID:', currentFolderId);
+                        console.error('Respuesta completa:', response);
+                        console.error('Mensaje de error:', response.message || 'Sin mensaje específico');
+                        console.error('Detalles adicionales:', response.error || response.errors || 'No disponible');
+                        console.error('═══════════════════════════════════════════');
                     }
                 } catch (e) {
                     errorCount += 1;
-                    console.error("Error parsing upload response:", e, xhr.responseText);
+                    console.error('═══════════════════════════════════════════');
+                    console.error('❌ ERROR AL PARSEAR RESPUESTA DEL SERVIDOR');
+                    console.error('═══════════════════════════════════════════');
+                    console.error('Archivo:', file.name);
+                    console.error('Error de parsing:', e);
+                    console.error('Respuesta raw del servidor:', xhr.responseText);
+                    console.error('═══════════════════════════════════════════');
                 }
             } else {
                 errorCount += 1;
-                console.error(`[Upload] HTTP ${xhr.status} ${xhr.statusText}`, xhr.responseText);
+                console.error('═══════════════════════════════════════════');
+                console.error('❌ ERROR HTTP - Código de estado:', xhr.status);
+                console.error('═══════════════════════════════════════════');
+                console.error('Archivo:', file.name);
+                console.error('Status:', xhr.status, xhr.statusText);
+                console.error('Respuesta del servidor:', xhr.responseText);
+                console.error('Headers:', xhr.getAllResponseHeaders());
+                console.error('═══════════════════════════════════════════');
             }
 
             uploadOne(index + 1);
@@ -495,7 +552,13 @@ function handleFilesUpload() {
 
         xhr.onerror = function() {
             errorCount += 1;
-            console.error('[Upload] Network error');
+            console.error('═══════════════════════════════════════════');
+            console.error('❌ ERROR DE RED - No se pudo conectar al servidor');
+            console.error('═══════════════════════════════════════════');
+            console.error('Archivo:', file.name);
+            console.error('URL destino:', uploadUrl);
+            console.error('Posible causa: Problema de conexión, CORS, o servidor no disponible');
+            console.error('═══════════════════════════════════════════');
             uploadOne(index + 1);
         };
 
