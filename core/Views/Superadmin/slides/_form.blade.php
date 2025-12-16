@@ -2228,7 +2228,7 @@ document.addEventListener('DOMContentLoaded', function() {
             right: 20px;
             transform: translateX(120%);
             transition: transform 0.3s ease;
-            z-index: 99999;
+            z-index: 999999999;
             max-width: 350px;
         }
 

@@ -324,6 +324,10 @@ footer .single-footer-caption h4,
   width: 100%;
   max-width: 100%;
   overflow: hidden;
+  /* Forzar que el slider llegue hasta los bordes */
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box;
 }
 
 /* Eliminar cualquier margen del main cuando tiene slider */
@@ -335,6 +339,12 @@ main > .slider-area:first-child {
 main {
   padding-top: 0;
   margin-top: 0;
+}
+
+/* Forzar body sin margen para que slider esté a sangre */
+body {
+  margin: 0;
+  padding: 0;
 }
 
 /* Asegurar posición relativa para el overlay */
