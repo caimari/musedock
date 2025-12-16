@@ -528,19 +528,27 @@
         const blogForm = document.getElementById('postForm');
         const blogSubmitBtn = document.getElementById('blog-submit-btn');
 
+        console.log('Blog Spinner setup - blogForm:', blogForm, 'blogSubmitBtn:', blogSubmitBtn);
+
         if (blogForm && blogSubmitBtn) {
           blogForm.addEventListener('submit', function(e) {
+            console.log('Blog form submit triggered');
             // Mostrar spinner y deshabilitar botón
             const btnText = blogSubmitBtn.querySelector('.btn-text');
             const btnSpinner = blogSubmitBtn.querySelector('.btn-spinner');
 
+            console.log('btnText:', btnText, 'btnSpinner:', btnSpinner);
+
             if (btnText && btnSpinner) {
               btnText.classList.add('d-none');
               btnSpinner.classList.remove('d-none');
+              console.log('Blog Spinner activado');
             }
 
             blogSubmitBtn.disabled = true;
           });
+        } else {
+          console.error('No se encontró blogForm o blogSubmitBtn');
         }
         // ================================
       });

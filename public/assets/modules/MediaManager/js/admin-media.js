@@ -509,6 +509,10 @@ function handleFilesUpload() {
                 const overall = Math.round(((index + fileProgress) / totalFiles) * 100);
                 progressBar.style.width = overall + '%';
                 progressBar.setAttribute('aria-valuenow', overall);
+                progressBar.textContent = overall + '%';
+
+                // Actualizar el texto de estado con el porcentaje
+                uploadStatus.textContent = `Subiendo ${index + 1}/${totalFiles}: ${file.name} (${overall}%)`;
             }
         };
 
@@ -656,17 +660,31 @@ function addMediaToGrid(media) {
 
                     if (ok && data.success) {
                         console.log('[Delete] Success! Removing item from DOM');
-                        itemElement.remove(); // Quitar del DOM
+
+                        // Quitar del DOM inmediatamente para feedback visual
+                        itemElement.remove();
+
+                        // Mostrar mensaje de éxito
                         showSuccess(data.message || 'Medio eliminado.');
 
-                        // Comprobar si la rejilla quedó vacía
-                        if (!gridContainer.querySelector('.media-item')) {
-                            gridContainer.innerHTML = '<p class="text-center text-muted w-100">No se encontraron medios.</p>';
-                        }
+                        // Recargar la librería completa para actualizar la vista
+                        console.log('[Delete] Reloading media library...');
+                        setTimeout(() => {
+                            if (typeof window.loadMedia === 'function') {
+                                const currentPageNum = window.currentPage || 1;
+                                console.log('[Delete] Calling loadMedia with page:', currentPageNum);
+                                window.loadMedia(currentPageNum);
+                            } else {
+                                console.warn('[Delete] loadMedia function not available in window scope');
+                            }
+                        }, 500);
 
                         // También refrescar el modal si está abierto
-                        if (modalElement && modalElement.classList.contains('show')) {
-                            loadMediaModal(1);
+                        const mediaModal = document.getElementById('mediaManagerModal');
+                        if (mediaModal && mediaModal.classList.contains('show')) {
+                            if (typeof loadMediaModal === 'function') {
+                                loadMediaModal(1);
+                            }
                         }
                     } else {
                         console.error('[Delete] Failed:', data.message);

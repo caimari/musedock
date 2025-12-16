@@ -431,19 +431,27 @@
         const pageForm = document.getElementById('pageForm');
         const submitBtn = document.getElementById('page-submit-btn');
 
+        console.log('Spinner setup - pageForm:', pageForm, 'submitBtn:', submitBtn);
+
         if (pageForm && submitBtn) {
           pageForm.addEventListener('submit', function(e) {
+            console.log('Form submit triggered');
             // Mostrar spinner y deshabilitar botón
             const btnText = submitBtn.querySelector('.btn-text');
             const btnSpinner = submitBtn.querySelector('.btn-spinner');
 
+            console.log('btnText:', btnText, 'btnSpinner:', btnSpinner);
+
             if (btnText && btnSpinner) {
               btnText.classList.add('d-none');
               btnSpinner.classList.remove('d-none');
+              console.log('Spinner activado');
             }
 
             submitBtn.disabled = true;
           });
+        } else {
+          console.error('No se encontró pageForm o submitBtn');
         }
         // ================================
 
