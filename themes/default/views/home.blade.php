@@ -54,11 +54,29 @@
         if (isset($customizations) && ($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")) {
             $content = preg_replace('/<h1[^>]*>.*?<\/h1>/', '', $content, 1);
         }
-        // Detectar si el contenido empieza con un slider a sangre (full-width)
-        $hasFullWidthSlider = strpos($content, 'slider-full-width-wrapper') !== false;
+
+        // Detectar y extraer slider a sangre (full-width) del contenido
+        $fullWidthSliderHtml = '';
+        $hasFullWidthSlider = false;
+        if (preg_match('/<div class="slider-full-width-wrapper"[^>]*>.*?<\/div>\s*<\/div>/s', $content, $matches)) {
+            // Extraer todo el bloque del slider (incluyendo scripts y estilos)
+            if (preg_match('/(<link[^>]*swiper[^>]*>.*?<div class="slider-full-width-wrapper"[^>]*>.*?<script>.*?<\/script>\s*<\/div>)/s', $content, $fullMatch)) {
+                $fullWidthSliderHtml = $fullMatch[1];
+                $content = str_replace($fullMatch[1], '', $content);
+                $hasFullWidthSlider = true;
+            }
+        }
+
+        // Limpiar párrafos vacíos que puedan quedar al inicio
+        $content = preg_replace('/^(\s*<p>\s*<\/p>\s*)+/', '', $content);
     @endphp
 
-    <div class="{{ (isset($customizations) ? $customizations->container_class : null) ?? 'container py-4 page-container' }} has-slider-content{{ $hasFullWidthSlider ? ' has-full-width-slider' : '' }}" @if($hasFullWidthSlider) style="padding-top:0 !important;" @endif>
+    {{-- Slider a sangre FUERA del contenedor --}}
+    @if($hasFullWidthSlider)
+        {!! $fullWidthSliderHtml !!}
+    @endif
+
+    <div class="{{ (isset($customizations) ? $customizations->container_class : null) ?? 'container py-4 page-container' }} has-slider-content">
         <article class="{{ (isset($customizations) ? $customizations->content_class : null) ?? 'page-content-wrapper' }}">
             @if(isset($customizations) && $customizations->hide_title !== true && isset($page) && !$page->is_homepage)
                 <h1 class="page-title">{{ $translation->title ?? '' }}</h1>

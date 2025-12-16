@@ -127,12 +127,38 @@
 
 {{-- Contenido principal de la página --}}
 @php
-    // Pre-procesar contenido para detectar si tiene slider a sangre
+    // Pre-procesar contenido para detectar y extraer slider a sangre
     $rawContent = $translation->content ?? '';
     $processedContent = apply_filters('the_content', $rawContent);
-    $pageHasFullWidthSlider = strpos($processedContent, 'slider-full-width-wrapper') !== false;
+
+    // Detectar y extraer slider a sangre (full-width) del contenido
+    $fullWidthSliderHtml = '';
+    $pageHasFullWidthSlider = false;
+
+    if (strpos($processedContent, 'slider-full-width-wrapper') !== false) {
+        // Intentar extraer el bloque completo del slider (link CSS + wrapper + script)
+        if (preg_match('/(<link[^>]*swiper[^>]*>.*?<div class="slider-full-width-wrapper"[^>]*>.*?<script>.*?<\/script>\s*<\/div>)/s', $processedContent, $fullMatch)) {
+            $fullWidthSliderHtml = $fullMatch[1];
+            $processedContent = str_replace($fullMatch[1], '', $processedContent);
+            $pageHasFullWidthSlider = true;
+        } elseif (preg_match('/(<div class="slider-full-width-wrapper"[^>]*>.*?<\/div>\s*<\/div>\s*<\/div>)/s', $processedContent, $simpleMatch)) {
+            // Fallback: extraer solo el wrapper sin link/script
+            $fullWidthSliderHtml = $simpleMatch[1];
+            $processedContent = str_replace($simpleMatch[1], '', $processedContent);
+            $pageHasFullWidthSlider = true;
+        }
+
+        // Limpiar párrafos vacíos que puedan quedar al inicio
+        $processedContent = preg_replace('/^(\s*<p>\s*<\/p>\s*)+/', '', $processedContent);
+    }
 @endphp
-<div class="{{ isset($post) ? 'container py-4' : ((isset($customizations) ? $customizations->container_class : null) ?? 'container py-4 page-container') }} has-slider-content" @if($pageHasFullWidthSlider) style="padding-top:0 !important;" @endif>
+
+{{-- Slider a sangre FUERA del contenedor --}}
+@if($pageHasFullWidthSlider)
+    {!! $fullWidthSliderHtml !!}
+@endif
+
+<div class="{{ isset($post) ? 'container py-4' : ((isset($customizations) ? $customizations->container_class : null) ?? 'container py-4 page-container') }} has-slider-content">
     <article class="{{ isset($post) ? 'blog-post-single' : ((isset($customizations) ? $customizations->content_class : null) ?? 'page-content-wrapper') }}">
         @if(isset($post))
             {{-- Es un post de blog - mostrar imagen destacada si no está oculta --}}
@@ -176,14 +202,13 @@
             {{-- Renderizar el contenido HTML con filtros aplicados (shortcodes, etc.) --}}
             <div class="page-body">
                 @php
-                    $content = apply_filters('the_content', $translation->content ?? '<p class="text-muted">Contenido no disponible.</p>');
+                    // Usar el contenido ya procesado (sin el slider a sangre si lo había)
+                    $content = $processedContent;
                     // Si hay slider activo, eliminar SOLO el primer h1 del contenido para evitar duplicados con el slider
                     // No eliminar h2 ni h3 porque son títulos de secciones dentro del contenido
                     if (isset($customizations) && ($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")) {
                         $content = preg_replace('/<h1[^>]*>.*?<\/h1>/', '', $content, 1);
                     }
-                    // Detectar si el contenido tiene un slider a sangre (full-width)
-                    $hasFullWidthSlider = strpos($content, 'slider-full-width-wrapper') !== false;
                 @endphp
                 {!! $content !!}
             </div>
@@ -191,15 +216,4 @@
     </article>
 </div>
 
-@if(isset($hasFullWidthSlider) && $hasFullWidthSlider)
-<script>
-// Eliminar padding del contenedor cuando hay slider a sangre
-document.addEventListener('DOMContentLoaded', function() {
-    var container = document.querySelector('.has-slider-content');
-    if(container && document.querySelector('.slider-full-width-wrapper')) {
-        container.style.paddingTop = '0';
-    }
-});
-</script>
-@endif
 @endsection
