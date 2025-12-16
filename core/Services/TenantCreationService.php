@@ -62,16 +62,33 @@ class TenantCreationService
 
     /**
      * Valores por defecto si la tabla no existe
+     * IMPORTANTE: Los slugs deben coincidir con los de la tabla permissions (tenant_id IS NULL)
      */
     private function setFallbackSettings(): void
     {
         $this->defaultSettings = [
             'default_permissions' => [
-                'view_dashboard', 'manage_content', 'view_content', 'manage_media', 'view_media',
-                'manage_users', 'view_users', 'manage_settings', 'view_settings', 'manage_pages',
-                'view_pages', 'manage_posts', 'view_posts', 'manage_categories', 'view_categories',
-                'manage_comments', 'view_comments', 'manage_menus', 'view_menus', 'manage_themes',
-                'view_themes', 'manage_plugins'
+                // Páginas
+                'pages.view', 'pages.create', 'pages.edit', 'pages.delete',
+                // Blog
+                'blog.view', 'blog.create', 'blog.edit', 'blog.delete', 'blog.edit.all',
+                // Usuarios y configuración
+                'users.manage', 'settings.view', 'settings.edit',
+                // Apariencia
+                'appearance.menus', 'appearance.themes',
+                // Módulos y media
+                'modules.manage', 'media.manage', 'languages.manage',
+                // Logs y tickets
+                'logs.view', 'tickets.manage',
+                // Formularios
+                'custom_forms.view', 'custom_forms.create', 'custom_forms.edit', 'custom_forms.delete',
+                'custom_forms.submissions.view', 'custom_forms.submissions.export', 'custom_forms.submissions.delete',
+                // Galería de imágenes
+                'image_gallery.view', 'image_gallery.create', 'image_gallery.edit', 'image_gallery.delete',
+                // Sliders React
+                'react_sliders.view', 'react_sliders.create', 'react_sliders.edit', 'react_sliders.delete',
+                // Avanzado
+                'advanced.ai', 'advanced.cron', 'analytics-view', 'analytics-export'
             ],
             'default_roles' => [
                 ['name' => 'Admin', 'slug' => 'admin', 'description' => 'Administrador del tenant con acceso completo'],
@@ -450,43 +467,34 @@ class TenantCreationService
 
     /**
      * Obtener todos los permisos disponibles (para el UI de configuración)
+     *
+     * Lee de la tabla permissions (tenant_id IS NULL) como única fuente de verdad.
+     * Esto asegura que tenant-defaults y users/edit muestren los mismos permisos.
+     *
+     * @return array [slug => name]
      */
     public static function getAllAvailablePermissions(): array
     {
-        return [
-            'view_dashboard' => 'Ver Dashboard',
-            'manage_content' => 'Gestionar Contenido',
-            'view_content' => 'Ver Contenido',
-            'manage_media' => 'Gestionar Media',
-            'view_media' => 'Ver Media',
-            'manage_users' => 'Gestionar Usuarios',
-            'view_users' => 'Ver Usuarios',
-            'manage_settings' => 'Gestionar Configuración',
-            'view_settings' => 'Ver Configuración',
-            'manage_pages' => 'Gestionar Páginas',
-            'view_pages' => 'Ver Páginas',
-            'manage_posts' => 'Gestionar Posts',
-            'view_posts' => 'Ver Posts',
-            'manage_categories' => 'Gestionar Categorías',
-            'view_categories' => 'Ver Categorías',
-            'manage_comments' => 'Gestionar Comentarios',
-            'view_comments' => 'Ver Comentarios',
-            'manage_menus' => 'Gestionar Menús',
-            'view_menus' => 'Ver Menús',
-            'manage_themes' => 'Gestionar Temas',
-            'view_themes' => 'Ver Temas',
-            'manage_plugins' => 'Gestionar Plugins',
-            'manage_roles' => 'Gestionar Roles',
-            'view_roles' => 'Ver Roles',
-            'manage_permissions' => 'Gestionar Permisos',
-            'view_permissions' => 'Ver Permisos',
-            'manage_modules' => 'Gestionar Módulos',
-            'view_modules' => 'Ver Módulos',
-            'manage_api' => 'Gestionar API',
-            'view_api' => 'Ver API',
-            'manage_logs' => 'Gestionar Logs',
-            'view_logs' => 'Ver Logs'
-        ];
+        try {
+            $pdo = Database::connect();
+            $stmt = $pdo->query("
+                SELECT slug, name
+                FROM permissions
+                WHERE tenant_id IS NULL
+                ORDER BY slug
+            ");
+
+            $permissions = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $permissions[$row['slug']] = $row['name'];
+            }
+
+            return $permissions;
+
+        } catch (\PDOException $e) {
+            error_log("TenantCreationService::getAllAvailablePermissions error: " . $e->getMessage());
+            return [];
+        }
     }
 
     /**

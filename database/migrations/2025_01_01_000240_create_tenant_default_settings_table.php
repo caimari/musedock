@@ -74,29 +74,30 @@ class CreateTenantDefaultSettingsTable_2025_12_11_120000
 
     private function insertDefaultSettings(PDO $pdo)
     {
+        // IMPORTANTE: Los slugs deben coincidir con los de la tabla permissions (tenant_id IS NULL)
+        // La única fuente de verdad son los permisos globales en la tabla permissions
         $defaultPermissions = json_encode([
-            'view_dashboard',
-            'manage_content',
-            'view_content',
-            'manage_media',
-            'view_media',
-            'manage_users',
-            'view_users',
-            'manage_settings',
-            'view_settings',
-            'manage_pages',
-            'view_pages',
-            'manage_posts',
-            'view_posts',
-            'manage_categories',
-            'view_categories',
-            'manage_comments',
-            'view_comments',
-            'manage_menus',
-            'view_menus',
-            'manage_themes',
-            'view_themes',
-            'manage_plugins'
+            // Páginas
+            'pages.view', 'pages.create', 'pages.edit', 'pages.delete',
+            // Blog
+            'blog.view', 'blog.create', 'blog.edit', 'blog.delete', 'blog.edit.all',
+            // Usuarios y configuración
+            'users.manage', 'settings.view', 'settings.edit',
+            // Apariencia
+            'appearance.menus', 'appearance.themes',
+            // Módulos y media
+            'modules.manage', 'media.manage', 'languages.manage',
+            // Logs y tickets
+            'logs.view', 'tickets.manage',
+            // Formularios
+            'custom_forms.view', 'custom_forms.create', 'custom_forms.edit', 'custom_forms.delete',
+            'custom_forms.submissions.view', 'custom_forms.submissions.export', 'custom_forms.submissions.delete',
+            // Galería de imágenes
+            'image_gallery.view', 'image_gallery.create', 'image_gallery.edit', 'image_gallery.delete',
+            // Sliders React
+            'react_sliders.view', 'react_sliders.create', 'react_sliders.edit', 'react_sliders.delete',
+            // Avanzado
+            'advanced.ai', 'advanced.cron', 'analytics-view', 'analytics-export'
         ]);
 
         $defaultRoles = json_encode([
