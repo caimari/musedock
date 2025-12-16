@@ -211,11 +211,17 @@
                                     Regenerando...
                                 </span>
                             </button>
+                            <button type="button" class="btn btn-outline-success btn-sm" id="btnRegenerateModules" onclick="regenerateModules()">
+                                <span class="btn-text"><i class="bi bi-puzzle"></i> Regenerar Módulos</span>
+                                <span class="btn-loading d-none">
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    Regenerando...
+                                </span>
+                            </button>
                         </div>
                         <div class="form-text mt-2 small">
                             Aplica la configuración de <a href="/musedock/settings/tenant-defaults">tenant-defaults</a> a este tenant.
                             <br><strong>No afecta contraseñas</strong> de usuarios existentes.
-                        </div>
                     </div>
                 </div>
 
@@ -569,6 +575,87 @@ async function regenerateMenus() {
                 icon: 'error',
                 title: 'Error',
                 text: data.message || 'No se pudieron regenerar los menús.',
+                confirmButtonColor: '#0d6efd'
+            });
+        }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'No se pudo conectar con el servidor.',
+            confirmButtonColor: '#0d6efd'
+        });
+    } finally {
+        toggleBtnSpinner(btn, false);
+    }
+}
+
+async function regenerateModules() {
+    const result = await Swal.fire({
+        title: '<i class="bi bi-puzzle text-success"></i> Regenerar Módulos',
+        html: `
+            <div class="text-start">
+                <p>¿Deseas regenerar la configuración de módulos de este tenant?</p>
+                <div class="alert alert-info py-2 mb-2">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <small><strong>Esto hará lo siguiente:</strong></small>
+                    <ul class="mb-0 small mt-1">
+                        <li>Eliminar la configuración de módulos actual del tenant</li>
+                        <li>Aplicar los módulos activos según <a href="/musedock/settings/tenant-defaults" target="_blank">tenant-defaults</a></li>
+                        <li>Solo los módulos marcados como activos aparecerán en el sidebar</li>
+                    </ul>
+                </div>
+                <div class="alert alert-warning py-2 mb-0">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <small>Los módulos que el tenant haya activado/desactivado manualmente se perderán.</small>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-puzzle me-1"></i> Regenerar Módulos',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#198754',
+        cancelButtonColor: '#6c757d',
+        width: '500px'
+    });
+
+    if (!result.isConfirmed) return;
+
+    const btn = document.getElementById('btnRegenerateModules');
+    toggleBtnSpinner(btn, true);
+
+    Swal.fire({
+        title: 'Regenerando módulos...',
+        html: '<p class="mb-0">Por favor espera...</p>',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/regenerate-modules', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ _csrf: csrfToken })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Módulos Regenerados',
+                html: `<p>${data.message}</p>`,
+                confirmButtonColor: '#0d6efd'
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.message || 'No se pudieron regenerar los módulos.',
                 confirmButtonColor: '#0d6efd'
             });
         }

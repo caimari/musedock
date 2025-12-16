@@ -794,6 +794,54 @@ class DomainManagerController
     }
 
     /**
+     * Regenerar módulos del tenant desde defaults
+     */
+    public function regenerateModules($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $tenant = $this->getTenant($id);
+
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado']);
+            exit;
+        }
+
+        try {
+            $tenantService = new TenantCreationService();
+            $result = $tenantService->regenerateModules($tenant->id);
+
+            if ($result['success']) {
+                Logger::log("[DomainManager] Módulos regenerados para tenant {$tenant->id}: {$result['enabled_count']} activos de {$result['total_count']} total", 'INFO');
+                echo json_encode([
+                    'success' => true,
+                    'message' => "Se han configurado {$result['enabled_count']} módulos activos de {$result['total_count']} disponibles.",
+                    'enabled_count' => $result['enabled_count'],
+                    'total_count' => $result['total_count']
+                ]);
+            } else {
+                Logger::log("[DomainManager] Error regenerando módulos tenant {$tenant->id}: " . $result['error'], 'ERROR');
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Error al regenerar módulos: ' . $result['error']
+                ]);
+            }
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Excepción regenerando módulos: " . $e->getMessage(), 'ERROR');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error interno: ' . $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
      * Obtiene un tenant por ID
      */
     private function getTenant(int $id): ?object

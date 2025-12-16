@@ -2279,6 +2279,30 @@ if (!function_exists('cms_copyright')) {
 }
 
 /**
+ * Limita la longitud de una cadena de texto y añade '...' si es necesario
+ * Compatible con Str::limit() de Laravel
+ *
+ * @param string|null $value Texto a limitar
+ * @param int $limit Longitud máxima (default: 100)
+ * @param string $end Sufijo a añadir si se trunca (default: '...')
+ * @return string
+ */
+if (!function_exists('str_limit')) {
+    function str_limit(?string $value, int $limit = 100, string $end = '...'): string
+    {
+        if (empty($value)) {
+            return '';
+        }
+
+        if (mb_strlen($value) <= $limit) {
+            return $value;
+        }
+
+        return mb_substr($value, 0, $limit) . $end;
+    }
+}
+
+/**
  * Obtiene las plantillas disponibles para blog posts del tema actual
  *
  * @return array Asociativo ['filename' => 'Display Name']

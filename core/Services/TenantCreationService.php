@@ -698,6 +698,57 @@ class TenantCreationService
     }
 
     /**
+     * Regenerar módulos para un tenant
+     *
+     * Elimina la configuración de módulos actual y la recrea
+     * según la configuración de tenant_default_settings.
+     *
+     * @param int $tenantId ID del tenant
+     * @return array ['success' => bool, 'enabled_count' => int, 'total_count' => int, 'error' => string|null]
+     */
+    public function regenerateModules(int $tenantId): array
+    {
+        try {
+            $this->pdo->beginTransaction();
+
+            // 1. Eliminar módulos actuales del tenant
+            $stmt = $this->pdo->prepare("DELETE FROM tenant_modules WHERE tenant_id = :tenant_id");
+            $stmt->execute(['tenant_id' => $tenantId]);
+
+            // 2. Crear módulos frescos desde defaults
+            $this->createDefaultTenantModules($tenantId);
+
+            // 3. Contar módulos creados
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM tenant_modules WHERE tenant_id = :tenant_id");
+            $stmt->execute(['tenant_id' => $tenantId]);
+            $totalCount = (int) $stmt->fetchColumn();
+
+            // 4. Contar módulos activos
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM tenant_modules WHERE tenant_id = :tenant_id AND enabled = 1");
+            $stmt->execute(['tenant_id' => $tenantId]);
+            $enabledCount = (int) $stmt->fetchColumn();
+
+            $this->pdo->commit();
+
+            return [
+                'success' => true,
+                'enabled_count' => $enabledCount,
+                'total_count' => $totalCount,
+                'error' => null
+            ];
+
+        } catch (\Exception $e) {
+            $this->pdo->rollBack();
+            return [
+                'success' => false,
+                'enabled_count' => 0,
+                'total_count' => 0,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * Obtener información del admin root de un tenant
      *
      * @param int $tenantId ID del tenant

@@ -92,6 +92,11 @@ Route::post('/musedock/domain-manager/{id}/regenerate-menus', 'CaddyDomainManage
     ->middleware('superadmin')
     ->name('superadmin.domain-manager.regenerate-menus');
 
+// Regenerar módulos del tenant (AJAX)
+Route::post('/musedock/domain-manager/{id}/regenerate-modules', 'CaddyDomainManager\Controllers\DomainManagerController@regenerateModules')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.regenerate-modules');
+
 // Crear subdominio FREE manual (superadmin)
 Route::post('/musedock/domain-manager/create-free', 'CaddyDomainManager\Controllers\DomainManagerController@createFreeSubdomain')
     ->middleware('superadmin')

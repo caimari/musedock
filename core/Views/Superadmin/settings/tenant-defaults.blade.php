@@ -200,7 +200,7 @@
                                     <h6 class="mb-1">{{ $module['name'] }}</h6>
                                     <small class="text-muted">{{ $module['slug'] }}</small>
                                     @if($module['description'])
-                                    <p class="mb-0 mt-1 small text-muted">{{ Str::limit($module['description'], 60) }}</p>
+                                    <p class="mb-0 mt-1 small text-muted">{{ str_limit($module['description'], 60) }}</p>
                                     @endif
                                 </div>
                                 <div class="form-check form-switch ms-2">
