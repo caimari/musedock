@@ -317,10 +317,32 @@ footer .single-footer-caption h4,
    ESTILOS DEL HERO / SLIDER
    =============================================== */
 
+/* Asegurar que el slider esté a sangre (full-width) */
+.slider-area {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Eliminar cualquier margen del main cuando tiene slider */
+main > .slider-area:first-child {
+  margin-top: 0 !important;
+}
+
+/* Asegurar que el body y main no añadan espacio extra al slider */
+main {
+  padding-top: 0;
+  margin-top: 0;
+}
+
 /* Asegurar posición relativa para el overlay */
 .single-slider,
 .slider-area .single-slider {
   position: relative;
+  margin: 0;
+  padding: 0;
 }
 
 /* Título del hero - usa variables CSS */

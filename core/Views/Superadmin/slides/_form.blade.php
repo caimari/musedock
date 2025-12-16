@@ -486,9 +486,19 @@ if (window.MediaManagerConfig.updateUrlTemplate.includes('#ruta-no-encontrada'))
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 999999;
+    z-index: 9999999;
     overflow: hidden;
     padding: 20px;
+}
+
+/* Asegurar que SweetAlert2 aparezca SIEMPRE por encima de cualquier modal */
+.swal2-container,
+.swal-above-modal,
+body > .swal2-container {
+    z-index: 99999999 !important;
+}
+.swal2-popup {
+    z-index: 99999999 !important;
 }
 
 .md-modal-overlay.active {
@@ -1517,10 +1527,10 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div class="md-item-filename">${escapeHtml(item.filename)}</div>
             <div class="md-item-actions">
-                <button class="md-item-action delete" title="Eliminar">
+                <button type="button" class="md-item-action delete" title="Eliminar">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                 </button>
-                <button class="md-item-action edit" title="Editar metadatos">
+                <button type="button" class="md-item-action edit" title="Editar metadatos">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                 </button>
             </div>
@@ -1593,10 +1603,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 cancelButtonText: 'Cancelar',
                 customClass: { container: 'swal-above-modal' },
                 didOpen: () => {
-                    // Forzar z-index mayor que el modal (999999)
+                    // Forzar z-index mayor que el modal (9999999)
                     const swalContainer = document.querySelector('.swal2-container');
                     if (swalContainer) {
-                        swalContainer.style.zIndex = '10000000';
+                        swalContainer.style.zIndex = '99999999';
                     }
                 }
             }).then((result) => {
@@ -1639,7 +1649,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         didOpen: () => {
                             const swalContainer = document.querySelector('.swal2-container');
                             if (swalContainer) {
-                                swalContainer.style.zIndex = '10000000';
+                                swalContainer.style.zIndex = '99999999';
                             }
                         }
                     });
@@ -1667,7 +1677,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         didOpen: () => {
                             const swalContainer = document.querySelector('.swal2-container');
                             if (swalContainer) {
-                                swalContainer.style.zIndex = '10000000';
+                                swalContainer.style.zIndex = '99999999';
                             }
                         }
                     });
@@ -1687,7 +1697,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     didOpen: () => {
                         const swalContainer = document.querySelector('.swal2-container');
                         if (swalContainer) {
-                            swalContainer.style.zIndex = '10000000';
+                            swalContainer.style.zIndex = '99999999';
                         }
                     }
                 });
@@ -1710,7 +1720,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 didOpen: () => {
                     const swalContainer = document.querySelector('.swal2-container');
                     if (swalContainer) {
-                        swalContainer.style.zIndex = '10000000';
+                        swalContainer.style.zIndex = '99999999';
                     }
                 }
             });

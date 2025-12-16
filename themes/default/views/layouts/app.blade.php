@@ -189,6 +189,13 @@
     :root {
         --topbar-bg-color: {{ themeOption('topbar.topbar_bg_color', '#1a2a40') }};
         --topbar-text-color: {{ themeOption('topbar.topbar_text_color', '#ffffff') }};
+        /* Hero */
+        --hero-title-color: {{ themeOption('hero.hero_title_color', '#ffffff') }};
+        --hero-title-font: {!! themeOption('hero.hero_title_font', 'inherit') !!};
+        --hero-subtitle-color: {{ themeOption('hero.hero_subtitle_color', '#ffffff') }};
+        --hero-overlay-color: {{ themeOption('hero.hero_overlay_color', '#000000') }};
+        --hero-overlay-opacity: {{ themeOption('hero.hero_overlay_opacity', '0.5') }};
+        /* Header */
         --header-bg-color: {{ themeOption('header.header_bg_color', '#f8f9fa') }};
         --header-logo-text-color: {{ themeOption('header.header_logo_text_color', '#1a2a40') }};
         --header-logo-font: {!! themeOption('header.header_logo_font', 'inherit') !!};
