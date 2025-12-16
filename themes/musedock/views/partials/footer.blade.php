@@ -10,7 +10,7 @@ $showLogo = site_setting('show_logo', '1') === '1';
 $showTitle = site_setting('show_title', '0') === '1';
 $logoPath = site_setting('site_logo', '');
 // Logo por defecto de MuseDock para el footer
-$defaultLogo = asset('assets/logo2_footer.png');
+$defaultLogo = '/assets/logo2_footer.png';
 
 // Redes sociales
 $socialFacebook = site_setting('social_facebook');
@@ -21,50 +21,25 @@ $socialYoutube = site_setting('social_youtube');
 $socialPinterest = site_setting('social_pinterest');
 $socialTiktok = site_setting('social_tiktok');
 
-// Opciones del tema footer - MuseDock defaults (fondo blanco)
-$footerBgColor = themeOption('footer.footer_bg_color', '#ffffff');
-$footerBorderColor = themeOption('footer.footer_border_color', '#e5e5e5');
+// Opciones del tema footer - MuseDock defaults
+$footerBgColor = themeOption('footer.footer_bg_color', '#0C112A');
+$footerBorderColor = themeOption('footer.footer_border_color', '#181d35');
+$footerBottomBgColor = themeOption('footer.footer_bottom_bg_color', '#ffffff');
+$footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5e5e5');
 @endphp
 
 <style>
-/* Estilos para footer con fondo blanco - tema MuseDock */
-.ziph-footer_area,
-.ziph-footer_top,
+/* Estilos para footer_bottom con fondo blanco - tema MuseDock */
 .ziph-footer_bottom {
     color: #333 !important;
 }
 
-.ziph-footer_area h4,
-.ziph-footrwidget_title {
-    color: #1a1a1a !important;
-}
-
-.ziph-footer_area a,
-.ziph-footer_widget a,
-.zipprich-link-widget a {
-    color: #555 !important;
-}
-
-.ziph-footer_area a:hover,
-.ziph-footer_widget a:hover {
-    color: #0066cc !important;
-}
-
-.ziph-copyright,
-.ziph-copyright a {
+.ziph-footer_bottom .ziph-copyright,
+.ziph-footer_bottom .ziph-copyright a {
     color: #666 !important;
 }
 
-.ziph-footrwidget_loc,
-.ziph-footrwidget_loc a {
-    color: #555 !important;
-}
-
-.ziph-footrwidget_social a {
-    color: #555 !important;
-}
-
-.ziph-footrwidget_social a:hover {
+.ziph-footer_bottom a:hover {
     color: #0066cc !important;
 }
 </style>
@@ -275,7 +250,7 @@ $footerBorderColor = themeOption('footer.footer_border_color', '#e5e5e5');
   </div><!-- Footer Widgets -->
   
   <!-- Footer Bottom -->
-  <div class="ziph-footer_bottom" @if($footerBgColor || $footerBorderColor) style="@if($footerBgColor)background-color: {{ $footerBgColor }};@endif @if($footerBorderColor)border-top: 1px solid {{ $footerBorderColor }};@endif" @endif>
+  <div class="ziph-footer_bottom" @if($footerBottomBgColor || $footerBottomBorderColor) style="@if($footerBottomBgColor)background-color: {{ $footerBottomBgColor }};@endif @if($footerBottomBorderColor)border-top: 1px solid {{ $footerBottomBorderColor }};@endif" @endif>
     <div class="container">
       <div class="row">
         <div class="col-sm-4">
@@ -283,13 +258,13 @@ $footerBorderColor = themeOption('footer.footer_border_color', '#e5e5e5');
             <a href="{{ url('/') }}" style="display:flex; align-items:center; gap:12px; text-decoration:none;">
               @if($showLogo)
                 @php
-                  // Logo del footer: si hay custom logo usar ese, sino usar el logo2_footer.png de MuseDock
-                  $footerLogoFinal = $logoPath ? public_file_url($logoPath) : $defaultLogo;
+                  // Logo del footer: SIEMPRE usar logo2_footer.png (versión pequeña)
+                  $footerLogoFinal = url('/') . '/assets/logo2_footer.png';
                 @endphp
                 <img src="{{ $footerLogoFinal }}"
                      alt="{{ $siteName }}"
                      style="max-height: 60px; width: auto;"
-                     onerror="this.onerror=null; this.src='{{ $defaultLogo }}';">
+                     onerror="this.onerror=null; this.src='{{ url('/') }}/assets/logo2_footer.png';">
               @endif
               @if($showTitle)
                 <span style="font-size: 18px; font-weight: 700; color: #333;">

@@ -77,11 +77,14 @@ $headerSticky = themeOption('header.header_sticky', false);
             <a href="{{ url('/') }}">
               @php
               // Logo por defecto de MuseDock
-              $defaultLogo = asset('assets/logo-default.png');
-              $finalLogo = ($showLogo && $logoPath) ? public_file_url($logoPath) : $defaultLogo;
+              if ($showLogo && $logoPath) {
+                  $finalLogo = public_file_url($logoPath);
+              } else {
+                  $finalLogo = url('/') . '/assets/logo-default.png';
+              }
               @endphp
-              <img src="{{ $finalLogo }}" alt="{{ $siteName }}" class="retina-logo" style="max-height: 50px; width: auto;">
-              <img src="{{ $finalLogo }}" alt="{{ $siteName }}" class="default-logo" style="max-height: 50px; width: auto;">
+              <img src="{{ $finalLogo }}" alt="{{ $siteName }}" class="retina-logo" style="max-height: 50px; width: auto;" onerror="this.onerror=null; this.src='{{ url('/') }}/assets/logo-default.png';">
+              <img src="{{ $finalLogo }}" alt="{{ $siteName }}" class="default-logo" style="max-height: 50px; width: auto;" onerror="this.onerror=null; this.src='{{ url('/') }}/assets/logo-default.png';">
               @if($showTitle)
               <span>{{ $siteName }}</span>
               @endif

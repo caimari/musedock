@@ -4,12 +4,12 @@
 // Configuración global del gestor de medios para TinyMCE
 if (!window.MediaManagerConfig) {
     window.MediaManagerConfig = {
-        uploadUrl: '{{ route("superadmin.media.upload") }}',
-        dataUrl: '{{ route("superadmin.media.data") }}',
-        deleteUrlTemplate: '{{ route("superadmin.media.delete", ["id" => ":id"]) }}',
-        detailsUrlTemplate: '{{ route("superadmin.media.details", ["id" => ":id"]) }}',
-        updateUrlTemplate: '{{ route("superadmin.media.update", ["id" => ":id"]) }}',
-        foldersStructureUrl: '{{ route("superadmin.media.folders.structure") }}',
+        uploadUrl: '{{ route("tenant.media.upload") }}',
+        dataUrl: '{{ route("tenant.media.data") }}',
+        deleteUrlTemplate: '{{ route("tenant.media.delete", ["id" => ":id"]) }}',
+        detailsUrlTemplate: '{{ route("tenant.media.details", ["id" => ":id"]) }}',
+        updateUrlTemplate: '{{ route("tenant.media.update", ["id" => ":id"]) }}',
+        foldersStructureUrl: '{{ route("tenant.media.folders.structure") }}',
         csrfToken: '{{ csrf_token() }}',
         currentDisk: 'media',
         availableDisks: {
@@ -19,13 +19,13 @@ if (!window.MediaManagerConfig) {
     };
     // Fallback si las rutas no se resuelven
     if (window.MediaManagerConfig.foldersStructureUrl.includes('#ruta-no-encontrada')) {
-        window.MediaManagerConfig.foldersStructureUrl = '/musedock/media/folders/structure';
+        window.MediaManagerConfig.foldersStructureUrl = '/admin/media/folders/structure';
     }
     if (window.MediaManagerConfig.uploadUrl.includes('#ruta-no-encontrada')) {
-        window.MediaManagerConfig.uploadUrl = '/musedock/media/upload';
+        window.MediaManagerConfig.uploadUrl = '/admin/media/upload';
     }
     if (window.MediaManagerConfig.dataUrl.includes('#ruta-no-encontrada')) {
-        window.MediaManagerConfig.dataUrl = '/musedock/media/data';
+        window.MediaManagerConfig.dataUrl = '/admin/media/data';
     }
 }
 </script>
@@ -157,8 +157,19 @@ if (!document.getElementById('md-media-manager-tinymce')) {
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 999999;
+    z-index: 9999;
     padding: 20px;
+}
+
+/* Asegurar que SweetAlert aparezca sobre el modal de TinyMCE Media Manager */
+.swal2-tinymce-top-layer {
+    z-index: 999999 !important;
+}
+.swal2-container {
+    z-index: 999999 !important;
+}
+body .swal2-container.swal2-tinymce-top-layer {
+    z-index: 999999 !important;
 }
 .md-modal-overlay.active { display: flex; animation: mdFadeIn 0.3s ease; }
 .md-modal {
@@ -723,23 +734,135 @@ if (!document.getElementById('md-media-manager-tinymce')) {
                         const resp = JSON.parse(xhr.responseText);
                         if (resp.success) {
                             progressStatus.textContent = 'Subida completada';
+
+                            // Mostrar mensaje de éxito con SweetAlert
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Éxito',
+                                    text: 'Archivo(s) subido(s) correctamente',
+                                    timer: 2000,
+                                    showConfirmButton: false,
+                                    customClass: { container: 'swal2-tinymce-top-layer' },
+                                    didOpen: () => {
+                                        const swalContainer = document.querySelector('.swal2-container');
+                                        if (swalContainer) swalContainer.style.zIndex = '999999';
+                                    }
+                                });
+                            }
+
                             setTimeout(() => {
                                 showTab('library');
                                 loadMedia(1);
                             }, 1000);
                         } else {
                             progressStatus.textContent = 'Error: ' + (resp.message || 'Error desconocido');
+
+                            // LOG DETALLADO DEL ERROR
+                            console.error('═══════════════════════════════════════════');
+                            console.error('❌ ERROR DE SUBIDA - TinyMCE Media Manager');
+                            console.error('═══════════════════════════════════════════');
+                            console.error('Disco seleccionado:', currentDisk);
+                            console.error('Folder ID:', currentFolderId);
+                            console.error('Respuesta completa:', resp);
+                            console.error('Mensaje de error:', resp.message || 'Sin mensaje específico');
+                            console.error('Detalles adicionales:', resp.error || resp.errors || 'No disponible');
+                            console.error('═══════════════════════════════════════════');
+
+                            // Mostrar error con SweetAlert
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: resp.message || 'Error al subir archivo(s)',
+                                    customClass: { container: 'swal2-tinymce-top-layer' },
+                                    didOpen: () => {
+                                        const swalContainer = document.querySelector('.swal2-container');
+                                        if (swalContainer) {
+                                            swalContainer.style.zIndex = '999999';
+                                            console.log('✅ Z-index del modal de error establecido a 999999');
+                                        }
+                                    }
+                                });
+                            }
                         }
                     } catch (e) {
                         progressStatus.textContent = 'Error al procesar respuesta';
+
+                        // LOG DE ERROR DE PARSING
+                        console.error('═══════════════════════════════════════════');
+                        console.error('❌ ERROR AL PARSEAR RESPUESTA DEL SERVIDOR');
+                        console.error('═══════════════════════════════════════════');
+                        console.error('Error de parsing:', e);
+                        console.error('Respuesta raw del servidor:', xhr.responseText);
+                        console.error('═══════════════════════════════════════════');
+
+                        // Mostrar error con SweetAlert
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Error al procesar la respuesta del servidor. Revisa la consola (F12) para más detalles.',
+                                customClass: { container: 'swal2-tinymce-top-layer' },
+                                didOpen: () => {
+                                    const swalContainer = document.querySelector('.swal2-container');
+                                    if (swalContainer) swalContainer.style.zIndex = '999999';
+                                }
+                            });
+                        }
                     }
                 } else {
                     progressStatus.textContent = 'Error de subida';
+
+                    // LOG DE ERROR HTTP
+                    console.error('═══════════════════════════════════════════');
+                    console.error('❌ ERROR HTTP - Código de estado:', xhr.status);
+                    console.error('═══════════════════════════════════════════');
+                    console.error('Status:', xhr.status, xhr.statusText);
+                    console.error('Respuesta del servidor:', xhr.responseText);
+                    console.error('Headers:', xhr.getAllResponseHeaders());
+                    console.error('═══════════════════════════════════════════');
+
+                    // Mostrar error con SweetAlert
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error HTTP ' + xhr.status,
+                            text: 'Error al subir archivo. Revisa la consola (F12) para más detalles.',
+                            customClass: { container: 'swal2-tinymce-top-layer' },
+                            didOpen: () => {
+                                const swalContainer = document.querySelector('.swal2-container');
+                                if (swalContainer) swalContainer.style.zIndex = '999999';
+                            }
+                        });
+                    }
                 }
             };
 
             xhr.onerror = function() {
                 progressStatus.textContent = 'Error de red';
+
+                // LOG DE ERROR DE RED
+                console.error('═══════════════════════════════════════════');
+                console.error('❌ ERROR DE RED - No se pudo conectar al servidor');
+                console.error('═══════════════════════════════════════════');
+                console.error('URL destino:', window.MediaManagerConfig.uploadUrl);
+                console.error('Posible causa: Problema de conexión, CORS, o servidor no disponible');
+                console.error('═══════════════════════════════════════════');
+
+                // Mostrar error con SweetAlert
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error de Red',
+                        text: 'No se pudo conectar al servidor. Verifica tu conexión a Internet.',
+                        customClass: { container: 'swal2-tinymce-top-layer' },
+                        didOpen: () => {
+                            const swalContainer = document.querySelector('.swal2-container');
+                            if (swalContainer) swalContainer.style.zIndex = '999999';
+                        }
+                    });
+                }
             };
 
             xhr.send(formData);
