@@ -569,6 +569,27 @@ function handleFilesUpload() {
                 console.error('Respuesta del servidor:', xhr.responseText);
                 console.error('Headers:', xhr.getAllResponseHeaders());
                 console.error('═══════════════════════════════════════════');
+
+                // Mostrar mensaje amigable según el código de error
+                let errorMsg = '';
+                if (xhr.status === 429) {
+                    // Intentar parsear el mensaje del servidor
+                    try {
+                        const resp = JSON.parse(xhr.responseText);
+                        errorMsg = resp.message || 'Demasiadas subidas. Espera unos segundos e inténtalo de nuevo.';
+                    } catch(e) {
+                        errorMsg = 'Demasiadas subidas. Espera unos segundos e inténtalo de nuevo.';
+                    }
+                } else if (xhr.status === 413) {
+                    errorMsg = 'El archivo es demasiado grande para el servidor.';
+                } else if (xhr.status === 403) {
+                    errorMsg = 'No tienes permiso para subir archivos.';
+                } else if (xhr.status >= 500) {
+                    errorMsg = 'Error del servidor. Inténtalo de nuevo más tarde.';
+                } else {
+                    errorMsg = `Error de subida: ${xhr.status}`;
+                }
+                showError(errorMsg);
             }
 
             uploadOne(index + 1);
@@ -1793,7 +1814,37 @@ function showSuccess(message) {
 }
 function showError(message) {
     console.error("showError:", message);
-    if (typeof Swal !== 'undefined') { Swal.fire({ icon: 'error', title: 'Error', text: message }); }
+    if (typeof Swal !== 'undefined') {
+        // Verificar si hay un modal abierto
+        const isModalOpen = document.getElementById('wpCustomModalOverlay') ||
+                           document.querySelector('.modal.show') ||
+                           document.getElementById('mediaManagerModal');
+
+        if (isModalOpen) {
+            // Si hay un modal abierto, asegurar z-index alto
+            if (!document.getElementById('swal-modal-top-right-style')) {
+                const swalStyle = document.createElement('style');
+                swalStyle.id = 'swal-modal-top-right-style';
+                swalStyle.textContent = `.swal-modal-top-right { z-index: 999999 !important; position: fixed !important; }`;
+                document.head.appendChild(swalStyle);
+            }
+
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: message,
+                customClass: { container: 'swal-modal-top-right' },
+                didOpen: () => {
+                    const swalContainer = document.querySelector('.swal2-container');
+                    if (swalContainer) {
+                        swalContainer.style.zIndex = '999999';
+                    }
+                }
+            });
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: message });
+        }
+    }
     else { alert("Error: " + message); }
 }
 
