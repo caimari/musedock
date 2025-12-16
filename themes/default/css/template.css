@@ -118,6 +118,28 @@ main {
   overflow-wrap: break-word;
 }
 
+/* EXCEPCIÓN: Permitir overflow visible cuando hay slider a sangre (full-width) */
+/* El wrapper del slider necesita salirse del contenedor para ocupar todo el viewport */
+html:has(.slider-full-width-wrapper),
+body:has(.slider-full-width-wrapper),
+.page-body:has(.slider-full-width-wrapper),
+.post-content:has(.slider-full-width-wrapper),
+.page-content-wrapper:has(.slider-full-width-wrapper),
+article:has(.slider-full-width-wrapper),
+.container:has(.slider-full-width-wrapper),
+main:has(.slider-full-width-wrapper) {
+  overflow-x: visible !important;
+}
+
+/* Asegurar que el contenedor directo del slider permita el overflow */
+.page-body > .slider-full-width-wrapper,
+.post-content > .slider-full-width-wrapper,
+.page-content-wrapper > .slider-full-width-wrapper,
+.container > .slider-full-width-wrapper {
+  position: relative;
+  z-index: 10;
+}
+
 /* Asegurar que tablas también sean responsivas */
 .page-body table,
 .post-content table,

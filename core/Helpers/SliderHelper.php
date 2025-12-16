@@ -142,9 +142,24 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
 
     // Wrapper para full-width (a sangre)
     if ($fullWidth) {
-        // Full-bleed wrapper robusto (funciona incluso dentro de containers/columns con padding)
-        // IMPORTANTE: No usar inline styles - delegar al CSS para máxima compatibilidad
-        $output .= '<div class="slider-full-width-wrapper" data-full-bleed="true">';
+        // Full-bleed wrapper robusto con estilos inline para máxima compatibilidad
+        // Los estilos inline garantizan que funcione incluso con overflow:hidden en contenedores padre
+        $output .= '<div class="slider-full-width-wrapper" data-full-bleed="true" style="position:relative !important;left:50% !important;width:100vw !important;max-width:100vw !important;margin-left:-50vw !important;margin-right:-50vw !important;box-sizing:border-box !important;">';
+
+        // Añadir script para forzar overflow visible en contenedores padre
+        $output .= '<script>
+        (function(){
+            var wrapper = document.querySelector(\'.slider-full-width-wrapper[data-full-bleed="true"]\');
+            if(wrapper){
+                var parent = wrapper.parentElement;
+                while(parent && parent !== document.body){
+                    parent.style.overflow = "visible";
+                    parent.style.overflowX = "visible";
+                    parent = parent.parentElement;
+                }
+            }
+        })();
+        </script>';
     }
 
     $themeClass = 'theme-' . \e($theme);
@@ -427,9 +442,23 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
 
         // Wrapper para full-width (a sangre)
         if ($fullWidth) {
-            // Full-bleed wrapper robusto (funciona incluso dentro de containers/columns con padding)
-            // IMPORTANTE: No usar inline styles - delegar al CSS para máxima compatibilidad
-            $output .= '<div class="slider-full-width-wrapper" data-full-bleed="true">';
+            // Full-bleed wrapper robusto con estilos inline para máxima compatibilidad
+            $output .= '<div class="slider-full-width-wrapper" data-full-bleed="true" style="position:relative !important;left:50% !important;width:100vw !important;max-width:100vw !important;margin-left:-50vw !important;margin-right:-50vw !important;box-sizing:border-box !important;">';
+
+            // Añadir script para forzar overflow visible en contenedores padre
+            $output .= '<script>
+            (function(){
+                var wrapper = document.querySelector(\'.slider-full-width-wrapper[data-full-bleed="true"]\');
+                if(wrapper){
+                    var parent = wrapper.parentElement;
+                    while(parent && parent !== document.body){
+                        parent.style.overflow = "visible";
+                        parent.style.overflowX = "visible";
+                        parent = parent.parentElement;
+                    }
+                }
+            })();
+            </script>';
         }
 
         $output .= '<div class="gallery-container theme-' . \e($theme) . '" style="display:flex;flex-direction:column;gap:0;margin:0;padding:0;">';
