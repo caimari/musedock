@@ -21,6 +21,7 @@
             <tr>
                 <th>Nombre del tema</th>
                 <th>Estado</th>
+                <th>Disponible para Tenants</th>
                 <th>Personalizar</th>
                 <th>Acciones</th>
             </tr>
@@ -77,6 +78,24 @@
                                 Activar
                             </button>
                         @endif
+                    </td>
+
+                    {{-- Disponible para Tenants --}}
+                    <td class="text-center">
+                        @php
+                            $isAvailableForTenants = !empty($theme['available_for_tenants']);
+                        @endphp
+                        <form method="POST" action="{{ route('themes.toggle-tenant') }}" class="d-inline">
+                            @csrf
+                            <input type="hidden" name="theme" value="{{ $theme['slug'] }}">
+                            <button type="submit" class="btn btn-sm {{ $isAvailableForTenants ? 'btn-success' : 'btn-outline-secondary' }}" title="{{ $isAvailableForTenants ? 'Disponible para tenants - Click para deshabilitar' : 'No disponible - Click para habilitar' }}">
+                                @if ($isAvailableForTenants)
+                                    <i class="bi bi-check-circle-fill me-1"></i> Sí
+                                @else
+                                    <i class="bi bi-x-circle me-1"></i> No
+                                @endif
+                            </button>
+                        </form>
                     </td>
 
                     {{-- Personalizar --}}

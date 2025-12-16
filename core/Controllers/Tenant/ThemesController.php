@@ -188,7 +188,8 @@ class ThemesController
     }
 
     /**
-     * Obtener temas globales disponibles
+     * Obtener temas globales disponibles para tenants
+     * Solo muestra temas que tienen available_for_tenants = 1 en la BD
      */
     private function getGlobalThemes(): array {
         $themes = [];
@@ -198,11 +199,21 @@ class ThemesController
             return $themes;
         }
 
+        // Obtener lista de temas habilitados para tenants desde la BD
+        $availableThemes = Database::query(
+            "SELECT slug FROM themes WHERE available_for_tenants = 1"
+        )->fetchAll(\PDO::FETCH_COLUMN);
+
         foreach (glob($themesPath . '/*', GLOB_ONLYDIR) as $themePath) {
             $slug = basename($themePath);
 
             // Saltar directorios especiales
             if (in_array($slug, ['tenant_1', 'tenant_16', 'shared'])) {
+                continue;
+            }
+
+            // Solo mostrar temas habilitados para tenants
+            if (!in_array($slug, $availableThemes)) {
                 continue;
             }
 

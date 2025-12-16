@@ -148,37 +148,121 @@ main table {
   }
 }
 
-/* Ajustar espaciado de párrafos en contenido de páginas */
+/* ===============================================
+   ESPACIADO PROFESIONAL DE CONTENIDO
+   =============================================== */
+
+/* === PÁRRAFOS === */
 .page-content p,
 .page-body p,
-.content p {
-  margin-bottom: 1rem;
+.content p,
+article p {
+  margin-top: 0;
+  margin-bottom: 1rem; /* 16px */
+  line-height: 1.7;
 }
 
-/* Eliminar espaciado de párrafos vacíos o con solo espacios */
+/* Eliminar párrafos vacíos completamente */
 .page-content p:empty,
 .page-body p:empty,
 .content p:empty,
-.page-content p:has(> br:only-child),
-.page-body p:has(> br:only-child),
-.content p:has(> br:only-child) {
-  margin: 0;
-  padding: 0;
-  line-height: 0;
-  height: 0;
+article p:empty {
+  display: none !important;
 }
 
-/* Ajustar espaciado de títulos h2, h3 */
+/* === H2 - Títulos principales === */
 .page-content h2,
 .page-body h2,
-.content h2 {
-  margin-top: 2rem;
-  margin-bottom: 1rem;
+.content h2,
+article h2 {
+  margin-top: 2.5rem !important; /* 40px - clara separación */
+  margin-bottom: 1.25rem !important; /* 20px */
+  font-weight: 700;
+  line-height: 1.3;
 }
 
+.page-content h2:first-child,
+.page-body h2:first-child,
+.content h2:first-child {
+  margin-top: 0 !important;
+}
+
+/* === H3 - Subsecciones === */
 .page-content h3,
 .page-body h3,
-.content h3 {
-  margin-top: 1.5rem;
-  margin-bottom: 0.75rem;
+.content h3,
+article h3 {
+  margin-top: 2rem !important; /* 32px */
+  margin-bottom: 1rem !important; /* 16px */
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.page-content h3:first-child,
+.page-body h3:first-child,
+.content h3:first-child {
+  margin-top: 0 !important;
+}
+
+/* === HR - Separadores === */
+.page-content hr,
+.page-body hr,
+.content hr,
+article hr {
+  margin: 1.5rem 0 !important; /* Espaciado consistente arriba y abajo */
+  border: 0;
+  border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+/* HR seguido de título - reducir espaciado redundante */
+.page-content hr + h2,
+.page-body hr + h2,
+.content hr + h2,
+.page-content hr + h3,
+.page-body hr + h3,
+.content hr + h3 {
+  margin-top: 1rem !important; /* Reducido porque HR ya da espacio */
+}
+
+/* === LISTAS === */
+.page-content ul,
+.page-body ul,
+.content ul,
+.page-content ol,
+.page-body ol,
+.content ol,
+article ul,
+article ol {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.page-content li,
+.page-body li,
+.content li,
+article li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.page-content li:last-child,
+.page-body li:last-child,
+.content li:last-child {
+  margin-bottom: 0;
+}
+
+/* Párrafos DENTRO de LI - sin margin extra */
+.page-content li p,
+.page-body li p,
+.content li p,
+article li p {
+  margin: 0 !important;
+}
+
+/* === STRONG === */
+.page-content strong,
+.page-body strong,
+.content strong {
+  font-weight: 700;
+  color: #333;
 }

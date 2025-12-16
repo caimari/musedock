@@ -178,8 +178,8 @@
     {{-- CSS de Cookies --}}
     <link rel="stylesheet" href="{{ asset('themes/default/css/cookie-consent.css') }}">
 
-    {{-- CSS Theme --}}
-    <link rel="stylesheet" href="{{ asset('themes/default/css/theme_default.css') }}">
+    {{-- CSS Personalizado - Espaciado y estilos del tema --}}
+    <link rel="stylesheet" href="{{ asset('themes/default/css/template.css') }}?v={{ time() }}">
     
 
 	{{-- CSS Variables dinámicas desde la base de datos (tenant-aware) --}}

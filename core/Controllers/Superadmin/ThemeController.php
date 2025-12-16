@@ -48,14 +48,15 @@ public function index()
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!$row) {
-            // Insertamos si no está registrado
-            $stmt = $pdo->prepare("INSERT INTO themes (name, slug, active, installed_at) VALUES (?, ?, 0, NOW())");
+            // Insertamos si no está registrado (available_for_tenants = 0 por defecto)
+            $stmt = $pdo->prepare("INSERT INTO themes (name, slug, active, available_for_tenants, installed_at) VALUES (?, ?, 0, 0, NOW())");
             $stmt->execute([ucfirst($slug), $slug]);
 
             $row = [
                 'name' => ucfirst($slug),
                 'slug' => $slug,
                 'active' => 0,
+                'available_for_tenants' => 0,
                 'installed_at' => date('Y-m-d H:i:s'),
             ];
         }
@@ -72,6 +73,54 @@ public function index()
         'themes' => $availableThemes,
         'currentTheme' => $currentTheme,
     ]);
+}
+
+/**
+ * Toggle disponibilidad del tema para tenants
+ */
+public function toggleTenantAvailability()
+{
+    SessionSecurity::startSession();
+    $this->checkPermission('appearance.themes');
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        echo json_encode(['success' => false, 'error' => 'Método no permitido']);
+        exit;
+    }
+
+    $slug = $_POST['theme'] ?? null;
+    if (!$slug) {
+        flash('error', 'Tema no especificado.');
+        header('Location: /musedock/themes');
+        exit;
+    }
+
+    $pdo = Database::connect();
+
+    // Obtener estado actual
+    $stmt = $pdo->prepare("SELECT available_for_tenants FROM themes WHERE slug = ?");
+    $stmt->execute([$slug]);
+    $current = $stmt->fetchColumn();
+
+    if ($current === false) {
+        flash('error', 'Tema no encontrado en la base de datos.');
+        header('Location: /musedock/themes');
+        exit;
+    }
+
+    // Toggle el valor
+    $newValue = $current ? 0 : 1;
+    $stmt = $pdo->prepare("UPDATE themes SET available_for_tenants = ? WHERE slug = ?");
+    $stmt->execute([$newValue, $slug]);
+
+    $message = $newValue
+        ? "Tema '{$slug}' ahora está disponible para tenants."
+        : "Tema '{$slug}' ya no está disponible para tenants.";
+
+    flash('success', $message);
+    header('Location: /musedock/themes');
+    exit;
 }
 
 

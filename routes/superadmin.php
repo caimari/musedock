@@ -70,6 +70,7 @@ Route::get('/musedock/avatar/{filename}', 'superadmin.ProfileController@serveAva
 // Temas
 Route::get('/musedock/themes', 'superadmin.ThemeController@index')->name('themes.index')->middleware('superadmin');
 Route::post('/musedock/themes/activate', 'superadmin.ThemeController@activate')->name('themes.activate')->middleware('superadmin');
+Route::post('/musedock/themes/toggle-tenant-availability', 'superadmin.ThemeController@toggleTenantAvailability')->name('themes.toggle-tenant')->middleware('superadmin');
 Route::get('/musedock/themes/create', 'superadmin.ThemeController@create')->name('themes.create')->middleware('superadmin');
 Route::post('/musedock/themes/store', 'superadmin.ThemeController@store')->name('themes.store')->middleware('superadmin');
 Route::post('/musedock/themes/upload', 'superadmin.ThemeController@upload')->name('themes.upload')->middleware('superadmin');
