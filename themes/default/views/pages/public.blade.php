@@ -71,7 +71,10 @@
 <div class="page-content container mt-5">
       <!--  <h1 class="display-4">{{ $page->title }}</h1> -->
     <div class="content">
-        {!! $page->content !!}
+        @php
+            $content = apply_filters('the_content', $translation->content ?? $page->content ?? '<p class="text-muted">Contenido no disponible.</p>');
+        @endphp
+        {!! $content !!}
     </div>
 </div>
 @endsection
