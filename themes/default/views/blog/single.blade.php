@@ -79,7 +79,7 @@
                 @endif
 
                 {{-- Título - Ocultar solo si hide_title está activado --}}
-                @if(empty($post->hide_title) || $post->hide_title !== 1)
+                @if(!$post->hide_title || $post->hide_title != 1)
                     <h1 class="mb-3">{{ $post->title }}</h1>
                 @endif
 

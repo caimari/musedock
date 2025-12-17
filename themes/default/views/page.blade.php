@@ -207,7 +207,7 @@
             @endif
 
             {{-- Título del post - Ocultar solo si hide_title está activado --}}
-            @if(empty($post->hide_title) || $post->hide_title !== 1)
+            @if(!$post->hide_title || $post->hide_title != 1)
                 <h1 class="post-title mb-3">{{ $translation->title }}</h1>
             @endif
 
@@ -227,7 +227,7 @@
         @else
             {{-- Es una página --}}
             {{-- Mostrar el título H1 solo si NO está oculto mediante hide_title Y no es la página de inicio --}}
-            @if(isset($customizations) && $customizations->hide_title !== true && $customizations->hide_title !== 1 && isset($page) && !$page->is_homepage)
+            @if(isset($customizations) && !$customizations->hide_title && isset($page) && !$page->is_homepage)
                 <h1 class="page-title">{{ $translation->title ?? '' }}</h1>
             @endif
 
@@ -238,7 +238,7 @@
                     $content = $processedContent;
                     // Si hide_title está activado, eliminar el primer H1 del contenido
                     // Esto permite ocultar títulos que el usuario haya puesto manualmente en el editor
-                    if (isset($customizations) && ($customizations->hide_title === true || $customizations->hide_title === 1 || $customizations->hide_title === "1")) {
+                    if (isset($customizations) && $customizations->hide_title) {
                         $content = preg_replace('/<h1[^>]*>.*?<\/h1>/', '', $content, 1);
                     }
                 @endphp
