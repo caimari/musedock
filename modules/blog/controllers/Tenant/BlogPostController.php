@@ -56,11 +56,21 @@ class BlogPostController
         $perPage = isset($_GET['perPage']) ? intval($_GET['perPage']) : 10;
         $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 
+        // Capturar parámetros de ordenamiento (por defecto: título ASC como WordPress)
+        $orderBy = isset($_GET['orderby']) ? $_GET['orderby'] : 'title';
+        $order = isset($_GET['order']) && strtoupper($_GET['order']) === 'DESC' ? 'DESC' : 'ASC';
+
+        // Validar columnas permitidas para ordenamiento
+        $allowedColumns = ['title', 'status', 'published_at', 'created_at', 'updated_at'];
+        if (!in_array($orderBy, $allowedColumns)) {
+            $orderBy = 'title';
+        }
+
         // Consulta de posts SOLO del tenant actual (excluyendo papelera)
         $query = BlogPost::query()
             ->where('tenant_id', $tenantId)
             ->whereRaw("(status != ? OR status IS NULL)", ['trash'])
-            ->orderBy('updated_at', 'DESC');
+            ->orderBy($orderBy, $order);
 
         // Aplicar búsqueda si existe
         if (!empty($search)) {
@@ -145,6 +155,8 @@ class BlogPostController
             'authors'     => $authors,
             'search'      => $search,
             'pagination'  => $pagination,
+            'orderBy'     => $orderBy,
+            'order'       => $order,
         ]);
     }
 

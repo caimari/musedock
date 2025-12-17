@@ -5,8 +5,23 @@
 @section('styles')
 <style>
   /* Estilos para la tabla ordenable */
-  .sortable {
+  .sortable-link {
     cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .sortable-link:hover {
+    color: #0d6efd;
+  }
+  .sortable-link .sort-icon {
+    opacity: 0.4;
+  }
+  .sortable-link.active .sort-icon {
+    opacity: 1;
+    color: #0d6efd;
   }
 
   /* Selector de registros por página */
@@ -25,6 +40,39 @@
   }
 </style>
 @endsection
+
+@php
+  // Función helper para generar URLs de ordenamiento
+  $sortUrl = function($column) use ($orderBy, $order) {
+    $params = $_GET;
+    $params['orderby'] = $column;
+    // Si ya estamos ordenando por esta columna, invertir el orden
+    if ($orderBy === $column) {
+      $params['order'] = ($order === 'ASC') ? 'DESC' : 'ASC';
+    } else {
+      // Por defecto ASC para título, DESC para fecha
+      $params['order'] = ($column === 'published_at') ? 'DESC' : 'ASC';
+    }
+    // Resetear a página 1 al cambiar orden
+    unset($params['page']);
+    return admin_url('blog/posts') . '?' . http_build_query($params);
+  };
+
+  // Función helper para obtener el icono de ordenamiento
+  $sortIcon = function($column) use ($orderBy, $order) {
+    if ($orderBy !== $column) {
+      return '<i class="fas fa-sort sort-icon"></i>';
+    }
+    return $order === 'ASC'
+      ? '<i class="fas fa-sort-up sort-icon"></i>'
+      : '<i class="fas fa-sort-down sort-icon"></i>';
+  };
+
+  // Función helper para determinar si la columna está activa
+  $isActiveSort = function($column) use ($orderBy) {
+    return $orderBy === $column ? 'active' : '';
+  };
+@endphp
 
 @section('content')
 <div class="app-content">
@@ -99,12 +147,24 @@
             <thead>
               <tr>
                 <th style="width: 1%;"><input type="checkbox" class="form-check-input" id="selectAll"></th>
-                <th class="sortable" data-sort-col="1">{{ __('blog.post.title') }} <i class="fas fa-sort text-muted ms-1"></i></th>
-                <th class="sortable" data-sort-col="2">{{ __('blog.post.author') }} <i class="fas fa-sort text-muted ms-1"></i></th>
-                <th class="sortable" data-sort-col="3">{{ __('blog.post.categories') }} <i class="fas fa-sort text-muted ms-1"></i></th>
-                <th class="sortable" data-sort-col="4">{{ __('blog.post.status') }} <i class="fas fa-sort text-muted ms-1"></i></th>
-                <th class="sortable" data-sort-col="5">{{ __('blog.post.language') }} <i class="fas fa-sort text-muted ms-1"></i></th>
-                <th class="sortable" data-sort-col="6">{{ __('blog.post.published_at') }} <i class="fas fa-sort-down text-primary ms-1"></i></th>
+                <th>
+                  <a href="{{ $sortUrl('title') }}" class="sortable-link {{ $isActiveSort('title') }}">
+                    {{ __('blog.post.title') }} {!! $sortIcon('title') !!}
+                  </a>
+                </th>
+                <th>{{ __('blog.post.author') }}</th>
+                <th>{{ __('blog.post.categories') }}</th>
+                <th>
+                  <a href="{{ $sortUrl('status') }}" class="sortable-link {{ $isActiveSort('status') }}">
+                    {{ __('blog.post.status') }} {!! $sortIcon('status') !!}
+                  </a>
+                </th>
+                <th>{{ __('blog.post.language') }}</th>
+                <th>
+                  <a href="{{ $sortUrl('published_at') }}" class="sortable-link {{ $isActiveSort('published_at') }}">
+                    {{ __('blog.post.published_at') }} {!! $sortIcon('published_at') !!}
+                  </a>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -419,80 +479,10 @@ document.addEventListener('DOMContentLoaded', function() {
     perPageSelect.addEventListener('change', function() {
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.set('perPage', this.value);
+      // Resetear a página 1 al cambiar cantidad
+      currentUrl.searchParams.delete('page');
       window.location.href = currentUrl.toString();
     });
-  }
-
-  // Ordenación de tabla
-  const table = document.getElementById('postsTable');
-  if (table) {
-    const headers = table.querySelectorAll('th.sortable');
-    headers.forEach(header => {
-      header.addEventListener('click', function() {
-        const column = this.getAttribute('data-sort-col');
-        sortTable(table, parseInt(column), this);
-      });
-    });
-
-    // Ordenar por fecha al cargar (columna 6)
-    const dateHeader = table.querySelector('th.sortable[data-sort-col="6"]');
-    if (dateHeader) {
-      setTimeout(function() {
-        dateHeader.click();
-      }, 100);
-    }
-  }
-
-  // Función para ordenar la tabla
-  function sortTable(table, columnIndex, header) {
-    const tbody = table.querySelector('tbody');
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    const icon = header.querySelector('i');
-
-    // Determinar la dirección de ordenación
-    const isAsc = icon.classList.contains('fa-sort') || icon.classList.contains('fa-sort-down');
-
-    // Resetear todos los iconos
-    table.querySelectorAll('th.sortable i').forEach(i => {
-      i.className = 'fas fa-sort text-muted ms-1';
-    });
-
-    // Actualizar icono de ordenación
-    if (isAsc) {
-      icon.className = 'fas fa-sort-up text-primary ms-1';
-    } else {
-      icon.className = 'fas fa-sort-down text-primary ms-1';
-    }
-
-    // Ordenar las filas
-    rows.sort((a, b) => {
-      let aValue, bValue;
-
-      // Obtener los valores según la columna
-      if (columnIndex === 1) { // Título
-        aValue = a.querySelector('td:nth-child(2) strong').textContent.trim();
-        bValue = b.querySelector('td:nth-child(2) strong').textContent.trim();
-      } else if (columnIndex === 6) { // Fecha (usamos el atributo data-date)
-        aValue = a.querySelector('td:nth-child(7)').getAttribute('data-date') || '';
-        bValue = b.querySelector('td:nth-child(7)').getAttribute('data-date') || '';
-      } else {
-        aValue = a.querySelector(`td:nth-child(${columnIndex+1})`).textContent.trim();
-        bValue = b.querySelector(`td:nth-child(${columnIndex+1})`).textContent.trim();
-      }
-
-      // Comparar valores (orden descendente para fecha)
-      if (columnIndex === 6) {
-        if (aValue < bValue) return isAsc ? 1 : -1;
-        if (aValue > bValue) return isAsc ? -1 : 1;
-      } else {
-        if (aValue < bValue) return isAsc ? -1 : 1;
-        if (aValue > bValue) return isAsc ? 1 : -1;
-      }
-      return 0;
-    });
-
-    // Reordenar el DOM
-    rows.forEach(row => tbody.appendChild(row));
   }
 });
 </script>
