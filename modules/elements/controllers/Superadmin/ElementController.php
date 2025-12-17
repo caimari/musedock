@@ -6,6 +6,7 @@ use Screenart\Musedock\View;
 use Screenart\Musedock\Security\SessionSecurity;
 use Elements\Models\Element;
 use Elements\Models\ElementSetting;
+use Screenart\Musedock\Traits\RequiresPermission;
 
 /**
  * ElementController - Superadmin
@@ -14,11 +15,27 @@ use Elements\Models\ElementSetting;
  */
 class ElementController
 {
+    use RequiresPermission;
+
+    /**
+     * Verificar si el usuario actual tiene un permiso específico
+     * Si no lo tiene, redirige con mensaje de error
+     */
+    private function checkPermission(string $permission): void
+    {
+        if (!userCan($permission)) {
+            flash('error', __element('element.error') . ': Acceso denegado');
+            header('Location: ' . admin_url('dashboard'));
+            exit;
+        }
+    }
+
     /**
      * List global elements
      */
     public function index()
     {
+        $this->checkPermission('elements.view');
         SessionSecurity::startSession();
 
         $elements = Element::getByTenant(null, false); // Only global elements
@@ -35,6 +52,7 @@ class ElementController
      */
     public function create()
     {
+        $this->checkPermission('elements.create');
         SessionSecurity::startSession();
 
         return View::renderModule('elements', 'superadmin/elements/create', [
@@ -51,6 +69,7 @@ class ElementController
      */
     public function store()
     {
+        $this->checkPermission('elements.create');
         SessionSecurity::startSession();
 
         // Validation
@@ -115,6 +134,7 @@ class ElementController
      */
     public function edit(int $id)
     {
+        $this->checkPermission('elements.edit');
         SessionSecurity::startSession();
 
         $element = Element::find($id);
@@ -140,6 +160,7 @@ class ElementController
      */
     public function update(int $id)
     {
+        $this->checkPermission('elements.edit');
         SessionSecurity::startSession();
 
         $element = Element::find($id);
@@ -212,6 +233,7 @@ class ElementController
      */
     public function destroy(int $id)
     {
+        $this->checkPermission('elements.delete');
         SessionSecurity::startSession();
 
         $element = Element::find($id);

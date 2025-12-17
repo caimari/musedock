@@ -7,6 +7,7 @@ use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Services\TenantManager;
 use Elements\Models\Element;
 use Elements\Models\ElementSetting;
+use Screenart\Musedock\Traits\RequiresPermission;
 
 /**
  * ElementController - Tenant
@@ -15,11 +16,27 @@ use Elements\Models\ElementSetting;
  */
 class ElementController
 {
+    use RequiresPermission;
+
+    /**
+     * Verificar si el usuario actual tiene un permiso específico
+     * Si no lo tiene, redirige con mensaje de error
+     */
+    private function checkPermission(string $permission): void
+    {
+        if (!userCan($permission)) {
+            flash('error', __element('element.error') . ': Acceso denegado');
+            header('Location: ' . admin_url('dashboard'));
+            exit;
+        }
+    }
+
     /**
      * List tenant elements
      */
     public function index()
     {
+        $this->checkPermission('elements.view');
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 
@@ -43,6 +60,7 @@ class ElementController
      */
     public function create()
     {
+        $this->checkPermission('elements.create');
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 
@@ -66,6 +84,7 @@ class ElementController
      */
     public function store()
     {
+        $this->checkPermission('elements.create');
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 
@@ -137,6 +156,7 @@ class ElementController
      */
     public function edit(int $id)
     {
+        $this->checkPermission('elements.edit');
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 
@@ -173,6 +193,7 @@ class ElementController
      */
     public function update(int $id)
     {
+        $this->checkPermission('elements.edit');
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 
@@ -259,6 +280,7 @@ class ElementController
      */
     public function destroy(int $id)
     {
+        $this->checkPermission('elements.delete');
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 

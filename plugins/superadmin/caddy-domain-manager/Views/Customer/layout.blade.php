@@ -31,45 +31,191 @@
             min-height: 100vh;
         }
 
-        /* Header Simple */
+        /* Header */
         .customer-header {
             background: white;
             border-bottom: 1px solid #e0e0e0;
-            padding: 15px 0;
+            padding: 12px 0;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             position: sticky;
             top: 0;
             z-index: 1000;
         }
 
-        .customer-header .logo-container {
+        .customer-header .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .customer-header .logo-container a {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .customer-header .logo-container img {
+            height: 42px;
+            max-width: 180px;
+            object-fit: contain;
+        }
+
+        /* User Menu Dropdown */
+        .user-menu {
+            position: relative;
+        }
+
+        .user-menu-trigger {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 25px;
+            transition: all 0.3s;
+            background: transparent;
+            border: none;
+        }
+
+        .user-menu-trigger:hover {
+            background: #f8f9fa;
+        }
+
+        .user-menu-trigger .user-avatar-small {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--gradient);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .user-menu-trigger .user-name {
+            font-weight: 500;
+            color: #333;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .user-menu-trigger .dropdown-icon {
+            color: #999;
+            font-size: 0.75rem;
+        }
+
+        .user-menu-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            min-width: 240px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1001;
+        }
+
+        .user-menu-dropdown.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .user-menu-dropdown .dropdown-header {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .user-menu-dropdown .dropdown-header .user-info-dropdown {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        .customer-header .logo-container img {
-            height: 40px;
+        .user-menu-dropdown .user-avatar-dropdown {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: var(--gradient);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1.2rem;
+            flex-shrink: 0;
         }
 
-        .customer-header .site-name {
-            font-size: 1.5rem;
-            font-weight: 700;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .user-menu-dropdown .user-details h6 {
+            margin: 0 0 2px 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .user-menu-dropdown .user-details small {
+            color: #999;
+            font-size: 0.8rem;
+        }
+
+        .user-menu-dropdown .dropdown-menu-items {
+            padding: 8px 0;
+        }
+
+        .user-menu-dropdown .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 18px;
+            color: #333;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .user-menu-dropdown .dropdown-item:hover {
+            background: #f8f9fa;
+        }
+
+        .user-menu-dropdown .dropdown-item i {
+            width: 20px;
+            text-align: center;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .user-menu-dropdown .dropdown-item.logout {
+            color: #dc3545;
+            border-top: 1px solid #f0f0f0;
+            margin-top: 4px;
+        }
+
+        .user-menu-dropdown .dropdown-item.logout i {
+            color: #dc3545;
         }
 
         /* Sidebar */
         .sidebar {
             background: white;
-            min-height: calc(100vh - 70px);
+            min-height: calc(100vh - 68px);
             border-right: 1px solid #e0e0e0;
             padding: 30px 20px;
             position: sticky;
-            top: 70px;
-            height: calc(100vh - 70px);
+            top: 68px;
+            height: calc(100vh - 68px);
             overflow-y: auto;
         }
 
@@ -162,7 +308,7 @@
 
         /* Auth Pages (sin sidebar) */
         .auth-container {
-            min-height: calc(100vh - 70px);
+            min-height: calc(100vh - 68px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -171,6 +317,14 @@
 
         /* Responsive */
         @media (max-width: 768px) {
+            .user-menu-trigger .user-name {
+                display: none;
+            }
+
+            .user-menu-trigger .dropdown-icon {
+                display: none;
+            }
+
             .sidebar {
                 position: relative;
                 min-height: auto;
@@ -192,10 +346,6 @@
 
             .main-content {
                 padding: 20px 15px;
-            }
-
-            .customer-header .site-name {
-                font-size: 1.2rem;
             }
         }
 
@@ -231,12 +381,57 @@
     </style>
 </head>
 <body>
-    <!-- Header Simple -->
+    <!-- Header -->
     <header class="customer-header">
         <div class="container-fluid">
-            <div class="logo-container">
-                <img src="/assets/logo2_footer.png" alt="MuseDock">
-                <div class="site-name">MuseDock</div>
+            <div class="header-content">
+                <!-- Logo -->
+                <div class="logo-container">
+                    <a href="/customer/dashboard">
+                        <img src="/assets/logo-default.png" alt="MuseDock">
+                    </a>
+                </div>
+
+                <!-- User Menu (solo si está autenticado) -->
+                <?php if (isset($customer)): ?>
+                <div class="user-menu">
+                    <button class="user-menu-trigger" onclick="toggleUserMenu()">
+                        <div class="user-avatar-small">
+                            <?= strtoupper(substr($customer['name'], 0, 1)) ?>
+                        </div>
+                        <span class="user-name"><?= htmlspecialchars($customer['name']) ?></span>
+                        <i class="bi bi-chevron-down dropdown-icon"></i>
+                    </button>
+
+                    <div class="user-menu-dropdown" id="userMenuDropdown">
+                        <div class="dropdown-header">
+                            <div class="user-info-dropdown">
+                                <div class="user-avatar-dropdown">
+                                    <?= strtoupper(substr($customer['name'], 0, 1)) ?>
+                                </div>
+                                <div class="user-details">
+                                    <h6><?= htmlspecialchars($customer['name']) ?></h6>
+                                    <small><?= htmlspecialchars($customer['email']) ?></small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dropdown-menu-items">
+                            <a href="/customer/dashboard" class="dropdown-item">
+                                <i class="bi bi-speedometer2"></i>
+                                <span>Dashboard</span>
+                            </a>
+                            <a href="/customer/profile" class="dropdown-item">
+                                <i class="bi bi-person"></i>
+                                <span>Mi Perfil</span>
+                            </a>
+                            <button onclick="logout()" class="dropdown-item logout">
+                                <i class="bi bi-box-arrow-right"></i>
+                                <span>Cerrar Sesión</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </header>
@@ -296,8 +491,28 @@
     @yield('scripts')
 
     <script>
+        // Toggle user menu dropdown
+        function toggleUserMenu() {
+            const dropdown = document.getElementById('userMenuDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const userMenu = document.querySelector('.user-menu');
+            const dropdown = document.getElementById('userMenuDropdown');
+
+            if (dropdown && userMenu && !userMenu.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+
         // Logout function
         function logout() {
+            // Close dropdown
+            const dropdown = document.getElementById('userMenuDropdown');
+            if (dropdown) dropdown.classList.remove('show');
+
             Swal.fire({
                 title: '¿Cerrar sesión?',
                 text: "¿Estás seguro que deseas salir?",
@@ -341,7 +556,7 @@
                 const sidebar = document.getElementById('sidebar');
                 const toggle = document.querySelector('.mobile-sidebar-toggle');
 
-                if (sidebar && !sidebar.contains(event.target) && !toggle.contains(event.target)) {
+                if (sidebar && toggle && !sidebar.contains(event.target) && !toggle.contains(event.target)) {
                     sidebar.classList.add('mobile-hidden');
                 }
             }
