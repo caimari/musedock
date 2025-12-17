@@ -36,7 +36,7 @@ $_contactAddress = site_setting('contact_address', '');
   @if($_siteFavicon)
   <link rel="icon" type="image/x-icon" href="{{ asset(ltrim($_siteFavicon, '/')) }}">
   @else
-  <link rel="shortcut icon" href="{{ asset('themes/musedock/images/favicon.png') }}">
+  <link rel="shortcut icon" href="{{ asset('img/favicon.png') }}">
   @endif
   
   {{-- Meta keywords --}}

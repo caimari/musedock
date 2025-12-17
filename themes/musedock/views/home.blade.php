@@ -170,23 +170,32 @@
     max-width: 100%;
 }
 
-/* Eliminar margen entre el contenido y el footer en la home */
-.ziph-page_content:last-of-type {
+/* Eliminar margen/padding entre el contenido y el footer en la HOME */
+/* Usamos .ziph-is-home que está en el body para aplicar solo en home */
+.ziph-is-home main {
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
 }
 
-.ziph-page_content + footer,
-.ziph-page_content + .ziph-footer,
-.ziph-page_content + .ziph-footer_area,
-.ziph-page_content + .footer-area {
+.ziph-is-home .ziph-page_content {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.ziph-is-home .ziph-page_content:last-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* Footer pegado al contenido en HOME */
+.ziph-is-home footer.ziph-footer_area,
+.ziph-is-home .ziph-footer_area {
     margin-top: 0 !important;
 }
 
-/* Footer pegado al contenido */
-footer.ziph-footer_area,
-.ziph-footer_area {
-    margin-top: 0 !important;
+/* Eliminar padding del .ziph-footer_top en HOME para que quede más pegado */
+.ziph-is-home .ziph-footer_top {
+    padding-top: 40px !important;
 }
 
 .ziph-header_navigation { margin-bottom: 0; }
