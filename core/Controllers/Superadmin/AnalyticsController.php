@@ -164,9 +164,14 @@ class AnalyticsController
         $visitorChange = $this->calculateChange($current['unique_visitors'], $previous['unique_visitors']);
 
         // Tasa de rebote
+        // PostgreSQL: bounce es BOOLEAN (comparar con TRUE)
+        // MySQL: bounce es TINYINT (comparar con 1)
+        $driver = $this->getDriver();
+        $bounceCondition = $driver === 'pgsql' ? 'bounce = TRUE' : 'bounce = 1';
+
         $stmt = $db->prepare("
             SELECT
-                SUM(CASE WHEN bounce = 1 THEN 1 ELSE 0 END) as bounces,
+                SUM(CASE WHEN {$bounceCondition} THEN 1 ELSE 0 END) as bounces,
                 COUNT(*) as total
             FROM web_analytics
             WHERE created_at >= {$dateExpr}
