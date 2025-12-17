@@ -40,3 +40,30 @@
 .sidebar [class*="widget"]:last-child {
   margin-bottom: 0 !important;
 }
+
+/* Fix para el título del hero/slider - evitar desbordamiento */
+.hero-cap h2,
+.slider-area .hero-cap h2 {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  max-width: 100%;
+  padding: 0 15px;
+}
+
+/* Responsive para títulos largos en mobile */
+@media (max-width: 767px) {
+  .hero-cap h2,
+  .slider-area .hero-cap h2 {
+    font-size: 28px !important;
+    line-height: 1.2;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  .hero-cap h2,
+  .slider-area .hero-cap h2 {
+    font-size: 36px !important;
+    line-height: 1.3;
+  }
+}
