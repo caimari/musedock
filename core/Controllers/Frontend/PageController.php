@@ -683,19 +683,8 @@ class PageController
      */
     public function showDefaultLegalPage(string $slug)
     {
-        // Log para debug - ANTES de establecer código
-        $headersSent = headers_sent($file, $line);
-        file_put_contents(__DIR__.'/../../../storage/logs/debug.log',
-            date('Y-m-d H:i:s') . " - showDefaultLegalPage ANTES - Headers enviados: " . ($headersSent ? "SI en $file:$line" : "NO") . " - Código actual: " . http_response_code() . "\n",
-            FILE_APPEND);
-
         // Asegurar que devuelve código 200 OK
         http_response_code(200);
-
-        // Log para debug - DESPUÉS de establecer código
-        file_put_contents(__DIR__.'/../../../storage/logs/debug.log',
-            date('Y-m-d H:i:s') . " - showDefaultLegalPage DESPUÉS para: $slug - Response code: " . http_response_code() . "\n",
-            FILE_APPEND);
 
         $currentLang = detectLanguage();
         $tenantId = TenantManager::currentTenantId();

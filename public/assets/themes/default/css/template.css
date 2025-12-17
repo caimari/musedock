@@ -210,6 +210,31 @@ main table {
    ESPACIADO PROFESIONAL DE CONTENIDO
    =============================================== */
 
+/* === H1 - Título de página === */
+.page-content h1,
+.page-body h1,
+.page-content-wrapper h1,
+.page-title,
+article h1:first-child {
+  font-size: 2rem !important; /* 32px - más pequeño que el default */
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 0 !important;
+  margin-bottom: 2rem !important; /* 32px - más espacio antes del contenido */
+  padding-bottom: 1rem; /* Espacio adicional visual */
+  border-bottom: 1px solid rgba(0,0,0,0.08); /* Línea sutil de separación */
+}
+
+/* H1 dentro del contenido (no el título principal) */
+.page-body h1:not(:first-child),
+.page-content h1:not(:first-child) {
+  font-size: 1.75rem !important; /* 28px */
+  margin-top: 2.5rem !important;
+  margin-bottom: 1.5rem !important;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
 /* === PÁRRAFOS === */
 .page-content p,
 .page-body p,
@@ -228,15 +253,17 @@ article p:empty {
   display: none !important;
 }
 
-/* === H2 - Títulos principales === */
+/* === H2 - Títulos de sección === */
 .page-content h2,
 .page-body h2,
 .content h2,
 article h2 {
+  font-size: 1.5rem !important; /* 24px - más pequeño */
   margin-top: 2.5rem !important; /* 40px - clara separación */
-  margin-bottom: 1.25rem !important; /* 20px */
-  font-weight: 700;
-  line-height: 1.3;
+  margin-bottom: 1rem !important; /* 16px */
+  font-weight: 600;
+  line-height: 1.4;
+  color: #1a2a40;
 }
 
 .page-content h2:first-child,
@@ -250,10 +277,12 @@ article h2 {
 .page-body h3,
 .content h3,
 article h3 {
-  margin-top: 2rem !important; /* 32px */
-  margin-bottom: 1rem !important; /* 16px */
+  font-size: 1.25rem !important; /* 20px */
+  margin-top: 1.75rem !important; /* 28px */
+  margin-bottom: 0.75rem !important; /* 12px */
   font-weight: 600;
   line-height: 1.4;
+  color: #333;
 }
 
 .page-content h3:first-child,
