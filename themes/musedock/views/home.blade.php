@@ -170,8 +170,10 @@
     max-width: 100%;
 }
 
-/* Eliminar margen/padding entre el contenido y el footer en la HOME */
+/* ===== ELIMINAR ESPACIO ENTRE CONTENIDO Y FOOTER EN HOME ===== */
 /* Usamos .ziph-is-home que está en el body para aplicar solo en home */
+
+/* Quitar margin/padding de main y contenedores */
 .ziph-is-home main {
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
@@ -179,10 +181,29 @@
 
 .ziph-is-home .ziph-page_content {
     margin-bottom: 0 !important;
+}
+
+/* El último .ziph-page_content (el del contenido) */
+.ziph-is-home .ziph-page_content:last-of-type {
+    margin-bottom: 0 !important;
     padding-bottom: 0 !important;
 }
 
-.ziph-is-home .ziph-page_content:last-child {
+.ziph-is-home .ziph-page_warp {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* El contenedor del contenido de la home */
+.ziph-is-home .home-content-wrapper {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* Párrafos dentro del contenido - quitar margin inferior del último */
+.ziph-is-home .home-content-wrapper > *:last-child,
+.ziph-is-home .home-content-wrapper p:last-child,
+.ziph-is-home .home-content-wrapper p:last-of-type {
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
 }
@@ -193,9 +214,9 @@
     margin-top: 0 !important;
 }
 
-/* Eliminar padding del .ziph-footer_top en HOME para que quede más pegado */
+/* Reducir un poco el padding top del footer en HOME para mejor visual */
 .ziph-is-home .ziph-footer_top {
-    padding-top: 40px !important;
+    padding-top: 50px !important;
 }
 
 .ziph-header_navigation { margin-bottom: 0; }
