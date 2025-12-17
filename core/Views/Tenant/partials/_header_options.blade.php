@@ -14,7 +14,21 @@
             $contentField = $isBlogPost ? 'hero_content' : 'slider_content';
 
             $sliderImage = $Page->{$imageField} ?? '';
-            $defaultImage = 'themes/default/img/hero/contact_hero.jpg';
+
+            // Array de imágenes hero disponibles para rotar
+            $heroImages = [
+                'themes/default/img/hero/contact_hero.jpg',
+                'themes/default/img/hero/about_hero.jpg',
+                'themes/default/img/hero/services_hero.jpg',
+                'themes/default/img/hero/gallery_hero.jpg',
+                'themes/default/img/hero/Industries_hero.jpg',
+                'themes/default/img/hero/h1_hero.jpg',
+            ];
+
+            // Seleccionar imagen por defecto de forma consistente basada en el slug o ID de la página
+            $pageSeed = $Page->slug ?? $Page->id ?? 'default';
+            $imageIndex = crc32($pageSeed) % count($heroImages);
+            $defaultImage = $heroImages[$imageIndex];
 
             // Determinar URL de la imagen
             if (!empty($sliderImage)) {
