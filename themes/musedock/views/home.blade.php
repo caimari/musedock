@@ -170,6 +170,25 @@
     max-width: 100%;
 }
 
+/* Eliminar margen entre el contenido y el footer en la home */
+.ziph-page_content:last-of-type {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.ziph-page_content + footer,
+.ziph-page_content + .ziph-footer,
+.ziph-page_content + .ziph-footer_area,
+.ziph-page_content + .footer-area {
+    margin-top: 0 !important;
+}
+
+/* Footer pegado al contenido */
+footer.ziph-footer_area,
+.ziph-footer_area {
+    margin-top: 0 !important;
+}
+
 .ziph-header_navigation { margin-bottom: 0; }
 .simple-slider-container { margin-top: 0; }
 
