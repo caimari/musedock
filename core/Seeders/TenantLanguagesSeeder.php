@@ -93,33 +93,23 @@ class TenantLanguagesSeeder
         $pdo = Database::connect();
         $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
 
-        // Nombre de columna compatible con ambos drivers
-        $keyColumn = $driver === 'mysql' ? '`key`' : '"key"';
-
-        // Verificar si ya existe la configuración
-        $stmt = $pdo->prepare("
-            SELECT id FROM tenant_settings
-            WHERE tenant_id = ? AND {$keyColumn} = 'default_lang'
-        ");
-        $stmt->execute([$tenantId]);
-        $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-        if ($existing) {
-            // Actualizar
+        // Usar UPSERT compatible con MySQL y PostgreSQL
+        if ($driver === 'mysql') {
             $stmt = $pdo->prepare("
-                UPDATE tenant_settings
-                SET value = ?
-                WHERE tenant_id = ? AND {$keyColumn} = 'default_lang'
+                INSERT INTO tenant_settings (tenant_id, `key`, value)
+                VALUES (?, 'default_lang', ?)
+                ON DUPLICATE KEY UPDATE value = VALUES(value)
             ");
-            $stmt->execute([$langCode, $tenantId]);
         } else {
-            // Insertar
+            // PostgreSQL
             $stmt = $pdo->prepare("
-                INSERT INTO tenant_settings (tenant_id, {$keyColumn}, value, created_at)
-                VALUES (?, 'default_lang', ?, NOW())
+                INSERT INTO tenant_settings (tenant_id, \"key\", value)
+                VALUES (?, 'default_lang', ?)
+                ON CONFLICT (tenant_id, \"key\") DO UPDATE SET value = EXCLUDED.value
             ");
-            $stmt->execute([$tenantId, $langCode]);
         }
+
+        $stmt->execute([$tenantId, $langCode]);
 
         echo "✓ Idioma por defecto establecido: {$langCode}\\n";
     }

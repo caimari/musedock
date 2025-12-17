@@ -805,28 +805,23 @@ class TenantCreationService
         $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
         $keyColumn = $driver === 'mysql' ? '`key`' : '"key"';
 
-        // Verificar si ya existe la configuración
-        $stmt = $this->pdo->prepare("
-            SELECT id FROM tenant_settings
-            WHERE tenant_id = :tenant_id AND {$keyColumn} = 'default_lang'
-        ");
-        $stmt->execute(['tenant_id' => $tenantId]);
-        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($existing) {
+        // Usar UPSERT compatible con MySQL y PostgreSQL
+        if ($driver === 'mysql') {
             $stmt = $this->pdo->prepare("
-                UPDATE tenant_settings
-                SET value = :value
-                WHERE tenant_id = :tenant_id AND {$keyColumn} = 'default_lang'
+                INSERT INTO tenant_settings (tenant_id, `key`, value)
+                VALUES (:tenant_id, 'default_lang', :value)
+                ON DUPLICATE KEY UPDATE value = VALUES(value)
             ");
-            $stmt->execute(['value' => $langCode, 'tenant_id' => $tenantId]);
         } else {
+            // PostgreSQL
             $stmt = $this->pdo->prepare("
-                INSERT INTO tenant_settings (tenant_id, {$keyColumn}, value, created_at)
-                VALUES (:tenant_id, 'default_lang', :value, NOW())
+                INSERT INTO tenant_settings (tenant_id, \"key\", value)
+                VALUES (:tenant_id, 'default_lang', :value)
+                ON CONFLICT (tenant_id, \"key\") DO UPDATE SET value = EXCLUDED.value
             ");
-            $stmt->execute(['tenant_id' => $tenantId, 'value' => $langCode]);
         }
+
+        $stmt->execute(['tenant_id' => $tenantId, 'value' => $langCode]);
     }
 
     /**
