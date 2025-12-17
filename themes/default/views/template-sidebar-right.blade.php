@@ -49,20 +49,29 @@
     @if($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")
         @php
             // Seleccionar imagen hero con rotación automática si no hay imagen personalizada
-            if (!empty($customizations->slider_image)) {
+            $defaultHeroImages = [
+                'themes/default/img/hero/contact_hero.jpg',
+                'themes/default/img/hero/about_hero.jpg',
+                'themes/default/img/hero/services_hero.jpg',
+                'themes/default/img/hero/gallery_hero.jpg',
+                'themes/default/img/hero/Industries_hero.jpg',
+                'themes/default/img/hero/h1_hero.jpg',
+            ];
+
+            $hasCustomImage = !empty($customizations->slider_image) &&
+                              !in_array($customizations->slider_image, $defaultHeroImages) &&
+                              !str_ends_with($customizations->slider_image, '/contact_hero.jpg') &&
+                              !str_ends_with($customizations->slider_image, '/about_hero.jpg') &&
+                              !str_ends_with($customizations->slider_image, '/services_hero.jpg') &&
+                              !str_ends_with($customizations->slider_image, '/gallery_hero.jpg') &&
+                              !str_ends_with($customizations->slider_image, '/Industries_hero.jpg') &&
+                              !str_ends_with($customizations->slider_image, '/h1_hero.jpg');
+
+            if ($hasCustomImage) {
                 $sliderPath = $customizations->slider_image;
             } else {
-                // Array de imágenes hero disponibles para rotar aleatoriamente
-                $heroImages = [
-                    'themes/default/img/hero/contact_hero.jpg',
-                    'themes/default/img/hero/about_hero.jpg',
-                    'themes/default/img/hero/services_hero.jpg',
-                    'themes/default/img/hero/gallery_hero.jpg',
-                    'themes/default/img/hero/Industries_hero.jpg',
-                    'themes/default/img/hero/h1_hero.jpg',
-                ];
                 // Seleccionar imagen aleatoria en cada carga de página
-                $sliderPath = $heroImages[array_rand($heroImages)];
+                $sliderPath = $defaultHeroImages[array_rand($defaultHeroImages)];
             }
 
             $sliderUrl = (str_starts_with($sliderPath, '/media/') || str_starts_with($sliderPath, 'http')) ? $sliderPath : asset($sliderPath);
@@ -92,20 +101,29 @@
 @if(isset($post) && ($post->show_hero === true || $post->show_hero === 1 || $post->show_hero === "1"))
     @php
         // Seleccionar imagen hero con rotación automática si no hay imagen personalizada
-        if (!empty($post->hero_image)) {
+        $defaultHeroImages = [
+            'themes/default/img/hero/contact_hero.jpg',
+            'themes/default/img/hero/about_hero.jpg',
+            'themes/default/img/hero/services_hero.jpg',
+            'themes/default/img/hero/gallery_hero.jpg',
+            'themes/default/img/hero/Industries_hero.jpg',
+            'themes/default/img/hero/h1_hero.jpg',
+        ];
+
+        $hasCustomImage = !empty($post->hero_image) &&
+                          !in_array($post->hero_image, $defaultHeroImages) &&
+                          !str_ends_with($post->hero_image, '/contact_hero.jpg') &&
+                          !str_ends_with($post->hero_image, '/about_hero.jpg') &&
+                          !str_ends_with($post->hero_image, '/services_hero.jpg') &&
+                          !str_ends_with($post->hero_image, '/gallery_hero.jpg') &&
+                          !str_ends_with($post->hero_image, '/Industries_hero.jpg') &&
+                          !str_ends_with($post->hero_image, '/h1_hero.jpg');
+
+        if ($hasCustomImage) {
             $heroPath = $post->hero_image;
         } else {
-            // Array de imágenes hero disponibles para rotar aleatoriamente
-            $heroImages = [
-                'themes/default/img/hero/contact_hero.jpg',
-                'themes/default/img/hero/about_hero.jpg',
-                'themes/default/img/hero/services_hero.jpg',
-                'themes/default/img/hero/gallery_hero.jpg',
-                'themes/default/img/hero/Industries_hero.jpg',
-                'themes/default/img/hero/h1_hero.jpg',
-            ];
             // Seleccionar imagen aleatoria en cada carga de página
-            $heroPath = $heroImages[array_rand($heroImages)];
+            $heroPath = $defaultHeroImages[array_rand($defaultHeroImages)];
         }
 
         $heroUrl = (str_starts_with($heroPath, '/media/') || str_starts_with($heroPath, 'http')) ? $heroPath : asset($heroPath);
