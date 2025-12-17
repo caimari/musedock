@@ -8,10 +8,10 @@
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
     .request-card .card-header {
-        background: linear-gradient(135deg, #667eea, #764ba2);
+        background: linear-gradient(135deg, #a8b5f5, #c4a6e0);
         color: white;
         border-radius: 15px 15px 0 0 !important;
-        padding: 25px;
+        padding: 20px;
     }
     .info-box {
         background: #f8f9fa;
@@ -43,8 +43,8 @@
     <div class="col-lg-8">
         <div class="card request-card">
             <div class="card-header text-center">
-                <h3 class="mb-0"><i class="bi bi-globe me-2"></i>Incorporar Dominio Personalizado</h3>
-                <p class="mb-0 mt-2 opacity-75">Conecta tu propio dominio a MuseDock</p>
+                <h4 class="mb-0" style="font-size: 1.4rem; font-weight: 700;"><i class="bi bi-globe me-2"></i>Incorporar Dominio Personalizado</h4>
+                <p class="mb-0 mt-2 opacity-90" style="font-size: 0.9rem;">Conecta tu propio dominio a MuseDock</p>
             </div>
             <div class="card-body p-4">
                 <div class="info-box">

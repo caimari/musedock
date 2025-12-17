@@ -277,8 +277,8 @@ class ProvisioningService
         $verificationToken = bin2hex(random_bytes(32));
 
         $stmt = $this->pdo->prepare("
-            INSERT INTO customers (name, email, password, company, phone, country, status, email_verification_token, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, 'pending_verification', ?, NOW())
+            INSERT INTO customers (name, email, password, company, phone, country, status, email_verification_token, verification_email_sent_count, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'pending_verification', ?, 1, NOW())
         ");
 
         $stmt->execute([

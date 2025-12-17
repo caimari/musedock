@@ -302,7 +302,12 @@
     </div>
 </div>
 
-@include('media-manager::superadmin.media-manager.admin._modal')
+@php
+    $modalPath = realpath(__DIR__ . '/../../../media-manager/views/superadmin/media-manager/admin/_modal.blade.php');
+    if ($modalPath && file_exists($modalPath)) {
+        include $modalPath;
+    }
+@endphp
 
 @push('scripts')
 <script>

@@ -11,7 +11,7 @@
         background: linear-gradient(135deg, #28a745, #20c997);
         color: white;
         border-radius: 15px 15px 0 0 !important;
-        padding: 25px;
+        padding: 20px;
     }
     .info-box {
         background: #d4edda;
@@ -45,8 +45,8 @@
     <div class="col-lg-8">
         <div class="card request-card">
             <div class="card-header text-center">
-                <h3 class="mb-0"><i class="bi bi-gift me-2"></i>Solicitar Subdominio FREE</h3>
-                <p class="mb-0 mt-2 opacity-75">Obtiene tu sitio web gratuito en musedock.com</p>
+                <h4 class="mb-0" style="font-size: 1.4rem; font-weight: 600;"><i class="bi bi-gift me-2"></i>Solicitar Subdominio FREE</h4>
+                <p class="mb-0 mt-2 opacity-75" style="font-size: 0.9rem;">Obtiene tu sitio web gratuito en musedock.com</p>
             </div>
             <div class="card-body p-4">
                 <div class="info-box">

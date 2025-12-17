@@ -145,6 +145,13 @@ class ElementController
             exit;
         }
 
+        // Superadmin can only edit global elements
+        if (!$element->isGlobal()) {
+            flash('error', __element('element.not_found'));
+            header('Location: ' . route('elements.index'));
+            exit;
+        }
+
         return View::renderModule('elements', 'superadmin/elements/edit', [
             'title' => __element('element.edit'),
             'element' => $element,
@@ -166,6 +173,13 @@ class ElementController
         $element = Element::find($id);
 
         if (!$element) {
+            flash('error', __element('element.not_found'));
+            header('Location: ' . route('elements.index'));
+            exit;
+        }
+
+        // Superadmin can only update global elements
+        if (!$element->isGlobal()) {
             flash('error', __element('element.not_found'));
             header('Location: ' . route('elements.index'));
             exit;
@@ -239,6 +253,13 @@ class ElementController
         $element = Element::find($id);
 
         if (!$element) {
+            flash('error', __element('element.not_found'));
+            header('Location: ' . route('elements.index'));
+            exit;
+        }
+
+        // Superadmin can only delete global elements
+        if (!$element->isGlobal()) {
             flash('error', __element('element.not_found'));
             header('Location: ' . route('elements.index'));
             exit;

@@ -46,7 +46,7 @@ class ElementController
             exit;
         }
 
-        $elements = Element::getByTenant($tenantId, true);
+        $elements = Element::getByTenant($tenantId, false); // false = NO incluir elementos globales
 
         return View::renderModule('elements', 'tenant/elements/index', [
             'title' => __element('element.my_elements'),
@@ -174,8 +174,12 @@ class ElementController
             exit;
         }
 
-        // Check ownership (allow global elements but read-only)
-        $isReadOnly = $element->isGlobal() || !$element->belongsToTenant($tenantId);
+        // Check ownership - tenants can ONLY edit their own elements
+        if ($element->isGlobal() || !$element->belongsToTenant($tenantId)) {
+            flash('error', __element('element.not_found'));
+            header('Location: ' . route('tenant.elements.index'));
+            exit;
+        }
 
         return View::renderModule('elements', 'tenant/elements/edit', [
             'title' => __element('element.edit'),
@@ -184,7 +188,7 @@ class ElementController
             'heroLayouts' => Element::getHeroLayouts(),
             'faqLayouts' => Element::getFaqLayouts(),
             'ctaLayouts' => Element::getCtaLayouts(),
-            'isReadOnly' => $isReadOnly
+            'isReadOnly' => false // Tenant elements are always editable
         ]);
     }
 
@@ -213,8 +217,8 @@ class ElementController
 
         // Check ownership (don't allow editing global elements from tenant)
         if ($element->isGlobal() || !$element->belongsToTenant($tenantId)) {
-            flash('error', __element('element.global_readonly'));
-            header('Location: ' . route('tenant.elements.edit', ['id' => $id]));
+            flash('error', __element('element.not_found'));
+            header('Location: ' . route('tenant.elements.index'));
             exit;
         }
 

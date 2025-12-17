@@ -126,6 +126,11 @@
                 <div class="alert alert-warning mb-2">
                     <i class="bi bi-exclamation-triangle me-2"></i><strong>Pendiente de verificación</strong>
                     <p class="mb-2 mt-2 small">Por favor verifica tu correo electrónico para activar tu cuenta.</p>
+                    <?php if (($customer['verification_email_sent_count'] ?? 0) > 0): ?>
+                    <p class="mb-2 small text-muted">
+                        <i class="bi bi-envelope-check me-1"></i>Email de verificación enviado <?= $customer['verification_email_sent_count'] ?> <?= $customer['verification_email_sent_count'] == 1 ? 'vez' : 'veces' ?>
+                    </p>
+                    <?php endif; ?>
                     <button class="btn btn-sm btn-warning" onclick="resendVerificationEmail()">
                         <i class="bi bi-envelope me-1"></i>Reenviar Email de Verificación
                     </button>

@@ -538,10 +538,11 @@ class CustomerController
             // Generar nuevo token de verificación
             $verificationToken = bin2hex(random_bytes(32));
 
-            // Actualizar token en BD
+            // Actualizar token en BD e incrementar contador
             $stmt = $pdo->prepare("
                 UPDATE customers
                 SET email_verification_token = ?,
+                    verification_email_sent_count = verification_email_sent_count + 1,
                     updated_at = NOW()
                 WHERE id = ?
             ");
@@ -661,7 +662,7 @@ class CustomerController
                     <p>Hola <strong>{$name}</strong>,</p>
                     <p>Gracias por registrarte en MuseDock. Para completar tu registro y activar tu cuenta, por favor verifica tu correo electrónico haciendo clic en el siguiente botón:</p>
                     <p style='text-align: center;'>
-                        <a href='{$verificationUrl}' class='button'>Verificar mi Email</a>
+                        <a href='{$verificationUrl}' class='button' style='display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff !important; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: 600;'>Verificar mi Email</a>
                     </p>
                     <p>O copia y pega este enlace en tu navegador:</p>
                     <p style='word-break: break-all; color: #667eea;'>{$verificationUrl}</p>
