@@ -1623,7 +1623,7 @@ if (header && header.classList.contains('enable-sticky')) {
 	
 	
 {{-- Web Analytics - debe cargarse ANTES que cookie-consent para que window.MuseDockAnalytics exista --}}
-<script src="{{ asset('assets/js/analytics.js') }}"></script>
+<script src="{{ asset('js/analytics.js') }}"></script>
 
 @if(site_setting('cookies_enabled', '1') == '1')
 <script src="{{ asset('themes/default/js/cookie-consent.js') }}?v={{ filemtime(public_path('assets/themes/default/js/cookie-consent.js')) ?: time() }}"></script>
