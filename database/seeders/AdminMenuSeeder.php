@@ -18,121 +18,147 @@ class AdminMenuSeeder
 
     public function run(): void
     {
+        // NOTE: This seeder creates tenant-only menus.
+        // These menus use show_in_superadmin=0 to prevent them from appearing in /musedock/
+        // The SuperadminMenuSeeder creates the superadmin menus with {admin_path} placeholders.
+
         $menus = [
-            // Dashboard
+            // Dashboard - tenant only (superadmin has its own hardcoded Dashboard)
             [
                 'title' => 'Dashboard',
-                'slug' => 'dashboard',
+                'slug' => 'tenant-dashboard',  // Different slug to avoid conflict with superadmin
                 'icon' => 'bi-speedometer2',
-                'url' => '/admin/dashboard',
+                'url' => '{admin_path}/dashboard',
                 'parent_id' => null,
                 'order_position' => 1,
                 'permission' => null,
-                'is_active' => 1
+                'is_active' => 1,
+                'show_in_superadmin' => 0,
+                'show_in_tenant' => 1
             ],
             // Contenido
             [
                 'title' => 'Contenido',
-                'slug' => 'content',
+                'slug' => 'tenant-content',
                 'icon' => 'bi-file-earmark-text',
                 'url' => '#',
                 'parent_id' => null,
                 'order_position' => 2,
                 'permission' => null,
-                'is_active' => 1
+                'is_active' => 1,
+                'show_in_superadmin' => 0,
+                'show_in_tenant' => 1
             ],
             [
                 'title' => 'Páginas',
-                'slug' => 'pages',
+                'slug' => 'tenant-pages',
                 'icon' => 'bi-file-text',
-                'url' => '/admin/pages',
-                'parent_id' => 'content',
+                'url' => '{admin_path}/pages',
+                'parent_id' => 'tenant-content',
                 'order_position' => 1,
                 'permission' => 'pages.view',
-                'is_active' => 1
+                'is_active' => 1,
+                'show_in_superadmin' => 0,
+                'show_in_tenant' => 1
             ],
             [
                 'title' => 'Blog',
-                'slug' => 'blog',
+                'slug' => 'tenant-blog',
                 'icon' => 'bi-journal-richtext',
-                'url' => '/admin/blog',
-                'parent_id' => 'content',
+                'url' => '{admin_path}/blog',
+                'parent_id' => 'tenant-content',
                 'order_position' => 2,
                 'permission' => 'blog.view',
-                'is_active' => 1
+                'is_active' => 1,
+                'show_in_superadmin' => 0,
+                'show_in_tenant' => 1
             ],
-            // Medios
+            // Medios - tenant only (superadmin uses media-manager slug)
             [
                 'title' => 'Medios',
-                'slug' => 'media',
+                'slug' => 'tenant-media',
                 'icon' => 'bi-images',
-                'url' => '/admin/media',
+                'url' => '{admin_path}/media',
                 'parent_id' => null,
                 'order_position' => 3,
                 'permission' => 'media.manage',
-                'is_active' => 1
+                'is_active' => 1,
+                'show_in_superadmin' => 0,
+                'show_in_tenant' => 1
             ],
             // Apariencia
             [
                 'title' => 'Apariencia',
-                'slug' => 'appearance',
+                'slug' => 'tenant-appearance',
                 'icon' => 'bi-palette',
                 'url' => '#',
                 'parent_id' => null,
                 'order_position' => 4,
                 'permission' => null,
-                'is_active' => 1
+                'is_active' => 1,
+                'show_in_superadmin' => 0,
+                'show_in_tenant' => 1
             ],
             [
                 'title' => 'Temas',
-                'slug' => 'themes',
+                'slug' => 'tenant-themes',
                 'icon' => 'bi-brush',
-                'url' => '/admin/themes',
-                'parent_id' => 'appearance',
+                'url' => '{admin_path}/themes',
+                'parent_id' => 'tenant-appearance',
                 'order_position' => 1,
                 'permission' => 'appearance.themes',
-                'is_active' => 1
+                'is_active' => 1,
+                'show_in_superadmin' => 0,
+                'show_in_tenant' => 1
             ],
             [
                 'title' => 'Menús',
-                'slug' => 'menus',
+                'slug' => 'tenant-menus',
                 'icon' => 'bi-list',
-                'url' => '/admin/menus',
-                'parent_id' => 'appearance',
+                'url' => '{admin_path}/menus',
+                'parent_id' => 'tenant-appearance',
                 'order_position' => 2,
                 'permission' => 'appearance.menus',
-                'is_active' => 1
+                'is_active' => 1,
+                'show_in_superadmin' => 0,
+                'show_in_tenant' => 1
             ],
             // Sistema
             [
                 'title' => 'Sistema',
-                'slug' => 'system',
+                'slug' => 'tenant-system',
                 'icon' => 'bi-gear',
                 'url' => '#',
                 'parent_id' => null,
                 'order_position' => 10,
                 'permission' => null,
-                'is_active' => 1
+                'is_active' => 1,
+                'show_in_superadmin' => 0,
+                'show_in_tenant' => 1
             ],
             [
                 'title' => 'Módulos',
-                'slug' => 'modules',
+                'slug' => 'tenant-modules',
                 'icon' => 'bi-puzzle',
-                'url' => '/admin/modules',
-                'parent_id' => 'system',
+                'url' => '{admin_path}/modules',
+                'parent_id' => 'tenant-system',
                 'order_position' => 1,
                 'permission' => 'modules.manage',
-                'is_active' => 1
+                'is_active' => 1,
+                'show_in_superadmin' => 0,
+                'show_in_tenant' => 1
             ],
             [
                 'title' => 'Configuración',
-                'slug' => 'settings',
+                'slug' => 'tenant-settings',
                 'icon' => 'bi-sliders',
-                'url' => '/admin/settings',
-                'parent_id' => 'system',
+                'url' => '{admin_path}/settings',
+                'parent_id' => 'tenant-system',
                 'order_position' => 2,
                 'permission' => 'settings.view',
-                'is_active' => 1
+                'is_active' => 1,
+                'show_in_superadmin' => 0,
+                'show_in_tenant' => 1
             ],
         ];
 

@@ -4,10 +4,45 @@ namespace Screenart\Musedock\Controllers\Superadmin;
 
 use Screenart\Musedock\View;
 use Screenart\Musedock\Database;
+use Screenart\Musedock\Env;
 use Screenart\Musedock\Security\SessionSecurity;
 
 class AnalyticsController
 {
+    /**
+     * Get database driver
+     */
+    private function getDriver(): string
+    {
+        return Env::get('DB_DRIVER', 'mysql');
+    }
+
+    /**
+     * Get date interval expression compatible with current DB driver
+     * @param string $interval The interval value placeholder (? for days, or literal like '5 MINUTE')
+     * @param bool $isLiteral If true, interval is a literal value, not a placeholder
+     */
+    private function dateInterval(string $interval = '?', string $unit = 'DAY', bool $isLiteral = false): string
+    {
+        $driver = $this->getDriver();
+
+        if ($driver === 'pgsql') {
+            if ($isLiteral) {
+                // For literal values like '5 MINUTE'
+                return "NOW() - INTERVAL '{$interval} {$unit}'";
+            }
+            // For placeholder values - PostgreSQL needs cast
+            $unitLower = strtolower($unit);
+            return "NOW() - (? || ' {$unitLower}')::INTERVAL";
+        }
+
+        // MySQL syntax
+        if ($isLiteral) {
+            return "DATE_SUB(NOW(), INTERVAL {$interval} {$unit})";
+        }
+        return "DATE_SUB(NOW(), INTERVAL ? {$unit})";
+    }
+
     /**
      * Verificar permiso
      */
@@ -97,13 +132,14 @@ class AnalyticsController
         if ($tenantId) $params[] = $tenantId;
 
         // Visitas totales
+        $dateExpr = $this->dateInterval('?', 'DAY');
         $stmt = $db->prepare("
             SELECT COUNT(*) as total_visits,
                    COUNT(DISTINCT visitor_id) as unique_visitors,
                    COUNT(DISTINCT session_id) as total_sessions,
                    AVG(session_duration) as avg_duration
             FROM web_analytics
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            WHERE created_at >= {$dateExpr}
             {$whereTenant}
         ");
         $stmt->execute($params);
@@ -114,8 +150,8 @@ class AnalyticsController
             SELECT COUNT(*) as total_visits,
                    COUNT(DISTINCT visitor_id) as unique_visitors
             FROM web_analytics
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-            AND created_at < DATE_SUB(NOW(), INTERVAL ? DAY)
+            WHERE created_at >= {$dateExpr}
+            AND created_at < {$dateExpr}
             {$whereTenant}
         ");
         $prevParams = [$period * 2, $period];
@@ -133,7 +169,7 @@ class AnalyticsController
                 SUM(CASE WHEN bounce = 1 THEN 1 ELSE 0 END) as bounces,
                 COUNT(*) as total
             FROM web_analytics
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            WHERE created_at >= {$dateExpr}
             {$whereTenant}
         ");
         $stmt->execute($params);
@@ -160,12 +196,13 @@ class AnalyticsController
         $params = [$period];
         if ($tenantId) $params[] = $tenantId;
 
+        $dateExpr = $this->dateInterval('?', 'DAY');
         $stmt = $db->prepare("
             SELECT DATE(created_at) as date,
                    COUNT(*) as visits,
                    COUNT(DISTINCT visitor_id) as unique_visitors
             FROM web_analytics
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            WHERE created_at >= {$dateExpr}
             {$whereTenant}
             GROUP BY DATE(created_at)
             ORDER BY date ASC
@@ -183,6 +220,7 @@ class AnalyticsController
         $params = [$period];
         if ($tenantId) $params[] = $tenantId;
 
+        $dateExpr = $this->dateInterval('?', 'DAY');
         $stmt = $db->prepare("
             SELECT page_url,
                    page_title,
@@ -190,7 +228,7 @@ class AnalyticsController
                    COUNT(DISTINCT visitor_id) as unique_visitors,
                    AVG(session_duration) as avg_time
             FROM web_analytics
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            WHERE created_at >= {$dateExpr}
             {$whereTenant}
             GROUP BY page_url, page_title
             ORDER BY visits DESC
@@ -209,12 +247,13 @@ class AnalyticsController
         $params = [$period];
         if ($tenantId) $params[] = $tenantId;
 
+        $dateExpr = $this->dateInterval('?', 'DAY');
         $stmt = $db->prepare("
             SELECT country,
                    COUNT(*) as visits,
                    COUNT(DISTINCT visitor_id) as unique_visitors
             FROM web_analytics
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            WHERE created_at >= {$dateExpr}
             AND country IS NOT NULL
             {$whereTenant}
             GROUP BY country
@@ -234,6 +273,7 @@ class AnalyticsController
         $params = [$period];
         if ($tenantId) $params[] = $tenantId;
 
+        $dateExpr = $this->dateInterval('?', 'DAY');
         $stmt = $db->prepare("
             SELECT referrer_type,
                    search_engine,
@@ -241,7 +281,7 @@ class AnalyticsController
                    COUNT(*) as visits,
                    COUNT(DISTINCT visitor_id) as unique_visitors
             FROM web_analytics
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            WHERE created_at >= {$dateExpr}
             {$whereTenant}
             GROUP BY referrer_type, search_engine, referrer_domain
             ORDER BY visits DESC
@@ -260,12 +300,13 @@ class AnalyticsController
         $params = [$period];
         if ($tenantId) $params[] = $tenantId;
 
+        $dateExpr = $this->dateInterval('?', 'DAY');
         $stmt = $db->prepare("
             SELECT device_type,
                    COUNT(*) as visits,
                    COUNT(DISTINCT visitor_id) as unique_visitors
             FROM web_analytics
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            WHERE created_at >= {$dateExpr}
             AND device_type IS NOT NULL
             {$whereTenant}
             GROUP BY device_type
@@ -284,11 +325,12 @@ class AnalyticsController
         $params = [$period];
         if ($tenantId) $params[] = $tenantId;
 
+        $dateExpr = $this->dateInterval('?', 'DAY');
         $stmt = $db->prepare("
             SELECT browser,
                    COUNT(*) as visits
             FROM web_analytics
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            WHERE created_at >= {$dateExpr}
             AND browser IS NOT NULL
             {$whereTenant}
             GROUP BY browser
@@ -308,11 +350,12 @@ class AnalyticsController
         $params = [];
         if ($tenantId) $params[] = $tenantId;
 
+        $dateExpr = $this->dateInterval('5', 'MINUTE', true);
         $stmt = $db->prepare("
             SELECT COUNT(DISTINCT visitor_id) as active_visitors,
                    COUNT(*) as recent_pageviews
             FROM web_analytics
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+            WHERE created_at >= {$dateExpr}
             {$whereTenant}
         ");
         $stmt->execute($params);

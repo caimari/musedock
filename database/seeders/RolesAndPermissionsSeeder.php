@@ -57,12 +57,31 @@ class RolesAndPermissionsSeeder
             ['slug' => 'settings.edit', 'name' => 'Editar configuración', 'description' => 'Modificar ajustes generales, SEO, email y almacenamiento', 'category' => 'Configuración', 'scope' => 'tenant'],
             ['slug' => 'languages.manage', 'name' => 'Gestionar idiomas', 'description' => 'Agregar, editar y configurar idiomas disponibles en el sitio', 'category' => 'Configuración', 'scope' => 'tenant'],
 
-            // Blog
+            // Blog - Posts
             ['slug' => 'blog.view', 'name' => 'Ver Blog', 'description' => 'Ver y listar publicaciones del blog', 'category' => 'Blog', 'scope' => 'global'],
             ['slug' => 'blog.create', 'name' => 'Crear Blog', 'description' => 'Crear nuevas publicaciones en el blog', 'category' => 'Blog', 'scope' => 'global'],
             ['slug' => 'blog.edit', 'name' => 'Editar Blog', 'description' => 'Editar publicaciones propias del blog', 'category' => 'Blog', 'scope' => 'global'],
             ['slug' => 'blog.edit.all', 'name' => 'Editar todos los posts', 'description' => 'Editar cualquier publicación del blog, incluyendo las de otros autores', 'category' => 'Blog', 'scope' => 'global'],
             ['slug' => 'blog.delete', 'name' => 'Eliminar Blog', 'description' => 'Eliminar publicaciones del blog', 'category' => 'Blog', 'scope' => 'global'],
+
+            // Blog - Categorías
+            ['slug' => 'blog.categories.view', 'name' => 'Ver categorías de blog', 'description' => 'Ver y listar categorías del blog', 'category' => 'Blog', 'scope' => 'global'],
+            ['slug' => 'blog.categories.create', 'name' => 'Crear categorías de blog', 'description' => 'Crear nuevas categorías para organizar posts del blog', 'category' => 'Blog', 'scope' => 'global'],
+            ['slug' => 'blog.categories.edit', 'name' => 'Editar categorías de blog', 'description' => 'Editar categorías existentes del blog', 'category' => 'Blog', 'scope' => 'global'],
+            ['slug' => 'blog.categories.delete', 'name' => 'Eliminar categorías de blog', 'description' => 'Eliminar categorías del blog', 'category' => 'Blog', 'scope' => 'global'],
+
+            // Blog - Etiquetas
+            ['slug' => 'blog.tags.view', 'name' => 'Ver etiquetas de blog', 'description' => 'Ver y listar etiquetas del blog', 'category' => 'Blog', 'scope' => 'global'],
+            ['slug' => 'blog.tags.create', 'name' => 'Crear etiquetas de blog', 'description' => 'Crear nuevas etiquetas para posts del blog', 'category' => 'Blog', 'scope' => 'global'],
+            ['slug' => 'blog.tags.edit', 'name' => 'Editar etiquetas de blog', 'description' => 'Editar etiquetas existentes del blog', 'category' => 'Blog', 'scope' => 'global'],
+            ['slug' => 'blog.tags.delete', 'name' => 'Eliminar etiquetas de blog', 'description' => 'Eliminar etiquetas del blog', 'category' => 'Blog', 'scope' => 'global'],
+
+            // Instagram Feed
+            ['slug' => 'instagram.view', 'name' => 'Ver Instagram Feed', 'description' => 'Ver configuración del feed de Instagram', 'category' => 'Instagram', 'scope' => 'global'],
+            ['slug' => 'instagram.create', 'name' => 'Crear Instagram Feed', 'description' => 'Configurar un nuevo feed de Instagram', 'category' => 'Instagram', 'scope' => 'global'],
+            ['slug' => 'instagram.edit', 'name' => 'Editar Instagram Feed', 'description' => 'Editar configuración del feed de Instagram', 'category' => 'Instagram', 'scope' => 'global'],
+            ['slug' => 'instagram.delete', 'name' => 'Eliminar Instagram Feed', 'description' => 'Eliminar configuración del feed de Instagram', 'category' => 'Instagram', 'scope' => 'global'],
+            ['slug' => 'instagram.settings', 'name' => 'Ajustes de Instagram', 'description' => 'Configurar ajustes avanzados del módulo Instagram', 'category' => 'Instagram', 'scope' => 'global'],
 
             // Custom Forms
             ['slug' => 'custom_forms.view', 'name' => 'Ver formularios', 'description' => 'Ver y listar formularios personalizados', 'category' => 'Formularios', 'scope' => 'global'],
