@@ -880,8 +880,8 @@ $step = max(1, min(5, $step));
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= __('title') ?> - MuseDock CMS</title>
-    <link rel="icon" type="image/png" href="/img/favicon.png">
-    <link rel="shortcut icon" type="image/png" href="/img/favicon.png">
+    <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+    <link rel="shortcut icon" type="image/png" href="/assets/img/favicon.png">
     <link href="/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="/assets/vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
     <style>

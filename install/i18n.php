@@ -5,6 +5,7 @@
 
 return [
     'en' => [
+        'installation_wizard' => 'Installation Wizard',
         'title' => 'Installation Wizard',
         'step_requirements' => 'Requirements',
         'step_database' => 'Database',
@@ -123,6 +124,7 @@ return [
     ],
 
     'es' => [
+        'installation_wizard' => 'Asistente de Instalación',
         'title' => 'Asistente de Instalación',
         'step_requirements' => 'Requisitos',
         'step_database' => 'Base de Datos',

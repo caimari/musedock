@@ -853,10 +853,8 @@ $step = max(1, min(5, $step));
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Install MuseDock CMS</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+    <link rel="shortcut icon" href="/assets/img/favicon.png">
     <link href="/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="/assets/vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
     <style>
@@ -1143,8 +1141,8 @@ $step = max(1, min(5, $step));
         <!-- Language Selector -->
         <div class="text-end mb-3">
             <select class="form-select form-select-sm d-inline-block w-auto" id="languageSelector" style="background: rgba(0,0,0,0.3); color: white; border-color: rgba(255,255,255,0.3);">
-                <option value="en" <?= ($_COOKIE['installer_lang'] ?? 'en') === 'en' ? 'selected' : '' ?>>🇬🇧 English</option>
-                <option value="es" <?= ($_COOKIE['installer_lang'] ?? 'en') === 'es' ? 'selected' : '' ?>>🇪🇸 Español</option>
+                <option value="en" <?= $lang === 'en' ? 'selected' : '' ?>>🇬🇧 English</option>
+                <option value="es" <?= $lang === 'es' ? 'selected' : '' ?>>🇪🇸 Español</option>
             </select>
         </div>
 
