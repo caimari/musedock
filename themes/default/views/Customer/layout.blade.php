@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $page_title ?? 'Customer Panel - MuseDock' ?></title>
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+
     <!-- CSS -->
     <link rel="stylesheet" href="/assets/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
@@ -46,6 +49,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+        }
+
+        .customer-header .logo-container {
+            padding-left: 20px;
         }
 
         .customer-header .logo-container a {
@@ -304,6 +311,15 @@
         /* Main Content */
         .main-content {
             padding: 40px 30px;
+        }
+
+        .main-content h2,
+        .main-content h3,
+        .main-content h4 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 25px;
         }
 
         /* Auth Pages (sin sidebar) */

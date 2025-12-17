@@ -6,44 +6,52 @@
         background: white;
         border-radius: 15px;
         padding: 25px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 15px rgba(0,0,0,0.08);
         margin-bottom: 20px;
-        transition: transform 0.2s;
+        transition: all 0.3s ease;
+        border: 1px solid #f0f0f0;
     }
     .stats-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        border-color: #667eea;
     }
     .stats-card .icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 15px;
+        width: 70px;
+        height: 70px;
+        border-radius: 18px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
-        margin-bottom: 15px;
+        font-size: 1.8rem;
+        margin-bottom: 18px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
     .stats-card .number {
-        font-size: 2rem;
-        font-weight: bold;
+        font-size: 2.5rem;
+        font-weight: 700;
         color: #333;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
+        line-height: 1;
     }
     .stats-card .label {
-        color: #999;
-        font-size: 0.9rem;
+        color: #666;
+        font-size: 0.95rem;
+        font-weight: 500;
     }
     .tenant-card {
         background: white;
         border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 15px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        transition: all 0.2s;
+        padding: 25px;
+        margin-bottom: 18px;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        border: 1px solid #f0f0f0;
     }
     .tenant-card:hover {
-        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.12);
+        border-color: #e0e0e0;
+        transform: translateX(5px);
     }
     .tenant-card .domain {
         font-size: 1.1rem;

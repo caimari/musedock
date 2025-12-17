@@ -63,3 +63,12 @@ Route::post('/admin/elements/{id}/delete', 'Elements\Controllers\Tenant\ElementC
 // Element selector for editor (AJAX)
 Route::get('/admin/elements/selector', 'Elements\Controllers\Tenant\ElementController@selector')
     ->name('tenant.elements.selector');
+
+// Check slug availability (AJAX)
+Route::post('/admin/elements/check-slug', 'Elements\Controllers\Tenant\ElementController@checkSlug')
+    ->name('tenant.elements.check-slug');
+
+// Superadmin - Check slug availability (AJAX)
+Route::post('/musedock/elements/check-slug', 'Elements\Controllers\Superadmin\ElementController@checkSlug')
+    ->name('elements.check-slug')
+    ->middleware('superadmin');

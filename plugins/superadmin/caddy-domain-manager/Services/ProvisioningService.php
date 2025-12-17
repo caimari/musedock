@@ -115,7 +115,10 @@ class ProvisioningService
         sleep(5);
         $healthCheck = $this->runHealthCheck($tenantId, $fullDomain, true);
 
-        // Paso 6: Enviar email de bienvenida (no bloquea si falla, solo si está habilitado)
+        // Paso 6: Enviar email de verificación
+        $this->sendVerificationEmail($customerId, $customerData['name'], $customerData['email']);
+
+        // Paso 7: Enviar email de bienvenida (no bloquea si falla, solo si está habilitado)
         if ($sendWelcomeEmail) {
             $this->sendWelcomeEmail($customerData, $fullDomain, $language);
         }
@@ -271,10 +274,11 @@ class ProvisioningService
     private function createCustomer(array $data): int
     {
         $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
+        $verificationToken = bin2hex(random_bytes(32));
 
         $stmt = $this->pdo->prepare("
-            INSERT INTO customers (name, email, password, company, phone, country, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, 'pending_verification', NOW())
+            INSERT INTO customers (name, email, password, company, phone, country, status, email_verification_token, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'pending_verification', ?, NOW())
         ");
 
         $stmt->execute([
@@ -283,7 +287,8 @@ class ProvisioningService
             $hashedPassword,
             $data['company'] ?? null,
             $data['phone'] ?? null,
-            $data['country'] ?? null
+            $data['country'] ?? null,
+            $verificationToken
         ]);
 
         return (int) $this->pdo->lastInsertId();
@@ -741,6 +746,82 @@ https://{$fullDomain}
                 'warnings' => [],
                 'timestamp' => date('Y-m-d H:i:s')
             ];
+        }
+    }
+
+    /**
+     * Envía email de verificación al customer
+     *
+     * @param int $customerId
+     * @param string $name
+     * @param string $email
+     */
+    private function sendVerificationEmail(int $customerId, string $name, string $email): void
+    {
+        try {
+            // Obtener token de verificación
+            $stmt = $this->pdo->prepare("SELECT email_verification_token FROM customers WHERE id = ?");
+            $stmt->execute([$customerId]);
+            $token = $stmt->fetchColumn();
+
+            if (!$token) {
+                Logger::error("[ProvisioningService] No verification token found for customer {$customerId}");
+                return;
+            }
+
+            $verificationUrl = url('/customer/verify-email/' . $token);
+
+            $subject = 'Verifica tu cuenta - MuseDock';
+
+            $body = "
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                    .footer { text-align: center; color: #999; margin-top: 20px; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                    <div class='header'>
+                        <h1>Bienvenido a MuseDock</h1>
+                    </div>
+                    <div class='content'>
+                        <p>Hola <strong>{$name}</strong>,</p>
+                        <p>Gracias por registrarte en MuseDock. Para completar tu registro y activar tu cuenta, por favor verifica tu correo electrónico haciendo clic en el siguiente botón:</p>
+                        <p style='text-align: center;'>
+                            <a href='{$verificationUrl}' class='button'>Verificar mi Email</a>
+                        </p>
+                        <p>O copia y pega este enlace en tu navegador:</p>
+                        <p style='word-break: break-all; color: #667eea;'>{$verificationUrl}</p>
+                        <p>Si no creaste esta cuenta, puedes ignorar este correo.</p>
+                        <p>Saludos,<br>El equipo de MuseDock</p>
+                    </div>
+                    <div class='footer'>
+                        <p>© " . date('Y') . " MuseDock. Todos los derechos reservados.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            ";
+
+            $headers = [
+                'MIME-Version: 1.0',
+                'Content-type: text/html; charset=utf-8',
+                'From: MuseDock <noreply@musedock.com>',
+                'Reply-To: soporte@musedock.com'
+            ];
+
+            mail($email, $subject, $body, implode("\r\n", $headers));
+
+            Logger::info("[ProvisioningService] Verification email sent to {$email}");
+
+        } catch (\Exception $e) {
+            Logger::error("[ProvisioningService] Failed to send verification email: " . $e->getMessage());
         }
     }
 }

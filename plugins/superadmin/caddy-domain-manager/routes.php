@@ -147,6 +147,10 @@ Route::get('/customer/reset-password', 'CaddyDomainManager\Controllers\PasswordR
 Route::post('/customer/reset-password', 'CaddyDomainManager\Controllers\PasswordResetController@resetPassword')
     ->name('customer.password.update');
 
+// Email Verification
+Route::get('/customer/verify-email/{token}', 'CaddyDomainManager\Controllers\CustomerController@verifyEmail')
+    ->name('customer.verify-email');
+
 // ============================================
 // CUSTOMER PROTECTED ROUTES (Require auth)
 // ============================================
@@ -165,6 +169,11 @@ Route::get('/customer/profile', 'CaddyDomainManager\Controllers\CustomerControll
 Route::post('/customer/logout', 'CaddyDomainManager\Controllers\CustomerController@logout')
     ->middleware('customer')
     ->name('customer.logout');
+
+// Resend verification email
+Route::post('/customer/resend-verification', 'CaddyDomainManager\Controllers\CustomerController@resendVerificationEmail')
+    ->middleware('customer')
+    ->name('customer.resend-verification');
 
 // Retry provisioning de un tenant
 Route::post('/customer/tenant/{id}/retry', 'CaddyDomainManager\Controllers\CustomerController@retryProvisioning')

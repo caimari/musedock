@@ -6,18 +6,13 @@
 <div class="app-content">
     <div class="container-fluid">
         <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-1">
-                        <li class="breadcrumb-item">
-                            <a href="{{ route('tenant.elements.index') }}">{{ __element('element.my_elements') }}</a>
-                        </li>
-                        <li class="breadcrumb-item active">{{ __element('element.create') }}</li>
-                    </ol>
-                </nav>
-                <h2 class="mb-0"><i class="bi bi-plus-circle me-2"></i>{{ $title ?? __element('element.create') }}</h2>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="breadcrumb">
+                <a href="{{ route('tenant.elements.index') }}">{{ __element('element.elements') }}</a> <span class="mx-2">/</span> <span>{{ __element('element.create') }}</span>
             </div>
+            <a href="{{ route('tenant.elements.index') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> {{ __element('element.back') }}
+            </a>
         </div>
 
         <!-- Alerts -->
@@ -50,7 +45,10 @@
                                     <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
                                     <input type="text" class="form-control" id="slug" name="slug" value="{{ old('slug') }}" pattern="[a-z0-9\-]+">
                                 </div>
-                                <div class="form-text">{{ __element('element.slug_help') }}</div>
+                                <div class="form-text">
+                                    {{ __element('element.slug_help') }}
+                                    <span id="slug-check-result" class="ms-2"></span>
+                                </div>
                             </div>
                             <div class="mb-3">
                                 <label for="description" class="form-label">{{ __element('element.description') }}</label>
@@ -296,6 +294,66 @@ function addFaqItem() {
     `;
     container.appendChild(newItem);
     faqItemCount++;
+}
+
+// Slug validation
+let slugTimeout = null;
+const nameInput = document.getElementById('name');
+const slugInput = document.getElementById('slug');
+const slugResult = document.getElementById('slug-check-result');
+
+function slugify(text) {
+    return text.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+        .replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
+}
+
+function checkSlugAvailability(slug) {
+    if (!slug || !slugResult) return;
+
+    clearTimeout(slugTimeout);
+    slugTimeout = setTimeout(() => {
+        const formData = new FormData();
+        formData.append('slug', slug);
+
+        fetch('{{ route("tenant.elements.check-slug") }}', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.available) {
+                slugResult.innerHTML = '<i class="bi bi-check-circle text-success"></i> Disponible';
+                slugResult.className = 'ms-2 text-success';
+            } else {
+                slugResult.innerHTML = '<i class="bi bi-x-circle text-danger"></i> ' + data.message;
+                slugResult.className = 'ms-2 text-danger';
+            }
+        })
+        .catch(() => {
+            slugResult.innerHTML = '<i class="bi bi-exclamation-triangle text-warning"></i> Error';
+            slugResult.className = 'ms-2 text-warning';
+        });
+    }, 500);
+}
+
+if (nameInput) {
+    nameInput.addEventListener('input', function() {
+        if (!slugInput.dataset.manual) {
+            const autoSlug = slugify(this.value);
+            slugInput.value = autoSlug;
+            checkSlugAvailability(autoSlug);
+        }
+    });
+}
+
+if (slugInput) {
+    slugInput.addEventListener('input', function() {
+        const clean = slugify(this.value);
+        if (this.value !== clean) this.value = clean;
+        slugInput.dataset.manual = '1';
+        checkSlugAvailability(clean);
+    });
 }
 
 // Initialize on load

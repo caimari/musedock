@@ -122,9 +122,17 @@
                 <div class="alert alert-success mb-0">
                     <i class="bi bi-check-circle me-2"></i>Cuenta activa
                 </div>
+            <?php elseif (($customer['status'] ?? '') === 'pending_verification'): ?>
+                <div class="alert alert-warning mb-2">
+                    <i class="bi bi-exclamation-triangle me-2"></i><strong>Pendiente de verificación</strong>
+                    <p class="mb-2 mt-2 small">Por favor verifica tu correo electrónico para activar tu cuenta.</p>
+                    <button class="btn btn-sm btn-warning" onclick="resendVerificationEmail()">
+                        <i class="bi bi-envelope me-1"></i>Reenviar Email de Verificación
+                    </button>
+                </div>
             <?php else: ?>
                 <div class="alert alert-warning mb-0">
-                    <i class="bi bi-exclamation-triangle me-2"></i><?= ucfirst($customer['status'] ?? 'pendiente') ?>
+                    <i class="bi bi-exclamation-triangle me-2"></i><?= ucfirst(str_replace('_', ' ', $customer['status'] ?? 'pendiente')) ?>
                 </div>
             <?php endif; ?>
         </div>
@@ -254,5 +262,64 @@ document.getElementById('passwordForm').addEventListener('submit', function(e) {
         });
     });
 });
+
+// Reenviar email de verificacion
+function resendVerificationEmail() {
+    Swal.fire({
+        title: '¿Reenviar email de verificación?',
+        text: 'Te enviaremos un nuevo correo con el enlace de verificación.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#667eea',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, reenviar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Enviando...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            fetch('/customer/resend-verification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: '_csrf_token=' + encodeURIComponent('<?= csrf_token() ?>')
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Email enviado!',
+                        text: 'Revisa tu correo electrónico y haz clic en el enlace de verificación.',
+                        confirmButtonColor: '#667eea'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'No se pudo enviar el email de verificación.',
+                        confirmButtonColor: '#667eea'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error de red. Por favor intenta de nuevo.',
+                    confirmButtonColor: '#667eea'
+                });
+            });
+        }
+    });
+}
 </script>
 @endsection

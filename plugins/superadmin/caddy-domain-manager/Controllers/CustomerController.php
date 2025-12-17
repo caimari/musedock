@@ -500,6 +500,193 @@ class CustomerController
     }
 
     /**
+     * Reenviar email de verificación
+     *
+     * POST /customer/resend-verification
+     */
+    public function resendVerificationEmail(): void
+    {
+        SessionSecurity::startSession();
+
+        // Validar CSRF
+        if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
+            $this->jsonResponse(['success' => false, 'error' => 'Token CSRF inválido'], 403);
+            return;
+        }
+
+        $customerId = $_SESSION['customer']['id'];
+
+        try {
+            $pdo = Database::connect();
+
+            // Obtener información del customer
+            $stmt = $pdo->prepare("SELECT * FROM customers WHERE id = ?");
+            $stmt->execute([$customerId]);
+            $customer = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$customer) {
+                $this->jsonResponse(['success' => false, 'error' => 'Usuario no encontrado'], 404);
+                return;
+            }
+
+            // Verificar si ya está verificado
+            if ($customer['status'] === 'active' && $customer['email_verified_at'] !== null) {
+                $this->jsonResponse(['success' => false, 'error' => 'Tu email ya está verificado'], 400);
+                return;
+            }
+
+            // Generar nuevo token de verificación
+            $verificationToken = bin2hex(random_bytes(32));
+
+            // Actualizar token en BD
+            $stmt = $pdo->prepare("
+                UPDATE customers
+                SET email_verification_token = ?,
+                    updated_at = NOW()
+                WHERE id = ?
+            ");
+            $stmt->execute([$verificationToken, $customerId]);
+
+            // Enviar email
+            $verificationUrl = url('/customer/verify-email/' . $verificationToken);
+            $this->sendVerificationEmail($customer['email'], $customer['name'], $verificationUrl);
+
+            Logger::info("[CustomerController] Verification email resent to customer {$customerId}");
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Email de verificación enviado exitosamente'
+            ]);
+
+        } catch (\Exception $e) {
+            Logger::error("[CustomerController] Resend verification failed: " . $e->getMessage());
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al enviar el email: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Verificar email mediante token
+     *
+     * GET /customer/verify-email/{token}
+     */
+    public function verifyEmail(string $token): void
+    {
+        SessionSecurity::startSession();
+
+        try {
+            $pdo = Database::connect();
+
+            // Buscar customer por token
+            $stmt = $pdo->prepare("
+                SELECT * FROM customers
+                WHERE email_verification_token = ?
+                AND email_verified_at IS NULL
+            ");
+            $stmt->execute([$token]);
+            $customer = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$customer) {
+                // Token inválido o ya fue usado
+                $_SESSION['flash_error'] = 'El enlace de verificación es inválido o ya fue utilizado.';
+                header('Location: /customer/login');
+                exit;
+            }
+
+            // Marcar email como verificado y activar cuenta
+            $stmt = $pdo->prepare("
+                UPDATE customers
+                SET email_verified_at = NOW(),
+                    email_verification_token = NULL,
+                    status = 'active',
+                    updated_at = NOW()
+                WHERE id = ?
+            ");
+            $stmt->execute([$customer['id']]);
+
+            Logger::info("[CustomerController] Email verified for customer {$customer['id']} ({$customer['email']})");
+
+            // Login automático después de verificar
+            $_SESSION['customer'] = [
+                'id' => $customer['id'],
+                'email' => $customer['email'],
+                'name' => $customer['name'],
+                'status' => 'active'
+            ];
+
+            // Redirigir al dashboard con mensaje de éxito
+            $_SESSION['flash_success'] = '¡Email verificado exitosamente! Tu cuenta está ahora activa.';
+            header('Location: /customer/dashboard');
+            exit;
+
+        } catch (\Exception $e) {
+            Logger::error("[CustomerController] Email verification failed: " . $e->getMessage());
+            $_SESSION['flash_error'] = 'Error al verificar el email. Por favor intenta de nuevo.';
+            header('Location: /customer/login');
+            exit;
+        }
+    }
+
+    /**
+     * Enviar email de verificación
+     *
+     * @param string $email
+     * @param string $name
+     * @param string $verificationUrl
+     */
+    private function sendVerificationEmail(string $email, string $name, string $verificationUrl): void
+    {
+        $subject = 'Verifica tu cuenta - MuseDock';
+
+        $body = "
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                .footer { text-align: center; color: #999; margin-top: 20px; font-size: 12px; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>Bienvenido a MuseDock</h1>
+                </div>
+                <div class='content'>
+                    <p>Hola <strong>{$name}</strong>,</p>
+                    <p>Gracias por registrarte en MuseDock. Para completar tu registro y activar tu cuenta, por favor verifica tu correo electrónico haciendo clic en el siguiente botón:</p>
+                    <p style='text-align: center;'>
+                        <a href='{$verificationUrl}' class='button'>Verificar mi Email</a>
+                    </p>
+                    <p>O copia y pega este enlace en tu navegador:</p>
+                    <p style='word-break: break-all; color: #667eea;'>{$verificationUrl}</p>
+                    <p>Si no creaste esta cuenta, puedes ignorar este correo.</p>
+                    <p>Saludos,<br>El equipo de MuseDock</p>
+                </div>
+                <div class='footer'>
+                    <p>© " . date('Y') . " MuseDock. Todos los derechos reservados.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
+
+        $headers = [
+            'MIME-Version: 1.0',
+            'Content-type: text/html; charset=utf-8',
+            'From: MuseDock <noreply@musedock.com>',
+            'Reply-To: soporte@musedock.com'
+        ];
+
+        mail($email, $subject, $body, implode("\r\n", $headers));
+    }
+
+    /**
      * Envía respuesta JSON
      *
      * @param array $data

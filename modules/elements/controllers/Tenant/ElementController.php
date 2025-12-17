@@ -345,4 +345,48 @@ class ElementController
 
         return $errors;
     }
+
+    /**
+     * Check slug availability (AJAX)
+     */
+    public function checkSlug()
+    {
+        header('Content-Type: application/json');
+
+        $slug = trim($_POST['slug'] ?? '');
+        $excludeId = isset($_POST['exclude_id']) ? (int)$_POST['exclude_id'] : null;
+        $tenantId = TenantManager::currentTenantId();
+
+        if (empty($slug)) {
+            echo json_encode(['available' => false, 'message' => 'Slug is required']);
+            exit;
+        }
+
+        // Validate slug format
+        if (!preg_match('/^[a-z0-9\-]+$/', $slug)) {
+            echo json_encode(['available' => false, 'message' => __element('validation.slug_invalid')]);
+            exit;
+        }
+
+        // Check if slug exists for this tenant
+        $query = Element::query()->where('slug', $slug);
+
+        if ($tenantId !== null) {
+            $query->where('tenant_id', $tenantId);
+        } else {
+            $query->whereRaw('(tenant_id IS NULL OR tenant_id = 0)');
+        }
+
+        if ($excludeId !== null) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        $exists = $query->exists();
+
+        echo json_encode([
+            'available' => !$exists,
+            'message' => $exists ? __element('validation.slug_exists') : 'Slug is available'
+        ]);
+        exit;
+    }
 }
