@@ -185,6 +185,11 @@
                         @endphp
                         <span><i class="far fa-calendar"></i> {{ $dateStr }}</span>
                     </div>
+                @else
+                    {{-- Es una página - Mostrar título solo si NO está oculto --}}
+                    @if(isset($customizations) && !$customizations->hide_title && isset($page) && !$page->is_homepage)
+                        <h1 class="page-title">{{ $translation->title ?? '' }}</h1>
+                    @endif
                 @endif
 
                 <div class="@if(isset($post)) post-content @else page-body @endif">
