@@ -492,7 +492,7 @@ mv storage/ ../storage/
 
         <div class="footer">
             <strong>MuseDock CMS</strong><br>
-            <?= $t['footer_help'] ?> <a href="https://musedock.org/docs" target="_blank"><?= $t['documentation'] ?></a>
+            <?= $t['footer_help'] ?> <a href="https://musedock.org/" target="_blank"><?= $t['documentation'] ?></a>
         </div>
     </div>
 </body>

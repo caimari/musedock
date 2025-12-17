@@ -155,7 +155,7 @@ jobs:
 
             ### 🆘 Support
 
-            - 📖 [Documentation](https://musedock.org/docs)
+            - 📖 [Documentation](https://musedock.org/)
             - 🐛 [Report Issues](https://github.com/caimari/musedock/issues)
             - 💬 [Community Forum](https://musedock.org/community)
         env:
