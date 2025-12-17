@@ -69,17 +69,21 @@ if (!function_exists('register_module_admin_menu')) {
             $menuStmt->execute([$menuSlug]);
             $menuId = $menuStmt->fetchColumn();
 
+            // Usar tenant_url si está disponible, sino usar superadmin_url
+            // Esto permite que el menú funcione correctamente cuando se copia a tenant_menus
+            $urlForAdminMenus = $tenantUrl ?: $superadminUrl;
+
             if ($menuId) {
                 $update = $pdo->prepare("
                     UPDATE admin_menus
-                    SET parent_id = ?, module_id = ?, title = ?, url = ?, icon = ?, icon_type = ?, order_position = ?, permission = ?, is_active = 1, updated_at = NOW()
+                    SET parent_id = ?, module_id = ?, title = ?, url = ?, icon = ?, icon_type = ?, order_position = ?, permission = ?, is_active = 1, show_in_superadmin = 1, show_in_tenant = 1, updated_at = NOW()
                     WHERE id = ?
                 ");
                 $update->execute([
                     $parentId,
                     $moduleId,
                     $title,
-                    $superadminUrl,
+                    $urlForAdminMenus,
                     $icon,
                     $iconType,
                     $order,
@@ -89,15 +93,15 @@ if (!function_exists('register_module_admin_menu')) {
             } else {
                 $insert = $pdo->prepare("
                     INSERT INTO admin_menus
-                        (parent_id, module_id, title, slug, url, icon, icon_type, order_position, permission, is_active, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
+                        (parent_id, module_id, title, slug, url, icon, icon_type, order_position, permission, is_active, show_in_superadmin, show_in_tenant, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1, NOW(), NOW())
                 ");
                 $insert->execute([
                     $parentId,
                     $moduleId,
                     $title,
                     $menuSlug,
-                    $superadminUrl,
+                    $urlForAdminMenus,
                     $icon,
                     $iconType,
                     $order,
