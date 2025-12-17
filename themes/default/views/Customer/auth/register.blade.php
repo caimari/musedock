@@ -1,6 +1,3 @@
-@extends('layouts.app')
-
-@section('content')
 <div class="container py-5 mt-5">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">
@@ -292,4 +289,3 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-@endsection

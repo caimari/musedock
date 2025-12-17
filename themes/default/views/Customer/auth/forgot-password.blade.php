@@ -1,45 +1,37 @@
-@extends('layouts.app')
+<div class="container" style="max-width: 500px;">
+    <div class="card shadow-lg border-0" style="border-radius: 15px;">
+        <div class="card-body p-5">
+            <div class="text-center mb-4">
+                <h1 class="h2 fw-bold" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Recuperar Contraseña</h1>
+                <p class="text-muted">Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña</p>
+            </div>
 
-@section('content')
-<div class="container py-5 mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-5">
-            <div class="card shadow-lg border-0">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <h1 class="h2 fw-bold text-primary">Recuperar Contraseña</h1>
-                        <p class="text-muted">Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña</p>
-                    </div>
+            <form id="forgotForm" method="POST" action="/customer/forgot-password">
+                <input type="hidden" name="_csrf_token" value="<?= $csrf_token ?>">
 
-                    <form id="forgotForm" method="POST" action="/customer/forgot-password">
-                        <input type="hidden" name="_csrf_token" value="<?= $csrf_token ?>">
-
-                        <div class="mb-4">
-                            <label for="email" class="form-label fw-semibold">Email</label>
-                            <input type="email" class="form-control form-control-lg" id="email"
-                                   name="email" required placeholder="tu@email.com" autofocus>
-                        </div>
-
-                        <button type="submit" id="submitBtn" class="btn btn-primary btn-lg w-100">
-                            Enviar enlace de recuperación
-                        </button>
-                    </form>
-
-                    <div class="text-center mt-4">
-                        <p class="mb-2">
-                            <a href="/customer/login" class="text-decoration-none" style="color: #212529;">← Volver al login</a>
-                        </p>
-                        <p class="mb-0" style="color: #212529;">
-                            ¿No tienes cuenta? <a href="/register" class="fw-semibold" style="color: #212529;">Regístrate gratis</a>
-                        </p>
-                    </div>
+                <div class="mb-4">
+                    <label for="email" class="form-label fw-semibold">Email</label>
+                    <input type="email" class="form-control form-control-lg" id="email"
+                           name="email" required placeholder="tu@email.com" autofocus>
                 </div>
+
+                <button type="submit" id="submitBtn" class="btn btn-lg w-100" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none;">
+                    Enviar enlace de recuperación
+                </button>
+            </form>
+
+            <div class="text-center mt-4">
+                <p class="mb-2">
+                    <a href="/customer/login" class="text-decoration-none">← Volver al login</a>
+                </p>
+                <p class="mb-0">
+                    ¿No tienes cuenta? <a href="/register" class="fw-semibold">Regístrate gratis</a>
+                </p>
             </div>
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.getElementById('forgotForm').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -96,4 +88,3 @@ document.getElementById('forgotForm').addEventListener('submit', function(e) {
     });
 });
 </script>
-@endsection

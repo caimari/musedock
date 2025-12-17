@@ -85,6 +85,17 @@ class ModulesSeeder
                 'cms_enabled' => 1,
                 'tenant_enabled_default' => 1
             ],
+            [
+                'slug' => 'elements',
+                'name' => 'Elements',
+                'description' => 'Bootstrap-based reusable elements (Heroes, FAQs, CTAs, etc.) with shortcode support',
+                'version' => '1.0.0',
+                'author' => 'MuseDock',
+                'active' => 1,
+                'public' => 0,
+                'cms_enabled' => 1,
+                'tenant_enabled_default' => 1
+            ],
         ];
 
         foreach ($modules as $module) {

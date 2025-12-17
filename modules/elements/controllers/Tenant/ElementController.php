@@ -1,0 +1,326 @@
+<?php
+
+namespace Elements\Controllers\Tenant;
+
+use Screenart\Musedock\View;
+use Screenart\Musedock\Security\SessionSecurity;
+use Screenart\Musedock\Services\TenantManager;
+use Elements\Models\Element;
+use Elements\Models\ElementSetting;
+
+/**
+ * ElementController - Tenant
+ *
+ * Manages elements specific to the tenant
+ */
+class ElementController
+{
+    /**
+     * List tenant elements
+     */
+    public function index()
+    {
+        SessionSecurity::startSession();
+        $tenantId = TenantManager::currentTenantId();
+
+        if ($tenantId === null) {
+            flash('error', __element('element.tenant_required'));
+            header('Location: /' . admin_path() . '/dashboard');
+            exit;
+        }
+
+        $elements = Element::getByTenant($tenantId, true);
+
+        return View::renderModule('elements', 'tenant/elements/index', [
+            'title' => __element('element.my_elements'),
+            'elements' => $elements,
+            'types' => Element::getAvailableTypes()
+        ]);
+    }
+
+    /**
+     * Create form
+     */
+    public function create()
+    {
+        SessionSecurity::startSession();
+        $tenantId = TenantManager::currentTenantId();
+
+        if ($tenantId === null) {
+            flash('error', __element('element.tenant_required'));
+            header('Location: /' . admin_path() . '/dashboard');
+            exit;
+        }
+
+        return View::renderModule('elements', 'tenant/elements/create', [
+            'title' => __element('element.create'),
+            'types' => Element::getAvailableTypes(),
+            'heroLayouts' => Element::getHeroLayouts(),
+            'faqLayouts' => Element::getFaqLayouts(),
+            'ctaLayouts' => Element::getCtaLayouts()
+        ]);
+    }
+
+    /**
+     * Store new element
+     */
+    public function store()
+    {
+        SessionSecurity::startSession();
+        $tenantId = TenantManager::currentTenantId();
+
+        if ($tenantId === null) {
+            flash('error', __element('element.tenant_required'));
+            header('Location: /' . admin_path() . '/dashboard');
+            exit;
+        }
+
+        // Validation
+        $errors = $this->validateElement($_POST, $tenantId);
+
+        if (!empty($errors)) {
+            flash('error', implode('<br>', $errors));
+            $_SESSION['_old_input'] = $_POST;
+            header('Location: ' . route('tenant.elements.create'));
+            exit;
+        }
+
+        // Generate unique slug
+        $baseSlugInput = trim($_POST['slug'] ?? '');
+        $slugSource = $baseSlugInput !== '' ? $baseSlugInput : ($_POST['name'] ?? '');
+        $slug = Element::generateUniqueSlug($slugSource, $tenantId);
+
+        // Parse data (element content)
+        $data = [];
+        if (!empty($_POST['data'])) {
+            $data = is_array($_POST['data'])
+                ? $_POST['data']
+                : json_decode($_POST['data'], true) ?? [];
+        }
+
+        // Parse settings
+        $settings = [];
+        if (!empty($_POST['settings'])) {
+            $settings = is_array($_POST['settings'])
+                ? $_POST['settings']
+                : json_decode($_POST['settings'], true) ?? [];
+        }
+
+        // Create element
+        $element = Element::create([
+            'tenant_id' => $tenantId,
+            'name' => trim($_POST['name']),
+            'slug' => $slug,
+            'description' => trim($_POST['description'] ?? ''),
+            'type' => trim($_POST['type']),
+            'layout_type' => trim($_POST['layout_type'] ?? ''),
+            'data' => $data,
+            'settings' => $settings,
+            'is_active' => isset($_POST['is_active']) ? 1 : 0,
+            'featured' => isset($_POST['featured']) ? 1 : 0,
+            'sort_order' => (int)($_POST['sort_order'] ?? 0)
+        ]);
+
+        if ($element) {
+            flash('success', __element('element.created'));
+            header('Location: ' . route('tenant.elements.edit', ['id' => $element->id]));
+            exit;
+        }
+
+        flash('error', __element('element.error_creating'));
+        header('Location: ' . route('tenant.elements.create'));
+        exit;
+    }
+
+    /**
+     * Edit form
+     */
+    public function edit(int $id)
+    {
+        SessionSecurity::startSession();
+        $tenantId = TenantManager::currentTenantId();
+
+        if ($tenantId === null) {
+            flash('error', __element('element.tenant_required'));
+            header('Location: /' . admin_path() . '/dashboard');
+            exit;
+        }
+
+        $element = Element::find($id);
+
+        if (!$element) {
+            flash('error', __element('element.not_found'));
+            header('Location: ' . route('tenant.elements.index'));
+            exit;
+        }
+
+        // Check ownership (allow global elements but read-only)
+        $isReadOnly = $element->isGlobal() || !$element->belongsToTenant($tenantId);
+
+        return View::renderModule('elements', 'tenant/elements/edit', [
+            'title' => __element('element.edit'),
+            'element' => $element,
+            'types' => Element::getAvailableTypes(),
+            'heroLayouts' => Element::getHeroLayouts(),
+            'faqLayouts' => Element::getFaqLayouts(),
+            'ctaLayouts' => Element::getCtaLayouts(),
+            'isReadOnly' => $isReadOnly
+        ]);
+    }
+
+    /**
+     * Update element
+     */
+    public function update(int $id)
+    {
+        SessionSecurity::startSession();
+        $tenantId = TenantManager::currentTenantId();
+
+        if ($tenantId === null) {
+            flash('error', __element('element.tenant_required'));
+            header('Location: /' . admin_path() . '/dashboard');
+            exit;
+        }
+
+        $element = Element::find($id);
+
+        if (!$element) {
+            flash('error', __element('element.not_found'));
+            header('Location: ' . route('tenant.elements.index'));
+            exit;
+        }
+
+        // Check ownership (don't allow editing global elements from tenant)
+        if ($element->isGlobal() || !$element->belongsToTenant($tenantId)) {
+            flash('error', __element('element.global_readonly'));
+            header('Location: ' . route('tenant.elements.edit', ['id' => $id]));
+            exit;
+        }
+
+        // Validation
+        $errors = $this->validateElement($_POST, $tenantId, $id);
+
+        if (!empty($errors)) {
+            flash('error', implode('<br>', $errors));
+            $_SESSION['_old_input'] = $_POST;
+            header('Location: ' . route('tenant.elements.edit', ['id' => $id]));
+            exit;
+        }
+
+        // Generate slug if changed
+        $baseSlugInput = trim($_POST['slug'] ?? '');
+        $slugSource = $baseSlugInput !== '' ? $baseSlugInput : ($_POST['name'] ?? '');
+        $slug = ($slugSource !== $element->slug)
+            ? Element::generateUniqueSlug($slugSource, $tenantId, $id)
+            : $element->slug;
+
+        // Parse data
+        $data = [];
+        if (!empty($_POST['data'])) {
+            $data = is_array($_POST['data'])
+                ? $_POST['data']
+                : json_decode($_POST['data'], true) ?? [];
+        }
+
+        // Parse settings
+        $settings = [];
+        if (!empty($_POST['settings'])) {
+            $settings = is_array($_POST['settings'])
+                ? $_POST['settings']
+                : json_decode($_POST['settings'], true) ?? [];
+        }
+
+        // Update
+        $updated = Element::query()->where('id', $id)->update([
+            'name' => trim($_POST['name']),
+            'slug' => $slug,
+            'description' => trim($_POST['description'] ?? ''),
+            'type' => trim($_POST['type']),
+            'layout_type' => trim($_POST['layout_type'] ?? ''),
+            'data' => json_encode($data),
+            'settings' => json_encode($settings),
+            'is_active' => isset($_POST['is_active']) ? 1 : 0,
+            'featured' => isset($_POST['featured']) ? 1 : 0,
+            'sort_order' => (int)($_POST['sort_order'] ?? 0)
+        ]);
+
+        if ($updated) {
+            flash('success', __element('element.updated'));
+        } else {
+            flash('error', __element('element.error'));
+        }
+
+        header('Location: ' . route('tenant.elements.edit', ['id' => $id]));
+        exit;
+    }
+
+    /**
+     * Delete element
+     */
+    public function destroy(int $id)
+    {
+        SessionSecurity::startSession();
+        $tenantId = TenantManager::currentTenantId();
+
+        if ($tenantId === null) {
+            flash('error', __element('element.tenant_required'));
+            header('Location: /' . admin_path() . '/dashboard');
+            exit;
+        }
+
+        $element = Element::find($id);
+
+        if (!$element) {
+            flash('error', __element('element.not_found'));
+            header('Location: ' . route('tenant.elements.index'));
+            exit;
+        }
+
+        // Check ownership
+        if ($element->isGlobal() || !$element->belongsToTenant($tenantId)) {
+            flash('error', __element('element.global_readonly'));
+            header('Location: ' . route('tenant.elements.index'));
+            exit;
+        }
+
+        if (Element::query()->where('id', $id)->delete()) {
+            flash('success', __element('element.deleted'));
+        } else {
+            flash('error', __element('element.error'));
+        }
+
+        header('Location: ' . route('tenant.elements.index'));
+        exit;
+    }
+
+    /**
+     * Validate element data
+     */
+    private function validateElement(array $data, ?int $tenantId = null, ?int $excludeId = null): array
+    {
+        $errors = [];
+
+        // Name
+        if (empty($data['name'])) {
+            $errors[] = __element('validation.name_required');
+        } elseif (mb_strlen($data['name']) > 255) {
+            $errors[] = __element('validation.name_too_long');
+        }
+
+        // Type
+        if (empty($data['type'])) {
+            $errors[] = __element('validation.type_required');
+        } elseif (!in_array($data['type'], array_keys(Element::getAvailableTypes()))) {
+            $errors[] = __element('validation.type_invalid');
+        }
+
+        // Slug (if provided manually)
+        if (!empty($data['slug'])) {
+            if (!preg_match('/^[a-z0-9\-]+$/', $data['slug'])) {
+                $errors[] = __element('validation.slug_invalid');
+            }
+        }
+
+        return $errors;
+    }
+}

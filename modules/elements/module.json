@@ -1,0 +1,55 @@
+{
+    "name": "Elements",
+    "slug": "elements",
+    "description": "Bootstrap-based reusable elements (Heroes, FAQs, CTAs, etc.) with shortcode support",
+    "version": "1.0.0",
+    "author": "MuseDock",
+    "active": true,
+    "cms_enabled": true,
+    "tenant_enabled_default": true,
+
+    "requires": {
+        "php": ">=8.0",
+        "musedock": ">=1.0.0"
+    },
+
+    "autoload": {
+        "psr-4": {
+            "Elements\\Controllers\\": "controllers/",
+            "Elements\\Models\\": "models/"
+        }
+    },
+
+    "permissions": [
+        "elements.manage",
+        "elements.view",
+        "elements.create",
+        "elements.edit",
+        "elements.delete"
+    ],
+
+    "menu": {
+        "superadmin": {
+            "label": "Elements",
+            "icon": "bi-grid-3x3-gap",
+            "route": "elements.index",
+            "order": 56
+        },
+        "tenant": {
+            "label": "Elements",
+            "icon": "bi-grid-3x3-gap",
+            "route": "tenant.elements.index",
+            "order": 56
+        }
+    },
+
+    "settings": {
+        "allowed_element_types": ["hero", "faq", "cta", "features", "testimonials", "stats", "timeline"],
+        "default_hero_layout": "image-right",
+        "allowed_hero_layouts": ["image-right", "image-left", "centered", "background", "video"],
+        "default_faq_layout": "accordion",
+        "allowed_faq_layouts": ["accordion", "simple", "two-columns"],
+        "default_cta_layout": "horizontal",
+        "allowed_cta_layouts": ["horizontal", "centered", "box"]
+    }
+}
