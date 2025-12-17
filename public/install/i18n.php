@@ -78,10 +78,11 @@ $translations = [
 
         // Progress steps
         'creating_env' => 'Creating .env file',
-        'testing_database' => 'Testing database connection',
+        'setting_up_database' => 'Setting up database',
         'running_migrations' => 'Running migrations',
-        'creating_admin' => 'Creating administrator account',
-        'creating_lock' => 'Creating installation lock',
+        'seeding_database' => 'Seeding database',
+        'creating_admin' => 'Creating admin user',
+        'finalizing' => 'Finalizing installation',
 
         // Common
         'required' => 'Required',
@@ -89,6 +90,19 @@ $translations = [
         'passed' => 'Passed',
         'failed' => 'Failed',
         'optional' => 'Optional',
+        'installing' => 'Installing...',
+        'testing' => 'Testing...',
+        'retry' => 'Retry Installation',
+        'back_to_database' => 'Back to Database',
+        'download_log' => 'Download Error Log',
+        'documentation' => 'Documentation',
+        'password_min_error' => 'Password must be at least 8 characters.',
+        'passwords_not_match' => 'Passwords do not match.',
+        'install_musedock' => 'Install MuseDock CMS',
+        'site_url_label' => 'Site URL',
+        'language_label' => 'Language',
+        'database_label' => 'Database',
+        'admin_email_label' => 'Admin Email',
     ],
 
     'es' => [
@@ -165,10 +179,11 @@ $translations = [
 
         // Progress steps
         'creating_env' => 'Creando archivo .env',
-        'testing_database' => 'Probando conexión a base de datos',
+        'setting_up_database' => 'Configurando base de datos',
         'running_migrations' => 'Ejecutando migraciones',
-        'creating_admin' => 'Creando cuenta de administrador',
-        'creating_lock' => 'Creando bloqueo de instalación',
+        'seeding_database' => 'Poblando base de datos',
+        'creating_admin' => 'Creando usuario administrador',
+        'finalizing' => 'Finalizando instalación',
 
         // Common
         'required' => 'Requerido',
@@ -176,5 +191,18 @@ $translations = [
         'passed' => 'Aprobado',
         'failed' => 'Fallido',
         'optional' => 'Opcional',
+        'installing' => 'Instalando...',
+        'testing' => 'Probando...',
+        'retry' => 'Reintentar Instalación',
+        'back_to_database' => 'Volver a Base de Datos',
+        'download_log' => 'Descargar Log de Errores',
+        'documentation' => 'Documentación',
+        'password_min_error' => 'La contraseña debe tener al menos 8 caracteres.',
+        'passwords_not_match' => 'Las contraseñas no coinciden.',
+        'install_musedock' => 'Instalar MuseDock CMS',
+        'site_url_label' => 'URL del Sitio',
+        'language_label' => 'Idioma',
+        'database_label' => 'Base de Datos',
+        'admin_email_label' => 'Email del Admin',
     ]
 ];

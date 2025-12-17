@@ -809,11 +809,11 @@ function createAdminUser($data) {
         $name = $data['admin_name'] ?? 'Administrator';
 
         if (empty($email) || empty($password)) {
-            return ['success' => false, 'error' => 'Admin email and password are required'];
+            return ['success' => false, 'error' => __('admin_email') . ' ' . __('required')];
         }
 
         if (strlen($password) < 8) {
-            return ['success' => false, 'error' => 'Password must be at least 8 characters'];
+            return ['success' => false, 'error' => __('password_min_error')];
         }
 
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
@@ -1157,33 +1157,33 @@ $step = max(1, min(5, $step));
                 <div class="step-circle">
                     <?= $step > 1 ? '<i class="bi bi-check"></i>' : '1' ?>
                 </div>
-                <span class="d-none d-md-inline">Requirements</span>
+                <span class="d-none d-md-inline"><?= __('step_requirements') ?></span>
             </div>
             <div class="step-line"></div>
             <div class="step-indicator <?= $step >= 2 ? ($step > 2 ? 'completed' : 'active') : '' ?>">
                 <div class="step-circle">
                     <?= $step > 2 ? '<i class="bi bi-check"></i>' : '2' ?>
                 </div>
-                <span class="d-none d-md-inline">Database</span>
+                <span class="d-none d-md-inline"><?= __('step_database') ?></span>
             </div>
             <div class="step-line"></div>
             <div class="step-indicator <?= $step >= 3 ? ($step > 3 ? 'completed' : 'active') : '' ?>">
                 <div class="step-circle">
                     <?= $step > 3 ? '<i class="bi bi-check"></i>' : '3' ?>
                 </div>
-                <span class="d-none d-md-inline">Site Setup</span>
+                <span class="d-none d-md-inline"><?= __('step_site') ?></span>
             </div>
             <div class="step-line"></div>
             <div class="step-indicator <?= $step >= 4 ? ($step > 4 ? 'completed' : 'active') : '' ?>">
                 <div class="step-circle">
                     <?= $step > 4 ? '<i class="bi bi-check"></i>' : '4' ?>
                 </div>
-                <span class="d-none d-md-inline">Admin</span>
+                <span class="d-none d-md-inline"><?= __('step_admin') ?></span>
             </div>
             <div class="step-line"></div>
             <div class="step-indicator <?= $step >= 5 ? 'active' : '' ?>">
                 <div class="step-circle">5</div>
-                <span class="d-none d-md-inline">Install</span>
+                <span class="d-none d-md-inline"><?= __('step_install') ?></span>
             </div>
         </div>
 
@@ -1192,35 +1192,35 @@ $step = max(1, min(5, $step));
             <!-- Step 1: Requirements -->
             <div id="step-1" class="step-content" style="<?= $step !== 1 ? 'display:none' : '' ?>">
                 <div class="card-header">
-                    <h3><i class="bi bi-clipboard-check me-2"></i>System Requirements</h3>
+                    <h3><i class="bi bi-clipboard-check me-2"></i><?= __('system_requirements') ?></h3>
                 </div>
                 <div class="card-body">
                     <div id="requirements-list">
                         <div class="text-center py-4">
                             <div class="spinner-border text-primary" role="status"></div>
-                            <p class="mt-3 text-muted">Checking requirements...</p>
+                            <p class="mt-3 text-muted"><?= __('checking_requirements') ?></p>
                         </div>
                     </div>
 
                     <div id="composer-section" class="mt-4" style="display:none">
                         <div class="alert alert-warning">
-                            <h5><i class="bi bi-exclamation-triangle me-2"></i>Composer Dependencies Required</h5>
-                            <p class="mb-3">Composer dependencies are not installed. You have two options:</p>
+                            <h5><i class="bi bi-exclamation-triangle me-2"></i><?= __('composer_required') ?></h5>
+                            <p class="mb-3"><?= __('composer_desc') ?></p>
 
                             <div class="d-flex gap-3 flex-wrap">
                                 <button type="button" class="btn btn-primary" id="btn-auto-composer">
-                                    <i class="bi bi-magic me-2"></i>Auto Install (if available)
+                                    <i class="bi bi-magic me-2"></i><?= __('auto_install') ?>
                                 </button>
                                 <button type="button" class="btn btn-outline-light" data-bs-toggle="collapse" data-bs-target="#manual-composer">
-                                    <i class="bi bi-terminal me-2"></i>Manual Instructions
+                                    <i class="bi bi-terminal me-2"></i><?= __('manual_instructions') ?>
                                 </button>
                             </div>
 
                             <div class="collapse mt-3" id="manual-composer">
                                 <div class="bg-dark p-3 rounded">
-                                    <p class="mb-2">Connect via SSH and run:</p>
+                                    <p class="mb-2"><?= __('manual_desc') ?></p>
                                     <code class="text-warning">cd <?= ROOT_PATH ?> && composer install --no-dev</code>
-                                    <p class="mt-2 mb-0 small text-muted">Then refresh this page.</p>
+                                    <p class="mt-2 mb-0 small text-muted"><?= __('then_refresh') ?></p>
                                 </div>
                             </div>
                         </div>
@@ -1228,10 +1228,10 @@ $step = max(1, min(5, $step));
 
                     <div class="d-flex justify-content-between mt-4">
                         <button type="button" class="btn btn-outline-light" id="btn-recheck">
-                            <i class="bi bi-arrow-clockwise me-2"></i>Re-check
+                            <i class="bi bi-arrow-clockwise me-2"></i><?= __('recheck') ?>
                         </button>
                         <button type="button" class="btn btn-primary" id="btn-next-1" disabled>
-                            Continue <i class="bi bi-arrow-right ms-2"></i>
+                            <?= __('continue') ?> <i class="bi bi-arrow-right ms-2"></i>
                         </button>
                     </div>
                 </div>
@@ -1240,42 +1240,42 @@ $step = max(1, min(5, $step));
             <!-- Step 2: Database -->
             <div id="step-2" class="step-content" style="<?= $step !== 2 ? 'display:none' : '' ?>">
                 <div class="card-header">
-                    <h3><i class="bi bi-database me-2"></i>Database Configuration</h3>
+                    <h3><i class="bi bi-database me-2"></i><?= __('database_configuration') ?></h3>
                 </div>
                 <div class="card-body">
                     <form id="database-form">
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Database Driver</label>
+                                <label class="form-label"><?= __('database_driver') ?></label>
                                 <select class="form-select" name="db_driver" id="db_driver">
                                     <option value="mysql">MySQL / MariaDB</option>
                                     <option value="pgsql">PostgreSQL</option>
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Database Host</label>
+                                <label class="form-label"><?= __('database_host') ?></label>
                                 <input type="text" class="form-control" name="db_host" value="localhost" required>
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Database Port</label>
+                                <label class="form-label"><?= __('database_port') ?></label>
                                 <input type="text" class="form-control" name="db_port" id="db_port" value="3306" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Database Name</label>
+                                <label class="form-label"><?= __('database_name') ?></label>
                                 <input type="text" class="form-control" name="db_name" placeholder="musedock" required>
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Database User</label>
+                                <label class="form-label"><?= __('database_user') ?></label>
                                 <input type="text" class="form-control" name="db_user" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Database Password</label>
+                                <label class="form-label"><?= __('database_password') ?></label>
                                 <div class="input-group">
                                     <input type="password" class="form-control" name="db_pass" id="db_pass">
                                     <span class="input-group-text password-toggle" data-target="db_pass">
@@ -1289,14 +1289,14 @@ $step = max(1, min(5, $step));
 
                         <div class="d-flex justify-content-between">
                             <button type="button" class="btn btn-outline-light" onclick="goToStep(1)">
-                                <i class="bi bi-arrow-left me-2"></i>Back
+                                <i class="bi bi-arrow-left me-2"></i><?= __('back') ?>
                             </button>
                             <div class="d-flex gap-2">
                                 <button type="button" class="btn btn-outline-light" id="btn-test-db">
-                                    <i class="bi bi-plug me-2"></i>Test Connection
+                                    <i class="bi bi-plug me-2"></i><?= __('test_connection') ?>
                                 </button>
                                 <button type="button" class="btn btn-primary" id="btn-next-2" disabled>
-                                    Continue <i class="bi bi-arrow-right ms-2"></i>
+                                    <?= __('continue') ?> <i class="bi bi-arrow-right ms-2"></i>
                                 </button>
                             </div>
                         </div>
@@ -1307,31 +1307,31 @@ $step = max(1, min(5, $step));
             <!-- Step 3: Site Setup -->
             <div id="step-3" class="step-content" style="<?= $step !== 3 ? 'display:none' : '' ?>">
                 <div class="card-header">
-                    <h3><i class="bi bi-globe me-2"></i>Site Configuration</h3>
+                    <h3><i class="bi bi-globe me-2"></i><?= __('site_configuration') ?></h3>
                 </div>
                 <div class="card-body">
                     <form id="site-form">
-                        <h5 class="mb-3" style="color: var(--text-light);">Basic Information</h5>
+                        <h5 class="mb-3" style="color: var(--text-light);"><?= __('basic_information') ?></h5>
 
                         <div class="mb-3">
-                            <label class="form-label">Site Name</label>
+                            <label class="form-label"><?= __('site_name') ?></label>
                             <input type="text" class="form-control" name="app_name"
                                    value="MuseDock CMS"
                                    required>
-                            <small class="text-muted">The name of your website (appears in title, emails, etc.)</small>
+                            <small class="text-muted"><?= __('site_name_desc') ?></small>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Site URL</label>
+                            <label class="form-label"><?= __('site_url') ?></label>
                             <input type="url" class="form-control" name="app_url"
                                    value="<?= (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] ?>"
                                    required>
-                            <small class="text-muted">Full URL including http:// or https:// (without trailing slash)</small>
+                            <small class="text-muted"><?= __('site_url_desc') ?></small>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Default Language</label>
+                                <label class="form-label"><?= __('default_language') ?></label>
                                 <select class="form-select" name="default_lang">
                                     <option value="en">English</option>
                                     <option value="es" selected>Español</option>
@@ -1340,44 +1340,44 @@ $step = max(1, min(5, $step));
                                     <option value="it">Italiano</option>
                                     <option value="pt">Português</option>
                                 </select>
-                                <small class="text-muted">Primary language for the admin panel</small>
+                                <small class="text-muted"><?= __('default_language_desc') ?></small>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Environment</label>
+                                <label class="form-label"><?= __('environment') ?></label>
                                 <select class="form-select" name="app_env">
-                                    <option value="production" selected>Production</option>
-                                    <option value="development">Development</option>
+                                    <option value="production" selected><?= __('production') ?></option>
+                                    <option value="development"><?= __('development') ?></option>
                                 </select>
-                                <small class="text-muted">Use "Development" only for testing</small>
+                                <small class="text-muted"><?= __('environment_desc') ?></small>
                             </div>
                         </div>
 
                         <hr style="border-color: rgba(255,255,255,0.1); margin: 24px 0;">
 
-                        <h5 class="mb-3" style="color: var(--text-light);">Email Configuration</h5>
+                        <h5 class="mb-3" style="color: var(--text-light);"><?= __('email_configuration') ?></h5>
 
                         <div class="mb-3">
-                            <label class="form-label">Email From Address</label>
+                            <label class="form-label"><?= __('email_from_address') ?></label>
                             <input type="email" class="form-control" name="mail_from_address"
                                    value="noreply@<?= $_SERVER['HTTP_HOST'] ?? 'your-domain.com' ?>"
                                    required>
-                            <small class="text-muted">Email address used for system notifications (password resets, alerts, etc.)</small>
+                            <small class="text-muted"><?= __('email_from_address_desc') ?></small>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Email From Name</label>
+                            <label class="form-label"><?= __('email_from_name') ?></label>
                             <input type="text" class="form-control" name="mail_from_name"
                                    value="MuseDock CMS"
                                    required>
-                            <small class="text-muted">Display name that appears in outgoing emails</small>
+                            <small class="text-muted"><?= __('email_from_name_desc') ?></small>
                         </div>
 
                         <div class="d-flex justify-content-between mt-4">
                             <button type="button" class="btn btn-outline-light" onclick="goToStep(2)">
-                                <i class="bi bi-arrow-left me-2"></i>Back
+                                <i class="bi bi-arrow-left me-2"></i><?= __('back') ?>
                             </button>
                             <button type="button" class="btn btn-primary" onclick="goToStep(4)">
-                                Continue <i class="bi bi-arrow-right ms-2"></i>
+                                <?= __('continue') ?> <i class="bi bi-arrow-right ms-2"></i>
                             </button>
                         </div>
                     </form>
@@ -1387,22 +1387,22 @@ $step = max(1, min(5, $step));
             <!-- Step 4: Admin User -->
             <div id="step-4" class="step-content" style="<?= $step !== 4 ? 'display:none' : '' ?>">
                 <div class="card-header">
-                    <h3><i class="bi bi-person-badge me-2"></i>Administrator Account</h3>
+                    <h3><i class="bi bi-person-badge me-2"></i><?= __('administrator_account') ?></h3>
                 </div>
                 <div class="card-body">
                     <form id="admin-form">
                         <div class="mb-3">
-                            <label class="form-label">Admin Name</label>
+                            <label class="form-label"><?= __('admin_name') ?></label>
                             <input type="text" class="form-control" name="admin_name" value="Administrator" required>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Admin Email</label>
+                            <label class="form-label"><?= __('admin_email') ?></label>
                             <input type="email" class="form-control" name="admin_email" required>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Admin Password</label>
+                            <label class="form-label"><?= __('admin_password') ?></label>
                             <div class="input-group">
                                 <input type="password" class="form-control" name="admin_password" id="admin_password"
                                        minlength="8" required>
@@ -1410,11 +1410,11 @@ $step = max(1, min(5, $step));
                                     <i class="bi bi-eye"></i>
                                 </span>
                             </div>
-                            <small class="text-muted">Minimum 8 characters</small>
+                            <small class="text-muted"><?= __('admin_password_desc') ?></small>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Confirm Password</label>
+                            <label class="form-label"><?= __('confirm_password') ?></label>
                             <input type="password" class="form-control" name="admin_password_confirm"
                                    id="admin_password_confirm" minlength="8" required>
                         </div>
@@ -1423,10 +1423,10 @@ $step = max(1, min(5, $step));
 
                         <div class="d-flex justify-content-between mt-4">
                             <button type="button" class="btn btn-outline-light" onclick="goToStep(3)">
-                                <i class="bi bi-arrow-left me-2"></i>Back
+                                <i class="bi bi-arrow-left me-2"></i><?= __('back') ?>
                             </button>
                             <button type="button" class="btn btn-primary" id="btn-next-4">
-                                Continue <i class="bi bi-arrow-right ms-2"></i>
+                                <?= __('continue') ?> <i class="bi bi-arrow-right ms-2"></i>
                             </button>
                         </div>
                     </form>
@@ -1436,27 +1436,27 @@ $step = max(1, min(5, $step));
             <!-- Step 5: Install -->
             <div id="step-5" class="step-content" style="<?= $step !== 5 ? 'display:none' : '' ?>">
                 <div class="card-header">
-                    <h3><i class="bi bi-rocket-takeoff me-2"></i>Install MuseDock CMS</h3>
+                    <h3><i class="bi bi-rocket-takeoff me-2"></i><?= __('install_musedock') ?></h3>
                 </div>
                 <div class="card-body">
                     <div id="install-summary">
-                        <h5 class="mb-3" style="color: var(--text-light);">Installation Summary</h5>
+                        <h5 class="mb-3" style="color: var(--text-light);"><?= __('installation_summary') ?></h5>
                         <div class="p-3 rounded mb-4" style="background: rgba(0,0,0,0.2); color: #e5e7eb;" id="summary-content">
                             <!-- Filled by JS -->
                         </div>
 
                         <div class="d-flex justify-content-between">
                             <button type="button" class="btn btn-outline-light" onclick="goToStep(4)">
-                                <i class="bi bi-arrow-left me-2"></i>Back
+                                <i class="bi bi-arrow-left me-2"></i><?= __('back') ?>
                             </button>
                             <button type="button" class="btn btn-primary btn-lg" id="btn-install">
-                                <i class="bi bi-download me-2"></i>Install Now
+                                <i class="bi bi-download me-2"></i><?= __('install_now') ?>
                             </button>
                         </div>
                     </div>
 
                     <div id="install-progress" style="display:none">
-                        <h5 class="mb-3">Installing...</h5>
+                        <h5 class="mb-3"><?= __('installing') ?></h5>
                         <ul class="install-progress" id="progress-list">
                             <!-- Filled by JS -->
                         </ul>
@@ -1467,28 +1467,28 @@ $step = max(1, min(5, $step));
                             <div class="display-1 text-success mb-3">
                                 <i class="bi bi-check-circle-fill"></i>
                             </div>
-                            <h3>Installation Complete!</h3>
-                            <p class="text-muted mb-4">MuseDock CMS has been installed successfully.</p>
+                            <h3><?= __('installation_complete') ?></h3>
+                            <p class="text-muted mb-4"><?= __('installation_complete_desc') ?></p>
                             <a href="/musedock/login" class="btn btn-primary btn-lg" id="btn-go-admin">
-                                <i class="bi bi-box-arrow-in-right me-2"></i>Go to Admin Panel
+                                <i class="bi bi-box-arrow-in-right me-2"></i><?= __('goto_admin') ?>
                             </a>
                         </div>
                     </div>
 
                     <div id="install-error" style="display:none">
                         <div class="alert alert-danger">
-                            <h5><i class="bi bi-exclamation-octagon me-2"></i>Installation Failed</h5>
+                            <h5><i class="bi bi-exclamation-octagon me-2"></i><?= __('installation_failed') ?></h5>
                             <p id="error-message"></p>
                         </div>
                         <div class="d-flex gap-2 flex-wrap">
                             <button type="button" class="btn btn-outline-light" id="btn-retry-install">
-                                <i class="bi bi-arrow-clockwise me-2"></i>Retry Installation
+                                <i class="bi bi-arrow-clockwise me-2"></i><?= __('retry') ?>
                             </button>
                             <button type="button" class="btn btn-secondary" onclick="goToStep(2)">
-                                <i class="bi bi-arrow-left me-2"></i>Back to Database
+                                <i class="bi bi-arrow-left me-2"></i><?= __('back_to_database') ?>
                             </button>
                             <a href="install.log" download="musedock-install.log" class="btn btn-info" id="btn-download-log" style="display:none">
-                                <i class="bi bi-download me-2"></i>Download Error Log
+                                <i class="bi bi-download me-2"></i><?= __('download_log') ?>
                             </a>
                         </div>
                     </div>
@@ -1497,7 +1497,7 @@ $step = max(1, min(5, $step));
         </div>
 
         <p class="text-center mt-4" style="color: #9ca3af;">
-            <small>MuseDock CMS &copy; <?= date('Y') ?> | <a href="https://musedock.org" target="_blank" style="color: #d1d5db; text-decoration: none;">Documentation</a></small>
+            <small>MuseDock CMS &copy; <?= date('Y') ?> | <a href="https://musedock.org" target="_blank" style="color: #d1d5db; text-decoration: none;"><?= __('documentation') ?></a></small>
         </p>
     </div>
 
@@ -1505,6 +1505,34 @@ $step = max(1, min(5, $step));
     <script>
         const csrfToken = '<?= $_SESSION['csrf_token'] ?>';
         let installData = {};
+
+        // Translations for JavaScript
+        const trans = {
+            required: '<?= __('required') ?>',
+            current: '<?= __('current') ?>',
+            passed: '<?= __('passed') ?>',
+            failed: '<?= __('failed') ?>',
+            optional: '<?= __('optional') ?>',
+            testing: '<?= __('testing') ?>',
+            site_url: '<?= __('site_url_label') ?>',
+            language: '<?= __('language_label') ?>',
+            environment: '<?= __('environment') ?>',
+            database: '<?= __('database_label') ?>',
+            admin_email: '<?= __('admin_email_label') ?>',
+            not_set: '<?= $lang === 'es' ? 'No establecido' : 'Not set' ?>',
+            creating_env: '<?= __('creating_env') ?>',
+            setting_up_database: '<?= __('setting_up_database') ?>',
+            running_migrations: '<?= __('running_migrations') ?>',
+            seeding_database: '<?= __('seeding_database') ?>',
+            creating_admin: '<?= __('creating_admin') ?>',
+            finalizing: '<?= __('finalizing') ?>',
+            installation_error: '<?= $lang === 'es' ? 'Error de Instalación' : 'Installation Error' ?>',
+            unknown_error: '<?= $lang === 'es' ? 'Error desconocido' : 'Unknown error' ?>',
+            steps_completed: '<?= $lang === 'es' ? 'Pasos completados' : 'Steps completed' ?>',
+            connection_error: '<?= $lang === 'es' ? 'Error de Conexión' : 'Connection Error' ?>',
+            password_min: '<?= __('password_min_error') ?>',
+            passwords_mismatch: '<?= __('passwords_not_match') ?>'
+        };
 
         // Load saved data from sessionStorage
         try {
@@ -1588,7 +1616,7 @@ $step = max(1, min(5, $step));
                             <div class="requirement-item ${statusClass}">
                                 <div>
                                     <strong>${req.name}</strong>
-                                    <div class="small text-muted">Required: ${req.required} | Current: ${req.current}</div>
+                                    <div class="small text-muted">${trans.required}: ${req.required} | ${trans.current}: ${req.current}</div>
                                 </div>
                                 <span class="requirement-status ${statusClass}">
                                     <i class="bi ${icon}"></i>
@@ -1707,13 +1735,13 @@ $step = max(1, min(5, $step));
             const errorDiv = document.getElementById('password-error');
 
             if (password.length < 8) {
-                errorDiv.textContent = 'Password must be at least 8 characters.';
+                errorDiv.textContent = trans.password_min;
                 errorDiv.style.display = 'block';
                 return;
             }
 
             if (password !== confirm) {
-                errorDiv.textContent = 'Passwords do not match.';
+                errorDiv.textContent = trans.passwords_mismatch;
                 errorDiv.style.display = 'block';
                 return;
             }
@@ -1747,13 +1775,13 @@ $step = max(1, min(5, $step));
             summary.innerHTML = `
                 <div class="row" style="color: #e5e7eb;">
                     <div class="col-md-6">
-                        <p><strong>Site URL:</strong> ${installData.app_url || 'Not set'}</p>
-                        <p><strong>Language:</strong> ${installData.default_lang || 'en'}</p>
-                        <p><strong>Environment:</strong> ${installData.app_env || 'production'}</p>
+                        <p><strong>${trans.site_url}:</strong> ${installData.app_url || trans.not_set}</p>
+                        <p><strong>${trans.language}:</strong> ${installData.default_lang || 'en'}</p>
+                        <p><strong>${trans.environment}:</strong> ${installData.app_env || 'production'}</p>
                     </div>
                     <div class="col-md-6">
-                        <p><strong>Database:</strong> ${installData.db_name || 'Not set'}</p>
-                        <p><strong>Admin Email:</strong> ${installData.admin_email || 'Not set'}</p>
+                        <p><strong>${trans.database}:</strong> ${installData.db_name || trans.not_set}</p>
+                        <p><strong>${trans.admin_email}:</strong> ${installData.admin_email || trans.not_set}</p>
                     </div>
                 </div>
             `;
@@ -1768,12 +1796,12 @@ $step = max(1, min(5, $step));
 
             const progressList = document.getElementById('progress-list');
             const steps = [
-                'Creating .env file',
-                'Setting up database',
-                'Running migrations',
-                'Seeding database',
-                'Creating admin user',
-                'Finalizing installation'
+                trans.creating_env,
+                trans.setting_up_database,
+                trans.running_migrations,
+                trans.seeding_database,
+                trans.creating_admin,
+                trans.finalizing
             ];
 
             progressList.innerHTML = steps.map(step =>
@@ -1820,10 +1848,10 @@ $step = max(1, min(5, $step));
                     }, 1000);
                 } else {
                     // Show detailed error with steps
-                    let errorHtml = `<strong>Installation Error:</strong><br>${data.error || 'Unknown error'}`;
+                    let errorHtml = `<strong>${trans.installation_error}:</strong><br>${data.error || trans.unknown_error}`;
 
                     if (data.steps && data.steps.length > 0) {
-                        errorHtml += '<br><br><strong>Steps completed:</strong><ul style="text-align: left; margin-top: 10px;">';
+                        errorHtml += `<br><br><strong>${trans.steps_completed}:</strong><ul style="text-align: left; margin-top: 10px;">`;
                         data.steps.forEach(step => {
                             const icon = step.status === 'completed' ? '✓' :
                                         step.status === 'warning' ? '⚠' : '✗';
@@ -1848,7 +1876,7 @@ $step = max(1, min(5, $step));
             } catch (error) {
                 document.getElementById('install-progress').style.display = 'none';
                 document.getElementById('install-error').style.display = 'block';
-                document.getElementById('error-message').innerHTML = `<strong>Connection Error:</strong><br>${error.message}`;
+                document.getElementById('error-message').innerHTML = `<strong>${trans.connection_error}:</strong><br>${error.message}`;
 
                 // Show download log button
                 checkLogFile();
