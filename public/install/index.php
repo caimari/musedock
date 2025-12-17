@@ -73,44 +73,15 @@ if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Check if already installed (verify lock file + env + database)
-$installLockExists = file_exists(ROOT_PATH . '/install.lock') || file_exists(ROOT_PATH . '/core/install.lock');
+// SECURITY: Block installer if .env exists - this is the primary security check
+// If .env exists, the system is already configured and installer should not be accessible
 $envExists = file_exists(ROOT_PATH . '/.env');
-$databaseConfigured = false;
 
-if ($installLockExists && $envExists) {
-    // Also verify database is configured and accessible
-    try {
-        require_once ROOT_PATH . '/core/Env.php';
-        \Screenart\Musedock\Env::load(ROOT_PATH . '/.env');
-
-        $dbHost = \Screenart\Musedock\Env::get('DB_HOST');
-        $dbName = \Screenart\Musedock\Env::get('DB_NAME');
-        $dbUser = \Screenart\Musedock\Env::get('DB_USER');
-        $dbPass = \Screenart\Musedock\Env::get('DB_PASS');
-        $dbDriver = \Screenart\Musedock\Env::get('DB_DRIVER', 'mysql');
-        $dbPort = \Screenart\Musedock\Env::get('DB_PORT', '3306');
-
-        if (!empty($dbHost) && !empty($dbName) && !empty($dbUser)) {
-            // Try to connect to database
-            $dsn = "{$dbDriver}:host={$dbHost};port={$dbPort};dbname={$dbName}";
-            $pdo = new PDO($dsn, $dbUser, $dbPass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-
-            // Check if migrations table exists (indicates DB is initialized)
-            $stmt = $pdo->query("SHOW TABLES LIKE 'migrations'");
-            $databaseConfigured = $stmt->rowCount() > 0;
-        }
-    } catch (Throwable $e) {
-        // Database not accessible, continue to installer
-        $databaseConfigured = false;
-    }
-
-    // Only block access if everything is properly configured
-    if ($databaseConfigured) {
-        // Simply redirect to home - no information disclosure
-        header('Location: /');
-        exit;
-    }
+if ($envExists) {
+    // Return 404 - do not disclose installer existence
+    http_response_code(404);
+    echo '<!DOCTYPE html><html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL was not found on this server.</p></body></html>';
+    exit;
 }
 
 // Handle AJAX requests
@@ -866,7 +837,7 @@ $step = max(1, min(5, $step));
             --danger-color: #ef4444;
             --bg-dark: #1a1a2e;
             --bg-card: #16213e;
-            --text-light: #e2e8f0;
+            --text-light: #ffffff;
             --text-muted: #94a3b8;
         }
 
@@ -1101,6 +1072,11 @@ $step = max(1, min(5, $step));
             border-radius: 8px;
             margin-bottom: 8px;
             background: rgba(0, 0, 0, 0.2);
+            color: #ffffff;
+        }
+
+        .install-progress li .spinner-border {
+            color: #ffffff !important;
         }
 
         .install-progress li.running {
@@ -1113,6 +1089,16 @@ $step = max(1, min(5, $step));
 
         .install-progress li.failed {
             border-left: 3px solid var(--danger-color);
+        }
+
+        /* Installation progress section - all text white */
+        #install-progress h5 {
+            color: #ffffff !important;
+        }
+
+        /* Step 5 header text - ensure white */
+        #step-5 .card-header h3 {
+            color: #ffffff !important;
         }
 
         .input-group-text {

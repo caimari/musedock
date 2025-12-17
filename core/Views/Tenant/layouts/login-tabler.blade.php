@@ -5,6 +5,14 @@
     <title>@yield('title', 'Acceder')</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
+    {{-- Favicon --}}
+    @php
+        $faviconPath = site_setting('site_favicon', '');
+        $faviconUrl = !empty($faviconPath) ? public_file_url($faviconPath) : '/assets/img/favicon.png';
+    @endphp
+    <link rel="icon" type="image/png" href="{{ $faviconUrl }}">
+    <link rel="shortcut icon" href="{{ $faviconUrl }}">
+
     <link href="/assets/tenant/dist/css/tabler.css" rel="stylesheet" />
     <link href="/assets/tenant/dist/css/tabler-flags.css" rel="stylesheet" />
     <link href="/assets/tenant/dist/css/tabler-socials.css" rel="stylesheet" />
