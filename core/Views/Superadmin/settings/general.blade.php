@@ -79,12 +79,12 @@
             <div class="mt-3">
                 @php
                     $faviconSetting = $settings['site_favicon'] ?? '';
-                    $faviconPreview = public_file_url($faviconSetting, 'assets/img/favicon.png');
+                    $faviconPreview = public_file_url($faviconSetting, 'img/favicon.png');
                 @endphp
                 <img src="{{ $faviconPreview }}"
                      alt="Favicon actual"
                      style="max-height: 40px; max-width: 40px; border: 1px solid #ddd; padding: 5px;"
-                     onerror="this.onerror=null; this.src='{{ asset('assets/img/favicon.png') }}';">
+                     onerror="this.onerror=null; this.src='{{ asset('img/favicon.png') }}';">
 
                 @if(!empty($faviconSetting))
                   <p class="text-muted mt-2">Favicon actual: <code>{{ $faviconSetting }}</code></p>
