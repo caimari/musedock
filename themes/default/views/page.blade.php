@@ -71,7 +71,23 @@
     {{-- Verificar si se debe mostrar la cabecera para esta página --}}
     @if($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")
     @php
-        $sliderPath = !empty($customizations->slider_image) ? $customizations->slider_image : 'themes/default/img/hero/contact_hero.jpg';
+        // Seleccionar imagen hero con rotación automática si no hay imagen personalizada
+        if (!empty($customizations->slider_image)) {
+            $sliderPath = $customizations->slider_image;
+        } else {
+            // Array de imágenes hero disponibles para rotar aleatoriamente
+            $heroImages = [
+                'themes/default/img/hero/contact_hero.jpg',
+                'themes/default/img/hero/about_hero.jpg',
+                'themes/default/img/hero/services_hero.jpg',
+                'themes/default/img/hero/gallery_hero.jpg',
+                'themes/default/img/hero/Industries_hero.jpg',
+                'themes/default/img/hero/h1_hero.jpg',
+            ];
+            // Seleccionar imagen aleatoria en cada carga de página
+            $sliderPath = $heroImages[array_rand($heroImages)];
+        }
+
         $sliderUrl = (str_starts_with($sliderPath, '/media/') || str_starts_with($sliderPath, 'http')) ? $sliderPath : asset($sliderPath);
     @endphp
     <!-- Cabecera Area Start-->
@@ -101,7 +117,23 @@
 {{-- Hero para posts de blog (usa show_hero/hero_*) --}}
 @if(isset($post) && ($post->show_hero === true || $post->show_hero === 1 || $post->show_hero === "1"))
     @php
-        $heroPath = !empty($post->hero_image) ? $post->hero_image : 'themes/default/img/hero/contact_hero.jpg';
+        // Seleccionar imagen hero con rotación automática si no hay imagen personalizada
+        if (!empty($post->hero_image)) {
+            $heroPath = $post->hero_image;
+        } else {
+            // Array de imágenes hero disponibles para rotar aleatoriamente
+            $heroImages = [
+                'themes/default/img/hero/contact_hero.jpg',
+                'themes/default/img/hero/about_hero.jpg',
+                'themes/default/img/hero/services_hero.jpg',
+                'themes/default/img/hero/gallery_hero.jpg',
+                'themes/default/img/hero/Industries_hero.jpg',
+                'themes/default/img/hero/h1_hero.jpg',
+            ];
+            // Seleccionar imagen aleatoria en cada carga de página
+            $heroPath = $heroImages[array_rand($heroImages)];
+        }
+
         $heroUrl = (str_starts_with($heroPath, '/media/') || str_starts_with($heroPath, 'http')) ? $heroPath : asset($heroPath);
         $heroTitle = $post->hero_title ?: ($translation->title ?? $post->title);
     @endphp
@@ -174,8 +206,8 @@
             </div>
             @endif
 
-            {{-- Título del post --}}
-            @if(empty($post->hide_title) && empty($post->show_hero))
+            {{-- Título del post - Ocultar solo si hide_title está activado --}}
+            @if(empty($post->hide_title) || $post->hide_title !== 1)
                 <h1 class="post-title mb-3">{{ $translation->title }}</h1>
             @endif
 
@@ -194,8 +226,8 @@
             </div>
         @else
             {{-- Es una página --}}
-            {{-- Mostrar el título solo si NO está oculto Y no es la página de inicio --}}
-            @if(isset($customizations) && $customizations->hide_title !== true && isset($page) && !$page->is_homepage)
+            {{-- Mostrar el título H1 solo si NO está oculto mediante hide_title Y no es la página de inicio --}}
+            @if(isset($customizations) && $customizations->hide_title !== true && $customizations->hide_title !== 1 && isset($page) && !$page->is_homepage)
                 <h1 class="page-title">{{ $translation->title ?? '' }}</h1>
             @endif
 
@@ -204,9 +236,9 @@
                 @php
                     // Usar el contenido ya procesado (sin el slider a sangre si lo había)
                     $content = $processedContent;
-                    // Si hay slider activo, eliminar SOLO el primer h1 del contenido para evitar duplicados con el slider
-                    // No eliminar h2 ni h3 porque son títulos de secciones dentro del contenido
-                    if (isset($customizations) && ($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")) {
+                    // Si hide_title está activado, eliminar el primer H1 del contenido
+                    // Esto permite ocultar títulos que el usuario haya puesto manualmente en el editor
+                    if (isset($customizations) && ($customizations->hide_title === true || $customizations->hide_title === 1 || $customizations->hide_title === "1")) {
                         $content = preg_replace('/<h1[^>]*>.*?<\/h1>/', '', $content, 1);
                     }
                 @endphp

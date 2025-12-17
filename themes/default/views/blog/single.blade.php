@@ -18,7 +18,23 @@
 {{-- Hero (a lo ancho, pegado al header) --}}
 @if($showHero)
     @php
-        $heroPath = !empty($post->hero_image) ? $post->hero_image : 'themes/default/img/hero/contact_hero.jpg';
+        // Seleccionar imagen hero con rotación automática si no hay imagen personalizada
+        if (!empty($post->hero_image)) {
+            $heroPath = $post->hero_image;
+        } else {
+            // Array de imágenes hero disponibles para rotar aleatoriamente
+            $heroImages = [
+                'themes/default/img/hero/contact_hero.jpg',
+                'themes/default/img/hero/about_hero.jpg',
+                'themes/default/img/hero/services_hero.jpg',
+                'themes/default/img/hero/gallery_hero.jpg',
+                'themes/default/img/hero/Industries_hero.jpg',
+                'themes/default/img/hero/h1_hero.jpg',
+            ];
+            // Seleccionar imagen aleatoria en cada carga de página
+            $heroPath = $heroImages[array_rand($heroImages)];
+        }
+
         $heroUrl = (str_starts_with($heroPath, '/media/') || str_starts_with($heroPath, 'http')) ? $heroPath : asset($heroPath);
         $heroTitle = $post->hero_title ?: $post->title;
     @endphp
@@ -62,8 +78,8 @@
                     <img src="{{ $imageUrl }}" alt="{{ $post->title }}" class="img-fluid rounded mb-4" style="width: 100%; max-height: 500px; object-fit: cover;">
                 @endif
 
-                {{-- Título --}}
-                @if(empty($post->hide_title) && empty($post->show_hero))
+                {{-- Título - Ocultar solo si hide_title está activado --}}
+                @if(empty($post->hide_title) || $post->hide_title !== 1)
                     <h1 class="mb-3">{{ $post->title }}</h1>
                 @endif
 
