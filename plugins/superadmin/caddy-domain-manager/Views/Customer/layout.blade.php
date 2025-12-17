@@ -270,7 +270,7 @@
             </div>
 
             <div class="col-md-9 col-lg-10 main-content">
-                <?= $content ?>
+                @yield('content')
             </div>
 
             <!-- Mobile Sidebar Toggle -->
@@ -282,7 +282,7 @@
             <!-- Layout sin Sidebar (Login/Register/Forgot Password) -->
             <div class="col-12">
                 <div class="auth-container">
-                    <?= $content ?>
+                    @yield('content')
                 </div>
             </div>
             <?php endif; ?>
@@ -309,7 +309,20 @@
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = '/customer/logout';
+                    // Crear un formulario para hacer POST
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/customer/logout';
+
+                    // Agregar CSRF token
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = '_csrf_token';
+                    csrfInput.value = '<?= csrf_token() ?>';
+                    form.appendChild(csrfInput);
+
+                    document.body.appendChild(form);
+                    form.submit();
                 }
             });
         }
