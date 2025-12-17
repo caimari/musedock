@@ -6,6 +6,7 @@ use Screenart\Musedock\Models\Slug;
 use Screenart\Musedock\View;
 use Screenart\Musedock\Controllers\frontend\PageController;
 use Screenart\Musedock\Logger;
+use Screenart\Musedock\Services\DefaultLegalPagesService;
 
 class SlugRouter
 {
@@ -110,8 +111,16 @@ class SlugRouter
         }
         
         file_put_contents($logPath, "- Resultado encontrado: " . json_encode($entry) . "\n", FILE_APPEND);
-        
+
         if (!$entry) {
+            // === FALLBACK: Verificar si es una página legal por defecto ===
+            // Solo para prefijo 'p' (páginas)
+            if ($prefix === 'p' && DefaultLegalPagesService::isLegalPageSlug($slug)) {
+                file_put_contents($logPath, date('Y-m-d H:i:s') . " - FALLBACK: Página legal por defecto - $slug\n", FILE_APPEND);
+                $controller = new \Screenart\Musedock\Controllers\Frontend\PageController();
+                return $controller->showDefaultLegalPage($slug);
+            }
+
             http_response_code(404);
             file_put_contents($logPath, date('Y-m-d H:i:s') . " - 404 NOT FOUND: Renderizando página 404\n", FILE_APPEND);
 

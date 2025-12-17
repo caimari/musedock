@@ -149,6 +149,9 @@ class TenantCreationService
             // 6. Crear configuración de módulos para el tenant
             $this->createDefaultTenantModules($tenantId);
 
+            // 7. Crear idiomas por defecto para el tenant
+            $this->createDefaultTenantLanguages($tenantId);
+
             $this->pdo->commit();
 
             return [
@@ -746,6 +749,158 @@ class TenantCreationService
                 'success' => false,
                 'enabled_count' => 0,
                 'total_count' => 0,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Crear idiomas por defecto para el tenant
+     * Por defecto: Español e Inglés
+     *
+     * @param int $tenantId ID del tenant
+     */
+    private function createDefaultTenantLanguages(int $tenantId): void
+    {
+        // Verificar si el tenant ya tiene idiomas
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM languages WHERE tenant_id = :tenant_id");
+        $stmt->execute(['tenant_id' => $tenantId]);
+
+        if ($stmt->fetchColumn() > 0) {
+            return; // Ya tiene idiomas
+        }
+
+        // Idiomas por defecto
+        $languages = [
+            ['code' => 'es', 'name' => 'Español', 'order_position' => 0],
+            ['code' => 'en', 'name' => 'English', 'order_position' => 1]
+        ];
+
+        $insertStmt = $this->pdo->prepare("
+            INSERT INTO languages (tenant_id, code, name, active, order_position, created_at)
+            VALUES (:tenant_id, :code, :name, 1, :order_position, NOW())
+        ");
+
+        foreach ($languages as $lang) {
+            $insertStmt->execute([
+                'tenant_id' => $tenantId,
+                'code' => $lang['code'],
+                'name' => $lang['name'],
+                'order_position' => $lang['order_position']
+            ]);
+        }
+
+        // Establecer español como idioma por defecto
+        $this->setDefaultLanguage($tenantId, 'es');
+    }
+
+    /**
+     * Establecer el idioma por defecto del tenant
+     *
+     * @param int $tenantId ID del tenant
+     * @param string $langCode Código del idioma (es, en, etc)
+     */
+    private function setDefaultLanguage(int $tenantId, string $langCode): void
+    {
+        $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $keyColumn = $driver === 'mysql' ? '`key`' : '"key"';
+
+        // Verificar si ya existe la configuración
+        $stmt = $this->pdo->prepare("
+            SELECT id FROM tenant_settings
+            WHERE tenant_id = :tenant_id AND {$keyColumn} = 'default_lang'
+        ");
+        $stmt->execute(['tenant_id' => $tenantId]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($existing) {
+            $stmt = $this->pdo->prepare("
+                UPDATE tenant_settings
+                SET value = :value
+                WHERE tenant_id = :tenant_id AND {$keyColumn} = 'default_lang'
+            ");
+            $stmt->execute(['value' => $langCode, 'tenant_id' => $tenantId]);
+        } else {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO tenant_settings (tenant_id, {$keyColumn}, value, created_at)
+                VALUES (:tenant_id, 'default_lang', :value, NOW())
+            ");
+            $stmt->execute(['tenant_id' => $tenantId, 'value' => $langCode]);
+        }
+    }
+
+    /**
+     * Verificar si el tenant ya tiene idiomas
+     *
+     * @param int $tenantId ID del tenant
+     * @return bool
+     */
+    private function tenantHasLanguages(int $tenantId): bool
+    {
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM languages WHERE tenant_id = :tenant_id");
+        $stmt->execute(['tenant_id' => $tenantId]);
+        return $stmt->fetchColumn() > 0;
+    }
+
+    /**
+     * Regenerar idiomas para un tenant
+     *
+     * Elimina todos los idiomas actuales del tenant y los recrea
+     * con los idiomas por defecto (Español e Inglés).
+     *
+     * @param int $tenantId ID del tenant
+     * @return array ['success' => bool, 'languages_count' => int, 'error' => string|null]
+     */
+    public function regenerateLanguages(int $tenantId): array
+    {
+        try {
+            $this->pdo->beginTransaction();
+
+            // 1. Eliminar idiomas actuales del tenant
+            $stmt = $this->pdo->prepare("DELETE FROM languages WHERE tenant_id = :tenant_id");
+            $stmt->execute(['tenant_id' => $tenantId]);
+
+            // 2. Crear idiomas por defecto
+            $languages = [
+                ['code' => 'es', 'name' => 'Español', 'order_position' => 0],
+                ['code' => 'en', 'name' => 'English', 'order_position' => 1]
+            ];
+
+            $insertStmt = $this->pdo->prepare("
+                INSERT INTO languages (tenant_id, code, name, active, order_position, created_at)
+                VALUES (:tenant_id, :code, :name, 1, :order_position, NOW())
+            ");
+
+            foreach ($languages as $lang) {
+                $insertStmt->execute([
+                    'tenant_id' => $tenantId,
+                    'code' => $lang['code'],
+                    'name' => $lang['name'],
+                    'order_position' => $lang['order_position']
+                ]);
+            }
+
+            // 3. Establecer español como idioma por defecto
+            $this->setDefaultLanguage($tenantId, 'es');
+
+            // 4. Contar idiomas creados
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM languages WHERE tenant_id = :tenant_id");
+            $stmt->execute(['tenant_id' => $tenantId]);
+            $languagesCount = (int) $stmt->fetchColumn();
+
+            $this->pdo->commit();
+
+            return [
+                'success' => true,
+                'languages_count' => $languagesCount,
+                'error' => null
+            ];
+
+        } catch (\Exception $e) {
+            $this->pdo->rollBack();
+            return [
+                'success' => false,
+                'languages_count' => 0,
                 'error' => $e->getMessage()
             ];
         }

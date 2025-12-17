@@ -8,6 +8,7 @@ use Screenart\Musedock\Services\TenantManager;
 use Screenart\Musedock\Models\PageMeta;
 use Screenart\Musedock\Widgets\WidgetManager;
 use Screenart\Musedock\Theme;
+use Screenart\Musedock\Services\DefaultLegalPagesService;
 
 class PageController
 {
@@ -39,6 +40,11 @@ class PageController
         }
 
         if (!$page) {
+            // === FALLBACK: Verificar si es una página legal por defecto ===
+            if (DefaultLegalPagesService::isLegalPageSlug($slug)) {
+                return $this->showDefaultLegalPage($slug);
+            }
+
             http_response_code(404);
             echo "Página no encontrada.";
             return;
@@ -660,11 +666,89 @@ class PageController
             $widgetContent[$areaSlug] = $html;
             
             // Log para depuración
-            file_put_contents(__DIR__.'/../../../storage/logs/widget-debug.log', 
-                date('Y-m-d H:i:s') . " - Área '{$areaSlug}' renderizada.\n", 
+            file_put_contents(__DIR__.'/../../../storage/logs/widget-debug.log',
+                date('Y-m-d H:i:s') . " - Área '{$areaSlug}' renderizada.\n",
                 FILE_APPEND);
         }
-        
+
         return $widgetContent;
+    }
+
+    /**
+     * Renderiza una página legal por defecto usando el servicio DefaultLegalPagesService
+     * Método público para ser llamado desde SlugRouter
+     *
+     * @param string $slug El slug de la página legal (cookie-policy, terms-and-conditions, privacy)
+     * @return void
+     */
+    public function showDefaultLegalPage(string $slug)
+    {
+        // Asegurar que devuelve código 200 OK
+        http_response_code(200);
+
+        // Log para debug
+        file_put_contents(__DIR__.'/../../../storage/logs/debug.log',
+            date('Y-m-d H:i:s') . " - showDefaultLegalPage ejecutado para: $slug - Response code: " . http_response_code() . "\n",
+            FILE_APPEND);
+
+        $currentLang = detectLanguage();
+        $tenantId = TenantManager::currentTenantId();
+
+        // Obtener contenido de la página legal por defecto
+        $legalPage = DefaultLegalPagesService::getDefaultPage($slug, $currentLang);
+
+        if (!$legalPage) {
+            http_response_code(404);
+            echo "Página no encontrada.";
+            return;
+        }
+
+        // Crear un objeto page simulado para la vista
+        $page = new \stdClass();
+        $page->id = 0;
+        $page->slug = $slug;
+        $page->title = $legalPage['title'];
+        $page->content = $legalPage['content'];
+        $page->is_homepage = false;
+        $page->status = 'published';
+        $page->visibility = 'public';
+
+        // Crear objeto translation/displayData
+        $displayData = new \stdClass();
+        $displayData->title = $legalPage['title'];
+        $displayData->content = $legalPage['content'];
+        $displayData->seo_title = $legalPage['title'];
+        $displayData->seo_description = strip_tags(substr($legalPage['content'], 0, 160));
+        $displayData->seo_keywords = '';
+        $displayData->seo_image = '';
+        $displayData->canonical_url = '';
+        $displayData->robots_directive = 'index,follow';
+        $displayData->twitter_title = '';
+        $displayData->twitter_description = '';
+        $displayData->twitter_image = '';
+
+        // Crear customizations vacías (sin slider)
+        $customizations = new \stdClass();
+        $customizations->show_slider = false;
+        $customizations->hide_title = false;
+        $customizations->slider_image = '';
+        $customizations->slider_title = '';
+        $customizations->slider_content = '';
+        $customizations->container_class = 'container py-4 page-container';
+        $customizations->content_class = 'page-content-wrapper';
+
+        // Cargar áreas de widgets
+        $themeWidgetAreas = $this->loadThemeWidgetAreas();
+        $widgetAreaContent = $this->renderWidgetAreas($themeWidgetAreas, $tenantId);
+
+        // Renderizar usando la plantilla de página estándar
+        return View::renderTheme('page', [
+            'page' => $page,
+            'translation' => $displayData,
+            'customizations' => $customizations,
+            'widgetAreas' => $themeWidgetAreas,
+            'widgetContent' => $widgetAreaContent,
+            'isDefaultLegalPage' => true,
+        ]);
     }
 }

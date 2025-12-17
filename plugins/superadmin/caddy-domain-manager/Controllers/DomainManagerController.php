@@ -842,6 +842,56 @@ class DomainManagerController
     }
 
     /**
+     * Regenerar idiomas del tenant (AJAX)
+     *
+     * Elimina todos los idiomas del tenant y los recrea con los
+     * idiomas por defecto (Español e Inglés).
+     */
+    public function regenerateLanguages($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $tenant = $this->getTenant($id);
+
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado']);
+            exit;
+        }
+
+        try {
+            $tenantService = new TenantCreationService();
+            $result = $tenantService->regenerateLanguages($tenant->id);
+
+            if ($result['success']) {
+                Logger::log("[DomainManager] Idiomas regenerados para tenant {$tenant->id}: {$result['languages_count']} idiomas", 'INFO');
+                echo json_encode([
+                    'success' => true,
+                    'message' => "Se han regenerado {$result['languages_count']} idiomas correctamente.",
+                    'languages_count' => $result['languages_count']
+                ]);
+            } else {
+                Logger::log("[DomainManager] Error regenerando idiomas tenant {$tenant->id}: " . $result['error'], 'ERROR');
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Error al regenerar idiomas: ' . $result['error']
+                ]);
+            }
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Excepción regenerando idiomas: " . $e->getMessage(), 'ERROR');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error interno: ' . $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
      * Obtiene un tenant por ID
      */
     private function getTenant(int $id): ?object
