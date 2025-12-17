@@ -67,3 +67,46 @@
     line-height: 1.3;
   }
 }
+
+/* Fix para delimitar y enmarcar correctamente el contenido principal */
+.page-content-wrapper,
+.blog-post-single,
+.page-body,
+.post-content {
+  max-width: 100%;
+  width: 100%;
+  padding: 0 15px;
+  margin: 0 auto;
+}
+
+/* Asegurar que los contenedores tienen el ancho correcto */
+.container {
+  max-width: 1170px;
+  width: 100%;
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+/* Fix para el espaciado del contenedor principal cuando hay slider */
+.has-slider-content {
+  margin-top: 0 !important;
+}
+
+/* Reducir espacio excesivo en el header del footer */
+.footer-area {
+  padding-top: 60px !important;
+}
+
+.footer-area .footer-top {
+  padding-top: 20px !important;
+  padding-bottom: 40px !important;
+}
+
+/* Asegurar que el contenido de las páginas no se desborde */
+.page-with-sidebar .page-content-wrapper,
+.page-with-sidebar .blog-post-single {
+  width: 100%;
+  max-width: 100%;
+}
