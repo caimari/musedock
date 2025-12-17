@@ -187,12 +187,12 @@
                                 <div class="mt-3 text-center">
                                     @php
                                         $faviconSetting = $settings['site_favicon'] ?? '';
-                                        $faviconPreview = public_file_url($faviconSetting, 'themes/default/img/favicon.ico');
+                                        $faviconPreview = public_file_url($faviconSetting, 'assets/img/favicon.png');
                                     @endphp
                                     <img src="{{ $faviconPreview }}"
                                          alt="Favicon actual"
                                          style="max-height: 40px; max-width: 40px; border: 1px solid #ddd; padding: 5px;"
-                                         onerror="this.onerror=null; this.src='{{ asset('themes/default/img/favicon.ico') }}';">
+                                         onerror="this.onerror=null; this.src='{{ asset('assets/img/favicon.png') }}';">
                                     @if(!empty($faviconSetting))
                                       <p class="text-muted mt-2 small"><code>{{ $faviconSetting }}</code></p>
                                       <a href="/{{ admin_path() }}/settings/delete-favicon"
