@@ -157,7 +157,24 @@
                                 </div>
                                 <div class="mb-3 mt-3">
                                     <label class="form-label">{{ __element('hero.image_url') }}</label>
-                                    <input type="text" class="form-control" name="data[image_url]" value="{{ old('data.image_url', $data['image_url'] ?? '') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                    @if(!$isReadOnly)
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="hero_image_url_edit" name="data[image_url]" value="{{ old('data.image_url', $data['image_url'] ?? '') }}" placeholder="URL de la imagen">
+                                            <button type="button" class="btn btn-outline-secondary open-media-modal-button"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#mediaManagerModal"
+                                                    data-input-target="#hero_image_url_edit"
+                                                    data-preview-target="#hero_image_preview_edit">
+                                                <i class="bi bi-image me-1"></i> Seleccionar Imagen
+                                            </button>
+                                        </div>
+                                        <img id="hero_image_preview_edit" src="{{ old('data.image_url', $data['image_url'] ?? '') }}" class="img-fluid rounded border mt-2" style="max-height: 150px; {{ (old('data.image_url', $data['image_url'] ?? '') ? '' : 'display: none;') }}">
+                                    @else
+                                        <input type="text" class="form-control" name="data[image_url]" value="{{ old('data.image_url', $data['image_url'] ?? '') }}" disabled>
+                                        @if(old('data.image_url', $data['image_url'] ?? ''))
+                                            <img src="{{ old('data.image_url', $data['image_url'] ?? '') }}" class="img-fluid rounded border mt-2" style="max-height: 150px;">
+                                        @endif
+                                    @endif
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">{{ __element('hero.image_alt') }}</label>
@@ -284,6 +301,8 @@
         </form>
     </div>
 </div>
+
+@include('media-manager::admin._modal')
 
 @push('scripts')
 <script>

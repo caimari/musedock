@@ -2,62 +2,90 @@
 
 @section('styles')
 <style>
+    .dashboard-header {
+        margin-bottom: 30px;
+    }
+    .dashboard-header h2 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 5px;
+    }
+    .dashboard-header p {
+        color: #6b7280;
+        font-size: 0.95rem;
+        margin: 0;
+    }
+
     .stats-card {
         background: white;
-        border-radius: 15px;
-        padding: 25px;
-        box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         margin-bottom: 20px;
-        transition: all 0.3s ease;
-        border: 1px solid #f0f0f0;
+        transition: all 0.2s ease;
+        border: 1px solid #e5e7eb;
+        height: 100%;
     }
     .stats-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         border-color: #667eea;
     }
     .stats-card .icon {
-        width: 70px;
-        height: 70px;
-        border-radius: 18px;
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.8rem;
-        margin-bottom: 18px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        font-size: 1.3rem;
+        margin-bottom: 12px;
     }
     .stats-card .number {
-        font-size: 2.5rem;
+        font-size: 1.875rem;
         font-weight: 700;
-        color: #333;
-        margin-bottom: 8px;
+        color: #1f2937;
+        margin-bottom: 4px;
         line-height: 1;
     }
     .stats-card .label {
-        color: #666;
-        font-size: 0.95rem;
+        color: #6b7280;
+        font-size: 0.875rem;
         font-weight: 500;
     }
+    .section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 30px 0 20px 0;
+    }
+
     .tenant-card {
         background: white;
-        border-radius: 15px;
-        padding: 25px;
-        margin-bottom: 18px;
-        box-shadow: 0 2px 15px rgba(0,0,0,0.08);
-        transition: all 0.3s ease;
-        border: 1px solid #f0f0f0;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        transition: all 0.2s ease;
+        border: 1px solid #e5e7eb;
     }
     .tenant-card:hover {
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.12);
-        border-color: #e0e0e0;
-        transform: translateX(5px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border-color: #d1d5db;
+        transform: translateY(-1px);
     }
     .tenant-card .domain {
-        font-size: 1.1rem;
+        font-size: 1rem;
         font-weight: 600;
         color: #667eea;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .tenant-card .domain i {
+        font-size: 1.1rem;
     }
     .tenant-card .domain a {
         color: #667eea;
@@ -68,35 +96,67 @@
     }
     .tenant-card .info {
         display: flex;
-        gap: 10px;
+        gap: 8px;
         flex-wrap: wrap;
-        margin-bottom: 15px;
+        margin-bottom: 14px;
+    }
+    .tenant-card .info .badge {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 500;
     }
     .badge-plan-free {
-        background: linear-gradient(135deg, #28a745, #20c997);
+        background: #10b981;
         color: white;
     }
     .badge-plan-custom {
-        background: linear-gradient(135deg, #667eea, #764ba2);
+        background: #667eea;
         color: white;
     }
     .badge-status-active {
-        background: #28a745;
+        background: #10b981;
         color: white;
     }
     .badge-status-error {
-        background: #dc3545;
+        background: #ef4444;
         color: white;
     }
     .badge-status-waiting_ns_change {
-        background: #ffc107;
-        color: #333;
+        background: #f59e0b;
+        color: white;
+    }
+    .tenant-card .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .tenant-card .actions .btn {
+        font-size: 0.875rem;
+        padding: 6px 14px;
+        border-radius: 6px;
+    }
+    .action-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 30px;
+        flex-wrap: wrap;
+    }
+    .action-buttons .btn {
+        font-size: 0.95rem;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 500;
     }
 </style>
 @endsection
 
 @section('content')
-<h2 class="mb-4">Dashboard</h2>
+<div class="dashboard-header">
+    <h2>Dashboard</h2>
+    <p>Bienvenido a tu panel de control</p>
+</div>
 
 <!-- Estadisticas -->
 <div class="row">
@@ -130,12 +190,12 @@
 </div>
 
 <!-- Lista de tenants -->
-<h4 class="mt-4 mb-3">Mis Sitios</h4>
+<h4 class="section-title">Mis Sitios</h4>
 
 <?php if (empty($tenants)): ?>
-<div class="alert alert-info">
+<div class="alert alert-info" style="border-radius: 10px; border: 1px solid #3b82f6; background: #eff6ff;">
     <i class="bi bi-info-circle me-2"></i>
-    Aun no tienes sitios web. Solicita tu primer subdominio FREE o incorpora tu dominio personalizado!
+    Aún no tienes sitios web. Solicita tu primer subdominio FREE o incorpora tu dominio personalizado!
 </div>
 <?php else: ?>
     <?php foreach ($tenants as $tenant): ?>
@@ -186,18 +246,21 @@
             <?php endif; ?>
         </div>
 
-        <div class="mt-3">
+        <div class="actions">
             <?php if ($tenant['status'] === 'active'): ?>
             <a href="https://<?= htmlspecialchars($tenant['domain']) ?>/<?= \Screenart\Musedock\Env::get('ADMIN_PATH_TENANT', 'admin') ?>"
                class="btn btn-sm btn-primary" target="_blank">
-                <i class="bi bi-gear"></i> Panel de Admin
+                <i class="bi bi-gear"></i> Admin
             </a>
             <a href="https://<?= htmlspecialchars($tenant['domain']) ?>"
                class="btn btn-sm btn-outline-primary" target="_blank">
                 <i class="bi bi-eye"></i> Ver Sitio
             </a>
+            <button class="btn btn-sm btn-outline-secondary" onclick="runHealthCheck(<?= $tenant['id'] ?>, '<?= htmlspecialchars($tenant['domain']) ?>')">
+                <i class="bi bi-heart-pulse"></i> Verificar
+            </button>
             <?php elseif ($tenant['status'] === 'waiting_ns_change'): ?>
-            <span class="text-warning">
+            <span class="text-warning small">
                 <i class="bi bi-hourglass-split"></i> Esperando cambio de nameservers...
             </span>
             <?php endif; ?>
@@ -208,25 +271,18 @@
                 <i class="bi bi-arrow-clockwise"></i> Reintentar
             </button>
             <?php endif; ?>
-
-            <!-- Boton Health Check Manual -->
-            <?php if ($tenant['status'] === 'active'): ?>
-            <button class="btn btn-sm btn-outline-secondary" onclick="runHealthCheck(<?= $tenant['id'] ?>, '<?= htmlspecialchars($tenant['domain']) ?>')">
-                <i class="bi bi-heart-pulse"></i> Verificar
-            </button>
-            <?php endif; ?>
         </div>
     </div>
     <?php endforeach; ?>
 <?php endif; ?>
 
 <!-- Botones de accion -->
-<div class="text-center mt-4 mb-4">
-    <a href="/customer/request-free-subdomain" class="btn btn-success btn-lg me-2">
-        <i class="bi bi-gift"></i> Solicitar Subdominio FREE
+<div class="action-buttons">
+    <a href="/customer/request-free-subdomain" class="btn btn-success">
+        <i class="bi bi-gift me-2"></i>Solicitar Subdominio FREE
     </a>
-    <a href="/customer/request-custom-domain" class="btn btn-primary btn-lg">
-        <i class="bi bi-plus-circle"></i> Solicitar Dominio Personalizado
+    <a href="/customer/request-custom-domain" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-2"></i>Solicitar Dominio Personalizado
     </a>
 </div>
 @endsection

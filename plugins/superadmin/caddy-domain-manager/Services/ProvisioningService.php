@@ -809,16 +809,14 @@ https://{$fullDomain}
             </html>
             ";
 
-            $headers = [
-                'MIME-Version: 1.0',
-                'Content-type: text/html; charset=utf-8',
-                'From: MuseDock <noreply@musedock.com>',
-                'Reply-To: soporte@musedock.com'
-            ];
+            // Usar la clase Mailer que detecta automáticamente SMTP vs mail()
+            $sent = \Screenart\Musedock\Mail\Mailer::send($email, $subject, $body);
 
-            mail($email, $subject, $body, implode("\r\n", $headers));
-
-            Logger::info("[ProvisioningService] Verification email sent to {$email}");
+            if ($sent) {
+                Logger::info("[ProvisioningService] Verification email sent to {$email}");
+            } else {
+                Logger::error("[ProvisioningService] Failed to send verification email to {$email}");
+            }
 
         } catch (\Exception $e) {
             Logger::error("[ProvisioningService] Failed to send verification email: " . $e->getMessage());

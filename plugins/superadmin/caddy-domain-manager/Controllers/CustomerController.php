@@ -676,14 +676,8 @@ class CustomerController
         </html>
         ";
 
-        $headers = [
-            'MIME-Version: 1.0',
-            'Content-type: text/html; charset=utf-8',
-            'From: MuseDock <noreply@musedock.com>',
-            'Reply-To: soporte@musedock.com'
-        ];
-
-        mail($email, $subject, $body, implode("\r\n", $headers));
+        // Usar la clase Mailer que detecta automáticamente SMTP vs mail()
+        \Screenart\Musedock\Mail\Mailer::send($email, $subject, $body);
     }
 
     /**

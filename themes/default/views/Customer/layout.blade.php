@@ -219,44 +219,11 @@
             background: white;
             min-height: calc(100vh - 68px);
             border-right: 1px solid #e0e0e0;
-            padding: 30px 20px;
+            padding: 20px 15px;
             position: sticky;
             top: 68px;
             height: calc(100vh - 68px);
             overflow-y: auto;
-        }
-
-        .sidebar .user-info {
-            text-align: center;
-            padding-bottom: 25px;
-            margin-bottom: 25px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .sidebar .user-info .avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: var(--gradient);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 15px;
-            color: white;
-            font-size: 2rem;
-            font-weight: bold;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .sidebar .user-info h6 {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .sidebar .user-info small {
-            color: #999;
-            font-size: 0.85rem;
         }
 
         .sidebar .nav {
@@ -365,33 +332,48 @@
             }
         }
 
-        /* Mobile Sidebar Toggle */
+        /* Mobile Sidebar Toggle - En el header */
         .mobile-sidebar-toggle {
             display: none;
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1001;
-            background: var(--gradient);
-            color: white;
+            background: transparent;
+            color: #333;
             border: none;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+            width: 40px;
+            height: 40px;
             cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-right: 15px;
         }
 
         @media (max-width: 768px) {
+            .customer-header .header-content {
+                position: relative;
+            }
+
             .mobile-sidebar-toggle {
                 display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 1.5rem;
+            }
+
+            .customer-header .logo-container {
+                padding-left: 5px;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 68px;
+                left: 0;
+                width: 280px;
+                height: calc(100vh - 68px);
+                z-index: 1000;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+                transform: translateX(0);
+                transition: transform 0.3s ease;
             }
 
             .sidebar.mobile-hidden {
-                display: none;
+                transform: translateX(-100%);
             }
         }
     </style>
@@ -401,6 +383,13 @@
     <header class="customer-header">
         <div class="container-fluid">
             <div class="header-content">
+                <!-- Mobile Sidebar Toggle (solo si está autenticado) -->
+                <?php if (isset($customer)): ?>
+                <button class="mobile-sidebar-toggle" onclick="toggleSidebar()">
+                    <i class="bi bi-list"></i>
+                </button>
+                <?php endif; ?>
+
                 <!-- Logo -->
                 <div class="logo-container">
                     <a href="/customer/dashboard">
@@ -458,12 +447,6 @@
             <?php if (isset($customer)): ?>
             <!-- Layout con Sidebar (Usuario Autenticado) -->
             <div class="col-md-3 col-lg-2 sidebar mobile-hidden" id="sidebar">
-                <div class="user-info">
-                    <div class="avatar"><?= strtoupper(substr($customer['name'], 0, 1)) ?></div>
-                    <h6><?= htmlspecialchars($customer['name']) ?></h6>
-                    <small><?= htmlspecialchars($customer['email']) ?></small>
-                </div>
-
                 <nav class="nav">
                     <a class="nav-link <?= ($current_page ?? '') === 'dashboard' ? 'active' : '' ?>" href="/customer/dashboard">
                         <i class="bi bi-speedometer2"></i> Dashboard
@@ -483,11 +466,6 @@
             <div class="col-md-9 col-lg-10 main-content">
                 @yield('content')
             </div>
-
-            <!-- Mobile Sidebar Toggle -->
-            <button class="mobile-sidebar-toggle" onclick="toggleSidebar()">
-                <i class="bi bi-list"></i>
-            </button>
 
             <?php else: ?>
             <!-- Layout sin Sidebar (Login/Register/Forgot Password) -->

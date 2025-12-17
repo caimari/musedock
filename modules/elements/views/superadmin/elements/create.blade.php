@@ -163,6 +163,8 @@
     </div>
 </div>
 
+@include('media-manager::superadmin.media-manager.admin._modal')
+
 @push('scripts')
 <script>
 // Layout options mapping
@@ -199,7 +201,17 @@ const contentFieldsTemplates = {
         </div>
         <div class="mb-3 mt-3">
             <label class="form-label">{{ __element('hero.image_url') }}</label>
-            <input type="text" class="form-control" name="data[image_url]" value="{{ old('data.image_url') }}">
+            <div class="input-group">
+                <input type="text" class="form-control" id="hero_image_url_sa" name="data[image_url]" value="{{ old('data.image_url') }}" placeholder="URL de la imagen">
+                <button type="button" class="btn btn-outline-secondary open-media-modal-button"
+                        data-bs-toggle="modal"
+                        data-bs-target="#mediaManagerModal"
+                        data-input-target="#hero_image_url_sa"
+                        data-preview-target="#hero_image_preview_sa">
+                    <i class="bi bi-image me-1"></i> Seleccionar Imagen
+                </button>
+            </div>
+            <img id="hero_image_preview_sa" src="" class="img-fluid rounded border mt-2" style="max-height: 150px; display: none;">
         </div>
         <div class="mb-3">
             <label class="form-label">{{ __element('hero.image_alt') }}</label>
