@@ -68,25 +68,51 @@
   }
 }
 
-/* Fix para delimitar y enmarcar correctamente el contenido principal */
+/* ===============================================
+   FIX CONTENIDO - DELIMITACIÓN Y CENTRADO
+   =============================================== */
+
+/* Contenedor principal de páginas - forzar centrado y delimitación */
+main > .container,
+main > .container-fluid,
+main .page-container,
+main .has-slider-content {
+  max-width: 1170px !important;
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-left: 15px !important;
+  padding-right: 15px !important;
+  box-sizing: border-box !important;
+}
+
+/* Excepción: el slider debe ser full-width */
+main > .slider-area,
+.slider-area {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Contenido de artículos y páginas - sin padding extra */
 .page-content-wrapper,
 .blog-post-single,
+article.page-content-wrapper,
+article.blog-post-single {
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Page body y post content - sin padding extra ya que el container lo tiene */
 .page-body,
 .post-content {
   max-width: 100%;
   width: 100%;
-  padding: 0 15px;
-  margin: 0 auto;
-}
-
-/* Asegurar que los contenedores tienen el ancho correcto */
-.container {
-  max-width: 1170px;
-  width: 100%;
-  padding-right: 15px;
-  padding-left: 15px;
-  margin-right: auto;
-  margin-left: auto;
 }
 
 /* Fix para el espaciado del contenedor principal cuando hay slider */
@@ -94,19 +120,73 @@
   margin-top: 0 !important;
 }
 
+/* ===============================================
+   FIX FOOTER - REDUCIR ESPACIADO
+   =============================================== */
+
 /* Reducir espacio excesivo en el header del footer */
 .footer-area {
-  padding-top: 60px !important;
+  padding-top: 50px !important;
 }
 
-.footer-area .footer-top {
-  padding-top: 20px !important;
-  padding-bottom: 40px !important;
+.footer-area .footer-top,
+.footer-padding {
+  padding-top: 30px !important;
+  padding-bottom: 30px !important;
 }
 
-/* Asegurar que el contenido de las páginas no se desborde */
+/* Reducir espacio entre logo y widgets del footer */
+.footer-area .footer-logo,
+.single-footer-caption .footer-logo {
+  margin-bottom: 15px !important;
+}
+
+.footer-area .footer-pera,
+.single-footer-caption .footer-pera {
+  margin-bottom: 20px !important;
+}
+
+/* ===============================================
+   FIX SIDEBAR PAGES
+   =============================================== */
+
+/* Asegurar que el contenido de las páginas con sidebar no se desborde */
 .page-with-sidebar .page-content-wrapper,
 .page-with-sidebar .blog-post-single {
   width: 100%;
   max-width: 100%;
+}
+
+/* ===============================================
+   RESPONSIVE
+   =============================================== */
+
+@media (max-width: 991px) {
+  main > .container,
+  main > .container-fluid,
+  main .page-container,
+  main .has-slider-content {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
+}
+
+@media (max-width: 575px) {
+  main > .container,
+  main > .container-fluid,
+  main .page-container,
+  main .has-slider-content {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  .footer-area {
+    padding-top: 40px !important;
+  }
+
+  .footer-area .footer-top,
+  .footer-padding {
+    padding-top: 20px !important;
+    padding-bottom: 20px !important;
+  }
 }

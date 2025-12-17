@@ -181,6 +181,9 @@
     {{-- CSS Personalizado - Espaciado y estilos del tema --}}
     <link rel="stylesheet" href="{{ asset('themes/default/css/template.css') }}?v={{ time() }}">
 
+    {{-- CSS Custom del tenant - DEBE ir después de template.css para sobrescribir --}}
+    <link rel="stylesheet" href="{{ asset('themes/default/css/custom.css') }}?v={{ time() }}">
+
     {{-- Nice Select 2 CSS --}}
     <link rel="stylesheet" href="/assets/vendor/nice-select2/nice-select2.min.css">
 
