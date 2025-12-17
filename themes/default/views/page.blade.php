@@ -108,7 +108,7 @@
                 <div class="row">
                     <div class="col-xl-12">
                         <div class="hero-cap text-center">
-                            <h2>{{ $customizations->slider_title ?? $translation->title }}</h2>
+                            <h2>{{ !empty($customizations->slider_title) ? $customizations->slider_title : ($translation->title ?? '') }}</h2>
                             @if(!empty($customizations->slider_content))
                             <div class="hero-subtitle mt-3">
                                 {!! $customizations->slider_content !!}
