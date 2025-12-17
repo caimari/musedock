@@ -47,15 +47,17 @@
 .page-content-wrapper img,
 .blog-post-single img,
 article img,
-.container img,
-main img,
-.content img,
-p img,
-div img,
-img {
+.content img {
   max-width: 100% !important;
   height: auto !important;
-  display: block;
+}
+
+/* Imágenes inline (dentro de párrafos) - mantener display inline-block */
+p img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* Resetear width inline en imágenes con atributos width/height */
@@ -78,10 +80,18 @@ img[width] {
 .post-content p,
 .page-content-wrapper p,
 .blog-post-single p,
-article p,
-.container p {
+article p {
   max-width: 100%;
-  overflow-x: hidden;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Párrafos con imágenes - centrar y contener */
+.page-body p:has(img),
+.post-content p:has(img),
+.page-content-wrapper p:has(img) {
+  text-align: center;
+  overflow: hidden;
 }
 
 /* Asegurar que iframes y videos también sean responsivos */
@@ -110,12 +120,53 @@ main video,
 .post-content,
 .page-content-wrapper,
 .blog-post-single,
-article,
-.container,
-main {
+article {
   overflow-x: hidden;
   word-wrap: break-word;
   overflow-wrap: break-word;
+}
+
+/* Contenedor principal - asegurar que el contenido esté delimitado */
+.page-container,
+.has-slider-content,
+.container.py-4 {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Main - NO aplicar overflow hidden para permitir sliders full-width */
+main {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* ===============================================
+   CONTENIDO DE PÁGINA - LÍMITES Y CONTENCIÓN
+   =============================================== */
+
+/* Asegurar que el contenido de la página esté correctamente contenido */
+.page-body {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Múltiples imágenes en línea - asegurar que se ajusten al contenedor */
+.page-body p img,
+.post-content p img,
+.page-content-wrapper p img {
+  max-width: 100%;
+  height: auto;
+  display: inline-block;
+  vertical-align: middle;
+  margin: 5px;
+}
+
+/* Contenedor de artículo */
+.page-content-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 /* Asegurar que tablas también sean responsivas */

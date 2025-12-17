@@ -2,6 +2,20 @@
 
 @section('title', $title)
 
+@push('styles')
+<style>
+/* Placeholders más claros para distinguir del texto escrito */
+.form-control::placeholder,
+.form-select::placeholder,
+input::placeholder,
+textarea::placeholder {
+    color: #adb5bd !important;
+    opacity: 0.7 !important;
+    font-style: italic;
+}
+</style>
+@endpush
+
 @section('content')
 <div class="card">
   <div class="card-header">
@@ -201,8 +215,8 @@
 
           <div class="mb-3">
             <label class="form-label">Texto de copyright</label>
-            <input type="text" name="footer_copyright" class="form-control" value="{{ $settings['footer_copyright'] ?? '© Copyright MuseDock ' . date('Y') . '.' }}" placeholder="© Copyright MuseDock {{ date('Y') }}.">
-            <small class="text-muted">Texto que aparece en el pie de página. Puedes usar HTML básico.</small>
+            <input type="text" name="footer_copyright" class="form-control" value="{{ $settings['footer_copyright'] ?? '' }}" placeholder='© Copyright <a href="https://tudominio.com">Tu Empresa</a> {{ date("Y") }}.'>
+            <small class="text-muted">Ejemplo: <code>&copy; Copyright &lt;a href="https://tudominio.com"&gt;Tu Empresa&lt;/a&gt; {{ date('Y') }}.</code></small>
           </div>
         </div>
       </div>

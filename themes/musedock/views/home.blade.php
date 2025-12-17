@@ -131,7 +131,11 @@
 @if(!empty($homeContent))
 <div class="padding-none ziph-page_content">
   <div class="ziph-page_warp">
-    {!! apply_filters('the_content', $homeContent) !!}
+    <div class="container">
+      <div class="home-content-wrapper">
+        {!! apply_filters('the_content', $homeContent) !!}
+      </div>
+    </div>
   </div>
 </div>
 @endif
@@ -140,6 +144,32 @@
 {{-- Additional styles for slider --}}
 @push('styles')
 <style>
+/* Contenedor del contenido de la home - evitar desbordamiento */
+.home-content-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.home-content-wrapper p {
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.home-content-wrapper img {
+    max-width: 100%;
+    height: auto;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Asegurar que el contenedor padre no se desborde */
+.ziph-page_warp {
+    overflow: hidden;
+    max-width: 100%;
+}
+
 .ziph-header_navigation { margin-bottom: 0; }
 .simple-slider-container { margin-top: 0; }
 

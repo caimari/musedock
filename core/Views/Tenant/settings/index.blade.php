@@ -2,6 +2,20 @@
 
 @section('title', $title)
 
+@push('styles')
+<style>
+/* Placeholders más claros para distinguir del texto escrito */
+.form-control::placeholder,
+.form-select::placeholder,
+input::placeholder,
+textarea::placeholder {
+    color: #adb5bd !important;
+    opacity: 0.7 !important;
+    font-style: italic;
+}
+</style>
+@endpush
+
 @section('content')
 <div class="app-content">
     <div class="container-fluid">
@@ -137,8 +151,8 @@
                                 <label class="form-label">Texto de copyright</label>
                                 <input type="text" name="footer_copyright" class="form-control"
                                        value="{{ $settings['footer_copyright'] ?? '' }}"
-                                       placeholder="{{ date('Y') }} Tu Empresa. Todos los derechos reservados.">
-                                <small class="text-muted">Si lo dejas vacio, se mostrara el ano actual y el nombre del sitio</small>
+                                       placeholder='© Copyright <a href="https://tudominio.com">Tu Empresa</a> {{ date("Y") }}.'>
+                                <small class="text-muted">Ejemplo: <code>&copy; Copyright &lt;a href="https://tudominio.com"&gt;Tu Empresa&lt;/a&gt; {{ date('Y') }}.</code></small>
                             </div>
                         </div>
                     </div>
