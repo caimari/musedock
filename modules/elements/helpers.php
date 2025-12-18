@@ -179,8 +179,8 @@ if (!function_exists('render_element')) {
         if (!$assetsInjected) {
             $preset = elements_get_active_preset();
             $version = defined('ELEMENTS_VERSION') ? ELEMENTS_VERSION : '1.0.0';
-            $cssUrl = '/public/assets/modules/elements/css/' . $preset . '.css';
-            $jsUrl = '/public/assets/modules/elements/js/elements.js';
+            $cssUrl = '/assets/modules/elements/css/' . $preset . '.css';
+            $jsUrl = '/assets/modules/elements/js/elements.js';
 
             $assetsHTML = <<<HTML
 <!-- Elements Module Assets -->
