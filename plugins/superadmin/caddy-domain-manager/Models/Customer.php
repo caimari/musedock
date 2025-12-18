@@ -99,7 +99,7 @@ class Customer
         $pdo = Database::connect();
         $stmt = $pdo->prepare("
             SELECT id, name, email, company, phone, country,
-                   status, email_verified_at,
+                   status, email_verified_at, verification_email_sent_count,
                    last_login_at, last_login_ip,
                    failed_login_attempts, locked_until,
                    created_at, updated_at

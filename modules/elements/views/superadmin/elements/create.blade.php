@@ -15,12 +15,22 @@
             </a>
         </div>
 
-        <!-- Alerts -->
+        <!-- Alerts with SweetAlert2 -->
         @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="bi bi-exclamation-triangle me-2"></i>{!! session('error') !!}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
+            @push('scripts')
+            <script>
+                Swal.fire({
+                    icon: 'error',
+                    title: '{{ __element("element.error") }}',
+                    html: '{!! addslashes(session("error")) !!}',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 5000,
+                    timerProgressBar: true
+                });
+            </script>
+            @endpush
         @endif
 
         <!-- Form -->
@@ -318,6 +328,7 @@ let slugTimeout = null;
 const nameInput = document.getElementById('name');
 const slugInput = document.getElementById('slug');
 const slugResult = document.getElementById('slug-check-result');
+const csrfToken = '{{ csrf_token() }}';
 
 function slugify(text) {
     return text.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
@@ -331,10 +342,14 @@ function checkSlugAvailability(slug) {
     slugTimeout = setTimeout(() => {
         const formData = new FormData();
         formData.append('slug', slug);
+        formData.append('_token', csrfToken);
 
         fetch('{{ route("elements.check-slug") }}', {
             method: 'POST',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken
+            },
             body: formData
         })
         .then(res => res.json())

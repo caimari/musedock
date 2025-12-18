@@ -555,6 +555,49 @@
                 }
             }
         });
+
+        // Show flash messages with SweetAlert
+        <?php if (isset($_SESSION['flash_success'])): ?>
+        Swal.fire({
+            icon: 'success',
+            title: '¡Éxito!',
+            text: '<?= addslashes($_SESSION['flash_success']) ?>',
+            confirmButtonColor: '#667eea',
+            timer: 5000,
+            timerProgressBar: true
+        });
+        <?php unset($_SESSION['flash_success']); ?>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['flash_error'])): ?>
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: '<?= addslashes($_SESSION['flash_error']) ?>',
+            confirmButtonColor: '#667eea'
+        });
+        <?php unset($_SESSION['flash_error']); ?>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['flash_warning'])): ?>
+        Swal.fire({
+            icon: 'warning',
+            title: 'Atención',
+            text: '<?= addslashes($_SESSION['flash_warning']) ?>',
+            confirmButtonColor: '#667eea'
+        });
+        <?php unset($_SESSION['flash_warning']); ?>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['flash_info'])): ?>
+        Swal.fire({
+            icon: 'info',
+            title: 'Información',
+            text: '<?= addslashes($_SESSION['flash_info']) ?>',
+            confirmButtonColor: '#667eea'
+        });
+        <?php unset($_SESSION['flash_info']); ?>
+        <?php endif; ?>
     </script>
 </body>
 </html>

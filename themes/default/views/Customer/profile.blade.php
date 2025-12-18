@@ -304,6 +304,9 @@ function resendVerificationEmail() {
                         title: '¡Email enviado!',
                         text: 'Revisa tu correo electrónico y haz clic en el enlace de verificación.',
                         confirmButtonColor: '#667eea'
+                    }).then(() => {
+                        // Recargar la página para mostrar el contador actualizado
+                        window.location.reload();
                     });
                 } else {
                     Swal.fire({

@@ -16,19 +16,39 @@
             </a>
         </div>
 
-        <!-- Alerts -->
+        <!-- Alerts with SweetAlert2 -->
         @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
+            @push('scripts')
+            <script>
+                Swal.fire({
+                    icon: 'success',
+                    title: '{{ __element("element.success") }}',
+                    text: '{{ session("success") }}',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+            </script>
+            @endpush
         @endif
 
         @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="bi bi-exclamation-triangle me-2"></i>{!! session('error') !!}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
+            @push('scripts')
+            <script>
+                Swal.fire({
+                    icon: 'error',
+                    title: '{{ __element("element.error") }}',
+                    html: '{!! addslashes(session("error")) !!}',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 5000,
+                    timerProgressBar: true
+                });
+            </script>
+            @endpush
         @endif
 
         <!-- Elements List -->

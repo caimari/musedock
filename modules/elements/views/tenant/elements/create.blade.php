@@ -15,12 +15,22 @@
             </a>
         </div>
 
-        <!-- Alerts -->
+        <!-- Alerts with SweetAlert2 -->
         @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="bi bi-exclamation-triangle me-2"></i>{!! session('error') !!}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
+            @push('scripts')
+            <script>
+                Swal.fire({
+                    icon: 'error',
+                    title: '{{ __element("element.error") }}',
+                    html: '{!! addslashes(session("error")) !!}',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 5000,
+                    timerProgressBar: true
+                });
+            </script>
+            @endpush
         @endif
 
         <!-- Form -->
@@ -163,13 +173,6 @@
     </div>
 </div>
 
-@php
-    $modalPath = realpath(__DIR__ . '/../../../media-manager/views/admin/_modal.blade.php');
-    if ($modalPath && file_exists($modalPath)) {
-        include $modalPath;
-    }
-@endphp
-
 @push('scripts')
 <script>
 // Layout options mapping
@@ -206,17 +209,8 @@ const contentFieldsTemplates = {
         </div>
         <div class="mb-3 mt-3">
             <label class="form-label">{{ __element('hero.image_url') }}</label>
-            <div class="input-group">
-                <input type="text" class="form-control" id="hero_image_url" name="data[image_url]" value="{{ old('data.image_url') }}" placeholder="URL de la imagen">
-                <button type="button" class="btn btn-outline-secondary open-media-modal-button"
-                        data-bs-toggle="modal"
-                        data-bs-target="#mediaManagerModal"
-                        data-input-target="#hero_image_url"
-                        data-preview-target="#hero_image_preview">
-                    <i class="bi bi-image me-1"></i> Seleccionar Imagen
-                </button>
-            </div>
-            <img id="hero_image_preview" src="" class="img-fluid rounded border mt-2" style="max-height: 150px; display: none;">
+            <input type="text" class="form-control" name="data[image_url]" value="{{ old('data.image_url') }}" placeholder="URL de la imagen">
+            <small class="form-text text-muted">Introduce la URL completa de la imagen</small>
         </div>
         <div class="mb-3">
             <label class="form-label">{{ __element('hero.image_alt') }}</label>
@@ -318,6 +312,7 @@ let slugTimeout = null;
 const nameInput = document.getElementById('name');
 const slugInput = document.getElementById('slug');
 const slugResult = document.getElementById('slug-check-result');
+const csrfToken = '{{ csrf_token() }}';
 
 function slugify(text) {
     return text.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
@@ -331,10 +326,14 @@ function checkSlugAvailability(slug) {
     slugTimeout = setTimeout(() => {
         const formData = new FormData();
         formData.append('slug', slug);
+        formData.append('_token', csrfToken);
 
         fetch('{{ route("tenant.elements.check-slug") }}', {
             method: 'POST',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken
+            },
             body: formData
         })
         .then(res => res.json())
