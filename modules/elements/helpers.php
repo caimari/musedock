@@ -160,6 +160,8 @@ if (!function_exists('render_element')) {
      */
     function render_element(Element $element): string
     {
+        static $assetsInjected = false;
+
         $type = $element->type;
         $layout = $element->layout_type;
         $data = $element->getData();
@@ -172,11 +174,30 @@ if (!function_exists('render_element')) {
             return "<!-- Template not found for type: {$type} -->";
         }
 
+        // Inject CSS and JS assets once (on first element render)
+        $assetsHTML = '';
+        if (!$assetsInjected) {
+            $preset = elements_get_active_preset();
+            $version = defined('ELEMENTS_VERSION') ? ELEMENTS_VERSION : '1.0.0';
+            $cssUrl = '/public/assets/modules/elements/css/' . $preset . '.css';
+            $jsUrl = '/public/assets/modules/elements/js/elements.js';
+
+            $assetsHTML = <<<HTML
+<!-- Elements Module Assets -->
+<link rel="stylesheet" href="{$cssUrl}?v={$version}">
+<script src="{$jsUrl}?v={$version}" defer></script>
+
+HTML;
+            $assetsInjected = true;
+        }
+
         // Render template
         ob_start();
         extract(compact('element', 'type', 'layout', 'data', 'settings'));
         include $templateFile;
-        return ob_get_clean();
+        $elementHTML = ob_get_clean();
+
+        return $assetsHTML . $elementHTML;
     }
 }
 
@@ -221,5 +242,45 @@ if (!function_exists('element_asset')) {
     function element_asset(string $path): string
     {
         return '/public/modules/elements/' . ltrim($path, '/');
+    }
+}
+
+if (!function_exists('elements_get_active_preset')) {
+    /**
+     * Get the active preset for elements
+     *
+     * Priority: Theme function > Theme constant > Module setting > Default
+     *
+     * @return string
+     */
+    function elements_get_active_preset(): string
+    {
+        // Determine which preset to use
+        $preset = 'default';
+
+        // Check if theme has a custom elements preset (highest priority)
+        if (function_exists('get_theme_elements_preset')) {
+            $preset = get_theme_elements_preset();
+        } elseif (defined('THEME_ELEMENTS_PRESET')) {
+            $preset = THEME_ELEMENTS_PRESET;
+        } else {
+            // Check module settings
+            try {
+                $settings = \Elements\Models\ElementSetting::get('style_preset');
+                if ($settings) {
+                    $preset = $settings;
+                }
+            } catch (\Exception $e) {
+                // Fallback to default if settings not available
+            }
+        }
+
+        // Available presets
+        $availablePresets = ['default', 'modern', 'minimal', 'creative'];
+        if (!in_array($preset, $availablePresets)) {
+            $preset = 'default';
+        }
+
+        return $preset;
     }
 }

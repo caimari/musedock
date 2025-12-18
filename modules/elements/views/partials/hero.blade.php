@@ -25,52 +25,41 @@ $textColor = $data['text_color'] ?? '';
 $minHeight = $data['min_height'] ?? '400';
 $alignment = $data['alignment'] ?? 'left';
 
-$containerClass = 'hero-element hero-' . ($layout ?? 'image-right');
+$containerClass = 'element-hero layout-' . ($layout ?? 'image-right');
 $textAlign = 'text-' . $alignment;
 ?>
 
 <section class="<?= escape_html($containerClass) ?>"
          style="<?= $backgroundColor ? 'background-color: ' . escape_html($backgroundColor) . '; ' : '' ?><?= $minHeight ? 'min-height: ' . escape_html($minHeight) . 'px; ' : '' ?><?= $textColor ? 'color: ' . escape_html($textColor) . '; ' : '' ?>">
 
-    <div class="container py-5">
+    <div class="container">
         <?php if ($layout === 'image-right' || $layout === 'image-left'): ?>
-            <div class="row align-items-center g-4 <?= $layout === 'image-left' ? 'flex-row-reverse' : '' ?>">
-                <div class="col-lg-6 <?= $textAlign ?>">
-                    <?php if ($subheading): ?>
-                        <p class="hero-subheading text-muted mb-2"><?= escape_html($subheading) ?></p>
-                    <?php endif; ?>
+            <div class="hero-content">
+                <?php if ($subheading): ?>
+                    <div class="subheading"><?= escape_html($subheading) ?></div>
+                <?php endif; ?>
 
-                    <?php if ($heading): ?>
-                        <h1 class="hero-heading display-4 fw-bold mb-3"><?= escape_html($heading) ?></h1>
-                    <?php endif; ?>
+                <?php if ($heading): ?>
+                    <h1><?= escape_html($heading) ?></h1>
+                <?php endif; ?>
 
-                    <?php if ($description): ?>
-                        <p class="hero-description lead mb-4"><?= nl2br(escape_html($description)) ?></p>
-                    <?php endif; ?>
+                <?php if ($description): ?>
+                    <p><?= nl2br(escape_html($description)) ?></p>
+                <?php endif; ?>
 
-                    <?php if ($buttonText && $buttonUrl): ?>
-                        <div class="hero-buttons">
-                            <a href="<?= escape_html($buttonUrl) ?>" class="btn btn-primary btn-lg me-2 mb-2">
-                                <?= escape_html($buttonText) ?>
-                            </a>
-                            <?php if ($buttonSecondaryText && $buttonSecondaryUrl): ?>
-                                <a href="<?= escape_html($buttonSecondaryUrl) ?>" class="btn btn-outline-secondary btn-lg mb-2">
-                                    <?= escape_html($buttonSecondaryText) ?>
-                                </a>
-                            <?php endif; ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-
-                <div class="col-lg-6">
-                    <?php if ($imageUrl): ?>
-                        <img src="<?= escape_html($imageUrl) ?>"
-                             alt="<?= escape_html($imageAlt) ?>"
-                             class="img-fluid rounded shadow-lg"
-                             loading="lazy">
-                    <?php endif; ?>
-                </div>
+                <?php if ($buttonText && $buttonUrl): ?>
+                    <a href="<?= escape_html($buttonUrl) ?>" class="hero-btn">
+                        <?= escape_html($buttonText) ?>
+                    </a>
+                <?php endif; ?>
             </div>
+
+            <?php if ($imageUrl): ?>
+                <div class="hero-image">
+                    <img src="<?= escape_html($imageUrl) ?>"
+                         alt="<?= escape_html($imageAlt) ?>">
+                </div>
+            <?php endif; ?>
 
         <?php elseif ($layout === 'centered'): ?>
             <div class="row">

@@ -12,48 +12,34 @@
 
 $heading = $data['heading'] ?? '';
 $items = $data['items'] ?? [];
-$accordionId = 'faq-' . $element->id;
+$containerClass = 'element-faq layout-' . ($layout ?? 'accordion');
 ?>
 
-<section class="faq-element faq-<?= escape_html($layout ?? 'accordion') ?> py-5">
+<section class="<?= escape_html($containerClass) ?>">
     <div class="container">
         <?php if ($heading): ?>
-            <h2 class="faq-heading text-center mb-4"><?= escape_html($heading) ?></h2>
+            <h2><?= escape_html($heading) ?></h2>
         <?php endif; ?>
 
-        <?php if ($layout === 'accordion'): ?>
-            <div class="row">
-                <div class="col-lg-8 mx-auto">
-                    <div class="accordion" id="<?= $accordionId ?>">
-                        <?php foreach ($items as $index => $item): ?>
-                            <?php
-                            $question = $item['question'] ?? '';
-                            $answer = $item['answer'] ?? '';
-                            if (!$question || !$answer) continue;
-                            $collapseId = $accordionId . '-item-' . $index;
-                            ?>
-                            <div class="accordion-item">
-                                <h3 class="accordion-header">
-                                    <button class="accordion-button <?= $index !== 0 ? 'collapsed' : '' ?>"
-                                            type="button"
-                                            data-bs-toggle="collapse"
-                                            data-bs-target="#<?= $collapseId ?>"
-                                            aria-expanded="<?= $index === 0 ? 'true' : 'false' ?>"
-                                            aria-controls="<?= $collapseId ?>">
-                                        <?= escape_html($question) ?>
-                                    </button>
-                                </h3>
-                                <div id="<?= $collapseId ?>"
-                                     class="accordion-collapse collapse <?= $index === 0 ? 'show' : '' ?>"
-                                     data-bs-parent="#<?= $accordionId ?>">
-                                    <div class="accordion-body">
-                                        <?= nl2br(escape_html($answer)) ?>
-                                    </div>
-                                </div>
+        <?php if ($layout === 'accordion' || !$layout): ?>
+            <div class="faq-accordion">
+                <?php foreach ($items as $index => $item): ?>
+                    <?php
+                    $question = $item['question'] ?? '';
+                    $answer = $item['answer'] ?? '';
+                    if (!$question || !$answer) continue;
+                    ?>
+                    <div class="faq-item <?= $index === 0 ? 'active' : '' ?>">
+                        <div class="faq-question">
+                            <?= escape_html($question) ?>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <?= nl2br(escape_html($answer)) ?>
                             </div>
-                        <?php endforeach; ?>
+                        </div>
                     </div>
-                </div>
+                <?php endforeach; ?>
             </div>
 
         <?php elseif ($layout === 'two-columns'): ?>
