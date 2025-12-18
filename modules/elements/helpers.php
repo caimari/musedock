@@ -266,7 +266,7 @@ if (!function_exists('elements_get_active_preset')) {
                 $preset = $elementSettings['style_preset'];
 
                 // Validate and return if valid
-                $availablePresets = ['default', 'modern', 'minimal', 'creative'];
+                $availablePresets = ['default', 'modern', 'minimal', 'creative', 'hispano'];
                 if (in_array($preset, $availablePresets)) {
                     return $preset;
                 }
@@ -291,7 +291,7 @@ if (!function_exists('elements_get_active_preset')) {
         }
 
         // Available presets
-        $availablePresets = ['default', 'modern', 'minimal', 'creative'];
+        $availablePresets = ['default', 'modern', 'minimal', 'creative', 'hispano'];
         if (!in_array($preset, $availablePresets)) {
             $preset = 'default';
         }

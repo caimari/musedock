@@ -180,8 +180,8 @@
                                         <div class="input-group">
                                             <input type="text" class="form-control" id="hero_image_url_edit" name="data[image_url]" value="{{ old('data.image_url', $data['image_url'] ?? '') }}" placeholder="URL de la imagen">
                                             <button type="button" class="btn btn-outline-secondary open-media-modal-button"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#mediaManagerModal"
+                                                    
+                                                    
                                                     data-input-target="#hero_image_url_edit"
                                                     data-preview-target="#hero_image_preview_edit">
                                                 <i class="bi bi-image me-1"></i> Seleccionar Imagen
@@ -301,8 +301,9 @@
                                 <label for="style_preset" class="form-label">{{ __element('element.style_preset') }}</label>
                                 <select class="form-select" id="style_preset" name="settings[style_preset]" {{ $isReadOnly ? 'disabled' : '' }}>
                                     <option value="">{{ __element('element.preset_default') }}</option>
-                                    <option value="default" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'default' ? 'selected' : '' }}>Default</option>
+                                    <option value="hispano" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'default' ? 'selected' : '' }}>Hispano (Limpio y Profesional)</option>
                                     <option value="modern" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'modern' ? 'selected' : '' }}>Modern</option>
+                                    <option value="default" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'default' ? 'selected' : '' }}>Default (Gradiente Púrpura)</option>
                                     <option value="minimal" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'minimal' ? 'selected' : '' }}>Minimal</option>
                                     <option value="creative" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'creative' ? 'selected' : '' }}>Creative</option>
                                 </select>
