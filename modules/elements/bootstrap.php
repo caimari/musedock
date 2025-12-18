@@ -142,3 +142,31 @@ error_log("Elements: Module loaded successfully (v" . ELEMENTS_VERSION . ")");
     'order'          => 6,
     'permission'     => 'elements.manage',
 ]);
+
+// ============================================================================
+// REGISTER FRONTEND ASSETS
+// ============================================================================
+
+/**
+ * Enqueue elements CSS and JS in frontend
+ */
+add_action('wp_enqueue_scripts', function() {
+    $moduleUrl = module_url('elements');
+
+    // Enqueue CSS
+    wp_enqueue_style(
+        'elements-styles',
+        $moduleUrl . '/assets/css/elements.css',
+        [],
+        ELEMENTS_VERSION
+    );
+
+    // Enqueue JS
+    wp_enqueue_script(
+        'elements-scripts',
+        $moduleUrl . '/assets/js/elements.js',
+        [],
+        ELEMENTS_VERSION,
+        true
+    );
+}, 20);
