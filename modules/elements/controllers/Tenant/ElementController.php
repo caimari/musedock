@@ -393,4 +393,84 @@ class ElementController
         ]);
         exit;
     }
+
+    /**
+     * Upload image for element (AJAX)
+     */
+    public function uploadImage()
+    {
+        header('Content-Type: application/json');
+        SessionSecurity::startSession();
+        $tenantId = TenantManager::currentTenantId();
+
+        if ($tenantId === null) {
+            echo json_encode(['success' => false, 'message' => 'Tenant not found']);
+            exit;
+        }
+
+        if (!userCan('elements.edit')) {
+            echo json_encode(['success' => false, 'message' => 'Permission denied']);
+            exit;
+        }
+
+        if (!isset($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+            $errorMessages = [
+                UPLOAD_ERR_INI_SIZE => 'El archivo excede el tamaño máximo permitido',
+                UPLOAD_ERR_FORM_SIZE => 'El archivo excede el tamaño máximo del formulario',
+                UPLOAD_ERR_PARTIAL => 'El archivo se subió parcialmente',
+                UPLOAD_ERR_NO_FILE => 'No se seleccionó ningún archivo',
+                UPLOAD_ERR_NO_TMP_DIR => 'Falta la carpeta temporal',
+                UPLOAD_ERR_CANT_WRITE => 'Error al escribir el archivo',
+                UPLOAD_ERR_EXTENSION => 'Extensión de archivo no permitida'
+            ];
+            $errorCode = $_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE;
+            $message = $errorMessages[$errorCode] ?? 'Error al subir la imagen';
+            echo json_encode(['success' => false, 'message' => $message]);
+            exit;
+        }
+
+        $file = $_FILES['image'];
+
+        // Validate file type
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($file['tmp_name']);
+
+        if (!in_array($mimeType, $allowedTypes)) {
+            echo json_encode(['success' => false, 'message' => 'Tipo de archivo no permitido. Solo se permiten: JPG, PNG, GIF, WEBP']);
+            exit;
+        }
+
+        // Validate file size (max 10MB)
+        $maxSize = 10 * 1024 * 1024;
+        if ($file['size'] > $maxSize) {
+            echo json_encode(['success' => false, 'message' => 'El archivo es demasiado grande. Máximo: 10MB']);
+            exit;
+        }
+
+        // Generate unique filename
+        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $filename = 'element_' . $tenantId . '_' . time() . '_' . bin2hex(random_bytes(8)) . '.' . $extension;
+
+        // Determine upload directory
+        $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/storage/elements/' . $tenantId . '/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $uploadPath = $uploadDir . $filename;
+
+        // Move uploaded file
+        if (move_uploaded_file($file['tmp_name'], $uploadPath)) {
+            $url = '/storage/elements/' . $tenantId . '/' . $filename;
+            echo json_encode([
+                'success' => true,
+                'url' => $url,
+                'filename' => $filename
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Error al guardar la imagen']);
+        }
+        exit;
+    }
 }

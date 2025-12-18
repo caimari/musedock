@@ -177,17 +177,45 @@
                                 <div class="mb-3 mt-3">
                                     <label class="form-label">{{ __element('hero.image_url') }}</label>
                                     @if(!$isReadOnly)
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" id="hero_image_url_edit" name="data[image_url]" value="{{ old('data.image_url', $data['image_url'] ?? '') }}" placeholder="URL de la imagen">
-                                            <button type="button" class="btn btn-outline-secondary open-media-modal-button"
-                                                    
-                                                    
-                                                    data-input-target="#hero_image_url_edit"
-                                                    data-preview-target="#hero_image_preview_edit">
-                                                <i class="bi bi-image me-1"></i> Seleccionar Imagen
-                                            </button>
+                                        {{-- Current image preview --}}
+                                        @if(old('data.image_url', $data['image_url'] ?? ''))
+                                        <div class="mb-2">
+                                            <img id="hero_image_preview_edit" src="{{ old('data.image_url', $data['image_url'] ?? '') }}" class="img-thumbnail" style="max-height: 150px; max-width: 300px; object-fit: cover;">
                                         </div>
-                                        <img id="hero_image_preview_edit" src="{{ old('data.image_url', $data['image_url'] ?? '') }}" class="img-fluid rounded border mt-2" style="max-height: 150px; {{ (old('data.image_url', $data['image_url'] ?? '') ? '' : 'display: none;') }}">
+                                        @else
+                                        <div class="mb-2">
+                                            <img id="hero_image_preview_edit" src="" class="img-thumbnail" style="max-height: 150px; max-width: 300px; object-fit: cover; display: none;">
+                                        </div>
+                                        @endif
+
+                                        {{-- File upload input --}}
+                                        <div class="mb-2">
+                                            <input type="file"
+                                                   class="form-control"
+                                                   id="hero_image_file"
+                                                   accept="image/jpeg,image/png,image/gif,image/webp">
+                                            <small class="text-muted">Formatos: JPG, PNG, GIF, WEBP. Máx 10MB.</small>
+                                        </div>
+
+                                        {{-- Hidden field for URL --}}
+                                        <input type="hidden" id="hero_image_url_edit" name="data[image_url]" value="{{ old('data.image_url', $data['image_url'] ?? '') }}">
+
+                                        {{-- Upload progress --}}
+                                        <div id="hero_upload_progress" class="progress mb-2" style="height: 5px; display: none;">
+                                            <div class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                        <div id="hero_upload_status" class="small text-muted"></div>
+
+                                        {{-- Manual URL option (collapsible) --}}
+                                        <div class="mt-2">
+                                            <a class="small text-decoration-none" data-bs-toggle="collapse" href="#manualUrlCollapse" role="button" aria-expanded="false">
+                                                <i class="bi bi-link-45deg"></i> O introducir URL manualmente
+                                            </a>
+                                            <div class="collapse mt-2" id="manualUrlCollapse">
+                                                <input type="text" class="form-control form-control-sm" id="hero_image_url_manual" placeholder="https://ejemplo.com/imagen.jpg" value="{{ old('data.image_url', $data['image_url'] ?? '') }}">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary mt-1" id="applyManualUrl">Aplicar URL</button>
+                                            </div>
+                                        </div>
                                     @else
                                         <input type="text" class="form-control" name="data[image_url]" value="{{ old('data.image_url', $data['image_url'] ?? '') }}" disabled>
                                         @if(old('data.image_url', $data['image_url'] ?? ''))
@@ -333,16 +361,6 @@
     </div>
 </div>
 
-@php
-    $modalPath = realpath(__DIR__ . '/../../../media-manager/views/admin/_modal.blade.php');
-    if ($modalPath && file_exists($modalPath)) {
-        include $modalPath;
-    }
-@endphp
-
-{{-- Load Media Manager JS for modal functionality --}}
-<script src="/assets/modules/MediaManager/js/admin-media.js?v={{ time() }}"></script>
-
 @push('scripts')
 <script>
 let faqItemCount = {{ count($data['items'] ?? []) }};
@@ -459,6 +477,131 @@ if (slugInput && !{{ $isReadOnly ? 'true' : 'false' }}) {
         if (this.value !== clean) this.value = clean;
         slugInput.dataset.manual = '1';
         checkSlugAvailability(clean);
+    });
+}
+
+// ============================================
+// IMAGE UPLOAD FUNCTIONALITY
+// ============================================
+const heroImageFile = document.getElementById('hero_image_file');
+const heroImageUrlEdit = document.getElementById('hero_image_url_edit');
+const heroImagePreview = document.getElementById('hero_image_preview_edit');
+const heroUploadProgress = document.getElementById('hero_upload_progress');
+const heroUploadStatus = document.getElementById('hero_upload_status');
+const applyManualUrl = document.getElementById('applyManualUrl');
+const heroImageUrlManual = document.getElementById('hero_image_url_manual');
+
+if (heroImageFile) {
+    heroImageFile.addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) return;
+
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Tipo de archivo no válido',
+                text: 'Solo se permiten: JPG, PNG, GIF, WEBP'
+            });
+            this.value = '';
+            return;
+        }
+
+        // Validate file size (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Archivo demasiado grande',
+                text: 'El tamaño máximo es 10MB'
+            });
+            this.value = '';
+            return;
+        }
+
+        // Upload the file
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('_token', csrfToken);
+
+        // Show progress
+        heroUploadProgress.style.display = 'block';
+        heroUploadStatus.textContent = 'Subiendo imagen...';
+        heroUploadProgress.querySelector('.progress-bar').style.width = '0%';
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '{{ route("tenant.elements.upload-image") }}', true);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken);
+
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+                const percent = (e.loaded / e.total) * 100;
+                heroUploadProgress.querySelector('.progress-bar').style.width = percent + '%';
+            }
+        };
+
+        xhr.onload = function() {
+            heroUploadProgress.style.display = 'none';
+
+            try {
+                const response = JSON.parse(xhr.responseText);
+                if (response.success) {
+                    // Update hidden field and preview
+                    heroImageUrlEdit.value = response.url;
+                    heroImagePreview.src = response.url;
+                    heroImagePreview.style.display = 'block';
+                    heroUploadStatus.innerHTML = '<i class="bi bi-check-circle text-success"></i> Imagen subida correctamente';
+
+                    // Update manual URL field if visible
+                    if (heroImageUrlManual) {
+                        heroImageUrlManual.value = response.url;
+                    }
+                } else {
+                    heroUploadStatus.innerHTML = '<i class="bi bi-x-circle text-danger"></i> ' + (response.message || 'Error al subir la imagen');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'Error al subir la imagen'
+                    });
+                }
+            } catch (e) {
+                heroUploadStatus.innerHTML = '<i class="bi bi-x-circle text-danger"></i> Error al procesar la respuesta';
+            }
+
+            // Clear file input
+            heroImageFile.value = '';
+        };
+
+        xhr.onerror = function() {
+            heroUploadProgress.style.display = 'none';
+            heroUploadStatus.innerHTML = '<i class="bi bi-x-circle text-danger"></i> Error de conexión';
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexión',
+                text: 'No se pudo conectar con el servidor'
+            });
+        };
+
+        xhr.send(formData);
+    });
+}
+
+// Manual URL application
+if (applyManualUrl && heroImageUrlManual) {
+    applyManualUrl.addEventListener('click', function() {
+        const url = heroImageUrlManual.value.trim();
+        if (url) {
+            heroImageUrlEdit.value = url;
+            heroImagePreview.src = url;
+            heroImagePreview.style.display = 'block';
+            heroUploadStatus.innerHTML = '<i class="bi bi-check-circle text-success"></i> URL aplicada';
+
+            // Verify the image loads
+            heroImagePreview.onerror = function() {
+                heroUploadStatus.innerHTML = '<i class="bi bi-exclamation-triangle text-warning"></i> La imagen no se pudo cargar, verifica la URL';
+            };
+        }
     });
 }
 </script>

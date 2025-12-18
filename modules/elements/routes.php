@@ -68,7 +68,16 @@ Route::get('/admin/elements/selector', 'Elements\Controllers\Tenant\ElementContr
 Route::post('/admin/elements/check-slug', 'Elements\Controllers\Tenant\ElementController@checkSlug')
     ->name('tenant.elements.check-slug');
 
+// Upload image for element (AJAX)
+Route::post('/admin/elements/upload-image', 'Elements\Controllers\Tenant\ElementController@uploadImage')
+    ->name('tenant.elements.upload-image');
+
 // Superadmin - Check slug availability (AJAX)
 Route::post('/musedock/elements/check-slug', 'Elements\Controllers\Superadmin\ElementController@checkSlug')
     ->name('elements.check-slug')
+    ->middleware('superadmin');
+
+// Superadmin - Upload image for element (AJAX)
+Route::post('/musedock/elements/upload-image', 'Elements\Controllers\Superadmin\ElementController@uploadImage')
+    ->name('elements.upload-image')
     ->middleware('superadmin');
