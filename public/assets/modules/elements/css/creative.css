@@ -35,6 +35,14 @@
     z-index: 1;
 }
 
+.element-hero.layout-image-left .hero-content {
+    order: 2;
+}
+
+.element-hero.layout-image-left .hero-image {
+    order: 1;
+}
+
 .element-hero h1 {
     font-size: 4rem;
     font-weight: 900;

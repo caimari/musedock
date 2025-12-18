@@ -57,8 +57,19 @@
 }
 
 /* Hero con imagen a la izquierda */
+.element-hero.layout-image-left {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+}
+
 .element-hero.layout-image-left .container {
+    display: grid;
     grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
 }
 
 .element-hero.layout-image-left .hero-content {
@@ -67,6 +78,33 @@
 
 .element-hero.layout-image-left .hero-image {
     order: 1;
+}
+
+.element-hero.layout-image-left .hero-content h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+}
+
+.element-hero.layout-image-left .hero-content .subheading {
+    font-size: 1.5rem;
+    opacity: 0.9;
+    margin-bottom: 1rem;
+}
+
+.element-hero.layout-image-left .hero-content p {
+    font-size: 1.125rem;
+    opacity: 0.85;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.element-hero.layout-image-left .hero-image img {
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
 /* Hero centrado */
