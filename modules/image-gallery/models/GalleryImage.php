@@ -3,6 +3,7 @@
 namespace ImageGallery\Models;
 
 use Screenart\Musedock\Database\Model;
+use MediaManager\Models\Media;
 
 /**
  * GalleryImage Model
@@ -240,7 +241,26 @@ class GalleryImage extends Model
             return false;
         }
 
-        $fullPath = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . ltrim($this->file_path, '/');
+        // Legacy: rutas públicas bajo DOCUMENT_ROOT
+        if (empty($this->disk)) {
+            $fullPath = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . ltrim($this->file_path, '/');
+            return file_exists($fullPath);
+        }
+
+        // Cloud: no comprobamos existencia aquí (evita latencia/credenciales)
+        if (in_array($this->disk, ['r2', 's3'], true)) {
+            return true;
+        }
+
+        // Discos locales configurados en filesystems.php (media/local/etc.)
+        $filesystemsConfig = require APP_ROOT . '/config/filesystems.php';
+        $diskConfig = $filesystemsConfig['disks'][$this->disk] ?? null;
+        if (!$diskConfig || !is_array($diskConfig) || ($diskConfig['driver'] ?? 'local') !== 'local') {
+            return false;
+        }
+
+        $root = APP_ROOT . ($diskConfig['root'] ?? '/storage/app/media');
+        $fullPath = rtrim($root, '/') . '/' . ltrim($this->file_path, '/');
         return file_exists($fullPath);
     }
 
@@ -249,23 +269,91 @@ class GalleryImage extends Model
      */
     public function deleteWithFile(): bool
     {
-        // Eliminar archivos físicos
-        $basePath = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
+        // Si existe Media asociado por token, intentar borrarlo primero (y su archivo)
+        if (!empty($this->public_token) && class_exists(Media::class)) {
+            $media = Media::findByToken($this->public_token);
+            if ($media) {
+                // Intento best-effort: eliminar archivo físico según disco
+                try {
+                    if ($media->disk === 'media') {
+                        $fullPath = APP_ROOT . '/storage/app/media/' . ltrim($media->path, '/');
+                        if (file_exists($fullPath)) {
+                            @unlink($fullPath);
+                        }
+                    } elseif (in_array($media->disk, ['r2', 's3'], true)) {
+                        $filesystemsConfig = require APP_ROOT . '/config/filesystems.php';
+                        $diskConfig = $filesystemsConfig['disks'][$media->disk] ?? null;
+                        if ($diskConfig && ($diskConfig['driver'] ?? null) === 's3') {
+                            $clientConfig = [
+                                'version' => 'latest',
+                                'region' => $diskConfig['region'] ?? 'auto',
+                                'credentials' => [
+                                    'key' => $diskConfig['key'] ?? null,
+                                    'secret' => $diskConfig['secret'] ?? null,
+                                ],
+                            ];
+                            if (!empty($diskConfig['endpoint'])) {
+                                $clientConfig['endpoint'] = $diskConfig['endpoint'];
+                            }
+                            if (isset($diskConfig['use_path_style_endpoint'])) {
+                                $clientConfig['use_path_style_endpoint'] = $diskConfig['use_path_style_endpoint'];
+                            }
 
-        $filesToDelete = array_filter([
-            $this->file_path,
-            $this->thumbnail_url ? parse_url($this->thumbnail_url, PHP_URL_PATH) : null,
-            $this->medium_url ? parse_url($this->medium_url, PHP_URL_PATH) : null,
-        ]);
+                            $client = new \Aws\S3\S3Client($clientConfig);
+                            $adapter = new \League\Flysystem\AwsS3V3\AwsS3V3Adapter(
+                                $client,
+                                $diskConfig['bucket'],
+                                '',
+                                null,
+                                null,
+                                ['ACL' => 'public-read']
+                            );
+                            $filesystem = new \League\Flysystem\Filesystem($adapter);
+                            if ($filesystem->fileExists($media->path)) {
+                                $filesystem->delete($media->path);
+                            }
+                        }
+                    } else {
+                        $filesystemsConfig = require APP_ROOT . '/config/filesystems.php';
+                        $diskConfig = $filesystemsConfig['disks'][$media->disk] ?? null;
+                        if ($diskConfig && ($diskConfig['driver'] ?? 'local') === 'local') {
+                            $root = APP_ROOT . ($diskConfig['root'] ?? '/storage/app/media');
+                            $fullPath = rtrim($root, '/') . '/' . ltrim($media->path, '/');
+                            if (file_exists($fullPath)) {
+                                @unlink($fullPath);
+                            }
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // best-effort, no bloquear el borrado de BD
+                }
 
-        foreach ($filesToDelete as $file) {
-            $fullPath = $basePath . '/' . ltrim($file, '/');
-            if (file_exists($fullPath)) {
-                @unlink($fullPath);
+                // Borrar fila media (si existe)
+                try {
+                    $media->delete();
+                } catch (\Throwable $e) {
+                    // Ignorar
+                }
             }
         }
 
-        // Eliminar de la base de datos
+        // Legacy o si no hay Media asociado: eliminar archivos físicos conocidos
+        if (empty($this->disk)) {
+            $basePath = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
+            $filesToDelete = array_filter([
+                $this->file_path,
+                $this->thumbnail_url ? parse_url($this->thumbnail_url, PHP_URL_PATH) : null,
+                $this->medium_url ? parse_url($this->medium_url, PHP_URL_PATH) : null,
+            ]);
+
+            foreach ($filesToDelete as $file) {
+                $fullPath = $basePath . '/' . ltrim($file, '/');
+                if (file_exists($fullPath)) {
+                    @unlink($fullPath);
+                }
+            }
+        }
+
         return $this->delete();
     }
 

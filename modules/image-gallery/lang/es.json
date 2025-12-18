@@ -128,8 +128,10 @@
   "validation": {
     "name_required": "El nombre es obligatorio",
     "name_too_long": "El nombre no puede exceder 255 caracteres",
+    "slug_required": "El slug es obligatorio",
     "slug_invalid": "El slug solo puede contener minúsculas, números y guiones",
     "slug_exists": "Este slug ya existe",
+    "slug_available": "Slug disponible",
     "layout_invalid": "Tipo de diseño no válido",
     "columns_range": "Las columnas deben estar entre 1 y 6",
     "file_too_large": "El archivo es demasiado grande",

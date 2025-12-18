@@ -7,6 +7,8 @@ use Screenart\Musedock\Security\SessionSecurity;
 use Elements\Models\Element;
 use Elements\Models\ElementSetting;
 use Screenart\Musedock\Traits\RequiresPermission;
+use Screenart\Musedock\Env;
+use MediaManager\Models\Media;
 
 /**
  * ElementController - Superadmin
@@ -352,6 +354,11 @@ class ElementController
         header('Content-Type: application/json');
         SessionSecurity::startSession();
 
+        if (!userCan('elements.create') && !userCan('elements.edit')) {
+            echo json_encode(['success' => false, 'message' => 'Permission denied']);
+            exit;
+        }
+
         if (!isset($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
             $errorMessages = [
                 UPLOAD_ERR_INI_SIZE => 'El archivo excede el tamaño máximo permitido',
@@ -387,29 +394,192 @@ class ElementController
             exit;
         }
 
-        // Generate unique filename
-        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $filename = 'element_global_' . time() . '_' . bin2hex(random_bytes(8)) . '.' . $extension;
-
-        // Determine upload directory (global elements storage)
-        $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/storage/elements/global/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
+        $defaultDisk = (string) Env::get('FILESYSTEM_DISK', 'media');
+        if ($defaultDisk === 'local') {
+            $defaultDisk = 'media';
         }
+        $diskName = $this->getDiskNameForContext($_POST['disk'] ?? $defaultDisk);
 
-        $uploadPath = $uploadDir . $filename;
+        try {
+            [$filesystem, $localRoot] = $this->createFilesystemForDisk($diskName);
 
-        // Move uploaded file
-        if (move_uploaded_file($file['tmp_name'], $uploadPath)) {
-            $url = '/storage/elements/global/' . $filename;
+            $safeBase = $this->slugifyFileBase(pathinfo($file['name'], PATHINFO_FILENAME));
+            $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $safeFilename = $safeBase . '_' . uniqid() . '.' . $extension;
+
+            $subPath = "global/elements/hero";
+            $yearMonth = date('Y/m');
+            $relativePath = "{$subPath}/{$yearMonth}/{$safeFilename}";
+            $dirPath = dirname($relativePath);
+
+            if (!$filesystem->directoryExists($dirPath)) {
+                $filesystem->createDirectory($dirPath);
+                if ($localRoot) {
+                    @chmod($localRoot . '/' . $dirPath, 0755);
+                }
+            }
+
+            $stream = fopen($file['tmp_name'], 'r+');
+            if (!$stream) {
+                echo json_encode(['success' => false, 'message' => 'No se pudo abrir el archivo temporal']);
+                exit;
+            }
+
+            $filesystem->writeStream($relativePath, $stream, $this->buildWriteConfig($diskName, $mimeType));
+            fclose($stream);
+
+            if ($localRoot) {
+                @chmod($localRoot . '/' . $relativePath, 0644);
+            }
+
+            $userId = $_SESSION['super_admin']['id'] ?? ($_SESSION['admin']['id'] ?? ($_SESSION['user']['id'] ?? null));
+            $publicToken = Media::generatePublicToken();
+            $slug = Media::generateSlug($file['name']);
+            $seoFilename = $slug . '-' . $publicToken . '.' . $extension;
+
+            $media = Media::create([
+                'tenant_id' => null,
+                'user_id' => $userId,
+                'folder_id' => null,
+                'disk' => $diskName,
+                'path' => $relativePath,
+                'public_token' => $publicToken,
+                'slug' => $slug,
+                'seo_filename' => $seoFilename,
+                'filename' => $file['name'],
+                'mime_type' => $mimeType,
+                'size' => $file['size'],
+                'metadata' => null,
+            ]);
+
             echo json_encode([
                 'success' => true,
-                'url' => $url,
-                'filename' => $filename
+                'url' => '/media/t/' . $publicToken,
+                'token' => $publicToken,
+                'disk' => $diskName,
+                'media_id' => $media->id ?? null,
+                'filename' => $file['name'],
             ]);
-        } else {
+        } catch (\Throwable $e) {
+            error_log("Elements superadmin uploadImage error: " . $e->getMessage());
             echo json_encode(['success' => false, 'message' => 'Error al guardar la imagen']);
         }
         exit;
+    }
+
+    private function slugifyFileBase(string $text): string
+    {
+        $text = preg_replace('~[^\pL\d]+~u', '-', $text);
+        $text = @iconv('utf-8', 'us-ascii//TRANSLIT', $text) ?: $text;
+        $text = preg_replace('~[^-\w]+~', '', $text);
+        $text = trim($text, '-');
+        $text = preg_replace('~-+~', '-', $text);
+        $text = strtolower($text);
+        return $text !== '' ? $text : 'file';
+    }
+
+    private function getDiskNameForContext(?string $requestedDisk): string
+    {
+        $validDisks = ['local', 'media', 'r2', 's3'];
+        $diskName = in_array((string)$requestedDisk, $validDisks, true) ? (string)$requestedDisk : 'media';
+
+        $filesystemsConfig = require APP_ROOT . '/config/filesystems.php';
+        $diskConfig = $filesystemsConfig['disks'][$diskName] ?? null;
+        if (!$diskConfig || !is_array($diskConfig)) {
+            return 'media';
+        }
+
+        if (is_array($diskConfig) && ($diskConfig['driver'] ?? null) === 's3') {
+            if (empty($diskConfig['key']) || empty($diskConfig['secret']) || empty($diskConfig['bucket'])) {
+                return 'media';
+            }
+        }
+
+        return $diskName;
+    }
+
+    private function createFilesystemForDisk(string $diskName): array
+    {
+        $filesystemsConfig = require APP_ROOT . '/config/filesystems.php';
+        $diskConfig = $filesystemsConfig['disks'][$diskName] ?? null;
+        if (!$diskConfig || !is_array($diskConfig)) {
+            $diskName = 'media';
+            $diskConfig = $filesystemsConfig['disks']['media'] ?? [];
+        }
+
+        if (($diskConfig['driver'] ?? 'local') === 's3') {
+            $filesystem = $this->createS3Filesystem($diskConfig);
+            if (!$filesystem) {
+                throw new \RuntimeException("No se pudo conectar con el almacenamiento ({$diskName})");
+            }
+            return [$filesystem, null];
+        }
+
+        $localRoot = APP_ROOT . ($diskConfig['root'] ?? '/storage/app/media');
+        $adapter = new \League\Flysystem\Local\LocalFilesystemAdapter(
+            $localRoot,
+            null,
+            LOCK_EX,
+            \League\Flysystem\Local\LocalFilesystemAdapter::DISALLOW_LINKS
+        );
+        $filesystem = new \League\Flysystem\Filesystem($adapter);
+        return [$filesystem, $localRoot];
+    }
+
+    private function buildWriteConfig(string $diskName, string $mimeType): array
+    {
+        $filesystemsConfig = require APP_ROOT . '/config/filesystems.php';
+        $diskConfig = $filesystemsConfig['disks'][$diskName] ?? [];
+
+        $cfg = [
+            'visibility' => 'public',
+        ];
+
+        if (($diskConfig['driver'] ?? null) === 's3') {
+            $cfg['ContentType'] = $mimeType ?: 'application/octet-stream';
+            $cfg['CacheControl'] = 'public, max-age=31536000, immutable';
+        }
+
+        return $cfg;
+    }
+
+    private function createS3Filesystem(array $config): ?\League\Flysystem\Filesystem
+    {
+        try {
+            if (empty($config['key']) || empty($config['secret']) || empty($config['bucket'])) {
+                return null;
+            }
+
+            $clientConfig = [
+                'version' => 'latest',
+                'region' => $config['region'] ?? 'auto',
+                'credentials' => [
+                    'key' => $config['key'],
+                    'secret' => $config['secret'],
+                ],
+            ];
+
+            if (!empty($config['endpoint'])) {
+                $clientConfig['endpoint'] = $config['endpoint'];
+            }
+            if (isset($config['use_path_style_endpoint'])) {
+                $clientConfig['use_path_style_endpoint'] = $config['use_path_style_endpoint'];
+            }
+
+            $client = new \Aws\S3\S3Client($clientConfig);
+            $adapter = new \League\Flysystem\AwsS3V3\AwsS3V3Adapter(
+                $client,
+                $config['bucket'],
+                '',
+                null,
+                null,
+                ['ACL' => 'public-read']
+            );
+
+            return new \League\Flysystem\Filesystem($adapter);
+        } catch (\Throwable $e) {
+            error_log("Elements superadmin createS3Filesystem error: " . $e->getMessage());
+            return null;
+        }
     }
 }

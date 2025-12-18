@@ -209,8 +209,35 @@ const contentFieldsTemplates = {
         </div>
         <div class="mb-3 mt-3">
             <label class="form-label">{{ __element('hero.image_url') }}</label>
-            <input type="text" class="form-control" name="data[image_url]" value="{{ old('data.image_url') }}" placeholder="URL de la imagen">
-            <small class="form-text text-muted">Introduce la URL completa de la imagen</small>
+
+            <div class="mb-2">
+                <img id="hero_image_preview_create" src="{{ old('data.image_url') }}" class="img-thumbnail" style="max-height: 150px; max-width: 300px; object-fit: cover; {{ old('data.image_url') ? '' : 'display: none;' }}">
+            </div>
+
+            <div class="mb-2">
+                <input type="file"
+                       class="form-control"
+                       id="hero_image_file_create"
+                       accept="image/jpeg,image/png,image/gif,image/webp">
+                <small class="text-muted">Formatos: JPG, PNG, GIF, WEBP. Máx 10MB.</small>
+            </div>
+
+            <input type="hidden" id="hero_image_url_create" name="data[image_url]" value="{{ old('data.image_url') }}">
+
+            <div id="hero_upload_progress_create" class="progress mb-2" style="height: 5px; display: none;">
+                <div class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
+            </div>
+            <div id="hero_upload_status_create" class="small text-muted"></div>
+
+            <div class="mt-2">
+                <a class="small text-decoration-none" data-bs-toggle="collapse" href="#manualUrlCollapseCreate" role="button" aria-expanded="false">
+                    <i class="bi bi-link-45deg"></i> O introducir URL manualmente
+                </a>
+                <div class="collapse mt-2" id="manualUrlCollapseCreate">
+                    <input type="text" class="form-control form-control-sm" id="hero_image_url_manual_create" placeholder="https://ejemplo.com/imagen.jpg" value="{{ old('data.image_url') }}">
+                    <button type="button" class="btn btn-sm btn-outline-secondary mt-1" id="applyManualUrlCreate">Aplicar URL</button>
+                </div>
+            </div>
         </div>
         <div class="mb-3">
             <label class="form-label">{{ __element('hero.image_alt') }}</label>
@@ -283,6 +310,9 @@ function updateLayoutOptions() {
     if (type && contentFieldsTemplates[type]) {
         contentCard.style.display = 'block';
         contentFields.innerHTML = contentFieldsTemplates[type];
+        if (type === 'hero') {
+            initHeroImageUploadCreate();
+        }
     } else {
         contentCard.style.display = 'none';
         contentFields.innerHTML = '';
@@ -379,6 +409,116 @@ document.addEventListener('DOMContentLoaded', function() {
         updateLayoutOptions();
     }
 });
+
+function initHeroImageUploadCreate() {
+    const heroImageFile = document.getElementById('hero_image_file_create');
+    const heroImageUrlInput = document.getElementById('hero_image_url_create');
+    const heroImagePreview = document.getElementById('hero_image_preview_create');
+    const heroUploadProgress = document.getElementById('hero_upload_progress_create');
+    const heroUploadStatus = document.getElementById('hero_upload_status_create');
+    const applyManualUrl = document.getElementById('applyManualUrlCreate');
+    const heroImageUrlManual = document.getElementById('hero_image_url_manual_create');
+
+    if (!heroImageFile || heroImageFile.dataset.bound === '1') return;
+    heroImageFile.dataset.bound = '1';
+
+    heroImageFile.addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) return;
+
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            Swal.fire({ icon: 'error', title: 'Tipo de archivo no válido', text: 'Solo se permiten: JPG, PNG, GIF, WEBP' });
+            this.value = '';
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            Swal.fire({ icon: 'error', title: 'Archivo demasiado grande', text: 'El tamaño máximo es 10MB' });
+            this.value = '';
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('_token', csrfToken);
+
+        if (heroUploadProgress) {
+            heroUploadProgress.style.display = 'block';
+            heroUploadProgress.querySelector('.progress-bar').style.width = '0%';
+        }
+        if (heroUploadStatus) {
+            heroUploadStatus.textContent = 'Subiendo imagen...';
+        }
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '{{ route("tenant.elements.upload-image") }}', true);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken);
+
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable && heroUploadProgress) {
+                const percent = (e.loaded / e.total) * 100;
+                heroUploadProgress.querySelector('.progress-bar').style.width = percent + '%';
+            }
+        };
+
+        xhr.onload = function() {
+            if (heroUploadProgress) heroUploadProgress.style.display = 'none';
+            try {
+                const response = JSON.parse(xhr.responseText);
+                if (response.success) {
+                    heroImageUrlInput.value = response.url;
+                    if (heroImagePreview) {
+                        heroImagePreview.src = response.url;
+                        heroImagePreview.style.display = 'block';
+                    }
+                    if (heroUploadStatus) {
+                        heroUploadStatus.innerHTML = '<i class="bi bi-check-circle text-success"></i> Imagen subida correctamente';
+                    }
+                    if (heroImageUrlManual) {
+                        heroImageUrlManual.value = response.url;
+                    }
+                } else {
+                    if (heroUploadStatus) {
+                        heroUploadStatus.innerHTML = '<i class="bi bi-x-circle text-danger"></i> ' + (response.message || 'Error al subir la imagen');
+                    }
+                    Swal.fire({ icon: 'error', title: 'Error', text: response.message || 'Error al subir la imagen' });
+                }
+            } catch (e) {
+                if (heroUploadStatus) heroUploadStatus.innerHTML = '<i class="bi bi-x-circle text-danger"></i> Error al procesar la respuesta';
+            }
+            heroImageFile.value = '';
+        };
+
+        xhr.onerror = function() {
+            if (heroUploadProgress) heroUploadProgress.style.display = 'none';
+            if (heroUploadStatus) heroUploadStatus.innerHTML = '<i class="bi bi-x-circle text-danger"></i> Error de conexión';
+            Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'No se pudo conectar con el servidor' });
+        };
+
+        xhr.send(formData);
+    });
+
+    if (applyManualUrl && heroImageUrlManual) {
+        applyManualUrl.addEventListener('click', function() {
+            const url = heroImageUrlManual.value.trim();
+            if (!url) return;
+            heroImageUrlInput.value = url;
+            if (heroImagePreview) {
+                heroImagePreview.src = url;
+                heroImagePreview.style.display = 'block';
+                heroImagePreview.onerror = function() {
+                    if (heroUploadStatus) {
+                        heroUploadStatus.innerHTML = '<i class="bi bi-exclamation-triangle text-warning"></i> La imagen no se pudo cargar, verifica la URL';
+                    }
+                };
+            }
+            if (heroUploadStatus) {
+                heroUploadStatus.innerHTML = '<i class="bi bi-check-circle text-success"></i> URL aplicada';
+            }
+        });
+    }
+}
 </script>
 @endpush
 @endsection

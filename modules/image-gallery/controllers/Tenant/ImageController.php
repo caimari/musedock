@@ -4,9 +4,11 @@ namespace ImageGallery\Controllers\Tenant;
 
 use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Services\TenantManager;
+use Screenart\Musedock\Env;
 use ImageGallery\Models\Gallery;
 use ImageGallery\Models\GalleryImage;
 use ImageGallery\Models\GallerySetting;
+use MediaManager\Models\Media;
 
 /**
  * ImageController - Tenant
@@ -15,7 +17,6 @@ use ImageGallery\Models\GallerySetting;
  */
 class ImageController
 {
-    private string $uploadDir = '/uploads/galleries/';
     private array $allowedMimes = [
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
@@ -127,77 +128,91 @@ class ImageController
             return ['success' => false, 'error' => __gallery('validation.invalid_type')];
         }
 
-        // Generar nombre único para el archivo
+        $defaultDisk = (string) Env::get('FILESYSTEM_DISK', 'media');
+        if ($defaultDisk === 'local') {
+            // "local" en MuseDock es legacy (/public/assets/uploads). Para galerías preferimos "media".
+            $defaultDisk = 'media';
+        }
+        $diskName = $this->getDiskNameForContext($_POST['disk'] ?? $defaultDisk);
+        [$filesystem, $localRoot, $diskConfig] = $this->createFilesystemForDisk($diskName);
+
         $extension = $this->allowedMimes[$mimeType];
         $hash = hash_file('sha256', $file['tmp_name']);
         $uniqueName = $this->generateUniqueFileName($file['name'], $extension, $hash);
 
-        // Crear directorio del tenant y galería
-        $galleryDir = $this->uploadDir . 'tenant-' . $tenantId . '/gallery-' . $gallery->id . '/';
-        $fullDir = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . $galleryDir;
+        // Guardar siguiendo la convención de Media Manager (tenant_{id}/Y/m/...)
+        $subPath = "tenant_{$tenantId}/galleries/gallery_{$gallery->id}";
+        $yearMonth = date('Y/m');
+        $relativePath = "{$subPath}/{$yearMonth}/{$uniqueName}";
+        $dirPath = dirname($relativePath);
 
-        if (!is_dir($fullDir)) {
-            mkdir($fullDir, 0755, true);
+        if (!$filesystem->directoryExists($dirPath)) {
+            $filesystem->createDirectory($dirPath);
+            if ($localRoot) {
+                @chmod($localRoot . '/' . $dirPath, 0755);
+            }
         }
 
-        // Ruta final del archivo
-        $filePath = $galleryDir . $uniqueName;
-        $fullPath = $fullDir . $uniqueName;
-
-        // Mover archivo
-        if (!move_uploaded_file($file['tmp_name'], $fullPath)) {
+        // Subir archivo usando Flysystem
+        $stream = fopen($file['tmp_name'], 'r+');
+        if (!$stream) {
             return ['success' => false, 'error' => __gallery('image.move_error')];
         }
+        $filesystem->writeStream($relativePath, $stream, $this->buildWriteConfig($diskName, $mimeType));
+        fclose($stream);
 
-        // Obtener dimensiones de la imagen
-        $dimensions = $this->getImageDimensions($fullPath);
-
-        // Generar thumbnails
-        $thumbnailUrl = null;
-        $mediumUrl = null;
-
-        if ($mimeType !== 'image/svg+xml') {
-            $thumbnailUrl = $this->generateThumbnail(
-                $fullPath,
-                $fullDir,
-                $uniqueName,
-                (int) ($settings['thumbnail_width'] ?? 150),
-                (int) ($settings['thumbnail_height'] ?? 150),
-                'thumb'
-            );
-
-            $mediumUrl = $this->generateThumbnail(
-                $fullPath,
-                $fullDir,
-                $uniqueName,
-                (int) ($settings['medium_width'] ?? 600),
-                (int) ($settings['medium_height'] ?? 600),
-                'medium'
-            );
+        // Para discos locales, intentar asegurar permisos
+        if ($localRoot) {
+            @chmod($localRoot . '/' . $relativePath, 0644);
         }
 
-        // URL pública permanente (no caduca)
-        $baseUrl = rtrim(getenv('APP_URL') ?: '', '/');
-        $imageUrl = $baseUrl . $filePath;
+        // Obtener dimensiones (desde tmp para evitar depender de path remoto)
+        $dimensions = $this->getImageDimensions($file['tmp_name']);
 
-        // Crear registro en BD
+        // Crear registro en Media Manager (para que aparezca en /admin/media)
+        $userId = $_SESSION['admin']['id'] ?? ($_SESSION['user']['id'] ?? null);
+        $publicToken = Media::generatePublicToken();
+        $slug = Media::generateSlug($file['name']);
+        $extensionForSeo = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $seoFilename = $slug . '-' . $publicToken . '.' . $extensionForSeo;
+
+        Media::create([
+            'tenant_id' => $tenantId,
+            'user_id' => $userId,
+            'folder_id' => null,
+            'disk' => $diskName,
+            'path' => $relativePath,
+            'public_token' => $publicToken,
+            'slug' => $slug,
+            'seo_filename' => $seoFilename,
+            'filename' => $file['name'],
+            'mime_type' => $mimeType,
+            'size' => $file['size'],
+            'metadata' => null,
+        ]);
+
+        // Usar el mismo patrón de Media Manager: /media/t/{token} (redirige según el disk)
+        $imageUrl = '/media/t/' . $publicToken;
+
         $image = GalleryImage::create([
             'gallery_id' => $gallery->id,
+            'disk' => $diskName,
+            'public_token' => $publicToken,
             'file_name' => $file['name'],
-            'file_path' => $filePath,
+            'file_path' => $relativePath,
             'file_hash' => $hash,
             'file_size' => $file['size'],
             'mime_type' => $mimeType,
             'image_url' => $imageUrl,
-            'thumbnail_url' => $thumbnailUrl ? $baseUrl . $thumbnailUrl : null,
-            'medium_url' => $mediumUrl ? $baseUrl . $mediumUrl : null,
+            'thumbnail_url' => null,
+            'medium_url' => null,
             'title' => pathinfo($file['name'], PATHINFO_FILENAME),
             'alt_text' => pathinfo($file['name'], PATHINFO_FILENAME),
             'width' => $dimensions['width'],
             'height' => $dimensions['height'],
             'sort_order' => GalleryImage::getNextSortOrder($gallery->id),
             'is_active' => true,
-            'metadata' => $this->extractMetadata($fullPath)
+            'metadata' => $this->extractMetadata($file['tmp_name'])
         ]);
 
         if ($image) {
@@ -205,6 +220,128 @@ class ImageController
         }
 
         return ['success' => false, 'error' => __gallery('image.save_error')];
+    }
+
+    private function getDiskNameForContext(?string $requestedDisk): string
+    {
+        $validDisks = ['local', 'media', 'r2', 's3'];
+        $diskName = in_array((string)$requestedDisk, $validDisks, true) ? (string)$requestedDisk : 'media';
+
+        $filesystemsConfig = require APP_ROOT . '/config/filesystems.php';
+        $diskConfig = $filesystemsConfig['disks'][$diskName] ?? null;
+        if (!$diskConfig || !is_array($diskConfig)) {
+            $diskName = 'media';
+        }
+
+        // Si es un disco S3-compatible pero no tiene credenciales, fallback a media.
+        $diskConfig = $filesystemsConfig['disks'][$diskName] ?? null;
+        if (is_array($diskConfig) && ($diskConfig['driver'] ?? null) === 's3') {
+            if (empty($diskConfig['key']) || empty($diskConfig['secret']) || empty($diskConfig['bucket'])) {
+                return 'media';
+            }
+        }
+
+        // Validar disponibilidad del disco en tenant (flags)
+        if ($diskName === 'r2' && !Env::get('TENANT_DISK_R2_ENABLED', true)) {
+            return 'media';
+        }
+        if ($diskName === 's3' && !Env::get('TENANT_DISK_S3_ENABLED', false)) {
+            return 'media';
+        }
+        if ($diskName === 'local' && !Env::get('TENANT_DISK_LOCAL_ENABLED', false)) {
+            return 'media';
+        }
+        if ($diskName === 'media' && !Env::get('TENANT_DISK_MEDIA_ENABLED', true)) {
+            return 'media';
+        }
+
+        return $diskName;
+    }
+
+    private function createFilesystemForDisk(string $diskName): array
+    {
+        $filesystemsConfig = require APP_ROOT . '/config/filesystems.php';
+        $diskConfig = $filesystemsConfig['disks'][$diskName] ?? null;
+
+        if (!$diskConfig || !is_array($diskConfig)) {
+            $diskName = 'media';
+            $diskConfig = $filesystemsConfig['disks']['media'] ?? [];
+        }
+
+        if (($diskConfig['driver'] ?? 'local') === 's3') {
+            $filesystem = $this->createS3Filesystem($diskConfig);
+            if (!$filesystem) {
+                throw new \Exception("No se pudo conectar con el almacenamiento en la nube ({$diskName})");
+            }
+            return [$filesystem, null, $diskConfig];
+        }
+
+        $localRoot = APP_ROOT . ($diskConfig['root'] ?? '/storage/app/media');
+        $adapter = new \League\Flysystem\Local\LocalFilesystemAdapter(
+            $localRoot,
+            null,
+            LOCK_EX,
+            \League\Flysystem\Local\LocalFilesystemAdapter::DISALLOW_LINKS
+        );
+        $filesystem = new \League\Flysystem\Filesystem($adapter);
+        return [$filesystem, $localRoot, $diskConfig];
+    }
+
+    private function buildWriteConfig(string $diskName, string $mimeType): array
+    {
+        $filesystemsConfig = require APP_ROOT . '/config/filesystems.php';
+        $diskConfig = $filesystemsConfig['disks'][$diskName] ?? [];
+
+        $cfg = [
+            'visibility' => 'public',
+        ];
+
+        if (($diskConfig['driver'] ?? null) === 's3') {
+            $cfg['ContentType'] = $mimeType ?: 'application/octet-stream';
+            $cfg['CacheControl'] = 'public, max-age=31536000, immutable';
+        }
+
+        return $cfg;
+    }
+
+    private function createS3Filesystem(array $config): ?\League\Flysystem\Filesystem
+    {
+        try {
+            if (empty($config['key']) || empty($config['secret']) || empty($config['bucket'])) {
+                return null;
+            }
+
+            $clientConfig = [
+                'version' => 'latest',
+                'region' => $config['region'] ?? 'auto',
+                'credentials' => [
+                    'key' => $config['key'],
+                    'secret' => $config['secret'],
+                ],
+            ];
+
+            if (!empty($config['endpoint'])) {
+                $clientConfig['endpoint'] = $config['endpoint'];
+            }
+            if (isset($config['use_path_style_endpoint'])) {
+                $clientConfig['use_path_style_endpoint'] = $config['use_path_style_endpoint'];
+            }
+
+            $client = new \Aws\S3\S3Client($clientConfig);
+            $adapter = new \League\Flysystem\AwsS3V3\AwsS3V3Adapter(
+                $client,
+                $config['bucket'],
+                '',
+                null,
+                null,
+                ['ACL' => 'public-read']
+            );
+
+            return new \League\Flysystem\Filesystem($adapter);
+        } catch (\Exception $e) {
+            error_log("Error creating S3 filesystem (tenant gallery): " . $e->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -307,7 +444,7 @@ class ImageController
             imagedestroy($source);
             imagedestroy($dest);
 
-            // Devolver ruta relativa
+            // Tenant ahora usa storage (media manager). Mantener compatibilidad solo para legacy.
             return str_replace(rtrim($_SERVER['DOCUMENT_ROOT'], '/'), '', $thumbPath);
 
         } catch (\Exception $e) {

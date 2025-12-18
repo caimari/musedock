@@ -265,4 +265,43 @@ class GalleryController
 
         return $errors;
     }
+
+    /**
+     * Verifica si un slug está disponible (AJAX)
+     */
+    public function checkSlug()
+    {
+        SessionSecurity::startSession();
+
+        header('Content-Type: application/json');
+
+        $slug = $_POST['slug'] ?? '';
+        $excludeId = isset($_POST['exclude_id']) ? (int) $_POST['exclude_id'] : null;
+
+        if (empty($slug)) {
+            echo json_encode([
+                'available' => false,
+                'message' => __gallery('validation.slug_required')
+            ]);
+            exit;
+        }
+
+        // Validar formato
+        if (!preg_match('/^[a-z0-9\-]+$/', $slug)) {
+            echo json_encode([
+                'available' => false,
+                'message' => __gallery('validation.slug_invalid')
+            ]);
+            exit;
+        }
+
+        // Verificar si existe (galerías globales, tenant_id = null)
+        $exists = Gallery::slugExists($slug, null, $excludeId);
+
+        echo json_encode([
+            'available' => !$exists,
+            'message' => $exists ? __gallery('validation.slug_exists') : __gallery('validation.slug_available')
+        ]);
+        exit;
+    }
 }

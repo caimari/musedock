@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let targetInputElement = null;
     let targetPreviewElement = null;
     let currentEditMediaId = null;
+    let loadMediaRequestId = 0;
     
     // ========================================================
     // SECTION 5: CONFIGURATION
@@ -64,6 +65,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadMedia(page = 1) {
         if (!gridContainer || !loadingIndicator || !paginationContainer) return;
 
+        const requestId = ++loadMediaRequestId;
+
         loadingIndicator.style.display = 'block'; // Mostrar cargando
         gridContainer.innerHTML = ''; // Limpiar rejilla (excepto cargando)
         gridContainer.appendChild(loadingIndicator); // Re-añadir por si acaso
@@ -72,6 +75,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Construir URL con parámetros
         const url = new URL(dataUrl, window.location.origin);
         url.searchParams.append('page', page);
+        const currentFolderId = window.FolderManager?.currentFolderId || window.currentFolderId;
+        if (currentFolderId) {
+            url.searchParams.append('folder_id', currentFolderId);
+        }
         // TODO: Añadir per_page, search, type, tenant_id si se implementan filtros
 
         fetch(url)
@@ -80,6 +87,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
+                // Evitar render duplicado si hay varias cargas concurrentes
+                if (requestId !== loadMediaRequestId) {
+                    return;
+                }
                 loadingIndicator.style.display = 'none'; // Ocultar cargando
                 if (data.success && data.media && data.media.length > 0) {
                     data.media.forEach(item => gridContainer.appendChild(createMediaItemElement(item)));

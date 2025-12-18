@@ -48,7 +48,9 @@
                                 <input type="text" class="form-control" id="name" name="name" value="{{ old('name') }}" required>
                             </div>
                             <div class="mb-3">
-                                <label for="slug" class="form-label">{{ __gallery('gallery.slug') }}</label>
+                                <label for="slug" class="form-label">{{ __gallery('gallery.slug') }}
+                                    <span id="slug-check-result" class="ms-2 fw-bold"></span>
+                                </label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
                                     <input type="text" class="form-control" id="slug" name="slug" value="{{ old('slug') }}" pattern="[a-z0-9\-]+">
@@ -145,19 +147,143 @@
 
 @push('scripts')
 <script>
-document.getElementById('name').addEventListener('input', function() {
+document.addEventListener('DOMContentLoaded', function() {
+    const nameInput = document.getElementById('name');
     const slugInput = document.getElementById('slug');
-    if (!slugInput.dataset.manual) {
-        slugInput.value = this.value.toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-z0-9\s-]/g, '')
-            .replace(/[\s_]+/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '');
+    const resultSpan = document.getElementById('slug-check-result');
+    let timeoutId = null;
+    let slugManuallyEdited = false;
+
+    function getCsrfToken() {
+        return document.querySelector('input[name="_token"]')?.value ||
+               document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+               document.querySelector('input[name="_csrf"]')?.value ||
+               '';
     }
-});
-document.getElementById('slug').addEventListener('input', function() {
-    this.dataset.manual = this.value.length > 0 ? '1' : '';
+
+    function setCsrfToken(token) {
+        if (!token) return;
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta) meta.setAttribute('content', token);
+        document.querySelectorAll('input[name="_token"], input[name="_csrf"]').forEach((input) => {
+            input.value = token;
+        });
+    }
+
+    // Función para generar slug
+    function slugify(text) {
+        return text.toString()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/--+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
+    }
+
+    // Auto-generar slug desde el nombre
+    if (nameInput) {
+        nameInput.addEventListener('input', function() {
+            if (!slugManuallyEdited) {
+                const cleanSlug = slugify(this.value);
+                slugInput.value = cleanSlug;
+                checkSlug(cleanSlug);
+            }
+        });
+    }
+
+    // Event listener para el slug
+    if (slugInput) {
+        slugInput.addEventListener('input', function() {
+            slugManuallyEdited = this.value.length > 0;
+            const clean = slugify(this.value);
+            if (this.value !== clean) { this.value = clean; }
+            checkSlug(clean);
+        });
+    }
+
+    // Función para verificar slug (igual que páginas)
+    function checkSlug(slug) {
+        if (!slug || !slugInput || !resultSpan) {
+            if (resultSpan) {
+                resultSpan.textContent = '';
+                resultSpan.style.color = '';
+            }
+            return;
+        }
+
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            const formData = new URLSearchParams();
+            formData.append('slug', slug);
+            formData.append('module', 'galleries');
+
+            const csrfToken = getCsrfToken();
+
+            if (csrfToken) {
+                // Compatibilidad: el middleware acepta _token y _csrf
+                formData.append('_token', csrfToken);
+            }
+
+            const headers = {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest',
+            };
+            if (csrfToken) {
+                headers['X-CSRF-TOKEN'] = csrfToken;
+            }
+
+            const doRequest = () => fetch('/ajax/check-slug', {
+                method: 'POST',
+                headers,
+                credentials: 'same-origin',
+                body: formData.toString()
+            });
+
+            doRequest()
+            .then(async (res) => {
+                const data = await res.json().catch(() => null);
+
+                if (!res.ok) {
+                    // Si la sesión/token expiró, el middleware devuelve un nuevo token para reintentar.
+                    if (res.status === 419 && data && data.new_csrf_token) {
+                        setCsrfToken(data.new_csrf_token);
+                        headers['X-CSRF-TOKEN'] = data.new_csrf_token;
+                        formData.set('_token', data.new_csrf_token);
+                        return doRequest().then(r => r.json());
+                    }
+                    throw new Error(data?.message || 'Network response was not ok');
+                }
+
+                return data;
+            })
+            .then(data => {
+                if (resultSpan) {
+                    if (data.exists) {
+                        resultSpan.textContent = '{{ __gallery("validation.slug_exists") }}';
+                        resultSpan.style.color = '#dc3545';
+                    } else {
+                        resultSpan.textContent = '{{ __gallery("validation.slug_available") }}';
+                        resultSpan.style.color = '#28a745';
+                    }
+                }
+            })
+            .catch((error) => {
+                if (resultSpan) {
+                    resultSpan.textContent = 'Error al verificar';
+                    resultSpan.style.color = '#fd7e14';
+                }
+            });
+        }, 400);
+    }
+
+    // Verificación inicial si hay un slug
+    if (slugInput && slugInput.value) {
+        checkSlug(slugInput.value);
+    }
 });
 </script>
 @endpush

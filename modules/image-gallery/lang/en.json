@@ -128,8 +128,10 @@
   "validation": {
     "name_required": "Name is required",
     "name_too_long": "Name cannot exceed 255 characters",
+    "slug_required": "Slug is required",
     "slug_invalid": "Slug can only contain lowercase letters, numbers and hyphens",
     "slug_exists": "This slug already exists",
+    "slug_available": "Slug available",
     "layout_invalid": "Invalid layout type",
     "columns_range": "Columns must be between 1 and 6",
     "file_too_large": "File is too large",

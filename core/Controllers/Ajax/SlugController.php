@@ -4,6 +4,7 @@ namespace Screenart\Musedock\Controllers\Ajax;
 
 use Screenart\Musedock\Services\SlugService;
 use Screenart\Musedock\Services\TenantManager;
+use Screenart\Musedock\Database;
 
 class SlugController
 {
@@ -27,7 +28,7 @@ class SlugController
         }
 
         // SECURITY: Validar módulo contra whitelist para prevenir SQL injection
-        $allowedModules = ['pages', 'blog', 'products', 'categories', 'tags', 'posts'];
+        $allowedModules = ['pages', 'blog', 'products', 'categories', 'tags', 'posts', 'galleries'];
         $inputModule = $_POST['module'] ?? 'pages';
         $module = in_array($inputModule, $allowedModules, true) ? $inputModule : 'pages';
 
@@ -41,8 +42,13 @@ class SlugController
             // Obtener tenant actual (null para CMS global)
             $tenantId = TenantManager::currentTenantId();
 
-            // Verificar slug solo dentro del mismo tenant/global
-            $exists = SlugService::exists($slug, $prefix, $excludeId, $module, $tenantId);
+            // Para galerías, consultar directamente la tabla galleries
+            if ($module === 'galleries') {
+                $exists = $this->checkGallerySlug($slug, $excludeId, $tenantId);
+            } else {
+                // Verificar slug solo dentro del mismo tenant/global
+                $exists = SlugService::exists($slug, $prefix, $excludeId, $module, $tenantId);
+            }
 
             header('Content-Type: application/json');
             echo json_encode(['exists' => $exists]);
@@ -52,9 +58,30 @@ class SlugController
             // En caso de error interno
             http_response_code(500);
             echo json_encode(['error' => 'Error interno del servidor.']);
-            // Puedes loguearlo si quieres:
-            // \Screenart\Musedock\Logger::log('Slug AJAX error: ' . $e->getMessage(), 'ERROR');
             exit;
         }
+    }
+
+    /**
+     * Verifica si un slug de galería ya existe
+     */
+    private function checkGallerySlug(string $slug, ?int $excludeId, ?int $tenantId): bool
+    {
+        // El módulo image-gallery usa la tabla image_galleries (no "galleries")
+        $query = Database::table('image_galleries')->where('slug', $slug);
+
+        if ($excludeId !== null) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        // Filtrar por tenant_id
+        if ($tenantId !== null) {
+            $query->where('tenant_id', $tenantId);
+        } else {
+            // Galerías globales: compatibilidad NULL/0
+            $query->whereRaw('(tenant_id IS NULL OR tenant_id = 0)');
+        }
+
+        return $query->exists();
     }
 }

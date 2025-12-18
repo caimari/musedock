@@ -58,32 +58,49 @@ Route::post('/musedock/image-gallery/images/{id}/thumbnail', 'ImageGallery\Contr
     ->name('image-gallery.images.thumbnail')
     ->middleware('superadmin');
 
+// Verificar disponibilidad de slug (AJAX)
+Route::post('/musedock/image-gallery/check-slug', 'ImageGallery\Controllers\Superadmin\GalleryController@checkSlug')
+    ->name('image-gallery.check-slug')
+    ->middleware('superadmin');
+
 // ============================================================================
 // TENANT ROUTES - Panel de administración del tenant
 // ============================================================================
 
 // Galerías - CRUD Tenant
-Route::get('/admin/image-gallery', 'ImageGallery\Controllers\Tenant\GalleryController@index')
-    ->name('tenant.image-gallery.index');
+// IMPORTANTE: Rutas específicas ANTES de rutas con parámetros
 
-Route::get('/admin/image-gallery/create', 'ImageGallery\Controllers\Tenant\GalleryController@create')
-    ->name('tenant.image-gallery.create');
-
-Route::post('/admin/image-gallery', 'ImageGallery\Controllers\Tenant\GalleryController@store')
-    ->name('tenant.image-gallery.store');
-
-Route::get('/admin/image-gallery/{id}/edit', 'ImageGallery\Controllers\Tenant\GalleryController@edit')
-    ->name('tenant.image-gallery.edit');
-
-Route::put('/admin/image-gallery/{id}', 'ImageGallery\Controllers\Tenant\GalleryController@update')
-    ->name('tenant.image-gallery.update');
-
-Route::post('/admin/image-gallery/{id}/delete', 'ImageGallery\Controllers\Tenant\GalleryController@destroy')
-    ->name('tenant.image-gallery.destroy');
+// Verificar disponibilidad de slug (AJAX)
+Route::post('/admin/image-gallery/check-slug', 'ImageGallery\Controllers\Tenant\GalleryController@checkSlug')
+    ->name('tenant.image-gallery.check-slug');
 
 // Selector de galerías para editor (AJAX)
 Route::get('/admin/image-gallery/selector', 'ImageGallery\Controllers\Tenant\GalleryController@selector')
     ->name('tenant.image-gallery.selector');
+
+// Crear galería
+Route::get('/admin/image-gallery/create', 'ImageGallery\Controllers\Tenant\GalleryController@create')
+    ->name('tenant.image-gallery.create');
+
+// Listar galerías
+Route::get('/admin/image-gallery', 'ImageGallery\Controllers\Tenant\GalleryController@index')
+    ->name('tenant.image-gallery.index');
+
+// Guardar nueva galería
+Route::post('/admin/image-gallery', 'ImageGallery\Controllers\Tenant\GalleryController@store')
+    ->name('tenant.image-gallery.store');
+
+// Editar galería
+Route::get('/admin/image-gallery/{id}/edit', 'ImageGallery\Controllers\Tenant\GalleryController@edit')
+    ->name('tenant.image-gallery.edit');
+
+// Actualizar galería
+Route::put('/admin/image-gallery/{id}', 'ImageGallery\Controllers\Tenant\GalleryController@update')
+    ->name('tenant.image-gallery.update');
+
+// Eliminar galería
+Route::post('/admin/image-gallery/{id}/delete', 'ImageGallery\Controllers\Tenant\GalleryController@destroy')
+    ->name('tenant.image-gallery.destroy');
 
 // Imágenes - Tenant
 Route::post('/admin/image-gallery/{gallery_id}/images/upload', 'ImageGallery\Controllers\Tenant\ImageController@upload')

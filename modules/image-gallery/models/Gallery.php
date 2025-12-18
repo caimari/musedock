@@ -118,13 +118,17 @@ class Gallery extends Model
      * Obtiene galerías activas
      * Para galerías globales, incluye tanto tenant_id = NULL como 0 por compatibilidad
      */
-    public static function getActive(?int $tenantId = null): array
+    public static function getActive(?int $tenantId = null, bool $includeGlobal = true): array
     {
         $query = self::query()->where('is_active', 1);
 
         if ($tenantId !== null) {
-            // Galerías del tenant O globales (NULL/0)
-            $query->whereRaw('(tenant_id = ? OR tenant_id IS NULL OR tenant_id = 0)', [$tenantId]);
+            if ($includeGlobal) {
+                // Galerías del tenant O globales (NULL/0)
+                $query->whereRaw('(tenant_id = ? OR tenant_id IS NULL OR tenant_id = 0)', [$tenantId]);
+            } else {
+                $query->where('tenant_id', $tenantId);
+            }
         }
 
         $rows = $query->orderBy('sort_order', 'ASC')

@@ -7,6 +7,8 @@ use Screenart\Musedock\Traits\RequiresPermission;
 use ImageGallery\Models\Gallery;
 use ImageGallery\Models\GalleryImage;
 use ImageGallery\Models\GallerySetting;
+use MediaManager\Models\Media;
+use Screenart\Musedock\Env;
 
 /**
  * ImageController - Superadmin
@@ -62,8 +64,13 @@ class ImageController
             $uploadedImages = [];
             $errors = [];
 
-            // Obtener disk seleccionado (default: media)
-            $disk = $_POST['disk'] ?? 'media';
+            // Obtener disk seleccionado (default: media; soporta FILESYSTEM_DISK para instalaciones en R2)
+            $defaultDisk = (string) Env::get('FILESYSTEM_DISK', 'media');
+            if ($defaultDisk === 'local') {
+                // "local" es legacy (/public/assets/uploads). Para galerías preferimos "media".
+                $defaultDisk = 'media';
+            }
+            $disk = $_POST['disk'] ?? $defaultDisk;
 
             // Procesar múltiples archivos
             $files = $this->normalizeFilesArray($_FILES['images']);
@@ -143,9 +150,11 @@ class ImageController
             $hash = hash_file('sha256', $file['tmp_name']);
             $uniqueName = $this->generateUniqueFileName($file['name'], $extension, $hash);
 
-            // Preparar ruta relativa dentro del disco
-            $relativePath = 'gallery-' . $gallery->id . '/' . $uniqueName;
-            $dirPath = 'gallery-' . $gallery->id;
+            // Preparar ruta relativa dentro del disco (convención tipo Media Manager)
+            $subPath = ($gallery->tenant_id ? ('tenant_' . (int)$gallery->tenant_id) : 'global') . '/galleries/gallery_' . $gallery->id;
+            $yearMonth = date('Y/m');
+            $relativePath = "{$subPath}/{$yearMonth}/{$uniqueName}";
+            $dirPath = dirname($relativePath);
 
             // Crear filesystem según el tipo de disco
             if ($diskConfig['driver'] === 's3') {
@@ -239,31 +248,64 @@ class ImageController
                 }
             }
 
-            // Generar token público permanente (como en sliders)
-            $publicToken = $this->generatePublicToken();
+        // Crear registro en Media Manager (fuente de verdad para /admin/media)
+        $userId = $_SESSION['super_admin']['id'] ?? ($_SESSION['admin']['id'] ?? ($_SESSION['user']['id'] ?? null));
+        $publicToken = Media::generatePublicToken();
+        $slug = Media::generateSlug($file['name']);
+        $extensionForSeo = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $seoFilename = $slug . '-' . $publicToken . '.' . $extensionForSeo;
 
-            // Generar URLs públicas usando el token
-            $imageUrl = $this->generatePublicUrlWithToken($disk, $relativePath, $publicToken);
-            $thumbnailUrlFinal = $thumbnailUrl ? $this->generatePublicUrlWithToken($disk, $thumbnailPath, $publicToken . '-thumb') : null;
-            $mediumUrlFinal = $mediumUrl ? $this->generatePublicUrlWithToken($disk, $mediumPath, $publicToken . '-medium') : null;
+        Media::create([
+            'tenant_id' => $gallery->tenant_id ?: null,
+            'user_id' => $userId,
+            'folder_id' => null,
+            'disk' => $disk,
+            'path' => $relativePath,
+            'public_token' => $publicToken,
+            'slug' => $slug,
+            'seo_filename' => $seoFilename,
+            'filename' => $file['name'],
+            'mime_type' => $mimeType,
+            'size' => $file['size'],
+            'metadata' => null,
+        ]);
 
-            // Crear registro en BD
-            $image = GalleryImage::create([
-                'gallery_id' => $gallery->id,
-                'disk' => $disk,
-                'public_token' => $publicToken,
-                'file_name' => $file['name'],
-                'file_path' => $relativePath,
-                'file_hash' => $hash,
-                'file_size' => $file['size'],
-                'mime_type' => $mimeType,
-                'image_url' => $imageUrl,
-                'thumbnail_url' => $thumbnailUrlFinal,
-                'medium_url' => $mediumUrlFinal,
-                'title' => pathinfo($file['name'], PATHINFO_FILENAME),
-                'alt_text' => pathinfo($file['name'], PATHINFO_FILENAME),
-                'width' => $dimensions['width'],
-                'height' => $dimensions['height'],
+        // URLs públicas basadas en el token del Media Manager
+        $imageUrl = '/media/t/' . $publicToken;
+
+        // Si generamos archivos extra en el mismo filesystem local "media", servirlos via /media/file con validación
+        $thumbnailUrlFinal = null;
+        $mediumUrlFinal = null;
+        if (in_array($disk, ['media', 'private'], true)) {
+            if ($thumbnailPath) {
+                $thumbnailUrlFinal = '/media/file/' . ltrim($thumbnailPath, '/') . '?token=' . $publicToken . '-thumb';
+            }
+            if ($mediumPath) {
+                $mediumUrlFinal = '/media/file/' . ltrim($mediumPath, '/') . '?token=' . $publicToken . '-medium';
+            }
+        } else {
+            // Para cloud: usar URL directa generada anteriormente (si existe)
+            $thumbnailUrlFinal = $thumbnailUrl ?: null;
+            $mediumUrlFinal = $mediumUrl ?: null;
+        }
+
+        // Crear registro en BD
+        $image = GalleryImage::create([
+            'gallery_id' => $gallery->id,
+            'disk' => $disk,
+            'public_token' => $publicToken,
+            'file_name' => $file['name'],
+            'file_path' => $relativePath,
+            'file_hash' => $hash,
+            'file_size' => $file['size'],
+            'mime_type' => $mimeType,
+            'image_url' => $imageUrl,
+            'thumbnail_url' => $thumbnailUrlFinal,
+            'medium_url' => $mediumUrlFinal,
+            'title' => pathinfo($file['name'], PATHINFO_FILENAME),
+            'alt_text' => pathinfo($file['name'], PATHINFO_FILENAME),
+            'width' => $dimensions['width'],
+            'height' => $dimensions['height'],
                 'sort_order' => GalleryImage::getNextSortOrder($gallery->id),
                 'is_active' => true,
                 'metadata' => $this->extractMetadata($file['tmp_name'])
