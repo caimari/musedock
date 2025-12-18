@@ -164,7 +164,7 @@ function copyShortcode(id, slug) {
     navigator.clipboard.writeText(text).then(() => {
         Swal.fire({
             icon: 'success',
-            title: '{{ __element("element.copied") }}',
+            title: @json(__element("element.copied")),
             text: text,
             timer: 2000,
             showConfirmButton: false
@@ -174,19 +174,20 @@ function copyShortcode(id, slug) {
 
 function confirmDelete(id, name) {
     Swal.fire({
-        title: '{{ __element("element.confirm_delete") }}',
-        text: '{{ __element("element.delete_warning") }}',
+        title: @json(__element("element.confirm_delete")),
+        text: @json(__element("element.delete_warning")),
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: '{{ __element("element.delete") }}',
-        cancelButtonText: '{{ __element("element.cancel") }}'
+        confirmButtonText: @json(__element("element.delete")),
+        cancelButtonText: @json(__element("element.cancel"))
     }).then((result) => {
         if (result.isConfirmed) {
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = `/{{ admin_path() }}/elements/${id}/delete`;
+            form.action = `/musedock/elements/${id}/delete`;
+            form.innerHTML = '@csrf';
             document.body.appendChild(form);
             form.submit();
         }
