@@ -177,7 +177,7 @@ if (!function_exists('render_element')) {
         // Inject CSS and JS assets once (on first element render)
         $assetsHTML = '';
         if (!$assetsInjected) {
-            $preset = elements_get_active_preset();
+            $preset = elements_get_active_preset($element);
             $version = defined('ELEMENTS_VERSION') ? ELEMENTS_VERSION : '1.0.0';
             $cssUrl = '/assets/modules/elements/css/' . $preset . '.css';
             $jsUrl = '/assets/modules/elements/js/elements.js';
@@ -249,16 +249,31 @@ if (!function_exists('elements_get_active_preset')) {
     /**
      * Get the active preset for elements
      *
-     * Priority: Theme function > Theme constant > Module setting > Default
+     * Priority: Element setting > Theme function > Theme constant > Module setting > Default
      *
+     * @param Element|null $element
      * @return string
      */
-    function elements_get_active_preset(): string
+    function elements_get_active_preset($element = null): string
     {
         // Determine which preset to use
         $preset = 'default';
 
-        // Check if theme has a custom elements preset (highest priority)
+        // Check element-specific setting first (highest priority)
+        if ($element) {
+            $elementSettings = $element->getSettings();
+            if (!empty($elementSettings['style_preset'])) {
+                $preset = $elementSettings['style_preset'];
+
+                // Validate and return if valid
+                $availablePresets = ['default', 'modern', 'minimal', 'creative'];
+                if (in_array($preset, $availablePresets)) {
+                    return $preset;
+                }
+            }
+        }
+
+        // Check if theme has a custom elements preset
         if (function_exists('get_theme_elements_preset')) {
             $preset = get_theme_elements_preset();
         } elseif (defined('THEME_ELEMENTS_PRESET')) {

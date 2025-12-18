@@ -297,6 +297,17 @@
                                 <label for="sort_order" class="form-label">{{ __element('element.sort_order') }}</label>
                                 <input type="number" class="form-control" id="sort_order" name="sort_order" value="{{ old('sort_order', $element->sort_order) }}" {{ $isReadOnly ? 'disabled' : '' }}>
                             </div>
+                            <div class="mb-3">
+                                <label for="style_preset" class="form-label">{{ __element('element.style_preset') }}</label>
+                                <select class="form-select" id="style_preset" name="settings[style_preset]" {{ $isReadOnly ? 'disabled' : '' }}>
+                                    <option value="">{{ __element('element.preset_default') }}</option>
+                                    <option value="default" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'default' ? 'selected' : '' }}>Default</option>
+                                    <option value="modern" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'modern' ? 'selected' : '' }}>Modern</option>
+                                    <option value="minimal" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'minimal' ? 'selected' : '' }}>Minimal</option>
+                                    <option value="creative" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'creative' ? 'selected' : '' }}>Creative</option>
+                                </select>
+                                <small class="form-text text-muted">{{ __element('element.style_preset_help') }}</small>
+                            </div>
                         </div>
                         @if(!$isReadOnly)
                             <div class="card-footer">

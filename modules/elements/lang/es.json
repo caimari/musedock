@@ -69,7 +69,10 @@
     "saving": "Guardando...",
     "deleting": "Eliminando...",
     "content": "Contenido",
-    "data": "Datos del Elemento"
+    "data": "Datos del Elemento",
+    "style_preset": "Estilo Visual",
+    "preset_default": "(Usar estilo del tema)",
+    "style_preset_help": "Selecciona un estilo visual específico para este elemento o deja vacío para usar el estilo predeterminado del tema"
   },
   "hero": {
     "layout_image_right": "Imagen Derecha",
