@@ -154,8 +154,14 @@ class UsersController
             }
         }
 
-        // Obtener permisos disponibles agrupados por categoría
-        $groupedPermissions = \Screenart\Musedock\Helpers\PermissionHelper::getPermissionsGroupedByCategory();
+        // Obtener permisos disponibles agrupados por categoría según el tipo de usuario
+        // - Superadmin: permisos con scope = 'superadmin'
+        // - Admin/User: permisos con scope = 'tenant'
+        if ($type === 'superadmin') {
+            $groupedPermissions = \Screenart\Musedock\Helpers\PermissionHelper::getSuperadminPermissions();
+        } else {
+            $groupedPermissions = \Screenart\Musedock\Helpers\PermissionHelper::getTenantPermissions();
+        }
 
         // Obtener permisos actuales del usuario
         // Asegurar tipos correctos para PostgreSQL compatibility

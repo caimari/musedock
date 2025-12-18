@@ -419,19 +419,30 @@ class PermissionHelper
     /**
      * Obtener permisos agrupados por categoría
      *
+     * @param string|null $scope Filtrar por scope: 'superadmin', 'tenant', o null para todos
      * @return array
      */
-    public static function getPermissionsGroupedByCategory(): array
+    public static function getPermissionsGroupedByCategory(?string $scope = null): array
     {
         try {
             $pdo = Database::connect();
 
-            $stmt = $pdo->query("
-                SELECT slug, name, description, category
-                FROM permissions
-                WHERE tenant_id IS NULL
-                ORDER BY category, slug
-            ");
+            if ($scope !== null) {
+                $stmt = $pdo->prepare("
+                    SELECT slug, name, description, category, scope
+                    FROM permissions
+                    WHERE tenant_id IS NULL AND scope = ?
+                    ORDER BY category, slug
+                ");
+                $stmt->execute([$scope]);
+            } else {
+                $stmt = $pdo->query("
+                    SELECT slug, name, description, category, scope
+                    FROM permissions
+                    WHERE tenant_id IS NULL
+                    ORDER BY category, slug
+                ");
+            }
 
             $permissions = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             $grouped = [];
@@ -446,6 +457,64 @@ class PermissionHelper
         } catch (\Exception $e) {
             error_log("PermissionHelper::getPermissionsGroupedByCategory error: " . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Obtener permisos para panel de superadmin (scope = 'superadmin')
+     *
+     * @return array Permisos agrupados por categoría
+     */
+    public static function getSuperadminPermissions(): array
+    {
+        return self::getPermissionsGroupedByCategory('superadmin');
+    }
+
+    /**
+     * Obtener permisos para paneles de tenant (scope = 'tenant')
+     *
+     * @return array Permisos agrupados por categoría
+     */
+    public static function getTenantPermissions(): array
+    {
+        return self::getPermissionsGroupedByCategory('tenant');
+    }
+
+    /**
+     * Contar permisos por scope
+     *
+     * @return array ['superadmin' => int, 'tenant' => int, 'total' => int]
+     */
+    public static function countPermissionsByScope(): array
+    {
+        try {
+            $pdo = Database::connect();
+            $result = [
+                'superadmin' => 0,
+                'tenant' => 0,
+                'total' => 0,
+            ];
+
+            $stmt = $pdo->query("
+                SELECT scope, COUNT(*) as count
+                FROM permissions
+                WHERE tenant_id IS NULL
+                GROUP BY scope
+            ");
+
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                $scope = $row['scope'] ?? 'tenant';
+                if (isset($result[$scope])) {
+                    $result[$scope] = (int) $row['count'];
+                }
+                $result['total'] += (int) $row['count'];
+            }
+
+            return $result;
+
+        } catch (\Exception $e) {
+            error_log("PermissionHelper::countPermissionsByScope error: " . $e->getMessage());
+            return ['superadmin' => 0, 'tenant' => 0, 'total' => 0];
         }
     }
 }

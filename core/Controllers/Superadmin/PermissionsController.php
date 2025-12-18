@@ -395,4 +395,41 @@ class PermissionsController
         header('Location: /musedock/permissions');
         exit;
     }
+
+    /**
+     * REGENERA todos los permisos desde cero
+     *
+     * Elimina todos los permisos globales y los recrea escaneando el código.
+     * Esto corrige el scope (superadmin/tenant) basado en los controladores.
+     *
+     * ADVERTENCIA: Elimina asignaciones de permisos a roles.
+     */
+    public function regenerate()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('users.manage');
+
+        try {
+            $result = PermissionScanner::regenerateAllPermissions();
+
+            $createdCount = count($result['created']);
+            $deletedCount = $result['deleted'];
+            $superadminCount = $result['by_scope']['superadmin'] ?? 0;
+            $tenantCount = $result['by_scope']['tenant'] ?? 0;
+
+            if (!empty($result['errors'])) {
+                $errorCount = count($result['errors']);
+                flash('warning', "Regeneración completada con {$errorCount} error(es). Eliminados: {$deletedCount}, Creados: {$createdCount} (Superadmin: {$superadminCount}, Tenant: {$tenantCount})");
+            } else {
+                flash('success', "Permisos regenerados correctamente. Eliminados: {$deletedCount}, Creados: {$createdCount} (Superadmin: {$superadminCount}, Tenant: {$tenantCount})");
+            }
+
+        } catch (\Exception $e) {
+            \Screenart\Musedock\Logger::error("Error al regenerar permisos: " . $e->getMessage());
+            flash('error', 'Error al regenerar permisos: ' . $e->getMessage());
+        }
+
+        header('Location: /musedock/permissions');
+        exit;
+    }
 }

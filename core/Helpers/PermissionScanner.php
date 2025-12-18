@@ -248,6 +248,7 @@ class PermissionScanner
 
     /**
      * Sincroniza permisos: crea en BD los que faltan del código
+     * Si un permiso existe en ambos tipos de controladores, se crea en ambos scopes
      *
      * @return array Resultado de la sincronización
      */
@@ -263,30 +264,26 @@ class PermissionScanner
                 $name = self::generateNameFromSlug($slug);
                 $category = self::guessCategoryFromSlug($slug);
 
-                // Determinar scope basado en el tipo de controlador
+                // Determinar scopes basados en el tipo de controlador
                 $codeDetails = $comparison['code_details'][$slug] ?? [];
-                $scope = 'global';
-                if (!empty($codeDetails['types'])) {
-                    // Si solo está en admin/tenant, marcarlo como tenant scope
-                    $types = $codeDetails['types'];
-                    if (!in_array('superadmin', $types) && (in_array('admin', $types) || in_array('tenant', $types))) {
-                        $scope = 'tenant';
-                    }
-                }
+                $scopes = self::determineScopesFromTypes($codeDetails['types'] ?? []);
 
                 // Generar descripción específica basada en el slug
                 $description = self::generateDescriptionFromSlug($slug);
 
-                Database::table('permissions')->insert([
-                    'slug' => $slug,
-                    'name' => $name,
-                    'description' => $description,
-                    'category' => $category,
-                    'tenant_id' => null,
-                    'scope' => $scope,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]);
+                // Crear permiso en cada scope necesario
+                foreach ($scopes as $scope) {
+                    Database::table('permissions')->insert([
+                        'slug' => $slug,
+                        'name' => $name,
+                        'description' => $description,
+                        'category' => $category,
+                        'tenant_id' => null,
+                        'scope' => $scope,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s'),
+                    ]);
+                }
 
                 $created[] = $slug;
             } catch (\Exception $e) {
@@ -301,6 +298,147 @@ class PermissionScanner
             'orphaned_in_db' => $comparison['in_db_only'],
             'stats' => $comparison['stats'],
         ];
+    }
+
+    /**
+     * Determina los scopes basados en los tipos de controlador donde se usa el permiso
+     *
+     * Lógica CORREGIDA:
+     * - Si está SOLO en Superadmin → ['superadmin']
+     * - Si está SOLO en Tenant/Admin/Module → ['tenant']
+     * - Si está en AMBOS → ['superadmin', 'tenant'] (crear en ambos scopes)
+     *
+     * @param array $types Array de tipos ['superadmin', 'admin', 'tenant', 'module']
+     * @return array Array de scopes donde debe crearse el permiso
+     */
+    private static function determineScopesFromTypes(array $types): array
+    {
+        $scopes = [];
+
+        // Verificar si está en controladores Superadmin
+        $inSuperadmin = in_array('superadmin', $types);
+
+        // Verificar si está en controladores Tenant/Admin/Module
+        $inTenant = in_array('tenant', $types) || in_array('admin', $types) || in_array('module', $types);
+
+        if ($inSuperadmin) {
+            $scopes[] = 'superadmin';
+        }
+
+        if ($inTenant) {
+            $scopes[] = 'tenant';
+        }
+
+        // Si no está en ninguno (caso raro), por defecto es tenant
+        if (empty($scopes)) {
+            $scopes[] = 'tenant';
+        }
+
+        return $scopes;
+    }
+
+    /**
+     * Determina el scope basado en los tipos de controlador (versión simple para compatibilidad)
+     *
+     * @deprecated Usar determineScopesFromTypes() para soporte de múltiples scopes
+     * @param array $types Array de tipos ['superadmin', 'admin', 'tenant', 'module']
+     * @return string 'superadmin' o 'tenant'
+     */
+    private static function determineScopeFromTypes(array $types): string
+    {
+        $scopes = self::determineScopesFromTypes($types);
+        return $scopes[0] ?? 'tenant';
+    }
+
+    /**
+     * REGENERA TODOS los permisos desde cero
+     *
+     * 1. Elimina TODOS los permisos globales (tenant_id IS NULL)
+     * 2. Escanea el código y crea los permisos con el scope correcto
+     * 3. Si un permiso existe en AMBOS tipos de controladores, se crea en AMBOS scopes
+     * 4. NO elimina permisos específicos de tenant (tenant_id IS NOT NULL)
+     *
+     * ADVERTENCIA: Esto eliminará asignaciones de permisos a roles.
+     * Usar con precaución.
+     *
+     * @return array Resultado de la regeneración
+     */
+    public static function regenerateAllPermissions(): array
+    {
+        $result = [
+            'deleted' => 0,
+            'created' => [],
+            'errors' => [],
+            'by_scope' => [
+                'superadmin' => 0,
+                'tenant' => 0,
+            ],
+            'duplicated_in_both' => [], // Permisos creados en ambos scopes
+        ];
+
+        try {
+            $pdo = Database::connect();
+
+            // 1. Contar permisos globales que se eliminarán
+            $stmt = $pdo->query("SELECT COUNT(*) FROM permissions WHERE tenant_id IS NULL");
+            $result['deleted'] = (int) $stmt->fetchColumn();
+
+            // 2. Eliminar relaciones de role_permissions para permisos globales
+            $pdo->exec("
+                DELETE FROM role_permissions
+                WHERE permission_id IN (
+                    SELECT id FROM permissions WHERE tenant_id IS NULL
+                )
+            ");
+
+            // 3. Eliminar permisos globales
+            $pdo->exec("DELETE FROM permissions WHERE tenant_id IS NULL");
+
+            // 4. Escanear código y crear permisos nuevos
+            $codePermissions = self::scanCodePermissions();
+
+            foreach ($codePermissions as $slug => $info) {
+                try {
+                    $name = self::generateNameFromSlug($slug);
+                    $category = self::guessCategoryFromSlug($slug);
+                    $description = self::generateDescriptionFromSlug($slug);
+
+                    // Obtener TODOS los scopes donde debe crearse este permiso
+                    $scopes = self::determineScopesFromTypes($info['types'] ?? []);
+
+                    // Crear un permiso para CADA scope
+                    foreach ($scopes as $scope) {
+                        Database::table('permissions')->insert([
+                            'slug' => $slug,
+                            'name' => $name,
+                            'description' => $description,
+                            'category' => $category,
+                            'tenant_id' => null,
+                            'scope' => $scope,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s'),
+                        ]);
+
+                        $result['by_scope'][$scope]++;
+                    }
+
+                    $result['created'][] = $slug;
+
+                    // Registrar si se creó en ambos scopes
+                    if (count($scopes) > 1) {
+                        $result['duplicated_in_both'][] = $slug;
+                    }
+
+                } catch (\Exception $e) {
+                    $result['errors'][$slug] = $e->getMessage();
+                }
+            }
+
+        } catch (\Exception $e) {
+            $result['errors']['_global'] = $e->getMessage();
+        }
+
+        return $result;
     }
 
     /**
@@ -325,13 +463,16 @@ class PermissionScanner
             'list' => 'Listar',
             'export' => 'Exportar',
             'import' => 'Importar',
+            'settings' => 'Configuración de',
+            'all' => 'todos',
         ];
 
         // Traducciones comunes de recursos
         $resources = [
             'users' => 'usuarios',
             'pages' => 'páginas',
-            'posts' => 'posts',
+            'posts' => 'publicaciones',
+            'blog' => 'blog',
             'media' => 'archivos multimedia',
             'settings' => 'configuración',
             'tickets' => 'tickets',
@@ -349,15 +490,73 @@ class PermissionScanner
             'products' => 'productos',
             'customers' => 'clientes',
             'invoices' => 'facturas',
+            'categories' => 'categorías',
+            'tags' => 'etiquetas',
+            'custom_forms' => 'formularios',
+            'image_gallery' => 'galería de imágenes',
+            'react_sliders' => 'sliders',
+            'instagram' => 'Instagram',
+            'elements' => 'elementos',
+            'submissions' => 'envíos',
+            'tenants' => 'tenants',
+            'roles' => 'roles',
+            'permissions' => 'permisos',
+            'ai' => 'IA',
+            'cron' => 'cron',
+            'security' => 'seguridad',
         ];
 
+        // Nombres especiales para slugs compuestos
+        $specialNames = [
+            'blog.edit.all' => 'Editar todo el blog',
+            'blog.delete.all' => 'Eliminar todo del blog',
+            'blog.categories.create' => 'Crear categorías de blog',
+            'blog.categories.edit' => 'Editar categorías de blog',
+            'blog.categories.delete' => 'Eliminar categorías de blog',
+            'blog.categories.view' => 'Ver categorías de blog',
+            'blog.tags.create' => 'Crear etiquetas de blog',
+            'blog.tags.edit' => 'Editar etiquetas de blog',
+            'blog.tags.delete' => 'Eliminar etiquetas de blog',
+            'blog.tags.view' => 'Ver etiquetas de blog',
+            'custom_forms.submissions.view' => 'Ver envíos de formularios',
+            'custom_forms.submissions.delete' => 'Eliminar envíos de formularios',
+            'custom_forms.submissions.export' => 'Exportar envíos de formularios',
+            'instagram.settings' => 'Configuración de Instagram',
+            'appearance.menus' => 'Menús de apariencia',
+            'appearance.themes' => 'Temas de apariencia',
+            'security-dashboard' => 'Panel de seguridad',
+            'security-manage-trusted-ips' => 'Gestionar IPs de confianza',
+            'analytics-view' => 'Ver analíticas',
+            'advanced.ai' => 'IA avanzada',
+            'advanced.cron' => 'Cron avanzado',
+        ];
+
+        // Verificar si hay un nombre especial
+        if (isset($specialNames[$slug])) {
+            return $specialNames[$slug];
+        }
+
+        // Slug de 2 partes: recurso.accion
         if (count($parts) === 2) {
-            $resource = $resources[$parts[0]] ?? ucfirst($parts[0]);
+            $resource = $resources[$parts[0]] ?? ucfirst(str_replace('_', ' ', $parts[0]));
             $action = $actions[$parts[1]] ?? ucfirst($parts[1]);
             return "{$action} {$resource}";
         }
 
-        // Si no tiene formato recurso.accion, capitalizar
+        // Slug de 3 partes: recurso.subrecurso.accion
+        if (count($parts) === 3) {
+            $resource = $resources[$parts[0]] ?? ucfirst(str_replace('_', ' ', $parts[0]));
+            $subresource = $resources[$parts[1]] ?? str_replace('_', ' ', $parts[1]);
+            $action = $actions[$parts[2]] ?? ucfirst($parts[2]);
+            return "{$action} {$subresource} de {$resource}";
+        }
+
+        // Slug con guiones (ej: security-dashboard)
+        if (strpos($slug, '-') !== false) {
+            return ucfirst(str_replace('-', ' ', $slug));
+        }
+
+        // Fallback: capitalizar
         return ucfirst(str_replace('.', ' ', $slug));
     }
 

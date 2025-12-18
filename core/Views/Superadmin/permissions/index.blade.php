@@ -17,6 +17,9 @@
 
     // Detectar permisos HUÉRFANOS (en BD pero NO en código)
     $orphanSlugs = array_values(array_diff(array_unique($dbSlugs), $codeSlugs));
+
+    // Contar permisos por scope
+    $scopeCounts = \Screenart\Musedock\Helpers\PermissionHelper::countPermissionsByScope();
 @endphp
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -34,9 +37,15 @@
             </form>
             @else
             <span class="btn btn-outline-success disabled" title="Todos los permisos del código están en la BD">
-                <i class="bi bi-check-circle"></i> Sincronizado ({{ count($codeSlugs) }})
+                <i class="bi bi-check-circle"></i> Sincronizado
             </span>
             @endif
+            <form method="POST" action="/musedock/permissions/regenerate" class="d-inline" id="regenerateForm">
+                {!! csrf_field() !!}
+                <button type="button" class="btn btn-danger" id="btnRegenerate" title="Eliminar todos los permisos y recrearlos desde el código">
+                    <i class="bi bi-arrow-clockwise"></i> Regenerar Todo
+                </button>
+            </form>
             <a href="/musedock/permissions/create" class="btn btn-success">
                 <i class="bi bi-plus-circle"></i> Nuevo Permiso
             </a>
@@ -50,7 +59,7 @@
                 <i class="bi bi-info-circle me-1"></i>
                 <strong>Estado:</strong>
                 Código: {{ count($codeSlugs) }} |
-                BD: {{ count($dbSlugs) }} ({{ count(array_unique($dbSlugs)) }} únicos) |
+                BD: {{ count($dbSlugs) }} (<span class="text-primary">{{ $scopeCounts['superadmin'] }} superadmin</span>, <span class="text-info">{{ $scopeCounts['tenant'] }} tenant</span>) |
                 @if(count($permsMissingInDb) > 0)
                     <span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Faltan {{ count($permsMissingInDb) }}</span> |
                 @endif
@@ -195,29 +204,21 @@
             $multiTenantEnabled = setting('multi_tenant_enabled', false);
         }
 
-        // Separar permisos globales y de tenant específico
-        $globalPermissions = array_filter($permissions, function($perm) {
-            return empty($perm['tenant_id']);
+        // Separar permisos por scope y tenant_id
+        $superadminPermissions = array_filter($permissions, function($perm) {
+            return empty($perm['tenant_id']) && ($perm['scope'] ?? '') === 'superadmin';
         });
+
+        $tenantScopePermissions = array_filter($permissions, function($perm) {
+            return empty($perm['tenant_id']) && ($perm['scope'] ?? 'tenant') === 'tenant';
+        });
+
         $tenantSpecificPermissions = array_filter($permissions, function($perm) {
             return !empty($perm['tenant_id']);
         });
 
-        // Obtener permisos agrupados por tipo de controlador
+        // Para compatibilidad con la vista existente
         $permissionsByType = \Screenart\Musedock\Helpers\PermissionScanner::getPermissionsByType();
-
-        // Permisos usados en controladores de Tenant (aunque sean globales)
-        $tenantControllerSlugs = array_keys($permissionsByType['tenant'] ?? []);
-
-        // Filtrar permisos globales que se usan en controllers de tenant
-        $tenantUsedPermissions = array_filter($globalPermissions, function($perm) use ($tenantControllerSlugs) {
-            return in_array($perm['slug'] ?? '', $tenantControllerSlugs);
-        });
-
-        // Permisos globales que NO se usan en tenant (solo superadmin/modules)
-        $nonTenantGlobalPermissions = array_filter($globalPermissions, function($perm) use ($tenantControllerSlugs) {
-            return !in_array($perm['slug'] ?? '', $tenantControllerSlugs);
-        });
     @endphp
 
     @include('partials.alerts-sweetalert2')
@@ -305,92 +306,19 @@
         </div>
     </div>
 
-    {{-- PERMISOS USADOS EN TENANT CONTROLLERS --}}
-    @if($multiTenantEnabled && count($tenantUsedPermissions) > 0)
-    <div class="card mb-4">
-        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-            <strong><i class="bi bi-building me-2"></i>Permisos para Paneles de Tenant</strong>
-            <span class="badge bg-light text-dark">{{ count($tenantUsedPermissions) }}</span>
-        </div>
-        <div class="card-body p-3 bg-light">
-            <p class="small text-muted mb-3">
-                <i class="bi bi-info-circle me-1"></i>
-                Estos permisos se usan en <code>Controllers/Tenant/</code> y son los que debes asignar a los roles admin de cada tenant.
-                Son permisos globales (sin tenant_id específico) pero aplicables a todos los tenants.
-            </p>
-        </div>
-        <div class="card-body table-responsive p-0">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>ID</th>
-                        <th>Slug</th>
-                        <th>Nombre</th>
-                        <th>Descripción</th>
-                        <th>Categoría</th>
-                        <th>Usado en</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($tenantUsedPermissions as $perm)
-                        @php
-                            $slugInfo = $permissionsByType['tenant'][$perm['slug']] ?? null;
-                            $files = $slugInfo ? array_filter($slugInfo['files'], fn($f) => str_contains($f, 'Tenant')) : [];
-                        @endphp
-                        <tr>
-                            <td>{{ $perm['id'] }}</td>
-                            <td><code class="text-info">{{ $perm['slug'] ?? '-' }}</code></td>
-                            <td>{{ $perm['name'] }}</td>
-                            <td class="text-muted small">{{ $perm['description'] }}</td>
-                            <td>
-                                @if(!empty($perm['category']))
-                                    <span class="badge bg-secondary">{{ $perm['category'] }}</span>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
-                            <td class="small">
-                                @if(!empty($files))
-                                    <span class="text-muted" title="{{ implode(', ', array_slice($files, 0, 5)) }}">
-                                        {{ count($files) }} archivo(s)
-                                    </span>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
-                            <td class="d-flex gap-2">
-                                <a href="/musedock/permissions/{{ $perm['id'] }}/edit" class="btn btn-sm btn-outline-secondary">
-                                    Editar
-                                </a>
-                                <form method="POST" action="/musedock/permissions/{{ $perm['id'] }}/delete" onsubmit="return confirm('¿Eliminar este permiso? Se eliminará de todos los roles.')">
-                                    {!! csrf_field() !!}
-                                    <button class="btn btn-sm btn-outline-danger">Eliminar</button>
-                                </form>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
-    @endif
-
-    {{-- PERMISOS GLOBALES (Solo Superadmin/Módulos) --}}
+    {{-- PERMISOS SUPERADMIN (scope = 'superadmin') --}}
     <div class="card mb-4">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <strong><i class="bi bi-globe me-2"></i>Permisos Globales (Superadmin/Módulos)</strong>
-            <span class="badge bg-light text-dark">{{ count($nonTenantGlobalPermissions) }}</span>
+            <strong><i class="bi bi-shield-lock me-2"></i>Permisos Superadmin (Panel /musedock)</strong>
+            <span class="badge bg-light text-dark">{{ count($superadminPermissions) }}</span>
         </div>
-        @if($multiTenantEnabled)
         <div class="card-body p-3 bg-light">
             <p class="small text-muted mb-0">
                 <i class="bi bi-info-circle me-1"></i>
-                Estos permisos se usan solo en el panel Superadmin (<code>/musedock</code>) y módulos globales.
-                No aplican a los paneles de administración de tenants.
+                Estos permisos se usan en <code>Controllers/Superadmin/</code>.
+                Son para usuarios que acceden al panel de superadministración (<code>/musedock/*</code>).
             </p>
         </div>
-        @endif
         <div class="card-body table-responsive p-0">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
@@ -405,7 +333,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($nonTenantGlobalPermissions as $perm)
+                    @forelse ($superadminPermissions as $perm)
                         <tr>
                             <td>{{ $perm['id'] }}</td>
                             <td><code class="text-primary">{{ $perm['slug'] ?? '-' }}</code></td>
@@ -433,12 +361,8 @@
                         <tr>
                             <td colspan="7" class="text-center py-4">
                                 <i class="bi bi-inbox text-muted d-block" style="font-size: 2rem;"></i>
-                                <p class="text-muted mb-0">No hay permisos globales de superadmin/módulos.</p>
-                                @if(!empty($permsMissingInDb))
-                                    <p class="text-muted small">Usa "Sincronizar" para crear los permisos del código automáticamente.</p>
-                                @else
-                                    <a href="/musedock/permissions/create" class="btn btn-sm btn-primary mt-2">Crear primer permiso</a>
-                                @endif
+                                <p class="text-muted mb-0">No hay permisos de superadmin.</p>
+                                <p class="text-muted small">Usa "Regenerar Todo" para escanear el código y crear los permisos.</p>
                             </td>
                         </tr>
                     @endforelse
@@ -446,6 +370,73 @@
             </table>
         </div>
     </div>
+
+    {{-- PERMISOS TENANT (scope = 'tenant') --}}
+    @if($multiTenantEnabled)
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+            <strong><i class="bi bi-building me-2"></i>Permisos para Paneles de Tenant (Panel /admin)</strong>
+            <span class="badge bg-light text-dark">{{ count($tenantScopePermissions) }}</span>
+        </div>
+        <div class="card-body p-3 bg-light">
+            <p class="small text-muted mb-0">
+                <i class="bi bi-info-circle me-1"></i>
+                Estos permisos se usan en <code>Controllers/Tenant/</code> y <code>Controllers/Admin/</code>.
+                Son para administradores de tenant que acceden a (<code>/admin/*</code>). Aplican a TODOS los tenants.
+            </p>
+        </div>
+        <div class="card-body table-responsive p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Slug</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Categoría</th>
+                        <th>Creado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($tenantScopePermissions as $perm)
+                        <tr>
+                            <td>{{ $perm['id'] }}</td>
+                            <td><code class="text-info">{{ $perm['slug'] ?? '-' }}</code></td>
+                            <td>{{ $perm['name'] }}</td>
+                            <td class="text-muted small">{{ $perm['description'] }}</td>
+                            <td>
+                                @if(!empty($perm['category']))
+                                    <span class="badge bg-secondary">{{ $perm['category'] }}</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td class="small text-nowrap">{{ format_datetime($perm['created_at']) }}</td>
+                            <td class="d-flex gap-2">
+                                <a href="/musedock/permissions/{{ $perm['id'] }}/edit" class="btn btn-sm btn-outline-secondary">
+                                    Editar
+                                </a>
+                                <form method="POST" action="/musedock/permissions/{{ $perm['id'] }}/delete" onsubmit="return confirm('¿Eliminar este permiso? Se eliminará de todos los roles.')">
+                                    {!! csrf_field() !!}
+                                    <button class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <i class="bi bi-inbox text-muted d-block" style="font-size: 2rem;"></i>
+                                <p class="text-muted mb-0">No hay permisos de tenant.</p>
+                                <p class="text-muted small">Usa "Regenerar Todo" para escanear el código y crear los permisos.</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
 
     {{-- PERMISOS ESPECÍFICOS DE TENANT (permisos personalizados para un tenant concreto) --}}
     @if($multiTenantEnabled)
@@ -534,4 +525,71 @@
     </div>
     @endif
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnRegenerate = document.getElementById('btnRegenerate');
+    const regenerateForm = document.getElementById('regenerateForm');
+
+    if (btnRegenerate && regenerateForm) {
+        btnRegenerate.addEventListener('click', function() {
+            Swal.fire({
+                title: '<i class="bi bi-exclamation-triangle-fill text-danger"></i> Regenerar Permisos',
+                html: `
+                    <div class="text-start">
+                        <p class="mb-3">Esta acción <strong>eliminará TODOS los permisos globales</strong> y los recreará escaneando el código fuente.</p>
+                        <div class="alert alert-warning py-2 mb-3">
+                            <small>
+                                <i class="bi bi-exclamation-circle me-1"></i>
+                                <strong>Consecuencias:</strong>
+                                <ul class="mb-0 mt-1">
+                                    <li>Se perderán las asignaciones de permisos a roles</li>
+                                    <li>Los permisos específicos de tenant NO se eliminarán</li>
+                                    <li>Se detectará automáticamente el scope (superadmin/tenant)</li>
+                                </ul>
+                            </small>
+                        </div>
+                        <p class="mb-0 text-muted small">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Después de regenerar, deberás volver a asignar permisos a los roles.
+                        </p>
+                    </div>
+                `,
+                icon: null,
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="bi bi-arrow-clockwise me-1"></i> Sí, Regenerar Todo',
+                cancelButtonText: '<i class="bi bi-x-lg me-1"></i> Cancelar',
+                customClass: {
+                    popup: 'swal-wide',
+                    htmlContainer: 'text-start'
+                },
+                focusCancel: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Mostrar loading
+                    Swal.fire({
+                        title: 'Regenerando permisos...',
+                        html: '<p class="mb-2">Escaneando controladores y creando permisos</p><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            regenerateForm.submit();
+                        }
+                    });
+                }
+            });
+        });
+    }
+});
+</script>
+<style>
+.swal-wide {
+    max-width: 500px !important;
+}
+</style>
+@endpush
 @endsection

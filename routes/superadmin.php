@@ -143,6 +143,7 @@ Route::get('/musedock/permissions/{id}/edit', 'superadmin.PermissionsController@
 Route::post('/musedock/permissions/{id}/update', 'superadmin.PermissionsController@update')->middleware('superadmin');
 Route::post('/musedock/permissions/{id}/delete', 'superadmin.PermissionsController@destroy')->middleware('superadmin');
 Route::post('/musedock/permissions/sync', 'superadmin.PermissionsController@sync')->middleware('superadmin');
+Route::post('/musedock/permissions/regenerate', 'superadmin.PermissionsController@regenerate')->middleware('superadmin');
 Route::post('/musedock/permissions/cleanup-duplicates', 'superadmin.PermissionsController@cleanupDuplicates')->middleware('superadmin');
 Route::post('/musedock/permissions/cleanup-orphans', 'superadmin.PermissionsController@cleanupOrphans')->middleware('superadmin');
 
