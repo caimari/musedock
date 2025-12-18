@@ -89,13 +89,12 @@
                                 <textarea class="form-control" id="description" name="description" rows="3" {{ $isReadOnly ? 'disabled' : '' }}>{{ old('description', $element->description) }}</textarea>
                             </div>
                             <div class="mb-3">
-                                <label for="type" class="form-label">{{ __element('element.type') }} <span class="text-danger">*</span></label>
-                                <select class="form-select" id="type" name="type" required onchange="updateLayoutOptions()" {{ $isReadOnly ? 'disabled' : '' }}>
-                                    <option value="">{{ __element('element.type_select') }}</option>
-                                    @foreach($types as $key => $label)
-                                        <option value="{{ $key }}" {{ old('type', $element->type) === $key ? 'selected' : '' }}>{{ $label }}</option>
-                                    @endforeach
-                                </select>
+                                <label for="type" class="form-label">{{ __element('element.type') }}</label>
+                                <input type="text" class="form-control" value="{{ $types[$element->type] ?? $element->type }}" disabled>
+                                <input type="hidden" name="type" value="{{ $element->type }}">
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>{{ __element('element.type_locked') }}
+                                </div>
                             </div>
                         </div>
                     </div>

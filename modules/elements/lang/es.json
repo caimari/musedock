@@ -22,6 +22,7 @@
     "basic_info": "Información básica",
     "type": "Tipo de Elemento",
     "type_select": "Seleccionar tipo",
+    "type_locked": "El tipo de elemento no se puede cambiar después de crearlo para preservar la integridad de los datos",
     "type_hero": "Hero",
     "type_faq": "Preguntas Frecuentes",
     "type_cta": "Llamada a la Acción",
