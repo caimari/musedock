@@ -151,20 +151,55 @@ error_log("Elements: Module loaded successfully (v" . ELEMENTS_VERSION . ")");
  * Enqueue elements CSS and JS in frontend
  */
 add_action('wp_enqueue_scripts', function() {
-    $moduleUrl = module_url('elements');
+    // Determine which preset to use
+    // Priority: Theme override > Module setting > Default
+    $preset = 'default';
 
-    // Enqueue CSS
+    // Check if theme has a custom elements preset
+    if (function_exists('get_theme_elements_preset')) {
+        $preset = get_theme_elements_preset();
+    } elseif (defined('THEME_ELEMENTS_PRESET')) {
+        $preset = THEME_ELEMENTS_PRESET;
+    } else {
+        // Check module settings
+        $settings = \Elements\Models\ElementSetting::get('style_preset', 'default');
+        if ($settings) {
+            $preset = $settings;
+        }
+    }
+
+    // Available presets
+    $availablePresets = ['default', 'modern', 'minimal', 'creative'];
+    if (!in_array($preset, $availablePresets)) {
+        $preset = 'default';
+    }
+
+    // Enqueue CSS from public directory
+    $cssUrl = base_url('/public/assets/modules/elements/css/' . $preset . '.css');
     wp_enqueue_style(
         'elements-styles',
-        $moduleUrl . '/assets/css/elements.css',
+        $cssUrl,
         [],
         ELEMENTS_VERSION
     );
 
-    // Enqueue JS
+    // Check if theme has custom elements CSS override
+    $themeElementsCss = get_theme_path() . '/assets/css/elements-override.css';
+    if (file_exists($themeElementsCss)) {
+        $themeElementsCssUrl = get_theme_url() . '/assets/css/elements-override.css';
+        wp_enqueue_style(
+            'elements-theme-override',
+            $themeElementsCssUrl,
+            ['elements-styles'],
+            ELEMENTS_VERSION
+        );
+    }
+
+    // Enqueue JS from public directory
+    $jsUrl = base_url('/public/assets/modules/elements/js/elements.js');
     wp_enqueue_script(
         'elements-scripts',
-        $moduleUrl . '/assets/js/elements.js',
+        $jsUrl,
         [],
         ELEMENTS_VERSION,
         true

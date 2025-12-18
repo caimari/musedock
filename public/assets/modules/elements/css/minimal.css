@@ -1,0 +1,164 @@
+/**
+ * Elements Module - Minimal Preset
+ * Diseño minimalista con espacios amplios, tipografía limpia y colores neutros
+ */
+
+/* Hero Minimal */
+.element-hero {
+    padding: 6rem 0;
+    background: #fff;
+    color: #000;
+}
+
+.element-hero.layout-image-right .container,
+.element-hero.layout-image-left .container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5rem;
+    align-items: center;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.element-hero h1 {
+    font-size: 4rem;
+    font-weight: 300;
+    margin-bottom: 2rem;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+    color: #000;
+}
+
+.element-hero .subheading {
+    font-size: 1.5rem;
+    opacity: 0.7;
+    margin-bottom: 1.5rem;
+    font-weight: 400;
+    color: #000;
+}
+
+.element-hero p {
+    font-size: 1.125rem;
+    opacity: 0.6;
+    margin-bottom: 3rem;
+    line-height: 1.8;
+    color: #000;
+}
+
+.element-hero img {
+    width: 100%;
+    border-radius: 0;
+    box-shadow: none;
+    border: 1px solid #e5e5e5;
+}
+
+.hero-btn {
+    display: inline-block;
+    padding: 1rem 2.5rem;
+    background: #000;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 0;
+    font-weight: 500;
+    font-size: 1rem;
+    border: 2px solid #000;
+    transition: all 0.2s ease;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.hero-btn:hover {
+    background: #fff;
+    color: #000;
+}
+
+/* FAQ Minimal */
+.element-faq {
+    padding: 6rem 0;
+    background: #fafafa;
+}
+
+.element-faq h2 {
+    font-size: 2.5rem;
+    font-weight: 300;
+    text-align: center;
+    margin-bottom: 5rem;
+    color: #000;
+    letter-spacing: -0.02em;
+}
+
+.faq-accordion .faq-item {
+    background: #fff;
+    border-radius: 0;
+    margin-bottom: 1px;
+    box-shadow: none;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.faq-accordion .faq-question {
+    padding: 2rem 0;
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: #000;
+}
+
+.faq-accordion .faq-question::after {
+    content: '+';
+    font-weight: 300;
+    font-size: 2rem;
+}
+
+.faq-accordion .faq-item.active .faq-question::after {
+    content: '−';
+}
+
+.faq-accordion .faq-answer-content {
+    padding: 0 0 2rem 0;
+    font-size: 1rem;
+    color: #666;
+    line-height: 1.8;
+}
+
+/* CTA Minimal */
+.element-cta {
+    padding: 6rem 0;
+    background: #fff;
+}
+
+.element-cta.layout-horizontal {
+    background: #000;
+    color: #fff;
+}
+
+.element-cta h2 {
+    font-size: 2.5rem;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+}
+
+.element-cta p {
+    font-size: 1.125rem;
+    opacity: 0.8;
+}
+
+.cta-btn {
+    background: #fff;
+    color: #000;
+    border: 2px solid #fff;
+    border-radius: 0;
+    padding: 1rem 2.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+}
+
+.cta-btn:hover {
+    background: transparent;
+    color: #fff;
+}
+
+@media (max-width: 768px) {
+    .element-hero h1 { font-size: 2.5rem !important; }
+    .element-hero .container { grid-template-columns: 1fr !important; }
+}
