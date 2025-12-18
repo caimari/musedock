@@ -301,7 +301,7 @@
                                 <label for="style_preset" class="form-label">{{ __element('element.style_preset') }}</label>
                                 <select class="form-select" id="style_preset" name="settings[style_preset]" {{ $isReadOnly ? 'disabled' : '' }}>
                                     <option value="">{{ __element('element.preset_default') }}</option>
-                                    <option value="hispano" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'default' ? 'selected' : '' }}>Hispano (Limpio y Profesional)</option>
+                                    <option value="hispano" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'hispano' ? 'selected' : '' }}>Estilo Default</option>
                                     <option value="modern" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'modern' ? 'selected' : '' }}>Modern</option>
                                     <option value="default" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'default' ? 'selected' : '' }}>Default (Gradiente Púrpura)</option>
                                     <option value="minimal" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'minimal' ? 'selected' : '' }}>Minimal</option>
@@ -339,6 +339,9 @@
         include $modalPath;
     }
 @endphp
+
+{{-- Load Media Manager JS for modal functionality --}}
+<script src="/assets/modules/MediaManager/js/admin-media.js?v={{ time() }}"></script>
 
 @push('scripts')
 <script>
