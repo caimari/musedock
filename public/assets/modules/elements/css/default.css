@@ -178,21 +178,143 @@
     justify-content: center;
 }
 
-/* Hero con fondo de imagen */
+/* Hero con fondo de imagen - NUEVO DISEÑO */
 .element-hero.layout-background {
+    background: transparent;
+    min-height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    color: #0f172a;
+    position: relative;
+    padding: 0;
+    /* Full viewport width */
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    overflow: visible;
+}
+
+/* Subtítulo FUERA del banner (arriba) */
+.element-hero.layout-background .hero-pre-banner {
+    padding: 2rem 2rem 1.5rem;
+    text-align: center;
+    background: transparent;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.element-hero.layout-background .hero-pre-banner .hero-subheading {
+    color: #64748b !important;
+    font-size: 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin: 0;
+}
+
+/* Banner wrapper con imagen/video de fondo */
+.element-hero.layout-background .hero-banner-wrapper {
+    position: relative;
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    min-height: 70vh;
-    display: flex;
-    align-items: center;
-    color: #fff;
-    position: relative;
     background-color: #0f172a;
+    overflow: hidden;
     isolation: isolate;
 }
 
-.element-hero.layout-background::before,
+/* Overlay oscuro sobre el banner */
+.element-hero.layout-background .hero-banner-wrapper::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(120deg, rgba(2, 6, 23, 0.7), rgba(2, 6, 23, 0.4));
+    z-index: 1;
+}
+
+/* Contenido DENTRO del banner */
+.element-hero.layout-background .hero-banner-content {
+    position: relative;
+    z-index: 3;
+    text-align: center;
+    padding: 4rem 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.element-hero.layout-background .hero-banner-content .hero-title {
+    color: #f8fafc !important;
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    font-weight: 800;
+    line-height: 1.15;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    margin: 0 0 1.25rem;
+}
+
+.element-hero.layout-background .hero-banner-content .hero-description {
+    color: rgba(248, 250, 252, 0.95) !important;
+    font-size: 1.15rem;
+    line-height: 1.7;
+    max-width: 650px;
+    margin: 0 auto 2rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.element-hero.layout-background .hero-banner-content .hero-buttons {
+    justify-content: center;
+}
+
+.element-hero.layout-background .hero-banner-content .hero-btn {
+    background: rgba(255, 255, 255, 0.95);
+    color: #0f172a !important;
+    border: none;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.element-hero.layout-background .hero-banner-content .hero-btn:hover {
+    background: #fff;
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.element-hero.layout-background .hero-banner-content .hero-btn.hero-btn-secondary {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff !important;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+}
+
+.element-hero.layout-background .hero-banner-content .hero-btn.hero-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Caption/Texto alternativo FUERA del banner (abajo) */
+.element-hero.layout-background .hero-post-banner {
+    padding: 1.5rem 2rem 2rem;
+    text-align: center;
+    background: transparent;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.element-hero.layout-background .hero-post-banner .hero-image-caption {
+    color: #64748b !important;
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+/* Overlay solo para layout-video (layout-background usa banner-wrapper::before) */
 .element-hero.layout-video::before {
     content: '';
     position: absolute;
@@ -248,13 +370,29 @@
 }
 
 .element-hero.layout-video {
-    min-height: 70vh;
+    min-height: 100vh;
     display: flex;
     align-items: center;
+    justify-content: center;
     color: #fff;
     position: relative;
     background: #0f172a;
-    isolation: isolate;
+    overflow: hidden;
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+}
+
+.element-hero.layout-video .container {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 0;
+    max-width: 100%;
+    width: 100%;
 }
 
 .hero-media {
@@ -263,9 +401,11 @@
 
 .hero-media-content {
     position: relative;
-    z-index: 1;
+    z-index: 3;
     text-align: center;
     margin: 0 auto;
+    padding: 2rem;
+    max-width: 900px;
 }
 
 .element-hero.layout-background .hero-image-caption,
@@ -276,22 +416,86 @@
     font-size: 0.95rem;
 }
 
+/* Video wrapper - ver estilos más abajo con overflow oculto */
+
+/* Overlay oscuro sobre el video */
+.hero-video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(120deg, rgba(2, 6, 23, 0.7), rgba(2, 6, 23, 0.4));
+    z-index: 1;
+}
+
 .hero-media-video {
     position: relative;
     width: 100%;
-    min-height: 70vh;
+    min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.hero-video-bg {
+/* Video embed dentro de layout-background - dentro del banner-wrapper */
+.element-hero.layout-background .hero-banner-wrapper .hero-media-video {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.element-hero.layout-background .hero-banner-wrapper .hero-media-video .hero-video-embed {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    /* Escalar para cubrir todo y ocultar UI de YouTube */
+    width: 120%;
+    height: 120%;
+    min-width: 177.78vh; /* aspect ratio 16:9 */
+    min-height: 56.25vw;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    border: 0;
+    z-index: 0;
+}
+
+.element-hero.layout-background .hero-banner-wrapper .hero-media-video .hero-video-bg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 120%;
+    height: 120%;
+    min-width: 100%;
+    min-height: 100%;
     object-fit: cover;
-    z-index: -1;
+    transform: translate(-50%, -50%);
+    z-index: 0;
+}
+
+/* El container en layout-background */
+.element-hero.layout-background .container {
+    position: relative;
+    z-index: 2;
+    max-width: 100%;
+    padding: 0;
+}
+
+.hero-video-bg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    min-width: 100%;
+    min-height: 100%;
+    object-fit: cover;
+    transform: translate(-50%, -50%);
+    z-index: 0;
 }
 
 .hero-video-embed {
@@ -300,7 +504,117 @@
     width: 100%;
     height: 100%;
     border: 0;
+    z-index: 0;
+}
+
+/* YouTube/Vimeo iframe como fondo - escalar para cubrir todo y ocultar UI */
+.hero-video-bg-iframe {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    /* Escalar 120% para ocultar bordes y elementos de UI de YouTube */
+    width: 120vw;
+    height: 120vh;
+    min-width: 213vh; /* 177.78 * 1.2 - aspect ratio 16:9 escalado */
+    min-height: 67.5vw; /* 56.25 * 1.2 */
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    border: 0;
+    z-index: 0;
+}
+
+/* Ocultar cualquier elemento de YouTube que pueda aparecer */
+.hero-video-wrapper {
+    position: absolute;
+    top: -10%;
+    left: -10%;
+    width: 120%;
+    height: 120%;
+    overflow: hidden;
+    z-index: 0;
+    background: #0f172a;
+}
+
+/* Placeholder mientras carga el video - gradiente animado */
+.hero-video-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    background-size: 200% 200%;
+    animation: videoPlaceholderPulse 2s ease-in-out infinite;
     z-index: -1;
+}
+
+@keyframes videoPlaceholderPulse {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+/* Cuando el iframe tiene src, ocultar placeholder */
+.hero-video-wrapper iframe[src] ~ .hero-video-placeholder,
+.hero-video-wrapper iframe:not([data-src]) ~ .hero-video-placeholder {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+/* Estilos de texto para layout video - siempre claros */
+.element-hero.layout-video .hero-subheading,
+.element-hero.layout-video .subheading {
+    color: rgba(248, 250, 252, 0.9) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.element-hero.layout-video .hero-title {
+    color: #f8fafc !important;
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    margin-bottom: 1.5rem;
+}
+
+.element-hero.layout-video .hero-description {
+    color: rgba(248, 250, 252, 0.95) !important;
+    font-size: 1.15rem;
+    line-height: 1.7;
+    max-width: 600px;
+    margin: 0 auto 2rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.element-hero.layout-video .hero-buttons {
+    justify-content: center;
+}
+
+.element-hero.layout-video .hero-btn {
+    background: rgba(255, 255, 255, 0.95);
+    color: #0f172a !important;
+    border: none;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.element-hero.layout-video .hero-btn:hover {
+    background: #fff;
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.element-hero.layout-video .hero-btn.hero-btn-secondary {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff !important;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+}
+
+.element-hero.layout-video .hero-btn.hero-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.8);
 }
 
 /* Botón Hero */

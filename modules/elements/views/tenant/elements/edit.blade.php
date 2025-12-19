@@ -916,6 +916,28 @@ if (resetFontsBtn) {
         });
     });
 }
+
+// ============================================
+// ENSURE LAYOUT RADIO BUTTONS ARE PROPERLY SELECTED
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Get current layout from server
+    const currentLayout = '{{ trim((string)($element->layout_type ?? "image-right")) }}';
+    console.log('Current layout from DB:', currentLayout);
+
+    // Find all layout radio buttons
+    const layoutRadios = document.querySelectorAll('input[name="layout_type"]');
+    console.log('Found layout radios:', layoutRadios.length);
+
+    layoutRadios.forEach(function(radio) {
+        console.log('Radio value:', radio.value, 'vs current:', currentLayout, 'Match:', radio.value === currentLayout);
+        if (radio.value === currentLayout) {
+            radio.checked = true;
+            // Force Bootstrap to update the visual state
+            radio.dispatchEvent(new Event('change'));
+        }
+    });
+});
 </script>
 @endpush
 @endsection

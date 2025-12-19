@@ -15,7 +15,7 @@ if (defined('ELEMENTS_LOADED')) {
 
 define('ELEMENTS_LOADED', true);
 define('ELEMENTS_PATH', __DIR__);
-define('ELEMENTS_VERSION', '1.0.25');
+define('ELEMENTS_VERSION', '1.0.30');
 
 require_once __DIR__ . '/../module-menu-helper.php';
 

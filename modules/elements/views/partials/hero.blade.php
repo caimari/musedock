@@ -76,13 +76,37 @@ if (!function_exists('heroTextStyle')) {
 }
 
 $videoEmbedUrl = '';
+$videoEmbedUrlBackground = '';
 if ($videoUrl) {
     if (preg_match('~(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/|shorts/))([A-Za-z0-9_-]{6,})~', $videoUrl, $matches)) {
         $youtubeId = $matches[1];
+        // Para videos en tarjeta (con controles)
         $videoEmbedUrl = 'https://www.youtube.com/embed/' . $youtubeId . '?controls=1&modestbranding=1&rel=0&playsinline=1';
+        // Para video de fondo - TODOS los parámetros para ocultar UI de YouTube
+        $videoEmbedUrlBackground = 'https://www.youtube.com/embed/' . $youtubeId . '?' . http_build_query([
+            'autoplay' => 1,
+            'mute' => 1,
+            'controls' => 0,
+            'loop' => 1,
+            'playlist' => $youtubeId,
+            'modestbranding' => 1,
+            'rel' => 0,
+            'showinfo' => 0,
+            'iv_load_policy' => 3,      // Ocultar anotaciones
+            'playsinline' => 1,
+            'disablekb' => 1,           // Deshabilitar teclado
+            'fs' => 0,                  // Sin botón fullscreen
+            'cc_load_policy' => 0,      // Sin subtítulos
+            'start' => 0,
+            'end' => 0,
+            'enablejsapi' => 1,
+        ]);
     } elseif (preg_match('~vimeo\.com/(?:video/)?([0-9]+)~', $videoUrl, $matches)) {
         $vimeoId = $matches[1];
-        $videoEmbedUrl = 'https://player.vimeo.com/video/' . $vimeoId . '?autoplay=0&muted=0&loop=0&background=0&byline=0&title=0&badge=0';
+        // Para videos en tarjeta
+        $videoEmbedUrl = 'https://player.vimeo.com/video/' . $vimeoId . '?byline=0&title=0&badge=0';
+        // Para video de fondo (background mode) - modo background de Vimeo
+        $videoEmbedUrlBackground = 'https://player.vimeo.com/video/' . $vimeoId . '?background=1&autoplay=1&muted=1&loop=1';
     }
 }
 
@@ -110,19 +134,30 @@ $buttonSecondaryTargetAttr = $buttonSecondaryTarget === '_blank' ? ' target="_bl
 $containerClass = 'element-hero layout-' . ($layout ?? 'image-right');
 $textAlign = 'text-' . $alignment;
 $sectionStyles = [];
+$bannerStyles = []; // Estilos para el banner-wrapper en layout-background
+
 if ($backgroundColor) {
     $sectionStyles[] = 'background-color: ' . escape_html($backgroundColor) . ';';
 }
-if ($minHeight) {
+if ($minHeight && $layout !== 'background') {
     $sectionStyles[] = 'min-height: ' . escape_html($minHeight) . 'px;';
 }
 if ($textColor) {
     $sectionStyles[] = 'color: ' . escape_html($textColor) . ';';
 }
-if ($layout === 'background' && $imageUrl) {
-    $sectionStyles[] = 'background-image: url(\'' . escape_html($imageUrl) . '\');';
+
+// Para layout-background, la imagen va en el banner-wrapper, no en la section
+if ($layout === 'background') {
+    if ($imageUrl && $mediaType !== 'video') {
+        $bannerStyles[] = 'background-image: url(\'' . escape_html($imageUrl) . '\');';
+    }
+    if ($minHeight) {
+        $bannerStyles[] = 'min-height: ' . escape_html($minHeight) . 'px;';
+    }
 }
+
 $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
+$bannerStyleAttr = $bannerStyles ? implode(' ', $bannerStyles) : '';
 ?>
 
 <?php if ($fontsToLoad): ?>
@@ -280,103 +315,36 @@ $googleFontsUrl = 'https://fonts.googleapis.com/css2?' . implode('&', $fontParam
             </div>
 
 	        <?php elseif ($layout === 'background'): ?>
-                <?php if ($mediaType === 'video' && ($videoEmbedUrl || $videoUrl)): ?>
-                    <div class="hero-media hero-media-video">
-                        <?php if ($videoEmbedUrl): ?>
-                            <iframe class="hero-video-embed"
-                                    src="<?= escape_html($videoEmbedUrl) ?>"
-                                    title="Video background"
-                                    frameborder="0"
-                                    allow="autoplay; fullscreen; picture-in-picture"
-                                    allowfullscreen></iframe>
-                        <?php else: ?>
-                            <video class="hero-video-bg" controls playsinline>
-                                <source src="<?= escape_html($videoUrl) ?>">
-                            </video>
-                        <?php endif; ?>
-                        <div class="hero-media-content">
-                            <?php if ($subheading): ?>
-                                <p class="hero-subheading"<?= heroTextStyle($subheadingColor, $subheadingFont, $subheadingItalic) ?>><?= escape_html($subheading) ?></p>
-                            <?php endif; ?>
-
-                            <?php if ($heading): ?>
-                                <h1 class="hero-title"<?= heroTextStyle($headingColor, $headingFont, $headingItalic) ?>><?= escape_html($heading) ?></h1>
-                            <?php endif; ?>
-
-                            <?php if ($description): ?>
-                                <p class="hero-description"<?= heroTextStyle($descriptionColor, $descriptionFont, $descriptionItalic) ?>><?= nl2br(escape_html($description)) ?></p>
-                            <?php endif; ?>
-
-                            <?php if ($buttonText && $buttonUrl): ?>
-                                <div class="hero-buttons">
-                                    <a href="<?= escape_html($buttonUrl) ?>" class="hero-btn"<?= $buttonTargetAttr ?><?= $buttonStyleAttr ?>>
-                                        <?= escape_html($buttonText) ?>
-                                    </a>
-                                    <?php if ($buttonSecondaryText && $buttonSecondaryUrl): ?>
-                                        <a href="<?= escape_html($buttonSecondaryUrl) ?>" class="hero-btn hero-btn-secondary"<?= $buttonSecondaryTargetAttr ?><?= $buttonSecondaryStyleAttr ?>>
-                                            <?= escape_html($buttonSecondaryText) ?>
-                                        </a>
-                                    <?php endif; ?>
-                                </div>
-                            <?php endif; ?>
-                            <?php if ($imageAlt): ?>
-                                <p class="hero-image-caption"<?= heroTextStyle($captionColor, $captionFont, $captionItalic) ?>><?= escape_html($imageAlt) ?></p>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                <?php else: ?>
-                    <div class="hero-media">
-                        <div class="hero-media-content">
-                            <?php if ($subheading): ?>
-                                <p class="hero-subheading"<?= heroTextStyle($subheadingColor, $subheadingFont, $subheadingItalic) ?>><?= escape_html($subheading) ?></p>
-                            <?php endif; ?>
-
-                            <?php if ($heading): ?>
-                                <h1 class="hero-title"<?= heroTextStyle($headingColor, $headingFont, $headingItalic) ?>><?= escape_html($heading) ?></h1>
-                            <?php endif; ?>
-
-                            <?php if ($description): ?>
-                                <p class="hero-description"<?= heroTextStyle($descriptionColor, $descriptionFont, $descriptionItalic) ?>><?= nl2br(escape_html($description)) ?></p>
-                            <?php endif; ?>
-
-                            <?php if ($buttonText && $buttonUrl): ?>
-                                <div class="hero-buttons">
-                                    <a href="<?= escape_html($buttonUrl) ?>" class="hero-btn"<?= $buttonTargetAttr ?><?= $buttonStyleAttr ?>>
-                                        <?= escape_html($buttonText) ?>
-                                    </a>
-                                    <?php if ($buttonSecondaryText && $buttonSecondaryUrl): ?>
-                                        <a href="<?= escape_html($buttonSecondaryUrl) ?>" class="hero-btn hero-btn-secondary"<?= $buttonSecondaryTargetAttr ?><?= $buttonSecondaryStyleAttr ?>>
-                                            <?= escape_html($buttonSecondaryText) ?>
-                                        </a>
-                                    <?php endif; ?>
-                                </div>
-                            <?php endif; ?>
-                            <?php if ($imageAlt): ?>
-                                <p class="hero-image-caption"<?= heroTextStyle($captionColor, $captionFont, $captionItalic) ?>><?= escape_html($imageAlt) ?></p>
-                            <?php endif; ?>
-                        </div>
+                <!-- Subtítulo FUERA del banner (arriba) -->
+                <?php if ($subheading): ?>
+                    <div class="hero-pre-banner">
+                        <p class="hero-subheading"<?= heroTextStyle($subheadingColor, $subheadingFont, $subheadingItalic) ?>><?= escape_html($subheading) ?></p>
                     </div>
                 <?php endif; ?>
 
-	        <?php elseif ($layout === 'video'): ?>
-                <div class="hero-media hero-media-video">
-                    <?php if ($videoEmbedUrl): ?>
-                        <iframe class="hero-video-embed"
-                                src="<?= escape_html($videoEmbedUrl) ?>"
-                                title="Video background"
-                                frameborder="0"
-                                allow="autoplay; fullscreen; picture-in-picture"
-                                allowfullscreen></iframe>
-                    <?php elseif ($videoUrl): ?>
-                        <video class="hero-video-bg" controls playsinline>
-                            <source src="<?= escape_html($videoUrl) ?>">
-                        </video>
+                <!-- Banner con imagen/video de fondo -->
+                <div class="hero-banner-wrapper"<?= $bannerStyleAttr ? ' style="' . $bannerStyleAttr . '"' : '' ?>>
+                    <?php if ($mediaType === 'video' && ($videoEmbedUrlBackground || $videoUrl)): ?>
+                        <div class="hero-media hero-media-video">
+                            <?php if ($videoEmbedUrlBackground): ?>
+                                <!-- Video de YouTube como fondo - sin controles, autoplay, muted -->
+                                <iframe class="hero-video-embed"
+                                        src="<?= escape_html($videoEmbedUrlBackground) ?>"
+                                        title="Video background"
+                                        frameborder="0"
+                                        loading="lazy"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowfullscreen></iframe>
+                            <?php else: ?>
+                                <video class="hero-video-bg" autoplay muted loop playsinline>
+                                    <source src="<?= escape_html($videoUrl) ?>">
+                                </video>
+                            <?php endif; ?>
+                        </div>
                     <?php endif; ?>
-                    <div class="hero-media-content">
-                        <?php if ($subheading): ?>
-                            <p class="hero-subheading"<?= heroTextStyle($subheadingColor, $subheadingFont, $subheadingItalic) ?>><?= escape_html($subheading) ?></p>
-                        <?php endif; ?>
 
+                    <!-- Contenido DENTRO del banner: título, descripción, botones -->
+                    <div class="hero-banner-content">
                         <?php if ($heading): ?>
                             <h1 class="hero-title"<?= heroTextStyle($headingColor, $headingFont, $headingItalic) ?>><?= escape_html($heading) ?></h1>
                         <?php endif; ?>
@@ -397,10 +365,92 @@ $googleFontsUrl = 'https://fonts.googleapis.com/css2?' . implode('&', $fontParam
                                 <?php endif; ?>
                             </div>
                         <?php endif; ?>
-                        <?php if ($imageAlt): ?>
-                            <p class="hero-image-caption"<?= heroTextStyle($captionColor, $captionFont, $captionItalic) ?>><?= escape_html($imageAlt) ?></p>
-                        <?php endif; ?>
                     </div>
+                </div>
+
+                <!-- Caption/Texto alternativo FUERA del banner (abajo) -->
+                <?php if ($imageAlt): ?>
+                    <div class="hero-post-banner">
+                        <p class="hero-image-caption"<?= heroTextStyle($captionColor, $captionFont, $captionItalic) ?>><?= escape_html($imageAlt) ?></p>
+                    </div>
+                <?php endif; ?>
+
+	        <?php elseif ($layout === 'video'): ?>
+                <!-- Video de fondo (posicionado absolutamente) -->
+                <div class="hero-video-wrapper" id="heroVideoWrapper">
+                    <?php if ($videoEmbedUrlBackground): ?>
+                        <!-- Placeholder mientras carga el video -->
+                        <div class="hero-video-placeholder"></div>
+                        <!-- El iframe se carga con JavaScript para evitar bloqueo -->
+                        <iframe class="hero-video-bg-iframe"
+                                data-src="<?= escape_html($videoEmbedUrlBackground) ?>"
+                                title="Video background"
+                                frameborder="0"
+                                loading="lazy"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowfullscreen></iframe>
+                    <?php elseif ($videoUrl): ?>
+                        <video class="hero-video-bg" autoplay muted loop playsinline preload="metadata">
+                            <source src="<?= escape_html($videoUrl) ?>">
+                        </video>
+                    <?php endif; ?>
+                </div>
+                <!-- Overlay oscuro -->
+                <div class="hero-video-overlay"></div>
+                <!-- Script para cargar video de forma lazy -->
+                <script>
+                (function() {
+                    var wrapper = document.getElementById('heroVideoWrapper');
+                    if (!wrapper) return;
+                    var iframe = wrapper.querySelector('iframe[data-src]');
+                    if (!iframe) return;
+                    // Cargar el iframe después de que la página esté lista
+                    function loadVideo() {
+                        var src = iframe.getAttribute('data-src');
+                        if (src && !iframe.src) {
+                            iframe.src = src;
+                            iframe.removeAttribute('data-src');
+                        }
+                    }
+                    // Cargar después de un pequeño delay para que la página sea fluida
+                    if (document.readyState === 'complete') {
+                        setTimeout(loadVideo, 100);
+                    } else {
+                        window.addEventListener('load', function() {
+                            setTimeout(loadVideo, 100);
+                        });
+                    }
+                })();
+                </script>
+                <!-- Contenido sobre el video -->
+                <div class="hero-media-content">
+                    <?php if ($subheading): ?>
+                        <p class="hero-subheading"<?= heroTextStyle($subheadingColor, $subheadingFont, $subheadingItalic) ?>><?= escape_html($subheading) ?></p>
+                    <?php endif; ?>
+
+                    <?php if ($heading): ?>
+                        <h1 class="hero-title"<?= heroTextStyle($headingColor, $headingFont, $headingItalic) ?>><?= escape_html($heading) ?></h1>
+                    <?php endif; ?>
+
+                    <?php if ($description): ?>
+                        <p class="hero-description"<?= heroTextStyle($descriptionColor, $descriptionFont, $descriptionItalic) ?>><?= nl2br(escape_html($description)) ?></p>
+                    <?php endif; ?>
+
+                    <?php if ($buttonText && $buttonUrl): ?>
+                        <div class="hero-buttons">
+                            <a href="<?= escape_html($buttonUrl) ?>" class="hero-btn"<?= $buttonTargetAttr ?><?= $buttonStyleAttr ?>>
+                                <?= escape_html($buttonText) ?>
+                            </a>
+                            <?php if ($buttonSecondaryText && $buttonSecondaryUrl): ?>
+                                <a href="<?= escape_html($buttonSecondaryUrl) ?>" class="hero-btn hero-btn-secondary"<?= $buttonSecondaryTargetAttr ?><?= $buttonSecondaryStyleAttr ?>>
+                                    <?= escape_html($buttonSecondaryText) ?>
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($imageAlt): ?>
+                        <p class="hero-image-caption"<?= heroTextStyle($captionColor, $captionFont, $captionItalic) ?>><?= escape_html($imageAlt) ?></p>
+                    <?php endif; ?>
                 </div>
 
 	        <?php else: ?>
