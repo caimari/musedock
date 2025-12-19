@@ -32,6 +32,14 @@ $textColor = $data['text_color'] ?? '';
 $minHeight = $data['min_height'] ?? '400';
 $alignment = $data['alignment'] ?? 'left';
 
+// Colores personalizados
+$subheadingColor = $data['subheading_color'] ?? '';
+$headingColor = $data['heading_color'] ?? '';
+$descriptionColor = $data['description_color'] ?? '';
+$cardBgColor = $data['card_bg_color'] ?? '';
+$cardWrapperBgColor = $data['card_wrapper_bg_color'] ?? '';
+$captionColor = $data['caption_color'] ?? '';
+
 $videoEmbedUrl = '';
 if ($videoUrl) {
     if (preg_match('~(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/|shorts/))([A-Za-z0-9_-]{6,})~', $videoUrl, $matches)) {
@@ -89,15 +97,15 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
 	        <?php if ($layout === 'image-right' || $layout === 'image-left'): ?>
 	            <div class="hero-content">
 	                <?php if ($subheading): ?>
-	                    <div class="subheading"><?= escape_html($subheading) ?></div>
+	                    <div class="subheading"<?= $subheadingColor ? ' style="color: ' . escape_html($subheadingColor) . ' !important;"' : '' ?>><?= escape_html($subheading) ?></div>
 	                <?php endif; ?>
 
 	                <?php if ($heading): ?>
-	                    <h1 class="hero-title"><?= escape_html($heading) ?></h1>
+	                    <h1 class="hero-title"<?= $headingColor ? ' style="color: ' . escape_html($headingColor) . ' !important;"' : '' ?>><?= escape_html($heading) ?></h1>
 	                <?php endif; ?>
 
 	                <?php if ($description): ?>
-	                    <p class="hero-description"><?= nl2br(escape_html($description)) ?></p>
+	                    <p class="hero-description"<?= $descriptionColor ? ' style="color: ' . escape_html($descriptionColor) . ' !important;"' : '' ?>><?= nl2br(escape_html($description)) ?></p>
 	                <?php endif; ?>
 
 	                <?php if ($buttonText && $buttonUrl): ?>
@@ -115,9 +123,9 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
 	            </div>
 
                 <div class="hero-image">
-                    <div class="hero-visual">
-                        <div class="hero-visual-bg" aria-hidden="true"></div>
-                        <div class="hero-visual-card<?= $mediaType === 'video' ? ' hero-visual-card-media' : '' ?>">
+                    <div class="hero-visual"<?= $cardWrapperBgColor ? ' style="--hero-wrapper-bg: ' . escape_html($cardWrapperBgColor) . ';"' : '' ?>>
+                        <div class="hero-visual-bg" aria-hidden="true"<?= $cardWrapperBgColor ? ' style="background: linear-gradient(135deg, ' . escape_html($cardWrapperBgColor) . ', ' . escape_html($cardWrapperBgColor) . 'ee) !important;"' : '' ?>></div>
+                        <div class="hero-visual-card<?= $mediaType === 'video' ? ' hero-visual-card-media' : '' ?>"<?= $cardBgColor ? ' style="background-color: ' . escape_html($cardBgColor) . ' !important;"' : '' ?>>
                             <?php if ($mediaType === 'video' && ($videoEmbedUrl || $videoUrl)): ?>
                                 <div class="hero-visual-video">
                                     <?php if ($videoEmbedUrl): ?>
@@ -150,22 +158,22 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                         </div>
                     </div>
                     <?php if ($imageAlt): ?>
-                        <p class="hero-image-caption"><?= escape_html($imageAlt) ?></p>
+                        <p class="hero-image-caption"<?= $captionColor ? ' style="color: ' . escape_html($captionColor) . ' !important;"' : '' ?>><?= escape_html($imageAlt) ?></p>
                     <?php endif; ?>
                 </div>
 
         <?php elseif ($layout === 'centered'): ?>
             <div class="hero-centered text-center">
                 <?php if ($subheading): ?>
-                    <p class="hero-subheading"><?= escape_html($subheading) ?></p>
+                    <p class="hero-subheading"<?= $subheadingColor ? ' style="color: ' . escape_html($subheadingColor) . ' !important;"' : '' ?>><?= escape_html($subheading) ?></p>
                 <?php endif; ?>
 
                 <?php if ($heading): ?>
-                    <h1 class="hero-title"><?= escape_html($heading) ?></h1>
+                    <h1 class="hero-title"<?= $headingColor ? ' style="color: ' . escape_html($headingColor) . ' !important;"' : '' ?>><?= escape_html($heading) ?></h1>
                 <?php endif; ?>
 
                 <?php if ($description): ?>
-                    <p class="hero-description"><?= nl2br(escape_html($description)) ?></p>
+                    <p class="hero-description"<?= $descriptionColor ? ' style="color: ' . escape_html($descriptionColor) . ' !important;"' : '' ?>><?= nl2br(escape_html($description)) ?></p>
                 <?php endif; ?>
 
                 <?php if ($buttonText && $buttonUrl): ?>
@@ -182,9 +190,9 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                 <?php endif; ?>
 
                 <div class="hero-image hero-image-centered">
-                    <div class="hero-visual">
-                        <div class="hero-visual-bg" aria-hidden="true"></div>
-                        <div class="hero-visual-card<?= $mediaType === 'video' ? ' hero-visual-card-media' : '' ?>">
+                    <div class="hero-visual"<?= $cardWrapperBgColor ? ' style="--hero-wrapper-bg: ' . escape_html($cardWrapperBgColor) . ';"' : '' ?>>
+                        <div class="hero-visual-bg" aria-hidden="true"<?= $cardWrapperBgColor ? ' style="background: linear-gradient(135deg, ' . escape_html($cardWrapperBgColor) . ', ' . escape_html($cardWrapperBgColor) . 'ee) !important;"' : '' ?>></div>
+                        <div class="hero-visual-card<?= $mediaType === 'video' ? ' hero-visual-card-media' : '' ?>"<?= $cardBgColor ? ' style="background-color: ' . escape_html($cardBgColor) . ' !important;"' : '' ?>>
                             <?php if ($mediaType === 'video' && ($videoEmbedUrl || $videoUrl)): ?>
                                 <div class="hero-visual-video">
                                     <?php if ($videoEmbedUrl): ?>
@@ -217,7 +225,7 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                         </div>
                     </div>
                     <?php if ($imageAlt): ?>
-                        <p class="hero-image-caption"><?= escape_html($imageAlt) ?></p>
+                        <p class="hero-image-caption"<?= $captionColor ? ' style="color: ' . escape_html($captionColor) . ' !important;"' : '' ?>><?= escape_html($imageAlt) ?></p>
                     <?php endif; ?>
                 </div>
             </div>
@@ -239,15 +247,15 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                         <?php endif; ?>
                         <div class="hero-media-content">
                             <?php if ($subheading): ?>
-                                <p class="hero-subheading"><?= escape_html($subheading) ?></p>
+                                <p class="hero-subheading"<?= $subheadingColor ? ' style="color: ' . escape_html($subheadingColor) . ' !important;"' : '' ?>><?= escape_html($subheading) ?></p>
                             <?php endif; ?>
 
                             <?php if ($heading): ?>
-                                <h1 class="hero-title"><?= escape_html($heading) ?></h1>
+                                <h1 class="hero-title"<?= $headingColor ? ' style="color: ' . escape_html($headingColor) . ' !important;"' : '' ?>><?= escape_html($heading) ?></h1>
                             <?php endif; ?>
 
                             <?php if ($description): ?>
-                                <p class="hero-description"><?= nl2br(escape_html($description)) ?></p>
+                                <p class="hero-description"<?= $descriptionColor ? ' style="color: ' . escape_html($descriptionColor) . ' !important;"' : '' ?>><?= nl2br(escape_html($description)) ?></p>
                             <?php endif; ?>
 
                             <?php if ($buttonText && $buttonUrl): ?>
@@ -263,7 +271,7 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                                 </div>
                             <?php endif; ?>
                             <?php if ($imageAlt): ?>
-                                <p class="hero-image-caption"><?= escape_html($imageAlt) ?></p>
+                                <p class="hero-image-caption"<?= $captionColor ? ' style="color: ' . escape_html($captionColor) . ' !important;"' : '' ?>><?= escape_html($imageAlt) ?></p>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -271,15 +279,15 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                     <div class="hero-media">
                         <div class="hero-media-content">
                             <?php if ($subheading): ?>
-                                <p class="hero-subheading"><?= escape_html($subheading) ?></p>
+                                <p class="hero-subheading"<?= $subheadingColor ? ' style="color: ' . escape_html($subheadingColor) . ' !important;"' : '' ?>><?= escape_html($subheading) ?></p>
                             <?php endif; ?>
 
                             <?php if ($heading): ?>
-                                <h1 class="hero-title"><?= escape_html($heading) ?></h1>
+                                <h1 class="hero-title"<?= $headingColor ? ' style="color: ' . escape_html($headingColor) . ' !important;"' : '' ?>><?= escape_html($heading) ?></h1>
                             <?php endif; ?>
 
                             <?php if ($description): ?>
-                                <p class="hero-description"><?= nl2br(escape_html($description)) ?></p>
+                                <p class="hero-description"<?= $descriptionColor ? ' style="color: ' . escape_html($descriptionColor) . ' !important;"' : '' ?>><?= nl2br(escape_html($description)) ?></p>
                             <?php endif; ?>
 
                             <?php if ($buttonText && $buttonUrl): ?>
@@ -295,7 +303,7 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                                 </div>
                             <?php endif; ?>
                             <?php if ($imageAlt): ?>
-                                <p class="hero-image-caption"><?= escape_html($imageAlt) ?></p>
+                                <p class="hero-image-caption"<?= $captionColor ? ' style="color: ' . escape_html($captionColor) . ' !important;"' : '' ?>><?= escape_html($imageAlt) ?></p>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -317,15 +325,15 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                     <?php endif; ?>
                     <div class="hero-media-content">
                         <?php if ($subheading): ?>
-                            <p class="hero-subheading"><?= escape_html($subheading) ?></p>
+                            <p class="hero-subheading"<?= $subheadingColor ? ' style="color: ' . escape_html($subheadingColor) . ' !important;"' : '' ?>><?= escape_html($subheading) ?></p>
                         <?php endif; ?>
 
                         <?php if ($heading): ?>
-                            <h1 class="hero-title"><?= escape_html($heading) ?></h1>
+                            <h1 class="hero-title"<?= $headingColor ? ' style="color: ' . escape_html($headingColor) . ' !important;"' : '' ?>><?= escape_html($heading) ?></h1>
                         <?php endif; ?>
 
                         <?php if ($description): ?>
-                            <p class="hero-description"><?= nl2br(escape_html($description)) ?></p>
+                            <p class="hero-description"<?= $descriptionColor ? ' style="color: ' . escape_html($descriptionColor) . ' !important;"' : '' ?>><?= nl2br(escape_html($description)) ?></p>
                         <?php endif; ?>
 
                         <?php if ($buttonText && $buttonUrl): ?>
@@ -341,7 +349,7 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                             </div>
                         <?php endif; ?>
                         <?php if ($imageAlt): ?>
-                            <p class="hero-image-caption"><?= escape_html($imageAlt) ?></p>
+                            <p class="hero-image-caption"<?= $captionColor ? ' style="color: ' . escape_html($captionColor) . ' !important;"' : '' ?>><?= escape_html($imageAlt) ?></p>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -351,10 +359,10 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
 	            <div class="row">
 	                <div class="col-12 <?= $textAlign ?>">
 	                    <?php if ($heading): ?>
-	                        <h1 class="hero-title hero-heading display-4 fw-bold mb-3"><?= escape_html($heading) ?></h1>
+	                        <h1 class="hero-title hero-heading display-4 fw-bold mb-3"<?= $headingColor ? ' style="color: ' . escape_html($headingColor) . ' !important;"' : '' ?>><?= escape_html($heading) ?></h1>
 	                    <?php endif; ?>
                     <?php if ($description): ?>
-                        <p class="hero-description lead"><?= nl2br(escape_html($description)) ?></p>
+                        <p class="hero-description lead"<?= $descriptionColor ? ' style="color: ' . escape_html($descriptionColor) . ' !important;"' : '' ?>><?= nl2br(escape_html($description)) ?></p>
                     <?php endif; ?>
                 </div>
             </div>

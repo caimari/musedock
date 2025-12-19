@@ -242,6 +242,47 @@
                                         <small class="text-muted">YouTube, Vimeo o MP4. Se usa si el tipo de media es Video.</small>
                                     </div>
                                 </div>
+
+                                <!-- Estilos personalizados -->
+                                <div class="border rounded p-3 mt-4 bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0"><i class="bi bi-palette me-2"></i>Colores personalizados</h6>
+                                        @if(!$isReadOnly)
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="resetColorsBtnSa">
+                                            <i class="bi bi-arrow-counterclockwise me-1"></i>Restaurar por defecto
+                                        </button>
+                                        @endif
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-md-3">
+                                            <label class="form-label small">Color subtitulo</label>
+                                            <input type="color" class="form-control form-control-color w-100" name="data[subheading_color]" id="subheading_color_sa" value="{{ old('data.subheading_color', $data['subheading_color'] ?? '#64748b') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small">Color titulo</label>
+                                            <input type="color" class="form-control form-control-color w-100" name="data[heading_color]" id="heading_color_sa" value="{{ old('data.heading_color', $data['heading_color'] ?? '#0f172a') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small">Color descripcion</label>
+                                            <input type="color" class="form-control form-control-color w-100" name="data[description_color]" id="description_color_sa" value="{{ old('data.description_color', $data['description_color'] ?? '#475569') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small">Color diapositiva</label>
+                                            <input type="color" class="form-control form-control-color w-100" name="data[card_bg_color]" id="card_bg_color_sa" value="{{ old('data.card_bg_color', $data['card_bg_color'] ?? '#ffffff') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                        </div>
+                                    </div>
+                                    <div class="row g-3 mt-2">
+                                        <div class="col-md-3">
+                                            <label class="form-label small">Fondo diapositiva (exterior)</label>
+                                            <input type="color" class="form-control form-control-color w-100" name="data[card_wrapper_bg_color]" id="card_wrapper_bg_color_sa" value="{{ old('data.card_wrapper_bg_color', $data['card_wrapper_bg_color'] ?? '#e2e8f0') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small">Color caption</label>
+                                            <input type="color" class="form-control form-control-color w-100" name="data[caption_color]" id="caption_color_sa" value="{{ old('data.caption_color', $data['caption_color'] ?? '#0f172a') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="mb-3 mt-3">
                                     <label class="form-label">{{ __element('hero.image_url') }}</label>
                                     @if(!$isReadOnly)
@@ -684,6 +725,38 @@ if (applyManualUrlSa && heroImageUrlManualSa) {
                 heroUploadStatusSa.innerHTML = '<i class="bi bi-exclamation-triangle text-warning"></i> La imagen no se pudo cargar, verifica la URL';
             };
         }
+    });
+}
+
+// Reset colors to default (Superadmin)
+const resetColorsBtnSa = document.getElementById('resetColorsBtnSa');
+if (resetColorsBtnSa) {
+    resetColorsBtnSa.addEventListener('click', function() {
+        const defaultColors = {
+            'subheading_color_sa': '#64748b',
+            'heading_color_sa': '#0f172a',
+            'description_color_sa': '#475569',
+            'card_bg_color_sa': '#ffffff',
+            'card_wrapper_bg_color_sa': '#e2e8f0',
+            'caption_color_sa': '#0f172a'
+        };
+
+        Object.keys(defaultColors).forEach(function(id) {
+            const input = document.getElementById(id);
+            if (input) {
+                input.value = defaultColors[id];
+            }
+        });
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Colores restaurados',
+            text: 'Se han restaurado los colores por defecto',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000
+        });
     });
 }
 </script>
