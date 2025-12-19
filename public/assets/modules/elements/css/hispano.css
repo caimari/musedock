@@ -423,9 +423,13 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+    /* Break out of parent container */
     .element-hero {
         min-height: auto;
         padding: 2rem 1rem;
+        width: 100vw;
+        margin-left: calc(-50vw + 50%);
+        margin-right: calc(-50vw + 50%);
     }
 
     .element-hero.layout-image-right .container,
@@ -450,6 +454,18 @@
 
     .element-hero .subheading {
         margin-bottom: 0.75rem !important;
+    }
+
+    .element-hero .hero-visual {
+        overflow: hidden;
+    }
+
+    .element-hero .hero-image {
+        order: 2;
+    }
+
+    .element-hero .hero-content {
+        order: 1;
     }
 
     .element-cta.layout-horizontal .container {

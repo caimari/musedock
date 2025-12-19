@@ -481,6 +481,15 @@
 
 /* Responsive Hero */
 @media (max-width: 768px) {
+    /* Break out of parent container */
+    .element-hero {
+        width: 100vw;
+        margin-left: calc(-50vw + 50%);
+        margin-right: calc(-50vw + 50%);
+        padding-left: 0;
+        padding-right: 0;
+    }
+
     .element-hero.layout-image-right .container,
     .element-hero.layout-image-left .container {
         grid-template-columns: 1fr;
@@ -516,6 +525,18 @@
     .element-hero .hero-visual,
     .element-hero .hero-visual-card {
         min-height: 320px;
+    }
+
+    .element-hero .hero-visual {
+        overflow: hidden;
+    }
+
+    .element-hero .hero-image {
+        order: 2;
+    }
+
+    .element-hero .hero-content {
+        order: 1;
     }
 }
 
