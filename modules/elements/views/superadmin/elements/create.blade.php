@@ -214,6 +214,53 @@ const contentFieldsTemplates = {
                 <input type="text" class="form-control" name="data[button_url]" value="{{ old('data.button_url') }}">
             </div>
         </div>
+        <div class="row g-3 mt-2">
+            <div class="col-md-4">
+                <label class="form-label">Destino del boton</label>
+                @php $buttonTarget = old('data.button_target', '_self'); @endphp
+                <select class="form-select" name="data[button_target]">
+                    <option value="_self" {{ $buttonTarget === '_self' ? 'selected' : '' }}>Misma pestana</option>
+                    <option value="_blank" {{ $buttonTarget === '_blank' ? 'selected' : '' }}>Nueva pestana</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Color fondo boton</label>
+                <input type="color" class="form-control form-control-color" name="data[button_bg_color]" value="{{ old('data.button_bg_color', '#0f172a') }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Color texto boton</label>
+                <input type="color" class="form-control form-control-color" name="data[button_text_color]" value="{{ old('data.button_text_color', '#ffffff') }}">
+            </div>
+        </div>
+
+        <div class="row g-3 mt-3">
+            <div class="col-md-6">
+                <label class="form-label">Texto segundo boton</label>
+                <input type="text" class="form-control" name="data[button_secondary_text]" value="{{ old('data.button_secondary_text') }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">URL segundo boton</label>
+                <input type="text" class="form-control" name="data[button_secondary_url]" value="{{ old('data.button_secondary_url') }}">
+            </div>
+        </div>
+        <div class="row g-3 mt-2">
+            <div class="col-md-4">
+                <label class="form-label">Destino segundo boton</label>
+                @php $buttonSecondaryTarget = old('data.button_secondary_target', '_self'); @endphp
+                <select class="form-select" name="data[button_secondary_target]">
+                    <option value="_self" {{ $buttonSecondaryTarget === '_self' ? 'selected' : '' }}>Misma pestana</option>
+                    <option value="_blank" {{ $buttonSecondaryTarget === '_blank' ? 'selected' : '' }}>Nueva pestana</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Color fondo segundo boton</label>
+                <input type="color" class="form-control form-control-color" name="data[button_secondary_bg_color]" value="{{ old('data.button_secondary_bg_color', '#ffffff') }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Color texto segundo boton</label>
+                <input type="color" class="form-control form-control-color" name="data[button_secondary_text_color]" value="{{ old('data.button_secondary_text_color', '#0f172a') }}">
+            </div>
+        </div>
         <div class="mb-3 mt-3">
             <label class="form-label">{{ __element('hero.image_url') }}</label>
             <div class="input-group">

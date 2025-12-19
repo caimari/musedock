@@ -1,31 +1,31 @@
 :root {
-  /* Solo la variable que nos interesa */
-  --header-bg-color: #ffffff;
-  --page-bg-color: transparent;
-  --footer-padding-y: 40px;
-
-  /* Variables del Hero */
+  --topbar-bg-color: #1a2a40;
+  --topbar-text-color: #ffffff;
   --hero-title-color: #ffffff;
   --hero-title-font: inherit;
   --hero-subtitle-color: #ffffff;
   --hero-overlay-color: #000000;
   --hero-overlay-opacity: 0.5;
+  --header-bg-color: #dff1fb;
+  --header-logo-text-color: #1a2a40;
+  --header-logo-font: inherit;
+  --header-link-color: #333333;
+  --header-link-hover-color: #ff5e15;
+  --header-cta-bg-color: #ff5e15;
+  --header-cta-text-color: #ffffff;
+  --footer-bg-color: #f8fafe;
+  --footer-text-color: #333333;
+  --footer-heading-color: #333333;
+  --footer-link-color: #333333;
+  --footer-link-hover-color: #ff5e15;
+  --footer-icon-color: #333333;
+  --footer-border-color: #e5e5e5;
 }
+
 
 /* Aplicación de la variable al elemento HTML correcto */
 .header-bottom {
   background-color: var(--header-bg-color);
-}
-
-/* Fondo general (a todo lo ancho) */
-body {
-  background-color: var(--page-bg-color) !important;
-}
-
-/* Footer más compacto */
-.footer-area.footer-padding {
-  padding-top: var(--footer-padding-y) !important;
-  padding-bottom: var(--footer-padding-y) !important;
 }
 
 /* Estilos para widget de categorías - forzar color negro en todos los estados */
@@ -60,17 +60,15 @@ body {
 .page-content-wrapper img,
 .blog-post-single img,
 article img,
-.content img {
+.container img,
+main img,
+.content img,
+p img,
+div img,
+img {
   max-width: 100% !important;
   height: auto !important;
-}
-
-/* Imágenes inline (dentro de párrafos) - mantener display inline-block */
-p img {
-  max-width: 100% !important;
-  height: auto !important;
-  display: inline-block;
-  vertical-align: middle;
+  display: block;
 }
 
 /* Resetear width inline en imágenes con atributos width/height */
@@ -93,18 +91,10 @@ img[width] {
 .post-content p,
 .page-content-wrapper p,
 .blog-post-single p,
-article p {
+article p,
+.container p {
   max-width: 100%;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-/* Párrafos con imágenes - centrar y contener */
-.page-body p:has(img),
-.post-content p:has(img),
-.page-content-wrapper p:has(img) {
-  text-align: center;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 /* Asegurar que iframes y videos también sean responsivos */
@@ -133,53 +123,95 @@ main video,
 .post-content,
 .page-content-wrapper,
 .blog-post-single,
-article {
+article,
+.container,
+main {
   overflow-x: hidden;
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
 
-/* Contenedor principal - asegurar que el contenido esté delimitado */
-.page-container,
-.has-slider-content,
-.container.py-4 {
-  max-width: 100%;
-  box-sizing: border-box;
+/* EXCEPCIÓN: Permitir overflow visible cuando hay slider a sangre (full-width) */
+/* El wrapper del slider necesita salirse del contenedor para ocupar todo el viewport */
+html:has(.slider-full-width-wrapper),
+body:has(.slider-full-width-wrapper),
+.page-body:has(.slider-full-width-wrapper),
+.post-content:has(.slider-full-width-wrapper),
+.page-content-wrapper:has(.slider-full-width-wrapper),
+article:has(.slider-full-width-wrapper),
+.container:has(.slider-full-width-wrapper),
+main:has(.slider-full-width-wrapper) {
+  overflow-x: visible !important;
 }
 
-/* Main - NO aplicar overflow hidden para permitir sliders full-width */
-main {
-  word-wrap: break-word;
-  overflow-wrap: break-word;
+/* Asegurar que el contenedor directo del slider permita el overflow */
+.page-body > .slider-full-width-wrapper,
+.post-content > .slider-full-width-wrapper,
+.page-content-wrapper > .slider-full-width-wrapper,
+.container > .slider-full-width-wrapper {
+  position: relative;
+  z-index: 10;
 }
 
-/* ===============================================
-   CONTENIDO DE PÁGINA - LÍMITES Y CONTENCIÓN
-   =============================================== */
-
-/* Asegurar que el contenido de la página esté correctamente contenido */
-.page-body {
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
+/* Cuando hay slider a sangre, eliminar el margen superior del contenedor */
+/* para que el slider quede pegado al header */
+.container:has(.slider-full-width-wrapper:first-child),
+.page-container:has(.slider-full-width-wrapper:first-child),
+.page-body:has(.slider-full-width-wrapper:first-child),
+main:has(.slider-full-width-wrapper:first-child) {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
 }
 
-/* Múltiples imágenes en línea - asegurar que se ajusten al contenedor */
-.page-body p img,
-.post-content p img,
-.page-content-wrapper p img {
-  max-width: 100%;
-  height: auto;
-  display: inline-block;
-  vertical-align: middle;
-  margin: 5px;
+/* Si el slider a sangre es el primer elemento dentro del page-body */
+.page-body > .slider-full-width-wrapper:first-child {
+  margin-top: 0 !important;
 }
 
-/* Contenedor de artículo */
-.page-content-wrapper {
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
+/* Eliminar padding del container.py-4 cuando tiene slider a sangre como primer hijo */
+.container.py-4:has(> article > .page-body > .slider-full-width-wrapper:first-child),
+.container.py-4:has(> .page-content-wrapper > .page-body > .slider-full-width-wrapper:first-child) {
+  padding-top: 0 !important;
+}
+
+/* FORZAR: Cuando hay slider a sangre, eliminar TODO el espacio superior */
+.has-full-width-slider,
+.has-slider-content.has-full-width-slider,
+.container.has-full-width-slider {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Main sin margen cuando tiene slider a sangre */
+main:has(.slider-full-width-wrapper) {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Article y page-body sin margen cuando tienen slider a sangre */
+article:has(.slider-full-width-wrapper),
+.page-content-wrapper:has(.slider-full-width-wrapper),
+.page-body:has(.slider-full-width-wrapper) {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Header sin borde inferior cuando la siguiente sección tiene slider a sangre */
+.musedock-header:has(+ main .slider-full-width-wrapper),
+header:has(+ main .slider-full-width-wrapper) {
+  border-bottom: none !important;
+  margin-bottom: 0 !important;
+}
+
+/* Eliminar cualquier espacio entre header y main */
+body:has(.slider-full-width-wrapper) .musedock-header,
+body:has(.slider-full-width-wrapper) header {
+  margin-bottom: 0 !important;
+}
+
+body:has(.slider-full-width-wrapper) main {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 /* Asegurar que tablas también sean responsivas */
@@ -223,31 +255,6 @@ main table {
    ESPACIADO PROFESIONAL DE CONTENIDO
    =============================================== */
 
-/* === H1 - Título de página === */
-.page-content h1,
-.page-body h1,
-.page-content-wrapper h1,
-.page-title,
-article h1:first-child {
-  font-size: 2rem !important; /* 32px - más pequeño que el default */
-  font-weight: 700;
-  line-height: 1.3;
-  margin-top: 0 !important;
-  margin-bottom: 2rem !important; /* 32px - más espacio antes del contenido */
-  padding-bottom: 1rem; /* Espacio adicional visual */
-  border-bottom: 1px solid rgba(0,0,0,0.08); /* Línea sutil de separación */
-}
-
-/* H1 dentro del contenido (no el título principal) */
-.page-body h1:not(:first-child),
-.page-content h1:not(:first-child) {
-  font-size: 1.75rem !important; /* 28px */
-  margin-top: 2.5rem !important;
-  margin-bottom: 1.5rem !important;
-  padding-bottom: 0;
-  border-bottom: none;
-}
-
 /* === PÁRRAFOS === */
 .page-content p,
 .page-body p,
@@ -266,17 +273,15 @@ article p:empty {
   display: none !important;
 }
 
-/* === H2 - Títulos de sección === */
+/* === H2 - Títulos principales === */
 .page-content h2,
 .page-body h2,
 .content h2,
 article h2 {
-  font-size: 1.5rem !important; /* 24px - más pequeño */
   margin-top: 2.5rem !important; /* 40px - clara separación */
-  margin-bottom: 1rem !important; /* 16px */
-  font-weight: 600;
-  line-height: 1.4;
-  color: #1a2a40;
+  margin-bottom: 1.25rem !important; /* 20px */
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 .page-content h2:first-child,
@@ -290,12 +295,10 @@ article h2 {
 .page-body h3,
 .content h3,
 article h3 {
-  font-size: 1.25rem !important; /* 20px */
-  margin-top: 1.75rem !important; /* 28px */
-  margin-bottom: 0.75rem !important; /* 12px */
+  margin-top: 2rem !important; /* 32px */
+  margin-bottom: 1rem !important; /* 16px */
   font-weight: 600;
   line-height: 1.4;
-  color: #333;
 }
 
 .page-content h3:first-child,
@@ -483,3 +486,14 @@ body {
   position: relative;
   z-index: 2;
 }
+
+/* --- CSS Personalizado --- */
+/* Ejemplos:
+.header-bottom {
+  background-color: #ff0000 !important;
+}
+
+.footer-area h4 {
+  color: #00ff00 !important;
+}
+*/

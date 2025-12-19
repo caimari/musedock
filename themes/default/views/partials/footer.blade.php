@@ -11,7 +11,7 @@
     $showFooterTitle = site_setting('show_title', '0') === '1';
     $footerSiteName = site_setting('site_name', 'MuseDock');
     $footerLogoPath = site_setting('site_logo', '');
-    $footerDefaultLogo = asset('themes/default/img/logo/logo.png');
+    $footerDefaultLogo = asset('img/musedock_logo.png');
     $showFooterBranding = $showFooterLogo || $showFooterTitle;
 @endphp
 <footer>
@@ -28,9 +28,9 @@
                          <div class="footer-logo" style="display:flex; align-items:center; gap:12px;">
                              <a href="{{ url('/') }}" style="display:flex; align-items:center; gap:12px; text-decoration:none;">
                                  @if($showFooterLogo)
-                                     <img src="{{ $footerLogoPath ? public_file_url($footerLogoPath) : $footerDefaultLogo }}"
+                                    <img src="{{ $footerLogoPath ? public_file_url($footerLogoPath) : $footerDefaultLogo }}"
                                           alt="{{ $footerSiteName }}"
-                                          style="max-height: 60px; width: auto;"
+                                         style="max-height: 44px; width: auto;"
                                           onerror="this.onerror=null; this.src='{{ $footerDefaultLogo }}';">
                                  @endif
                                  @if($showFooterTitle)
@@ -125,7 +125,7 @@
                 </div>
 
                 <div class="col-xl-2 col-lg-2 col-md-4 col-sm-6">
-                    <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterLogo ? '80px' : '0' }};">
+                    <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterLogo ? '40px' : '0' }};">
                         @php
                             // Verificar si existe un menú para el área footer1
                             $pdo = \Screenart\Musedock\Database::connect();
@@ -170,7 +170,7 @@
                 </div>
 
                 <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
-                    <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterBranding ? '80px' : '0' }};">
+                    <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterBranding ? '40px' : '0' }};">
                         @php
                             // Verificar si existe un menú para el área footer2
                             $pdo = \Screenart\Musedock\Database::connect();
@@ -215,7 +215,7 @@
                 </div>
 
                 <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
-                    <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterBranding ? '80px' : '0' }};">
+                    <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterBranding ? '40px' : '0' }};">
                         @php
                             // Verificar si existe un menú para el área footer3
                             $pdo = \Screenart\Musedock\Database::connect();

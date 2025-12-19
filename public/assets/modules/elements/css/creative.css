@@ -43,7 +43,7 @@
     order: 1;
 }
 
-.element-hero h1 {
+.element-hero .hero-title {
     font-size: 4rem;
     font-weight: 900;
     margin-bottom: 1.5rem;
@@ -202,6 +202,6 @@
 }
 
 @media (max-width: 768px) {
-    .element-hero h1 { font-size: 2.5rem !important; }
+    .element-hero .hero-title { font-size: 2.5rem !important; }
     .element-hero .container { grid-template-columns: 1fr !important; }
 }

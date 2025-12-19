@@ -7,9 +7,9 @@
 .element-hero {
     min-height: 100vh;
     display: flex;
-    align-items: center;
-    background: #f8fafc; /* slate-50 */
-    padding: 3rem 1.5rem;
+    align-items: flex-start;
+    background: transparent;
+    padding: 2.25rem 0 4rem;
 }
 
 .element-hero.layout-image-right .container,
@@ -30,18 +30,18 @@
     order: 2;
 }
 
-.element-hero h1 {
+.element-hero .hero-title {
     font-size: 3rem;
     font-weight: 700;
     color: #0f172a; /* slate-900 */
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
     line-height: 1.2;
 }
 
 .element-hero .subheading {
     font-size: 1.125rem;
     color: #475569; /* slate-600 */
-    margin-bottom: 2rem;
+    margin-bottom: 0.5rem;
     max-width: 40rem;
     line-height: 1.75;
 }
@@ -65,13 +65,22 @@
     display: inline-block;
     padding: 0.75rem 1.5rem;
     background: #0f172a; /* slate-900 */
-    color: #fff;
-    text-decoration: none;
+    color: #fff !important;
+    text-decoration: none !important;
     border-radius: 1rem;
     font-weight: 500;
     font-size: 1rem;
     transition: all 0.2s ease;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.element-hero a.hero-btn,
+.element-hero a.hero-btn:visited,
+.element-hero a.hero-btn:hover,
+.element-hero a.hero-btn:active,
+.element-hero a.hero-btn:focus {
+    color: #fff !important;
+    text-decoration: none !important;
 }
 
 .element-hero .hero-btn:hover {
@@ -92,6 +101,15 @@
     color: #1e293b;
 }
 
+.element-hero a.hero-btn-secondary,
+.element-hero a.hero-btn-secondary:visited,
+.element-hero a.hero-btn-secondary:hover,
+.element-hero a.hero-btn-secondary:active,
+.element-hero a.hero-btn-secondary:focus {
+    color: #1e293b !important;
+    text-decoration: none !important;
+}
+
 .element-hero .hero-note {
     font-size: 0.875rem;
     color: #64748b; /* slate-500 */
@@ -100,6 +118,88 @@
 
 .element-hero .hero-image {
     position: relative;
+}
+
+.element-hero .hero-centered {
+    max-width: 64rem;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.element-hero .hero-centered .hero-description {
+    max-width: 42rem;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+.element-hero .hero-centered .hero-buttons {
+    justify-content: center;
+}
+
+.element-hero .hero-image-centered .hero-visual {
+    max-width: 48rem;
+    margin: 2.5rem auto 0;
+}
+
+.element-hero .hero-visual {
+    position: relative;
+    min-height: 360px;
+    padding: 1.25rem;
+}
+
+.element-hero .hero-visual-bg {
+    position: absolute;
+    inset: 0;
+    border-radius: 1.75rem;
+    background: linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%);
+}
+
+.element-hero .hero-visual-card {
+    position: relative;
+    background: #fff;
+    border-radius: 1.75rem;
+    box-shadow: 0 24px 50px rgba(15, 23, 42, 0.12);
+    padding: 3rem;
+    margin: 0;
+    min-height: 360px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.element-hero .hero-visual-img {
+    width: 100%;
+    height: auto;
+    border-radius: 1.25rem;
+    object-fit: cover;
+    max-height: 520px;
+}
+
+.element-hero .hero-image-caption {
+    margin: 1rem 0 0;
+    font-size: 0.9rem;
+    color: #0f172a;
+    text-align: center;
+    display: block;
+}
+
+.element-hero .hero-visual-placeholder {
+    text-align: center;
+}
+
+.element-hero .hero-visual-letter {
+    font-size: 6rem;
+    font-weight: 800;
+    line-height: 1;
+    color: rgba(148, 163, 184, 0.55);
+    margin-bottom: 1rem;
+}
+
+.element-hero .hero-visual-text {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #64748b;
 }
 
 .element-hero .hero-image::before {
@@ -271,7 +371,7 @@
         order: unset;
     }
 
-    .element-hero h1 {
+    .element-hero .hero-title {
         font-size: 2rem;
     }
 

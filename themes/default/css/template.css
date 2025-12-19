@@ -1,6 +1,9 @@
 :root {
   /* Solo la variable que nos interesa */
   --header-bg-color: #ffffff;
+  --page-bg-color: #f3f4f6;
+  --header-padding-y: 8px;
+  --footer-padding-y: 40px;
 
   /* Variables del Hero */
   --hero-title-color: #ffffff;
@@ -13,6 +16,23 @@
 /* Aplicación de la variable al elemento HTML correcto */
 .header-bottom {
   background-color: var(--header-bg-color);
+}
+
+/* Fondo general (a todo lo ancho) */
+body {
+  background-color: var(--page-bg-color);
+}
+
+/* Header más compacto */
+.musedock-header {
+  padding-top: var(--header-padding-y) !important;
+  padding-bottom: var(--header-padding-y) !important;
+}
+
+/* Footer más compacto */
+.footer-area.footer-padding {
+  padding-top: var(--footer-padding-y) !important;
+  padding-bottom: var(--footer-padding-y) !important;
 }
 
 /* Estilos para widget de categorías - forzar color negro en todos los estados */

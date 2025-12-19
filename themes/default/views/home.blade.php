@@ -74,11 +74,12 @@
     @endif
 
     @php
-        $content = apply_filters('the_content', $translation->content ?? $page->content ?? '<p>' . __('home_intro') . '</p>');
-        // Solo eliminar el primer h1 si hay slider, no h2 ni h3
-        if (isset($customizations) && ($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")) {
-            $content = preg_replace('/<h1[^>]*>.*?<\/h1>/', '', $content, 1);
-        }
+	        $content = apply_filters('the_content', $translation->content ?? $page->content ?? '<p>' . __('home_intro') . '</p>');
+	        // Solo eliminar el primer h1 si hay slider, no h2 ni h3
+	        if (isset($customizations) && ($customizations->show_slider === true || $customizations->show_slider === 1 || $customizations->show_slider === "1")) {
+	            // No eliminar títulos de Elements (p.ej. <h1 class="hero-title">)
+	            $content = preg_replace('/<h1(?![^>]*\bhero-title\b)[^>]*>.*?<\/h1>/s', '', $content, 1);
+	        }
 
         // Detectar y extraer slider a sangre (full-width) del contenido
         $fullWidthSliderHtml = '';

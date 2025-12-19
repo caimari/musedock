@@ -105,7 +105,13 @@
                             <h5 class="mb-0">{{ __element('element.layout_settings') }}</h5>
                         </div>
                         <div class="card-body">
-                            @php $currentLayout = old('layout_type', $element->layout_type); @endphp
+                            @php
+                                $currentLayout = old('layout_type');
+                                if ($currentLayout === null || $currentLayout === '') {
+                                    $currentLayout = $element->layout_type;
+                                }
+                                $currentLayout = is_string($currentLayout) ? trim($currentLayout) : $currentLayout;
+                            @endphp
 
                             <div id="heroLayoutOptions" style="display: {{ $element->type === 'hero' ? 'block' : 'none' }};">
                                 <label class="form-label">{{ __element('element.layout_type') }}</label>
@@ -174,6 +180,53 @@
                                         <input type="text" class="form-control" name="data[button_url]" value="{{ old('data.button_url', $data['button_url'] ?? '') }}" {{ $isReadOnly ? 'disabled' : '' }}>
                                     </div>
                                 </div>
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Destino del boton</label>
+                                        <select class="form-select" name="data[button_target]" {{ $isReadOnly ? 'disabled' : '' }}>
+                                            @php $buttonTarget = old('data.button_target', $data['button_target'] ?? '_self'); @endphp
+                                            <option value="_self" {{ $buttonTarget === '_self' ? 'selected' : '' }}>Misma pestana</option>
+                                            <option value="_blank" {{ $buttonTarget === '_blank' ? 'selected' : '' }}>Nueva pestana</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Color fondo boton</label>
+                                        <input type="color" class="form-control form-control-color" name="data[button_bg_color]" value="{{ old('data.button_bg_color', $data['button_bg_color'] ?? '#0f172a') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Color texto boton</label>
+                                        <input type="color" class="form-control form-control-color" name="data[button_text_color]" value="{{ old('data.button_text_color', $data['button_text_color'] ?? '#ffffff') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 mt-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Texto segundo boton</label>
+                                        <input type="text" class="form-control" name="data[button_secondary_text]" value="{{ old('data.button_secondary_text', $data['button_secondary_text'] ?? '') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">URL segundo boton</label>
+                                        <input type="text" class="form-control" name="data[button_secondary_url]" value="{{ old('data.button_secondary_url', $data['button_secondary_url'] ?? '') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                    </div>
+                                </div>
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Destino segundo boton</label>
+                                        <select class="form-select" name="data[button_secondary_target]" {{ $isReadOnly ? 'disabled' : '' }}>
+                                            @php $buttonSecondaryTarget = old('data.button_secondary_target', $data['button_secondary_target'] ?? '_self'); @endphp
+                                            <option value="_self" {{ $buttonSecondaryTarget === '_self' ? 'selected' : '' }}>Misma pestana</option>
+                                            <option value="_blank" {{ $buttonSecondaryTarget === '_blank' ? 'selected' : '' }}>Nueva pestana</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Color fondo segundo boton</label>
+                                        <input type="color" class="form-control form-control-color" name="data[button_secondary_bg_color]" value="{{ old('data.button_secondary_bg_color', $data['button_secondary_bg_color'] ?? '#ffffff') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Color texto segundo boton</label>
+                                        <input type="color" class="form-control form-control-color" name="data[button_secondary_text_color]" value="{{ old('data.button_secondary_text_color', $data['button_secondary_text_color'] ?? '#0f172a') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                    </div>
+                                </div>
                                 <div class="mb-3 mt-3">
                                     <label class="form-label">{{ __element('hero.image_url') }}</label>
                                     @if(!$isReadOnly)
@@ -187,6 +240,11 @@
                                             <img id="hero_image_preview_edit" src="" class="img-thumbnail" style="max-height: 150px; max-width: 300px; object-fit: cover; display: none;">
                                         </div>
                                         @endif
+
+                                        <div class="mb-3">
+                                            <label class="form-label">{{ __element('hero.image_alt') }}</label>
+                                            <input type="text" class="form-control" name="data[image_alt]" value="{{ old('data.image_alt', $data['image_alt'] ?? '') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                        </div>
 
                                         {{-- File upload input --}}
                                         <div class="mb-2">
@@ -221,13 +279,12 @@
                                         @if(old('data.image_url', $data['image_url'] ?? ''))
                                             <img src="{{ old('data.image_url', $data['image_url'] ?? '') }}" class="img-fluid rounded border mt-2" style="max-height: 150px;">
                                         @endif
+                                        <div class="mb-3 mt-3">
+                                            <label class="form-label">{{ __element('hero.image_alt') }}</label>
+                                            <input type="text" class="form-control" name="data[image_alt]" value="{{ old('data.image_alt', $data['image_alt'] ?? '') }}" disabled>
+                                        </div>
                                     @endif
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">{{ __element('hero.image_alt') }}</label>
-                                    <input type="text" class="form-control" name="data[image_alt]" value="{{ old('data.image_alt', $data['image_alt'] ?? '') }}" {{ $isReadOnly ? 'disabled' : '' }}>
-                                </div>
-
                             @elseif($element->type === 'faq')
                                 <div class="mb-3">
                                     <label class="form-label">{{ __element('faq.heading') }}</label>

@@ -6,23 +6,41 @@
 /* Hero Modern */
 .element-hero {
     position: relative;
-    padding: 5rem 0;
+    --el-hero-bg: transparent;
+    --el-hero-text: #0f172a;
+    --el-hero-muted: #475569;
+    --el-hero-surface: #ffffff;
+    --el-hero-border: rgba(148, 163, 184, 0.45);
+    --el-hero-accent: #4f46e5;
+    --el-hero-btn-bg: #0f172a;
+    --el-hero-btn-text: #ffffff;
+    --el-hero-btn-hover-bg: #111827;
+    --el-hero-btn-secondary-bg: #ffffff;
+    --el-hero-btn-secondary-text: #0f172a;
+    --el-hero-btn-secondary-border: rgba(148, 163, 184, 0.65);
+
+    background: var(--el-hero-bg);
+    color: var(--el-hero-text);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    padding: 2.25rem 0 4rem;
     overflow: hidden;
 }
 
 .element-hero.layout-image-right,
 .element-hero.layout-image-left {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-    color: #fff;
+    background: transparent;
+    color: inherit;
 }
 
 .element-hero.layout-image-right .container,
 .element-hero.layout-image-left .container {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 4rem;
+    gap: 3.5rem;
     align-items: center;
-    max-width: 1200px;
+    max-width: 1320px;
     margin: 0 auto;
     padding: 0 2rem;
 }
@@ -35,56 +53,212 @@
     order: 1;
 }
 
-.element-hero h1 {
-    font-size: 3.5rem;
+.element-hero .hero-title {
+    display: block !important;
+    font-size: clamp(2.75rem, 4.2vw, 4.25rem);
     font-weight: 800;
-    margin-bottom: 1.5rem;
-    line-height: 1.1;
+    margin: 0 0 1.25rem 0;
+    line-height: 1.05;
     letter-spacing: -0.02em;
+    color: var(--el-hero-text);
 }
 
 .element-hero .subheading {
-    font-size: 1.75rem;
-    opacity: 0.95;
-    margin-bottom: 1rem;
+    display: block;
+    font-size: 1.125rem;
     font-weight: 600;
+    margin: 0 0 1rem 0;
+    color: rgba(71, 85, 105, 0.9);
 }
 
-.element-hero p {
+.element-hero .hero-subheading {
+    display: block;
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0 0 1rem 0;
+    color: rgba(71, 85, 105, 0.9);
+}
+
+.element-hero .hero-description {
+    display: block;
+    max-width: 520px;
     font-size: 1.25rem;
-    opacity: 0.9;
-    margin-bottom: 2.5rem;
+    margin: 0 0 1.75rem 0;
     line-height: 1.7;
+    color: var(--el-hero-muted);
 }
 
-.element-hero img {
-    width: 100%;
-    border-radius: 20px;
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
-    transform: perspective(1000px) rotateY(-5deg);
-    transition: transform 0.3s;
-}
-
-.element-hero img:hover {
-    transform: perspective(1000px) rotateY(0deg);
+.element-hero .hero-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .hero-btn {
     display: inline-block;
-    padding: 1.25rem 3rem;
-    background: #fff;
-    color: #6366f1;
-    text-decoration: none;
-    border-radius: 100px;
-    font-weight: 700;
-    font-size: 1.125rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    padding: 0.95rem 1.75rem;
+    background: var(--el-hero-btn-bg);
+    color: var(--el-hero-btn-text) !important;
+    text-decoration: none !important;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 1rem;
+    border: 1px solid rgba(15, 23, 42, 0.9);
+    transition: all 0.2s ease;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
+}
+
+.element-hero a.hero-btn,
+.element-hero a.hero-btn:visited,
+.element-hero a.hero-btn:hover,
+.element-hero a.hero-btn:active,
+.element-hero a.hero-btn:focus {
+    color: var(--el-hero-btn-text) !important;
+    text-decoration: none !important;
 }
 
 .hero-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+    transform: translateY(-2px);
+    background: var(--el-hero-btn-hover-bg);
+    border-color: var(--el-hero-btn-hover-bg);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
+    color: var(--el-hero-btn-text) !important;
+    text-decoration: none !important;
+}
+
+.hero-btn.hero-btn-secondary {
+    background: var(--el-hero-btn-secondary-bg);
+    color: var(--el-hero-btn-secondary-text) !important;
+    border: 1px solid var(--el-hero-btn-secondary-border);
+    box-shadow: none;
+    text-decoration: none !important;
+}
+
+.element-hero a.hero-btn.hero-btn-secondary,
+.element-hero a.hero-btn.hero-btn-secondary:visited,
+.element-hero a.hero-btn.hero-btn-secondary:hover,
+.element-hero a.hero-btn.hero-btn-secondary:active,
+.element-hero a.hero-btn.hero-btn-secondary:focus {
+    color: var(--el-hero-btn-secondary-text) !important;
+    text-decoration: none !important;
+}
+
+.hero-btn.hero-btn-secondary:hover {
+    background: var(--el-hero-btn-secondary-bg);
+    border-color: rgba(148, 163, 184, 0.9);
+    color: var(--el-hero-btn-secondary-text) !important;
+}
+
+/* Compatibilidad con layouts que usan botones Bootstrap */
+.element-hero .hero-buttons .btn.btn-primary {
+    background: var(--el-hero-btn-bg);
+    border-color: var(--el-hero-btn-bg);
+    color: var(--el-hero-btn-text) !important;
+    border-radius: 999px;
+    padding: 0.95rem 1.75rem;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
+    text-decoration: none !important;
+}
+
+.element-hero .hero-buttons .btn.btn-primary:hover {
+    background: var(--el-hero-btn-hover-bg);
+    border-color: var(--el-hero-btn-hover-bg);
+    color: var(--el-hero-btn-text) !important;
+}
+
+.element-hero .hero-buttons .btn.btn-outline-secondary,
+.element-hero .hero-buttons .btn.btn-light {
+    background: #fff;
+    border-color: var(--el-hero-btn-secondary-border);
+    color: var(--el-hero-btn-secondary-text) !important;
+    border-radius: 999px;
+    padding: 0.95rem 1.75rem;
+    text-decoration: none !important;
+}
+
+.element-hero .hero-buttons .btn.btn-outline-secondary:hover,
+.element-hero .hero-buttons .btn.btn-light:hover {
+    background: #fff;
+    border-color: rgba(148, 163, 184, 0.9);
+    color: var(--el-hero-btn-secondary-text) !important;
+}
+
+/* Visual derecha (tarjeta) */
+.element-hero .hero-image {
+    position: relative;
+}
+
+.element-hero .hero-visual {
+    position: relative;
+    min-height: 420px;
+    padding: 1.25rem;
+}
+
+.element-hero .hero-visual-bg {
+    position: absolute;
+    inset: 0;
+    border-radius: 1.75rem;
+    background:
+        radial-gradient(900px 500px at 15% 20%, rgba(79, 70, 229, 0.22), transparent 60%),
+        radial-gradient(900px 500px at 90% 70%, rgba(16, 185, 129, 0.16), transparent 60%),
+        linear-gradient(135deg, #e2e8f0, #f1f5f9);
+}
+
+.element-hero .hero-visual-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 1.75rem;
+    border: 1px solid var(--el-hero-border);
+    box-shadow: 0 26px 70px rgba(15, 23, 42, 0.14);
+    padding: 3rem;
+    margin: 0;
+    min-height: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.element-hero .hero-visual-img {
+    width: 100%;
+    height: auto;
+    border-radius: 1.25rem;
+    object-fit: cover;
+    max-height: 520px;
+}
+
+.element-hero .hero-visual-placeholder {
+    text-align: center;
+}
+
+.element-hero .hero-visual-letter {
+    font-size: 6rem;
+    font-weight: 800;
+    line-height: 1;
+    color: rgba(148, 163, 184, 0.55);
+    margin-bottom: 1rem;
+}
+
+.element-hero .hero-visual-text {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #64748b;
+}
+
+/* Layout centrado */
+.element-hero.layout-centered {
+    text-align: center;
+}
+
+.element-hero.layout-centered .hero-description {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.element-hero.layout-centered .hero-buttons {
+    justify-content: center;
 }
 
 /* FAQ Modern */
@@ -142,6 +316,29 @@
 }
 
 @media (max-width: 768px) {
-    .element-hero h1 { font-size: 2.5rem !important; }
-    .element-hero .container { grid-template-columns: 1fr !important; }
+    .element-hero.layout-image-right .container,
+    .element-hero.layout-image-left .container {
+        grid-template-columns: 1fr !important;
+        gap: 2.5rem !important;
+        padding: 0 1.25rem !important;
+    }
+
+    .element-hero .hero-title {
+        font-size: 2.25rem !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .element-hero .subheading,
+    .element-hero .hero-subheading {
+        font-size: 1.05rem !important;
+    }
+
+    .element-hero .hero-description {
+        font-size: 1.125rem !important;
+    }
+
+    .element-hero .hero-visual,
+    .element-hero .hero-visual-card {
+        min-height: 320px;
+    }
 }

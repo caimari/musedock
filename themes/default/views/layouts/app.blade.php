@@ -1147,12 +1147,12 @@ body.mobile-menu-open {
                 <a href="{{ url('/') }}" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
                     @php
                         // Configuraciones de logo y título
-                        $showLogo = site_setting('show_logo', '1') === '1';
-                        $showTitle = site_setting('show_title', '0') === '1';
-                        $siteName = site_setting('site_name', '');
-                        $logoPath = site_setting('site_logo', '');
-                        $defaultLogo = asset('themes/default/img/logo/logo.png');
-                    @endphp
+	                        $showLogo = site_setting('show_logo', '1') === '1';
+	                        $showTitle = site_setting('show_title', '0') === '1';
+	                        $siteName = site_setting('site_name', '');
+	                        $logoPath = site_setting('site_logo', '');
+	                        $defaultLogo = asset('img/musedock_logo.png');
+	                    @endphp
 
                     {{-- Mostrar logo si está habilitado --}}
                     @if($showLogo)

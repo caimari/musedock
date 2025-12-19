@@ -255,13 +255,14 @@
                 @php
                     // Usar el contenido ya procesado (sin el slider a sangre si lo había)
                     $content = $processedContent;
-                    // Si hide_title está activado, eliminar el primer H1 del contenido
-                    // Esto permite ocultar títulos que el usuario haya puesto manualmente en el editor
-                    if (isset($customizations) && $customizations->hide_title) {
-                        $content = preg_replace('/<h1[^>]*>.*?<\/h1>/', '', $content, 1);
-                    }
-                @endphp
-                {!! $content !!}
+	                    // Si hide_title está activado, eliminar el primer H1 del contenido
+	                    // Esto permite ocultar títulos que el usuario haya puesto manualmente en el editor
+	                    if (isset($customizations) && $customizations->hide_title) {
+	                        // No eliminar títulos de Elements (p.ej. <h1 class="hero-title">)
+	                        $content = preg_replace('/<h1(?![^>]*\bhero-title\b)[^>]*>.*?<\/h1>/s', '', $content, 1);
+	                    }
+	                @endphp
+	                {!! $content !!}
             </div>
         @endif
     </article>

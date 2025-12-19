@@ -17,6 +17,12 @@ $buttonText = $data['button_text'] ?? '';
 $buttonUrl = $data['button_url'] ?? '';
 $buttonSecondaryText = $data['button_secondary_text'] ?? '';
 $buttonSecondaryUrl = $data['button_secondary_url'] ?? '';
+$buttonTarget = $data['button_target'] ?? '_self';
+$buttonSecondaryTarget = $data['button_secondary_target'] ?? '_self';
+$buttonBgColor = $data['button_bg_color'] ?? '';
+$buttonTextColor = $data['button_text_color'] ?? '';
+$buttonSecondaryBgColor = $data['button_secondary_bg_color'] ?? '';
+$buttonSecondaryTextColor = $data['button_secondary_text_color'] ?? '';
 $imageUrl = $data['image_url'] ?? '';
 $imageAlt = $data['image_alt'] ?? $heading;
 $videoUrl = $data['video_url'] ?? '';
@@ -25,120 +31,251 @@ $textColor = $data['text_color'] ?? '';
 $minHeight = $data['min_height'] ?? '400';
 $alignment = $data['alignment'] ?? 'left';
 
+$videoEmbedUrl = '';
+if ($videoUrl) {
+    if (preg_match('~(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/|shorts/))([A-Za-z0-9_-]{6,})~', $videoUrl, $matches)) {
+        $youtubeId = $matches[1];
+        $videoEmbedUrl = 'https://www.youtube.com/embed/' . $youtubeId . '?autoplay=1&mute=1&loop=1&playlist=' . $youtubeId . '&controls=0&showinfo=0&rel=0&playsinline=1';
+    } elseif (preg_match('~vimeo\.com/(?:video/)?([0-9]+)~', $videoUrl, $matches)) {
+        $vimeoId = $matches[1];
+        $videoEmbedUrl = 'https://player.vimeo.com/video/' . $vimeoId . '?autoplay=1&muted=1&loop=1&background=1&byline=0&title=0&badge=0';
+    }
+}
+
+$buttonStyle = [];
+if ($buttonBgColor !== '') {
+    $buttonStyle[] = 'background-color: ' . escape_html($buttonBgColor) . ';';
+}
+if ($buttonTextColor !== '') {
+    $buttonStyle[] = 'color: ' . escape_html($buttonTextColor) . ';';
+}
+$buttonStyleAttr = $buttonStyle ? ' style="' . implode(' ', $buttonStyle) . '"' : '';
+
+$buttonSecondaryStyle = [];
+if ($buttonSecondaryBgColor !== '') {
+    $buttonSecondaryStyle[] = 'background-color: ' . escape_html($buttonSecondaryBgColor) . ';';
+}
+if ($buttonSecondaryTextColor !== '') {
+    $buttonSecondaryStyle[] = 'color: ' . escape_html($buttonSecondaryTextColor) . ';';
+}
+$buttonSecondaryStyleAttr = $buttonSecondaryStyle ? ' style="' . implode(' ', $buttonSecondaryStyle) . '"' : '';
+
+$buttonTargetAttr = $buttonTarget === '_blank' ? ' target="_blank" rel="noopener noreferrer"' : '';
+$buttonSecondaryTargetAttr = $buttonSecondaryTarget === '_blank' ? ' target="_blank" rel="noopener noreferrer"' : '';
+
 $containerClass = 'element-hero layout-' . ($layout ?? 'image-right');
 $textAlign = 'text-' . $alignment;
+$sectionStyles = [];
+if ($backgroundColor) {
+    $sectionStyles[] = 'background-color: ' . escape_html($backgroundColor) . ';';
+}
+if ($minHeight) {
+    $sectionStyles[] = 'min-height: ' . escape_html($minHeight) . 'px;';
+}
+if ($textColor) {
+    $sectionStyles[] = 'color: ' . escape_html($textColor) . ';';
+}
+if ($layout === 'background' && $imageUrl) {
+    $sectionStyles[] = 'background-image: url(\'' . escape_html($imageUrl) . '\');';
+}
+$sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
 ?>
 
 <section class="<?= escape_html($containerClass) ?>"
-         style="<?= $backgroundColor ? 'background-color: ' . escape_html($backgroundColor) . '; ' : '' ?><?= $minHeight ? 'min-height: ' . escape_html($minHeight) . 'px; ' : '' ?><?= $textColor ? 'color: ' . escape_html($textColor) . '; ' : '' ?>">
+         style="<?= $sectionStyleAttr ?>">
 
-    <div class="container">
-        <?php if ($layout === 'image-right' || $layout === 'image-left'): ?>
-            <div class="hero-content">
+	    <div class="container">
+	        <?php if ($layout === 'image-right' || $layout === 'image-left'): ?>
+	            <div class="hero-content">
+	                <?php if ($subheading): ?>
+	                    <div class="subheading"><?= escape_html($subheading) ?></div>
+	                <?php endif; ?>
+
+	                <?php if ($heading): ?>
+	                    <h1 class="hero-title"><?= escape_html($heading) ?></h1>
+	                <?php endif; ?>
+
+	                <?php if ($description): ?>
+	                    <p class="hero-description"><?= nl2br(escape_html($description)) ?></p>
+	                <?php endif; ?>
+
+	                <?php if ($buttonText && $buttonUrl): ?>
+	                    <div class="hero-buttons">
+	                        <a href="<?= escape_html($buttonUrl) ?>" class="hero-btn"<?= $buttonTargetAttr ?><?= $buttonStyleAttr ?>>
+	                            <?= escape_html($buttonText) ?>
+	                        </a>
+	                        <?php if ($buttonSecondaryText && $buttonSecondaryUrl): ?>
+	                            <a href="<?= escape_html($buttonSecondaryUrl) ?>" class="hero-btn hero-btn-secondary"<?= $buttonSecondaryTargetAttr ?><?= $buttonSecondaryStyleAttr ?>>
+	                                <?= escape_html($buttonSecondaryText) ?>
+	                            </a>
+	                        <?php endif; ?>
+	                    </div>
+	                <?php endif; ?>
+	            </div>
+
+                <div class="hero-image">
+                    <div class="hero-visual">
+                        <div class="hero-visual-bg" aria-hidden="true"></div>
+                        <div class="hero-visual-card">
+                            <?php if ($imageUrl): ?>
+                                <img class="hero-visual-img"
+                                     src="<?= escape_html($imageUrl) ?>"
+                                     alt="<?= escape_html($imageAlt) ?>"
+                                     loading="lazy">
+                            <?php else: ?>
+                                <div class="hero-visual-placeholder" aria-label="Ilustración corporativa (placeholder)">
+                                    <div class="hero-visual-letter">H</div>
+                                    <p class="hero-visual-text">
+                                        Ilustración corporativa / mapa de EE. UU.<br>
+                                        (placeholder visual)
+                                    </p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php if ($imageAlt): ?>
+                        <p class="hero-image-caption"><?= escape_html($imageAlt) ?></p>
+                    <?php endif; ?>
+                </div>
+
+        <?php elseif ($layout === 'centered'): ?>
+            <div class="hero-centered text-center">
                 <?php if ($subheading): ?>
-                    <div class="subheading"><?= escape_html($subheading) ?></div>
+                    <p class="hero-subheading"><?= escape_html($subheading) ?></p>
                 <?php endif; ?>
 
                 <?php if ($heading): ?>
-                    <h1><?= escape_html($heading) ?></h1>
+                    <h1 class="hero-title"><?= escape_html($heading) ?></h1>
                 <?php endif; ?>
 
                 <?php if ($description): ?>
-                    <p><?= nl2br(escape_html($description)) ?></p>
+                    <p class="hero-description"><?= nl2br(escape_html($description)) ?></p>
                 <?php endif; ?>
 
                 <?php if ($buttonText && $buttonUrl): ?>
-                    <a href="<?= escape_html($buttonUrl) ?>" class="hero-btn">
-                        <?= escape_html($buttonText) ?>
-                    </a>
+                    <div class="hero-buttons">
+                        <a href="<?= escape_html($buttonUrl) ?>" class="hero-btn"<?= $buttonTargetAttr ?><?= $buttonStyleAttr ?>>
+                            <?= escape_html($buttonText) ?>
+                        </a>
+                        <?php if ($buttonSecondaryText && $buttonSecondaryUrl): ?>
+                            <a href="<?= escape_html($buttonSecondaryUrl) ?>" class="hero-btn hero-btn-secondary"<?= $buttonSecondaryTargetAttr ?><?= $buttonSecondaryStyleAttr ?>>
+                                <?= escape_html($buttonSecondaryText) ?>
+                            </a>
+                        <?php endif; ?>
+                    </div>
                 <?php endif; ?>
-            </div>
 
-            <?php if ($imageUrl): ?>
-                <div class="hero-image">
-                    <img src="<?= escape_html($imageUrl) ?>"
-                         alt="<?= escape_html($imageAlt) ?>">
-                </div>
-            <?php endif; ?>
-
-        <?php elseif ($layout === 'centered'): ?>
-            <div class="row">
-                <div class="col-lg-8 mx-auto text-center">
-                    <?php if ($subheading): ?>
-                        <p class="hero-subheading text-muted mb-2"><?= escape_html($subheading) ?></p>
-                    <?php endif; ?>
-
-                    <?php if ($heading): ?>
-                        <h1 class="hero-heading display-3 fw-bold mb-3"><?= escape_html($heading) ?></h1>
-                    <?php endif; ?>
-
-                    <?php if ($description): ?>
-                        <p class="hero-description lead mb-4"><?= nl2br(escape_html($description)) ?></p>
-                    <?php endif; ?>
-
-                    <?php if ($buttonText && $buttonUrl): ?>
-                        <div class="hero-buttons">
-                            <a href="<?= escape_html($buttonUrl) ?>" class="btn btn-primary btn-lg me-2 mb-2">
-                                <?= escape_html($buttonText) ?>
-                            </a>
-                            <?php if ($buttonSecondaryText && $buttonSecondaryUrl): ?>
-                                <a href="<?= escape_html($buttonSecondaryUrl) ?>" class="btn btn-outline-secondary btn-lg mb-2">
-                                    <?= escape_html($buttonSecondaryText) ?>
-                                </a>
+                <div class="hero-image hero-image-centered">
+                    <div class="hero-visual">
+                        <div class="hero-visual-bg" aria-hidden="true"></div>
+                        <div class="hero-visual-card">
+                            <?php if ($imageUrl): ?>
+                                <img class="hero-visual-img"
+                                     src="<?= escape_html($imageUrl) ?>"
+                                     alt="<?= escape_html($imageAlt) ?>"
+                                     loading="lazy">
+                            <?php else: ?>
+                                <div class="hero-visual-placeholder" aria-label="Ilustración corporativa (placeholder)">
+                                    <div class="hero-visual-letter">H</div>
+                                    <p class="hero-visual-text">
+                                        Imagen corporativa / ilustración / mapa de EE. UU.<br>
+                                        (placeholder visual centrado)
+                                    </p>
+                                </div>
                             <?php endif; ?>
                         </div>
-                    <?php endif; ?>
-
-                    <?php if ($imageUrl): ?>
-                        <div class="mt-5">
-                            <img src="<?= escape_html($imageUrl) ?>"
-                                 alt="<?= escape_html($imageAlt) ?>"
-                                 class="img-fluid rounded shadow-lg"
-                                 loading="lazy">
-                        </div>
+                    </div>
+                    <?php if ($imageAlt): ?>
+                        <p class="hero-image-caption"><?= escape_html($imageAlt) ?></p>
                     <?php endif; ?>
                 </div>
             </div>
 
-        <?php elseif ($layout === 'background'): ?>
-            <div class="hero-background-content"
-                 style="background-image: url('<?= escape_html($imageUrl) ?>'); background-size: cover; background-position: center; border-radius: 1rem; padding: 5rem 2rem; text-align: center; position: relative;">
-                <div style="position: relative; z-index: 2;">
-                    <?php if ($subheading): ?>
-                        <p class="hero-subheading mb-2 text-white"><?= escape_html($subheading) ?></p>
-                    <?php endif; ?>
+	        <?php elseif ($layout === 'background'): ?>
+                <div class="hero-media">
+                    <div class="hero-media-content">
+                        <?php if ($subheading): ?>
+                            <p class="hero-subheading"><?= escape_html($subheading) ?></p>
+                        <?php endif; ?>
 
-                    <?php if ($heading): ?>
-                        <h1 class="hero-heading display-3 fw-bold mb-3 text-white"><?= escape_html($heading) ?></h1>
-                    <?php endif; ?>
+                        <?php if ($heading): ?>
+                            <h1 class="hero-title"><?= escape_html($heading) ?></h1>
+                        <?php endif; ?>
 
-                    <?php if ($description): ?>
-                        <p class="hero-description lead mb-4 text-white"><?= nl2br(escape_html($description)) ?></p>
-                    <?php endif; ?>
+                        <?php if ($description): ?>
+                            <p class="hero-description"><?= nl2br(escape_html($description)) ?></p>
+                        <?php endif; ?>
 
-                    <?php if ($buttonText && $buttonUrl): ?>
-                        <div class="hero-buttons">
-                            <a href="<?= escape_html($buttonUrl) ?>" class="btn btn-primary btn-lg me-2 mb-2">
-                                <?= escape_html($buttonText) ?>
-                            </a>
-                            <?php if ($buttonSecondaryText && $buttonSecondaryUrl): ?>
-                                <a href="<?= escape_html($buttonSecondaryUrl) ?>" class="btn btn-light btn-lg mb-2">
-                                    <?= escape_html($buttonSecondaryText) ?>
+                        <?php if ($buttonText && $buttonUrl): ?>
+                            <div class="hero-buttons">
+                                <a href="<?= escape_html($buttonUrl) ?>" class="hero-btn"<?= $buttonTargetAttr ?><?= $buttonStyleAttr ?>>
+                                    <?= escape_html($buttonText) ?>
                                 </a>
-                            <?php endif; ?>
-                        </div>
-                    <?php endif; ?>
+                                <?php if ($buttonSecondaryText && $buttonSecondaryUrl): ?>
+                                    <a href="<?= escape_html($buttonSecondaryUrl) ?>" class="hero-btn hero-btn-secondary"<?= $buttonSecondaryTargetAttr ?><?= $buttonSecondaryStyleAttr ?>>
+                                        <?= escape_html($buttonSecondaryText) ?>
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                        <?php if ($imageAlt): ?>
+                            <p class="hero-image-caption"><?= escape_html($imageAlt) ?></p>
+                        <?php endif; ?>
+                    </div>
                 </div>
-                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); border-radius: 1rem; z-index: 1;"></div>
-            </div>
 
-        <?php else: ?>
-            <!-- Default layout -->
-            <div class="row">
-                <div class="col-12 <?= $textAlign ?>">
-                    <?php if ($heading): ?>
-                        <h1 class="hero-heading display-4 fw-bold mb-3"><?= escape_html($heading) ?></h1>
+	        <?php elseif ($layout === 'video'): ?>
+                <div class="hero-media hero-media-video">
+                    <?php if ($videoEmbedUrl): ?>
+                        <iframe class="hero-video-embed"
+                                src="<?= escape_html($videoEmbedUrl) ?>"
+                                title="Video background"
+                                frameborder="0"
+                                allow="autoplay; fullscreen; picture-in-picture"
+                                allowfullscreen></iframe>
+                    <?php elseif ($videoUrl): ?>
+                        <video class="hero-video-bg" autoplay muted loop playsinline>
+                            <source src="<?= escape_html($videoUrl) ?>">
+                        </video>
                     <?php endif; ?>
+                    <div class="hero-media-content">
+                        <?php if ($subheading): ?>
+                            <p class="hero-subheading"><?= escape_html($subheading) ?></p>
+                        <?php endif; ?>
+
+                        <?php if ($heading): ?>
+                            <h1 class="hero-title"><?= escape_html($heading) ?></h1>
+                        <?php endif; ?>
+
+                        <?php if ($description): ?>
+                            <p class="hero-description"><?= nl2br(escape_html($description)) ?></p>
+                        <?php endif; ?>
+
+                        <?php if ($buttonText && $buttonUrl): ?>
+                            <div class="hero-buttons">
+                                <a href="<?= escape_html($buttonUrl) ?>" class="hero-btn"<?= $buttonTargetAttr ?><?= $buttonStyleAttr ?>>
+                                    <?= escape_html($buttonText) ?>
+                                </a>
+                                <?php if ($buttonSecondaryText && $buttonSecondaryUrl): ?>
+                                    <a href="<?= escape_html($buttonSecondaryUrl) ?>" class="hero-btn hero-btn-secondary"<?= $buttonSecondaryTargetAttr ?><?= $buttonSecondaryStyleAttr ?>>
+                                        <?= escape_html($buttonSecondaryText) ?>
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                        <?php if ($imageAlt): ?>
+                            <p class="hero-image-caption"><?= escape_html($imageAlt) ?></p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+	        <?php else: ?>
+	            <!-- Default layout -->
+	            <div class="row">
+	                <div class="col-12 <?= $textAlign ?>">
+	                    <?php if ($heading): ?>
+	                        <h1 class="hero-title hero-heading display-4 fw-bold mb-3"><?= escape_html($heading) ?></h1>
+	                    <?php endif; ?>
                     <?php if ($description): ?>
                         <p class="hero-description lead"><?= nl2br(escape_html($description)) ?></p>
                     <?php endif; ?>

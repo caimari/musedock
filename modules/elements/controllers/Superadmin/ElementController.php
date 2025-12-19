@@ -236,6 +236,9 @@ class ElementController
 
         if ($updated) {
             flash('success', __element('element.updated'));
+            if (function_exists('clear_old_input')) {
+                clear_old_input();
+            }
         } else {
             flash('error', __element('element.error'));
         }
