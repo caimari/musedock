@@ -74,12 +74,34 @@
     max-width: 900px;
     margin: 0 auto;
     padding: 0 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .element-hero .hero-centered {
     max-width: 64rem;
     margin: 0 auto;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.element-hero .hero-centered .hero-subheading,
+.element-hero .hero-centered .subheading {
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+
+.element-hero .hero-centered .hero-title {
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
 }
 
 .element-hero .hero-centered .hero-description {
@@ -87,15 +109,31 @@
     margin-left: auto;
     margin-right: auto;
     text-align: center;
+    width: 100%;
 }
 
 .element-hero .hero-centered .hero-buttons {
     justify-content: center;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.element-hero .hero-image-centered {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
 }
 
 .element-hero .hero-image-centered .hero-visual {
     max-width: 48rem;
     margin: 2.5rem auto 0;
+}
+
+.element-hero .hero-image-centered .hero-image-caption {
+    text-align: center;
+    width: 100%;
 }
 
 /* Tipografía (estética HispanoLLC) */

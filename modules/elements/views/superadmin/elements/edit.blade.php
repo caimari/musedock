@@ -108,17 +108,18 @@
                             @php
                                 $currentLayout = old('layout_type');
                                 if ($currentLayout === null || $currentLayout === '') {
-                                    $currentLayout = $element->layout_type;
+                                    $currentLayout = $element->layout_type ?? 'image-right';
                                 }
-                                $currentLayout = is_string($currentLayout) ? trim($currentLayout) : $currentLayout;
+                                $currentLayout = is_string($currentLayout) ? trim($currentLayout) : (string)$currentLayout;
                             @endphp
 
                             <div id="heroLayoutOptions" style="display: {{ $element->type === 'hero' ? 'block' : 'none' }};">
                                 <label class="form-label">{{ __element('element.layout_type') }}</label>
                                 <div class="row g-2 mb-3">
                                     @foreach($heroLayouts as $key => $label)
+                                        @php $isChecked = (trim((string)$currentLayout) === trim((string)$key)); @endphp
                                         <div class="col-6 col-md-4">
-                                            <input type="radio" class="btn-check" name="layout_type" id="hero_layout_{{ $key }}" value="{{ $key }}" {{ $currentLayout === $key ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
+                                            <input type="radio" class="btn-check" name="layout_type" id="hero_layout_{{ $key }}" value="{{ $key }}" {{ $isChecked ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
                                             <label class="btn btn-outline-primary w-100" for="hero_layout_{{ $key }}">{{ $label }}</label>
                                         </div>
                                     @endforeach
@@ -128,8 +129,9 @@
                                 <label class="form-label">{{ __element('element.layout_type') }}</label>
                                 <div class="row g-2 mb-3">
                                     @foreach($faqLayouts as $key => $label)
+                                        @php $isChecked = (trim((string)$currentLayout) === trim((string)$key)); @endphp
                                         <div class="col-6 col-md-4">
-                                            <input type="radio" class="btn-check" name="layout_type" id="faq_layout_{{ $key }}" value="{{ $key }}" {{ $currentLayout === $key ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
+                                            <input type="radio" class="btn-check" name="layout_type" id="faq_layout_{{ $key }}" value="{{ $key }}" {{ $isChecked ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
                                             <label class="btn btn-outline-primary w-100" for="faq_layout_{{ $key }}">{{ $label }}</label>
                                         </div>
                                     @endforeach
@@ -139,8 +141,9 @@
                                 <label class="form-label">{{ __element('element.layout_type') }}</label>
                                 <div class="row g-2 mb-3">
                                     @foreach($ctaLayouts as $key => $label)
+                                        @php $isChecked = (trim((string)$currentLayout) === trim((string)$key)); @endphp
                                         <div class="col-6 col-md-4">
-                                            <input type="radio" class="btn-check" name="layout_type" id="cta_layout_{{ $key }}" value="{{ $key }}" {{ $currentLayout === $key ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
+                                            <input type="radio" class="btn-check" name="layout_type" id="cta_layout_{{ $key }}" value="{{ $key }}" {{ $isChecked ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
                                             <label class="btn btn-outline-primary w-100" for="cta_layout_{{ $key }}">{{ $label }}</label>
                                         </div>
                                     @endforeach
