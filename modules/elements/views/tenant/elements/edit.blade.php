@@ -578,11 +578,7 @@
                                 <label for="style_preset" class="form-label">{{ __element('element.style_preset') }}</label>
                                 <select class="form-select" id="style_preset" name="settings[style_preset]" {{ $isReadOnly ? 'disabled' : '' }}>
                                     <option value="">{{ __element('element.preset_default') }}</option>
-                                    <option value="hispano" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'hispano' ? 'selected' : '' }}>Estilo Default</option>
-                                    <option value="modern" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'modern' ? 'selected' : '' }}>Modern</option>
-                                    <option value="default" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'default' ? 'selected' : '' }}>Default (Gradiente Púrpura)</option>
-                                    <option value="minimal" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'minimal' ? 'selected' : '' }}>Minimal</option>
-                                    <option value="creative" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'creative' ? 'selected' : '' }}>Creative</option>
+                                    <option value="default" {{ old('settings.style_preset', $element->getSettings()['style_preset'] ?? '') === 'default' ? 'selected' : '' }}>Estilo Default</option>
                                 </select>
                                 <small class="form-text text-muted">{{ __element('element.style_preset_help') }}</small>
                             </div>

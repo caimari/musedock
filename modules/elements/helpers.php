@@ -249,53 +249,16 @@ if (!function_exists('elements_get_active_preset')) {
     /**
      * Get the active preset for elements
      *
-     * Priority: Element setting > Theme function > Theme constant > Module setting > Default
+     * Always returns 'default' - loads /public/assets/modules/elements/css/default.css
+     * Themes can override by providing their own CSS at /themes/{theme}/elements/css/default.css
      *
      * @param Element|null $element
      * @return string
      */
     function elements_get_active_preset($element = null): string
     {
-        // Determine which preset to use
-        $preset = 'default';
-
-        // Check element-specific setting first (highest priority)
-        if ($element) {
-            $elementSettings = $element->getSettings();
-            if (!empty($elementSettings['style_preset'])) {
-                $preset = $elementSettings['style_preset'];
-
-                // Validate and return if valid
-                $availablePresets = ['default', 'modern', 'minimal', 'creative', 'hispano'];
-                if (in_array($preset, $availablePresets)) {
-                    return $preset;
-                }
-            }
-        }
-
-        // Check if theme has a custom elements preset
-        if (function_exists('get_theme_elements_preset')) {
-            $preset = get_theme_elements_preset();
-        } elseif (defined('THEME_ELEMENTS_PRESET')) {
-            $preset = THEME_ELEMENTS_PRESET;
-        } else {
-            // Check module settings
-            try {
-                $settings = \Elements\Models\ElementSetting::get('style_preset');
-                if ($settings) {
-                    $preset = $settings;
-                }
-            } catch (\Exception $e) {
-                // Fallback to default if settings not available
-            }
-        }
-
-        // Available presets
-        $availablePresets = ['default', 'modern', 'minimal', 'creative', 'hispano'];
-        if (!in_array($preset, $availablePresets)) {
-            $preset = 'default';
-        }
-
-        return $preset;
+        // Simplified: always use default.css
+        // Future: themes can define get_theme_elements_preset() to use a different preset
+        return 'default';
     }
 }
