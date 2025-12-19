@@ -69,6 +69,240 @@
 }
 
 /* ===============================================
+   FIX HEADER - REDUCIR ESPACIADO
+   =============================================== */
+
+.header-top {
+  padding: 6px 0;
+}
+
+.musedock-header {
+  padding: 8px 0;
+}
+
+/* ===============================================
+   HEADER LAYOUTS
+   =============================================== */
+
+.musedock-header.header-layout-left .header-left-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.musedock-header.header-layout-left .header-left-group {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.musedock-header.header-layout-centered .header-centered-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 24px;
+}
+
+.musedock-header.header-layout-centered .header-centered-left .main-navigation ul {
+  justify-content: flex-end; /* pegar el menú al logo */
+}
+
+.musedock-header.header-layout-centered .header-centered-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 24px;
+}
+
+/* En layout centered: menú derecho cerca del logo, acciones al extremo derecho */
+.musedock-header.header-layout-centered .header-centered-right .header-menu-right {
+  margin-right: auto;
+}
+
+/* ===============================================
+   HEADER LAYOUT: ACA (logo grande + caja blanca)
+   =============================================== */
+
+.musedock-header.header-layout-aca {
+  background: transparent !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+  /* Por defecto: pequeño margen lateral */
+  margin-left: 12px;
+  margin-right: 12px;
+  /* Curvatura solo abajo (como pides) */
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 21px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.musedock-header.header-layout-aca .header-aca-box {
+  background: var(--header-bg-color, #ffffff);
+  margin: 0 auto;
+  padding: 18px 22px 14px;
+  /* Solo redondear abajo (no arriba) */
+  border-radius: 0 0 16px 21px;
+  /* La sombra se aplica en ::after para evitar “restos” laterales */
+  box-shadow: none;
+  max-width: 1200px;
+  width: 100%;
+  position: relative;
+}
+
+/* Sombra SOLO por debajo (sin halo lateral) */
+.musedock-header.header-layout-aca .header-aca-box::after {
+  content: "";
+  position: absolute;
+  left: 34px;
+  right: 34px;
+  bottom: -26px;
+  height: 26px;
+  pointer-events: none;
+  border-radius: 0 0 14px 14px;
+  box-shadow: 0 22px 30px -22px rgba(0, 0, 0, 0.55);
+}
+
+.musedock-header.header-layout-aca .header-aca-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.musedock-header.header-layout-aca .header-aca-brand-link {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.musedock-header.header-layout-aca .header-aca-brand-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.musedock-header.header-layout-aca .header-aca-logo {
+  height: 56px !important; /* sobrescribir regla global img { height:auto !important } */
+  max-height: 56px !important;
+  width: auto !important;
+  display: block;
+}
+
+.musedock-header.header-layout-aca .header-aca-title {
+  font-family: var(--header-logo-font);
+  color: var(--header-logo-text-color);
+  font-weight: 800;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.musedock-header.header-layout-aca .header-aca-tagline {
+  margin-top: 0;
+  color: var(--header-tagline-color, #111827);
+  font-size: 13px;
+  line-height: 1.25;
+  max-width: 420px;
+}
+
+.musedock-header.header-layout-aca .header-aca-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.musedock-header.header-layout-aca .header-aca-nav ul {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.musedock-header.header-layout-aca .header-aca-nav a {
+  color: var(--header-link-color) !important;
+}
+
+.musedock-header.header-layout-aca .header-aca-nav a:hover {
+  color: var(--header-link-hover-color) !important;
+}
+
+.musedock-header.header-layout-aca .header-aca-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.musedock-header.header-layout-aca .header-aca-cta {
+  padding: 14px 22px;
+  border-radius: 0;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 991px) {
+  .musedock-header.header-layout-aca .header-aca-nav {
+    display: none;
+  }
+
+  .musedock-header.header-layout-aca .header-aca-title {
+    font-size: 26px;
+  }
+
+  .musedock-header.header-layout-aca .header-aca-logo {
+    height: 38px !important; /* mantener logo pequeño en responsive */
+    max-height: 38px !important;
+    width: auto !important;
+  }
+
+  .musedock-header.header-layout-aca .header-aca-tagline {
+    display: none; /* ocultar subtítulo en móvil */
+  }
+
+  .musedock-header.header-layout-aca .header-aca-box {
+    border-radius: 0 0 12px 12px;
+  }
+
+  .musedock-header.header-layout-aca .header-aca-box::after {
+    left: 18px;
+    right: 18px;
+    bottom: -22px;
+    height: 22px;
+    border-radius: 0 0 12px 12px;
+  }
+}
+
+/* Desktop: márgenes exactos como tu ejemplo */
+@media (min-width: 1200px) {
+  .musedock-header.header-layout-aca {
+    margin-left: 133px;
+    margin-right: 200px;
+  }
+}
+
+/* Ajustes de layout para "Tema 2" (header ACA) */
+body:has(#main-header.header-layout-aca) main > .container {
+  padding-top: 0 !important;
+}
+
+body:has(#main-header.header-layout-aca) .page-content-wrapper .page-body .element-hero {
+  padding-top: 0 !important;
+  height: 546px;
+}
+
+@media (min-width: 769px) {
+  body:has(#main-header.header-layout-aca) .page-body .element-hero .container {
+    padding-top: 0 !important;
+  }
+}
+
+/* ===============================================
    FIX CONTENIDO - DELIMITACIÓN Y CENTRADO
    =============================================== */
 
@@ -84,6 +318,23 @@ main .has-slider-content {
   padding-left: 15px !important;
   padding-right: 15px !important;
   box-sizing: border-box !important;
+}
+
+/* Cuando hay hero full-width, eliminar padding vertical del contenedor */
+main .has-slider-content:has(.element-hero.layout-video.full-width),
+main .has-slider-content:has(.element-hero.layout-background.full-width),
+main .container.py-4:has(.element-hero.layout-video.full-width),
+main .container.py-4:has(.element-hero.layout-background.full-width) {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Permitir hero full-width fuera del contenedor */
+.page-content-wrapper:has(.element-hero.layout-background.full-width),
+.page-content-wrapper:has(.element-hero.layout-video.full-width),
+.page-body:has(.element-hero.layout-background.full-width),
+.page-body:has(.element-hero.layout-video.full-width) {
+  overflow: visible !important;
 }
 
 /* Excepción: el slider debe ser full-width */
@@ -124,15 +375,82 @@ article.blog-post-single {
    FIX FOOTER - REDUCIR ESPACIADO
    =============================================== */
 
-/* Reducir espacio excesivo en el header del footer */
-.footer-area {
-  padding-top: 50px !important;
+/* Base: compactar un poco el footer por defecto (no banner) */
+.footer-area:not(.footer-banner).footer-padding {
+  padding-top: 18px !important;
+  padding-bottom: 18px !important;
 }
 
-.footer-area .footer-top,
-.footer-padding {
-  padding-top: 30px !important;
-  padding-bottom: 30px !important;
+/* Footer banner: acercar selector de idioma y cookie */
+.footer-banner .cookie-settings-link {
+  margin-bottom: 0.4rem !important;
+}
+
+.footer-banner .language-selector {
+  margin-top: 0.4rem !important;
+  margin-bottom: 0 !important;
+}
+
+.footer-bottom-contrast {
+  background-color: var(--footer-bottom-bg-color, #ffffff) !important;
+}
+
+/* Footer banner: MÁS aire arriba (logo/columna) y control total de separación */
+.footer-area.footer-banner.footer-padding {
+  padding-top: 52px !important;
+  padding-bottom: 22px !important;
+}
+
+.footer-area.footer-banner .single-footer-caption.mb-50 {
+  margin-bottom: 10px !important;
+}
+
+/* La separación real entre banner (fondo) y el bloque copyright (blanco) */
+footer .footer-area.footer-banner + .footer-bottom-area.footer-bottom-contrast {
+  padding-top: 64px !important;
+  padding-bottom: 64px !important;
+  border-top: none !important; /* quitar línea del copyright */
+}
+
+/* Evitar doble scrollbar */
+html {
+  overflow-y: auto !important;
+}
+
+body {
+  overflow-y: visible !important;
+  overflow-x: hidden !important;
+}
+
+body main,
+body .page-container,
+body .has-slider-content,
+body .page-content-wrapper,
+body .page-body,
+body article {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  overflow-y: visible !important;
+}
+
+/* ===============================================
+   STICKY HEADER (frontend usa template.css + custom.css)
+   =============================================== */
+
+/* Cuando el toggle está activo, el JS añade .sticky y el padding al body */
+.musedock-header.sticky {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+body.has-sticky-header {
+  padding-top: var(--sticky-header-height, 70px);
 }
 
 /* Reducir espacio entre logo y widgets del footer */

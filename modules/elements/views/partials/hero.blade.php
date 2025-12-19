@@ -50,6 +50,9 @@ $descriptionItalic = !empty($data['description_italic']);
 $captionFont = $data['caption_font'] ?? '';
 $captionItalic = !empty($data['caption_italic']);
 
+// Ancho completo (para layouts background y video)
+$fullWidth = !empty($data['full_width']);
+
 // Recolectar fuentes para cargar de Google Fonts
 $fontsToLoad = [];
 foreach ([$subheadingFont, $headingFont, $descriptionFont, $captionFont] as $font) {
@@ -60,10 +63,17 @@ foreach ([$subheadingFont, $headingFont, $descriptionFont, $captionFont] as $fon
 
 // Helper para generar estilos de texto
 if (!function_exists('heroTextStyle')) {
-    function heroTextStyle($color, $font, $italic) {
+    function heroTextStyle($color, $font, $italic, $skipDefaultDark = false) {
         $styles = [];
+        // Colores "por defecto oscuros/grises" que deben omitirse en layout background
+        $defaultDarkColors = ['#0f172a', '#1f2937', '#111827', '#000000', '#000', '#1e293b', '#475569', '#64748b', '#334155', '#374151'];
+
         if ($color) {
-            $styles[] = 'color: ' . escape_html($color) . ' !important';
+            // Si skipDefaultDark está activo y el color es oscuro por defecto, no aplicarlo
+            $colorLower = strtolower(trim($color));
+            if (!$skipDefaultDark || !in_array($colorLower, $defaultDarkColors)) {
+                $styles[] = 'color: ' . escape_html($color) . ' !important';
+            }
         }
         if ($font) {
             $styles[] = 'font-family: "' . escape_html($font) . '", sans-serif !important';
@@ -132,7 +142,11 @@ $buttonTargetAttr = $buttonTarget === '_blank' ? ' target="_blank" rel="noopener
 $buttonSecondaryTargetAttr = $buttonSecondaryTarget === '_blank' ? ' target="_blank" rel="noopener noreferrer"' : '';
 
 $containerClass = 'element-hero layout-' . ($layout ?? 'image-right');
+if ($fullWidth && in_array($layout, ['background', 'video'])) {
+    $containerClass .= ' full-width';
+}
 $textAlign = 'text-' . $alignment;
+$useInnerContainer = !($layout === 'background' && $fullWidth);
 $sectionStyles = [];
 $bannerStyles = []; // Estilos para el banner-wrapper en layout-background
 
@@ -174,10 +188,24 @@ $googleFontsUrl = 'https://fonts.googleapis.com/css2?' . implode('&', $fontParam
 <link href="<?= escape_html($googleFontsUrl) ?>" rel="stylesheet">
 <?php endif; ?>
 
+<?php if ($layout === 'video' && $videoEmbedUrlBackground): ?>
+    <?php if (strpos($videoEmbedUrlBackground, 'youtube.com') !== false): ?>
+        <link rel="preconnect" href="https://www.youtube.com">
+        <link rel="preconnect" href="https://i.ytimg.com">
+        <link rel="dns-prefetch" href="https://www.youtube.com">
+        <link rel="dns-prefetch" href="https://i.ytimg.com">
+    <?php elseif (strpos($videoEmbedUrlBackground, 'vimeo.com') !== false): ?>
+        <link rel="preconnect" href="https://player.vimeo.com">
+        <link rel="dns-prefetch" href="https://player.vimeo.com">
+    <?php endif; ?>
+<?php endif; ?>
+
 <section class="<?= escape_html($containerClass) ?>"
          style="<?= $sectionStyleAttr ?>">
 
-	    <div class="container">
+    <?php if ($useInnerContainer): ?>
+        <div class="container">
+    <?php endif; ?>
 	        <?php if ($layout === 'image-right' || $layout === 'image-left'): ?>
 	            <div class="hero-content">
 	                <?php if ($subheading): ?>
@@ -346,11 +374,11 @@ $googleFontsUrl = 'https://fonts.googleapis.com/css2?' . implode('&', $fontParam
                     <!-- Contenido DENTRO del banner: título, descripción, botones -->
                     <div class="hero-banner-content">
                         <?php if ($heading): ?>
-                            <h1 class="hero-title"<?= heroTextStyle($headingColor, $headingFont, $headingItalic) ?>><?= escape_html($heading) ?></h1>
+                            <h1 class="hero-title"<?= heroTextStyle($headingColor, $headingFont, $headingItalic, true) ?>><?= escape_html($heading) ?></h1>
                         <?php endif; ?>
 
                         <?php if ($description): ?>
-                            <p class="hero-description"<?= heroTextStyle($descriptionColor, $descriptionFont, $descriptionItalic) ?>><?= nl2br(escape_html($description)) ?></p>
+                            <p class="hero-description"<?= heroTextStyle($descriptionColor, $descriptionFont, $descriptionItalic, true) ?>><?= nl2br(escape_html($description)) ?></p>
                         <?php endif; ?>
 
                         <?php if ($buttonText && $buttonUrl): ?>
@@ -376,82 +404,103 @@ $googleFontsUrl = 'https://fonts.googleapis.com/css2?' . implode('&', $fontParam
                 <?php endif; ?>
 
 	        <?php elseif ($layout === 'video'): ?>
-                <!-- Video de fondo (posicionado absolutamente) -->
-                <div class="hero-video-wrapper" id="heroVideoWrapper">
-                    <?php if ($videoEmbedUrlBackground): ?>
-                        <!-- Placeholder mientras carga el video -->
-                        <div class="hero-video-placeholder"></div>
-                        <!-- El iframe se carga con JavaScript para evitar bloqueo -->
-                        <iframe class="hero-video-bg-iframe"
-                                data-src="<?= escape_html($videoEmbedUrlBackground) ?>"
-                                title="Video background"
-                                frameborder="0"
-                                loading="lazy"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowfullscreen></iframe>
-                    <?php elseif ($videoUrl): ?>
-                        <video class="hero-video-bg" autoplay muted loop playsinline preload="metadata">
-                            <source src="<?= escape_html($videoUrl) ?>">
-                        </video>
-                    <?php endif; ?>
-                </div>
-                <!-- Overlay oscuro -->
-                <div class="hero-video-overlay"></div>
-                <!-- Script para cargar video de forma lazy -->
-                <script>
-                (function() {
-                    var wrapper = document.getElementById('heroVideoWrapper');
-                    if (!wrapper) return;
-                    var iframe = wrapper.querySelector('iframe[data-src]');
-                    if (!iframe) return;
-                    // Cargar el iframe después de que la página esté lista
-                    function loadVideo() {
-                        var src = iframe.getAttribute('data-src');
-                        if (src && !iframe.src) {
-                            iframe.src = src;
-                            iframe.removeAttribute('data-src');
-                        }
-                    }
-                    // Cargar después de un pequeño delay para que la página sea fluida
-                    if (document.readyState === 'complete') {
-                        setTimeout(loadVideo, 100);
-                    } else {
-                        window.addEventListener('load', function() {
-                            setTimeout(loadVideo, 100);
-                        });
-                    }
-                })();
-                </script>
-                <!-- Contenido sobre el video -->
-                <div class="hero-media-content">
-                    <?php if ($subheading): ?>
+                <?php if ($subheading): ?>
+                    <div class="hero-pre-banner hero-pre-banner-video">
                         <p class="hero-subheading"<?= heroTextStyle($subheadingColor, $subheadingFont, $subheadingItalic) ?>><?= escape_html($subheading) ?></p>
-                    <?php endif; ?>
+                    </div>
+                <?php endif; ?>
 
-                    <?php if ($heading): ?>
-                        <h1 class="hero-title"<?= heroTextStyle($headingColor, $headingFont, $headingItalic) ?>><?= escape_html($heading) ?></h1>
-                    <?php endif; ?>
+                <div class="hero-video-banner">
+                    <!-- Video de fondo (posicionado absolutamente) -->
+                    <div class="hero-video-wrapper" id="heroVideoWrapper">
+                        <?php if ($videoEmbedUrlBackground): ?>
+                            <!-- Placeholder mientras carga el video -->
+                            <div class="hero-video-placeholder"></div>
+                            <!-- El iframe se carga con JavaScript para evitar bloqueo -->
+                            <iframe class="hero-video-bg-iframe"
+                                    data-src="<?= escape_html($videoEmbedUrlBackground) ?>"
+                                    title="Video background"
+                                    frameborder="0"
+                                    loading="lazy"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowfullscreen></iframe>
+                        <?php elseif ($videoUrl): ?>
+                            <video class="hero-video-bg" autoplay muted loop playsinline preload="metadata">
+                                <source src="<?= escape_html($videoUrl) ?>">
+                            </video>
+                        <?php endif; ?>
+                    </div>
+                    <!-- Overlay oscuro -->
+                    <div class="hero-video-overlay"></div>
+                    <!-- Script para cargar video de forma lazy -->
+                    <script>
+                    (function() {
+                        var wrapper = document.getElementById('heroVideoWrapper');
+                        if (!wrapper) return;
+                        var iframe = wrapper.querySelector('iframe[data-src]');
+                        if (!iframe) return;
 
-                    <?php if ($description): ?>
-                        <p class="hero-description"<?= heroTextStyle($descriptionColor, $descriptionFont, $descriptionItalic) ?>><?= nl2br(escape_html($description)) ?></p>
-                    <?php endif; ?>
+                        if ('IntersectionObserver' in window) {
+                            var observer = new IntersectionObserver(function(entries) {
+                                entries.forEach(function(entry) {
+                                    if (entry.isIntersecting) {
+                                        loadVideo();
+                                        observer.disconnect();
+                                    }
+                                });
+                            }, { rootMargin: '150px 0px' });
+                            observer.observe(wrapper);
+                            return;
+                        }
 
-                    <?php if ($buttonText && $buttonUrl): ?>
-                        <div class="hero-buttons">
-                            <a href="<?= escape_html($buttonUrl) ?>" class="hero-btn"<?= $buttonTargetAttr ?><?= $buttonStyleAttr ?>>
-                                <?= escape_html($buttonText) ?>
-                            </a>
-                            <?php if ($buttonSecondaryText && $buttonSecondaryUrl): ?>
-                                <a href="<?= escape_html($buttonSecondaryUrl) ?>" class="hero-btn hero-btn-secondary"<?= $buttonSecondaryTargetAttr ?><?= $buttonSecondaryStyleAttr ?>>
-                                    <?= escape_html($buttonSecondaryText) ?>
+                        // Fallback: cargar el iframe cuando la página termine de cargar
+                        function loadVideo() {
+                            var src = iframe.getAttribute('data-src');
+                            if (src && !iframe.src) {
+                                iframe.src = src;
+                                iframe.removeAttribute('data-src');
+                            }
+                        }
+                        // Cargar después de un pequeño delay para que la página sea fluida
+                        if (document.readyState === 'complete') {
+                            setTimeout(loadVideo, 100);
+                        } else {
+                            window.addEventListener('load', function() {
+                                setTimeout(loadVideo, 100);
+                            });
+                        }
+                    })();
+                    </script>
+                    <!-- Contenido sobre el video -->
+                    <div class="hero-media-content">
+                        <?php if ($heading): ?>
+                            <h1 class="hero-title"<?= heroTextStyle($headingColor, $headingFont, $headingItalic, true) ?>><?= escape_html($heading) ?></h1>
+                        <?php endif; ?>
+
+                        <?php if ($description): ?>
+                            <p class="hero-description"<?= heroTextStyle($descriptionColor, $descriptionFont, $descriptionItalic, true) ?>><?= nl2br(escape_html($description)) ?></p>
+                        <?php endif; ?>
+
+                        <?php if ($buttonText && $buttonUrl): ?>
+                            <div class="hero-buttons">
+                                <a href="<?= escape_html($buttonUrl) ?>" class="hero-btn"<?= $buttonTargetAttr ?><?= $buttonStyleAttr ?>>
+                                    <?= escape_html($buttonText) ?>
                                 </a>
-                            <?php endif; ?>
-                        </div>
-                    <?php endif; ?>
-                    <?php if ($imageAlt): ?>
-                        <p class="hero-image-caption"<?= heroTextStyle($captionColor, $captionFont, $captionItalic) ?>><?= escape_html($imageAlt) ?></p>
-                    <?php endif; ?>
+                                <?php if ($buttonSecondaryText && $buttonSecondaryUrl): ?>
+                                    <a href="<?= escape_html($buttonSecondaryUrl) ?>" class="hero-btn hero-btn-secondary"<?= $buttonSecondaryTargetAttr ?><?= $buttonSecondaryStyleAttr ?>>
+                                        <?= escape_html($buttonSecondaryText) ?>
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
+
+                <?php if ($imageAlt): ?>
+                    <div class="hero-post-banner hero-post-banner-video">
+                        <p class="hero-image-caption"<?= heroTextStyle($captionColor, $captionFont, $captionItalic) ?>><?= escape_html($imageAlt) ?></p>
+                    </div>
+                <?php endif; ?>
 
 	        <?php else: ?>
 	            <!-- Default layout -->
@@ -466,5 +515,7 @@ $googleFontsUrl = 'https://fonts.googleapis.com/css2?' . implode('&', $fontParam
                 </div>
             </div>
         <?php endif; ?>
-    </div>
+    <?php if ($useInnerContainer): ?>
+        </div>
+    <?php endif; ?>
 </section>

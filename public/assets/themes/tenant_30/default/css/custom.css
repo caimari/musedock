@@ -6,26 +6,43 @@
   --hero-subtitle-color: #ffffff;
   --hero-overlay-color: #000000;
   --hero-overlay-opacity: 0.5;
-  --header-bg-color: #dff1fb;
-  --header-logo-text-color: #1a2a40;
+  --header-bg-color: #90b5fe;
+  --header-logo-text-color: #ededed;
   --header-logo-font: inherit;
-  --header-link-color: #333333;
-  --header-link-hover-color: #ff5e15;
+  --header-link-color: #ffffff;
+  --header-link-hover-color: #f2f2f2;
   --header-cta-bg-color: #ff5e15;
   --header-cta-text-color: #ffffff;
-  --footer-bg-color: #f8fafe;
+  --footer-bg-color: #e8d296;
   --footer-text-color: #333333;
   --footer-heading-color: #333333;
   --footer-link-color: #333333;
   --footer-link-hover-color: #ff5e15;
   --footer-icon-color: #333333;
-  --footer-border-color: #e5e5e5;
+  --footer-border-color: #a1a1a1;
 }
 
 
 /* Aplicación de la variable al elemento HTML correcto */
 .header-bottom {
   background-color: var(--header-bg-color);
+}
+
+/* Fondo general (a todo lo ancho) */
+body {
+  background-color: var(--page-bg-color);
+}
+
+/* Header más compacto */
+.musedock-header {
+  padding-top: var(--header-padding-y) !important;
+  padding-bottom: var(--header-padding-y) !important;
+}
+
+/* Footer más compacto */
+.footer-area.footer-padding {
+  padding-top: var(--footer-padding-y) !important;
+  padding-bottom: var(--footer-padding-y) !important;
 }
 
 /* Estilos para widget de categorías - forzar color negro en todos los estados */
@@ -486,6 +503,7 @@ body {
   position: relative;
   z-index: 2;
 }
+
 
 /* --- CSS Personalizado --- */
 /* Ejemplos:

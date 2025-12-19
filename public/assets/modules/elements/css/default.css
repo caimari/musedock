@@ -188,30 +188,91 @@
     color: #0f172a;
     position: relative;
     padding: 0;
-    /* Full viewport width */
-    width: 100vw;
-    margin-left: calc(-50vw + 50%);
-    margin-right: calc(-50vw + 50%);
     overflow: visible;
+    /* Por defecto: ancho del contenedor */
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
 }
 
-/* Subtítulo FUERA del banner (arriba) */
-.element-hero.layout-background .hero-pre-banner {
-    padding: 2rem 2rem 1.5rem;
+/* ============================================
+   ANCHO COMPLETO - Full Width Hero
+   Solo el banner-wrapper rompe fuera del contenedor
+   El section mantiene su posición normal
+   ============================================ */
+
+.element-hero.layout-background.full-width {
+    /* El section NO rompe el contenedor, solo el banner interno */
+    width: 100% !important;
+    max-width: none !important;
+    overflow: visible !important;
+}
+
+/* El container interno permite que los hijos rompan */
+.element-hero.layout-background.full-width > .container {
+    max-width: none !important;
+    width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    overflow: visible !important;
+}
+
+/* SOLO el banner-wrapper rompe fuera de TODOS los contenedores */
+.element-hero.layout-background.full-width .hero-banner-wrapper {
+    width: 100vw !important;
+    max-width: none !important;
+    position: relative !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* Mantener pre-banner y post-banner centrados en full-width */
+.element-hero.layout-background.full-width .hero-pre-banner,
+.element-hero.layout-background.full-width .hero-post-banner,
+.element-hero.layout-video.full-width .hero-pre-banner,
+.element-hero.layout-video.full-width .hero-post-banner {
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+/* Subtítulo FUERA del banner (arriba) - pegado al banner */
+.element-hero.layout-background .hero-pre-banner,
+.element-hero.layout-video .hero-pre-banner {
+    padding: 0 2rem 0.5rem;
     text-align: center;
     background: transparent;
     max-width: 900px;
     margin: 0 auto;
     width: 100%;
+    margin-top: -0.5rem; /* Reducir espacio con el header */
+}
+
+/* Video: subtítulo centrado y sin espacio extra con el header */
+.element-hero.layout-video .hero-pre-banner {
+    margin-top: -1.6rem;
+    padding: 0 2rem 0;
+    display: flex;
+    justify-content: center;
 }
 
 .element-hero.layout-background .hero-pre-banner .hero-subheading {
-    color: #64748b !important;
-    font-size: 1rem;
-    font-weight: 600;
+    color: #dc2626 !important;
+    font-size: 0.9rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.18em;
     margin: 0;
+}
+
+.element-hero.layout-video .hero-pre-banner .hero-subheading {
+    margin: 0 auto;
+    display: inline-block;
 }
 
 /* Banner wrapper con imagen/video de fondo */
@@ -249,63 +310,100 @@
     padding: 4rem 2rem;
     max-width: 900px;
     margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
 }
 
 .element-hero.layout-background .hero-banner-content .hero-title {
-    color: #f8fafc !important;
+    color: #fff !important;
     font-size: clamp(2rem, 4vw, 3.25rem);
     font-weight: 800;
     line-height: 1.15;
-    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    margin: 0 0 1.25rem;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 4px 20px rgba(0, 0, 0, 0.4);
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 0.85rem;
+    position: relative;
+}
+
+/* Línea decorativa después del título */
+.element-hero.layout-background .hero-banner-content .hero-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 2px;
 }
 
 .element-hero.layout-background .hero-banner-content .hero-description {
-    color: rgba(248, 250, 252, 0.95) !important;
+    color: rgba(255, 255, 255, 0.85) !important;
     font-size: 1.15rem;
     line-height: 1.7;
     max-width: 650px;
-    margin: 0 auto 2rem;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    margin: 0.4rem auto 1.6rem;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    -webkit-font-smoothing: antialiased;
 }
 
 .element-hero.layout-background .hero-banner-content .hero-buttons {
     justify-content: center;
+    display: flex;
+    gap: 1rem;
+    margin-top: 0;
 }
 
+/* Botón primario: fondo oscuro/azul, texto blanco */
 .element-hero.layout-background .hero-banner-content .hero-btn {
-    background: rgba(255, 255, 255, 0.95);
-    color: #0f172a !important;
+    background: #1e3a5f;
+    color: #ffffff !important;
     border: none;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    padding: 1rem 2rem;
+    font-weight: 600;
 }
 
 .element-hero.layout-background .hero-banner-content .hero-btn:hover {
-    background: #fff;
+    background: #0f172a;
     transform: translateY(-3px);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    color: #ffffff !important;
 }
 
+/* Botón secundario: fondo blanco, texto negro */
 .element-hero.layout-background .hero-banner-content .hero-btn.hero-btn-secondary {
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff !important;
-    border: 2px solid rgba(255, 255, 255, 0.5);
+    background: #ffffff;
+    color: #0f172a !important;
+    border: 2px solid #ffffff;
     backdrop-filter: blur(10px);
 }
 
 .element-hero.layout-background .hero-banner-content .hero-btn.hero-btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.25);
-    border-color: rgba(255, 255, 255, 0.8);
+    background: #f8fafc;
+    border-color: #f8fafc;
+    color: #0f172a !important;
 }
 
 /* Caption/Texto alternativo FUERA del banner (abajo) */
-.element-hero.layout-background .hero-post-banner {
+.element-hero.layout-background .hero-post-banner,
+.element-hero.layout-video .hero-post-banner {
     padding: 1.5rem 2rem 2rem;
     text-align: center;
     background: transparent;
     max-width: 900px;
     margin: 0 auto;
     width: 100%;
+}
+
+/* Video: texto fuera del banner sin bloque gris ni padding extra */
+.element-hero.layout-video .hero-post-banner {
+    padding: 0 2rem 0;
+    margin-bottom: -3.6rem;
 }
 
 .element-hero.layout-background .hero-post-banner .hero-image-caption {
@@ -316,14 +414,7 @@
 
 /* Overlay solo para layout-video (layout-background usa banner-wrapper::before) */
 .element-hero.layout-video::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(120deg, rgba(2, 6, 23, 0.75), rgba(2, 6, 23, 0.25));
-    z-index: 0;
+    content: none;
 }
 
 .element-hero.layout-background .container,
@@ -369,27 +460,49 @@
     text-shadow: 0 10px 22px rgba(15, 23, 42, 0.3);
 }
 
+/* Ajuste fino solo para el banner (más cerca de la línea del título) */
+.element-hero.layout-background .hero-banner-content .hero-description {
+    margin-top: 0.2rem !important;
+    margin-bottom: 2.1rem !important;
+}
+
 .element-hero.layout-video {
-    min-height: 100vh;
+    min-height: auto;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
     color: #fff;
     position: relative;
-    background: #0f172a;
-    overflow: hidden;
-    width: 100vw;
-    margin-left: calc(-50vw + 50%);
-    margin-right: calc(-50vw + 50%);
+    background: transparent;
+    overflow: visible;
+    /* Por defecto: ancho del contenedor */
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* Ancho completo para layout-video */
+/* Rompe fuera de cualquier contenedor padre (incluyendo contenedores del tema) */
+.element-hero.layout-video.full-width {
+    width: 100vw !important;
+    max-width: none !important;
+    position: relative !important;
+    left: 50% !important;
+    right: 50% !important;
+    margin-left: -50vw !important;
+    margin-right: -50vw !important;
+    box-sizing: border-box !important;
 }
 
 .element-hero.layout-video .container {
     position: relative;
     z-index: 3;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    min-height: 100vh;
+    justify-content: flex-start;
+    min-height: auto;
     padding: 0;
     max-width: 100%;
     width: 100%;
@@ -416,6 +529,11 @@
     font-size: 0.95rem;
 }
 
+/* Caption fuera del banner en layout-video */
+.element-hero.layout-video .hero-post-banner .hero-image-caption {
+    color: #0f172a !important;
+}
+
 /* Video wrapper - ver estilos más abajo con overflow oculto */
 
 /* Overlay oscuro sobre el video */
@@ -436,6 +554,18 @@
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Banner de video con altura controlada */
+.hero-video-banner {
+    position: relative;
+    width: 100%;
+    min-height: 55vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0f172a;
+    overflow: hidden;
 }
 
 /* Video embed dentro de layout-background - dentro del banner-wrapper */
@@ -1141,6 +1271,636 @@
 }
 
 /* ==========================================================================
+   HIGHLIGHT SECTIONS
+   ========================================================================== */
+
+.element-highlight {
+    position: relative;
+    background: transparent !important; /* NEVER on section, only on highlight-body */
+}
+
+.element-highlight .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+/* Header - Eyebrow fuera del body */
+.element-highlight .highlight-header {
+    padding: 0.75rem 0 1rem;
+    background: transparent;
+}
+
+/* Alineacion del eyebrow - sigue text-align del contenido */
+.element-highlight.align-left .highlight-header {
+    text-align: left;
+}
+
+.element-highlight.align-center .highlight-header {
+    text-align: center;
+}
+
+.element-highlight.align-right .highlight-header {
+    text-align: right;
+}
+
+/* Body - El contenido principal con fondo */
+.element-highlight .highlight-body {
+    padding: 1rem 0;
+    background: transparent; /* default transparent */
+}
+
+/* Footer - espejo del header */
+.element-highlight .highlight-footer {
+    padding: 0.5rem 0 0;
+}
+
+.element-highlight .highlight-content {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Wrapper for icon + content layout */
+.element-highlight .highlight-wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 2rem;
+}
+
+/* Without icon - just content */
+.element-highlight:not(.has-icon) .highlight-wrapper {
+    display: block;
+}
+
+/* Decorative Icon */
+.element-highlight .highlight-icon {
+    flex-shrink: 0;
+    width: 80px;
+    height: 80px;
+    opacity: 0.85;
+}
+
+.element-highlight .highlight-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Icon position based on layout */
+/* Left layout: icon on left (default) */
+.element-highlight.layout-left.has-icon .highlight-wrapper {
+    flex-direction: row;
+}
+
+/* Right layout: icon on right */
+.element-highlight.layout-right.has-icon .highlight-wrapper {
+    flex-direction: row-reverse;
+}
+
+/* Centered layout: icon above or on the side based on width */
+.element-highlight.layout-centered.has-icon .highlight-wrapper {
+    flex-direction: row;
+    justify-content: center;
+}
+
+.element-highlight.layout-centered.has-icon .highlight-icon {
+    position: absolute;
+    left: -100px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.element-highlight.layout-centered.has-icon .highlight-content {
+    position: relative;
+}
+
+/* Full width adjustments for icon */
+.element-highlight.full-width.layout-centered.has-icon .highlight-icon {
+    left: calc(50% - 450px);
+}
+
+.element-highlight.full-width.width-narrow.layout-centered.has-icon .highlight-icon {
+    left: calc(50% - 380px);
+}
+
+.element-highlight.full-width.width-medium.layout-centered.has-icon .highlight-icon {
+    left: calc(50% - 480px);
+}
+
+.element-highlight.full-width.width-wide.layout-centered.has-icon .highlight-icon {
+    left: calc(50% - 580px);
+}
+
+/* Responsive icon */
+@media (max-width: 992px) {
+    .element-highlight .highlight-icon {
+        width: 60px;
+        height: 60px;
+    }
+
+    .element-highlight.layout-centered.has-icon .highlight-icon {
+        position: static;
+        transform: none;
+        margin-bottom: 1rem;
+    }
+
+    .element-highlight.layout-centered.has-icon .highlight-wrapper {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .element-highlight.full-width.layout-centered.has-icon .highlight-icon {
+        left: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .element-highlight .highlight-wrapper {
+        flex-direction: column !important;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .element-highlight.layout-centered.has-icon .highlight-wrapper {
+        align-items: center;
+    }
+
+    .element-highlight .highlight-icon {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+/* Background Styles - aplicados al body */
+
+/* Transparent (default) - sin fondo */
+.element-highlight.bg-transparent .highlight-body,
+.element-highlight:not([class*="bg-"]) .highlight-body {
+    background: transparent;
+}
+
+.element-highlight.bg-light .highlight-body {
+    background: #f8fafc;
+    color: #0f172a;
+}
+
+.element-highlight.bg-white .highlight-body {
+    background: #ffffff;
+    color: #0f172a;
+}
+
+.element-highlight.bg-dark .highlight-body {
+    background: #0f172a;
+    color: #f8fafc;
+}
+
+.element-highlight.bg-gradient .highlight-body {
+    background: linear-gradient(90deg, #fef3c7 0%, #fde68a 25%, #fbbf24 50%, #f59e0b 75%, #d97706 100%);
+    color: #78350f;
+}
+
+.element-highlight.bg-soft-blue .highlight-body {
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    color: #0c4a6e;
+}
+
+.element-highlight.bg-soft-green .highlight-body {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    color: #14532d;
+}
+
+.element-highlight.bg-soft-amber .highlight-body {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #78350f;
+}
+
+/* Content Width Options */
+.element-highlight.width-narrow .highlight-content {
+    max-width: 600px;
+}
+
+.element-highlight.width-medium .highlight-content {
+    max-width: 800px;
+}
+
+.element-highlight.width-wide .highlight-content {
+    max-width: 1000px;
+}
+
+.element-highlight.width-full .highlight-content {
+    max-width: 100%;
+}
+
+/* Alignment */
+.element-highlight.align-center .highlight-content {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    align-items: center;
+}
+
+.element-highlight.align-left .highlight-content {
+    margin-right: auto;
+    text-align: left;
+    align-items: flex-start;
+}
+
+.element-highlight.align-right .highlight-content {
+    margin-left: auto;
+    text-align: right;
+    align-items: flex-end;
+}
+
+/* Eyebrow/Label - fuera del body */
+.element-highlight .highlight-eyebrow {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #6366f1;
+    margin: 0;
+}
+
+/* Title */
+.element-highlight .highlight-title {
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    font-weight: 700;
+    line-height: 1.25;
+    margin: 0 0 0.75rem 0;
+    color: inherit;
+}
+
+.element-highlight.bg-dark .highlight-body .highlight-title,
+.element-highlight.bg-gradient .highlight-body .highlight-title {
+    color: #ffffff;
+}
+
+/* Main Text */
+.element-highlight .highlight-main-text {
+    font-size: 1.1rem;
+    line-height: 1.65;
+    margin: 0 0 0.75rem 0;
+    color: #475569;
+}
+
+.element-highlight.bg-dark .highlight-body .highlight-main-text {
+    color: rgba(248, 250, 252, 0.9);
+}
+
+.element-highlight.bg-gradient .highlight-body .highlight-main-text {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Secondary Text */
+.element-highlight .highlight-secondary-text {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0 0 0.75rem 0;
+    color: #64748b;
+}
+
+.element-highlight.bg-dark .highlight-body .highlight-secondary-text,
+.element-highlight.bg-gradient .highlight-body .highlight-secondary-text {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+/* Soft CTA */
+.element-highlight .highlight-cta {
+    margin-top: 0.75rem;
+}
+
+/* CTA as Link (default) */
+.element-highlight .highlight-cta-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #6366f1;
+    text-decoration: none !important;
+    transition: all 0.2s ease;
+    padding: 0.25rem 0;
+}
+
+.element-highlight .highlight-cta-link:hover {
+    color: #4f46e5;
+}
+
+/* Remove default link decoration from themes */
+.element-highlight .highlight-cta-link,
+.element-highlight .highlight-cta-link:visited,
+.element-highlight .highlight-cta-link:hover,
+.element-highlight .highlight-cta-link:active,
+.element-highlight .highlight-cta-link:focus {
+    text-decoration: none !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.element-highlight .highlight-cta-link .highlight-cta-arrow {
+    transition: transform 0.2s ease;
+}
+
+.element-highlight .highlight-cta-link:hover .highlight-cta-arrow {
+    transform: translateX(4px);
+}
+
+/* CTA as Button */
+.element-highlight .highlight-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #ffffff !important;
+    background: #6366f1;
+    text-decoration: none !important;
+    transition: all 0.25s ease;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+
+.element-highlight .highlight-cta-btn:hover {
+    background: #4f46e5;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35);
+}
+
+/* Button rounded variant */
+.element-highlight .highlight-cta-btn.btn-rounded {
+    border-radius: 50px;
+}
+
+/* Button outline variant */
+.element-highlight .highlight-cta-btn.btn-outline {
+    background: transparent !important;
+    color: #6366f1 !important;
+    border: 1px solid #6366f1 !important;
+    border-bottom: 1px solid #6366f1 !important;
+    box-shadow: none;
+}
+
+.element-highlight .highlight-cta-btn.btn-outline:hover {
+    background: #6366f1 !important;
+    color: #ffffff !important;
+}
+
+/* Remove default decoration from button - but preserve border for outline */
+.element-highlight .highlight-cta-btn,
+.element-highlight .highlight-cta-btn:visited,
+.element-highlight .highlight-cta-btn:hover,
+.element-highlight .highlight-cta-btn:active,
+.element-highlight .highlight-cta-btn:focus {
+    text-decoration: none !important;
+    outline: none !important;
+}
+
+/* Links may have theme border-bottom, remove it */
+.element-highlight .highlight-cta-link,
+.element-highlight .highlight-cta-link:visited,
+.element-highlight .highlight-cta-link:hover,
+.element-highlight .highlight-cta-link:active,
+.element-highlight .highlight-cta-link:focus {
+    border-bottom: none !important;
+}
+
+.element-highlight .highlight-cta-btn .highlight-cta-arrow {
+    transition: transform 0.2s ease;
+}
+
+.element-highlight .highlight-cta-btn:hover .highlight-cta-arrow {
+    transform: translateX(4px);
+}
+
+/* Dark/Gradient backgrounds - Link */
+.element-highlight.bg-dark .highlight-body .highlight-cta-link,
+.element-highlight.bg-gradient .highlight-body .highlight-cta-link {
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.element-highlight.bg-dark .highlight-body .highlight-cta-link:hover,
+.element-highlight.bg-gradient .highlight-body .highlight-cta-link:hover {
+    color: #ffffff;
+}
+
+/* Dark/Gradient backgrounds - Button */
+.element-highlight.bg-dark .highlight-body .highlight-cta-btn,
+.element-highlight.bg-gradient .highlight-body .highlight-cta-btn {
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.element-highlight.bg-dark .highlight-body .highlight-cta-btn:hover,
+.element-highlight.bg-gradient .highlight-body .highlight-cta-btn:hover {
+    background: #f8fafc;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.element-highlight.bg-dark .highlight-body .highlight-cta-btn.btn-outline,
+.element-highlight.bg-gradient .highlight-body .highlight-cta-btn.btn-outline {
+    background: transparent;
+    color: #ffffff;
+    border-color: #ffffff;
+}
+
+.element-highlight.bg-dark .highlight-body .highlight-cta-btn.btn-outline:hover,
+.element-highlight.bg-gradient .highlight-body .highlight-cta-btn.btn-outline:hover {
+    background: #ffffff;
+    color: #0f172a;
+}
+
+/* Layout: Centered - applies when layout type is centered */
+.element-highlight.layout-centered .highlight-content {
+    text-align: center;
+    align-items: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.element-highlight.layout-centered .highlight-wrapper {
+    justify-content: center;
+}
+
+.element-highlight.layout-centered .highlight-header {
+    text-align: center;
+}
+
+.element-highlight.layout-centered .highlight-cta {
+    display: flex;
+    justify-content: center;
+}
+
+/* Layout: Left aligned */
+.element-highlight.layout-left .highlight-content {
+    text-align: left;
+    align-items: flex-start;
+}
+
+.element-highlight.layout-left .highlight-cta {
+    display: flex;
+    justify-content: flex-start;
+}
+
+/* Layout: Right aligned */
+.element-highlight.layout-right .highlight-content {
+    text-align: right;
+    align-items: flex-end;
+    margin-left: auto;
+}
+
+.element-highlight.layout-right .highlight-cta {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Full width highlight - banner ocupa todo el ancho de la pantalla */
+.element-highlight.full-width .highlight-body {
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw;
+    margin-right: -50vw;
+}
+
+/* Full width: el header debe alinearse con el contenido del body */
+.element-highlight.full-width .highlight-header .container {
+    max-width: 1200px;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+/* Cuando está centrado, calcular el padding para alinear con el contenido del body */
+.element-highlight.full-width.width-narrow .highlight-header .container {
+    max-width: 600px;
+}
+
+.element-highlight.full-width.width-medium .highlight-header .container {
+    max-width: 800px;
+}
+
+.element-highlight.full-width.width-wide .highlight-header .container {
+    max-width: 1000px;
+}
+
+.element-highlight.full-width.width-full .highlight-header .container {
+    max-width: 100%;
+}
+
+/* Full width: el container del body debe mantener el mismo max-width para alinear el contenido */
+.element-highlight.full-width .highlight-body .container {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+.element-highlight.full-width.width-narrow .highlight-body .container {
+    max-width: 600px;
+}
+
+.element-highlight.full-width.width-medium .highlight-body .container {
+    max-width: 800px;
+}
+
+.element-highlight.full-width.width-wide .highlight-body .container {
+    max-width: 1000px;
+}
+
+.element-highlight.full-width.width-full .highlight-body .container {
+    max-width: 100%;
+}
+
+/* Background image with overlay */
+.element-highlight.has-bg-image .highlight-body {
+    position: relative;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+}
+
+.element-highlight .highlight-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+}
+
+.element-highlight.has-bg-image .highlight-content {
+    position: relative;
+    z-index: 2;
+}
+
+.element-highlight.has-bg-image .highlight-body .container {
+    position: relative;
+    z-index: 2;
+}
+
+/* Text colors for background image (light text on dark overlay) */
+.element-highlight.has-bg-image .highlight-title {
+    color: #ffffff;
+}
+
+.element-highlight.has-bg-image .highlight-main-text {
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.element-highlight.has-bg-image .highlight-secondary-text {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.element-highlight.has-bg-image .highlight-cta-link {
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.element-highlight.has-bg-image .highlight-cta-link:hover {
+    color: #ffffff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .element-highlight .highlight-body {
+        padding: 1.25rem 0 1.5rem;
+    }
+
+    .element-highlight .container {
+        padding: 0 1.25rem;
+    }
+
+    .element-highlight .highlight-title {
+        font-size: 1.35rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .element-highlight .highlight-main-text {
+        font-size: 1rem;
+    }
+
+    .element-highlight .highlight-secondary-text {
+        font-size: 0.9rem;
+    }
+
+    .element-highlight.width-narrow .highlight-content,
+    .element-highlight.width-medium .highlight-content,
+    .element-highlight.width-wide .highlight-content {
+        max-width: 100%;
+    }
+}
+
+/* Animation */
+.element-highlight {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+/* ==========================================================================
    UTILITIES
    ========================================================================== */
 
@@ -1164,4 +1924,225 @@
 .element-faq,
 .element-cta {
     animation: fadeInUp 0.6s ease-out;
+}
+
+/* ==========================================================================
+   SECTION DIVIDERS
+   ========================================================================== */
+
+.element-divider {
+    --divider-height: 40px;
+    --divider-color: #e5e7eb;
+    --divider-thickness: 2px;
+    --divider-pattern-size: 16px;
+
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* Full width divider */
+.element-divider.full-width {
+    width: 100vw;
+    max-width: 100vw;
+    position: relative;
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+/* ========== SPACER ========== */
+.element-divider.divider-spacer .divider-spacer {
+    height: var(--divider-height);
+    width: 100%;
+}
+
+/* ========== LINE ========== */
+.element-divider.divider-line {
+    height: var(--divider-height);
+}
+
+.element-divider.divider-line .divider-line {
+    width: 100%;
+    max-width: 1200px;
+    height: 0;
+    border: none;
+    border-top-width: var(--divider-thickness);
+    border-top-color: var(--divider-color);
+}
+
+/* Line Styles */
+.element-divider.divider-line .divider-line-solid {
+    border-top-style: solid;
+}
+
+.element-divider.divider-line .divider-line-dashed {
+    border-top-style: dashed;
+}
+
+.element-divider.divider-line .divider-line-dotted {
+    border-top-style: dotted;
+}
+
+.element-divider.divider-line .divider-line-double {
+    border-top-style: double;
+    border-top-width: calc(var(--divider-thickness) * 2);
+}
+
+/* Full width line */
+.element-divider.divider-line.full-width .divider-line {
+    max-width: none;
+}
+
+/* ========== PATTERNS (Dots, Zigzag, Arrows, Diamonds) ========== */
+.element-divider .divider-pattern {
+    height: var(--divider-height);
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--divider-color);
+}
+
+.element-divider.full-width .divider-pattern {
+    max-width: none;
+}
+
+.element-divider .divider-pattern .divider-svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* ========== WAVE SHAPE ========== */
+.element-divider.divider-wave {
+    height: var(--divider-height);
+}
+
+.element-divider.divider-wave .divider-shape {
+    width: 100%;
+    height: 100%;
+    color: var(--divider-color);
+}
+
+.element-divider.divider-wave .divider-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* ========== COLOR VARIANTS ========== */
+
+/* Default - uses CSS variable */
+.element-divider.color-default {
+    --divider-color: var(--element-divider-color, #e5e7eb);
+}
+
+/* Light Gray */
+.element-divider.color-light {
+    --divider-color: #f3f4f6;
+}
+
+/* Dark */
+.element-divider.color-dark {
+    --divider-color: #374151;
+}
+
+/* Primary */
+.element-divider.color-primary {
+    --divider-color: var(--element-primary-color, #3b82f6);
+}
+
+/* Gradient - special handling for line divider */
+.element-divider.color-gradient.divider-line .divider-line {
+    border-top-color: transparent;
+    background: linear-gradient(90deg, transparent, var(--element-primary-color, #3b82f6), transparent);
+    height: var(--divider-thickness);
+    border: none;
+}
+
+/* Gradient - special handling for patterns */
+.element-divider.color-gradient .divider-pattern,
+.element-divider.color-gradient .divider-shape {
+    background: linear-gradient(90deg, transparent, var(--element-primary-color, #3b82f6), transparent);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+.element-divider.color-gradient .divider-svg {
+    color: var(--element-primary-color, #3b82f6);
+}
+
+/* ========== ANIMATION ========== */
+.element-divider.animate .divider-pattern .divider-svg,
+.element-divider.animate .divider-shape .divider-svg {
+    animation: dividerPulse 2s ease-in-out infinite;
+}
+
+.element-divider.animate.divider-line .divider-line {
+    animation: dividerLineGrow 1s ease-out;
+}
+
+@keyframes dividerPulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+@keyframes dividerLineGrow {
+    0% {
+        transform: scaleX(0);
+    }
+    100% {
+        transform: scaleX(1);
+    }
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+    .element-divider .divider-pattern,
+    .element-divider.divider-line .divider-line {
+        max-width: 100%;
+        margin: 0 1rem;
+    }
+
+    .element-divider.full-width .divider-pattern,
+    .element-divider.full-width.divider-line .divider-line {
+        margin: 0;
+    }
+
+    /* Prevent overflow on mobile */
+    .element-divider.full-width {
+        width: 100vw;
+        max-width: 100vw;
+        overflow-x: hidden;
+    }
+
+    .element-divider .divider-pattern .divider-svg {
+        max-width: 100%;
+    }
+}
+
+/* Global responsive overflow prevention */
+@media (max-width: 480px) {
+    .element-divider.full-width,
+    .element-highlight.full-width .highlight-body {
+        width: 100vw;
+        max-width: 100vw;
+        overflow-x: hidden;
+    }
+
+    .element-highlight.full-width .highlight-body .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
 }

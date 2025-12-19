@@ -111,6 +111,9 @@
                                     $currentLayout = $element->layout_type ?? 'image-right';
                                 }
                                 $currentLayout = is_string($currentLayout) ? trim($currentLayout) : (string)$currentLayout;
+
+                                // Get element data for full_width option
+                                $elementData = $element->getData();
                             @endphp
 
                             <div id="heroLayoutOptions" style="display: {{ $element->type === 'hero' ? 'block' : 'none' }};">
@@ -123,6 +126,22 @@
                                             <label class="btn btn-outline-primary w-100" for="hero_layout_{{ $key }}">{{ $label }}</label>
                                         </div>
                                     @endforeach
+                                </div>
+
+                                <!-- Opción Ancho Completo - solo para background y video -->
+                                @php
+                                    $isFullWidth = old('data.full_width', $elementData['full_width'] ?? '');
+                                    // Handle string "1" and integer 1 and boolean true
+                                    $isFullWidthChecked = ($isFullWidth === '1' || $isFullWidth === 1 || $isFullWidth === true || $isFullWidth === 'on');
+                                @endphp
+                                <div id="fullWidthOptionSa" class="mt-3 p-3 bg-light rounded" style="display: {{ in_array($currentLayout, ['background', 'video']) ? 'block' : 'none' }};">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="full_width_sa" name="data[full_width]" value="1" {{ $isFullWidthChecked ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
+                                        <label class="form-check-label fw-medium" for="full_width_sa">
+                                            <i class="bi bi-arrows-fullscreen me-1"></i> Ancho completo
+                                        </label>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">El banner ocupará todo el ancho de la pantalla (edge-to-edge)</small>
                                 </div>
                             </div>
                             <div id="faqLayoutOptions" style="display: {{ $element->type === 'faq' ? 'block' : 'none' }};">
@@ -145,6 +164,18 @@
                                         <div class="col-6 col-md-4">
                                             <input type="radio" class="btn-check" name="layout_type" id="cta_layout_{{ $key }}" value="{{ $key }}" {{ $isChecked ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
                                             <label class="btn btn-outline-primary w-100" for="cta_layout_{{ $key }}">{{ $label }}</label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                            <div id="highlightLayoutOptions" style="display: {{ $element->type === 'highlight' ? 'block' : 'none' }};">
+                                <label class="form-label">{{ __element('element.layout_type') }}</label>
+                                <div class="row g-2 mb-3">
+                                    @foreach($highlightLayouts as $key => $label)
+                                        @php $isChecked = (trim((string)$currentLayout) === trim((string)$key)); @endphp
+                                        <div class="col-6 col-md-4">
+                                            <input type="radio" class="btn-check" name="layout_type" id="highlight_layout_{{ $key }}" value="{{ $key }}" {{ $isChecked ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
+                                            <label class="btn btn-outline-primary w-100" for="highlight_layout_{{ $key }}">{{ $label }}</label>
                                         </div>
                                     @endforeach
                                 </div>
@@ -527,6 +558,297 @@
                                         <input type="text" class="form-control" name="data[button_url]" value="{{ old('data.button_url', $data['button_url'] ?? '') }}" {{ $isReadOnly ? 'disabled' : '' }}>
                                     </div>
                                 </div>
+
+                            @elseif($element->type === 'highlight')
+                                <!-- Highlight Section Fields -->
+                                <div class="mb-3">
+                                    <label class="form-label">{{ __element('highlight.eyebrow') }}</label>
+                                    <input type="text" class="form-control" name="data[eyebrow]" value="{{ old('data.eyebrow', $data['eyebrow'] ?? '') }}" placeholder="{{ __element('highlight.eyebrow_placeholder') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">{{ __element('highlight.title') }}</label>
+                                    <input type="text" class="form-control" name="data[title]" value="{{ old('data.title', $data['title'] ?? '') }}" placeholder="{{ __element('highlight.title_placeholder') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">{{ __element('highlight.main_text') }}</label>
+                                    <textarea class="form-control" name="data[main_text]" rows="3" placeholder="{{ __element('highlight.main_text_placeholder') }}" {{ $isReadOnly ? 'disabled' : '' }}>{{ old('data.main_text', $data['main_text'] ?? '') }}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">{{ __element('highlight.secondary_text') }}</label>
+                                    <textarea class="form-control" name="data[secondary_text]" rows="2" placeholder="{{ __element('highlight.secondary_text_placeholder') }}" {{ $isReadOnly ? 'disabled' : '' }}>{{ old('data.secondary_text', $data['secondary_text'] ?? '') }}</textarea>
+                                </div>
+
+                                <!-- Style Options -->
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-4">
+                                        <label class="form-label">{{ __element('highlight.background_style') }}</label>
+                                        @php $bgStyle = old('data.background_style', $data['background_style'] ?? 'transparent'); @endphp
+                                        <select class="form-select" name="data[background_style]" {{ $isReadOnly ? 'disabled' : '' }}>
+                                            <option value="transparent" {{ $bgStyle === 'transparent' ? 'selected' : '' }}>{{ __element('highlight.bg_transparent') }}</option>
+                                            <option value="light" {{ $bgStyle === 'light' ? 'selected' : '' }}>{{ __element('highlight.bg_light') }}</option>
+                                            <option value="white" {{ $bgStyle === 'white' ? 'selected' : '' }}>{{ __element('highlight.bg_white') }}</option>
+                                            <option value="dark" {{ $bgStyle === 'dark' ? 'selected' : '' }}>{{ __element('highlight.bg_dark') }}</option>
+                                            <option value="gradient" {{ $bgStyle === 'gradient' ? 'selected' : '' }}>{{ __element('highlight.bg_gradient') }}</option>
+                                            <option value="soft-blue" {{ $bgStyle === 'soft-blue' ? 'selected' : '' }}>{{ __element('highlight.bg_soft_blue') }}</option>
+                                            <option value="soft-green" {{ $bgStyle === 'soft-green' ? 'selected' : '' }}>{{ __element('highlight.bg_soft_green') }}</option>
+                                            <option value="soft-amber" {{ $bgStyle === 'soft-amber' ? 'selected' : '' }}>{{ __element('highlight.bg_soft_amber') }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">{{ __element('highlight.alignment') }}</label>
+                                        @php $alignment = old('data.alignment', $data['alignment'] ?? 'center'); @endphp
+                                        <select class="form-select" name="data[alignment]" {{ $isReadOnly ? 'disabled' : '' }}>
+                                            <option value="center" {{ $alignment === 'center' ? 'selected' : '' }}>{{ __element('highlight.align_center') }}</option>
+                                            <option value="left" {{ $alignment === 'left' ? 'selected' : '' }}>{{ __element('highlight.align_left') }}</option>
+                                            <option value="right" {{ $alignment === 'right' ? 'selected' : '' }}>{{ __element('highlight.align_right') }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">{{ __element('highlight.content_width') }}</label>
+                                        @php $contentWidth = old('data.content_width', $data['content_width'] ?? 'medium'); @endphp
+                                        <select class="form-select" name="data[content_width]" {{ $isReadOnly ? 'disabled' : '' }}>
+                                            <option value="narrow" {{ $contentWidth === 'narrow' ? 'selected' : '' }}>{{ __element('highlight.width_narrow') }}</option>
+                                            <option value="medium" {{ $contentWidth === 'medium' ? 'selected' : '' }}>{{ __element('highlight.width_medium') }}</option>
+                                            <option value="wide" {{ $contentWidth === 'wide' ? 'selected' : '' }}>{{ __element('highlight.width_wide') }}</option>
+                                            <option value="full" {{ $contentWidth === 'full' ? 'selected' : '' }}>{{ __element('highlight.width_full') }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Soft CTA -->
+                                <div class="row g-3 mt-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">{{ __element('highlight.cta_text') }}</label>
+                                        <input type="text" class="form-control" name="data[cta_text]" value="{{ old('data.cta_text', $data['cta_text'] ?? '') }}" placeholder="{{ __element('highlight.cta_text_placeholder') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">{{ __element('highlight.cta_url') }}</label>
+                                        <input type="text" class="form-control" name="data[cta_url]" value="{{ old('data.cta_url', $data['cta_url'] ?? '') }}" placeholder="{{ __element('highlight.cta_url_placeholder') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">{{ __element('highlight.cta_style') }}</label>
+                                        @php $ctaStyle = old('data.cta_style', $data['cta_style'] ?? 'link'); @endphp
+                                        <select class="form-select" name="data[cta_style]" {{ $isReadOnly ? 'disabled' : '' }}>
+                                            <option value="link" {{ $ctaStyle === 'link' ? 'selected' : '' }}>{{ __element('highlight.cta_style_link') }}</option>
+                                            <option value="button" {{ $ctaStyle === 'button' ? 'selected' : '' }}>{{ __element('highlight.cta_style_button') }}</option>
+                                            <option value="button_rounded" {{ $ctaStyle === 'button_rounded' ? 'selected' : '' }}>{{ __element('highlight.cta_style_button_rounded') }}</option>
+                                            <option value="button_outline" {{ $ctaStyle === 'button_outline' ? 'selected' : '' }}>{{ __element('highlight.cta_style_button_outline') }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Destino</label>
+                                        @php $ctaTarget = old('data.cta_target', $data['cta_target'] ?? '_self'); @endphp
+                                        <select class="form-select" name="data[cta_target]" {{ $isReadOnly ? 'disabled' : '' }}>
+                                            <option value="_self" {{ $ctaTarget === '_self' ? 'selected' : '' }}>Misma</option>
+                                            <option value="_blank" {{ $ctaTarget === '_blank' ? 'selected' : '' }}>Nueva</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Colores personalizados -->
+                                <div class="border rounded p-3 mt-4 bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0"><i class="bi bi-palette me-2"></i>Colores personalizados</h6>
+                                        @if(!$isReadOnly)
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="resetHighlightColorsBtn">
+                                            <i class="bi bi-arrow-counterclockwise me-1"></i>Restaurar
+                                        </button>
+                                        @endif
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Etiqueta</label>
+                                            <input type="color" class="form-control form-control-color w-100" name="data[eyebrow_color]" id="highlight_eyebrow_color" value="{{ old('data.eyebrow_color', $data['eyebrow_color'] ?? '#6366f1') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Titulo</label>
+                                            <input type="color" class="form-control form-control-color w-100" name="data[title_color]" id="highlight_title_color" value="{{ old('data.title_color', $data['title_color'] ?? '#0f172a') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Texto principal</label>
+                                            <input type="color" class="form-control form-control-color w-100" name="data[main_text_color]" id="highlight_main_text_color" value="{{ old('data.main_text_color', $data['main_text_color'] ?? '#475569') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Texto secundario</label>
+                                            <input type="color" class="form-control form-control-color w-100" name="data[secondary_text_color]" id="highlight_secondary_text_color" value="{{ old('data.secondary_text_color', $data['secondary_text_color'] ?? '#64748b') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Enlace CTA</label>
+                                            <input type="color" class="form-control form-control-color w-100" name="data[cta_color]" id="highlight_cta_color" value="{{ old('data.cta_color', $data['cta_color'] ?? '#6366f1') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Fondo</label>
+                                            <input type="color" class="form-control form-control-color w-100" name="data[background_color]" id="highlight_background_color" value="{{ old('data.background_color', $data['background_color'] ?? '#f8fafc') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Tipografias personalizadas -->
+                                <div class="border rounded p-3 mt-4 bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0"><i class="bi bi-fonts me-2"></i>Tipografias personalizadas</h6>
+                                        @if(!$isReadOnly)
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="resetHighlightFontsBtn">
+                                            <i class="bi bi-arrow-counterclockwise me-1"></i>Restaurar
+                                        </button>
+                                        @endif
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Tipografia etiqueta</label>
+                                            <select class="form-select form-select-sm" name="data[eyebrow_font]" id="highlight_eyebrow_font" {{ $isReadOnly ? 'disabled' : '' }}>
+                                                <option value="">Por defecto</option>
+                                                @foreach(['Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Playfair Display', 'Merriweather', 'Lora', 'Raleway', 'Oswald'] as $font)
+                                                    <option value="{{ $font }}" {{ old('data.eyebrow_font', $data['eyebrow_font'] ?? '') == $font ? 'selected' : '' }}>{{ $font }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Estilo</label>
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="checkbox" class="btn-check" name="data[eyebrow_italic]" id="highlight_eyebrow_italic" value="1" {{ old('data.eyebrow_italic', $data['eyebrow_italic'] ?? '') ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-secondary btn-sm" for="highlight_eyebrow_italic" title="Cursiva"><i class="bi bi-type-italic"></i></label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Tipografia titulo</label>
+                                            <select class="form-select form-select-sm" name="data[title_font]" id="highlight_title_font" {{ $isReadOnly ? 'disabled' : '' }}>
+                                                <option value="">Por defecto</option>
+                                                @foreach(['Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Playfair Display', 'Merriweather', 'Lora', 'Raleway', 'Oswald'] as $font)
+                                                    <option value="{{ $font }}" {{ old('data.title_font', $data['title_font'] ?? '') == $font ? 'selected' : '' }}>{{ $font }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Estilo</label>
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="checkbox" class="btn-check" name="data[title_italic]" id="highlight_title_italic" value="1" {{ old('data.title_italic', $data['title_italic'] ?? '') ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-secondary btn-sm" for="highlight_title_italic" title="Cursiva"><i class="bi bi-type-italic"></i></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row g-3 mt-2">
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Tipografia texto principal</label>
+                                            <select class="form-select form-select-sm" name="data[main_text_font]" id="highlight_main_text_font" {{ $isReadOnly ? 'disabled' : '' }}>
+                                                <option value="">Por defecto</option>
+                                                @foreach(['Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Playfair Display', 'Merriweather', 'Lora', 'Raleway', 'Oswald'] as $font)
+                                                    <option value="{{ $font }}" {{ old('data.main_text_font', $data['main_text_font'] ?? '') == $font ? 'selected' : '' }}>{{ $font }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Estilo</label>
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="checkbox" class="btn-check" name="data[main_text_italic]" id="highlight_main_text_italic" value="1" {{ old('data.main_text_italic', $data['main_text_italic'] ?? '') ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-secondary btn-sm" for="highlight_main_text_italic" title="Cursiva"><i class="bi bi-type-italic"></i></label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Tipografia texto secundario</label>
+                                            <select class="form-select form-select-sm" name="data[secondary_text_font]" id="highlight_secondary_text_font" {{ $isReadOnly ? 'disabled' : '' }}>
+                                                <option value="">Por defecto</option>
+                                                @foreach(['Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Playfair Display', 'Merriweather', 'Lora', 'Raleway', 'Oswald'] as $font)
+                                                    <option value="{{ $font }}" {{ old('data.secondary_text_font', $data['secondary_text_font'] ?? '') == $font ? 'selected' : '' }}>{{ $font }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Estilo</label>
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="checkbox" class="btn-check" name="data[secondary_text_italic]" id="highlight_secondary_text_italic" value="1" {{ old('data.secondary_text_italic', $data['secondary_text_italic'] ?? '') ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-secondary btn-sm" for="highlight_secondary_text_italic" title="Cursiva"><i class="bi bi-type-italic"></i></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Opciones avanzadas -->
+                                <div class="border rounded p-3 mt-4 bg-light">
+                                    <h6 class="mb-3"><i class="bi bi-sliders me-2"></i>Opciones avanzadas</h6>
+
+                                    <!-- Ancho completo -->
+                                    @php
+                                        $highlightFullWidth = old('data.full_width', $data['full_width'] ?? '');
+                                        $highlightFullWidthChecked = ($highlightFullWidth === '1' || $highlightFullWidth === 1 || $highlightFullWidth === true || $highlightFullWidth === 'on');
+                                    @endphp
+                                    <div class="form-check form-switch mb-3">
+                                        {{-- Hidden field to ensure value is sent when unchecked --}}
+                                        <input type="hidden" name="data[full_width]" value="0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="highlight_full_width" name="data[full_width]" value="1" {{ $highlightFullWidthChecked ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
+                                        <label class="form-check-label fw-medium" for="highlight_full_width">
+                                            <i class="bi bi-arrows-fullscreen me-1"></i> Ancho completo
+                                        </label>
+                                        <small class="text-muted d-block">El banner ocupara todo el ancho de la pantalla (edge-to-edge)</small>
+                                    </div>
+
+                                    <!-- Imagen de fondo -->
+                                    <div class="mt-3">
+                                        <label class="form-label fw-medium"><i class="bi bi-image me-1"></i> Imagen de fondo</label>
+                                        @if(!$isReadOnly)
+                                            {{-- Current image preview --}}
+                                            @if(old('data.background_image', $data['background_image'] ?? ''))
+                                            <div class="mb-2">
+                                                <img id="highlight_bg_preview" src="{{ old('data.background_image', $data['background_image'] ?? '') }}" class="img-thumbnail" style="max-height: 120px; max-width: 200px; object-fit: cover;">
+                                            </div>
+                                            @else
+                                            <div class="mb-2">
+                                                <img id="highlight_bg_preview" src="" class="img-thumbnail" style="max-height: 120px; max-width: 200px; object-fit: cover; display: none;">
+                                            </div>
+                                            @endif
+
+                                            {{-- File upload input --}}
+                                            <div class="mb-2">
+                                                <input type="file" class="form-control form-control-sm" id="highlight_bg_file" accept="image/jpeg,image/png,image/gif,image/webp">
+                                                <small class="text-muted">Formatos: JPG, PNG, GIF, WEBP. Max 10MB.</small>
+                                            </div>
+
+                                            {{-- Hidden field for URL --}}
+                                            <input type="hidden" id="highlight_bg_url" name="data[background_image]" value="{{ old('data.background_image', $data['background_image'] ?? '') }}">
+
+                                            {{-- Upload progress --}}
+                                            <div id="highlight_bg_progress" class="progress mb-2" style="height: 5px; display: none;">
+                                                <div class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
+                                            </div>
+                                            <div id="highlight_bg_status" class="small text-muted"></div>
+
+                                            {{-- Manual URL option --}}
+                                            <div class="mt-2">
+                                                <a class="small text-decoration-none" data-bs-toggle="collapse" href="#highlightBgUrlCollapse" role="button" aria-expanded="false">
+                                                    <i class="bi bi-link-45deg"></i> O introducir URL manualmente
+                                                </a>
+                                                <div class="collapse mt-2" id="highlightBgUrlCollapse">
+                                                    <input type="text" class="form-control form-control-sm" id="highlight_bg_url_manual" placeholder="https://ejemplo.com/imagen.jpg" value="{{ old('data.background_image', $data['background_image'] ?? '') }}">
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary mt-1" id="applyHighlightBgUrl">Aplicar URL</button>
+                                                </div>
+                                            </div>
+
+                                            {{-- Clear image button --}}
+                                            @if(old('data.background_image', $data['background_image'] ?? ''))
+                                            <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="clearHighlightBg">
+                                                <i class="bi bi-trash me-1"></i>Quitar imagen de fondo
+                                            </button>
+                                            @endif
+                                        @else
+                                            <input type="text" class="form-control" name="data[background_image]" value="{{ old('data.background_image', $data['background_image'] ?? '') }}" disabled>
+                                            @if(old('data.background_image', $data['background_image'] ?? ''))
+                                                <img src="{{ old('data.background_image', $data['background_image'] ?? '') }}" class="img-fluid rounded border mt-2" style="max-height: 120px;">
+                                            @endif
+                                        @endif
+                                    </div>
+
+                                    <!-- Opacidad del overlay -->
+                                    <div class="mt-3">
+                                        <label class="form-label small">Opacidad del overlay (oscurecimiento)</label>
+                                        @php $bgOverlay = old('data.background_overlay', $data['background_overlay'] ?? '0.5'); @endphp
+                                        <input type="range" class="form-range" id="highlight_bg_overlay" name="data[background_overlay]" min="0" max="0.9" step="0.1" value="{{ $bgOverlay }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                        <div class="d-flex justify-content-between small text-muted">
+                                            <span>Sin overlay</span>
+                                            <span id="highlight_overlay_value">{{ ($bgOverlay * 100) }}%</span>
+                                            <span>Muy oscuro</span>
+                                        </div>
+                                    </div>
+                                </div>
                             @endif
                         </div>
                     </div>
@@ -656,6 +978,7 @@ function updateLayoutOptions() {
     const type = document.getElementById('type').value;
     const layoutOptions = {
         'hero': 'heroLayoutOptions',
+        'highlight': 'highlightLayoutOptions',
         'faq': 'faqLayoutOptions',
         'cta': 'ctaLayoutOptions'
     };
@@ -928,6 +1251,71 @@ if (resetFontsBtnSa) {
 }
 
 // ============================================
+// HIGHLIGHT SECTION - Reset Colors and Fonts
+// ============================================
+const resetHighlightColorsBtn = document.getElementById('resetHighlightColorsBtn');
+if (resetHighlightColorsBtn) {
+    resetHighlightColorsBtn.addEventListener('click', function() {
+        const defaultColors = {
+            'highlight_eyebrow_color': '#6366f1',
+            'highlight_title_color': '#0f172a',
+            'highlight_main_text_color': '#475569',
+            'highlight_secondary_text_color': '#64748b',
+            'highlight_cta_color': '#6366f1',
+            'highlight_background_color': '#f8fafc'
+        };
+
+        Object.keys(defaultColors).forEach(function(id) {
+            const input = document.getElementById(id);
+            if (input) {
+                input.value = defaultColors[id];
+            }
+        });
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Colores restaurados',
+            text: 'Se han restaurado los colores por defecto',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000
+        });
+    });
+}
+
+const resetHighlightFontsBtn = document.getElementById('resetHighlightFontsBtn');
+if (resetHighlightFontsBtn) {
+    resetHighlightFontsBtn.addEventListener('click', function() {
+        // Reset font selects
+        ['highlight_eyebrow_font', 'highlight_title_font', 'highlight_main_text_font', 'highlight_secondary_text_font'].forEach(function(id) {
+            const select = document.getElementById(id);
+            if (select) {
+                select.value = '';
+            }
+        });
+
+        // Reset italic checkboxes
+        ['highlight_eyebrow_italic', 'highlight_title_italic', 'highlight_main_text_italic', 'highlight_secondary_text_italic'].forEach(function(id) {
+            const checkbox = document.getElementById(id);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+        });
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Tipografías restauradas',
+            text: 'Se han restaurado las tipografías por defecto',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000
+        });
+    });
+}
+
+// ============================================
 // ENSURE LAYOUT RADIO BUTTONS ARE PROPERLY SELECTED
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
@@ -947,7 +1335,165 @@ document.addEventListener('DOMContentLoaded', function() {
             radio.dispatchEvent(new Event('change'));
         }
     });
+
+    // Show/hide full width option based on layout
+    toggleFullWidthOptionSa(currentLayout);
 });
+
+// ============================================
+// FULL WIDTH OPTION VISIBILITY (Superadmin)
+// ============================================
+function toggleFullWidthOptionSa(layout) {
+    const fullWidthOption = document.getElementById('fullWidthOptionSa');
+    if (fullWidthOption) {
+        // Show only for 'background' and 'video' layouts
+        if (layout === 'background' || layout === 'video') {
+            fullWidthOption.style.display = 'block';
+        } else {
+            fullWidthOption.style.display = 'none';
+        }
+    }
+}
+
+// Listen for layout changes
+document.querySelectorAll('input[name="layout_type"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+        toggleFullWidthOptionSa(this.value);
+    });
+});
+
+// ============================================
+// HIGHLIGHT BACKGROUND IMAGE UPLOAD
+// ============================================
+const highlightBgFile = document.getElementById('highlight_bg_file');
+const highlightBgUrl = document.getElementById('highlight_bg_url');
+const highlightBgPreview = document.getElementById('highlight_bg_preview');
+const highlightBgProgress = document.getElementById('highlight_bg_progress');
+const highlightBgStatus = document.getElementById('highlight_bg_status');
+const applyHighlightBgUrl = document.getElementById('applyHighlightBgUrl');
+const highlightBgUrlManual = document.getElementById('highlight_bg_url_manual');
+const clearHighlightBg = document.getElementById('clearHighlightBg');
+
+if (highlightBgFile) {
+    highlightBgFile.addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) return;
+
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Tipo de archivo no válido',
+                text: 'Solo se permiten: JPG, PNG, GIF, WEBP'
+            });
+            this.value = '';
+            return;
+        }
+
+        // Validate file size (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Archivo demasiado grande',
+                text: 'El tamaño máximo es 10MB'
+            });
+            this.value = '';
+            return;
+        }
+
+        // Upload the file
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('_token', csrfToken);
+
+        // Show progress
+        highlightBgProgress.style.display = 'block';
+        highlightBgStatus.textContent = 'Subiendo imagen...';
+        highlightBgProgress.querySelector('.progress-bar').style.width = '0%';
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '{{ route("elements.upload-image") }}', true);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken);
+
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+                const percent = (e.loaded / e.total) * 100;
+                highlightBgProgress.querySelector('.progress-bar').style.width = percent + '%';
+            }
+        };
+
+        xhr.onload = function() {
+            highlightBgProgress.style.display = 'none';
+
+            try {
+                const response = JSON.parse(xhr.responseText);
+                if (response.success) {
+                    highlightBgUrl.value = response.url;
+                    highlightBgPreview.src = response.url;
+                    highlightBgPreview.style.display = 'block';
+                    highlightBgStatus.innerHTML = '<i class="bi bi-check-circle text-success"></i> Imagen subida correctamente';
+
+                    if (highlightBgUrlManual) {
+                        highlightBgUrlManual.value = response.url;
+                    }
+                } else {
+                    highlightBgStatus.innerHTML = '<i class="bi bi-x-circle text-danger"></i> ' + (response.message || 'Error al subir la imagen');
+                }
+            } catch (e) {
+                highlightBgStatus.innerHTML = '<i class="bi bi-x-circle text-danger"></i> Error al procesar la respuesta';
+            }
+
+            highlightBgFile.value = '';
+        };
+
+        xhr.onerror = function() {
+            highlightBgProgress.style.display = 'none';
+            highlightBgStatus.innerHTML = '<i class="bi bi-x-circle text-danger"></i> Error de conexión';
+        };
+
+        xhr.send(formData);
+    });
+}
+
+// Manual URL application for highlight background
+if (applyHighlightBgUrl && highlightBgUrlManual) {
+    applyHighlightBgUrl.addEventListener('click', function() {
+        const url = highlightBgUrlManual.value.trim();
+        if (url) {
+            highlightBgUrl.value = url;
+            highlightBgPreview.src = url;
+            highlightBgPreview.style.display = 'block';
+            highlightBgStatus.innerHTML = '<i class="bi bi-check-circle text-success"></i> URL aplicada';
+
+            highlightBgPreview.onerror = function() {
+                highlightBgStatus.innerHTML = '<i class="bi bi-exclamation-triangle text-warning"></i> La imagen no se pudo cargar';
+            };
+        }
+    });
+}
+
+// Clear highlight background image
+if (clearHighlightBg) {
+    clearHighlightBg.addEventListener('click', function() {
+        highlightBgUrl.value = '';
+        highlightBgPreview.src = '';
+        highlightBgPreview.style.display = 'none';
+        if (highlightBgUrlManual) highlightBgUrlManual.value = '';
+        highlightBgStatus.innerHTML = '<i class="bi bi-check-circle text-success"></i> Imagen de fondo eliminada';
+        this.style.display = 'none';
+    });
+}
+
+// Overlay slider value display
+const highlightBgOverlay = document.getElementById('highlight_bg_overlay');
+const highlightOverlayValue = document.getElementById('highlight_overlay_value');
+if (highlightBgOverlay && highlightOverlayValue) {
+    highlightBgOverlay.addEventListener('input', function() {
+        highlightOverlayValue.textContent = Math.round(this.value * 100) + '%';
+    });
+}
 </script>
 @endpush
 @endsection

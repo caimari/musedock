@@ -91,7 +91,7 @@ if (!function_exists('process_element_shortcodes')) {
         );
 
         // Type-specific shortcodes: [hero id="X"], [faq slug="X"], etc.
-        $types = ['hero', 'faq', 'cta', 'features', 'testimonials', 'stats', 'timeline'];
+        $types = ['hero', 'highlight', 'faq', 'cta', 'features', 'testimonials', 'stats', 'timeline'];
 
         foreach ($types as $type) {
             $content = preg_replace_callback(

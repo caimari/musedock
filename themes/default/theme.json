@@ -22,6 +22,18 @@
       "supports": ["menu"]
     },
     {
+      "id": "nav_left",
+      "name": "Navegación izquierda",
+      "description": "Menú izquierdo para header centrado",
+      "supports": ["menu"]
+    },
+    {
+      "id": "nav_right",
+      "name": "Navegación derecha",
+      "description": "Menú derecho para header centrado",
+      "supports": ["menu"]
+    },
+    {
       "id": "footer1",
       "name": "Footer Columna 1",
       "description": "Primera columna del pie de página",
@@ -51,6 +63,16 @@
       "id": "nav",
       "name": "Navegación principal",
       "description": "Menú de navegación en la cabecera del sitio"
+    },
+    {
+      "id": "nav_left",
+      "name": "Navegación izquierda",
+      "description": "Menú izquierdo para header centrado"
+    },
+    {
+      "id": "nav_right",
+      "name": "Navegación derecha",
+      "description": "Menú derecho para header centrado"
     },
     {
       "id": "footer1",
@@ -189,6 +211,18 @@
       "type": "section",
       "label": "Cabecera principal",
       "options": {
+	        "header_layout": {
+	          "type": "select",
+	          "label": "Layout de cabecera",
+	          "default": "default",
+	          "options": {
+	            "default": "Logo izquierda + menú derecha",
+	            "left": "Logo + menú alineados a la izquierda",
+	            "centered": "Logo centrado + menús a izquierda/derecha",
+	            "aca": "Tema 2"
+	          },
+	          "description": "Selecciona la estructura del header"
+	        },
         "header_bg_color": {
           "type": "color",
           "label": "Color de fondo de la cabecera",
@@ -235,6 +269,42 @@
           "label": "Color de enlaces al pasar el ratón",
           "default": "#ff5e15",
           "description": "Color de los enlaces de navegación al pasar el ratón"
+        },
+        "header_menu_font": {
+          "type": "select",
+          "label": "Tipografía del menú",
+          "default": "'Poppins', sans-serif",
+          "options": {
+            "inherit": "Por defecto del tema",
+            "Arial, sans-serif": "Arial",
+            "Georgia, serif": "Georgia",
+            "Helvetica, sans-serif": "Helvetica",
+            "'Times New Roman', serif": "Times New Roman",
+            "'Courier New', monospace": "Courier New",
+            "'Trebuchet MS', sans-serif": "Trebuchet MS",
+            "'Verdana', sans-serif": "Verdana",
+            "'Playfair Display', serif": "Playfair Display",
+            "'Montserrat', sans-serif": "Montserrat",
+            "'Roboto', sans-serif": "Roboto",
+            "'Open Sans', sans-serif": "Open Sans",
+            "'Lato', sans-serif": "Lato",
+            "'Poppins', sans-serif": "Poppins",
+            "'Oswald', sans-serif": "Oswald",
+            "'Raleway', sans-serif": "Raleway"
+          },
+          "description": "Tipografía para los items del menú del header"
+        },
+        "header_menu_uppercase": {
+          "type": "toggle",
+          "label": "Menú en MAYÚSCULAS",
+          "default": true,
+          "description": "Convierte los textos del menú del header a mayúsculas"
+        },
+        "header_tagline_color": {
+          "type": "color",
+          "label": "Color del subtítulo (descripción)",
+          "default": "#111827",
+          "description": "Color del texto de la descripción del sitio debajo del logo (Tema 2)"
         },
         "header_sticky": {
           "type": "toggle",
@@ -284,10 +354,26 @@
       "type": "section",
       "label": "Pie de página",
       "options": {
+        "footer_layout": {
+          "type": "select",
+          "label": "Layout de footer",
+          "default": "default",
+          "options": {
+            "default": "Footer clásico",
+            "banner": "Footer banner + copyright en blanco"
+          },
+          "description": "Selecciona la estructura del footer"
+        },
         "footer_bg_color": {
           "type": "color",
           "label": "Color de fondo del footer",
           "default": "#f8fafe"
+        },
+        "footer_bottom_bg_color": {
+          "type": "color",
+          "label": "Color de fondo del copyright",
+          "default": "#ffffff",
+          "description": "Color del área inferior del footer (copyright)"
         },
         "footer_text_color": {
           "type": "color",

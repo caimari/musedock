@@ -176,6 +176,12 @@ footer .footer-padding {
 }
 
 /* Header sticky (fijo) */
+.musedock-header.enable-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 999;
+}
+
 .musedock-header.sticky {
     position: fixed;
     top: 0;
@@ -197,7 +203,7 @@ footer .footer-padding {
 
 /* Espaciado cuando el header es sticky */
 body.has-sticky-header {
-    padding-top: 70px; /* Ajustar según la altura de tu header */
+    padding-top: var(--sticky-header-height, 70px); /* Ajustar según la altura real */
 }
 
 /* ===================================

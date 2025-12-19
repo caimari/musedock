@@ -204,6 +204,9 @@
         --header-logo-font: {!! themeOption('header.header_logo_font', 'inherit') !!};
         --header-link-color: {{ themeOption('header.header_link_color', '#333333') }};
         --header-link-hover-color: {{ themeOption('header.header_link_hover_color', '#ff5e15') }};
+        --header-menu-font: {!! themeOption('header.header_menu_font', 'Poppins, sans-serif') !!};
+        --header-menu-text-transform: {{ themeOption('header.header_menu_uppercase', true) ? 'uppercase' : 'none' }};
+        --header-tagline-color: {{ themeOption('header.header_tagline_color', '#111827') }};
         --header-cta-bg-color: {{ themeOption('header.header_cta_bg_color', '#ff5e15') }};
         --header-cta-text-color: {{ themeOption('header.header_cta_text_color', '#ffffff') }};
         --header-cta-hover-color: {{ themeOption('header.header_cta_hover_color', '#e54c08') }};
@@ -214,6 +217,7 @@
         --footer-link-hover-color: {{ themeOption('footer.footer_link_hover_color', '#ff5e15') }};
         --footer-icon-color: {{ themeOption('footer.footer_icon_color', '#333333') }};
         --footer-border-color: {{ themeOption('footer.footer_border_color', '#e5e5e5') }};
+        --footer-bottom-bg-color: {{ themeOption('footer.footer_bottom_bg_color', '#ffffff') }};
         /* Scroll to top button */
         --scroll-to-top-bg-color: {{ themeOption('scroll_to_top.scroll_to_top_bg_color', '#ff5e15') }};
         --scroll-to-top-icon-color: {{ themeOption('scroll_to_top.scroll_to_top_icon_color', '#ffffff') }};
@@ -232,6 +236,8 @@
     .main-navigation a,
     .header-menu a {
         color: var(--header-link-color) !important;
+        font-family: var(--header-menu-font) !important;
+        text-transform: var(--header-menu-text-transform) !important;
     }
 
     .main-navigation a:hover,
@@ -464,7 +470,7 @@
         overflow: visible !important;
     }
 
-    /* Asegurar que body y html no tengan scroll horizontal */
+    /* Evitar doble scrollbar: SOLO html scrollea */
     html {
         overflow-x: hidden !important;
         overflow-y: auto !important;
@@ -472,7 +478,7 @@
 
     body {
         overflow-x: hidden !important;
-        overflow-y: auto !important;
+        overflow-y: visible !important;
     }
 
     /* Cuando el menú móvil está abierto, bloquear scroll del body */
@@ -490,6 +496,10 @@
 <style>
 body.mobile-menu-open {
     overflow: hidden;
+}
+
+html.mobile-menu-open {
+    overflow: hidden !important;
 }
 
 /* ================================================ */
@@ -933,13 +943,15 @@ body.mobile-menu-open {
 }
 
 .mobile-nav a {
-    display: block;
-    padding: 12px 0;
-    color: #333;
-    text-decoration: none;
-    font-weight: 500;
-    font-size: 16px;
-    transition: color 0.2s ease;
+ display: block;
+ padding: 12px 0;
+ color: #333;
+ text-decoration: none;
+ font-weight: 500;
+ font-size: 16px;
+ transition: color 0.2s ease;
+ text-transform: var(--header-menu-text-transform);
+ font-family: var(--header-menu-font);
 }
 .mobile-nav a:hover {
     color: #ff5e15;
@@ -1135,136 +1147,62 @@ body.mobile-menu-open {
 
 
 @php
-    // Obtener opción sticky del header
+    // Opciones de header/footer
     $headerSticky = themeOption('header.header_sticky', false);
+    $headerLayout = themeOption('header.header_layout', 'default');
+    $footerLayout = themeOption('footer.footer_layout', 'default');
+
+    // CTA y selector de idioma
+    $ctaEnabled = themeOption('header.header_cta_enabled', false);
+    $currentLangCta = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? site_setting('language', 'es'));
+    $ctaTextEs = themeOption('header.header_cta_text_es', __('header.login_button'));
+    $ctaTextEn = themeOption('header.header_cta_text_en', 'Login');
+    $ctaText = ($currentLangCta === 'en') ? $ctaTextEn : $ctaTextEs;
+    $ctaUrl = themeOption('header.header_cta_url', '#');
+    $langSelectorEnabled = themeOption('header.header_lang_selector_enabled', true);
+
+    try {
+        $pdo = \Screenart\Musedock\Database::connect();
+        $tenantId = tenant_id();
+        if ($tenantId) {
+            $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE tenant_id = ? AND active = 1 ORDER BY order_position ASC, id ASC");
+            $stmt->execute([$tenantId]);
+        } else {
+            $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE tenant_id IS NULL AND active = 1 ORDER BY order_position ASC, id ASC");
+            $stmt->execute();
+        }
+        $languages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    } catch (\Exception $e) {
+        $languages = [['code' => 'es', 'name' => 'Español'], ['code' => 'en', 'name' => 'English']];
+    }
+
+    $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
+    $showLangSelector = count($languages) > 1;
+
+    $headerPartial = 'partials.header-' . $headerLayout;
+    // Comprobar si el partial existe EN LA RUTA REAL DE VISTAS DEL TEMA (tenant override o tema compartido).
+    $themeSlug = get_active_theme_slug();
+    $tenantId = tenant_id();
+    $themeBase = APP_ROOT . "/themes/{$themeSlug}";
+    if ($tenantId && is_dir(APP_ROOT . "/themes/tenant_{$tenantId}/{$themeSlug}/views")) {
+        $themeBase = APP_ROOT . "/themes/tenant_{$tenantId}/{$themeSlug}";
+    }
+    $headerPartialPath = $themeBase . '/views/partials/header-' . $headerLayout . '.blade.php';
+    if (!file_exists($headerPartialPath)) {
+        $headerPartial = 'partials.header-default';
+    }
 @endphp
 
-    <header class="musedock-header {{ $headerSticky ? 'enable-sticky' : '' }}" id="main-header">
-    <div class="container">
-        <div class="header-container">
-            <!-- Logo (Alineado a la Izquierda) -->
-            <div class="header-logo">
-                <a href="{{ url('/') }}" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
-                    @php
-                        // Configuraciones de logo y título
-	                        $showLogo = site_setting('show_logo', '1') === '1';
-	                        $showTitle = site_setting('show_title', '0') === '1';
-	                        $siteName = site_setting('site_name', '');
-	                        $logoPath = site_setting('site_logo', '');
-	                        $defaultLogo = asset('img/musedock_logo.png');
-	                    @endphp
-
-                    {{-- Mostrar logo si está habilitado --}}
-                    @if($showLogo)
-                        <img src="{{ $logoPath ? public_file_url($logoPath) : $defaultLogo }}"
-                             alt="{{ $siteName }}"
-                             style="max-height: 50px; width: auto;"
-                             onerror="this.onerror=null; this.src='{{ $defaultLogo }}';">
-                    @endif
-
-                    {{-- Mostrar título si está habilitado --}}
-                    @if($showTitle)
-                        @php
-                            $logoTextColor = themeOption('header.header_logo_text_color', '#1a2a40');
-                            $logoFontFamily = themeOption('header.header_logo_font', 'inherit');
-                        @endphp
-                        <span class="site-title" style="font-size: 24px; font-weight: bold; color: {{ $logoTextColor }}; font-family: {!! $logoFontFamily !!};">
-                            {{ $siteName }}
-                        </span>
-                    @endif
-                </a>
-            </div>
-
-            <!-- Contenido Derecho: Agrupa Menu + Acciones (Alineado a la Derecha) -->
-            <div class="header-right-content">
-                <!-- Menú Principal (escritorio) -->
-                <div class="header-menu">
-                    <nav class="main-navigation">
-                        @custommenu('nav', null, [
-                            'ul_id' => 'main-menu',
-                            'nav_class' => '', // Clases CSS se aplican via .main-navigation ul
-                            'li_class' => '', // Clases CSS se aplican via .main-navigation li
-                            'a_class' => '',  // Clases CSS se aplican via .main-navigation a
-                            'submenu_class' => 'submenu' // Clase para submenús desplegables
-                        ])
-                    </nav>
-                </div>
-
-                <!-- Acciones (botón + idiomas + toggle móvil) -->
-                @php
-                    // Obtener opciones del tema para header
-                    $ctaEnabled = themeOption('header.header_cta_enabled', false);
-                    // Obtener texto del botón según el idioma actual
-                    $currentLangCta = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? site_setting('language', 'es'));
-                    $ctaTextEs = themeOption('header.header_cta_text_es', __('header.login_button'));
-                    $ctaTextEn = themeOption('header.header_cta_text_en', 'Login');
-                    $ctaText = ($currentLangCta === 'en') ? $ctaTextEn : $ctaTextEs;
-                    $ctaUrl = themeOption('header.header_cta_url', '#');
-                    $langSelectorEnabled = themeOption('header.header_lang_selector_enabled', true);
-                @endphp
-
-                <div class="header-actions">
-                    @if($ctaEnabled)
-                        {{-- Botón CTA --}}
-                        <a href="{{ $ctaUrl }}" class="header-btn">
-                            {{ $ctaText }}
-                        </a>
-                    @endif
-
-                    @if($langSelectorEnabled)
-                        {{-- Selector de Idioma Escritorio --}}
-                        @php
-                            // --- Lógica para obtener idiomas ordenados ---
-                            try {
-                                $pdo = \Screenart\Musedock\Database::connect();
-                                $tenantId = tenant_id();
-                                if ($tenantId) {
-                                    // Tenant: obtener idiomas del tenant
-                                    $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE tenant_id = ? AND active = 1 ORDER BY order_position ASC, id ASC");
-                                    $stmt->execute([$tenantId]);
-                                } else {
-                                    // Global/Superadmin: obtener idiomas globales
-                                    $stmt = $pdo->prepare("SELECT code, name FROM languages WHERE tenant_id IS NULL AND active = 1 ORDER BY order_position ASC, id ASC");
-                                    $stmt->execute();
-                                }
-                                $languages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                            } catch (\Exception $e) {
-                                // Fallback por si falla la DB
-                                $languages = [['code' => 'es', 'name' => 'Español'], ['code' => 'en', 'name' => 'English']];
-                            }
-                            $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? setting('language', 'es'));
-                            $showLangSelector = count($languages) > 1;
-                        @endphp
-
-                        @if($showLangSelector)
-                        <div class="lang-select">
-                            <button type="button" class="lang-btn">
-                                {{ strtoupper($currentLang) }}
-                            </button>
-
-                            <div class="lang-dropdown">
-                                @foreach($languages as $lang)
-                                    <a href="?lang={{ $lang['code'] }}" class="lang-option {{ $currentLang == $lang['code'] ? 'active' : '' }}">
-                                        {{-- Muestra el nombre si existe, sino el código --}}
-                                        {{ $lang['name'] ?? strtoupper($lang['code']) }}
-                                    </a>
-                                @endforeach
-                            </div>
-                        </div>
-                        @endif
-                    @endif
-
-                    <!-- Toggle único para móvil (se mostrará/ocultará con CSS) -->
-                    <button type="button" class="menu-toggle" id="menu-toggle" aria-label="Abrir menú">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</header>
+@include($headerPartial, [
+    'headerSticky' => $headerSticky,
+    'ctaEnabled' => $ctaEnabled,
+    'ctaUrl' => $ctaUrl,
+    'ctaText' => $ctaText,
+    'langSelectorEnabled' => $langSelectorEnabled,
+    'showLangSelector' => $showLangSelector,
+    'currentLang' => $currentLang,
+    'languages' => $languages,
+])
 
 
 <!-- Menú móvil completamente nuevo -->
@@ -1303,13 +1241,44 @@ body.mobile-menu-open {
     <div class="mobile-menu-content">
         <nav>
              {{-- Renderiza tu menú móvil aquí. Asegúrate que @custommenu funciona correctamente --}}
-             @custommenu('nav', null, [
-                 'ul_id' => 'mobile-menu-items',
-                 'nav_class' => 'mobile-nav', // Clase para el UL móvil
-                 'li_class' => 'mobile-item', // Clase para LI móvil (opcional)
-                 'a_class' => 'mobile-link', // Clase para A móvil (opcional)
-                 'submenu_class' => 'mobile-submenu' // Clase para submenús móviles
-             ])
+             @if($headerLayout === 'centered')
+                 @php
+                     $mobileLeftMenuHtml = \Screenart\Musedock\Helpers\MenuHelper::renderCustomMenu('nav_left', null, [
+                         'ul_id' => 'mobile-menu-items-left',
+                         'nav_class' => 'mobile-nav',
+                         'li_class' => 'mobile-item',
+                         'a_class' => 'mobile-link',
+                         'submenu_class' => 'mobile-submenu'
+                     ]);
+                     if (trim($mobileLeftMenuHtml) === '') {
+                         $mobileLeftMenuHtml = \Screenart\Musedock\Helpers\MenuHelper::renderCustomMenu('nav', null, [
+                             'ul_id' => 'mobile-menu-items-left',
+                             'nav_class' => 'mobile-nav',
+                             'li_class' => 'mobile-item',
+                             'a_class' => 'mobile-link',
+                             'submenu_class' => 'mobile-submenu'
+                         ]);
+                     }
+                     $mobileRightMenuHtml = \Screenart\Musedock\Helpers\MenuHelper::renderCustomMenu('nav_right', null, [
+                         'ul_id' => 'mobile-menu-items-right',
+                         'nav_class' => 'mobile-nav',
+                         'li_class' => 'mobile-item',
+                         'a_class' => 'mobile-link',
+                         'submenu_class' => 'mobile-submenu'
+                     ]);
+                 @endphp
+
+                 {!! $mobileLeftMenuHtml !!}
+                 {!! $mobileRightMenuHtml !!}
+             @else
+                 @custommenu('nav', null, [
+                     'ul_id' => 'mobile-menu-items',
+                     'nav_class' => 'mobile-nav',
+                     'li_class' => 'mobile-item',
+                     'a_class' => 'mobile-link',
+                     'submenu_class' => 'mobile-submenu'
+                 ])
+             @endif
         </nav>
 
         @if($showLangSelector)
@@ -1378,22 +1347,24 @@ var body = document.body; // Referencia al body
 
 // Función para abrir el menú
 function openMobileMenu() {
-    if (mobileMenu && overlay && body) {
-        mobileMenu.classList.add('active');
-        overlay.classList.add('active');
-        body.classList.add('mobile-menu-open'); // Añade clase al body
-        // body.style.overflow = 'hidden'; // Alternativa directa (menos preferida que la clase)
-    }
+ if (mobileMenu && overlay && body) {
+ mobileMenu.classList.add('active');
+ overlay.classList.add('active');
+ body.classList.add('mobile-menu-open'); // Añade clase al body
+ document.documentElement.classList.add('mobile-menu-open'); // Evita scroll del documento (doble scrollbar)
+ // body.style.overflow = 'hidden'; // Alternativa directa (menos preferida que la clase)
+ }
 }
 
 // Función para cerrar el menú
 function closeMobileMenu() {
-    if (mobileMenu && overlay && body) {
-        mobileMenu.classList.remove('active');
-        overlay.classList.remove('active');
-        body.classList.remove('mobile-menu-open'); // Quita clase del body
-        // body.style.overflow = ''; // Alternativa directa
-    }
+ if (mobileMenu && overlay && body) {
+ mobileMenu.classList.remove('active');
+ overlay.classList.remove('active');
+ body.classList.remove('mobile-menu-open'); // Quita clase del body
+ document.documentElement.classList.remove('mobile-menu-open');
+ // body.style.overflow = ''; // Alternativa directa
+ }
 }
 
 // Event listeners para abrir/cerrar menú móvil
@@ -1474,22 +1445,15 @@ document.head.appendChild(style);
 // --- Sticky Header ---
 const header = document.getElementById('main-header');
 if (header && header.classList.contains('enable-sticky')) {
-    let lastScroll = 0;
-    const headerHeight = header.offsetHeight;
+    const applySticky = function() {
+        const headerHeight = header.offsetHeight || 0;
+        document.documentElement.style.setProperty('--sticky-header-height', headerHeight + 'px');
+        header.classList.add('sticky');
+        document.body.classList.add('has-sticky-header');
+    };
 
-    window.addEventListener('scroll', function() {
-        const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-
-        if (currentScroll > headerHeight) {
-            header.classList.add('sticky');
-            document.body.classList.add('has-sticky-header');
-        } else {
-            header.classList.remove('sticky');
-            document.body.classList.remove('has-sticky-header');
-        }
-
-        lastScroll = currentScroll;
-    });
+    applySticky();
+    window.addEventListener('resize', applySticky);
 }
 
 }); // Fin de DOMContentLoaded
@@ -1500,7 +1464,11 @@ if (header && header.classList.contains('enable-sticky')) {
         @yield('content')
     </main>
 
-    @include('partials.footer')
+    @if($footerLayout === 'banner')
+        @include('partials.footer-banner')
+    @else
+        @include('partials.footer')
+    @endif
     
     {{-- COOKIES  --}}
     @if(site_setting('cookies_enabled', '1') == '1')

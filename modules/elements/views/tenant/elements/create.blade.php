@@ -115,6 +115,17 @@
                                     @endforeach
                                 </div>
                             </div>
+                            <div id="dividerLayoutOptions" style="display: none;">
+                                <label class="form-label">{{ __element('element.layout_type') }}</label>
+                                <div class="row g-2 mb-3">
+                                    @foreach($dividerLayouts as $key => $label)
+                                        <div class="col-6 col-md-4">
+                                            <input type="radio" class="btn-check" name="layout_type" id="divider_layout_{{ $key }}" value="{{ $key }}">
+                                            <label class="btn btn-outline-primary w-100" for="divider_layout_{{ $key }}">{{ $label }}</label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -179,7 +190,8 @@
 const layoutOptions = {
     'hero': 'heroLayoutOptions',
     'faq': 'faqLayoutOptions',
-    'cta': 'ctaLayoutOptions'
+    'cta': 'ctaLayoutOptions',
+    'divider': 'dividerLayoutOptions'
 };
 
 // Content fields templates
@@ -344,6 +356,84 @@ const contentFieldsTemplates = {
                 <input type="text" class="form-control" name="data[button_url]" value="{{ old('data.button_url') }}">
             </div>
         </div>
+    `,
+    'divider': `
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">{{ __element('divider.height') }}</label>
+                <select class="form-select" name="data[height]" id="divider_height" onchange="toggleCustomHeight()">
+                    <option value="small">{{ __element('divider.height_small') }}</option>
+                    <option value="medium" selected>{{ __element('divider.height_medium') }}</option>
+                    <option value="large">{{ __element('divider.height_large') }}</option>
+                    <option value="xlarge">{{ __element('divider.height_xlarge') }}</option>
+                    <option value="custom">{{ __element('divider.height_custom') }}</option>
+                </select>
+            </div>
+            <div class="col-md-6" id="custom_height_wrapper" style="display: none;">
+                <label class="form-label">{{ __element('divider.custom_height') }}</label>
+                <input type="number" class="form-control" name="data[custom_height]" value="50" min="10" max="500">
+            </div>
+        </div>
+        <div class="row g-3 mt-2">
+            <div class="col-md-6">
+                <label class="form-label">{{ __element('divider.color') }}</label>
+                <select class="form-select" name="data[color]" id="divider_color" onchange="toggleCustomColor()">
+                    <option value="default">{{ __element('divider.color_default') }}</option>
+                    <option value="light">{{ __element('divider.color_light') }}</option>
+                    <option value="dark">{{ __element('divider.color_dark') }}</option>
+                    <option value="primary">{{ __element('divider.color_primary') }}</option>
+                    <option value="gradient">{{ __element('divider.color_gradient') }}</option>
+                    <option value="custom">{{ __element('divider.color_custom') }}</option>
+                </select>
+            </div>
+            <div class="col-md-6" id="custom_color_wrapper" style="display: none;">
+                <label class="form-label">{{ __element('divider.custom_color') }}</label>
+                <input type="color" class="form-control form-control-color" name="data[custom_color]" value="#6366f1">
+            </div>
+        </div>
+        <div class="row g-3 mt-2" id="line_options">
+            <div class="col-md-6">
+                <label class="form-label">{{ __element('divider.line_style') }}</label>
+                <select class="form-select" name="data[line_style]">
+                    <option value="solid">{{ __element('divider.line_solid') }}</option>
+                    <option value="dashed">{{ __element('divider.line_dashed') }}</option>
+                    <option value="dotted">{{ __element('divider.line_dotted') }}</option>
+                    <option value="double">{{ __element('divider.line_double') }}</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">{{ __element('divider.line_thickness') }}</label>
+                <select class="form-select" name="data[line_thickness]">
+                    <option value="thin">{{ __element('divider.thickness_thin') }}</option>
+                    <option value="medium" selected>{{ __element('divider.thickness_medium') }}</option>
+                    <option value="thick">{{ __element('divider.thickness_thick') }}</option>
+                </select>
+            </div>
+        </div>
+        <div class="row g-3 mt-2" id="pattern_options" style="display: none;">
+            <div class="col-md-6">
+                <label class="form-label">{{ __element('divider.pattern_size') }}</label>
+                <select class="form-select" name="data[pattern_size]">
+                    <option value="small">{{ __element('divider.size_small') }}</option>
+                    <option value="medium" selected>{{ __element('divider.size_medium') }}</option>
+                    <option value="large">{{ __element('divider.size_large') }}</option>
+                </select>
+            </div>
+        </div>
+        <div class="mt-3">
+            <div class="form-check form-switch mb-2">
+                <input type="hidden" name="data[full_width]" value="0">
+                <input class="form-check-input" type="checkbox" id="divider_full_width" name="data[full_width]" value="1">
+                <label class="form-check-label" for="divider_full_width">{{ __element('divider.full_width') }}</label>
+                <div class="form-text">{{ __element('divider.full_width_help') }}</div>
+            </div>
+            <div class="form-check form-switch">
+                <input type="hidden" name="data[animate]" value="0">
+                <input class="form-check-input" type="checkbox" id="divider_animate" name="data[animate]" value="1">
+                <label class="form-check-label" for="divider_animate">{{ __element('divider.animate') }}</label>
+                <div class="form-text">{{ __element('divider.animate_help') }}</div>
+            </div>
+        </div>
     `
 };
 
@@ -381,6 +471,54 @@ function updateLayoutOptions() {
         contentFields.innerHTML = '';
     }
 }
+
+// Divider helper functions
+function toggleCustomHeight() {
+    const select = document.getElementById('divider_height');
+    const wrapper = document.getElementById('custom_height_wrapper');
+    if (select && wrapper) {
+        wrapper.style.display = select.value === 'custom' ? 'block' : 'none';
+    }
+}
+
+function toggleCustomColor() {
+    const select = document.getElementById('divider_color');
+    const wrapper = document.getElementById('custom_color_wrapper');
+    if (select && wrapper) {
+        wrapper.style.display = select.value === 'custom' ? 'block' : 'none';
+    }
+}
+
+function updateDividerOptions() {
+    const layoutInputs = document.querySelectorAll('input[name="layout_type"]');
+    let selectedLayout = '';
+    layoutInputs.forEach(input => {
+        if (input.checked) selectedLayout = input.value;
+    });
+
+    const lineOptions = document.getElementById('line_options');
+    const patternOptions = document.getElementById('pattern_options');
+
+    if (lineOptions && patternOptions) {
+        if (selectedLayout === 'line') {
+            lineOptions.style.display = 'flex';
+            patternOptions.style.display = 'none';
+        } else if (['dots', 'zigzag', 'arrows', 'diamonds'].includes(selectedLayout)) {
+            lineOptions.style.display = 'none';
+            patternOptions.style.display = 'flex';
+        } else {
+            lineOptions.style.display = 'none';
+            patternOptions.style.display = 'none';
+        }
+    }
+}
+
+// Add event listeners for divider layout changes
+document.addEventListener('change', function(e) {
+    if (e.target.name === 'layout_type' && document.getElementById('type').value === 'divider') {
+        updateDividerOptions();
+    }
+});
 
 let faqItemCount = 1;
 function addFaqItem() {

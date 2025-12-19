@@ -45,6 +45,8 @@ class Element extends Model
     {
         return [
             'hero' => __element('element.type_hero'),
+            'highlight' => __element('element.type_highlight'),
+            'divider' => __element('element.type_divider'),
             'faq' => __element('element.type_faq'),
             'cta' => __element('element.type_cta'),
             'features' => __element('element.type_features'),
@@ -93,12 +95,42 @@ class Element extends Model
     }
 
     /**
+     * Available layouts for Highlight Sections
+     */
+    public static function getHighlightLayouts(): array
+    {
+        return [
+            'centered' => __element('highlight.layout_centered'),
+            'left' => __element('highlight.layout_left'),
+            'right' => __element('highlight.layout_right')
+        ];
+    }
+
+    /**
+     * Available layouts for Dividers
+     */
+    public static function getDividerLayouts(): array
+    {
+        return [
+            'spacer' => __element('divider.layout_spacer'),
+            'line' => __element('divider.layout_line'),
+            'dots' => __element('divider.layout_dots'),
+            'zigzag' => __element('divider.layout_zigzag'),
+            'wave' => __element('divider.layout_wave'),
+            'arrows' => __element('divider.layout_arrows'),
+            'diamonds' => __element('divider.layout_diamonds')
+        ];
+    }
+
+    /**
      * Get layouts for a specific type
      */
     public static function getLayoutsForType(string $type): array
     {
         return match ($type) {
             'hero' => self::getHeroLayouts(),
+            'highlight' => self::getHighlightLayouts(),
+            'divider' => self::getDividerLayouts(),
             'faq' => self::getFaqLayouts(),
             'cta' => self::getCtaLayouts(),
             default => []

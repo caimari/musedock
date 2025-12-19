@@ -61,6 +61,8 @@ class ElementController
             'title' => __element('element.create'),
             'types' => Element::getAvailableTypes(),
             'heroLayouts' => Element::getHeroLayouts(),
+            'highlightLayouts' => Element::getHighlightLayouts(),
+            'dividerLayouts' => Element::getDividerLayouts(),
             'faqLayouts' => Element::getFaqLayouts(),
             'ctaLayouts' => Element::getCtaLayouts()
         ]);
@@ -159,6 +161,8 @@ class ElementController
             'element' => $element,
             'types' => Element::getAvailableTypes(),
             'heroLayouts' => Element::getHeroLayouts(),
+            'highlightLayouts' => Element::getHighlightLayouts(),
+            'dividerLayouts' => Element::getDividerLayouts(),
             'faqLayouts' => Element::getFaqLayouts(),
             'ctaLayouts' => Element::getCtaLayouts()
         ]);
