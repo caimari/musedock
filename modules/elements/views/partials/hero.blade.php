@@ -26,6 +26,7 @@ $buttonSecondaryTextColor = $data['button_secondary_text_color'] ?? '';
 $imageUrl = $data['image_url'] ?? '';
 $imageAlt = $data['image_alt'] ?? $heading;
 $videoUrl = $data['video_url'] ?? '';
+$mediaType = ($data['media_type'] ?? 'image') === 'video' ? 'video' : 'image';
 $backgroundColor = $data['background_color'] ?? '';
 $textColor = $data['text_color'] ?? '';
 $minHeight = $data['min_height'] ?? '400';
@@ -35,10 +36,10 @@ $videoEmbedUrl = '';
 if ($videoUrl) {
     if (preg_match('~(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/|shorts/))([A-Za-z0-9_-]{6,})~', $videoUrl, $matches)) {
         $youtubeId = $matches[1];
-        $videoEmbedUrl = 'https://www.youtube.com/embed/' . $youtubeId . '?autoplay=1&mute=1&loop=1&playlist=' . $youtubeId . '&controls=0&showinfo=0&rel=0&playsinline=1';
+        $videoEmbedUrl = 'https://www.youtube.com/embed/' . $youtubeId . '?controls=1&modestbranding=1&rel=0&playsinline=1';
     } elseif (preg_match('~vimeo\.com/(?:video/)?([0-9]+)~', $videoUrl, $matches)) {
         $vimeoId = $matches[1];
-        $videoEmbedUrl = 'https://player.vimeo.com/video/' . $vimeoId . '?autoplay=1&muted=1&loop=1&background=1&byline=0&title=0&badge=0';
+        $videoEmbedUrl = 'https://player.vimeo.com/video/' . $vimeoId . '?autoplay=0&muted=0&loop=0&background=0&byline=0&title=0&badge=0';
     }
 }
 
@@ -116,8 +117,23 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                 <div class="hero-image">
                     <div class="hero-visual">
                         <div class="hero-visual-bg" aria-hidden="true"></div>
-                        <div class="hero-visual-card">
-                            <?php if ($imageUrl): ?>
+                        <div class="hero-visual-card<?= $mediaType === 'video' ? ' hero-visual-card-media' : '' ?>">
+                            <?php if ($mediaType === 'video' && ($videoEmbedUrl || $videoUrl)): ?>
+                                <div class="hero-visual-video">
+                                    <?php if ($videoEmbedUrl): ?>
+                                        <iframe class="hero-visual-embed"
+                                                src="<?= escape_html($videoEmbedUrl) ?>"
+                                                title="Video background"
+                                                frameborder="0"
+                                                allow="autoplay; fullscreen; picture-in-picture"
+                                                allowfullscreen></iframe>
+                                    <?php else: ?>
+                                        <video class="hero-visual-video-file" controls playsinline>
+                                            <source src="<?= escape_html($videoUrl) ?>">
+                                        </video>
+                                    <?php endif; ?>
+                                </div>
+                            <?php elseif ($imageUrl): ?>
                                 <img class="hero-visual-img"
                                      src="<?= escape_html($imageUrl) ?>"
                                      alt="<?= escape_html($imageAlt) ?>"
@@ -168,8 +184,23 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                 <div class="hero-image hero-image-centered">
                     <div class="hero-visual">
                         <div class="hero-visual-bg" aria-hidden="true"></div>
-                        <div class="hero-visual-card">
-                            <?php if ($imageUrl): ?>
+                        <div class="hero-visual-card<?= $mediaType === 'video' ? ' hero-visual-card-media' : '' ?>">
+                            <?php if ($mediaType === 'video' && ($videoEmbedUrl || $videoUrl)): ?>
+                                <div class="hero-visual-video">
+                                    <?php if ($videoEmbedUrl): ?>
+                                        <iframe class="hero-visual-embed"
+                                                src="<?= escape_html($videoEmbedUrl) ?>"
+                                                title="Video background"
+                                                frameborder="0"
+                                                allow="autoplay; fullscreen; picture-in-picture"
+                                                allowfullscreen></iframe>
+                                    <?php else: ?>
+                                        <video class="hero-visual-video-file" controls playsinline>
+                                            <source src="<?= escape_html($videoUrl) ?>">
+                                        </video>
+                                    <?php endif; ?>
+                                </div>
+                            <?php elseif ($imageUrl): ?>
                                 <img class="hero-visual-img"
                                      src="<?= escape_html($imageUrl) ?>"
                                      alt="<?= escape_html($imageAlt) ?>"
@@ -192,37 +223,83 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
             </div>
 
 	        <?php elseif ($layout === 'background'): ?>
-                <div class="hero-media">
-                    <div class="hero-media-content">
-                        <?php if ($subheading): ?>
-                            <p class="hero-subheading"><?= escape_html($subheading) ?></p>
+                <?php if ($mediaType === 'video' && ($videoEmbedUrl || $videoUrl)): ?>
+                    <div class="hero-media hero-media-video">
+                        <?php if ($videoEmbedUrl): ?>
+                            <iframe class="hero-video-embed"
+                                    src="<?= escape_html($videoEmbedUrl) ?>"
+                                    title="Video background"
+                                    frameborder="0"
+                                    allow="autoplay; fullscreen; picture-in-picture"
+                                    allowfullscreen></iframe>
+                        <?php else: ?>
+                            <video class="hero-video-bg" controls playsinline>
+                                <source src="<?= escape_html($videoUrl) ?>">
+                            </video>
                         <?php endif; ?>
+                        <div class="hero-media-content">
+                            <?php if ($subheading): ?>
+                                <p class="hero-subheading"><?= escape_html($subheading) ?></p>
+                            <?php endif; ?>
 
-                        <?php if ($heading): ?>
-                            <h1 class="hero-title"><?= escape_html($heading) ?></h1>
-                        <?php endif; ?>
+                            <?php if ($heading): ?>
+                                <h1 class="hero-title"><?= escape_html($heading) ?></h1>
+                            <?php endif; ?>
 
-                        <?php if ($description): ?>
-                            <p class="hero-description"><?= nl2br(escape_html($description)) ?></p>
-                        <?php endif; ?>
+                            <?php if ($description): ?>
+                                <p class="hero-description"><?= nl2br(escape_html($description)) ?></p>
+                            <?php endif; ?>
 
-                        <?php if ($buttonText && $buttonUrl): ?>
-                            <div class="hero-buttons">
-                                <a href="<?= escape_html($buttonUrl) ?>" class="hero-btn"<?= $buttonTargetAttr ?><?= $buttonStyleAttr ?>>
-                                    <?= escape_html($buttonText) ?>
-                                </a>
-                                <?php if ($buttonSecondaryText && $buttonSecondaryUrl): ?>
-                                    <a href="<?= escape_html($buttonSecondaryUrl) ?>" class="hero-btn hero-btn-secondary"<?= $buttonSecondaryTargetAttr ?><?= $buttonSecondaryStyleAttr ?>>
-                                        <?= escape_html($buttonSecondaryText) ?>
+                            <?php if ($buttonText && $buttonUrl): ?>
+                                <div class="hero-buttons">
+                                    <a href="<?= escape_html($buttonUrl) ?>" class="hero-btn"<?= $buttonTargetAttr ?><?= $buttonStyleAttr ?>>
+                                        <?= escape_html($buttonText) ?>
                                     </a>
-                                <?php endif; ?>
-                            </div>
-                        <?php endif; ?>
-                        <?php if ($imageAlt): ?>
-                            <p class="hero-image-caption"><?= escape_html($imageAlt) ?></p>
-                        <?php endif; ?>
+                                    <?php if ($buttonSecondaryText && $buttonSecondaryUrl): ?>
+                                        <a href="<?= escape_html($buttonSecondaryUrl) ?>" class="hero-btn hero-btn-secondary"<?= $buttonSecondaryTargetAttr ?><?= $buttonSecondaryStyleAttr ?>>
+                                            <?= escape_html($buttonSecondaryText) ?>
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($imageAlt): ?>
+                                <p class="hero-image-caption"><?= escape_html($imageAlt) ?></p>
+                            <?php endif; ?>
+                        </div>
                     </div>
-                </div>
+                <?php else: ?>
+                    <div class="hero-media">
+                        <div class="hero-media-content">
+                            <?php if ($subheading): ?>
+                                <p class="hero-subheading"><?= escape_html($subheading) ?></p>
+                            <?php endif; ?>
+
+                            <?php if ($heading): ?>
+                                <h1 class="hero-title"><?= escape_html($heading) ?></h1>
+                            <?php endif; ?>
+
+                            <?php if ($description): ?>
+                                <p class="hero-description"><?= nl2br(escape_html($description)) ?></p>
+                            <?php endif; ?>
+
+                            <?php if ($buttonText && $buttonUrl): ?>
+                                <div class="hero-buttons">
+                                    <a href="<?= escape_html($buttonUrl) ?>" class="hero-btn"<?= $buttonTargetAttr ?><?= $buttonStyleAttr ?>>
+                                        <?= escape_html($buttonText) ?>
+                                    </a>
+                                    <?php if ($buttonSecondaryText && $buttonSecondaryUrl): ?>
+                                        <a href="<?= escape_html($buttonSecondaryUrl) ?>" class="hero-btn hero-btn-secondary"<?= $buttonSecondaryTargetAttr ?><?= $buttonSecondaryStyleAttr ?>>
+                                            <?= escape_html($buttonSecondaryText) ?>
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($imageAlt): ?>
+                                <p class="hero-image-caption"><?= escape_html($imageAlt) ?></p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
 
 	        <?php elseif ($layout === 'video'): ?>
                 <div class="hero-media hero-media-video">
@@ -234,7 +311,7 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                                 allow="autoplay; fullscreen; picture-in-picture"
                                 allowfullscreen></iframe>
                     <?php elseif ($videoUrl): ?>
-                        <video class="hero-video-bg" autoplay muted loop playsinline>
+                        <video class="hero-video-bg" controls playsinline>
                             <source src="<?= escape_html($videoUrl) ?>">
                         </video>
                     <?php endif; ?>

@@ -214,6 +214,21 @@ const contentFieldsTemplates = {
                 <input type="text" class="form-control" name="data[button_url]" value="{{ old('data.button_url') }}">
             </div>
         </div>
+        <div class="row g-3 mt-3">
+            <div class="col-md-4">
+                <label class="form-label">Tipo de media</label>
+                @php $mediaType = old('data.media_type', 'image'); @endphp
+                <select class="form-select" name="data[media_type]">
+                    <option value="image" {{ $mediaType === 'image' ? 'selected' : '' }}>Imagen</option>
+                    <option value="video" {{ $mediaType === 'video' ? 'selected' : '' }}>Video</option>
+                </select>
+            </div>
+            <div class="col-md-8">
+                <label class="form-label">{{ __element('hero.video_url') }}</label>
+                <input type="text" class="form-control" name="data[video_url]" value="{{ old('data.video_url') }}">
+                <small class="text-muted">YouTube, Vimeo o MP4. Se usa si el tipo de media es Video.</small>
+            </div>
+        </div>
         <div class="row g-3 mt-2">
             <div class="col-md-4">
                 <label class="form-label">Destino del boton</label>

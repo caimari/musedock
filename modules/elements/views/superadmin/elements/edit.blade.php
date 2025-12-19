@@ -227,6 +227,21 @@
                                         <input type="color" class="form-control form-control-color" name="data[button_secondary_text_color]" value="{{ old('data.button_secondary_text_color', $data['button_secondary_text_color'] ?? '#0f172a') }}" {{ $isReadOnly ? 'disabled' : '' }}>
                                     </div>
                                 </div>
+                                <div class="row g-3 mt-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Tipo de media</label>
+                                        @php $mediaType = old('data.media_type', $data['media_type'] ?? 'image'); @endphp
+                                        <select class="form-select" name="data[media_type]" {{ $isReadOnly ? 'disabled' : '' }}>
+                                            <option value="image" {{ $mediaType === 'image' ? 'selected' : '' }}>Imagen</option>
+                                            <option value="video" {{ $mediaType === 'video' ? 'selected' : '' }}>Video</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label">{{ __element('hero.video_url') }}</label>
+                                        <input type="text" class="form-control" name="data[video_url]" value="{{ old('data.video_url', $data['video_url'] ?? '') }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                        <small class="text-muted">YouTube, Vimeo o MP4. Se usa si el tipo de media es Video.</small>
+                                    </div>
+                                </div>
                                 <div class="mb-3 mt-3">
                                     <label class="form-label">{{ __element('hero.image_url') }}</label>
                                     @if(!$isReadOnly)
