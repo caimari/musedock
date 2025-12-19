@@ -434,6 +434,11 @@
         gap: 2rem;
     }
 
+    .element-hero.layout-image-right .hero-content,
+    .element-hero.layout-image-left .hero-content {
+        margin-top: 0;
+    }
+
     .element-hero.layout-image-left .hero-content,
     .element-hero.layout-image-left .hero-image {
         order: unset;
@@ -441,6 +446,10 @@
 
     .element-hero .hero-title {
         font-size: 2rem;
+    }
+
+    .element-hero .subheading {
+        margin-bottom: 0.75rem !important;
     }
 
     .element-cta.layout-horizontal .container {

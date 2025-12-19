@@ -488,6 +488,11 @@
         padding: 0 1.25rem;
     }
 
+    .element-hero.layout-image-right .hero-content,
+    .element-hero.layout-image-left .hero-content {
+        margin-top: 0;
+    }
+
     .element-hero.layout-image-left .hero-content,
     .element-hero.layout-image-left .hero-image {
         order: initial;
@@ -501,7 +506,7 @@
     .element-hero .subheading,
     .element-hero .hero-subheading {
         font-size: 1.05rem !important;
-        margin-bottom: 0.12rem !important;
+        margin-bottom: 0.75rem !important;
     }
 
     .element-hero .hero-description {

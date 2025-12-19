@@ -283,6 +283,142 @@
                                     </div>
                                 </div>
 
+                                <!-- Tipografias personalizadas -->
+                                <div class="border rounded p-3 mt-4 bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0"><i class="bi bi-fonts me-2"></i>Tipografías personalizadas</h6>
+                                        @if(!$isReadOnly)
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="resetFontsBtnSa">
+                                            <i class="bi bi-arrow-counterclockwise me-1"></i>Restaurar por defecto
+                                        </button>
+                                        @endif
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Tipografía subtítulo</label>
+                                            <select class="form-select form-select-sm" name="data[subheading_font]" id="subheading_font_sa" {{ $isReadOnly ? 'disabled' : '' }}>
+                                                <option value="">Por defecto</option>
+                                                <option value="Inter" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Inter' ? 'selected' : '' }}>Inter</option>
+                                                <option value="Roboto" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Roboto' ? 'selected' : '' }}>Roboto</option>
+                                                <option value="Open Sans" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Open Sans' ? 'selected' : '' }}>Open Sans</option>
+                                                <option value="Lato" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Lato' ? 'selected' : '' }}>Lato</option>
+                                                <option value="Montserrat" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Montserrat' ? 'selected' : '' }}>Montserrat</option>
+                                                <option value="Poppins" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Poppins' ? 'selected' : '' }}>Poppins</option>
+                                                <option value="Playfair Display" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Playfair Display' ? 'selected' : '' }}>Playfair Display</option>
+                                                <option value="Merriweather" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Merriweather' ? 'selected' : '' }}>Merriweather</option>
+                                                <option value="Lora" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Lora' ? 'selected' : '' }}>Lora</option>
+                                                <option value="Source Serif Pro" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Source Serif Pro' ? 'selected' : '' }}>Source Serif Pro</option>
+                                                <option value="Raleway" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Raleway' ? 'selected' : '' }}>Raleway</option>
+                                                <option value="Oswald" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Oswald' ? 'selected' : '' }}>Oswald</option>
+                                                <option value="Dancing Script" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Dancing Script' ? 'selected' : '' }}>Dancing Script (cursiva)</option>
+                                                <option value="Pacifico" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Pacifico' ? 'selected' : '' }}>Pacifico (cursiva)</option>
+                                                <option value="Great Vibes" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Great Vibes' ? 'selected' : '' }}>Great Vibes (cursiva)</option>
+                                                <option value="Caveat" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Caveat' ? 'selected' : '' }}>Caveat (manuscrita)</option>
+                                                <option value="Satisfy" {{ old('data.subheading_font', $data['subheading_font'] ?? '') == 'Satisfy' ? 'selected' : '' }}>Satisfy (cursiva)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Estilo</label>
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="checkbox" class="btn-check" name="data[subheading_italic]" id="subheading_italic_sa" value="1" {{ old('data.subheading_italic', $data['subheading_italic'] ?? '') ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-secondary btn-sm" for="subheading_italic_sa" title="Cursiva"><i class="bi bi-type-italic"></i></label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Tipografía título</label>
+                                            <select class="form-select form-select-sm" name="data[heading_font]" id="heading_font_sa" {{ $isReadOnly ? 'disabled' : '' }}>
+                                                <option value="">Por defecto</option>
+                                                <option value="Inter" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Inter' ? 'selected' : '' }}>Inter</option>
+                                                <option value="Roboto" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Roboto' ? 'selected' : '' }}>Roboto</option>
+                                                <option value="Open Sans" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Open Sans' ? 'selected' : '' }}>Open Sans</option>
+                                                <option value="Lato" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Lato' ? 'selected' : '' }}>Lato</option>
+                                                <option value="Montserrat" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Montserrat' ? 'selected' : '' }}>Montserrat</option>
+                                                <option value="Poppins" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Poppins' ? 'selected' : '' }}>Poppins</option>
+                                                <option value="Playfair Display" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Playfair Display' ? 'selected' : '' }}>Playfair Display</option>
+                                                <option value="Merriweather" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Merriweather' ? 'selected' : '' }}>Merriweather</option>
+                                                <option value="Lora" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Lora' ? 'selected' : '' }}>Lora</option>
+                                                <option value="Source Serif Pro" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Source Serif Pro' ? 'selected' : '' }}>Source Serif Pro</option>
+                                                <option value="Raleway" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Raleway' ? 'selected' : '' }}>Raleway</option>
+                                                <option value="Oswald" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Oswald' ? 'selected' : '' }}>Oswald</option>
+                                                <option value="Dancing Script" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Dancing Script' ? 'selected' : '' }}>Dancing Script (cursiva)</option>
+                                                <option value="Pacifico" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Pacifico' ? 'selected' : '' }}>Pacifico (cursiva)</option>
+                                                <option value="Great Vibes" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Great Vibes' ? 'selected' : '' }}>Great Vibes (cursiva)</option>
+                                                <option value="Caveat" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Caveat' ? 'selected' : '' }}>Caveat (manuscrita)</option>
+                                                <option value="Satisfy" {{ old('data.heading_font', $data['heading_font'] ?? '') == 'Satisfy' ? 'selected' : '' }}>Satisfy (cursiva)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Estilo</label>
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="checkbox" class="btn-check" name="data[heading_italic]" id="heading_italic_sa" value="1" {{ old('data.heading_italic', $data['heading_italic'] ?? '') ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-secondary btn-sm" for="heading_italic_sa" title="Cursiva"><i class="bi bi-type-italic"></i></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row g-3 mt-2">
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Tipografía descripción</label>
+                                            <select class="form-select form-select-sm" name="data[description_font]" id="description_font_sa" {{ $isReadOnly ? 'disabled' : '' }}>
+                                                <option value="">Por defecto</option>
+                                                <option value="Inter" {{ old('data.description_font', $data['description_font'] ?? '') == 'Inter' ? 'selected' : '' }}>Inter</option>
+                                                <option value="Roboto" {{ old('data.description_font', $data['description_font'] ?? '') == 'Roboto' ? 'selected' : '' }}>Roboto</option>
+                                                <option value="Open Sans" {{ old('data.description_font', $data['description_font'] ?? '') == 'Open Sans' ? 'selected' : '' }}>Open Sans</option>
+                                                <option value="Lato" {{ old('data.description_font', $data['description_font'] ?? '') == 'Lato' ? 'selected' : '' }}>Lato</option>
+                                                <option value="Montserrat" {{ old('data.description_font', $data['description_font'] ?? '') == 'Montserrat' ? 'selected' : '' }}>Montserrat</option>
+                                                <option value="Poppins" {{ old('data.description_font', $data['description_font'] ?? '') == 'Poppins' ? 'selected' : '' }}>Poppins</option>
+                                                <option value="Playfair Display" {{ old('data.description_font', $data['description_font'] ?? '') == 'Playfair Display' ? 'selected' : '' }}>Playfair Display</option>
+                                                <option value="Merriweather" {{ old('data.description_font', $data['description_font'] ?? '') == 'Merriweather' ? 'selected' : '' }}>Merriweather</option>
+                                                <option value="Lora" {{ old('data.description_font', $data['description_font'] ?? '') == 'Lora' ? 'selected' : '' }}>Lora</option>
+                                                <option value="Source Serif Pro" {{ old('data.description_font', $data['description_font'] ?? '') == 'Source Serif Pro' ? 'selected' : '' }}>Source Serif Pro</option>
+                                                <option value="Raleway" {{ old('data.description_font', $data['description_font'] ?? '') == 'Raleway' ? 'selected' : '' }}>Raleway</option>
+                                                <option value="Oswald" {{ old('data.description_font', $data['description_font'] ?? '') == 'Oswald' ? 'selected' : '' }}>Oswald</option>
+                                                <option value="Dancing Script" {{ old('data.description_font', $data['description_font'] ?? '') == 'Dancing Script' ? 'selected' : '' }}>Dancing Script (cursiva)</option>
+                                                <option value="Pacifico" {{ old('data.description_font', $data['description_font'] ?? '') == 'Pacifico' ? 'selected' : '' }}>Pacifico (cursiva)</option>
+                                                <option value="Great Vibes" {{ old('data.description_font', $data['description_font'] ?? '') == 'Great Vibes' ? 'selected' : '' }}>Great Vibes (cursiva)</option>
+                                                <option value="Caveat" {{ old('data.description_font', $data['description_font'] ?? '') == 'Caveat' ? 'selected' : '' }}>Caveat (manuscrita)</option>
+                                                <option value="Satisfy" {{ old('data.description_font', $data['description_font'] ?? '') == 'Satisfy' ? 'selected' : '' }}>Satisfy (cursiva)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Estilo</label>
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="checkbox" class="btn-check" name="data[description_italic]" id="description_italic_sa" value="1" {{ old('data.description_italic', $data['description_italic'] ?? '') ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-secondary btn-sm" for="description_italic_sa" title="Cursiva"><i class="bi bi-type-italic"></i></label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Tipografía caption</label>
+                                            <select class="form-select form-select-sm" name="data[caption_font]" id="caption_font_sa" {{ $isReadOnly ? 'disabled' : '' }}>
+                                                <option value="">Por defecto</option>
+                                                <option value="Inter" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Inter' ? 'selected' : '' }}>Inter</option>
+                                                <option value="Roboto" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Roboto' ? 'selected' : '' }}>Roboto</option>
+                                                <option value="Open Sans" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Open Sans' ? 'selected' : '' }}>Open Sans</option>
+                                                <option value="Lato" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Lato' ? 'selected' : '' }}>Lato</option>
+                                                <option value="Montserrat" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Montserrat' ? 'selected' : '' }}>Montserrat</option>
+                                                <option value="Poppins" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Poppins' ? 'selected' : '' }}>Poppins</option>
+                                                <option value="Playfair Display" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Playfair Display' ? 'selected' : '' }}>Playfair Display</option>
+                                                <option value="Merriweather" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Merriweather' ? 'selected' : '' }}>Merriweather</option>
+                                                <option value="Lora" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Lora' ? 'selected' : '' }}>Lora</option>
+                                                <option value="Source Serif Pro" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Source Serif Pro' ? 'selected' : '' }}>Source Serif Pro</option>
+                                                <option value="Raleway" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Raleway' ? 'selected' : '' }}>Raleway</option>
+                                                <option value="Oswald" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Oswald' ? 'selected' : '' }}>Oswald</option>
+                                                <option value="Dancing Script" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Dancing Script' ? 'selected' : '' }}>Dancing Script (cursiva)</option>
+                                                <option value="Pacifico" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Pacifico' ? 'selected' : '' }}>Pacifico (cursiva)</option>
+                                                <option value="Great Vibes" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Great Vibes' ? 'selected' : '' }}>Great Vibes (cursiva)</option>
+                                                <option value="Caveat" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Caveat' ? 'selected' : '' }}>Caveat (manuscrita)</option>
+                                                <option value="Satisfy" {{ old('data.caption_font', $data['caption_font'] ?? '') == 'Satisfy' ? 'selected' : '' }}>Satisfy (cursiva)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Estilo</label>
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="checkbox" class="btn-check" name="data[caption_italic]" id="caption_italic_sa" value="1" {{ old('data.caption_italic', $data['caption_italic'] ?? '') ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-secondary btn-sm" for="caption_italic_sa" title="Cursiva"><i class="bi bi-type-italic"></i></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="mb-3 mt-3">
                                     <label class="form-label">{{ __element('hero.image_url') }}</label>
                                     @if(!$isReadOnly)
@@ -752,6 +888,38 @@ if (resetColorsBtnSa) {
             icon: 'success',
             title: 'Colores restaurados',
             text: 'Se han restaurado los colores por defecto',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000
+        });
+    });
+}
+
+// Reset fonts to default (Superadmin)
+const resetFontsBtnSa = document.getElementById('resetFontsBtnSa');
+if (resetFontsBtnSa) {
+    resetFontsBtnSa.addEventListener('click', function() {
+        // Reset font selects
+        ['subheading_font_sa', 'heading_font_sa', 'description_font_sa', 'caption_font_sa'].forEach(function(id) {
+            const select = document.getElementById(id);
+            if (select) {
+                select.value = '';
+            }
+        });
+
+        // Reset italic checkboxes
+        ['subheading_italic_sa', 'heading_italic_sa', 'description_italic_sa', 'caption_italic_sa'].forEach(function(id) {
+            const checkbox = document.getElementById(id);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+        });
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Tipografías restauradas',
+            text: 'Se han restaurado las tipografías por defecto',
             toast: true,
             position: 'top-end',
             showConfirmButton: false,

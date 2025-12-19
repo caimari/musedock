@@ -40,6 +40,41 @@ $cardBgColor = $data['card_bg_color'] ?? '';
 $cardWrapperBgColor = $data['card_wrapper_bg_color'] ?? '';
 $captionColor = $data['caption_color'] ?? '';
 
+// Tipografías personalizadas
+$subheadingFont = $data['subheading_font'] ?? '';
+$subheadingItalic = !empty($data['subheading_italic']);
+$headingFont = $data['heading_font'] ?? '';
+$headingItalic = !empty($data['heading_italic']);
+$descriptionFont = $data['description_font'] ?? '';
+$descriptionItalic = !empty($data['description_italic']);
+$captionFont = $data['caption_font'] ?? '';
+$captionItalic = !empty($data['caption_italic']);
+
+// Recolectar fuentes para cargar de Google Fonts
+$fontsToLoad = [];
+foreach ([$subheadingFont, $headingFont, $descriptionFont, $captionFont] as $font) {
+    if ($font && !in_array($font, $fontsToLoad)) {
+        $fontsToLoad[] = $font;
+    }
+}
+
+// Helper para generar estilos de texto
+if (!function_exists('heroTextStyle')) {
+    function heroTextStyle($color, $font, $italic) {
+        $styles = [];
+        if ($color) {
+            $styles[] = 'color: ' . escape_html($color) . ' !important';
+        }
+        if ($font) {
+            $styles[] = 'font-family: "' . escape_html($font) . '", sans-serif !important';
+        }
+        if ($italic) {
+            $styles[] = 'font-style: italic !important';
+        }
+        return $styles ? ' style="' . implode('; ', $styles) . ';"' : '';
+    }
+}
+
 $videoEmbedUrl = '';
 if ($videoUrl) {
     if (preg_match('~(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/|shorts/))([A-Za-z0-9_-]{6,})~', $videoUrl, $matches)) {
@@ -90,6 +125,20 @@ if ($layout === 'background' && $imageUrl) {
 $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
 ?>
 
+<?php if ($fontsToLoad): ?>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<?php
+$fontParams = [];
+foreach ($fontsToLoad as $font) {
+    $fontName = str_replace(' ', '+', $font);
+    $fontParams[] = 'family=' . $fontName . ':ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700';
+}
+$googleFontsUrl = 'https://fonts.googleapis.com/css2?' . implode('&', $fontParams) . '&display=swap';
+?>
+<link href="<?= escape_html($googleFontsUrl) ?>" rel="stylesheet">
+<?php endif; ?>
+
 <section class="<?= escape_html($containerClass) ?>"
          style="<?= $sectionStyleAttr ?>">
 
@@ -97,15 +146,15 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
 	        <?php if ($layout === 'image-right' || $layout === 'image-left'): ?>
 	            <div class="hero-content">
 	                <?php if ($subheading): ?>
-	                    <div class="subheading"<?= $subheadingColor ? ' style="color: ' . escape_html($subheadingColor) . ' !important;"' : '' ?>><?= escape_html($subheading) ?></div>
+	                    <div class="subheading"<?= heroTextStyle($subheadingColor, $subheadingFont, $subheadingItalic) ?>><?= escape_html($subheading) ?></div>
 	                <?php endif; ?>
 
 	                <?php if ($heading): ?>
-	                    <h1 class="hero-title"<?= $headingColor ? ' style="color: ' . escape_html($headingColor) . ' !important;"' : '' ?>><?= escape_html($heading) ?></h1>
+	                    <h1 class="hero-title"<?= heroTextStyle($headingColor, $headingFont, $headingItalic) ?>><?= escape_html($heading) ?></h1>
 	                <?php endif; ?>
 
 	                <?php if ($description): ?>
-	                    <p class="hero-description"<?= $descriptionColor ? ' style="color: ' . escape_html($descriptionColor) . ' !important;"' : '' ?>><?= nl2br(escape_html($description)) ?></p>
+	                    <p class="hero-description"<?= heroTextStyle($descriptionColor, $descriptionFont, $descriptionItalic) ?>><?= nl2br(escape_html($description)) ?></p>
 	                <?php endif; ?>
 
 	                <?php if ($buttonText && $buttonUrl): ?>
@@ -158,22 +207,22 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                         </div>
                     </div>
                     <?php if ($imageAlt): ?>
-                        <p class="hero-image-caption"<?= $captionColor ? ' style="color: ' . escape_html($captionColor) . ' !important;"' : '' ?>><?= escape_html($imageAlt) ?></p>
+                        <p class="hero-image-caption"<?= heroTextStyle($captionColor, $captionFont, $captionItalic) ?>><?= escape_html($imageAlt) ?></p>
                     <?php endif; ?>
                 </div>
 
         <?php elseif ($layout === 'centered'): ?>
             <div class="hero-centered text-center">
                 <?php if ($subheading): ?>
-                    <p class="hero-subheading"<?= $subheadingColor ? ' style="color: ' . escape_html($subheadingColor) . ' !important;"' : '' ?>><?= escape_html($subheading) ?></p>
+                    <p class="hero-subheading"<?= heroTextStyle($subheadingColor, $subheadingFont, $subheadingItalic) ?>><?= escape_html($subheading) ?></p>
                 <?php endif; ?>
 
                 <?php if ($heading): ?>
-                    <h1 class="hero-title"<?= $headingColor ? ' style="color: ' . escape_html($headingColor) . ' !important;"' : '' ?>><?= escape_html($heading) ?></h1>
+                    <h1 class="hero-title"<?= heroTextStyle($headingColor, $headingFont, $headingItalic) ?>><?= escape_html($heading) ?></h1>
                 <?php endif; ?>
 
                 <?php if ($description): ?>
-                    <p class="hero-description"<?= $descriptionColor ? ' style="color: ' . escape_html($descriptionColor) . ' !important;"' : '' ?>><?= nl2br(escape_html($description)) ?></p>
+                    <p class="hero-description"<?= heroTextStyle($descriptionColor, $descriptionFont, $descriptionItalic) ?>><?= nl2br(escape_html($description)) ?></p>
                 <?php endif; ?>
 
                 <?php if ($buttonText && $buttonUrl): ?>
@@ -225,7 +274,7 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                         </div>
                     </div>
                     <?php if ($imageAlt): ?>
-                        <p class="hero-image-caption"<?= $captionColor ? ' style="color: ' . escape_html($captionColor) . ' !important;"' : '' ?>><?= escape_html($imageAlt) ?></p>
+                        <p class="hero-image-caption"<?= heroTextStyle($captionColor, $captionFont, $captionItalic) ?>><?= escape_html($imageAlt) ?></p>
                     <?php endif; ?>
                 </div>
             </div>
@@ -247,15 +296,15 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                         <?php endif; ?>
                         <div class="hero-media-content">
                             <?php if ($subheading): ?>
-                                <p class="hero-subheading"<?= $subheadingColor ? ' style="color: ' . escape_html($subheadingColor) . ' !important;"' : '' ?>><?= escape_html($subheading) ?></p>
+                                <p class="hero-subheading"<?= heroTextStyle($subheadingColor, $subheadingFont, $subheadingItalic) ?>><?= escape_html($subheading) ?></p>
                             <?php endif; ?>
 
                             <?php if ($heading): ?>
-                                <h1 class="hero-title"<?= $headingColor ? ' style="color: ' . escape_html($headingColor) . ' !important;"' : '' ?>><?= escape_html($heading) ?></h1>
+                                <h1 class="hero-title"<?= heroTextStyle($headingColor, $headingFont, $headingItalic) ?>><?= escape_html($heading) ?></h1>
                             <?php endif; ?>
 
                             <?php if ($description): ?>
-                                <p class="hero-description"<?= $descriptionColor ? ' style="color: ' . escape_html($descriptionColor) . ' !important;"' : '' ?>><?= nl2br(escape_html($description)) ?></p>
+                                <p class="hero-description"<?= heroTextStyle($descriptionColor, $descriptionFont, $descriptionItalic) ?>><?= nl2br(escape_html($description)) ?></p>
                             <?php endif; ?>
 
                             <?php if ($buttonText && $buttonUrl): ?>
@@ -271,7 +320,7 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                                 </div>
                             <?php endif; ?>
                             <?php if ($imageAlt): ?>
-                                <p class="hero-image-caption"<?= $captionColor ? ' style="color: ' . escape_html($captionColor) . ' !important;"' : '' ?>><?= escape_html($imageAlt) ?></p>
+                                <p class="hero-image-caption"<?= heroTextStyle($captionColor, $captionFont, $captionItalic) ?>><?= escape_html($imageAlt) ?></p>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -279,15 +328,15 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                     <div class="hero-media">
                         <div class="hero-media-content">
                             <?php if ($subheading): ?>
-                                <p class="hero-subheading"<?= $subheadingColor ? ' style="color: ' . escape_html($subheadingColor) . ' !important;"' : '' ?>><?= escape_html($subheading) ?></p>
+                                <p class="hero-subheading"<?= heroTextStyle($subheadingColor, $subheadingFont, $subheadingItalic) ?>><?= escape_html($subheading) ?></p>
                             <?php endif; ?>
 
                             <?php if ($heading): ?>
-                                <h1 class="hero-title"<?= $headingColor ? ' style="color: ' . escape_html($headingColor) . ' !important;"' : '' ?>><?= escape_html($heading) ?></h1>
+                                <h1 class="hero-title"<?= heroTextStyle($headingColor, $headingFont, $headingItalic) ?>><?= escape_html($heading) ?></h1>
                             <?php endif; ?>
 
                             <?php if ($description): ?>
-                                <p class="hero-description"<?= $descriptionColor ? ' style="color: ' . escape_html($descriptionColor) . ' !important;"' : '' ?>><?= nl2br(escape_html($description)) ?></p>
+                                <p class="hero-description"<?= heroTextStyle($descriptionColor, $descriptionFont, $descriptionItalic) ?>><?= nl2br(escape_html($description)) ?></p>
                             <?php endif; ?>
 
                             <?php if ($buttonText && $buttonUrl): ?>
@@ -303,7 +352,7 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                                 </div>
                             <?php endif; ?>
                             <?php if ($imageAlt): ?>
-                                <p class="hero-image-caption"<?= $captionColor ? ' style="color: ' . escape_html($captionColor) . ' !important;"' : '' ?>><?= escape_html($imageAlt) ?></p>
+                                <p class="hero-image-caption"<?= heroTextStyle($captionColor, $captionFont, $captionItalic) ?>><?= escape_html($imageAlt) ?></p>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -325,15 +374,15 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                     <?php endif; ?>
                     <div class="hero-media-content">
                         <?php if ($subheading): ?>
-                            <p class="hero-subheading"<?= $subheadingColor ? ' style="color: ' . escape_html($subheadingColor) . ' !important;"' : '' ?>><?= escape_html($subheading) ?></p>
+                            <p class="hero-subheading"<?= heroTextStyle($subheadingColor, $subheadingFont, $subheadingItalic) ?>><?= escape_html($subheading) ?></p>
                         <?php endif; ?>
 
                         <?php if ($heading): ?>
-                            <h1 class="hero-title"<?= $headingColor ? ' style="color: ' . escape_html($headingColor) . ' !important;"' : '' ?>><?= escape_html($heading) ?></h1>
+                            <h1 class="hero-title"<?= heroTextStyle($headingColor, $headingFont, $headingItalic) ?>><?= escape_html($heading) ?></h1>
                         <?php endif; ?>
 
                         <?php if ($description): ?>
-                            <p class="hero-description"<?= $descriptionColor ? ' style="color: ' . escape_html($descriptionColor) . ' !important;"' : '' ?>><?= nl2br(escape_html($description)) ?></p>
+                            <p class="hero-description"<?= heroTextStyle($descriptionColor, $descriptionFont, $descriptionItalic) ?>><?= nl2br(escape_html($description)) ?></p>
                         <?php endif; ?>
 
                         <?php if ($buttonText && $buttonUrl): ?>
@@ -349,7 +398,7 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
                             </div>
                         <?php endif; ?>
                         <?php if ($imageAlt): ?>
-                            <p class="hero-image-caption"<?= $captionColor ? ' style="color: ' . escape_html($captionColor) . ' !important;"' : '' ?>><?= escape_html($imageAlt) ?></p>
+                            <p class="hero-image-caption"<?= heroTextStyle($captionColor, $captionFont, $captionItalic) ?>><?= escape_html($imageAlt) ?></p>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -359,10 +408,10 @@ $sectionStyleAttr = $sectionStyles ? implode(' ', $sectionStyles) : '';
 	            <div class="row">
 	                <div class="col-12 <?= $textAlign ?>">
 	                    <?php if ($heading): ?>
-	                        <h1 class="hero-title hero-heading display-4 fw-bold mb-3"<?= $headingColor ? ' style="color: ' . escape_html($headingColor) . ' !important;"' : '' ?>><?= escape_html($heading) ?></h1>
+	                        <h1 class="hero-title hero-heading display-4 fw-bold mb-3"<?= heroTextStyle($headingColor, $headingFont, $headingItalic) ?>><?= escape_html($heading) ?></h1>
 	                    <?php endif; ?>
                     <?php if ($description): ?>
-                        <p class="hero-description lead"<?= $descriptionColor ? ' style="color: ' . escape_html($descriptionColor) . ' !important;"' : '' ?>><?= nl2br(escape_html($description)) ?></p>
+                        <p class="hero-description lead"<?= heroTextStyle($descriptionColor, $descriptionFont, $descriptionItalic) ?>><?= nl2br(escape_html($description)) ?></p>
                     <?php endif; ?>
                 </div>
             </div>
