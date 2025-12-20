@@ -13,7 +13,11 @@
     <div class="container">
         <div class="header-container">
             <div class="header-logo">
-                <a href="{{ url('/') }}" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
+                @php
+                    $taglineEnabled = themeOption('header.header_tagline_enabled', true);
+                    $siteTagline = site_setting('site_description', '');
+                @endphp
+                <a href="{{ url('/') }}" class="header-brand-link">
                     @php
                         $showLogo = site_setting('show_logo', '1') === '1';
                         $showTitle = site_setting('show_title', '0') === '1';
@@ -22,22 +26,30 @@
                         $defaultLogo = asset('img/musedock_logo.png');
                     @endphp
 
-                    @if($showLogo)
-                        <img src="{{ $logoPath ? public_file_url($logoPath) : $defaultLogo }}"
-                             alt="{{ $siteName }}"
-                             style="max-height: 50px; width: auto;"
-                             onerror="this.onerror=null; this.src='{{ $defaultLogo }}';">
-                    @endif
+                    <div class="header-brand-block">
+                        <div class="header-brand-top">
+                            @if($showLogo)
+                                <img src="{{ $logoPath ? public_file_url($logoPath) : $defaultLogo }}"
+                                     alt="{{ $siteName }}"
+                                     class="header-brand-logo"
+                                     onerror="this.onerror=null; this.src='{{ $defaultLogo }}';">
+                            @endif
 
-                    @if($showTitle)
-                        @php
-                            $logoTextColor = themeOption('header.header_logo_text_color', '#1a2a40');
-                            $logoFontFamily = themeOption('header.header_logo_font', 'inherit');
-                        @endphp
-                        <span class="site-title" style="font-size: 24px; font-weight: bold; color: {{ $logoTextColor }}; font-family: {!! $logoFontFamily !!};">
-                            {{ $siteName }}
-                        </span>
-                    @endif
+                            @if($showTitle)
+                                @php
+                                    $logoTextColor = themeOption('header.header_logo_text_color', '#1a2a40');
+                                    $logoFontFamily = themeOption('header.header_logo_font', 'inherit');
+                                @endphp
+                                <span class="site-title" style="font-size: 24px; font-weight: bold; color: {{ $logoTextColor }}; font-family: {!! $logoFontFamily !!};">
+                                    {{ $siteName }}
+                                </span>
+                            @endif
+                        </div>
+
+                        @if($taglineEnabled && !empty($siteTagline))
+                            <div class="header-site-tagline">{{ $siteTagline }}</div>
+                        @endif
+                    </div>
                 </a>
             </div>
 

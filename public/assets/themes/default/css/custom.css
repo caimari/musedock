@@ -131,22 +131,24 @@
   /* Por defecto: pequeño margen lateral */
   margin-left: 12px;
   margin-right: 12px;
-  /* Curvatura solo abajo (como pides) */
+  /* Curvatura solo abajo - SIMÉTRICO */
   border-bottom-left-radius: 16px;
-  border-bottom-right-radius: 21px;
+  border-bottom-right-radius: 16px;
   padding-left: 0 !important;
   padding-right: 0 !important;
+  border-bottom: none !important; /* quitar línea gris del header base */
+  box-shadow: none !important;
 }
 
 .musedock-header.header-layout-aca .header-aca-box {
   background: var(--header-bg-color, #ffffff);
   margin: 0 auto;
   padding: 18px 22px 14px;
-  /* Solo redondear abajo (no arriba) */
-  border-radius: 0 0 16px 21px;
+  /* Solo redondear abajo (no arriba) - SIMÉTRICO */
+  border-radius: 0 0 16px 16px;
   /* La sombra se aplica en ::after para evitar “restos” laterales */
   box-shadow: none;
-  max-width: 1200px;
+  max-width: 1320px;
   width: 100%;
   position: relative;
 }
@@ -208,6 +210,48 @@
   font-size: 13px;
   line-height: 1.25;
   max-width: 420px;
+}
+
+/* Tagline global (header clásico + Tema 2) */
+.header-brand-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.header-brand-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.header-brand-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-brand-logo {
+  max-height: 50px;
+  width: auto;
+  display: block;
+}
+
+.header-site-tagline {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.25;
+  color: var(--header-tagline-color, #111827);
+}
+
+.musedock-header.header-layout-centered .header-centered-logo .header-brand-block {
+  align-items: center;
+  text-align: center;
+}
+
+@media (max-width: 991px) {
+  .header-site-tagline {
+    display: none;
+  }
 }
 
 .musedock-header.header-layout-aca .header-aca-right {
@@ -278,11 +322,14 @@
   }
 }
 
-/* Desktop: márgenes exactos como tu ejemplo */
+/* Desktop: márgenes SIMÉTRICOS para centrar el header */
 @media (min-width: 1200px) {
   .musedock-header.header-layout-aca {
-    margin-left: 133px;
-    margin-right: 200px;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 1320px;
+    padding-left: 2rem;
+    padding-right: 2rem;
   }
 }
 
@@ -407,8 +454,8 @@ article.blog-post-single {
 
 /* La separación real entre banner (fondo) y el bloque copyright (blanco) */
 footer .footer-area.footer-banner + .footer-bottom-area.footer-bottom-contrast {
-  padding-top: 64px !important;
-  padding-bottom: 64px !important;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
   border-top: none !important; /* quitar línea del copyright */
 }
 

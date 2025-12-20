@@ -958,5 +958,126 @@ document.addEventListener("DOMContentLoaded", function() {
 @stack('media_manager')
 @stack('scripts')
 
+{{-- Interceptor global para manejar errores CSRF (419) --}}
+<script>
+(function() {
+    // Helper para obtener el token CSRF actual
+    function getCsrfToken() {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    }
+
+    // Helper para actualizar el token CSRF en toda la página
+    function updateCsrfToken(newToken) {
+        if (!newToken) return;
+
+        // Actualizar meta tag
+        const metaTag = document.querySelector('meta[name="csrf-token"]');
+        if (metaTag) {
+            metaTag.setAttribute('content', newToken);
+        }
+
+        // Actualizar inputs hidden de formularios
+        document.querySelectorAll('input[name="_token"], input[name="_csrf"], input[name="csrf_token"]').forEach(input => {
+            input.value = newToken;
+        });
+
+        // Actualizar variable global si existe
+        if (typeof window.csrfToken !== 'undefined') {
+            window.csrfToken = newToken;
+        }
+
+        console.log('[CSRF] Token actualizado automáticamente');
+    }
+
+    // Variable para evitar múltiples modales
+    let csrfErrorShown = false;
+
+    // Guardar el fetch original
+    const originalFetch = window.fetch;
+
+    // Sobrescribir fetch para interceptar errores CSRF
+    window.fetch = async function(...args) {
+        const response = await originalFetch.apply(this, args);
+
+        // Detectar error CSRF (código 419)
+        if (response.status === 419 && !csrfErrorShown) {
+            try {
+                const clonedResponse = response.clone();
+                const data = await clonedResponse.json();
+
+                // Si el servidor envió un nuevo token CSRF, actualizarlo
+                if (data.new_csrf_token) {
+                    updateCsrfToken(data.new_csrf_token);
+
+                    // Mostrar mensaje más amigable que permite reintentar
+                    if (typeof Swal !== 'undefined') {
+                        csrfErrorShown = true;
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Formulario desactualizado',
+                            text: 'El formulario ha sido actualizado. Por favor, intenta de nuevo.',
+                            confirmButtonText: 'Entendido',
+                            allowOutsideClick: true
+                        }).then(() => {
+                            csrfErrorShown = false;
+                        });
+                    }
+                } else {
+                    // Si no hay nuevo token, puede ser sesión realmente expirada
+                    if (typeof Swal !== 'undefined') {
+                        csrfErrorShown = true;
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Sesión expirada',
+                            text: 'Tu sesión ha expirado. Haz clic en OK para recargar la página.',
+                            confirmButtonText: 'Recargar página',
+                            allowOutsideClick: false
+                        }).then((result) => {
+                            csrfErrorShown = false;
+                            if (result.isConfirmed) {
+                                window.location.reload();
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error('[CSRF] Error procesando respuesta 419:', e);
+            }
+        }
+
+        return response;
+    };
+
+    // También interceptar jQuery AJAX si está disponible
+    if (typeof jQuery !== 'undefined') {
+        jQuery(document).ajaxError(function(event, jqXHR, settings, thrownError) {
+            if (jqXHR.status === 419 && !csrfErrorShown) {
+                try {
+                    const data = JSON.parse(jqXHR.responseText);
+                    if (data.new_csrf_token) {
+                        updateCsrfToken(data.new_csrf_token);
+
+                        if (typeof Swal !== 'undefined') {
+                            csrfErrorShown = true;
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Formulario desactualizado',
+                                text: 'El formulario ha sido actualizado. Por favor, intenta de nuevo.',
+                                confirmButtonText: 'Entendido'
+                            }).then(() => {
+                                csrfErrorShown = false;
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.error('[CSRF] Error procesando respuesta jQuery 419:', e);
+                }
+            }
+        });
+    }
+})();
+</script>
+
 </body>
 </html>

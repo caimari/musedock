@@ -306,6 +306,12 @@
           "default": "#111827",
           "description": "Color del texto de la descripción del sitio debajo del logo (Tema 2)"
         },
+        "header_tagline_enabled": {
+          "type": "toggle",
+          "label": "Mostrar subtítulo (descripción)",
+          "default": true,
+          "description": "Muestra/oculta la descripción del sitio debajo del logo (Tema 2 y header clásico)"
+        },
         "header_sticky": {
           "type": "toggle",
           "label": "Cabecera fija (sticky)",

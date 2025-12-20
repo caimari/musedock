@@ -6,11 +6,11 @@
   --hero-subtitle-color: #ffffff;
   --hero-overlay-color: #000000;
   --hero-overlay-opacity: 0.5;
-  --header-bg-color: #90b5fe;
-  --header-logo-text-color: #ededed;
+  --header-bg-color: #e9e7a5;
+  --header-logo-text-color: #262626;
   --header-logo-font: inherit;
-  --header-link-color: #ffffff;
-  --header-link-hover-color: #f2f2f2;
+  --header-link-color: #434242;
+  --header-link-hover-color: #ec7d22;
   --header-cta-bg-color: #ff5e15;
   --header-cta-text-color: #ffffff;
   --footer-bg-color: #e8d296;
@@ -504,6 +504,24 @@ body {
   z-index: 2;
 }
 
+
+/* ===============================================
+   FOOTER COPYRIGHT - Reducir espacio
+   =============================================== */
+.footer-bottom-area {
+  padding: 8px 0 !important;
+}
+
+.footer-bottom-area .footer-copy-right {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.footer-bottom-area .footer-copy-right p {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 13px;
+}
 
 /* --- CSS Personalizado --- */
 /* Ejemplos:

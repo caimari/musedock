@@ -592,7 +592,7 @@
 
                                 <!-- Style Options -->
                                 <div class="row g-3 mt-2">
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <label class="form-label">{{ __element('highlight.background_style') }}</label>
                                         @php $bgStyle = old('data.background_style', $data['background_style'] ?? 'transparent'); @endphp
                                         <select class="form-select" name="data[background_style]" {{ $isReadOnly ? 'disabled' : '' }}>
@@ -606,16 +606,7 @@
                                             <option value="soft-amber" {{ $bgStyle === 'soft-amber' ? 'selected' : '' }}>{{ __element('highlight.bg_soft_amber') }}</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">{{ __element('highlight.alignment') }}</label>
-                                        @php $alignment = old('data.alignment', $data['alignment'] ?? 'center'); @endphp
-                                        <select class="form-select" name="data[alignment]" {{ $isReadOnly ? 'disabled' : '' }}>
-                                            <option value="center" {{ $alignment === 'center' ? 'selected' : '' }}>{{ __element('highlight.align_center') }}</option>
-                                            <option value="left" {{ $alignment === 'left' ? 'selected' : '' }}>{{ __element('highlight.align_left') }}</option>
-                                            <option value="right" {{ $alignment === 'right' ? 'selected' : '' }}>{{ __element('highlight.align_right') }}</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <label class="form-label">{{ __element('highlight.content_width') }}</label>
                                         @php $contentWidth = old('data.content_width', $data['content_width'] ?? 'medium'); @endphp
                                         <select class="form-select" name="data[content_width]" {{ $isReadOnly ? 'disabled' : '' }}>
@@ -815,18 +806,139 @@
                                                     <div class="col-md-8">
                                                         <label class="form-label small">{{ __element('highlight.icon_type') }}</label>
                                                         <select class="form-select form-select-sm" name="data[icon_type]" id="highlight_icon_type" {{ $isReadOnly ? 'disabled' : '' }}>
-                                                            <option value="rocket" {{ $iconType === 'rocket' ? 'selected' : '' }}>🚀 {{ __element('highlight.icon_rocket') }}</option>
-                                                            <option value="star" {{ $iconType === 'star' ? 'selected' : '' }}>⭐ {{ __element('highlight.icon_star') }}</option>
-                                                            <option value="heart" {{ $iconType === 'heart' ? 'selected' : '' }}>❤️ {{ __element('highlight.icon_heart') }}</option>
-                                                            <option value="lightbulb" {{ $iconType === 'lightbulb' ? 'selected' : '' }}>💡 {{ __element('highlight.icon_lightbulb') }}</option>
-                                                            <option value="trophy" {{ $iconType === 'trophy' ? 'selected' : '' }}>🏆 {{ __element('highlight.icon_trophy') }}</option>
-                                                            <option value="target" {{ $iconType === 'target' ? 'selected' : '' }}>🎯 {{ __element('highlight.icon_target') }}</option>
-                                                            <option value="shield" {{ $iconType === 'shield' ? 'selected' : '' }}>🛡️ {{ __element('highlight.icon_shield') }}</option>
-                                                            <option value="gem" {{ $iconType === 'gem' ? 'selected' : '' }}>💎 {{ __element('highlight.icon_gem') }}</option>
-                                                            <option value="fire" {{ $iconType === 'fire' ? 'selected' : '' }}>🔥 {{ __element('highlight.icon_fire') }}</option>
-                                                            <option value="bolt" {{ $iconType === 'bolt' ? 'selected' : '' }}>⚡ {{ __element('highlight.icon_bolt') }}</option>
-                                                            <option value="chart" {{ $iconType === 'chart' ? 'selected' : '' }}>📈 {{ __element('highlight.icon_chart') }}</option>
-                                                            <option value="globe" {{ $iconType === 'globe' ? 'selected' : '' }}>🌍 {{ __element('highlight.icon_globe') }}</option>
+                                                            <optgroup label="Populares">
+                                                                <option value="rocket" {{ $iconType === 'rocket' ? 'selected' : '' }}>🚀 Cohete</option>
+                                                                <option value="star" {{ $iconType === 'star' ? 'selected' : '' }}>⭐ Estrella</option>
+                                                                <option value="heart" {{ $iconType === 'heart' ? 'selected' : '' }}>❤️ Corazon</option>
+                                                                <option value="lightbulb" {{ $iconType === 'lightbulb' ? 'selected' : '' }}>💡 Bombilla</option>
+                                                                <option value="trophy" {{ $iconType === 'trophy' ? 'selected' : '' }}>🏆 Trofeo</option>
+                                                                <option value="target" {{ $iconType === 'target' ? 'selected' : '' }}>🎯 Objetivo</option>
+                                                                <option value="fire" {{ $iconType === 'fire' ? 'selected' : '' }}>🔥 Fuego</option>
+                                                                <option value="bolt" {{ $iconType === 'bolt' ? 'selected' : '' }}>⚡ Rayo</option>
+                                                                <option value="zap" {{ $iconType === 'zap' ? 'selected' : '' }}>⚡ Zap</option>
+                                                            </optgroup>
+                                                            <optgroup label="Busqueda y Navegacion">
+                                                                <option value="search" {{ $iconType === 'search' ? 'selected' : '' }}>🔍 Lupa/Buscar</option>
+                                                                <option value="compass" {{ $iconType === 'compass' ? 'selected' : '' }}>🧭 Brujula</option>
+                                                                <option value="map-pin" {{ $iconType === 'map-pin' ? 'selected' : '' }}>📍 Ubicacion</option>
+                                                                <option value="globe" {{ $iconType === 'globe' ? 'selected' : '' }}>🌍 Globo</option>
+                                                                <option value="home" {{ $iconType === 'home' ? 'selected' : '' }}>🏠 Casa</option>
+                                                                <option value="eye" {{ $iconType === 'eye' ? 'selected' : '' }}>👁️ Ojo/Ver</option>
+                                                                <option value="filter" {{ $iconType === 'filter' ? 'selected' : '' }}>🔽 Filtro</option>
+                                                            </optgroup>
+                                                            <optgroup label="Comunicacion">
+                                                                <option value="mail" {{ $iconType === 'mail' ? 'selected' : '' }}>✉️ Correo</option>
+                                                                <option value="phone" {{ $iconType === 'phone' ? 'selected' : '' }}>📞 Telefono</option>
+                                                                <option value="message" {{ $iconType === 'message' ? 'selected' : '' }}>💬 Mensaje</option>
+                                                                <option value="bell" {{ $iconType === 'bell' ? 'selected' : '' }}>🔔 Campana</option>
+                                                                <option value="share" {{ $iconType === 'share' ? 'selected' : '' }}>🔗 Compartir</option>
+                                                                <option value="link" {{ $iconType === 'link' ? 'selected' : '' }}>🔗 Enlace</option>
+                                                                <option value="external-link" {{ $iconType === 'external-link' ? 'selected' : '' }}>↗️ Enlace Externo</option>
+                                                            </optgroup>
+                                                            <optgroup label="Usuarios y Personas">
+                                                                <option value="user" {{ $iconType === 'user' ? 'selected' : '' }}>👤 Usuario</option>
+                                                                <option value="users" {{ $iconType === 'users' ? 'selected' : '' }}>👥 Usuarios</option>
+                                                                <option value="smile" {{ $iconType === 'smile' ? 'selected' : '' }}>😊 Sonrisa</option>
+                                                                <option value="thumbs-up" {{ $iconType === 'thumbs-up' ? 'selected' : '' }}>👍 Me gusta</option>
+                                                            </optgroup>
+                                                            <optgroup label="Negocios y Finanzas">
+                                                                <option value="briefcase" {{ $iconType === 'briefcase' ? 'selected' : '' }}>💼 Maletin</option>
+                                                                <option value="shopping-cart" {{ $iconType === 'shopping-cart' ? 'selected' : '' }}>🛒 Carrito</option>
+                                                                <option value="credit-card" {{ $iconType === 'credit-card' ? 'selected' : '' }}>💳 Tarjeta</option>
+                                                                <option value="dollar" {{ $iconType === 'dollar' ? 'selected' : '' }}>💵 Dolar</option>
+                                                                <option value="percent" {{ $iconType === 'percent' ? 'selected' : '' }}>% Porcentaje</option>
+                                                                <option value="tag" {{ $iconType === 'tag' ? 'selected' : '' }}>🏷️ Etiqueta</option>
+                                                                <option value="gift" {{ $iconType === 'gift' ? 'selected' : '' }}>🎁 Regalo</option>
+                                                                <option value="package" {{ $iconType === 'package' ? 'selected' : '' }}>📦 Paquete</option>
+                                                                <option value="truck" {{ $iconType === 'truck' ? 'selected' : '' }}>🚚 Camion</option>
+                                                            </optgroup>
+                                                            <optgroup label="Graficos y Estadisticas">
+                                                                <option value="chart" {{ $iconType === 'chart' ? 'selected' : '' }}>📈 Grafico Linea</option>
+                                                                <option value="bar-chart" {{ $iconType === 'bar-chart' ? 'selected' : '' }}>📊 Grafico Barras</option>
+                                                                <option value="pie-chart" {{ $iconType === 'pie-chart' ? 'selected' : '' }}>🥧 Grafico Pastel</option>
+                                                                <option value="trending-up" {{ $iconType === 'trending-up' ? 'selected' : '' }}>📈 Tendencia Arriba</option>
+                                                                <option value="trending-down" {{ $iconType === 'trending-down' ? 'selected' : '' }}>📉 Tendencia Abajo</option>
+                                                                <option value="activity" {{ $iconType === 'activity' ? 'selected' : '' }}>📉 Actividad</option>
+                                                            </optgroup>
+                                                            <optgroup label="Seguridad">
+                                                                <option value="shield" {{ $iconType === 'shield' ? 'selected' : '' }}>🛡️ Escudo</option>
+                                                                <option value="lock" {{ $iconType === 'lock' ? 'selected' : '' }}>🔒 Candado</option>
+                                                                <option value="key" {{ $iconType === 'key' ? 'selected' : '' }}>🔑 Llave</option>
+                                                                <option value="check" {{ $iconType === 'check' ? 'selected' : '' }}>✓ Check</option>
+                                                                <option value="check-circle" {{ $iconType === 'check-circle' ? 'selected' : '' }}>✅ Check Circulo</option>
+                                                            </optgroup>
+                                                            <optgroup label="Tiempo y Calendario">
+                                                                <option value="clock" {{ $iconType === 'clock' ? 'selected' : '' }}>🕐 Reloj</option>
+                                                                <option value="calendar" {{ $iconType === 'calendar' ? 'selected' : '' }}>📅 Calendario</option>
+                                                                <option value="refresh" {{ $iconType === 'refresh' ? 'selected' : '' }}>🔄 Actualizar</option>
+                                                            </optgroup>
+                                                            <optgroup label="Multimedia">
+                                                                <option value="camera" {{ $iconType === 'camera' ? 'selected' : '' }}>📷 Camara</option>
+                                                                <option value="image" {{ $iconType === 'image' ? 'selected' : '' }}>🖼️ Imagen</option>
+                                                                <option value="video" {{ $iconType === 'video' ? 'selected' : '' }}>🎥 Video</option>
+                                                                <option value="music" {{ $iconType === 'music' ? 'selected' : '' }}>🎵 Musica</option>
+                                                                <option value="headphones" {{ $iconType === 'headphones' ? 'selected' : '' }}>🎧 Auriculares</option>
+                                                                <option value="mic" {{ $iconType === 'mic' ? 'selected' : '' }}>🎤 Microfono</option>
+                                                            </optgroup>
+                                                            <optgroup label="Documentos">
+                                                                <option value="book" {{ $iconType === 'book' ? 'selected' : '' }}>📖 Libro</option>
+                                                                <option value="file" {{ $iconType === 'file' ? 'selected' : '' }}>📄 Archivo</option>
+                                                                <option value="folder" {{ $iconType === 'folder' ? 'selected' : '' }}>📁 Carpeta</option>
+                                                                <option value="clipboard" {{ $iconType === 'clipboard' ? 'selected' : '' }}>📋 Portapapeles</option>
+                                                                <option value="bookmark" {{ $iconType === 'bookmark' ? 'selected' : '' }}>🔖 Marcador</option>
+                                                                <option value="printer" {{ $iconType === 'printer' ? 'selected' : '' }}>🖨️ Impresora</option>
+                                                                <option value="save" {{ $iconType === 'save' ? 'selected' : '' }}>💾 Guardar</option>
+                                                            </optgroup>
+                                                            <optgroup label="Tecnologia">
+                                                                <option value="settings" {{ $iconType === 'settings' ? 'selected' : '' }}>⚙️ Ajustes</option>
+                                                                <option value="sliders" {{ $iconType === 'sliders' ? 'selected' : '' }}>🎚️ Controles</option>
+                                                                <option value="wifi" {{ $iconType === 'wifi' ? 'selected' : '' }}>📶 WiFi</option>
+                                                                <option value="cpu" {{ $iconType === 'cpu' ? 'selected' : '' }}>💻 CPU</option>
+                                                                <option value="database" {{ $iconType === 'database' ? 'selected' : '' }}>🗄️ Base datos</option>
+                                                                <option value="server" {{ $iconType === 'server' ? 'selected' : '' }}>🖥️ Servidor</option>
+                                                                <option value="cloud" {{ $iconType === 'cloud' ? 'selected' : '' }}>☁️ Nube</option>
+                                                                <option value="download" {{ $iconType === 'download' ? 'selected' : '' }}>⬇️ Descargar</option>
+                                                                <option value="upload" {{ $iconType === 'upload' ? 'selected' : '' }}>⬆️ Subir</option>
+                                                                <option value="code" {{ $iconType === 'code' ? 'selected' : '' }}>&lt;/&gt; Codigo</option>
+                                                                <option value="terminal" {{ $iconType === 'terminal' ? 'selected' : '' }}>⌨️ Terminal</option>
+                                                            </optgroup>
+                                                            <optgroup label="Premios y Logros">
+                                                                <option value="award" {{ $iconType === 'award' ? 'selected' : '' }}>🏅 Premio</option>
+                                                                <option value="gem" {{ $iconType === 'gem' ? 'selected' : '' }}>💎 Gema</option>
+                                                                <option value="flag" {{ $iconType === 'flag' ? 'selected' : '' }}>🚩 Bandera</option>
+                                                            </optgroup>
+                                                            <optgroup label="Naturaleza">
+                                                                <option value="sun" {{ $iconType === 'sun' ? 'selected' : '' }}>☀️ Sol</option>
+                                                                <option value="moon" {{ $iconType === 'moon' ? 'selected' : '' }}>🌙 Luna</option>
+                                                                <option value="coffee" {{ $iconType === 'coffee' ? 'selected' : '' }}>☕ Cafe</option>
+                                                            </optgroup>
+                                                            <optgroup label="Interfaz">
+                                                                <option value="layers" {{ $iconType === 'layers' ? 'selected' : '' }}>📚 Capas</option>
+                                                                <option value="grid" {{ $iconType === 'grid' ? 'selected' : '' }}>▦ Cuadricula</option>
+                                                                <option value="list" {{ $iconType === 'list' ? 'selected' : '' }}>☰ Lista</option>
+                                                                <option value="menu" {{ $iconType === 'menu' ? 'selected' : '' }}>☰ Menu</option>
+                                                                <option value="maximize" {{ $iconType === 'maximize' ? 'selected' : '' }}>⛶ Maximizar</option>
+                                                                <option value="minimize" {{ $iconType === 'minimize' ? 'selected' : '' }}>⛶ Minimizar</option>
+                                                                <option value="edit" {{ $iconType === 'edit' ? 'selected' : '' }}>✏️ Editar</option>
+                                                                <option value="trash" {{ $iconType === 'trash' ? 'selected' : '' }}>🗑️ Eliminar</option>
+                                                                <option value="plus" {{ $iconType === 'plus' ? 'selected' : '' }}>➕ Mas</option>
+                                                                <option value="minus" {{ $iconType === 'minus' ? 'selected' : '' }}>➖ Menos</option>
+                                                                <option value="x" {{ $iconType === 'x' ? 'selected' : '' }}>✕ Cerrar</option>
+                                                                <option value="power" {{ $iconType === 'power' ? 'selected' : '' }}>⏻ Encendido</option>
+                                                            </optgroup>
+                                                            <optgroup label="Flechas y Direcciones">
+                                                                <option value="arrow-right" {{ $iconType === 'arrow-right' ? 'selected' : '' }}>→ Flecha Derecha</option>
+                                                                <option value="arrow-up" {{ $iconType === 'arrow-up' ? 'selected' : '' }}>↑ Flecha Arriba</option>
+                                                                <option value="arrow-down" {{ $iconType === 'arrow-down' ? 'selected' : '' }}>↓ Flecha Abajo</option>
+                                                                <option value="chevron-right" {{ $iconType === 'chevron-right' ? 'selected' : '' }}>› Chevron Derecha</option>
+                                                                <option value="chevron-down" {{ $iconType === 'chevron-down' ? 'selected' : '' }}>˅ Chevron Abajo</option>
+                                                            </optgroup>
+                                                            <optgroup label="Informacion">
+                                                                <option value="info" {{ $iconType === 'info' ? 'selected' : '' }}>ℹ️ Info</option>
+                                                                <option value="alert" {{ $iconType === 'alert' ? 'selected' : '' }}>⚠️ Alerta</option>
+                                                                <option value="help" {{ $iconType === 'help' ? 'selected' : '' }}>❓ Ayuda</option>
+                                                                <option value="infinity" {{ $iconType === 'infinity' ? 'selected' : '' }}>∞ Infinito</option>
+                                                            </optgroup>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">

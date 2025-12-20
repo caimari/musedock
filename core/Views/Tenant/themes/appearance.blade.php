@@ -448,8 +448,16 @@ nav[aria-label="breadcrumb"] .breadcrumb-item + .breadcrumb-item::before {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const themeSlug = '{{ $slug }}';
-    const csrfToken = '{{ csrf_token() }}';
     const adminPath = '{{ admin_path() }}';
+
+    // Función para obtener el token CSRF dinámicamente (siempre el más reciente)
+    function getCsrfToken() {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '{{ csrf_token() }}';
+    }
+
+    // Para compatibilidad con código existente
+    const csrfToken = getCsrfToken();
 
     // ==================== COLOR PICKERS ====================
     document.querySelectorAll('.form-control-color').forEach(colorInput => {
@@ -682,8 +690,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
-                    body: `_csrf=${csrfToken}&preset_name=${encodeURIComponent(result.value)}`
+                    body: `_csrf=${getCsrfToken()}&preset_name=${encodeURIComponent(result.value)}`
                 })
                 .then(response => response.json())
                 .then(data => {
@@ -739,8 +748,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
-                    body: `_csrf=${csrfToken}`
+                    body: `_csrf=${getCsrfToken()}`
                 })
                 .then(response => response.json())
                 .then(data => {

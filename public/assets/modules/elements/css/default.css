@@ -1279,8 +1279,9 @@
     background: transparent !important; /* NEVER on section, only on highlight-body */
 }
 
+/* Usa 1320px para alinearse con el Hero que también usa 1320px */
 .element-highlight .container {
-    max-width: 1200px;
+    max-width: 1320px;
     margin: 0 auto;
     padding: 0 2rem;
 }
@@ -1306,13 +1307,13 @@
 
 /* Body - El contenido principal con fondo */
 .element-highlight .highlight-body {
-    padding: 1rem 0;
+    padding: 30px 0 1rem;
     background: transparent; /* default transparent */
 }
 
-/* Footer - espejo del header */
+/* Footer - espacio mínimo después del body */
 .element-highlight .highlight-footer {
-    padding: 0.5rem 0 0;
+    padding: 0;
 }
 
 .element-highlight .highlight-content {
@@ -1360,34 +1361,34 @@
 .element-highlight.layout-centered.has-icon .highlight-wrapper {
     flex-direction: row;
     justify-content: center;
+    align-items: center;
 }
 
 .element-highlight.layout-centered.has-icon .highlight-icon {
-    position: absolute;
-    left: -100px;
-    top: 50%;
-    transform: translateY(-50%);
+    flex-shrink: 0;
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
 }
 
 .element-highlight.layout-centered.has-icon .highlight-content {
     position: relative;
 }
 
-/* Full width adjustments for icon */
+/* Full width adjustments for icon - usar posición relativa, no absoluta */
 .element-highlight.full-width.layout-centered.has-icon .highlight-icon {
-    left: calc(50% - 450px);
+    position: relative;
+    left: auto;
+    transform: none;
 }
 
-.element-highlight.full-width.width-narrow.layout-centered.has-icon .highlight-icon {
-    left: calc(50% - 380px);
-}
-
-.element-highlight.full-width.width-medium.layout-centered.has-icon .highlight-icon {
-    left: calc(50% - 480px);
-}
-
+.element-highlight.full-width.width-narrow.layout-centered.has-icon .highlight-icon,
+.element-highlight.full-width.width-medium.layout-centered.has-icon .highlight-icon,
 .element-highlight.full-width.width-wide.layout-centered.has-icon .highlight-icon {
-    left: calc(50% - 580px);
+    position: relative;
+    left: auto;
+    transform: none;
 }
 
 /* Responsive icon */
@@ -1409,7 +1410,14 @@
     }
 
     .element-highlight.full-width.layout-centered.has-icon .highlight-icon {
+        position: static;
         left: auto;
+        transform: none;
+    }
+
+    .element-highlight.full-width.layout-centered .highlight-wrapper {
+        justify-content: center;
+        align-items: center;
     }
 }
 
@@ -1759,18 +1767,21 @@
 }
 
 /* Full width highlight - banner ocupa todo el ancho de la pantalla */
+/* Técnica que funciona independiente de contenedores padres con padding */
 .element-highlight.full-width .highlight-body {
     width: 100vw;
+    max-width: 100vw;
     position: relative;
-    left: 50%;
-    right: 50%;
-    margin-left: -50vw;
-    margin-right: -50vw;
+    /* Usar calc para compensar la posición del contenedor padre */
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    box-sizing: border-box;
 }
 
 /* Full width: el header debe alinearse con el contenido del body */
+/* Usa 1320px para alinearse con el Hero que también usa 1320px */
 .element-highlight.full-width .highlight-header .container {
-    max-width: 1200px;
+    max-width: 1320px;
     padding-left: 2rem;
     padding-right: 2rem;
 }
@@ -1793,28 +1804,87 @@
 }
 
 /* Full width: el container del body debe mantener el mismo max-width para alinear el contenido */
+/* Usa 1320px para alinearse con el Hero que también usa 1320px */
 .element-highlight.full-width .highlight-body .container {
-    max-width: 1200px;
-    margin-left: auto;
-    margin-right: auto;
+    max-width: 1320px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+    width: 100% !important;
+}
+
+/* Full width + centered: asegurar que el wrapper y contenido estén centrados */
+.element-highlight.full-width.layout-centered .highlight-body .container {
+    display: flex;
+    justify-content: center;
+}
+
+.element-highlight.full-width.layout-centered .highlight-wrapper {
+    width: 100%;
+    justify-content: center;
+}
+
+.element-highlight.full-width.layout-centered .highlight-content {
+    width: 100%;
+}
+
+/* Full width + layout-left: asegurar alineación correcta */
+.element-highlight.full-width.layout-left .highlight-body .container {
+    display: block;
+    max-width: 1320px;
+    margin-left: auto !important;
+    margin-right: auto !important;
     padding-left: 2rem;
     padding-right: 2rem;
 }
 
+.element-highlight.full-width.layout-left .highlight-wrapper {
+    width: 100%;
+}
+
+.element-highlight.full-width.layout-left .highlight-content {
+    max-width: 100%;
+}
+
+/* Full width + layout-left + width-full: forzar centrado del contenedor */
+.element-highlight.full-width.layout-left.width-full .highlight-body .container {
+    max-width: 1320px;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+/* Full width + layout-right: asegurar alineación correcta */
+.element-highlight.full-width.layout-right .highlight-body .container {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.element-highlight.full-width.layout-right .highlight-wrapper {
+    width: 100%;
+    justify-content: flex-end;
+}
+
 .element-highlight.full-width.width-narrow .highlight-body .container {
-    max-width: 600px;
+    max-width: 600px !important;
 }
 
 .element-highlight.full-width.width-medium .highlight-body .container {
-    max-width: 800px;
+    max-width: 800px !important;
 }
 
 .element-highlight.full-width.width-wide .highlight-body .container {
-    max-width: 1000px;
+    max-width: 1000px !important;
 }
 
 .element-highlight.full-width.width-full .highlight-body .container {
-    max-width: 100%;
+    max-width: 1320px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 2rem;
+    padding-right: 2rem;
 }
 
 /* Background image with overlay */
@@ -1868,7 +1938,7 @@
 /* Responsive */
 @media (max-width: 768px) {
     .element-highlight .highlight-body {
-        padding: 1.25rem 0 1.5rem;
+        padding: 1.5rem 0;
     }
 
     .element-highlight .container {

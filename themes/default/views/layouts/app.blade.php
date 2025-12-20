@@ -605,10 +605,11 @@ html.mobile-menu-open {
 }
 
 /* Contenedor principal dentro del header */
+/* Usa 1320px y padding 2rem para alinear con Hero y Highlight */
 .container-fluid { /* O tu clase de contenedor principal (.container) */
-    max-width: 1200px; /* Ajusta el ancho máximo según tu diseño */
+    max-width: 1320px; /* Alineado con Hero y Highlight */
     margin: 0 auto;
-    padding: 0 15px; /* Espaciado lateral estándar */
+    padding: 0 2rem; /* Alineado con Hero y Highlight (32px) */
 }
 
 /* Contenedor Flex para alinear Logo (izquierda) y Contenido Derecho (derecha) */
