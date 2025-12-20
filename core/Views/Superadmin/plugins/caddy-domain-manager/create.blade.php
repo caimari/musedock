@@ -82,6 +82,44 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <hr class="my-3">
+
+                            <h6 class="text-success mb-3"><i class="bi bi-cloud"></i> Cloudflare (Opcional)</h6>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="configure_cloudflare" name="configure_cloudflare">
+                                    <label class="form-check-label" for="configure_cloudflare">
+                                        <strong>Añadir dominio a Cloudflare</strong>
+                                    </label>
+                                    <div class="form-text">
+                                        Añade el dominio a Cloudflare Account 2 (Full Setup) con CNAMEs automáticos a mortadelo.musedock.com
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="cloudflare-options" class="ps-4 d-none">
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="enable_email_routing" name="enable_email_routing">
+                                        <label class="form-check-label" for="enable_email_routing">
+                                            <i class="bi bi-envelope-at"></i> Activar Email Routing
+                                        </label>
+                                        <div class="form-text">
+                                            Configura Email Routing de Cloudflare para el dominio.
+                                            Se creará un catch-all que redirige a <strong id="email-routing-dest">admin@miempresa.com</strong>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-info alert-sm mb-0">
+                                    <small>
+                                        <i class="bi bi-info-circle"></i> <strong>Importante:</strong>
+                                        Al activar Cloudflare, se te proporcionarán los nameservers que debes configurar en tu registrador de dominios.
+                                    </small>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Datos del admin -->
@@ -187,6 +225,25 @@ function generatePassword() {
     document.getElementById('togglePasswordIcon').classList.remove('bi-eye');
     document.getElementById('togglePasswordIcon').classList.add('bi-eye-slash');
 }
+
+// Mostrar/ocultar opciones de Cloudflare
+document.getElementById('configure_cloudflare').addEventListener('change', function() {
+    const cloudflareOptions = document.getElementById('cloudflare-options');
+    if (this.checked) {
+        cloudflareOptions.classList.remove('d-none');
+    } else {
+        cloudflareOptions.classList.add('d-none');
+        document.getElementById('enable_email_routing').checked = false;
+    }
+});
+
+// Actualizar email destino dinámicamente cuando cambia el admin_email
+document.getElementById('admin_email').addEventListener('input', function() {
+    const emailRoutingDest = document.getElementById('email-routing-dest');
+    if (emailRoutingDest) {
+        emailRoutingDest.textContent = this.value || 'admin@miempresa.com';
+    }
+});
 
 // Spinner en el botón de submit
 document.querySelector('form').addEventListener('submit', function(e) {

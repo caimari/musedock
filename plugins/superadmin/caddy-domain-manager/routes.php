@@ -113,6 +113,45 @@ Route::get('/musedock/domain-manager/customers', 'CaddyDomainManager\Controllers
     ->name('superadmin.domain-manager.customers');
 
 // ============================================
+// EMAIL ROUTING MANAGEMENT ROUTES
+// ============================================
+
+// Panel de gestión de Email Routing
+Route::get('/musedock/domain-manager/{id}/email-routing', 'CaddyDomainManager\Controllers\EmailRoutingController@index')
+    ->middleware('superadmin')
+    ->name('superadmin.email-routing.index');
+
+// Activar Email Routing
+Route::post('/musedock/domain-manager/{id}/email-routing/enable', 'CaddyDomainManager\Controllers\EmailRoutingController@enable')
+    ->middleware('superadmin')
+    ->name('superadmin.email-routing.enable');
+
+// Desactivar Email Routing
+Route::post('/musedock/domain-manager/{id}/email-routing/disable', 'CaddyDomainManager\Controllers\EmailRoutingController@disable')
+    ->middleware('superadmin')
+    ->name('superadmin.email-routing.disable');
+
+// Crear regla de forwarding
+Route::post('/musedock/domain-manager/{id}/email-routing/rules', 'CaddyDomainManager\Controllers\EmailRoutingController@createRule')
+    ->middleware('superadmin')
+    ->name('superadmin.email-routing.create-rule');
+
+// Eliminar regla de forwarding
+Route::post('/musedock/domain-manager/{id}/email-routing/rules/{ruleId}/delete', 'CaddyDomainManager\Controllers\EmailRoutingController@deleteRule')
+    ->middleware('superadmin')
+    ->name('superadmin.email-routing.delete-rule');
+
+// Toggle estado de regla (enable/disable)
+Route::post('/musedock/domain-manager/{id}/email-routing/rules/{ruleId}/toggle', 'CaddyDomainManager\Controllers\EmailRoutingController@toggleRule')
+    ->middleware('superadmin')
+    ->name('superadmin.email-routing.toggle-rule');
+
+// Actualizar catch-all
+Route::post('/musedock/domain-manager/{id}/email-routing/catch-all', 'CaddyDomainManager\Controllers\EmailRoutingController@updateCatchAll')
+    ->middleware('superadmin')
+    ->name('superadmin.email-routing.update-catch-all');
+
+// ============================================
 // CUSTOMER PUBLIC ROUTES (No auth required)
 // ============================================
 

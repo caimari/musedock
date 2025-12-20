@@ -143,6 +143,8 @@ class DomainManagerController
         $domain = trim($_POST['domain'] ?? '');
         $includeWww = isset($_POST['include_www']);
         $configureInCaddy = isset($_POST['configure_caddy']);
+        $configureCloudflare = isset($_POST['configure_cloudflare']);
+        $enableEmailRouting = isset($_POST['enable_email_routing']);
         $adminEmail = trim($_POST['admin_email'] ?? '');
         $adminName = trim($_POST['admin_name'] ?? '');
         $adminPassword = $_POST['admin_password'] ?? '';
@@ -210,9 +212,74 @@ class DomainManagerController
             ");
             $stmt->execute([$slug, $includeWww ? 1 : 0, $caddyStatus, $caddyRouteId, $tenantId]);
 
-            // Configurar en Caddy si se solicitó
+            // Variables para mensajes
             $caddyMessage = '';
-            if ($configureInCaddy) {
+            $cloudflareMessage = '';
+            $emailRoutingMessage = '';
+            $cloudflareZoneId = null;
+            $cloudflareNameservers = [];
+
+            // Configurar en Cloudflare si se solicitó
+            if ($configureCloudflare) {
+                try {
+                    $cloudflareService = new \CaddyDomainManager\Services\CloudflareZoneService();
+
+                    // 1. Añadir zona a Cloudflare
+                    Logger::log("[DomainManager] Adding domain {$domain} to Cloudflare", 'INFO');
+                    $zoneResult = $cloudflareService->addFullZone($domain);
+                    $cloudflareZoneId = $zoneResult['zone_id'];
+                    $cloudflareNameservers = $zoneResult['nameservers'];
+
+                    // 2. Crear CNAMEs @ y www → mortadelo.musedock.com
+                    Logger::log("[DomainManager] Creating CNAMEs for {$domain}", 'INFO');
+                    $cloudflareService->createProxiedCNAME($cloudflareZoneId, '@', 'mortadelo.musedock.com', true);
+
+                    if ($includeWww) {
+                        $cloudflareService->createProxiedCNAME($cloudflareZoneId, 'www', 'mortadelo.musedock.com', true);
+                    }
+
+                    // 3. Guardar zone_id en BD
+                    $stmt = $pdo->prepare("
+                        UPDATE tenants
+                        SET cloudflare_zone_id = ?,
+                            cloudflare_nameservers = ?,
+                            cloudflare_proxied = 1,
+                            status = 'waiting_ns_change'
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([
+                        $cloudflareZoneId,
+                        json_encode($cloudflareNameservers),
+                        $tenantId
+                    ]);
+
+                    // 4. Configurar Email Routing si se solicitó
+                    if ($enableEmailRouting) {
+                        Logger::log("[DomainManager] Enabling Email Routing for {$domain}", 'INFO');
+                        $emailResult = $cloudflareService->enableEmailRouting($cloudflareZoneId, $adminEmail);
+
+                        if ($emailResult['enabled']) {
+                            $stmt = $pdo->prepare("UPDATE tenants SET email_routing_enabled = 1 WHERE id = ?");
+                            $stmt->execute([$tenantId]);
+                            $emailRoutingMessage = " Email Routing activado (catch-all → {$adminEmail}).";
+                        } else {
+                            $emailRoutingMessage = " Email Routing no pudo activarse: " . ($emailResult['error'] ?? 'Error desconocido');
+                        }
+                    }
+
+                    $nsString = implode(', ', $cloudflareNameservers);
+                    $cloudflareMessage = " Dominio añadido a Cloudflare. Nameservers: {$nsString}.";
+
+                    Logger::log("[DomainManager] Cloudflare configured successfully for {$domain}", 'INFO');
+
+                } catch (\Exception $e) {
+                    Logger::log("[DomainManager] Error configurando Cloudflare: " . $e->getMessage(), 'ERROR');
+                    $cloudflareMessage = " Error al configurar Cloudflare: " . $e->getMessage();
+                }
+            }
+
+            // Configurar en Caddy si se solicitó (y no está en Cloudflare pending NS)
+            if ($configureInCaddy && !$configureCloudflare) {
                 $caddyResult = $this->configureDomainInCaddy($tenantId, $domain, $includeWww);
 
                 if ($caddyResult['success']) {
@@ -220,6 +287,8 @@ class DomainManagerController
                 } else {
                     $caddyMessage = " Error al configurar Caddy: " . $caddyResult['error'];
                 }
+            } elseif ($configureInCaddy && $configureCloudflare) {
+                $caddyMessage = " (Caddy se configurará automáticamente cuando verifiques los NS)";
             }
 
             // Enviar email de bienvenida si se solicitó
@@ -233,7 +302,9 @@ class DomainManagerController
                 }
             }
 
-            flash('success', "Tenant '{$name}' creado correctamente.{$caddyMessage}{$emailMessage}");
+            // Mensaje final completo
+            $finalMessage = "Tenant '{$name}' creado correctamente.{$cloudflareMessage}{$emailRoutingMessage}{$caddyMessage}{$emailMessage}";
+            flash('success', $finalMessage);
 
             header('Location: /musedock/domain-manager');
             exit;

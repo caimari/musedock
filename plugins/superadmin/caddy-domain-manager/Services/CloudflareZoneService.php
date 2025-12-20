@@ -114,56 +114,37 @@ class CloudflareZoneService
         ];
     }
 
+    // ============================================
+    // EMAIL ROUTING METHODS
+    // ============================================
+
     /**
      * Habilitar Email Routing para el dominio
      *
      * @param string $zoneId
-     * @param string $destinationEmail Email destino para forwarding
+     * @param string|null $destinationEmail Email destino inicial (opcional)
      * @return array ['enabled' => bool, 'status' => string]
      * @throws Exception
      */
-    public function enableEmailRouting(string $zoneId, string $destinationEmail): array
+    public function enableEmailRouting(string $zoneId, ?string $destinationEmail = null): array
     {
         Logger::info("[CloudflareZone] Enabling Email Routing for zone {$zoneId}");
 
         try {
-            // 1. Habilitar Email Routing
+            // 1. Habilitar Email Routing en la zona (crea MX y SPF records automáticamente)
             $response = $this->makeRequest('POST', "/zones/{$zoneId}/email/routing/enable", []);
 
             if (!$response['success']) {
                 Logger::warning("[CloudflareZone] Email Routing enable warning: " . json_encode($response));
             }
 
-            // 2. Crear destination address
-            $destResponse = $this->makeRequest('POST', "/zones/{$zoneId}/email/routing/addresses", [
-                'email' => $destinationEmail
-            ]);
+            Logger::info("[CloudflareZone] Email Routing enabled successfully");
 
-            if (!isset($destResponse['result']['id'])) {
-                throw new Exception('Failed to create destination address');
+            // 2. Si se proporcionó email destino, crear address y regla catch-all
+            if ($destinationEmail) {
+                $this->createEmailDestination($zoneId, $destinationEmail);
+                $this->createCatchAllRule($zoneId, $destinationEmail);
             }
-
-            $destId = $destResponse['result']['id'];
-            Logger::info("[CloudflareZone] Destination email added: {$destinationEmail}");
-
-            // 3. Crear routing rule (catch-all)
-            $ruleResponse = $this->makeRequest('POST', "/zones/{$zoneId}/email/routing/rules", [
-                'actions' => [
-                    [
-                        'type' => 'forward',
-                        'value' => [$destinationEmail]
-                    ]
-                ],
-                'matchers' => [
-                    [
-                        'type' => 'all'
-                    ]
-                ],
-                'enabled' => true,
-                'name' => 'Catch-all forwarding'
-            ]);
-
-            Logger::info("[CloudflareZone] Email Routing configured successfully");
 
             return [
                 'enabled' => true,
@@ -179,6 +160,316 @@ class CloudflareZoneService
                 'error' => $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Deshabilitar Email Routing
+     *
+     * @param string $zoneId
+     * @return bool
+     * @throws Exception
+     */
+    public function disableEmailRouting(string $zoneId): bool
+    {
+        Logger::info("[CloudflareZone] Disabling Email Routing for zone {$zoneId}");
+
+        $response = $this->makeRequest('POST', "/zones/{$zoneId}/email/routing/disable", []);
+
+        if (!$response['success']) {
+            throw new Exception('Failed to disable Email Routing');
+        }
+
+        Logger::info("[CloudflareZone] Email Routing disabled");
+        return true;
+    }
+
+    /**
+     * Obtener estado de Email Routing
+     *
+     * @param string $zoneId
+     * @return array ['enabled' => bool, 'status' => string, 'tag' => string|null]
+     * @throws Exception
+     */
+    public function getEmailRoutingStatus(string $zoneId): array
+    {
+        $response = $this->makeRequest('GET', "/zones/{$zoneId}/email/routing");
+
+        if (!isset($response['result'])) {
+            throw new Exception('Failed to get Email Routing status');
+        }
+
+        $result = $response['result'];
+
+        return [
+            'enabled' => $result['enabled'] ?? false,
+            'status' => $result['status'] ?? 'unknown',
+            'tag' => $result['tag'] ?? null,
+            'created' => $result['created'] ?? null,
+            'modified' => $result['modified'] ?? null
+        ];
+    }
+
+    /**
+     * Crear destination address (email destino para forwarding)
+     *
+     * @param string $zoneId
+     * @param string $email
+     * @return array ['id' => string, 'email' => string, 'verified' => bool]
+     * @throws Exception
+     */
+    public function createEmailDestination(string $zoneId, string $email): array
+    {
+        Logger::info("[CloudflareZone] Creating email destination: {$email}");
+
+        // Usar account_id en lugar de zone_id para destinations
+        $response = $this->makeRequest('POST', "/accounts/{$this->accountId}/email/routing/addresses", [
+            'email' => $email
+        ]);
+
+        if (!isset($response['result']['id'])) {
+            throw new Exception('Failed to create email destination: ' . json_encode($response));
+        }
+
+        $destination = $response['result'];
+
+        Logger::info("[CloudflareZone] Email destination created. ID: {$destination['id']}, Verified: " . ($destination['verified'] ?? 'false'));
+
+        return [
+            'id' => $destination['id'],
+            'email' => $destination['email'],
+            'verified' => $destination['verified'] ?? false,
+            'created' => $destination['created'] ?? null,
+            'tag' => $destination['tag'] ?? null
+        ];
+    }
+
+    /**
+     * Listar destination addresses
+     *
+     * @return array Lista de destination addresses
+     * @throws Exception
+     */
+    public function listEmailDestinations(): array
+    {
+        $response = $this->makeRequest('GET', "/accounts/{$this->accountId}/email/routing/addresses");
+
+        if (!isset($response['result'])) {
+            throw new Exception('Failed to list email destinations');
+        }
+
+        return $response['result'];
+    }
+
+    /**
+     * Eliminar destination address
+     *
+     * @param string $destinationId
+     * @return bool
+     * @throws Exception
+     */
+    public function deleteEmailDestination(string $destinationId): bool
+    {
+        Logger::info("[CloudflareZone] Deleting email destination {$destinationId}");
+
+        $response = $this->makeRequest('DELETE', "/accounts/{$this->accountId}/email/routing/addresses/{$destinationId}");
+
+        if (!$response['success']) {
+            throw new Exception('Failed to delete email destination');
+        }
+
+        Logger::info("[CloudflareZone] Email destination deleted");
+        return true;
+    }
+
+    /**
+     * Crear routing rule
+     *
+     * @param string $zoneId
+     * @param string $name Nombre de la regla
+     * @param array $matchers Condiciones para match (ej: [['type' => 'literal', 'field' => 'to', 'value' => 'info@domain.com']])
+     * @param array $actions Acciones (ej: [['type' => 'forward', 'value' => ['destino@email.com']]])
+     * @param bool $enabled
+     * @return array Regla creada
+     * @throws Exception
+     */
+    public function createEmailRoutingRule(string $zoneId, string $name, array $matchers, array $actions, bool $enabled = true): array
+    {
+        Logger::info("[CloudflareZone] Creating email routing rule: {$name}");
+
+        $response = $this->makeRequest('POST', "/zones/{$zoneId}/email/routing/rules", [
+            'name' => $name,
+            'matchers' => $matchers,
+            'actions' => $actions,
+            'enabled' => $enabled
+        ]);
+
+        if (!isset($response['result']['id'])) {
+            throw new Exception('Failed to create email routing rule: ' . json_encode($response));
+        }
+
+        Logger::info("[CloudflareZone] Email routing rule created. ID: {$response['result']['id']}");
+
+        return $response['result'];
+    }
+
+    /**
+     * Crear regla catch-all (recibe todos los emails)
+     *
+     * @param string $zoneId
+     * @param string $destinationEmail
+     * @return array
+     * @throws Exception
+     */
+    public function createCatchAllRule(string $zoneId, string $destinationEmail): array
+    {
+        return $this->createEmailRoutingRule(
+            $zoneId,
+            'Catch-all forwarding',
+            [['type' => 'all']], // Matcher para todos los emails
+            [['type' => 'forward', 'value' => [$destinationEmail]]],
+            true
+        );
+    }
+
+    /**
+     * Crear regla para email específico (ej: info@domain.com → destino@email.com)
+     *
+     * @param string $zoneId
+     * @param string $fromAddress Email del dominio (ej: info@domain.com)
+     * @param string $toAddress Email destino (ej: destino@gmail.com)
+     * @return array
+     * @throws Exception
+     */
+    public function createEmailForwardingRule(string $zoneId, string $fromAddress, string $toAddress): array
+    {
+        return $this->createEmailRoutingRule(
+            $zoneId,
+            "Forward {$fromAddress}",
+            [
+                [
+                    'type' => 'literal',
+                    'field' => 'to',
+                    'value' => $fromAddress
+                ]
+            ],
+            [['type' => 'forward', 'value' => [$toAddress]]],
+            true
+        );
+    }
+
+    /**
+     * Listar routing rules de una zona
+     *
+     * @param string $zoneId
+     * @return array Lista de reglas
+     * @throws Exception
+     */
+    public function listEmailRoutingRules(string $zoneId): array
+    {
+        $response = $this->makeRequest('GET', "/zones/{$zoneId}/email/routing/rules");
+
+        if (!isset($response['result'])) {
+            throw new Exception('Failed to list email routing rules');
+        }
+
+        return $response['result'];
+    }
+
+    /**
+     * Actualizar routing rule
+     *
+     * @param string $zoneId
+     * @param string $ruleId
+     * @param array $data Datos a actualizar (name, matchers, actions, enabled)
+     * @return array Regla actualizada
+     * @throws Exception
+     */
+    public function updateEmailRoutingRule(string $zoneId, string $ruleId, array $data): array
+    {
+        Logger::info("[CloudflareZone] Updating email routing rule {$ruleId}");
+
+        $response = $this->makeRequest('PUT', "/zones/{$zoneId}/email/routing/rules/{$ruleId}", $data);
+
+        if (!isset($response['result']['id'])) {
+            throw new Exception('Failed to update email routing rule');
+        }
+
+        Logger::info("[CloudflareZone] Email routing rule updated");
+        return $response['result'];
+    }
+
+    /**
+     * Eliminar routing rule
+     *
+     * @param string $zoneId
+     * @param string $ruleId
+     * @return bool
+     * @throws Exception
+     */
+    public function deleteEmailRoutingRule(string $zoneId, string $ruleId): bool
+    {
+        Logger::info("[CloudflareZone] Deleting email routing rule {$ruleId}");
+
+        $response = $this->makeRequest('DELETE', "/zones/{$zoneId}/email/routing/rules/{$ruleId}");
+
+        if (!$response['success']) {
+            throw new Exception('Failed to delete email routing rule');
+        }
+
+        Logger::info("[CloudflareZone] Email routing rule deleted");
+        return true;
+    }
+
+    /**
+     * Obtener catch-all rule
+     *
+     * @param string $zoneId
+     * @return array|null
+     * @throws Exception
+     */
+    public function getCatchAllRule(string $zoneId): ?array
+    {
+        $response = $this->makeRequest('GET', "/zones/{$zoneId}/email/routing/rules/catch_all");
+
+        if (!isset($response['result'])) {
+            return null;
+        }
+
+        return $response['result'];
+    }
+
+    /**
+     * Actualizar catch-all rule
+     *
+     * @param string $zoneId
+     * @param string $destinationEmail
+     * @param bool $enabled
+     * @return array
+     * @throws Exception
+     */
+    public function updateCatchAllRule(string $zoneId, string $destinationEmail, bool $enabled = true): array
+    {
+        Logger::info("[CloudflareZone] Updating catch-all rule");
+
+        $response = $this->makeRequest('PUT', "/zones/{$zoneId}/email/routing/rules/catch_all", [
+            'actions' => [
+                [
+                    'type' => 'forward',
+                    'value' => [$destinationEmail]
+                ]
+            ],
+            'matchers' => [
+                ['type' => 'all']
+            ],
+            'enabled' => $enabled
+        ]);
+
+        if (!isset($response['result'])) {
+            throw new Exception('Failed to update catch-all rule');
+        }
+
+        Logger::info("[CloudflareZone] Catch-all rule updated");
+        return $response['result'];
     }
 
     /**

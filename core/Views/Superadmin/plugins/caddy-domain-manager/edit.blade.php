@@ -190,6 +190,54 @@
                     </div>
                 @endif
 
+                <!-- Cloudflare & Email Routing -->
+                @if(!empty($tenant->cloudflare_zone_id))
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0"><i class="bi bi-cloud"></i> Cloudflare</h6>
+                            <span class="badge bg-success">Configurado</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-2">
+                                <strong>Zone ID:</strong><br>
+                                <small class="text-muted">{{ $tenant->cloudflare_zone_id }}</small>
+                            </p>
+
+                            @if($tenant->cloudflare_nameservers ?? false)
+                                <p class="mb-2">
+                                    <strong>Nameservers:</strong><br>
+                                    @php
+                                        $ns = json_decode($tenant->cloudflare_nameservers, true);
+                                    @endphp
+                                    @if(is_array($ns))
+                                        @foreach($ns as $nameserver)
+                                            <small class="text-muted">{{ $nameserver }}</small><br>
+                                        @endforeach
+                                    @endif
+                                </p>
+                            @endif
+
+                            <hr>
+
+                            <p class="mb-2">
+                                <strong>Email Routing:</strong><br>
+                                @if($tenant->email_routing_enabled ?? false)
+                                    <span class="badge bg-success">Activo</span>
+                                @else
+                                    <span class="badge bg-secondary">Desactivado</span>
+                                @endif
+                            </p>
+
+                            <div class="d-grid gap-2 mt-3">
+                                <a href="/musedock/domain-manager/{{ $tenant->id }}/email-routing"
+                                   class="btn btn-outline-success btn-sm">
+                                    <i class="bi bi-envelope-at"></i> Gestionar Email Routing
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 <!-- Gestión del Tenant -->
                 <div class="card mb-3">
                     <div class="card-header">

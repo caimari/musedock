@@ -164,6 +164,15 @@
                                             <i class="bi bi-pencil"></i>
                                         </a>
 
+                                        <!-- Gestionar Email Routing (solo si tiene Cloudflare) -->
+                                        @if(!empty($tenant->cloudflare_zone_id))
+                                            <a href="/musedock/domain-manager/{{ $tenant->id }}/email-routing"
+                                               class="btn btn-outline-success"
+                                               title="Gestionar Email Routing">
+                                                <i class="bi bi-envelope-at"></i>
+                                            </a>
+                                        @endif
+
                                         <!-- Reconfigurar en Caddy -->
                                         @if($caddyApiAvailable)
                                             <button type="button" class="btn btn-outline-primary" onclick="reconfigure({{ $tenant->id }})" title="Reconfigurar en Caddy">
