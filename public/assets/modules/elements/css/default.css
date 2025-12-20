@@ -9,10 +9,10 @@
 
 .element-hero {
     position: relative;
-    min-height: 100vh;
+    min-height: auto;
     display: flex;
     align-items: flex-start;
-    padding: 2.25rem 0 4rem;
+    padding: 1rem 0 1.5rem; /* Reducido: era 2.25rem 0 4rem */
     overflow: hidden;
     background: transparent;
     color: #0f172a;

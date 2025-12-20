@@ -350,6 +350,369 @@ body:has(#main-header.header-layout-aca) .page-content-wrapper .page-body .eleme
 }
 
 /* ===============================================
+   HEADER LAYOUT: TEMA1 (topbar negro + logo abajo)
+   =============================================== */
+
+/* Variables para tema1 - usa las variables existentes del tema:
+   - TOPBAR: usa colores de "Barra superior (Top Bar)"
+   - LOGO SECTION: usa colores de "Cabecera principal" */
+.musedock-header.header-layout-tema1 {
+  /* Topbar: usa colores de la seccion TopBar (fondo y texto) */
+  --tema1-topbar-bg: var(--topbar-bg-color, #1a1a1a);
+  --tema1-topbar-text: var(--topbar-text-color, #ff6b35);
+  --tema1-topbar-text-hover: var(--header-link-hover-color, #ffffff);
+  /* Logo section: usa color de fondo del header */
+  --tema1-logo-section-bg: var(--header-bg-color, #f5f5f5);
+  /* Textos: usa colores de la seccion Header */
+  --tema1-title-color: var(--header-logo-text-color, #1a1a1a);
+  --tema1-title-font: var(--header-logo-font, inherit);
+  --tema1-tagline-color: var(--header-tagline-color, #666666);
+  --tema1-menu-font: var(--header-menu-font, 'Poppins', sans-serif);
+}
+
+.musedock-header.header-layout-tema1 {
+  background: transparent !important;
+  padding: 0 !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+/* TOPBAR - fondo negro con menu naranja (por defecto) */
+.header-tema1-topbar {
+  background-color: var(--tema1-topbar-bg);
+  padding: 10px 0;
+}
+
+/* Topbar ahora usa grid Bootstrap igual que el footer para alineación perfecta */
+/* El menú está en col-xl-3, alineado al INICIO de la columna (igual que "Contacto" en el footer) */
+.header-tema1-topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* Alinear al INICIO de la columna = donde empieza "Contacto" */
+}
+
+/* No necesita padding extra - la columna Bootstrap ya alinea */
+.header-tema1-topbar .header-tema1-nav {
+  padding-right: 0;
+}
+
+/* Logo section también usa Bootstrap .container */
+.header-tema1-logo-section .container {
+  display: flex;
+  align-items: center;
+}
+
+/* Navegacion principal - alineada al INICIO de la columna Bootstrap (igual que footer) */
+.header-tema1-nav {
+  display: flex;
+  justify-content: flex-start; /* Alinear al inicio = donde empieza "Contacto" en el footer */
+}
+
+.header-tema1-nav ul,
+.header-tema1-nav ul.header-tema1-menu,
+.header-tema1-topbar .header-tema1-nav ul {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin: 0;
+  padding: 0 !important;
+  list-style: none;
+}
+
+/* En móvil, mostrar el toggle a la derecha */
+@media (max-width: 991px) {
+  .header-tema1-topbar-inner {
+    justify-content: flex-end; /* Toggle a la derecha en móvil */
+  }
+
+  .header-tema1-nav {
+    display: none; /* Ocultar menú en móvil */
+  }
+
+  .header-tema1-menu-toggle {
+    display: flex;
+  }
+}
+
+.header-tema1-nav ul li {
+  position: relative;
+}
+
+.header-tema1-nav ul li a {
+  color: var(--tema1-topbar-text) !important;
+  font-family: var(--tema1-menu-font);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  padding: 6px 0;
+  transition: color 0.2s ease;
+}
+
+.header-tema1-nav ul li a:hover {
+  color: var(--tema1-topbar-text-hover) !important;
+}
+
+/* Submenu */
+.header-tema1-nav ul li .submenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--tema1-topbar-bg);
+  min-width: 200px;
+  padding: 10px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.2s ease;
+  z-index: 1000;
+}
+
+.header-tema1-nav ul li:hover .submenu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.header-tema1-nav ul li .submenu li {
+  display: block;
+}
+
+.header-tema1-nav ul li .submenu li a {
+  display: block;
+  padding: 8px 20px;
+  font-size: 12px;
+}
+
+/* Iconos de redes sociales derecha */
+.header-tema1-social {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-tema1-social-icon {
+  color: var(--tema1-topbar-text) !important;
+  font-size: 14px;
+  transition: color 0.2s ease;
+}
+
+.header-tema1-social-icon:hover {
+  color: var(--tema1-topbar-text-hover) !important;
+}
+
+/* Selector de idioma */
+.header-tema1-lang {
+  position: relative;
+}
+
+.header-tema1-lang-btn {
+  background: transparent;
+  border: 1px solid var(--tema1-topbar-text);
+  color: var(--tema1-topbar-text);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.header-tema1-lang-btn:hover {
+  background: var(--tema1-topbar-text);
+  color: var(--tema1-topbar-bg);
+}
+
+.header-tema1-lang-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--tema1-topbar-bg);
+  min-width: 100px;
+  padding: 8px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 1000;
+}
+
+.header-tema1-lang:hover .header-tema1-lang-dropdown {
+  opacity: 1;
+  visibility: visible;
+}
+
+.header-tema1-lang-option {
+  display: block;
+  padding: 6px 15px;
+  color: var(--tema1-topbar-text) !important;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.header-tema1-lang-option:hover,
+.header-tema1-lang-option.active {
+  color: var(--tema1-topbar-text-hover) !important;
+  background: rgba(255,255,255,0.05);
+}
+
+/* Menu toggle movil */
+.header-tema1-menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+}
+
+.header-tema1-menu-toggle span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background-color: var(--tema1-topbar-text) !important;
+  background: var(--tema1-topbar-text) !important;
+  transition: all 0.2s ease;
+}
+
+/* LOGO SECTION - fondo blanco/claro */
+.header-tema1-logo-section {
+  background-color: var(--tema1-logo-section-bg);
+  padding: 12px 0;
+}
+
+/* Fix: asegurar que el header tema1 no tenga padding extra */
+.musedock-header.header-layout-tema1 {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Fix sticky header tema1 */
+body:has(.header-layout-tema1.sticky) {
+  padding-top: var(--sticky-header-height-tema1, 110px) !important;
+}
+
+.musedock-header.header-layout-tema1.sticky {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+}
+
+/* Asegurar que el main tenga espacio y no se solape con header tema1 */
+body:has(.header-layout-tema1) main {
+  position: relative;
+  z-index: 1;
+}
+
+.header-tema1-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.header-tema1-logo {
+  height: 60px !important;
+  max-height: 60px !important;
+  width: auto !important;
+  display: block;
+}
+
+.header-tema1-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.header-tema1-title {
+  font-family: var(--tema1-title-font);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--tema1-title-color);
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+}
+
+.header-tema1-tagline {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tema1-tagline-color);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+/* RESPONSIVE */
+@media (max-width: 991px) {
+  .header-tema1-nav {
+    display: none;
+  }
+
+  .header-tema1-menu-toggle {
+    display: flex;
+  }
+
+  .header-tema1-logo {
+    height: 50px !important;
+    max-height: 50px !important;
+  }
+
+  .header-tema1-title {
+    font-size: 20px;
+  }
+
+  .header-tema1-tagline {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+  }
+
+  .header-tema1-logo-section {
+    padding: 10px 0;
+  }
+}
+
+@media (max-width: 575px) {
+  .header-tema1-social-icon {
+    font-size: 12px;
+  }
+
+  .header-tema1-social {
+    gap: 10px;
+  }
+
+  .header-tema1-logo {
+    height: 36px !important;
+    max-height: 36px !important;
+  }
+
+  .header-tema1-title {
+    font-size: 14px;
+  }
+
+  .header-tema1-tagline {
+    font-size: 7px;
+    letter-spacing: 0.08em;
+  }
+
+  .header-tema1-brand {
+    gap: 6px;
+  }
+
+  .header-tema1-logo-section {
+    padding: 6px 0;
+  }
+
+  .header-tema1-brand-text {
+    gap: 0;
+  }
+}
+
+/* ===============================================
    FIX CONTENIDO - DELIMITACIÓN Y CENTRADO
    =============================================== */
 

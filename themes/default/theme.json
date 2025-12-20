@@ -219,6 +219,7 @@
 	            "default": "Logo izquierda + menú derecha",
 	            "left": "Logo + menú alineados a la izquierda",
 	            "centered": "Logo centrado + menús a izquierda/derecha",
+	            "tema1": "Tema 1 (Topbar negro + logo)",
 	            "aca": "Tema 2"
 	          },
 	          "description": "Selecciona la estructura del header"

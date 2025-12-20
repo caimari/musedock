@@ -485,6 +485,24 @@
     body.mobile-menu-open {
         overflow: hidden !important;
     }
+
+    /* ===============================================
+       ESTILOS PARA ELEMENT-HERO (sobrescribir módulo elements)
+       =============================================== */
+    /* Altura del Hero controlada por CSS (no inline) */
+    .page-content-wrapper .page-body .element-hero,
+    .page-body .element-hero,
+    section.element-hero {
+        min-height: unset !important;
+    }
+
+    /* Reducir espacio del divider que sigue al hero */
+    .element-divider,
+    .element-hero + .element-divider,
+    .page-body > .element-hero + .element-divider {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
     </style>
 	
     <!-- Modernizr  -->

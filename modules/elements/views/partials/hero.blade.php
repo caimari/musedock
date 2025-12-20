@@ -153,7 +153,9 @@ $bannerStyles = []; // Estilos para el banner-wrapper en layout-background
 if ($backgroundColor) {
     $sectionStyles[] = 'background-color: ' . escape_html($backgroundColor) . ';';
 }
-if ($minHeight && $layout !== 'background') {
+// min-height ahora se controla via CSS, no inline (permite sobrescribir por tenant)
+// Solo aplicar min-height inline para layouts específicos que lo requieren
+if ($minHeight && in_array($layout, ['centered'])) {
     $sectionStyles[] = 'min-height: ' . escape_html($minHeight) . 'px;';
 }
 if ($textColor) {

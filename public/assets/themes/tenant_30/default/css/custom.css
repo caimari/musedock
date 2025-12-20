@@ -1,5 +1,5 @@
 :root {
-  --topbar-bg-color: #1a2a40;
+  --topbar-bg-color: #2975e0;
   --topbar-text-color: #ffffff;
   --hero-title-color: #ffffff;
   --hero-title-font: inherit;
@@ -506,21 +506,101 @@ body {
 
 
 /* ===============================================
-   FOOTER COPYRIGHT - Reducir espacio
+   FIXES PARA HEADER TEMA1
    =============================================== */
-.footer-bottom-area {
-  padding: 8px 0 !important;
+
+/* Fix: Header Tema1 sin padding extra del tenant */
+.musedock-header.header-layout-tema1 {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }
 
-.footer-bottom-area .footer-copy-right {
-  margin: 0 !important;
-  padding: 0 !important;
+/* ===============================================
+   ALINEACIÓN MENÚ TOPBAR CON FOOTER (usando grid Bootstrap)
+   =============================================== */
+
+/* Topbar inner: alinear contenido a la IZQUIERDA de la columna */
+/* Así "INICIO" empieza donde empieza "Contacto" en el footer */
+.header-tema1-topbar-inner {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important; /* Alinear a la izquierda de la columna */
 }
 
-.footer-bottom-area .footer-copy-right p {
+/* Navegación del topbar */
+.header-tema1-nav {
+  display: flex !important;
+  justify-content: flex-start !important;
+}
+
+/* El menú UL sin padding ni margin extra */
+.header-tema1-nav ul,
+.header-tema1-nav ul.header-tema1-menu {
+  display: flex !important;
   margin: 0 !important;
   padding: 0 !important;
-  font-size: 13px;
+  list-style: none !important;
+}
+
+/* En móvil, mostrar el toggle a la derecha */
+@media (max-width: 991px) {
+  .header-tema1-topbar-inner {
+    justify-content: flex-end !important; /* Toggle a la derecha en móvil */
+  }
+
+  .header-tema1-nav {
+    display: none !important; /* Ocultar menú en móvil */
+  }
+
+  .header-tema1-menu-toggle {
+    display: flex !important;
+  }
+}
+
+/* Fix: Hamburguesa debe usar el color del topbar texto */
+.header-tema1-menu-toggle span {
+  background-color: var(--topbar-text-color, #ffffff) !important;
+  background: var(--topbar-text-color, #ffffff) !important;
+}
+
+/* Fix: Logo del header Tema1 con tamaño fijo (sobrescribir img { height: auto }) */
+.header-tema1-logo {
+  height: 60px !important;
+  max-height: 60px !important;
+  width: auto !important;
+}
+
+@media (max-width: 991px) {
+  .header-tema1-logo {
+    height: 50px !important;
+    max-height: 50px !important;
+  }
+}
+
+@media (max-width: 575px) {
+  .header-tema1-logo {
+    height: 36px !important;
+    max-height: 36px !important;
+  }
+}
+
+/* ===============================================
+   ESPACIADO ENTRE ELEMENTOS (Hero + Divider)
+   =============================================== */
+
+/* Altura del Hero fija */
+.page-content-wrapper .page-body .element-hero {
+  height: 595px !important;
+  min-height: unset !important;
+  margin-bottom: 0 !important;
+}
+
+/* Reducir espacio del divider que sigue al hero */
+.element-divider,
+.element-hero + .element-divider,
+.page-body > .element-hero + .element-divider {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 /* --- CSS Personalizado --- */
