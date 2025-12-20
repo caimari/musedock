@@ -1024,6 +1024,8 @@
                                     $dividerCustomHeight = old('data.custom_height', $data['custom_height'] ?? '50');
                                     $dividerColor = old('data.color', $data['color'] ?? 'default');
                                     $dividerCustomColor = old('data.custom_color', $data['custom_color'] ?? '#6366f1');
+                                    $dividerBgColor = old('data.bg_color', $data['bg_color'] ?? 'transparent');
+                                    $dividerCustomBgColor = old('data.custom_bg_color', $data['custom_bg_color'] ?? '#ffffff');
                                     $dividerLineStyle = old('data.line_style', $data['line_style'] ?? 'solid');
                                     $dividerLineThickness = old('data.line_thickness', $data['line_thickness'] ?? 'medium');
                                     $dividerPatternSize = old('data.pattern_size', $data['pattern_size'] ?? 'medium');
@@ -1031,7 +1033,10 @@
                                     $dividerFullWidthChecked = ($dividerFullWidth === '1' || $dividerFullWidth === 1 || $dividerFullWidth === true);
                                     $dividerAnimate = old('data.animate', $data['animate'] ?? '');
                                     $dividerAnimateChecked = ($dividerAnimate === '1' || $dividerAnimate === 1 || $dividerAnimate === true);
+                                    $dividerFlip = old('data.flip', $data['flip'] ?? '');
+                                    $dividerFlipChecked = ($dividerFlip === '1' || $dividerFlip === 1 || $dividerFlip === true);
                                     $dividerLayout = $element->layout_type ?? 'spacer';
+                                    $isShapeDivider = in_array($dividerLayout, ['wave', 'waves_multi', 'mountains', 'clouds', 'triangle', 'curve', 'tilt', 'drops', 'book', 'split']);
                                 @endphp
                                 <div class="row g-3">
                                     <div class="col-md-6">
@@ -1041,6 +1046,7 @@
                                             <option value="medium" {{ $dividerHeight === 'medium' ? 'selected' : '' }}>{{ __element('divider.height_medium') }}</option>
                                             <option value="large" {{ $dividerHeight === 'large' ? 'selected' : '' }}>{{ __element('divider.height_large') }}</option>
                                             <option value="xlarge" {{ $dividerHeight === 'xlarge' ? 'selected' : '' }}>{{ __element('divider.height_xlarge') }}</option>
+                                            <option value="xxlarge" {{ $dividerHeight === 'xxlarge' ? 'selected' : '' }}>{{ __element('divider.height_xxlarge') }}</option>
                                             <option value="custom" {{ $dividerHeight === 'custom' ? 'selected' : '' }}>{{ __element('divider.height_custom') }}</option>
                                         </select>
                                     </div>
@@ -1054,6 +1060,7 @@
                                         <label class="form-label">{{ __element('divider.color') }}</label>
                                         <select class="form-select" name="data[color]" id="divider_color" onchange="toggleCustomColor()" {{ $isReadOnly ? 'disabled' : '' }}>
                                             <option value="default" {{ $dividerColor === 'default' ? 'selected' : '' }}>{{ __element('divider.color_default') }}</option>
+                                            <option value="white" {{ $dividerColor === 'white' ? 'selected' : '' }}>{{ __element('divider.color_white') }}</option>
                                             <option value="light" {{ $dividerColor === 'light' ? 'selected' : '' }}>{{ __element('divider.color_light') }}</option>
                                             <option value="dark" {{ $dividerColor === 'dark' ? 'selected' : '' }}>{{ __element('divider.color_dark') }}</option>
                                             <option value="primary" {{ $dividerColor === 'primary' ? 'selected' : '' }}>{{ __element('divider.color_primary') }}</option>
@@ -1064,6 +1071,25 @@
                                     <div class="col-md-6" id="custom_color_wrapper" style="display: {{ $dividerColor === 'custom' ? 'block' : 'none' }};">
                                         <label class="form-label">{{ __element('divider.custom_color') }}</label>
                                         <input type="color" class="form-control form-control-color" name="data[custom_color]" value="{{ $dividerCustomColor }}" {{ $isReadOnly ? 'disabled' : '' }}>
+                                    </div>
+                                </div>
+                                <!-- Background color for shape dividers -->
+                                <div class="row g-3 mt-2" id="bg_color_options" style="display: {{ $isShapeDivider ? 'flex' : 'none' }};">
+                                    <div class="col-md-6">
+                                        <label class="form-label">{{ __element('divider.bg_color') }}</label>
+                                        <select class="form-select" name="data[bg_color]" id="divider_bg_color" onchange="toggleCustomBgColor()" {{ $isReadOnly ? 'disabled' : '' }}>
+                                            <option value="transparent" {{ $dividerBgColor === 'transparent' ? 'selected' : '' }}>{{ __element('divider.bg_transparent') }}</option>
+                                            <option value="white" {{ $dividerBgColor === 'white' ? 'selected' : '' }}>{{ __element('divider.bg_white') }}</option>
+                                            <option value="light" {{ $dividerBgColor === 'light' ? 'selected' : '' }}>{{ __element('divider.bg_light') }}</option>
+                                            <option value="dark" {{ $dividerBgColor === 'dark' ? 'selected' : '' }}>{{ __element('divider.bg_dark') }}</option>
+                                            <option value="primary" {{ $dividerBgColor === 'primary' ? 'selected' : '' }}>{{ __element('divider.bg_primary') }}</option>
+                                            <option value="custom" {{ $dividerBgColor === 'custom' ? 'selected' : '' }}>{{ __element('divider.bg_custom') }}</option>
+                                        </select>
+                                        <div class="form-text">{{ __element('divider.bg_color_help') }}</div>
+                                    </div>
+                                    <div class="col-md-6" id="custom_bg_color_wrapper" style="display: {{ $dividerBgColor === 'custom' ? 'block' : 'none' }};">
+                                        <label class="form-label">{{ __element('divider.custom_bg_color') }}</label>
+                                        <input type="color" class="form-control form-control-color" name="data[custom_bg_color]" value="{{ $dividerCustomBgColor }}" {{ $isReadOnly ? 'disabled' : '' }}>
                                     </div>
                                 </div>
                                 <div class="row g-3 mt-2" id="line_options" style="display: {{ $dividerLayout === 'line' ? 'flex' : 'none' }};">
@@ -1101,6 +1127,12 @@
                                         <input class="form-check-input" type="checkbox" id="divider_full_width" name="data[full_width]" value="1" {{ $dividerFullWidthChecked ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
                                         <label class="form-check-label" for="divider_full_width">{{ __element('divider.full_width') }}</label>
                                         <div class="form-text">{{ __element('divider.full_width_help') }}</div>
+                                    </div>
+                                    <div class="form-check form-switch mb-2" id="flip_option" style="display: {{ $isShapeDivider ? 'block' : 'none' }};">
+                                        <input type="hidden" name="data[flip]" value="0">
+                                        <input class="form-check-input" type="checkbox" id="divider_flip" name="data[flip]" value="1" {{ $dividerFlipChecked ? 'checked' : '' }} {{ $isReadOnly ? 'disabled' : '' }}>
+                                        <label class="form-check-label" for="divider_flip">{{ __element('divider.flip') }}</label>
+                                        <div class="form-text">{{ __element('divider.flip_help') }}</div>
                                     </div>
                                     <div class="form-check form-switch">
                                         <input type="hidden" name="data[animate]" value="0">
@@ -1776,6 +1808,14 @@ function toggleCustomColor() {
     }
 }
 
+function toggleCustomBgColor() {
+    const select = document.getElementById('divider_bg_color');
+    const wrapper = document.getElementById('custom_bg_color_wrapper');
+    if (select && wrapper) {
+        wrapper.style.display = select.value === 'custom' ? 'block' : 'none';
+    }
+}
+
 function updateDividerOptions() {
     const layoutInputs = document.querySelectorAll('input[name="layout_type"]');
     let selectedLayout = '';
@@ -1785,6 +1825,12 @@ function updateDividerOptions() {
 
     const lineOptions = document.getElementById('line_options');
     const patternOptions = document.getElementById('pattern_options');
+    const bgColorOptions = document.getElementById('bg_color_options');
+    const flipOption = document.getElementById('flip_option');
+
+    // Shape dividers that support flip and background color
+    const shapeDividers = ['wave', 'waves_multi', 'mountains', 'clouds', 'triangle', 'curve', 'tilt', 'drops', 'book', 'split'];
+    const isShapeDivider = shapeDividers.includes(selectedLayout);
 
     if (lineOptions && patternOptions) {
         if (selectedLayout === 'line') {
@@ -1797,6 +1843,14 @@ function updateDividerOptions() {
             lineOptions.style.display = 'none';
             patternOptions.style.display = 'none';
         }
+    }
+
+    // Show/hide background color and flip options for shape dividers
+    if (bgColorOptions) {
+        bgColorOptions.style.display = isShapeDivider ? 'flex' : 'none';
+    }
+    if (flipOption) {
+        flipOption.style.display = isShapeDivider ? 'block' : 'none';
     }
 }
 

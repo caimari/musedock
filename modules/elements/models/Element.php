@@ -112,13 +112,25 @@ class Element extends Model
     public static function getDividerLayouts(): array
     {
         return [
+            // Basic separators
             'spacer' => __element('divider.layout_spacer'),
             'line' => __element('divider.layout_line'),
+            // Pattern separators
             'dots' => __element('divider.layout_dots'),
             'zigzag' => __element('divider.layout_zigzag'),
-            'wave' => __element('divider.layout_wave'),
             'arrows' => __element('divider.layout_arrows'),
-            'diamonds' => __element('divider.layout_diamonds')
+            'diamonds' => __element('divider.layout_diamonds'),
+            // Shape dividers (realistic)
+            'wave' => __element('divider.layout_wave'),
+            'waves_multi' => __element('divider.layout_waves_multi'),
+            'mountains' => __element('divider.layout_mountains'),
+            'clouds' => __element('divider.layout_clouds'),
+            'triangle' => __element('divider.layout_triangle'),
+            'curve' => __element('divider.layout_curve'),
+            'tilt' => __element('divider.layout_tilt'),
+            'drops' => __element('divider.layout_drops'),
+            'book' => __element('divider.layout_book'),
+            'split' => __element('divider.layout_split')
         ];
     }
 

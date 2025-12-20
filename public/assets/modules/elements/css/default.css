@@ -2107,6 +2107,87 @@
     display: block;
 }
 
+/* ========== SHAPE DIVIDERS (NEW) ========== */
+
+/* Common styles for all shape dividers */
+.element-divider .divider-shape {
+    width: 100%;
+    height: 100%;
+    color: var(--divider-color);
+    background-color: var(--divider-bg-color, transparent);
+    position: relative;
+}
+
+.element-divider .divider-shape .divider-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Mountains shape */
+.element-divider.divider-mountains {
+    height: var(--divider-height);
+}
+
+/* Clouds shape */
+.element-divider.divider-clouds {
+    height: var(--divider-height);
+}
+
+/* Triangle/Arrow shape */
+.element-divider.divider-triangle {
+    height: var(--divider-height);
+}
+
+/* Curve shape */
+.element-divider.divider-curve {
+    height: var(--divider-height);
+}
+
+/* Tilt/Diagonal shape */
+.element-divider.divider-tilt {
+    height: var(--divider-height);
+}
+
+/* Drops/Drips shape */
+.element-divider.divider-drops {
+    height: var(--divider-height);
+}
+
+/* Multi-waves shape */
+.element-divider.divider-waves_multi {
+    height: var(--divider-height);
+}
+
+/* Book/Page fold shape */
+.element-divider.divider-book {
+    height: var(--divider-height);
+}
+
+/* Split/Torn paper shape */
+.element-divider.divider-split {
+    height: var(--divider-height);
+}
+
+/* ========== FLIP OPTION ========== */
+.element-divider.flipped .divider-shape {
+    transform: scaleY(-1);
+}
+
+.element-divider.flipped .divider-pattern {
+    transform: scaleY(-1);
+}
+
+/* ========== BACKGROUND COLOR SUPPORT ========== */
+.element-divider .divider-shape {
+    background-color: var(--divider-bg-color, transparent);
+}
+
+/* White color */
+.element-divider.color-white {
+    --divider-color: #ffffff;
+}
+
 /* ========== COLOR VARIANTS ========== */
 
 /* Default - uses CSS variable */
