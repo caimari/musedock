@@ -29,7 +29,7 @@
               <!-- PASO 1: Seleccionar tipo de dominio -->
               <div class="mb-4">
                 <h5 class="fw-bold mb-3" style="color:#243141;">
-                  <span class="badge bg-primary rounded-circle me-2">1</span>
+                  <span class="badge rounded-circle me-2" style="background: var(--primary-color);">1</span>
                   {{ __('Elige tu tipo de dominio') }}
                 </h5>
 
@@ -109,7 +109,7 @@
               <!-- PASO 2: Configurar dominio -->
               <div class="mb-4">
                 <h5 class="fw-bold mb-3" style="color:#243141;">
-                  <span class="badge bg-primary rounded-circle me-2">2</span>
+                  <span class="badge rounded-circle me-2" style="background: var(--primary-color);">2</span>
                   {{ __('Configura tu dominio') }}
                 </h5>
 
@@ -212,7 +212,7 @@
               <!-- PASO 3: Datos de cuenta -->
               <div class="mb-4" id="account_section">
                 <h5 class="fw-bold mb-3" style="color:#243141;">
-                  <span class="badge bg-primary rounded-circle me-2">3</span>
+                  <span class="badge rounded-circle me-2" style="background: var(--primary-color);">3</span>
                   {{ __('Crea tu cuenta') }}
                 </h5>
 
@@ -261,7 +261,7 @@
                     </div>
                   </div>
                   <div class="col-md-5">
-                    <button type="submit" id="submitBtn" class="btn btn-primary btn-lg w-100" disabled>
+                    <button type="submit" id="submitBtn" class="btn btn-lg w-100" style="background: var(--primary-gradient); color: white; border: none;" disabled>
                       <i class="bi bi-rocket-takeoff me-2"></i>{{ __('Crear mi sitio') }}
                     </button>
                   </div>
@@ -271,7 +271,7 @@
 
             <p class="text-center mt-4 mb-0" style="color:#243141;">
               {{ __('Ya tienes cuenta?') }}
-              <a href="/customer/login" class="fw-semibold" style="color:#667eea;">{{ __('Inicia sesion') }}</a>
+              <a href="/customer/login" class="fw-semibold" style="color: var(--primary-color);">{{ __('Inicia sesion') }}</a>
             </p>
           </div>
         </div>
@@ -282,7 +282,19 @@
 @endsection
 
 @push('styles')
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
+/* Variables de color - Azul Cielo */
+:root {
+  --primary-color: #17a2b8;
+  --primary-light: #5bc0de;
+  --primary-gradient: linear-gradient(135deg, #17a2b8 0%, #20c997 100%);
+  --primary-bg-light: #e8f7f9;
+  --primary-bg-selected: linear-gradient(135deg, #e8f7f9 0%, #d4f1f4 100%);
+  --primary-shadow: rgba(23, 162, 184, 0.2);
+}
+
 /* Opciones de dominio */
 .domain-option {
   background: #f8f9fa;
@@ -296,13 +308,13 @@
   height: 100%;
 }
 .domain-option:hover:not(.disabled) {
-  border-color: #667eea;
-  background: #f0f4ff;
+  border-color: var(--primary-color);
+  background: var(--primary-bg-light);
 }
 .domain-option.selected {
-  border-color: #667eea;
-  background: linear-gradient(135deg, #f0f4ff 0%, #e8ecff 100%);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+  border-color: var(--primary-color);
+  background: var(--primary-bg-selected);
+  box-shadow: 0 4px 15px var(--primary-shadow);
 }
 .domain-option.disabled {
   opacity: 0.6;
@@ -312,7 +324,7 @@
   width: 50px;
   height: 50px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--primary-gradient);
   color: white;
   display: flex;
   align-items: center;
@@ -358,7 +370,7 @@
   position: absolute;
   top: 10px;
   right: 10px;
-  color: #667eea;
+  color: var(--primary-color);
   font-size: 1.2rem;
   opacity: 0;
   transition: opacity 0.2s;
@@ -395,7 +407,7 @@
 }
 .progress-step.active .step-circle,
 .progress-step.completed .step-circle {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--primary-gradient);
   color: white;
 }
 .step-label {
@@ -405,7 +417,7 @@
   font-weight: 500;
 }
 .progress-step.active .step-label {
-  color: #667eea;
+  color: var(--primary-color);
   font-weight: 600;
 }
 .progress-connector {
