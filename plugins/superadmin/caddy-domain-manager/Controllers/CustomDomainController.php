@@ -7,8 +7,8 @@ use Screenart\Musedock\View;
 use Screenart\Musedock\Logger;
 use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Security\CSRFProtection;
+use Screenart\Musedock\Mail\Mailer;
 use CaddyDomainManager\Services\CloudflareZoneService;
-use CaddyDomainManager\Services\EmailService;
 use PDO;
 use Exception;
 
@@ -328,23 +328,24 @@ class CustomDomainController
                 return;
             }
 
-            $emailService = new EmailService();
-
             $subject = "Instrucciones para Activar tu Dominio Personalizado - {$domain}";
 
             $htmlBody = $this->buildNSInstructionsEmail($customer['name'], $domain, $nameservers);
 
             $textBody = $this->buildNSInstructionsTextEmail($customer['name'], $domain, $nameservers);
 
-            $emailService->send(
+            $result = Mailer::send(
                 $customer['email'],
-                $customer['name'],
                 $subject,
                 $htmlBody,
                 $textBody
             );
 
-            Logger::info("[CustomDomain] NS change instructions sent to {$customer['email']}");
+            if ($result) {
+                Logger::info("[CustomDomain] NS change instructions sent to {$customer['email']}");
+            } else {
+                Logger::warning("[CustomDomain] Failed to send NS instructions to {$customer['email']}");
+            }
 
         } catch (Exception $e) {
             Logger::error("[CustomDomain] Failed to send NS instructions email: " . $e->getMessage());
