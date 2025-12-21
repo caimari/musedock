@@ -318,13 +318,28 @@ class Customer
             $tenant['health_status'] = $healthCheck['overall_status'];
             $tenant['health_badge'] = \CaddyDomainManager\Services\HealthCheckService::getStatusBadge($healthCheck);
 
-            // Detectar si necesita retry
-            $tenant['needs_retry'] = (
-                !$tenant['cloudflare_record_id'] ||
-                !$tenant['caddy_route_id'] ||
-                $tenant['caddy_status'] !== 'active' ||
-                $healthCheck['overall_status'] === 'error'
-            );
+            // Detectar si necesita retry/verificación
+            // Para subdominios FREE: verifica cloudflare_record_id
+            // Para dominios personalizados: verifica status waiting_ns_change
+            $isCustomDomain = !empty($tenant['cloudflare_zone_id']) && empty($tenant['is_subdomain']);
+
+            if ($isCustomDomain) {
+                // Dominio personalizado: mostrar botón si está esperando NS o tiene errores
+                $tenant['needs_retry'] = (
+                    $tenant['status'] === 'waiting_ns_change' ||
+                    !$tenant['caddy_route_id'] ||
+                    $tenant['caddy_status'] !== 'active' ||
+                    $healthCheck['overall_status'] === 'error'
+                );
+            } else {
+                // Subdominio FREE: lógica original
+                $tenant['needs_retry'] = (
+                    !$tenant['cloudflare_record_id'] ||
+                    !$tenant['caddy_route_id'] ||
+                    $tenant['caddy_status'] !== 'active' ||
+                    $healthCheck['overall_status'] === 'error'
+                );
+            }
         }
 
         return $tenants;

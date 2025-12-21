@@ -396,6 +396,9 @@ class CustomerController
      * Reintentar provisioning de un tenant
      *
      * POST /customer/tenant/{id}/retry
+     *
+     * Para subdominios FREE: reintenta configuración de Cloudflare DNS y Caddy
+     * Para dominios personalizados: verifica si los nameservers han sido cambiados
      */
     public function retryProvisioning(int $tenantId): void
     {
@@ -422,28 +425,16 @@ class CustomerController
                 return;
             }
 
-            // Extraer subdomain
-            $subdomain = explode('.', $tenant['domain'])[0];
+            // Determinar si es dominio personalizado o subdominio FREE
+            $isCustomDomain = !empty($tenant['cloudflare_zone_id']) && empty($tenant['is_subdomain']);
 
-            // Reintentar configuración
-            $provisioningService = new \CaddyDomainManager\Services\ProvisioningService();
-
-            // Configurar Cloudflare si falta
-            if (!$tenant['cloudflare_record_id']) {
-                Logger::info("[CustomerController] Retrying Cloudflare for tenant {$tenantId}");
-                $provisioningService->configureCloudflare($tenantId, $subdomain);
+            if ($isCustomDomain) {
+                // DOMINIO PERSONALIZADO: Verificar nameservers
+                $this->retryCustomDomain($pdo, $tenant);
+            } else {
+                // SUBDOMINIO FREE: Reintentar provisioning normal
+                $this->retrySubdomainFree($pdo, $tenant);
             }
-
-            // Configurar Caddy si falta
-            if (!$tenant['caddy_route_id'] || $tenant['caddy_status'] !== 'active') {
-                Logger::info("[CustomerController] Retrying Caddy for tenant {$tenantId}");
-                $provisioningService->configureCaddy($tenantId, $tenant['domain']);
-            }
-
-            $this->jsonResponse([
-                'success' => true,
-                'message' => 'Configuración reiniciada exitosamente'
-            ]);
 
         } catch (\Exception $e) {
             Logger::error("[CustomerController] Retry provisioning failed: " . $e->getMessage());
@@ -452,6 +443,97 @@ class CustomerController
                 'error' => 'Error al reintentar configuración: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Reintentar/verificar dominio personalizado
+     * Comprueba si los nameservers han sido cambiados y activa el dominio
+     */
+    private function retryCustomDomain(\PDO $pdo, array $tenant): void
+    {
+        $tenantId = $tenant['id'];
+        $domain = $tenant['domain'];
+        $zoneId = $tenant['cloudflare_zone_id'];
+
+        Logger::info("[CustomerController] Verifying nameservers for custom domain {$domain} (zone: {$zoneId})");
+
+        // Verificar nameservers via Cloudflare API
+        $cloudflareZoneService = new \CaddyDomainManager\Services\CloudflareZoneService();
+        $nsResult = $cloudflareZoneService->verifyNameservers($zoneId);
+
+        if ($nsResult['ns_changed'] && $nsResult['status'] === 'active') {
+            // Los nameservers han sido verificados por Cloudflare
+            Logger::info("[CustomerController] Nameservers verified! Activating domain {$domain}");
+
+            // Configurar Caddy si no está activo
+            if (!$tenant['caddy_route_id'] || $tenant['caddy_status'] !== 'active') {
+                Logger::info("[CustomerController] Configuring Caddy for {$domain}");
+                $provisioningService = new \CaddyDomainManager\Services\ProvisioningService();
+                $provisioningService->configureCaddy($tenantId, $domain);
+            }
+
+            // Actualizar estado del tenant a activo
+            $stmt = $pdo->prepare("
+                UPDATE tenants
+                SET status = 'active',
+                    cloudflare_configured_at = NOW(),
+                    cloudflare_error_log = NULL
+                WHERE id = ?
+            ");
+            $stmt->execute([$tenantId]);
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => '¡Nameservers verificados! Tu dominio está activo.',
+                'status' => 'active',
+                'ns_status' => $nsResult['status']
+            ]);
+        } else {
+            // Nameservers aún no cambiados
+            $nameservers = $tenant['cloudflare_nameservers'] ?? '';
+            $nsList = $nameservers ? explode(',', $nameservers) : $nsResult['cloudflare_ns'];
+
+            Logger::info("[CustomerController] Nameservers not yet verified for {$domain}. Status: {$nsResult['status']}");
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Los nameservers aún no han sido verificados. Asegúrate de haber cambiado los nameservers en tu registrador.',
+                'status' => 'waiting_ns_change',
+                'ns_status' => $nsResult['status'],
+                'nameservers' => $nsList,
+                'instructions' => 'Cambia los nameservers de tu dominio a: ' . implode(', ', $nsList)
+            ]);
+        }
+    }
+
+    /**
+     * Reintentar provisioning de subdominio FREE
+     * Reintenta configuración de Cloudflare DNS y Caddy
+     */
+    private function retrySubdomainFree(\PDO $pdo, array $tenant): void
+    {
+        $tenantId = $tenant['id'];
+        $subdomain = explode('.', $tenant['domain'])[0];
+
+        // Reintentar configuración
+        $provisioningService = new \CaddyDomainManager\Services\ProvisioningService();
+
+        // Configurar Cloudflare si falta
+        if (!$tenant['cloudflare_record_id']) {
+            Logger::info("[CustomerController] Retrying Cloudflare for tenant {$tenantId}");
+            $provisioningService->configureCloudflare($tenantId, $subdomain);
+        }
+
+        // Configurar Caddy si falta
+        if (!$tenant['caddy_route_id'] || $tenant['caddy_status'] !== 'active') {
+            Logger::info("[CustomerController] Retrying Caddy for tenant {$tenantId}");
+            $provisioningService->configureCaddy($tenantId, $tenant['domain']);
+        }
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Configuración reiniciada exitosamente'
+        ]);
     }
 
     /**

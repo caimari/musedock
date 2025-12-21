@@ -180,11 +180,21 @@
                 <i class="bi bi-eye"></i> Ver Sitio
             </a>
 
-            <!-- Botón de Retry si hay problemas -->
+            <!-- Botón de Retry/Verificar si hay problemas -->
             <?php if (isset($tenant['needs_retry']) && $tenant['needs_retry']): ?>
-            <button class="btn btn-sm btn-warning" onclick="retryProvisioning(<?= $tenant['id'] ?>, '<?= htmlspecialchars($tenant['domain']) ?>')">
-                <i class="bi bi-arrow-clockwise"></i> Reintentar Configuración
-            </button>
+                <?php
+                $isCustomDomain = !empty($tenant['cloudflare_zone_id']) && empty($tenant['is_subdomain']);
+                $isWaitingNS = ($tenant['status'] ?? '') === 'waiting_ns_change';
+                ?>
+                <?php if ($isCustomDomain && $isWaitingNS): ?>
+                <button class="btn btn-sm btn-info" onclick="retryProvisioning(<?= $tenant['id'] ?>, '<?= htmlspecialchars($tenant['domain']) ?>')">
+                    <i class="bi bi-check2-circle"></i> Verificar Nameservers
+                </button>
+                <?php else: ?>
+                <button class="btn btn-sm btn-warning" onclick="retryProvisioning(<?= $tenant['id'] ?>, '<?= htmlspecialchars($tenant['domain']) ?>')">
+                    <i class="bi bi-arrow-clockwise"></i> Reintentar Configuración
+                </button>
+                <?php endif; ?>
             <?php endif; ?>
 
             <!-- Botón Health Check Manual -->
@@ -210,19 +220,19 @@
 <script>
 function retryProvisioning(tenantId, domain) {
     Swal.fire({
-        title: '¿Reintentar configuración?',
-        html: `¿Deseas reintentar la configuración de <strong>${domain}</strong>?`,
+        title: '¿Verificar configuración?',
+        html: `¿Deseas verificar la configuración de <strong>${domain}</strong>?<br><small class="text-muted">Para dominios personalizados, verificaremos si los nameservers han sido cambiados.</small>`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#667eea',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Sí, reintentar',
+        confirmButtonText: 'Sí, verificar',
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
             Swal.fire({
                 title: 'Procesando...',
-                html: 'Reintentando configuración...',
+                html: 'Verificando configuración...',
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
@@ -239,19 +249,52 @@ function retryProvisioning(tenantId, domain) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Éxito!',
-                        text: data.message,
-                        confirmButtonColor: '#667eea'
-                    }).then(() => {
-                        window.location.reload();
-                    });
+                    // Verificar si es un dominio con NS pendiente
+                    if (data.status === 'waiting_ns_change' && data.nameservers) {
+                        let nsHtml = '<div class="text-start mt-3">';
+                        nsHtml += '<p>' + data.message + '</p>';
+                        nsHtml += '<p><strong>Nameservers requeridos:</strong></p>';
+                        nsHtml += '<div class="bg-light p-3 rounded">';
+                        data.nameservers.forEach((ns, i) => {
+                            nsHtml += `<p class="mb-1"><code>NS${i+1}: ${ns}</code></p>`;
+                        });
+                        nsHtml += '</div>';
+                        nsHtml += '<p class="mt-3 text-muted small"><i class="bi bi-info-circle me-1"></i>Los cambios de DNS pueden tardar hasta 48 horas en propagarse.</p>';
+                        nsHtml += '</div>';
+
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Esperando cambio de DNS',
+                            html: nsHtml,
+                            confirmButtonColor: '#667eea',
+                            confirmButtonText: 'Entendido'
+                        });
+                    } else if (data.status === 'active') {
+                        // Dominio activado
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Dominio Activado!',
+                            text: data.message,
+                            confirmButtonColor: '#667eea'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        // Respuesta genérica de éxito
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Éxito!',
+                            text: data.message,
+                            confirmButtonColor: '#667eea'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    }
                 } else {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: data.error || 'Error al reintentar la configuración',
+                        text: data.error || 'Error al verificar la configuración',
                         confirmButtonColor: '#667eea'
                     });
                 }
