@@ -29,7 +29,8 @@ class EmailRoutingController
     {
         SessionSecurity::startSession();
 
-        if (!isset($_SESSION['user']['id'])) {
+        // Verificar autenticación de superadmin
+        if (!isset($_SESSION['super_admin']['id'])) {
             header('Location: /musedock/login');
             exit;
         }
@@ -124,7 +125,7 @@ class EmailRoutingController
     {
         SessionSecurity::startSession();
 
-        if (!isset($_SESSION['user']['id'])) {
+        if (!isset($_SESSION['super_admin']['id'])) {
             $this->jsonResponse(['success' => false, 'error' => 'No autenticado'], 401);
             return;
         }
@@ -183,7 +184,7 @@ class EmailRoutingController
     {
         SessionSecurity::startSession();
 
-        if (!isset($_SESSION['user']['id'])) {
+        if (!isset($_SESSION['super_admin']['id'])) {
             $this->jsonResponse(['success' => false, 'error' => 'No autenticado'], 401);
             return;
         }
@@ -234,7 +235,7 @@ class EmailRoutingController
     {
         SessionSecurity::startSession();
 
-        if (!isset($_SESSION['user']['id'])) {
+        if (!isset($_SESSION['super_admin']['id'])) {
             $this->jsonResponse(['success' => false, 'error' => 'No autenticado'], 401);
             return;
         }
@@ -305,7 +306,7 @@ class EmailRoutingController
     {
         SessionSecurity::startSession();
 
-        if (!isset($_SESSION['user']['id'])) {
+        if (!isset($_SESSION['super_admin']['id'])) {
             $this->jsonResponse(['success' => false, 'error' => 'No autenticado'], 401);
             return;
         }
@@ -352,7 +353,7 @@ class EmailRoutingController
     {
         SessionSecurity::startSession();
 
-        if (!isset($_SESSION['user']['id'])) {
+        if (!isset($_SESSION['super_admin']['id'])) {
             $this->jsonResponse(['success' => false, 'error' => 'No autenticado'], 401);
             return;
         }
@@ -417,7 +418,7 @@ class EmailRoutingController
     {
         SessionSecurity::startSession();
 
-        if (!isset($_SESSION['user']['id'])) {
+        if (!isset($_SESSION['super_admin']['id'])) {
             $this->jsonResponse(['success' => false, 'error' => 'No autenticado'], 401);
             return;
         }
