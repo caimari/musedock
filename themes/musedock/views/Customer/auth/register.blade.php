@@ -126,26 +126,6 @@
                 </div>
               </div>
 
-              <details class="mb-3">
-                <summary style="cursor:pointer;color:#243141;">+ {{ __('Anadir informacion adicional (opcional)') }}</summary>
-                <div class="mt-3">
-                  <div class="mb-3">
-                    <label for="company" class="form-label">{{ __('Empresa') }}</label>
-                    <input type="text" class="form-control" id="company" name="company" placeholder="{{ __('Nombre de tu empresa') }}">
-                  </div>
-                  <div class="row">
-                    <div class="col-md-6 mb-3">
-                      <label for="phone" class="form-label">{{ __('Telefono') }}</label>
-                      <input type="tel" class="form-control" id="phone" name="phone" placeholder="+34 600 000 000">
-                    </div>
-                    <div class="col-md-6 mb-3">
-                      <label for="country" class="form-label">{{ __('Pais (codigo de 2 letras: ES)') }}</label>
-                      <input type="text" class="form-control" id="country" name="country" placeholder="ES" maxlength="2" pattern="[A-Z]{2}">
-                    </div>
-                  </div>
-                </div>
-              </details>
-
               <div class="form-check mb-4">
                 <input class="form-check-input" type="checkbox" id="terms" name="accept_terms" value="1" required>
                 <label class="form-check-label" for="terms" style="color:#243141;">
