@@ -108,7 +108,7 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="bi bi-arrow-right-square"></i> Reglas de Forwarding</h5>
-                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreateRule">
+                    <button type="button" class="btn btn-sm btn-primary" onclick="showCreateRuleModal()">
                         <i class="bi bi-plus-circle"></i> Nueva Regla
                     </button>
                 </div>
@@ -183,62 +183,12 @@
     </div>
 </div>
 
-{{-- Modal: Crear Nueva Regla --}}
-<div class="modal fade" id="modalCreateRule" tabindex="-1" aria-labelledby="modalCreateRuleLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="form-create-rule" onsubmit="return createRule(event)">
-                {!! csrf_field() !!}
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalCreateRuleLabel">
-                        <i class="bi bi-plus-circle"></i> Nueva Regla de Forwarding
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="from_email" class="form-label">De (Email en tu dominio)</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="from_email" name="from_email"
-                                   placeholder="info" required>
-                            <span class="input-group-text">@{{ $tenant['domain'] }}</span>
-                        </div>
-                        <div class="form-text">
-                            Los emails enviados a esta dirección serán redirigidos
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="to_email" class="form-label">Para (Email Destino)</label>
-                        <input type="email" class="form-control" id="to_email" name="to_email"
-                               placeholder="destino@gmail.com" required>
-                        <div class="form-text">
-                            Email donde se recibirán los mensajes
-                        </div>
-                    </div>
-
-                    <div class="alert alert-info alert-sm mb-0">
-                        <small>
-                            <i class="bi bi-info-circle"></i>
-                            <strong>Ejemplo:</strong> Si configuras <code>info@{{ $tenant['domain'] }}</code> → <code>tu@gmail.com</code>,
-                            todos los emails enviados a info@{{ $tenant['domain'] }} llegarán a tu@gmail.com
-                        </small>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-lg"></i> Crear Regla
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+{{-- El modal de crear regla ahora usa SweetAlert2 --}}
 
 @push('scripts')
 <script>
 const tenantId = {{ $tenant['id'] }};
+const tenantDomain = '{{ $tenant['domain'] }}';
 const csrfToken = '{{ $csrf_token }}';
 
 // Activar/Desactivar Email Routing
@@ -301,12 +251,84 @@ function updateCatchAll(event) {
     return false;
 }
 
-// Crear nueva regla
-function createRule(event) {
-    event.preventDefault();
+// Mostrar modal de crear regla con SweetAlert2
+function showCreateRuleModal() {
+    Swal.fire({
+        title: '<i class="bi bi-plus-circle text-primary"></i> Nueva Regla de Forwarding',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">De (Email en tu dominio)</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="swal-from-email" placeholder="info">
+                        <span class="input-group-text">@${tenantDomain}</span>
+                    </div>
+                    <small class="text-muted">Los emails enviados a esta dirección serán redirigidos</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Para (Email Destino)</label>
+                    <input type="email" class="form-control" id="swal-to-email" placeholder="destino@gmail.com">
+                    <small class="text-muted">Email donde se recibirán los mensajes</small>
+                </div>
+                <div class="alert alert-info mb-0 py-2">
+                    <small>
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Ejemplo:</strong> Si configuras <code>info@${tenantDomain}</code> → <code>tu@gmail.com</code>,
+                        todos los emails enviados a info@${tenantDomain} llegarán a tu@gmail.com
+                    </small>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-check-lg"></i> Crear Regla',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#0d6efd',
+        cancelButtonColor: '#6c757d',
+        width: '500px',
+        focusConfirm: false,
+        didOpen: () => {
+            document.getElementById('swal-from-email').focus();
+        },
+        preConfirm: () => {
+            const fromEmail = document.getElementById('swal-from-email').value.trim();
+            const toEmail = document.getElementById('swal-to-email').value.trim();
 
-    const formData = new FormData(event.target);
+            if (!fromEmail) {
+                Swal.showValidationMessage('El email de origen es obligatorio');
+                return false;
+            }
+            if (!toEmail) {
+                Swal.showValidationMessage('El email destino es obligatorio');
+                return false;
+            }
+            if (!toEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+                Swal.showValidationMessage('El email destino no es válido');
+                return false;
+            }
+
+            return { fromEmail, toEmail };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            createRule(result.value.fromEmail, result.value.toEmail);
+        }
+    });
+}
+
+// Crear nueva regla
+function createRule(fromEmail, toEmail) {
     const url = `/musedock/domain-manager/${tenantId}/email-routing/rules`;
+
+    const formData = new FormData();
+    formData.append('_token', csrfToken);
+    formData.append('from_email', fromEmail);
+    formData.append('to_email', toEmail);
+
+    Swal.fire({
+        title: 'Creando regla...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
 
     fetch(url, {
         method: 'POST',
@@ -315,19 +337,32 @@ function createRule(event) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            Swal.fire('¡Éxito!', data.message, 'success').then(() => {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Regla creada!',
+                text: data.message,
+                confirmButtonColor: '#0d6efd'
+            }).then(() => {
                 location.reload();
             });
         } else {
-            Swal.fire('Error', data.error || 'Error desconocido', 'error');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error || 'Error desconocido',
+                confirmButtonColor: '#0d6efd'
+            });
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        Swal.fire('Error', 'Error de conexión', 'error');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error de conexión',
+            confirmButtonColor: '#0d6efd'
+        });
     });
-
-    return false;
 }
 
 // Toggle estado de regla
