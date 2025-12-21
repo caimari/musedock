@@ -19,26 +19,46 @@ class AddCustomPlanToTenants_2025_12_21_172000
         $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
 
         if ($driver === 'pgsql') {
-            // PostgreSQL: Check if 'custom' already exists in the enum
-            $checkStmt = $pdo->query("
-                SELECT EXISTS (
-                    SELECT 1 FROM pg_enum
-                    WHERE enumlabel = 'custom'
-                    AND enumtypid = (
-                        SELECT atttypid FROM pg_attribute
-                        WHERE attrelid = 'tenants'::regclass
-                        AND attname = 'plan'
-                    )
-                ) as exists
+            // PostgreSQL: The plan column uses a CHECK constraint, not an ENUM type
+            // First, find the constraint name for the plan column
+            $stmt = $pdo->query("
+                SELECT con.conname as constraint_name
+                FROM pg_constraint con
+                JOIN pg_class rel ON rel.oid = con.conrelid
+                JOIN pg_attribute att ON att.attrelid = con.conrelid AND att.attnum = ANY(con.conkey)
+                WHERE rel.relname = 'tenants'
+                  AND att.attname = 'plan'
+                  AND con.contype = 'c'
             ");
-            $exists = $checkStmt->fetch(\PDO::FETCH_ASSOC)['exists'] ?? false;
+            $constraint = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-            if (!$exists || $exists === 'f') {
-                // Add 'custom' to the enum type
-                $pdo->exec("ALTER TYPE tenants_plan_check ADD VALUE IF NOT EXISTS 'custom'");
-                echo "✓ Added 'custom' to PostgreSQL plan enum\n";
+            if ($constraint) {
+                $constraintName = $constraint['constraint_name'];
+
+                // Check if 'custom' is already in the constraint
+                $checkStmt = $pdo->query("
+                    SELECT pg_get_constraintdef(oid) as definition
+                    FROM pg_constraint
+                    WHERE conname = '{$constraintName}'
+                ");
+                $def = $checkStmt->fetch(\PDO::FETCH_ASSOC);
+
+                if ($def && strpos($def['definition'], 'custom') === false) {
+                    // Drop old constraint and add new one with 'custom'
+                    $pdo->exec("ALTER TABLE tenants DROP CONSTRAINT {$constraintName}");
+                    $pdo->exec("ALTER TABLE tenants ADD CONSTRAINT {$constraintName} CHECK (plan IN ('free', 'starter', 'business', 'custom'))");
+                    echo "✓ Added 'custom' to PostgreSQL plan CHECK constraint\n";
+                } else {
+                    echo "✓ 'custom' already exists in PostgreSQL plan constraint\n";
+                }
             } else {
-                echo "✓ 'custom' already exists in PostgreSQL plan enum\n";
+                // No constraint found, try to add one
+                try {
+                    $pdo->exec("ALTER TABLE tenants ADD CONSTRAINT tenants_plan_check CHECK (plan IN ('free', 'starter', 'business', 'custom'))");
+                    echo "✓ Created PostgreSQL plan CHECK constraint with 'custom'\n";
+                } catch (\Exception $e) {
+                    echo "⚠ Could not add CHECK constraint: " . $e->getMessage() . "\n";
+                }
             }
         } else {
             // MySQL/MariaDB: Modify the ENUM column
@@ -65,9 +85,27 @@ class AddCustomPlanToTenants_2025_12_21_172000
         $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
 
         if ($driver === 'pgsql') {
-            // PostgreSQL: Cannot easily remove enum values, but we can update existing rows
+            // PostgreSQL: Update rows first, then modify constraint
             $pdo->exec("UPDATE tenants SET plan = 'business' WHERE plan = 'custom'");
-            echo "✓ Updated 'custom' plans to 'business' (enum value remains but unused)\n";
+
+            // Find and replace the constraint
+            $stmt = $pdo->query("
+                SELECT con.conname as constraint_name
+                FROM pg_constraint con
+                JOIN pg_class rel ON rel.oid = con.conrelid
+                JOIN pg_attribute att ON att.attrelid = con.conrelid AND att.attnum = ANY(con.conkey)
+                WHERE rel.relname = 'tenants'
+                  AND att.attname = 'plan'
+                  AND con.contype = 'c'
+            ");
+            $constraint = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($constraint) {
+                $constraintName = $constraint['constraint_name'];
+                $pdo->exec("ALTER TABLE tenants DROP CONSTRAINT {$constraintName}");
+                $pdo->exec("ALTER TABLE tenants ADD CONSTRAINT {$constraintName} CHECK (plan IN ('free', 'starter', 'business'))");
+            }
+            echo "✓ Removed 'custom' from PostgreSQL plan CHECK constraint\n";
         } else {
             // MySQL: First update any 'custom' plans to 'business'
             $pdo->exec("UPDATE tenants SET plan = 'business' WHERE plan = 'custom'");
