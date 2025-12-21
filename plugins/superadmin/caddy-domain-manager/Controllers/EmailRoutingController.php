@@ -97,7 +97,7 @@ class EmailRoutingController
                 Logger::log("[EmailRouting] Error listing destinations: " . $e->getMessage(), 'WARNING');
             }
 
-            echo View::renderTheme('Superadmin/plugins/caddy-domain-manager/email-routing', [
+            echo View::renderSuperadmin('plugins.caddy-domain-manager.email-routing', [
                 'page_title' => "Email Routing - {$tenant['name']}",
                 'current_page' => 'domain-manager',
                 'tenant' => $tenant,
