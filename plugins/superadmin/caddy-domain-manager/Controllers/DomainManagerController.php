@@ -1758,23 +1758,32 @@ TEXT;
      */
     public function linkCloudflareZone(int $id): void
     {
-        $this->checkPermission('tenants.manage');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->jsonResponse(['success' => false, 'error' => 'Método no permitido'], 405);
-            return;
-        }
-
-        // Verificar CSRF
-        $csrfToken = null;
-        $input = file_get_contents('php://input');
-        if ($input) {
-            $data = json_decode($input, true);
-            $csrfToken = $data['_csrf'] ?? null;
-        }
-        SessionSecurity::validateCsrfToken($csrfToken ?? '');
+        // Headers para JSON
+        header('Content-Type: application/json');
 
         try {
+            $this->checkPermission('tenants.manage');
+
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                $this->jsonResponse(['success' => false, 'error' => 'Método no permitido'], 405);
+                return;
+            }
+
+            // Verificar CSRF
+            $csrfToken = null;
+            $input = file_get_contents('php://input');
+            if ($input) {
+                $data = json_decode($input, true);
+                $csrfToken = $data['_csrf'] ?? null;
+            }
+
+            try {
+                SessionSecurity::validateCsrfToken($csrfToken ?? '');
+            } catch (\Exception $e) {
+                Logger::log("[DomainManager] CSRF validation failed: " . $e->getMessage(), 'ERROR');
+                $this->jsonResponse(['success' => false, 'error' => 'Token CSRF inválido'], 403);
+                return;
+            }
             $pdo = Database::connect();
             $stmt = $pdo->prepare("SELECT * FROM tenants WHERE id = ?");
             $stmt->execute([$id]);
@@ -1798,10 +1807,10 @@ TEXT;
 
             $cloudflareService = new \CaddyDomainManager\Services\CloudflareZoneService();
 
-            // Importar zona existente de Cloudflare
-            $importData = $cloudflareService->importExistingZone($tenant->domain);
+            // Buscar zona en Cloudflare
+            $zone = $cloudflareService->findExistingZone($tenant->domain);
 
-            if (!$importData || !isset($importData['zone'])) {
+            if (!$zone) {
                 $this->jsonResponse([
                     'success' => false,
                     'error' => "El dominio {$tenant->domain} no existe en Cloudflare o no está en la cuenta configurada"
@@ -1809,8 +1818,16 @@ TEXT;
                 return;
             }
 
-            $zone = $importData['zone'];
-            $emailRouting = $importData['email_routing'];
+            // Intentar obtener configuración de Email Routing (puede fallar por permisos)
+            $emailRouting = null;
+            if ($zone['email_routing_enabled']) {
+                try {
+                    $emailRouting = $cloudflareService->getEmailRoutingConfig($zone['zone_id']);
+                } catch (\Exception $e) {
+                    Logger::log("[DomainManager] No se pudo obtener config de Email Routing (permisos insuficientes): " . $e->getMessage(), 'WARNING');
+                    // No es crítico, continuamos sin esta info
+                }
+            }
 
             // Guardar información en la BD
             $stmt = $pdo->prepare("
@@ -1839,8 +1856,7 @@ TEXT;
                 'message' => 'Dominio vinculado correctamente con Cloudflare',
                 'zone_id' => $zone['zone_id'],
                 'nameservers' => $zone['nameservers'],
-                'email_routing_enabled' => $zone['email_routing_enabled'],
-                'dns_records_count' => count($importData['dns_records'] ?? [])
+                'email_routing_enabled' => $zone['email_routing_enabled']
             ];
 
             // Información sobre Email Routing
