@@ -37,8 +37,8 @@
 <div class="padding-none ziph-page_content">
   <div class="container">
     <div class="ziph-page_warp">
-      
-      @if($page->banner_image)
+
+      @if(!empty($page->banner_image ?? null))
       <!-- Page Banner -->
       <div class="ziph-page_banner" style="background-image: url('{{ asset($page->banner_image) }}');">
         <div class="ziph-banner_overlay">
@@ -46,7 +46,7 @@
             <div class="row">
               <div class="col-md-12">
                 <h1 class="ziph-page_title">{{ $translation->title }}</h1>
-                
+
                 {{-- Breadcrumbs --}}
                 @if(function_exists('get_breadcrumb'))
                 <nav class="ziph-page_breadcrumb">
@@ -61,11 +61,11 @@
         </div>
       </div>
       @endif
-      
+
       <!-- Page Content -->
-      <div class="ziph-page_content_main @if($page->banner_image) ziph-with-banner @endif">
+      <div class="ziph-page_content_main @if(!empty($page->banner_image ?? null)) ziph-with-banner @endif">
         <div class="row">
-          @if($page->show_sidebar && $page->sidebar_position === 'left')
+          @if(($page->show_sidebar ?? false) && ($page->sidebar_position ?? '') === 'left')
           <div class="col-md-3">
             @include('partials.sidebar-left')
           </div>
@@ -214,7 +214,7 @@
           </div>
           @endif
           
-          @if($page->show_sidebar && $page->sidebar_position === 'right')
+          @if(($page->show_sidebar ?? false) && ($page->sidebar_position ?? '') === 'right')
           <div class="col-md-3">
             @include('partials.sidebar-right')
           </div>
