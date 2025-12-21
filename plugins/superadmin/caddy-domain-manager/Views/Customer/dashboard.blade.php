@@ -256,6 +256,11 @@
                class="btn btn-sm btn-outline-primary" target="_blank">
                 <i class="bi bi-eye"></i> Ver Sitio
             </a>
+            <?php if (!empty($tenant['cloudflare_zone_id'])): ?>
+            <a href="/customer/domain/<?= $tenant['id'] ?>/manage" class="btn btn-sm btn-outline-info">
+                <i class="bi bi-envelope-at"></i> DNS / Email
+            </a>
+            <?php endif; ?>
             <button class="btn btn-sm btn-outline-secondary" onclick="runHealthCheck(<?= $tenant['id'] ?>, '<?= htmlspecialchars($tenant['domain']) ?>')">
                 <i class="bi bi-heart-pulse"></i> Verificar
             </button>
@@ -263,6 +268,11 @@
             <span class="text-warning small">
                 <i class="bi bi-hourglass-split"></i> Esperando cambio de nameservers...
             </span>
+            <?php if (!empty($tenant['cloudflare_zone_id'])): ?>
+            <a href="/customer/domain/<?= $tenant['id'] ?>/manage" class="btn btn-sm btn-outline-info">
+                <i class="bi bi-envelope-at"></i> Gestionar
+            </a>
+            <?php endif; ?>
             <?php endif; ?>
 
             <!-- Boton de Retry si hay problemas -->

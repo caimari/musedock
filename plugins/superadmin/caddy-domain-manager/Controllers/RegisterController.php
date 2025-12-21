@@ -105,6 +105,9 @@ class RegisterController
         $password = $_POST['password'] ?? '';
         $passwordConfirm = $_POST['password_confirm'] ?? '';
         $subdomain = trim(strtolower($_POST['subdomain'] ?? ''));
+        $customDomain = trim(strtolower($_POST['custom_domain'] ?? ''));
+        $domainType = $_POST['domain_type'] ?? 'subdomain';
+        $enableEmailRouting = isset($_POST['enable_email_routing']) && $_POST['enable_email_routing'] === '1';
         $company = trim($_POST['company'] ?? '');
         $phone = trim($_POST['phone'] ?? '');
         $country = trim(strtoupper($_POST['country'] ?? ''));
@@ -120,6 +123,8 @@ class RegisterController
             'password' => $password,
             'password_confirm' => $passwordConfirm,
             'subdomain' => $subdomain,
+            'custom_domain' => $customDomain,
+            'domain_type' => $domainType,
             'accept_terms' => $acceptTerms
         ]);
 
@@ -139,9 +144,15 @@ class RegisterController
             'country' => $country ?: null
         ];
 
-        // Provisionar tenant FREE
+        // Provisionar según tipo de dominio
         try {
-            $result = $this->provisioningService->provisionFreeTenant($customerData, $subdomain, true, $language);
+            if ($domainType === 'custom' && !empty($customDomain)) {
+                // Dominio personalizado - usar CustomDomainService
+                $result = $this->provisionCustomDomain($customerData, $customDomain, $enableEmailRouting, $language);
+            } else {
+                // Subdominio FREE
+                $result = $this->provisioningService->provisionFreeTenant($customerData, $subdomain, true, $language);
+            }
 
             if (!$result['success']) {
                 $this->incrementRateLimitAttempt();
@@ -155,7 +166,7 @@ class RegisterController
                 'email' => $email,
                 'name' => $name,
                 'company' => $company,
-                'status' => 'pending_verification'
+                'status' => $domainType === 'custom' ? 'pending_verification' : 'pending_verification'
             ];
 
             Logger::info("[RegisterController] Customer registered successfully: {$email} → {$result['domain']}");
@@ -163,12 +174,19 @@ class RegisterController
             // Limpiar rate limit en caso de éxito
             $this->clearRateLimit();
 
-            $this->jsonResponse([
+            $response = [
                 'success' => true,
                 'message' => '¡Cuenta creada exitosamente!',
                 'redirect' => '/customer/dashboard',
                 'domain' => $result['domain']
-            ]);
+            ];
+
+            // Si es dominio custom, incluir nameservers
+            if ($domainType === 'custom' && !empty($result['nameservers'])) {
+                $response['nameservers'] = $result['nameservers'];
+            }
+
+            $this->jsonResponse($response);
 
         } catch (\Exception $e) {
             Logger::error("[RegisterController] Registration failed: " . $e->getMessage());
@@ -204,6 +222,55 @@ class RegisterController
     }
 
     /**
+     * Verifica disponibilidad de dominio personalizado vía AJAX
+     *
+     * GET /customer/check-custom-domain?domain=example.com
+     */
+    public function checkCustomDomainAvailability(): void
+    {
+        $domain = trim(strtolower($_GET['domain'] ?? ''));
+
+        if (empty($domain)) {
+            $this->jsonResponse(['available' => false, 'error' => 'Dominio vacío']);
+            return;
+        }
+
+        // Validar formato
+        if (!$this->isValidCustomDomain($domain)) {
+            $this->jsonResponse(['available' => false, 'error' => 'Formato de dominio inválido']);
+            return;
+        }
+
+        // No permitir musedock.com
+        if (strpos($domain, 'musedock.com') !== false) {
+            $this->jsonResponse(['available' => false, 'error' => 'Usa la opción "Subdominio FREE" para musedock.com']);
+            return;
+        }
+
+        try {
+            $pdo = Database::connect();
+
+            // Verificar si ya existe en tenants
+            $stmt = $pdo->prepare("SELECT id FROM tenants WHERE domain = ?");
+            $stmt->execute([$domain]);
+
+            if ($stmt->fetch()) {
+                $this->jsonResponse(['available' => false, 'error' => 'Este dominio ya está registrado']);
+                return;
+            }
+
+            $this->jsonResponse([
+                'available' => true,
+                'message' => 'Dominio disponible para registro'
+            ]);
+
+        } catch (\Exception $e) {
+            Logger::error("[RegisterController] Custom domain check failed: " . $e->getMessage());
+            $this->jsonResponse(['available' => true, 'message' => 'Formato válido']);
+        }
+    }
+
+    /**
      * Valida datos completos de registro
      *
      * @param array $data
@@ -231,9 +298,28 @@ class RegisterController
             return ['valid' => false, 'error' => 'Las contraseñas no coinciden'];
         }
 
-        // Validar subdominio
-        if (empty($data['subdomain'])) {
-            return ['valid' => false, 'error' => 'El subdominio es obligatorio'];
+        // Validar dominio según tipo
+        $domainType = $data['domain_type'] ?? 'subdomain';
+
+        if ($domainType === 'subdomain') {
+            if (empty($data['subdomain'])) {
+                return ['valid' => false, 'error' => 'El subdominio es obligatorio'];
+            }
+        } else {
+            // Dominio custom
+            if (empty($data['custom_domain'])) {
+                return ['valid' => false, 'error' => 'El dominio es obligatorio'];
+            }
+
+            // Validar formato de dominio
+            if (!$this->isValidCustomDomain($data['custom_domain'])) {
+                return ['valid' => false, 'error' => 'Formato de dominio inválido'];
+            }
+
+            // No permitir subdominios de musedock.com
+            if (strpos($data['custom_domain'], 'musedock.com') !== false) {
+                return ['valid' => false, 'error' => 'Para subdominios de musedock.com usa la opción "Subdominio FREE"'];
+            }
         }
 
         // Validar términos
@@ -242,6 +328,210 @@ class RegisterController
         }
 
         return ['valid' => true, 'error' => null];
+    }
+
+    /**
+     * Valida formato de dominio personalizado
+     */
+    private function isValidCustomDomain(string $domain): bool
+    {
+        if (empty($domain) || strlen($domain) > 253) {
+            return false;
+        }
+
+        if (strpos($domain, '.') === false) {
+            return false;
+        }
+
+        $pattern = '/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i';
+        return preg_match($pattern, $domain) === 1;
+    }
+
+    /**
+     * Provisiona un dominio personalizado para un nuevo customer
+     *
+     * @param array $customerData Datos del customer
+     * @param string $domain Dominio personalizado
+     * @param bool $enableEmailRouting Habilitar Email Routing
+     * @param string $language Idioma del tenant
+     * @return array ['success' => bool, 'error' => string|null, 'customer_id' => int, 'domain' => string, 'nameservers' => array]
+     */
+    private function provisionCustomDomain(array $customerData, string $domain, bool $enableEmailRouting, string $language): array
+    {
+        $pdo = Database::connect();
+
+        try {
+            // Verificar que el dominio no exista ya
+            $stmt = $pdo->prepare("SELECT id FROM tenants WHERE domain = ?");
+            $stmt->execute([$domain]);
+            if ($stmt->fetch()) {
+                return ['success' => false, 'error' => 'Este dominio ya está registrado en el sistema'];
+            }
+
+            $pdo->beginTransaction();
+
+            // 1. Crear customer
+            $stmt = $pdo->prepare("
+                INSERT INTO customers (name, email, password, company, phone, country, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, 'pending_verification', NOW())
+            ");
+            $stmt->execute([
+                $customerData['name'],
+                $customerData['email'],
+                password_hash($customerData['password'], PASSWORD_DEFAULT),
+                $customerData['company'],
+                $customerData['phone'],
+                $customerData['country']
+            ]);
+            $customerId = $pdo->lastInsertId();
+
+            Logger::info("[RegisterController] Customer created with ID: {$customerId}");
+
+            // 2. Crear tenant en estado 'waiting_ns_change'
+            $stmt = $pdo->prepare("
+                INSERT INTO tenants (
+                    customer_id,
+                    domain,
+                    name,
+                    is_subdomain,
+                    plan,
+                    status,
+                    cloudflare_proxied,
+                    email_routing_enabled,
+                    language,
+                    created_at
+                ) VALUES (?, ?, ?, 0, 'custom', 'pending', 1, ?, ?, NOW())
+            ");
+            $stmt->execute([
+                $customerId,
+                $domain,
+                $customerData['company'] ?: $customerData['name'],
+                $enableEmailRouting ? 1 : 0,
+                $language
+            ]);
+            $tenantId = $pdo->lastInsertId();
+
+            Logger::info("[RegisterController] Tenant created with ID: {$tenantId} for domain: {$domain}");
+
+            // 3. Añadir dominio a Cloudflare
+            $cloudflareZoneService = new \CaddyDomainManager\Services\CloudflareZoneService();
+            $zoneResult = $cloudflareZoneService->addFullZone($domain);
+
+            // 4. Guardar zone_id y nameservers
+            $stmt = $pdo->prepare("
+                UPDATE tenants
+                SET cloudflare_zone_id = ?,
+                    cloudflare_nameservers = ?,
+                    status = 'waiting_ns_change'
+                WHERE id = ?
+            ");
+            $stmt->execute([
+                $zoneResult['zone_id'],
+                json_encode($zoneResult['nameservers']),
+                $tenantId
+            ]);
+
+            Logger::info("[RegisterController] Zone added to Cloudflare. Zone ID: {$zoneResult['zone_id']}");
+
+            // 5. Crear CNAMEs @ y www → mortadelo.musedock.com
+            $cloudflareZoneService->createProxiedCNAME($zoneResult['zone_id'], '@', 'mortadelo.musedock.com', true);
+            $cloudflareZoneService->createProxiedCNAME($zoneResult['zone_id'], 'www', 'mortadelo.musedock.com', true);
+
+            Logger::info("[RegisterController] CNAMEs created for {$domain}");
+
+            // 6. Habilitar Email Routing si se solicitó
+            if ($enableEmailRouting) {
+                try {
+                    $emailResult = $cloudflareZoneService->enableEmailRouting($zoneResult['zone_id'], $customerData['email']);
+                    if ($emailResult['enabled']) {
+                        Logger::info("[RegisterController] Email Routing enabled for {$domain} → {$customerData['email']}");
+                    }
+                } catch (\Exception $e) {
+                    Logger::warning("[RegisterController] Email Routing failed: " . $e->getMessage());
+                }
+            }
+
+            // 7. Enviar email con instrucciones de NS
+            $this->sendNSChangeInstructions($customerData['name'], $customerData['email'], $domain, $zoneResult['nameservers']);
+
+            $pdo->commit();
+
+            return [
+                'success' => true,
+                'customer_id' => $customerId,
+                'tenant_id' => $tenantId,
+                'domain' => $domain,
+                'nameservers' => $zoneResult['nameservers']
+            ];
+
+        } catch (\Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            Logger::error("[RegisterController] Custom domain provisioning failed: " . $e->getMessage());
+            return ['success' => false, 'error' => 'Error al configurar el dominio: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Envía email con instrucciones de cambio de nameservers
+     */
+    private function sendNSChangeInstructions(string $name, string $email, string $domain, array $nameservers): void
+    {
+        try {
+            $ns1 = $nameservers[0] ?? 'N/A';
+            $ns2 = $nameservers[1] ?? 'N/A';
+
+            $subject = "Instrucciones para Activar tu Dominio - {$domain}";
+
+            $body = "
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset='UTF-8'></head>
+            <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;'>
+                <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;'>
+                    <h1 style='margin: 0; font-size: 28px;'>🚀 ¡Tu Dominio Está Casi Listo!</h1>
+                </div>
+
+                <div style='background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;'>
+                    <p style='font-size: 16px;'>Hola <strong>{$name}</strong>,</p>
+
+                    <p>Tu dominio <strong style='color: #667eea;'>{$domain}</strong> ha sido añadido exitosamente. 🎉</p>
+
+                    <div style='background: white; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 5px;'>
+                        <h3 style='margin-top: 0; color: #667eea;'>📋 Siguiente Paso: Cambiar los Nameservers</h3>
+                        <p>Para activar tu sitio web, cambia los nameservers de tu dominio a:</p>
+
+                        <div style='background: #f0f0f0; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 14px;'>
+                            <strong>Nameserver 1:</strong> {$ns1}<br>
+                            <strong>Nameserver 2:</strong> {$ns2}
+                        </div>
+                    </div>
+
+                    <div style='background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px;'>
+                        <p style='margin: 0; font-size: 14px;'>
+                            ⏱️ <strong>Importante:</strong> El cambio puede tardar entre <strong>2 y 48 horas</strong> en propagarse.
+                        </p>
+                    </div>
+
+                    <p style='text-align: center; margin-top: 30px;'>
+                        <a href='https://musedock.com/customer/dashboard' style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white !important; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;'>Ver Mi Dashboard</a>
+                    </p>
+                </div>
+
+                <div style='text-align: center; margin-top: 20px; padding: 20px; font-size: 12px; color: #999;'>
+                    <p style='margin: 5px 0;'>© " . date('Y') . " MuseDock</p>
+                </div>
+            </body>
+            </html>
+            ";
+
+            \Screenart\Musedock\Mail\Mailer::send($email, $subject, $body);
+            Logger::info("[RegisterController] NS instructions email sent to {$email}");
+
+        } catch (\Exception $e) {
+            Logger::error("[RegisterController] Failed to send NS instructions: " . $e->getMessage());
+        }
     }
 
     /**

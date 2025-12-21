@@ -171,6 +171,10 @@ Route::post('/register', 'CaddyDomainManager\Controllers\RegisterController@regi
 Route::get('/customer/check-subdomain', 'CaddyDomainManager\Controllers\RegisterController@checkSubdomainAvailability')
     ->name('customer.check-subdomain');
 
+// Check custom domain availability (AJAX)
+Route::get('/customer/check-custom-domain', 'CaddyDomainManager\Controllers\RegisterController@checkCustomDomainAvailability')
+    ->name('customer.check-custom-domain');
+
 // Login
 Route::get('/customer/login', 'CaddyDomainManager\Controllers\CustomerController@showLoginForm')
     ->name('customer.login.form');
@@ -228,6 +232,40 @@ Route::post('/customer/tenant/{id}/retry', 'CaddyDomainManager\Controllers\Custo
 Route::get('/customer/tenant/{id}/health-check', 'CaddyDomainManager\Controllers\CustomerController@healthCheck')
     ->middleware('customer')
     ->name('customer.tenant.health-check');
+
+// ============================================
+// CUSTOMER DOMAIN MANAGEMENT (DNS + Email Routing)
+// ============================================
+
+// Panel de gestión de dominio
+Route::get('/customer/domain/{id}/manage', 'CaddyDomainManager\Controllers\CustomerDomainController@manage')
+    ->middleware('customer')
+    ->name('customer.domain.manage');
+
+// Activar Email Routing
+Route::post('/customer/domain/{id}/email-routing/enable', 'CaddyDomainManager\Controllers\CustomerDomainController@enableEmailRouting')
+    ->middleware('customer')
+    ->name('customer.domain.email-routing.enable');
+
+// Desactivar Email Routing
+Route::post('/customer/domain/{id}/email-routing/disable', 'CaddyDomainManager\Controllers\CustomerDomainController@disableEmailRouting')
+    ->middleware('customer')
+    ->name('customer.domain.email-routing.disable');
+
+// Crear regla de forwarding
+Route::post('/customer/domain/{id}/email-routing/rules', 'CaddyDomainManager\Controllers\CustomerDomainController@createEmailRule')
+    ->middleware('customer')
+    ->name('customer.domain.email-routing.create-rule');
+
+// Eliminar regla de forwarding
+Route::post('/customer/domain/{id}/email-routing/rules/{ruleId}/delete', 'CaddyDomainManager\Controllers\CustomerDomainController@deleteEmailRule')
+    ->middleware('customer')
+    ->name('customer.domain.email-routing.delete-rule');
+
+// Actualizar catch-all
+Route::post('/customer/domain/{id}/email-routing/catch-all', 'CaddyDomainManager\Controllers\CustomerDomainController@updateCatchAll')
+    ->middleware('customer')
+    ->name('customer.domain.email-routing.catch-all');
 
 // ============================================
 // FREE SUBDOMAIN REQUEST

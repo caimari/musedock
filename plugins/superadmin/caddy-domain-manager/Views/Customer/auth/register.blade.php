@@ -10,6 +10,7 @@
 
                     <form id="registerForm" method="POST" action="/register">
                         <input type="hidden" name="_csrf_token" value="<?= $csrf_token ?>">
+                        <input type="hidden" name="domain_type" id="domain_type" value="subdomain">
 
                         <div class="mb-3">
                             <label for="name" class="form-label fw-semibold">Nombre completo</label>
@@ -21,15 +22,56 @@
                             <input type="email" class="form-control" id="email" name="email" required placeholder="tu@email.com">
                         </div>
 
+                        <!-- Selector de tipo de dominio -->
                         <div class="mb-3">
+                            <label class="form-label fw-semibold">Tipo de dominio</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="domain_option" id="option_subdomain" value="subdomain" checked>
+                                <label class="btn btn-outline-primary" for="option_subdomain">
+                                    <i class="bi bi-gift me-1"></i> Subdominio FREE
+                                </label>
+                                <input type="radio" class="btn-check" name="domain_option" id="option_custom" value="custom">
+                                <label class="btn btn-outline-primary" for="option_custom">
+                                    <i class="bi bi-globe me-1"></i> Mi Dominio Propio
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Opción 1: Subdominio FREE -->
+                        <div class="mb-3" id="subdomain_section">
                             <label for="subdomain" class="form-label fw-semibold">Elige tu subdominio</label>
                             <div class="input-group">
-                                <input type="text" class="form-control" id="subdomain" name="subdomain" required
+                                <input type="text" class="form-control" id="subdomain" name="subdomain"
                                        placeholder="miempresa" pattern="[a-z0-9\-]+"
                                        title="Solo letras minúsculas, números y guiones">
                                 <span class="input-group-text">.musedock.com</span>
                             </div>
                             <div id="subdomain-indicator" class="mt-2"></div>
+                        </div>
+
+                        <!-- Opción 2: Dominio Propio -->
+                        <div class="mb-3 d-none" id="custom_domain_section">
+                            <label for="custom_domain" class="form-label fw-semibold">Tu dominio</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-globe"></i></span>
+                                <input type="text" class="form-control" id="custom_domain" name="custom_domain"
+                                       placeholder="miempresa.com"
+                                       pattern="^[a-zA-Z0-9][a-zA-Z0-9-]*\.[a-zA-Z]{2,}$">
+                            </div>
+                            <div class="form-text">Introduce tu dominio sin www (ejemplo: miempresa.com)</div>
+                            <div id="custom-domain-indicator" class="mt-2"></div>
+
+                            <div class="alert alert-info mt-3 py-2 px-3" style="font-size: 0.85rem;">
+                                <i class="bi bi-info-circle me-1"></i>
+                                <strong>Próximo paso:</strong> Después del registro, te daremos los nameservers de Cloudflare para que configures tu dominio.
+                            </div>
+
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" name="enable_email_routing" id="enable_email_routing" value="1">
+                                <label class="form-check-label" for="enable_email_routing">
+                                    <small>Habilitar Email Routing (recibir correos del dominio en mi email)</small>
+                                </label>
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -117,15 +159,96 @@
 </div>
 
 <style>
-#subdomain-indicator .available { color: #28a745; font-weight: bold; }
-#subdomain-indicator .not-available { color: #dc3545; font-weight: bold; }
-#subdomain-indicator .checking { color: #6c757d; }
+#subdomain-indicator .available,
+#custom-domain-indicator .available { color: #28a745; font-weight: bold; }
+#subdomain-indicator .not-available,
+#custom-domain-indicator .not-available { color: #dc3545; font-weight: bold; }
+#subdomain-indicator .checking,
+#custom-domain-indicator .checking { color: #6c757d; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 let subdomainAvailable = false;
+let customDomainValid = false;
+let currentDomainType = 'subdomain';
 let checkTimeout;
+
+// Toggle entre subdomain y custom domain
+document.querySelectorAll('input[name="domain_option"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        currentDomainType = this.value;
+        document.getElementById('domain_type').value = this.value;
+
+        if (this.value === 'subdomain') {
+            document.getElementById('subdomain_section').classList.remove('d-none');
+            document.getElementById('custom_domain_section').classList.add('d-none');
+            document.getElementById('subdomain').required = true;
+            document.getElementById('custom_domain').required = false;
+        } else {
+            document.getElementById('subdomain_section').classList.add('d-none');
+            document.getElementById('custom_domain_section').classList.remove('d-none');
+            document.getElementById('subdomain').required = false;
+            document.getElementById('custom_domain').required = true;
+        }
+        updateSubmitButton();
+    });
+});
+
+// Validar dominio personalizado
+document.getElementById('custom_domain').addEventListener('input', function(e) {
+    const domain = e.target.value.toLowerCase().trim();
+    const indicator = document.getElementById('custom-domain-indicator');
+
+    // Convertir a minúsculas
+    e.target.value = domain;
+
+    clearTimeout(checkTimeout);
+
+    if (domain.length < 4 || !domain.includes('.')) {
+        indicator.innerHTML = '<span class="text-muted">Introduce un dominio válido (ej: miempresa.com)</span>';
+        customDomainValid = false;
+        updateSubmitButton();
+        return;
+    }
+
+    // No permitir subdominios de musedock.com
+    if (domain.includes('musedock.com')) {
+        indicator.innerHTML = '<span class="not-available">❌ Para subdominios de musedock.com usa la opción "Subdominio FREE"</span>';
+        customDomainValid = false;
+        updateSubmitButton();
+        return;
+    }
+
+    indicator.innerHTML = '<span class="checking">⏳ Verificando disponibilidad...</span>';
+
+    checkTimeout = setTimeout(() => {
+        checkCustomDomainAvailability(domain);
+    }, 500);
+});
+
+function checkCustomDomainAvailability(domain) {
+    const indicator = document.getElementById('custom-domain-indicator');
+
+    fetch('/customer/check-custom-domain?domain=' + encodeURIComponent(domain))
+        .then(response => response.json())
+        .then(data => {
+            if (data.available) {
+                indicator.innerHTML = '<span class="available">✅ ' + (data.message || 'Dominio disponible para registro') + '</span>';
+                customDomainValid = true;
+            } else {
+                indicator.innerHTML = '<span class="not-available">❌ ' + (data.error || 'Este dominio ya está registrado en el sistema') + '</span>';
+                customDomainValid = false;
+            }
+            updateSubmitButton();
+        })
+        .catch(error => {
+            // Si no existe el endpoint, asumimos válido (se validará en backend)
+            indicator.innerHTML = '<span class="available">✅ Formato de dominio válido</span>';
+            customDomainValid = true;
+            updateSubmitButton();
+        });
+}
 
 // Validar subdominio en tiempo real
 document.getElementById('subdomain').addEventListener('input', function(e) {
@@ -179,9 +302,21 @@ function updateSubmitButton() {
     const form = document.getElementById('registerForm');
     const submitBtn = document.getElementById('submitBtn');
     const termsChecked = document.getElementById('terms').checked;
-    const formValid = form.checkValidity();
 
-    submitBtn.disabled = !(subdomainAvailable && termsChecked && formValid);
+    let domainValid = false;
+    if (currentDomainType === 'subdomain') {
+        domainValid = subdomainAvailable;
+    } else {
+        domainValid = customDomainValid;
+    }
+
+    // Verificar otros campos del formulario
+    const nameValid = document.getElementById('name').value.trim().length >= 3;
+    const emailValid = document.getElementById('email').value.includes('@');
+    const passwordValid = document.getElementById('password').value.length >= 8;
+    const passwordMatch = document.getElementById('password').value === document.getElementById('password_confirm').value;
+
+    submitBtn.disabled = !(domainValid && termsChecked && nameValid && emailValid && passwordValid && passwordMatch);
 }
 
 document.getElementById('terms').addEventListener('change', updateSubmitButton);
@@ -204,19 +339,49 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: '¡Cuenta creada!',
-                html: `
-                    <p>Tu sitio está listo en:</p>
-                    <p class="h5 text-primary">${data.domain}</p>
-                    <p class="mt-3">Redirigiendo al dashboard...</p>
-                `,
-                showConfirmButton: false,
-                timer: 3000
-            }).then(() => {
-                window.location.href = '/customer/dashboard';
-            });
+            // Si es dominio custom, mostrar nameservers
+            if (data.nameservers && data.nameservers.length > 0) {
+                let nsHtml = `
+                    <p class="mb-3">Tu dominio <strong class="text-primary">${data.domain}</strong> ha sido registrado.</p>
+                    <div class="alert alert-warning text-start py-2 px-3">
+                        <strong><i class="bi bi-exclamation-triangle me-1"></i> Importante:</strong><br>
+                        Cambia los nameservers de tu dominio a:
+                    </div>
+                    <div class="bg-light p-3 rounded text-start mb-3">
+                `;
+                data.nameservers.forEach((ns, i) => {
+                    nsHtml += `<code class="d-block mb-1">NS${i+1}: ${ns}</code>`;
+                });
+                nsHtml += `
+                    </div>
+                    <p class="text-muted small">Te hemos enviado un email con instrucciones detalladas.</p>
+                `;
+
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Cuenta creada!',
+                    html: nsHtml,
+                    confirmButtonColor: '#667eea',
+                    confirmButtonText: 'Ir al Dashboard'
+                }).then(() => {
+                    window.location.href = '/customer/dashboard';
+                });
+            } else {
+                // Subdominio FREE - flujo normal
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Cuenta creada!',
+                    html: `
+                        <p>Tu sitio está listo en:</p>
+                        <p class="h5 text-primary">${data.domain}</p>
+                        <p class="mt-3">Redirigiendo al dashboard...</p>
+                    `,
+                    showConfirmButton: false,
+                    timer: 3000
+                }).then(() => {
+                    window.location.href = '/customer/dashboard';
+                });
+            }
         } else {
             Swal.fire({
                 icon: 'error',
