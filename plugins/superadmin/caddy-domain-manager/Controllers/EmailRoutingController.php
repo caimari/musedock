@@ -63,19 +63,38 @@ class EmailRoutingController
             $zoneId = $tenant['cloudflare_zone_id'];
 
             // Obtener estado de Email Routing
-            $emailRoutingStatus = $cloudflareService->getEmailRoutingStatus($zoneId);
+            $emailRoutingStatus = ['enabled' => false];
+            try {
+                $emailRoutingStatus = $cloudflareService->getEmailRoutingStatus($zoneId);
+            } catch (Exception $e) {
+                Logger::log("[EmailRouting] Error getting status: " . $e->getMessage(), 'WARNING');
+            }
 
             // Obtener reglas de routing
             $routingRules = [];
             if ($emailRoutingStatus['enabled']) {
-                $routingRules = $cloudflareService->listEmailRoutingRules($zoneId);
+                try {
+                    $routingRules = $cloudflareService->listEmailRoutingRules($zoneId);
+                } catch (Exception $e) {
+                    Logger::log("[EmailRouting] Error listing rules: " . $e->getMessage(), 'WARNING');
+                }
             }
 
             // Obtener catch-all rule
-            $catchAllRule = $cloudflareService->getCatchAllRule($zoneId);
+            $catchAllRule = null;
+            try {
+                $catchAllRule = $cloudflareService->getCatchAllRule($zoneId);
+            } catch (Exception $e) {
+                Logger::log("[EmailRouting] Error getting catch-all: " . $e->getMessage(), 'WARNING');
+            }
 
             // Obtener destination addresses disponibles
-            $destinations = $cloudflareService->listEmailDestinations();
+            $destinations = [];
+            try {
+                $destinations = $cloudflareService->listEmailDestinations();
+            } catch (Exception $e) {
+                Logger::log("[EmailRouting] Error listing destinations: " . $e->getMessage(), 'WARNING');
+            }
 
             echo View::renderTheme('Superadmin/plugins/caddy-domain-manager/email-routing', [
                 'page_title' => "Email Routing - {$tenant['name']}",
@@ -89,7 +108,7 @@ class EmailRoutingController
             ]);
 
         } catch (Exception $e) {
-            Logger::error("[EmailRouting] Error loading email routing panel: " . $e->getMessage());
+            Logger::log("[EmailRouting] Error loading email routing panel: " . $e->getMessage(), 'ERROR');
             flash('error', 'Error al cargar el panel de Email Routing: ' . $e->getMessage());
             header('Location: /musedock/domain-manager');
             exit;
