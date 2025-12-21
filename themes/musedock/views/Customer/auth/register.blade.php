@@ -29,7 +29,7 @@
               <!-- PASO 1: Seleccionar tipo de dominio -->
               <div class="mb-4">
                 <h5 class="fw-bold mb-3" style="color:#243141;">
-                  <span class="badge rounded-circle me-2" style="background: var(--primary-color);">1</span>
+                  <span class="badge rounded-circle me-2" style="background: var(--primary-color); color: white;">1</span>
                   {{ __('Elige tu tipo de dominio') }}
                 </h5>
 
@@ -47,15 +47,15 @@
                     </div>
                   </div>
 
-                  <!-- Opcion 2: Vincular Dominio Existente -->
+                  <!-- Opcion 2: Registrar Nuevo -->
                   <div class="col-md-6 col-lg-3">
-                    <div class="domain-option" data-type="connect">
+                    <div class="domain-option disabled" data-type="register">
                       <div class="option-icon">
-                        <i class="bi bi-link-45deg"></i>
+                        <i class="bi bi-cart-plus"></i>
                       </div>
-                      <div class="option-title">{{ __('Vincular Dominio') }}</div>
-                      <div class="option-desc">{{ __('Usa tu dominio existente') }}</div>
-                      <div class="option-badge available">{{ __('DISPONIBLE') }}</div>
+                      <div class="option-title">{{ __('Registrar Nuevo') }}</div>
+                      <div class="option-desc">{{ __('Compra un dominio nuevo') }}</div>
+                      <div class="option-badge coming">{{ __('PROXIMAMENTE') }}</div>
                       <div class="option-check"><i class="bi bi-check-circle-fill"></i></div>
                     </div>
                   </div>
@@ -73,15 +73,15 @@
                     </div>
                   </div>
 
-                  <!-- Opcion 4: Registrar Nuevo -->
+                  <!-- Opcion 4: Vincular Dominio Existente -->
                   <div class="col-md-6 col-lg-3">
-                    <div class="domain-option disabled" data-type="register">
+                    <div class="domain-option" data-type="connect">
                       <div class="option-icon">
-                        <i class="bi bi-cart-plus"></i>
+                        <i class="bi bi-link-45deg"></i>
                       </div>
-                      <div class="option-title">{{ __('Registrar Nuevo') }}</div>
-                      <div class="option-desc">{{ __('Compra un dominio nuevo') }}</div>
-                      <div class="option-badge coming">{{ __('PROXIMAMENTE') }}</div>
+                      <div class="option-title">{{ __('Vincular Dominio') }}</div>
+                      <div class="option-desc">{{ __('Usa tu dominio existente') }}</div>
+                      <div class="option-badge available">{{ __('DISPONIBLE') }}</div>
                       <div class="option-check"><i class="bi bi-check-circle-fill"></i></div>
                     </div>
                   </div>
@@ -109,7 +109,7 @@
               <!-- PASO 2: Configurar dominio -->
               <div class="mb-4">
                 <h5 class="fw-bold mb-3" style="color:#243141;">
-                  <span class="badge rounded-circle me-2" style="background: var(--primary-color);">2</span>
+                  <span class="badge rounded-circle me-2" style="background: var(--primary-color); color: white;">2</span>
                   {{ __('Configura tu dominio') }}
                 </h5>
 
@@ -212,7 +212,7 @@
               <!-- PASO 3: Datos de cuenta -->
               <div class="mb-0" id="account_section">
                 <h5 class="fw-bold mb-3" style="color:#243141;">
-                  <span class="badge rounded-circle me-2" style="background: var(--primary-color);">3</span>
+                  <span class="badge rounded-circle me-2" style="background: var(--primary-color); color: white;">3</span>
                   {{ __('Crea tu cuenta') }}
                 </h5>
 
