@@ -524,33 +524,49 @@ class DomainManagerController
             exit;
         }
 
+        // Obtener opción de eliminar de Cloudflare (por defecto true)
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        $deleteFromCloudflare = $input['deleteFromCloudflare'] ?? ($_POST['deleteFromCloudflare'] ?? true);
+
         $caddyWarning = null;
         $cloudflareWarning = null;
 
         try {
-            // 1. Intentar eliminar de Cloudflare
-            // A) Dominios personalizados: eliminar la zona completa
-            if (!($tenant->is_subdomain ?? false) && ($tenant->cloudflare_zone_id ?? null)) {
-                try {
-                    $cloudflareZoneService = new \CaddyDomainManager\Services\CloudflareZoneService();
-                    $cloudflareZoneService->deleteZone($tenant->cloudflare_zone_id);
-                    Logger::log("[DomainManager] Zona de Cloudflare eliminada: {$tenant->cloudflare_zone_id} ({$tenant->domain})", 'INFO');
-                } catch (\Exception $e) {
-                    $cloudflareWarning = "No se pudo eliminar la zona de Cloudflare: " . $e->getMessage();
-                    Logger::log("[DomainManager] Warning eliminando zona de Cloudflare: " . $e->getMessage(), 'WARNING');
+            // 1. Intentar eliminar de Cloudflare (solo si el usuario lo solicitó)
+            if ($deleteFromCloudflare) {
+                // A) Dominios personalizados: eliminar la zona completa
+                if (!($tenant->is_subdomain ?? false) && ($tenant->cloudflare_zone_id ?? null)) {
+                    try {
+                        $cloudflareZoneService = new \CaddyDomainManager\Services\CloudflareZoneService();
+                        $cloudflareZoneService->deleteZone($tenant->cloudflare_zone_id);
+                        Logger::log("[DomainManager] Zona de Cloudflare eliminada: {$tenant->cloudflare_zone_id} ({$tenant->domain})", 'INFO');
+                    } catch (\Exception $e) {
+                        $errorMsg = $e->getMessage();
+                        // Caso especial: dominio registrado en Cloudflare Registrar
+                        if (strpos($errorMsg, 'Cloudflare Registrar') !== false) {
+                            $cloudflareWarning = "La zona permanece en Cloudflare porque el dominio está registrado con Cloudflare Registrar. " .
+                                               "Para eliminarlo completamente, transfiere el dominio a otro registrador primero.";
+                            Logger::log("[DomainManager] Dominio {$tenant->domain} usa Cloudflare Registrar - zona no eliminada", 'WARNING');
+                        } else {
+                            $cloudflareWarning = "No se pudo eliminar la zona de Cloudflare: " . $errorMsg;
+                            Logger::log("[DomainManager] Warning eliminando zona de Cloudflare: " . $errorMsg, 'WARNING');
+                        }
+                    }
                 }
-            }
-            // B) Subdominios FREE: eliminar solo el registro DNS
-            elseif (($tenant->is_subdomain ?? false) && ($tenant->cloudflare_record_id ?? null)) {
-                $cloudflareService = new \CaddyDomainManager\Services\CloudflareService();
-                $cloudflareResult = $cloudflareService->deleteRecord($tenant->cloudflare_record_id);
+                // B) Subdominios FREE: eliminar solo el registro DNS
+                elseif (($tenant->is_subdomain ?? false) && ($tenant->cloudflare_record_id ?? null)) {
+                    $cloudflareService = new \CaddyDomainManager\Services\CloudflareService();
+                    $cloudflareResult = $cloudflareService->deleteRecord($tenant->cloudflare_record_id);
 
-                if (!$cloudflareResult['success']) {
-                    $cloudflareWarning = "El registro DNS de Cloudflare podría seguir activo. Error: " . ($cloudflareResult['error'] ?? 'desconocido');
-                    Logger::log("[DomainManager] Warning eliminando de Cloudflare: " . $cloudflareWarning, 'WARNING');
-                } else {
-                    Logger::log("[DomainManager] Registro DNS eliminado de Cloudflare: {$tenant->cloudflare_record_id}", 'INFO');
+                    if (!$cloudflareResult['success']) {
+                        $cloudflareWarning = "El registro DNS de Cloudflare podría seguir activo. Error: " . ($cloudflareResult['error'] ?? 'desconocido');
+                        Logger::log("[DomainManager] Warning eliminando de Cloudflare: " . $cloudflareWarning, 'WARNING');
+                    } else {
+                        Logger::log("[DomainManager] Registro DNS eliminado de Cloudflare: {$tenant->cloudflare_record_id}", 'INFO');
+                    }
                 }
+            } else {
+                Logger::log("[DomainManager] Usuario eligió NO eliminar de Cloudflare: {$tenant->domain}", 'INFO');
             }
 
             // 2. Intentar eliminar de Caddy si existe configuración
@@ -1416,6 +1432,9 @@ class DomainManagerController
             exit;
         }
 
+        // Obtener opción de eliminar de Cloudflare (por defecto true)
+        $deleteFromCloudflare = $input['deleteFromCloudflare'] ?? true;
+
         // Proceder con la eliminación
         $tenant = $this->getTenant($id);
 
@@ -1429,29 +1448,41 @@ class DomainManagerController
         $cloudflareWarning = null;
 
         try {
-            // 1. Intentar eliminar de Cloudflare
-            // A) Dominios personalizados: eliminar la zona completa
-            if (!($tenant->is_subdomain ?? false) && ($tenant->cloudflare_zone_id ?? null)) {
-                try {
-                    $cloudflareZoneService = new \CaddyDomainManager\Services\CloudflareZoneService();
-                    $cloudflareZoneService->deleteZone($tenant->cloudflare_zone_id);
-                    Logger::log("[DomainManager] Zona de Cloudflare eliminada: {$tenant->cloudflare_zone_id} ({$tenant->domain})", 'INFO');
-                } catch (\Exception $e) {
-                    $cloudflareWarning = "No se pudo eliminar la zona de Cloudflare: " . $e->getMessage();
-                    Logger::log("[DomainManager] Warning eliminando zona de Cloudflare: " . $e->getMessage(), 'WARNING');
+            // 1. Intentar eliminar de Cloudflare (solo si el usuario lo solicitó)
+            if ($deleteFromCloudflare) {
+                // A) Dominios personalizados: eliminar la zona completa
+                if (!($tenant->is_subdomain ?? false) && ($tenant->cloudflare_zone_id ?? null)) {
+                    try {
+                        $cloudflareZoneService = new \CaddyDomainManager\Services\CloudflareZoneService();
+                        $cloudflareZoneService->deleteZone($tenant->cloudflare_zone_id);
+                        Logger::log("[DomainManager] Zona de Cloudflare eliminada: {$tenant->cloudflare_zone_id} ({$tenant->domain})", 'INFO');
+                    } catch (\Exception $e) {
+                        $errorMsg = $e->getMessage();
+                        // Caso especial: dominio registrado en Cloudflare Registrar
+                        if (strpos($errorMsg, 'Cloudflare Registrar') !== false) {
+                            $cloudflareWarning = "La zona permanece en Cloudflare porque el dominio está registrado con Cloudflare Registrar. " .
+                                               "Para eliminarlo completamente, transfiere el dominio a otro registrador primero.";
+                            Logger::log("[DomainManager] Dominio {$tenant->domain} usa Cloudflare Registrar - zona no eliminada", 'WARNING');
+                        } else {
+                            $cloudflareWarning = "No se pudo eliminar la zona de Cloudflare: " . $errorMsg;
+                            Logger::log("[DomainManager] Warning eliminando zona de Cloudflare: " . $errorMsg, 'WARNING');
+                        }
+                    }
                 }
-            }
-            // B) Subdominios FREE: eliminar solo el registro DNS
-            elseif (($tenant->is_subdomain ?? false) && ($tenant->cloudflare_record_id ?? null)) {
-                $cloudflareService = new \CaddyDomainManager\Services\CloudflareService();
-                $cloudflareResult = $cloudflareService->deleteRecord($tenant->cloudflare_record_id);
+                // B) Subdominios FREE: eliminar solo el registro DNS
+                elseif (($tenant->is_subdomain ?? false) && ($tenant->cloudflare_record_id ?? null)) {
+                    $cloudflareService = new \CaddyDomainManager\Services\CloudflareService();
+                    $cloudflareResult = $cloudflareService->deleteRecord($tenant->cloudflare_record_id);
 
-                if (!$cloudflareResult['success']) {
-                    $cloudflareWarning = "El registro DNS de Cloudflare podría seguir activo.";
-                    Logger::log("[DomainManager] Warning eliminando de Cloudflare: " . ($cloudflareResult['error'] ?? 'Error desconocido'), 'WARNING');
-                } else {
-                    Logger::log("[DomainManager] Registro DNS eliminado de Cloudflare: {$tenant->cloudflare_record_id}", 'INFO');
+                    if (!$cloudflareResult['success']) {
+                        $cloudflareWarning = "El registro DNS de Cloudflare podría seguir activo.";
+                        Logger::log("[DomainManager] Warning eliminando de Cloudflare: " . ($cloudflareResult['error'] ?? 'Error desconocido'), 'WARNING');
+                    } else {
+                        Logger::log("[DomainManager] Registro DNS eliminado de Cloudflare: {$tenant->cloudflare_record_id}", 'INFO');
+                    }
                 }
+            } else {
+                Logger::log("[DomainManager] Usuario eligió NO eliminar de Cloudflare: {$tenant->domain}", 'INFO');
             }
 
             // 2. Intentar eliminar de Caddy si existe configuración

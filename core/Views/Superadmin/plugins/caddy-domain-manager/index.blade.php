@@ -219,6 +219,13 @@ function confirmDelete(id, domain) {
                     <i class="bi bi-trash me-2"></i>
                     <small><strong>Esta acción no se puede deshacer.</strong> Se eliminará la configuración de Caddy y todos los datos asociados.</small>
                 </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="deleteFromCloudflare" checked>
+                    <label class="form-check-label" for="deleteFromCloudflare">
+                        <i class="bi bi-cloud me-1"></i> Eliminar también de Cloudflare
+                        <br><small class="text-muted">Desmarcar si quieres mantener la zona/registro DNS en Cloudflare</small>
+                    </label>
+                </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Introduce tu contraseña para confirmar:</label>
                     <input type="password" id="deletePassword" class="form-control" placeholder="Contraseña del superadmin" autocomplete="current-password">
@@ -230,7 +237,7 @@ function confirmDelete(id, domain) {
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#dc3545',
         cancelButtonColor: '#6c757d',
-        width: '450px',
+        width: '500px',
         focusConfirm: false,
         didOpen: () => {
             document.getElementById('deletePassword').focus();
@@ -241,7 +248,10 @@ function confirmDelete(id, domain) {
                 Swal.showValidationMessage('La contraseña es requerida');
                 return false;
             }
-            return password;
+            return {
+                password: password,
+                deleteFromCloudflare: document.getElementById('deleteFromCloudflare').checked
+            };
         }
     }).then((result) => {
         if (result.isConfirmed) {
@@ -262,7 +272,8 @@ function confirmDelete(id, domain) {
                 },
                 body: JSON.stringify({
                     _csrf: csrfToken,
-                    password: result.value
+                    password: result.value.password,
+                    deleteFromCloudflare: result.value.deleteFromCloudflare
                 })
             })
             .then(response => response.json())

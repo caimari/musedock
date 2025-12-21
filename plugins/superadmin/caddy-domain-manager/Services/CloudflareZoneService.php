@@ -645,13 +645,10 @@ class CloudflareZoneService
     {
         Logger::info("[CloudflareZone] Deleting zone {$zoneId}");
 
+        // makeRequest ya lanza Exception con el mensaje real de Cloudflare si falla
         $response = $this->makeRequest('DELETE', "/zones/{$zoneId}");
 
-        if (!$response['success']) {
-            throw new Exception('Failed to delete zone');
-        }
-
-        Logger::info("[CloudflareZone] Zone deleted successfully");
+        Logger::info("[CloudflareZone] Zone {$zoneId} deleted successfully");
         return true;
     }
 
