@@ -213,6 +213,21 @@ Route::get('/customer/profile', 'CaddyDomainManager\Controllers\CustomerControll
     ->middleware('customer')
     ->name('customer.profile');
 
+// Update profile
+Route::post('/customer/profile/update', 'CaddyDomainManager\Controllers\CustomerController@updateProfile')
+    ->middleware('customer')
+    ->name('customer.profile.update');
+
+// Change password
+Route::post('/customer/profile/change-password', 'CaddyDomainManager\Controllers\CustomerController@changePassword')
+    ->middleware('customer')
+    ->name('customer.profile.change-password');
+
+// Delete account
+Route::post('/customer/delete-account', 'CaddyDomainManager\Controllers\CustomerController@deleteAccount')
+    ->middleware('customer')
+    ->name('customer.delete-account');
+
 // Logout
 Route::post('/customer/logout', 'CaddyDomainManager\Controllers\CustomerController@logout')
     ->middleware('customer')

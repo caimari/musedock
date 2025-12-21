@@ -709,4 +709,195 @@ class CustomerController
         // Renderizar usando el sistema de temas (con Blade compilado)
         echo \Screenart\Musedock\View::renderTheme($viewPath, $data);
     }
+
+    /**
+     * Actualizar perfil del customer
+     *
+     * POST /customer/profile/update
+     */
+    public function updateProfile(): void
+    {
+        SessionSecurity::startSession();
+
+        if (!isset($_SESSION['customer'])) {
+            $this->jsonResponse(['success' => false, 'error' => 'No autenticado'], 401);
+            return;
+        }
+
+        if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
+            $this->jsonResponse(['success' => false, 'error' => 'Token CSRF invalido'], 403);
+            return;
+        }
+
+        $customerId = $_SESSION['customer']['id'];
+        $name = trim($_POST['name'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+
+        if (empty($name)) {
+            $this->jsonResponse(['success' => false, 'error' => 'El nombre es obligatorio'], 400);
+            return;
+        }
+
+        try {
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("UPDATE customers SET name = ?, phone = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->execute([$name, $phone ?: null, $customerId]);
+
+            // Actualizar sesion
+            $_SESSION['customer']['name'] = $name;
+            $_SESSION['customer']['phone'] = $phone;
+
+            Logger::info("[CustomerController] Profile updated for customer {$customerId}");
+
+            $this->jsonResponse(['success' => true, 'message' => 'Perfil actualizado correctamente']);
+
+        } catch (\Exception $e) {
+            Logger::error("[CustomerController] Error updating profile: " . $e->getMessage());
+            $this->jsonResponse(['success' => false, 'error' => 'Error al actualizar el perfil'], 500);
+        }
+    }
+
+    /**
+     * Cambiar contrasena del customer
+     *
+     * POST /customer/profile/change-password
+     */
+    public function changePassword(): void
+    {
+        SessionSecurity::startSession();
+
+        if (!isset($_SESSION['customer'])) {
+            $this->jsonResponse(['success' => false, 'error' => 'No autenticado'], 401);
+            return;
+        }
+
+        if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
+            $this->jsonResponse(['success' => false, 'error' => 'Token CSRF invalido'], 403);
+            return;
+        }
+
+        $customerId = $_SESSION['customer']['id'];
+        $currentPassword = $_POST['current_password'] ?? '';
+        $newPassword = $_POST['new_password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
+
+        if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
+            $this->jsonResponse(['success' => false, 'error' => 'Todos los campos son obligatorios'], 400);
+            return;
+        }
+
+        if ($newPassword !== $confirmPassword) {
+            $this->jsonResponse(['success' => false, 'error' => 'Las contrasenas no coinciden'], 400);
+            return;
+        }
+
+        if (strlen($newPassword) < 8) {
+            $this->jsonResponse(['success' => false, 'error' => 'La contrasena debe tener al menos 8 caracteres'], 400);
+            return;
+        }
+
+        try {
+            $pdo = Database::connect();
+
+            // Verificar contrasena actual
+            $stmt = $pdo->prepare("SELECT password FROM customers WHERE id = ?");
+            $stmt->execute([$customerId]);
+            $customer = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$customer || !password_verify($currentPassword, $customer['password'])) {
+                $this->jsonResponse(['success' => false, 'error' => 'La contrasena actual es incorrecta'], 400);
+                return;
+            }
+
+            // Actualizar contrasena
+            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare("UPDATE customers SET password = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->execute([$hashedPassword, $customerId]);
+
+            Logger::info("[CustomerController] Password changed for customer {$customerId}");
+
+            $this->jsonResponse(['success' => true, 'message' => 'Contrasena cambiada correctamente']);
+
+        } catch (\Exception $e) {
+            Logger::error("[CustomerController] Error changing password: " . $e->getMessage());
+            $this->jsonResponse(['success' => false, 'error' => 'Error al cambiar la contrasena'], 500);
+        }
+    }
+
+    /**
+     * Eliminar cuenta del customer (soft delete)
+     *
+     * POST /customer/delete-account
+     */
+    public function deleteAccount(): void
+    {
+        SessionSecurity::startSession();
+
+        if (!isset($_SESSION['customer'])) {
+            $this->jsonResponse(['success' => false, 'error' => 'No autenticado'], 401);
+            return;
+        }
+
+        if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
+            $this->jsonResponse(['success' => false, 'error' => 'Token CSRF invalido'], 403);
+            return;
+        }
+
+        $customerId = $_SESSION['customer']['id'];
+        $password = $_POST['password'] ?? '';
+
+        if (empty($password)) {
+            $this->jsonResponse(['success' => false, 'error' => 'Debes confirmar tu contrasena'], 400);
+            return;
+        }
+
+        try {
+            $pdo = Database::connect();
+
+            // Verificar contrasena
+            $stmt = $pdo->prepare("SELECT password FROM customers WHERE id = ? AND deleted_at IS NULL");
+            $stmt->execute([$customerId]);
+            $customer = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$customer || !password_verify($password, $customer['password'])) {
+                $this->jsonResponse(['success' => false, 'error' => 'Contrasena incorrecta'], 400);
+                return;
+            }
+
+            // Verificar que no tenga tenants activos
+            $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM tenants WHERE customer_id = ?");
+            $stmt->execute([$customerId]);
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($result['count'] > 0) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'error' => 'No puedes eliminar tu cuenta mientras tengas dominios/subdominios activos'
+                ], 400);
+                return;
+            }
+
+            // Soft delete: marcar como eliminado
+            $stmt = $pdo->prepare("
+                UPDATE customers
+                SET deleted_at = NOW(),
+                    deletion_reason = 'User requested account deletion',
+                    status = 'suspended',
+                    updated_at = NOW()
+                WHERE id = ?
+            ");
+            $stmt->execute([$customerId]);
+
+            Logger::info("[CustomerController] Account deleted (soft) for customer {$customerId}");
+
+            // Cerrar sesion
+            $this->forceLogout();
+
+            $this->jsonResponse(['success' => true, 'message' => 'Cuenta eliminada correctamente']);
+
+        } catch (\Exception $e) {
+            Logger::error("[CustomerController] Error deleting account: " . $e->getMessage());
+            $this->jsonResponse(['success' => false, 'error' => 'Error al eliminar la cuenta'], 500);
+        }
+    }
 }

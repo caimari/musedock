@@ -136,6 +136,36 @@
                 </div>
             <?php endif; ?>
         </div>
+
+        <!-- Zona de Peligro -->
+        <div class="profile-card" style="border: 1px solid #dc3545;">
+            <h5 style="color: #dc3545;"><i class="bi bi-exclamation-triangle-fill me-2"></i>Zona de Peligro</h5>
+            <?php
+            $hasActiveSites = ($stats['total_tenants'] ?? 0) > 0;
+            ?>
+            <?php if ($hasActiveSites): ?>
+                <div class="alert alert-warning mb-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>No puedes eliminar tu cuenta</strong>
+                    <p class="mb-0 mt-2 small">Tienes <?= $stats['total_tenants'] ?> dominio(s)/subdominio(s) activos con nosotros. Para eliminar tu cuenta, primero debes eliminar todos tus sitios o contactar con el administrador.</p>
+                </div>
+                <button class="btn btn-outline-danger w-100" disabled>
+                    <i class="bi bi-trash me-2"></i>Eliminar mi cuenta
+                </button>
+                <div class="mt-2 text-center">
+                    <small class="text-muted">
+                        <a href="/customer/support" class="text-decoration-none">Contactar soporte</a> para solicitar eliminacion
+                    </small>
+                </div>
+            <?php else: ?>
+                <p class="text-muted small mb-3">
+                    Al eliminar tu cuenta, todos tus datos seran eliminados permanentemente. Esta accion no se puede deshacer.
+                </p>
+                <button class="btn btn-outline-danger w-100" onclick="confirmDeleteAccount()">
+                    <i class="bi bi-trash me-2"></i>Eliminar mi cuenta
+                </button>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 @endsection
@@ -305,6 +335,90 @@ function resendVerificationEmail() {
                         icon: 'error',
                         title: 'Error',
                         text: data.error || 'No se pudo enviar el email de verificación.',
+                        confirmButtonColor: '#667eea'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error de red. Por favor intenta de nuevo.',
+                    confirmButtonColor: '#667eea'
+                });
+            });
+        }
+    });
+}
+
+// Confirmar eliminacion de cuenta
+function confirmDeleteAccount() {
+    Swal.fire({
+        title: '¿Eliminar tu cuenta?',
+        html: `
+            <div class="text-start">
+                <p class="text-danger mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Esta accion es irreversible</strong></p>
+                <p class="mb-3">Se eliminaran permanentemente:</p>
+                <ul class="mb-3">
+                    <li>Tu cuenta y datos personales</li>
+                    <li>Historial de actividad</li>
+                    <li>Configuraciones guardadas</li>
+                </ul>
+                <p class="mb-2"><strong>Confirma tu contrasena para continuar:</strong></p>
+                <input type="password" id="delete-account-password" class="form-control" placeholder="Tu contrasena actual">
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-trash me-2"></i>Eliminar mi cuenta',
+        cancelButtonText: 'Cancelar',
+        focusCancel: true,
+        preConfirm: () => {
+            const password = document.getElementById('delete-account-password').value;
+            if (!password) {
+                Swal.showValidationMessage('Debes introducir tu contrasena');
+                return false;
+            }
+            return password;
+        }
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            Swal.fire({
+                title: 'Eliminando cuenta...',
+                html: 'Por favor espera mientras procesamos tu solicitud...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            fetch('/customer/delete-account', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: '_csrf_token=' + encodeURIComponent('<?= csrf_token() ?>') + '&password=' + encodeURIComponent(result.value)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Cuenta eliminada',
+                        text: 'Tu cuenta ha sido eliminada exitosamente. Gracias por usar MuseDock.',
+                        confirmButtonColor: '#667eea',
+                        allowOutsideClick: false
+                    }).then(() => {
+                        window.location.href = '/';
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'No se pudo eliminar la cuenta. Verifica tu contrasena.',
                         confirmButtonColor: '#667eea'
                     });
                 }
