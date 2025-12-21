@@ -256,7 +256,7 @@
               <input class="form-check-input" type="checkbox" id="terms" name="accept_terms" value="1" form="registerForm" required>
               <label class="form-check-label" for="terms" style="color:#243141;">
                 {{ __('Acepto los') }}
-                <a href="/p/terms" target="_blank" class="fw-semibold" style="color: var(--primary-color);">{{ __('terminos') }}</a>
+                <a href="/p/terms-and-conditions" target="_blank" class="fw-semibold" style="color: var(--primary-color);">{{ __('terminos') }}</a>
                 {{ __('y') }}
                 <a href="/p/privacy" target="_blank" class="fw-semibold" style="color: var(--primary-color);">{{ __('privacidad') }}</a>
               </label>

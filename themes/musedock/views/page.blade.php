@@ -97,7 +97,7 @@
               @endif
               
               {{-- Page Meta Information --}}
-              @if($page->show_meta)
+              @if($page->show_meta ?? false)
               <div class="ziph-page_meta">
                 @if($page->author)
                 <div class="ziph-meta_author">
@@ -169,7 +169,7 @@
               @endif
               
               {{-- Page Meta Information --}}
-              @if($page->show_meta)
+              @if($page->show_meta ?? false)
               <div class="ziph-page_meta">
                 @if($page->author)
                 <div class="ziph-meta_author">
