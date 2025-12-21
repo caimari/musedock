@@ -12,138 +12,266 @@
 <div class="padding-none ziph-page_content">
   <div class="container" style="padding-top:40px;padding-bottom:40px;">
     <div class="row justify-content-center">
-      <div class="col-md-8 col-lg-6">
-        <!-- Titulo fuera del card -->
+      <div class="col-lg-10 col-xl-9">
+        <!-- Titulo -->
         <div class="text-center mb-4">
-          <h1 class="h4 mb-0" style="color:#243141;">{{ __('Crea tu sitio web gratis en segundos') }}</h1>
+          <h1 class="h3 mb-2" style="color:#243141;">{{ __('Crea tu sitio web') }}</h1>
+          <p class="text-muted mb-0">{{ __('Elige como quieres empezar') }}</p>
         </div>
 
         <div class="card shadow-lg border-0">
-          <div class="card-body p-5">
+          <div class="card-body p-4 p-md-5">
             <form id="registerForm" method="POST" action="/register">
               <input type="hidden" name="_csrf_token" value="{{ $csrf_token ?? csrf_token() }}">
               <input type="hidden" name="language" value="{{ detectLanguage() }}">
               <input type="hidden" name="domain_type" id="domain_type" value="subdomain">
 
-              <div class="mb-3">
-                <label for="name" class="form-label fw-semibold">{{ __('Nombre completo') }}</label>
-                <input type="text" class="form-control" id="name" name="name" required placeholder="{{ __('Tu nombre') }}">
-              </div>
+              <!-- PASO 1: Seleccionar tipo de dominio -->
+              <div class="mb-4">
+                <h5 class="fw-bold mb-3" style="color:#243141;">
+                  <span class="badge bg-primary rounded-circle me-2">1</span>
+                  {{ __('Elige tu tipo de dominio') }}
+                </h5>
 
-              <div class="mb-3">
-                <label for="email" class="form-label fw-semibold">{{ __('Email') }}</label>
-                <input type="email" class="form-control" id="email" name="email" required placeholder="tu@email.com">
-              </div>
+                <div class="row g-3">
+                  <!-- Opcion 1: Subdominio FREE -->
+                  <div class="col-md-6 col-lg-3">
+                    <div class="domain-option selected" data-type="subdomain">
+                      <div class="option-icon">
+                        <i class="bi bi-gift-fill"></i>
+                      </div>
+                      <div class="option-title">{{ __('Subdominio FREE') }}</div>
+                      <div class="option-desc">tuempresa.{{ $baseDomain }}</div>
+                      <div class="option-badge free">{{ __('GRATIS') }}</div>
+                      <div class="option-check"><i class="bi bi-check-circle-fill"></i></div>
+                    </div>
+                  </div>
 
-              <!-- Selector de tipo de dominio -->
-              <div class="mb-3">
-                <label class="form-label fw-semibold">{{ __('Tipo de dominio') }}</label>
-                <div class="btn-group w-100" role="group">
-                  <input type="radio" class="btn-check" name="domain_option" id="option_subdomain" value="subdomain" checked>
-                  <label class="btn btn-outline-primary" for="option_subdomain">
-                    <i class="bi bi-gift me-1"></i> {{ __('Subdominio FREE') }}
-                  </label>
-                  <input type="radio" class="btn-check" name="domain_option" id="option_custom" value="custom">
-                  <label class="btn btn-outline-primary" for="option_custom">
-                    <i class="bi bi-globe me-1"></i> {{ __('Mi Dominio Propio') }}
-                  </label>
+                  <!-- Opcion 2: Vincular Dominio Existente -->
+                  <div class="col-md-6 col-lg-3">
+                    <div class="domain-option" data-type="connect">
+                      <div class="option-icon">
+                        <i class="bi bi-link-45deg"></i>
+                      </div>
+                      <div class="option-title">{{ __('Vincular Dominio') }}</div>
+                      <div class="option-desc">{{ __('Usa tu dominio existente') }}</div>
+                      <div class="option-badge available">{{ __('DISPONIBLE') }}</div>
+                      <div class="option-check"><i class="bi bi-check-circle-fill"></i></div>
+                    </div>
+                  </div>
+
+                  <!-- Opcion 3: Transferir Dominio -->
+                  <div class="col-md-6 col-lg-3">
+                    <div class="domain-option disabled" data-type="transfer">
+                      <div class="option-icon">
+                        <i class="bi bi-arrow-left-right"></i>
+                      </div>
+                      <div class="option-title">{{ __('Transferir Dominio') }}</div>
+                      <div class="option-desc">{{ __('Traslada tu dominio aqui') }}</div>
+                      <div class="option-badge coming">{{ __('PROXIMAMENTE') }}</div>
+                      <div class="option-check"><i class="bi bi-check-circle-fill"></i></div>
+                    </div>
+                  </div>
+
+                  <!-- Opcion 4: Registrar Nuevo -->
+                  <div class="col-md-6 col-lg-3">
+                    <div class="domain-option disabled" data-type="register">
+                      <div class="option-icon">
+                        <i class="bi bi-cart-plus"></i>
+                      </div>
+                      <div class="option-title">{{ __('Registrar Nuevo') }}</div>
+                      <div class="option-desc">{{ __('Compra un dominio nuevo') }}</div>
+                      <div class="option-badge coming">{{ __('PROXIMAMENTE') }}</div>
+                      <div class="option-check"><i class="bi bi-check-circle-fill"></i></div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <!-- Opcion 1: Subdominio FREE -->
-              <div class="mb-3" id="subdomain_section">
-                <label for="subdomain" class="form-label fw-semibold">{{ __('Elige tu subdominio') }}</label>
-                <div class="input-group">
-                  <input type="text" class="form-control" id="subdomain" name="subdomain"
-                         placeholder="miempresa" pattern="[a-z0-9\\-]+"
-                         title="{{ __('Solo letras minusculas, numeros y guiones') }}">
-                  <span class="input-group-text">.{{ $baseDomain }}</span>
+              <!-- Linea de progreso -->
+              <div class="progress-line mb-4">
+                <div class="progress-step active" data-step="1">
+                  <div class="step-circle">1</div>
+                  <div class="step-label">{{ __('Dominio') }}</div>
                 </div>
-                <div id="subdomain-indicator" class="mt-2"></div>
-              </div>
-
-              <!-- Opcion 2: Dominio Propio -->
-              <div class="mb-3 d-none" id="custom_domain_section">
-                <label for="custom_domain" class="form-label fw-semibold">{{ __('Tu dominio') }}</label>
-                <div class="input-group">
-                  <span class="input-group-text"><i class="bi bi-globe"></i></span>
-                  <input type="text" class="form-control" id="custom_domain" name="custom_domain"
-                         placeholder="miempresa.com">
+                <div class="progress-connector"></div>
+                <div class="progress-step" data-step="2">
+                  <div class="step-circle">2</div>
+                  <div class="step-label">{{ __('Configurar') }}</div>
                 </div>
-                <div class="form-text">{{ __('Introduce tu dominio sin www (ejemplo: miempresa.com)') }}</div>
-                <div id="custom-domain-indicator" class="mt-2"></div>
-
-                <div class="alert alert-info mt-3 py-2 px-3" style="font-size: 0.85rem;">
-                  <i class="bi bi-info-circle me-1"></i>
-                  <strong>{{ __('Proximo paso:') }}</strong> {{ __('Despues del registro, te daremos los nameservers de Cloudflare para que configures tu dominio.') }}
-                </div>
-
-                <div class="form-check mt-2">
-                  <input class="form-check-input" type="checkbox" name="enable_email_routing" id="enable_email_routing" value="1">
-                  <label class="form-check-label" for="enable_email_routing">
-                    <small>{{ __('Habilitar Email Routing (recibir correos del dominio en mi email)') }}</small>
-                  </label>
+                <div class="progress-connector"></div>
+                <div class="progress-step" data-step="3">
+                  <div class="step-circle">3</div>
+                  <div class="step-label">{{ __('Cuenta') }}</div>
                 </div>
               </div>
 
-              <div class="mb-3">
-                <label for="password" class="form-label fw-semibold">{{ __('Contrasena') }}</label>
-                <div class="input-group input-group-flat">
-                  <input type="password" class="form-control" id="password" name="password" required minlength="8" placeholder="{{ __('Minimo 8 caracteres') }}">
-                  <span class="input-group-text">
-                    <a href="#" class="link-secondary toggle-password" title="{{ __('Mostrar contrasena') }}">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-eye" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
-                        <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
-                        <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" />
-                      </svg>
-                      <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-eye-off d-none" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
-                        <path d="M10.585 10.587a2 2 0 0 0 2.829 2.828" />
-                        <path d="M16.681 16.673a8.717 8.717 0 0 1 -4.681 1.327c-3.6 0 -6.6 -2 -9 -6c1.272 -2.12 2.712 -3.678 4.32 -4.674m2.86 -1.146a9.055 9.055 0 0 1 1.82 -.18c3.6 0 6.6 2 9 6c-.666 1.11 -1.379 2.067 -2.138 2.87" />
-                        <path d="M3 3l18 18" />
-                      </svg>
-                    </a>
-                  </span>
+              <!-- PASO 2: Configurar dominio -->
+              <div class="mb-4">
+                <h5 class="fw-bold mb-3" style="color:#243141;">
+                  <span class="badge bg-primary rounded-circle me-2">2</span>
+                  {{ __('Configura tu dominio') }}
+                </h5>
+
+                <!-- Seccion Subdominio FREE -->
+                <div class="domain-config" id="config_subdomain">
+                  <div class="row align-items-end">
+                    <div class="col-md-8">
+                      <label for="subdomain" class="form-label fw-semibold">{{ __('Elige tu subdominio') }}</label>
+                      <div class="input-group input-group-lg">
+                        <input type="text" class="form-control" id="subdomain" name="subdomain"
+                               placeholder="miempresa" pattern="[a-z0-9\\-]+"
+                               title="{{ __('Solo letras minusculas, numeros y guiones') }}">
+                        <span class="input-group-text">.{{ $baseDomain }}</span>
+                      </div>
+                      <div id="subdomain-indicator" class="mt-2"></div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="alert alert-success mb-0 py-2 text-center">
+                        <i class="bi bi-check-circle me-1"></i>
+                        <strong>{{ __('100% Gratis') }}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Seccion Vincular Dominio Existente -->
+                <div class="domain-config d-none" id="config_connect">
+                  <div class="row">
+                    <div class="col-md-7">
+                      <label for="custom_domain" class="form-label fw-semibold">{{ __('Tu dominio') }}</label>
+                      <div class="input-group input-group-lg">
+                        <span class="input-group-text"><i class="bi bi-globe"></i></span>
+                        <input type="text" class="form-control" id="custom_domain" name="custom_domain"
+                               placeholder="tudominio.com">
+                      </div>
+                      <div class="form-text">{{ __('Sin www - ejemplo: miempresa.com') }}</div>
+                      <div id="custom-domain-indicator" class="mt-2"></div>
+                    </div>
+                    <div class="col-md-5">
+                      <div class="info-card">
+                        <div class="info-card-header">
+                          <i class="bi bi-info-circle"></i> {{ __('Como funciona') }}
+                        </div>
+                        <ul class="info-card-list">
+                          <li><i class="bi bi-check2"></i> {{ __('Tu dominio sigue en tu registrador') }}</li>
+                          <li><i class="bi bi-check2"></i> {{ __('Solo cambias los nameservers') }}</li>
+                          <li><i class="bi bi-check2"></i> {{ __('Hosting + SSL + Email incluidos') }}</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="row mt-3">
+                    <div class="col-12">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="enable_email_routing" id="enable_email_routing" value="1">
+                        <label class="form-check-label" for="enable_email_routing">
+                          <i class="bi bi-envelope me-1"></i>
+                          {{ __('Habilitar Email Routing') }}
+                          <small class="text-muted d-block">{{ __('Recibe correos de tu dominio en tu email personal (ej: info@tudominio.com -> tu@gmail.com)') }}</small>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Seccion Transferir (placeholder) -->
+                <div class="domain-config d-none" id="config_transfer">
+                  <div class="placeholder-section">
+                    <div class="placeholder-icon">
+                      <i class="bi bi-arrow-left-right"></i>
+                    </div>
+                    <h5>{{ __('Transferencia de Dominios') }}</h5>
+                    <p class="text-muted">{{ __('Pronto podras transferir tu dominio a nuestra plataforma y gestionarlo todo desde un solo lugar.') }}</p>
+                    <div class="placeholder-features">
+                      <span><i class="bi bi-check"></i> {{ __('Renovacion automatica') }}</span>
+                      <span><i class="bi bi-check"></i> {{ __('Gestion DNS completa') }}</span>
+                      <span><i class="bi bi-check"></i> {{ __('Proteccion WHOIS') }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Seccion Registrar Nuevo (placeholder) -->
+                <div class="domain-config d-none" id="config_register">
+                  <div class="placeholder-section">
+                    <div class="placeholder-icon">
+                      <i class="bi bi-cart-plus"></i>
+                    </div>
+                    <h5>{{ __('Registro de Dominios') }}</h5>
+                    <p class="text-muted">{{ __('Pronto podras buscar y registrar tu dominio ideal directamente desde aqui.') }}</p>
+                    <div class="placeholder-features">
+                      <span><i class="bi bi-check"></i> {{ __('Precios competitivos') }}</span>
+                      <span><i class="bi bi-check"></i> {{ __('Multiples extensiones') }}</span>
+                      <span><i class="bi bi-check"></i> {{ __('Configuracion automatica') }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div class="mb-3">
-                <label for="password_confirm" class="form-label fw-semibold">{{ __('Confirmar contrasena') }}</label>
-                <div class="input-group input-group-flat">
-                  <input type="password" class="form-control" id="password_confirm" name="password_confirm" required placeholder="{{ __('Repite tu contrasena') }}">
-                  <span class="input-group-text">
-                    <a href="#" class="link-secondary toggle-password-confirm" title="{{ __('Mostrar contrasena') }}">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-eye" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
-                        <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
-                        <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" />
-                      </svg>
-                      <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-eye-off d-none" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
-                        <path d="M10.585 10.587a2 2 0 0 0 2.829 2.828" />
-                        <path d="M16.681 16.673a8.717 8.717 0 0 1 -4.681 1.327c-3.6 0 -6.6 -2 -9 -6c1.272 -2.12 2.712 -3.678 4.32 -4.674m2.86 -1.146a9.055 9.055 0 0 1 1.82 -.18c3.6 0 6.6 2 9 6c-.666 1.11 -1.379 2.067 -2.138 2.87" />
-                        <path d="M3 3l18 18" />
-                      </svg>
-                    </a>
-                  </span>
+              <!-- PASO 3: Datos de cuenta -->
+              <div class="mb-4" id="account_section">
+                <h5 class="fw-bold mb-3" style="color:#243141;">
+                  <span class="badge bg-primary rounded-circle me-2">3</span>
+                  {{ __('Crea tu cuenta') }}
+                </h5>
+
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label for="name" class="form-label fw-semibold">{{ __('Nombre completo') }}</label>
+                    <input type="text" class="form-control" id="name" name="name" required placeholder="{{ __('Tu nombre') }}">
+                  </div>
+                  <div class="col-md-6">
+                    <label for="email" class="form-label fw-semibold">{{ __('Email') }}</label>
+                    <input type="email" class="form-control" id="email" name="email" required placeholder="tu@email.com">
+                  </div>
+                  <div class="col-md-6">
+                    <label for="password" class="form-label fw-semibold">{{ __('Contrasena') }}</label>
+                    <div class="input-group">
+                      <input type="password" class="form-control" id="password" name="password" required minlength="8" placeholder="{{ __('Minimo 8 caracteres') }}">
+                      <button class="btn btn-outline-secondary toggle-password" type="button">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="password_confirm" class="form-label fw-semibold">{{ __('Confirmar contrasena') }}</label>
+                    <div class="input-group">
+                      <input type="password" class="form-control" id="password_confirm" name="password_confirm" required placeholder="{{ __('Repite tu contrasena') }}">
+                      <button class="btn btn-outline-secondary toggle-password-confirm" type="button">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div class="form-check mb-4">
-                <input class="form-check-input" type="checkbox" id="terms" name="accept_terms" value="1" required>
-                <label class="form-check-label" for="terms" style="color:#243141;">
-                  {!! __('Acepto los') !!}
-                  <a href="/p/terms" target="_blank" class="text-decoration-underline fw-semibold" style="color:#243141;">{{ __('terminos y condiciones') }}</a>
-                  {!! __('y la') !!}
-                  <a href="/p/privacy" target="_blank" class="text-decoration-underline fw-semibold" style="color:#243141;">{{ __('politica de privacidad') }}</a>
-                </label>
+              <!-- Terminos y Submit -->
+              <div class="border-top pt-4">
+                <div class="row align-items-center">
+                  <div class="col-md-7">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="terms" name="accept_terms" value="1" required>
+                      <label class="form-check-label" for="terms" style="color:#243141;">
+                        {{ __('Acepto los') }}
+                        <a href="/p/terms" target="_blank" class="fw-semibold">{{ __('terminos') }}</a>
+                        {{ __('y') }}
+                        <a href="/p/privacy" target="_blank" class="fw-semibold">{{ __('privacidad') }}</a>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="col-md-5">
+                    <button type="submit" id="submitBtn" class="btn btn-primary btn-lg w-100" disabled>
+                      <i class="bi bi-rocket-takeoff me-2"></i>{{ __('Crear mi sitio') }}
+                    </button>
+                  </div>
+                </div>
               </div>
-
-              <button type="submit" id="submitBtn" class="btn btn-primary btn-lg w-100" disabled>
-                {{ __('Crear cuenta gratis') }}
-              </button>
             </form>
 
             <p class="text-center mt-4 mb-0" style="color:#243141;">
               {{ __('Ya tienes cuenta?') }}
-              <a href="/customer/login" style="color:#243141;">{{ __('Inicia sesion') }}</a>
+              <a href="/customer/login" class="fw-semibold" style="color:#667eea;">{{ __('Inicia sesion') }}</a>
             </p>
           </div>
         </div>
@@ -155,12 +283,226 @@
 
 @push('styles')
 <style>
+/* Opciones de dominio */
+.domain-option {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 20px 15px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  height: 100%;
+}
+.domain-option:hover:not(.disabled) {
+  border-color: #667eea;
+  background: #f0f4ff;
+}
+.domain-option.selected {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8ecff 100%);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+}
+.domain-option.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.domain-option .option-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin: 0 auto 12px;
+}
+.domain-option.disabled .option-icon {
+  background: #adb5bd;
+}
+.domain-option .option-title {
+  font-weight: 600;
+  color: #243141;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+.domain-option .option-desc {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-bottom: 10px;
+}
+.domain-option .option-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.option-badge.free {
+  background: #d4edda;
+  color: #155724;
+}
+.option-badge.available {
+  background: #cce5ff;
+  color: #004085;
+}
+.option-badge.coming {
+  background: #e2e3e5;
+  color: #383d41;
+}
+.domain-option .option-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: #667eea;
+  font-size: 1.2rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.domain-option.selected .option-check {
+  opacity: 1;
+}
+
+/* Linea de progreso */
+.progress-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+}
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+.step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e9ecef;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+}
+.progress-step.active .step-circle,
+.progress-step.completed .step-circle {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+.step-label {
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-top: 6px;
+  font-weight: 500;
+}
+.progress-step.active .step-label {
+  color: #667eea;
+  font-weight: 600;
+}
+.progress-connector {
+  width: 80px;
+  height: 3px;
+  background: #e9ecef;
+  margin: 0 10px;
+  margin-bottom: 20px;
+  border-radius: 2px;
+}
+
+/* Info card */
+.info-card {
+  background: #f0f7ff;
+  border: 1px solid #b8daff;
+  border-radius: 10px;
+  padding: 15px;
+  height: 100%;
+}
+.info-card-header {
+  font-weight: 600;
+  color: #004085;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+.info-card-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.85rem;
+}
+.info-card-list li {
+  color: #004085;
+  margin-bottom: 5px;
+}
+.info-card-list li i {
+  color: #28a745;
+  margin-right: 5px;
+}
+
+/* Placeholder sections */
+.placeholder-section {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 2px dashed #dee2e6;
+}
+.placeholder-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #e9ecef;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  margin: 0 auto 20px;
+}
+.placeholder-section h5 {
+  color: #495057;
+  margin-bottom: 10px;
+}
+.placeholder-features {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+.placeholder-features span {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+.placeholder-features i {
+  color: #28a745;
+}
+
+/* Indicadores */
 #subdomain-indicator .available,
 #custom-domain-indicator .available { color: #28a745; font-weight: bold; }
 #subdomain-indicator .not-available,
 #custom-domain-indicator .not-available { color: #dc3545; font-weight: bold; }
 #subdomain-indicator .checking,
 #custom-domain-indicator .checking { color: #6c757d; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .progress-connector {
+    width: 40px;
+  }
+  .placeholder-features {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
 </style>
 @endpush
 
@@ -172,26 +514,49 @@ let customDomainValid = false;
 let currentDomainType = 'subdomain';
 let checkTimeout;
 
-// Toggle entre subdomain y custom domain
-document.querySelectorAll('input[name="domain_option"]').forEach(radio => {
-  radio.addEventListener('change', function() {
-    currentDomainType = this.value;
-    document.getElementById('domain_type').value = this.value;
+// Seleccionar tipo de dominio
+document.querySelectorAll('.domain-option:not(.disabled)').forEach(option => {
+  option.addEventListener('click', function() {
+    const type = this.dataset.type;
 
-    if (this.value === 'subdomain') {
-      document.getElementById('subdomain_section').classList.remove('d-none');
-      document.getElementById('custom_domain_section').classList.add('d-none');
-      document.getElementById('subdomain').required = true;
-      document.getElementById('custom_domain').required = false;
+    // Actualizar seleccion visual
+    document.querySelectorAll('.domain-option').forEach(o => o.classList.remove('selected'));
+    this.classList.add('selected');
+
+    // Actualizar tipo
+    currentDomainType = type;
+    document.getElementById('domain_type').value = type === 'connect' ? 'custom' : type;
+
+    // Mostrar/ocultar secciones de configuracion
+    document.querySelectorAll('.domain-config').forEach(c => c.classList.add('d-none'));
+    document.getElementById('config_' + type)?.classList.remove('d-none');
+
+    // Mostrar/ocultar seccion de cuenta
+    const accountSection = document.getElementById('account_section');
+    if (type === 'transfer' || type === 'register') {
+      accountSection.style.opacity = '0.5';
+      accountSection.style.pointerEvents = 'none';
     } else {
-      document.getElementById('subdomain_section').classList.add('d-none');
-      document.getElementById('custom_domain_section').classList.remove('d-none');
-      document.getElementById('subdomain').required = false;
-      document.getElementById('custom_domain').required = true;
+      accountSection.style.opacity = '1';
+      accountSection.style.pointerEvents = 'auto';
     }
+
+    // Actualizar pasos visuales
+    updateProgressSteps(type);
     updateSubmitButton();
   });
 });
+
+function updateProgressSteps(type) {
+  const steps = document.querySelectorAll('.progress-step');
+  if (type === 'transfer' || type === 'register') {
+    steps[1].classList.remove('active');
+    steps[2].classList.remove('active');
+  } else {
+    steps[1].classList.add('active');
+    steps[2].classList.add('active');
+  }
+}
 
 // Validar dominio personalizado
 document.getElementById('custom_domain')?.addEventListener('input', function(e) {
@@ -202,21 +567,20 @@ document.getElementById('custom_domain')?.addEventListener('input', function(e) 
   clearTimeout(checkTimeout);
 
   if (domain.length < 4 || !domain.includes('.')) {
-    indicator.innerHTML = '<span class="text-muted">{{ __('Introduce un dominio valido (ej: miempresa.com)') }}</span>';
+    indicator.innerHTML = '<span class="text-muted"><i class="bi bi-info-circle me-1"></i>{{ __('Introduce un dominio valido') }}</span>';
     customDomainValid = false;
     updateSubmitButton();
     return;
   }
 
-  // No permitir subdominios de musedock.com
-  if (domain.includes('musedock.com')) {
-    indicator.innerHTML = '<span class="not-available">{{ __('Para subdominios de musedock.com usa la opcion Subdominio FREE') }}</span>';
+  if (domain.includes('musedock.com') || domain.includes('musedock.net')) {
+    indicator.innerHTML = '<span class="not-available"><i class="bi bi-x-circle me-1"></i>{{ __('Usa la opcion Subdominio FREE para musedock') }}</span>';
     customDomainValid = false;
     updateSubmitButton();
     return;
   }
 
-  indicator.innerHTML = '<span class="checking">{{ __('Verificando disponibilidad...') }}</span>';
+  indicator.innerHTML = '<span class="checking"><i class="bi bi-hourglass-split me-1"></i>{{ __('Verificando...') }}</span>';
 
   checkTimeout = setTimeout(() => {
     checkCustomDomainAvailability(domain);
@@ -230,22 +594,22 @@ function checkCustomDomainAvailability(domain) {
     .then(response => response.json())
     .then(data => {
       if (data.available) {
-        indicator.innerHTML = '<span class="available">' + (data.message || '{{ __('Dominio disponible para registro') }}') + '</span>';
+        indicator.innerHTML = '<span class="available"><i class="bi bi-check-circle me-1"></i>' + (data.message || '{{ __('Dominio listo para vincular') }}') + '</span>';
         customDomainValid = true;
       } else {
-        indicator.innerHTML = '<span class="not-available">' + (data.error || '{{ __('Este dominio ya esta registrado en el sistema') }}') + '</span>';
+        indicator.innerHTML = '<span class="not-available"><i class="bi bi-x-circle me-1"></i>' + (data.error || '{{ __('Este dominio ya esta en uso') }}') + '</span>';
         customDomainValid = false;
       }
       updateSubmitButton();
     })
     .catch(error => {
-      indicator.innerHTML = '<span class="available">{{ __('Formato de dominio valido') }}</span>';
+      indicator.innerHTML = '<span class="available"><i class="bi bi-check-circle me-1"></i>{{ __('Formato valido') }}</span>';
       customDomainValid = true;
       updateSubmitButton();
     });
 }
 
-// Validar subdominio en tiempo real
+// Validar subdominio
 document.getElementById('subdomain')?.addEventListener('input', function(e) {
   const raw = e.target.value.toLowerCase().trim();
   e.target.value = raw.replace(/[^a-z0-9\-]/g, '');
@@ -256,13 +620,13 @@ document.getElementById('subdomain')?.addEventListener('input', function(e) {
   clearTimeout(checkTimeout);
 
   if (subdomain.length < 3) {
-    indicator.innerHTML = '<span class="text-muted">{{ __('Minimo 3 caracteres') }}</span>';
+    indicator.innerHTML = '<span class="text-muted"><i class="bi bi-info-circle me-1"></i>{{ __('Minimo 3 caracteres') }}</span>';
     subdomainAvailable = false;
     updateSubmitButton();
     return;
   }
 
-  indicator.innerHTML = '<span class="checking">{{ __('Verificando...') }}</span>';
+  indicator.innerHTML = '<span class="checking"><i class="bi bi-hourglass-split me-1"></i>{{ __('Verificando...') }}</span>';
 
   checkTimeout = setTimeout(() => {
     checkSubdomainAvailability(subdomain);
@@ -276,57 +640,70 @@ function checkSubdomainAvailability(subdomain) {
     .then(r => r.json())
     .then(data => {
       if (data.available) {
-        indicator.innerHTML = '<span class="available">{{ __('Disponible') }}</span>';
+        indicator.innerHTML = '<span class="available"><i class="bi bi-check-circle me-1"></i>{{ __('Disponible') }}</span>';
         subdomainAvailable = true;
       } else {
-        indicator.innerHTML = '<span class="not-available">' + (data.reason || data.error || '{{ __('No disponible') }}') + '</span>';
+        indicator.innerHTML = '<span class="not-available"><i class="bi bi-x-circle me-1"></i>' + (data.reason || data.error || '{{ __('No disponible') }}') + '</span>';
         subdomainAvailable = false;
       }
       updateSubmitButton();
     })
     .catch(() => {
-      indicator.innerHTML = '<span class="text-danger">{{ __('Error al verificar') }}</span>';
+      indicator.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>{{ __('Error al verificar') }}</span>';
       subdomainAvailable = false;
       updateSubmitButton();
     });
 }
 
 function updateSubmitButton() {
-  const form = document.getElementById('registerForm');
   const submitBtn = document.getElementById('submitBtn');
   const termsChecked = document.getElementById('terms')?.checked;
+
+  // Si es placeholder, deshabilitar siempre
+  if (currentDomainType === 'transfer' || currentDomainType === 'register') {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="bi bi-clock me-2"></i>{{ __('Proximamente') }}';
+    return;
+  }
+
+  submitBtn.innerHTML = '<i class="bi bi-rocket-takeoff me-2"></i>{{ __('Crear mi sitio') }}';
 
   let domainValid = false;
   if (currentDomainType === 'subdomain') {
     domainValid = subdomainAvailable;
-  } else {
+  } else if (currentDomainType === 'connect') {
     domainValid = customDomainValid;
   }
 
-  // Verificar otros campos del formulario
   const nameValid = document.getElementById('name').value.trim().length >= 3;
   const emailValid = document.getElementById('email').value.includes('@');
   const passwordValid = document.getElementById('password').value.length >= 8;
   const passwordMatch = document.getElementById('password').value === document.getElementById('password_confirm').value;
 
-  if (submitBtn) {
-    submitBtn.disabled = !(domainValid && termsChecked && nameValid && emailValid && passwordValid && passwordMatch);
-  }
+  submitBtn.disabled = !(domainValid && termsChecked && nameValid && emailValid && passwordValid && passwordMatch);
 }
 
 document.getElementById('terms')?.addEventListener('change', updateSubmitButton);
 document.getElementById('registerForm')?.addEventListener('input', updateSubmitButton);
 
+// Submit
 document.getElementById('registerForm')?.addEventListener('submit', function(e) {
   e.preventDefault();
+
+  if (currentDomainType === 'transfer' || currentDomainType === 'register') {
+    Swal.fire({
+      icon: 'info',
+      title: '{{ __('Proximamente') }}',
+      text: '{{ __('Esta opcion estara disponible pronto.') }}'
+    });
+    return;
+  }
 
   const formData = new FormData(this);
   const submitBtn = document.getElementById('submitBtn');
 
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>{{ __('Creando cuenta...') }}';
-  }
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>{{ __('Creando...') }}';
 
   fetch('/register', {
     method: 'POST',
@@ -339,22 +716,23 @@ document.getElementById('registerForm')?.addEventListener('submit', function(e) 
   .then(r => r.json())
   .then(data => {
     if (data.success) {
-      // Si es dominio custom, mostrar nameservers
       if (data.nameservers && data.nameservers.length > 0) {
         let nsHtml = `
-          <p class="mb-3">{{ __('Tu dominio') }} <strong class="text-primary">${data.domain}</strong> {{ __('ha sido registrado.') }}</p>
-          <div class="alert alert-warning text-start py-2 px-3">
-            <strong><i class="bi bi-exclamation-triangle me-1"></i> {{ __('Importante:') }}</strong><br>
-            {{ __('Cambia los nameservers de tu dominio a:') }}
-          </div>
-          <div class="bg-light p-3 rounded text-start mb-3">
+          <div class="text-start">
+            <p class="mb-3">{{ __('Tu dominio') }} <strong class="text-primary">${data.domain}</strong> {{ __('esta configurado.') }}</p>
+            <div class="alert alert-warning py-2 px-3 mb-3">
+              <strong><i class="bi bi-exclamation-triangle me-1"></i> {{ __('Accion requerida:') }}</strong><br>
+              <small>{{ __('Cambia los nameservers en tu registrador actual a:') }}</small>
+            </div>
+            <div class="bg-light p-3 rounded mb-3" style="font-family: monospace;">
         `;
         data.nameservers.forEach((ns, i) => {
-          nsHtml += `<code class="d-block mb-1">NS${i+1}: ${ns}</code>`;
+          nsHtml += `<div class="mb-1"><strong>NS${i+1}:</strong> ${ns}</div>`;
         });
         nsHtml += `
+            </div>
+            <p class="text-muted small mb-0"><i class="bi bi-envelope me-1"></i>{{ __('Instrucciones enviadas a tu email.') }}</p>
           </div>
-          <p class="text-muted small">{{ __('Te hemos enviado un email con instrucciones detalladas.') }}</p>
         `;
 
         Swal.fire({
@@ -362,16 +740,15 @@ document.getElementById('registerForm')?.addEventListener('submit', function(e) 
           title: '{{ __('Cuenta creada!') }}',
           html: nsHtml,
           confirmButtonColor: '#667eea',
-          confirmButtonText: '{{ __('Ir al Dashboard') }}'
+          confirmButtonText: '<i class="bi bi-speedometer2 me-1"></i> {{ __('Ir al Dashboard') }}'
         }).then(() => {
           window.location.href = '/customer/dashboard';
         });
       } else {
-        // Subdominio FREE - flujo normal
         Swal.fire({
           icon: 'success',
           title: '{{ __('Cuenta creada!') }}',
-          html: '<p>{{ __('Tu sitio esta listo en:') }}</p><p class="h5 text-primary">' + (data.domain || '') + '</p><p class="mt-3">{{ __('Redirigiendo al dashboard...') }}</p>',
+          html: `<p>{{ __('Tu sitio esta listo en:') }}</p><p class="h5 text-primary">${data.domain}</p>`,
           showConfirmButton: false,
           timer: 2500
         }).then(() => window.location.href = data.redirect || '/customer/dashboard');
@@ -385,56 +762,48 @@ document.getElementById('registerForm')?.addEventListener('submit', function(e) 
       text: data.error || '{{ __('No se pudo crear la cuenta') }}'
     });
 
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = '{{ __('Crear cuenta gratis') }}';
-    }
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="bi bi-rocket-takeoff me-2"></i>{{ __('Crear mi sitio') }}';
   })
   .catch(() => {
     Swal.fire({
       icon: 'error',
       title: '{{ __('Error') }}',
-      text: '{{ __('Error de conexion. Por favor, intenta de nuevo.') }}'
+      text: '{{ __('Error de conexion. Intenta de nuevo.') }}'
     });
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = '{{ __('Crear cuenta gratis') }}';
-    }
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="bi bi-rocket-takeoff me-2"></i>{{ __('Crear mi sitio') }}';
   });
 });
 
+// Toggle password visibility
+document.querySelector('.toggle-password')?.addEventListener('click', function() {
+  const input = document.getElementById('password');
+  const icon = this.querySelector('i');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.classList.replace('bi-eye', 'bi-eye-slash');
+  } else {
+    input.type = 'password';
+    icon.classList.replace('bi-eye-slash', 'bi-eye');
+  }
+});
+
+document.querySelector('.toggle-password-confirm')?.addEventListener('click', function() {
+  const input = document.getElementById('password_confirm');
+  const icon = this.querySelector('i');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.classList.replace('bi-eye', 'bi-eye-slash');
+  } else {
+    input.type = 'password';
+    icon.classList.replace('bi-eye-slash', 'bi-eye');
+  }
+});
+
+// Inicializar pasos
 document.addEventListener('DOMContentLoaded', function() {
-  const togglePassword = document.querySelector('.toggle-password');
-  const passwordInput = document.getElementById('password');
-
-  if (togglePassword && passwordInput) {
-    togglePassword.addEventListener('click', function(e) {
-      e.preventDefault();
-      const iconEye = this.querySelector('.icon-eye');
-      const iconEyeOff = this.querySelector('.icon-eye-off');
-      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-      passwordInput.setAttribute('type', type);
-      iconEye?.classList.toggle('d-none');
-      iconEyeOff?.classList.toggle('d-none');
-      this.setAttribute('title', type === 'password' ? '{{ __('Mostrar contrasena') }}' : '{{ __('Ocultar contrasena') }}');
-    });
-  }
-
-  const togglePasswordConfirm = document.querySelector('.toggle-password-confirm');
-  const passwordConfirmInput = document.getElementById('password_confirm');
-
-  if (togglePasswordConfirm && passwordConfirmInput) {
-    togglePasswordConfirm.addEventListener('click', function(e) {
-      e.preventDefault();
-      const iconEye = this.querySelector('.icon-eye');
-      const iconEyeOff = this.querySelector('.icon-eye-off');
-      const type = passwordConfirmInput.getAttribute('type') === 'password' ? 'text' : 'password';
-      passwordConfirmInput.setAttribute('type', type);
-      iconEye?.classList.toggle('d-none');
-      iconEyeOff?.classList.toggle('d-none');
-      this.setAttribute('title', type === 'password' ? '{{ __('Mostrar contrasena') }}' : '{{ __('Ocultar contrasena') }}');
-    });
-  }
+  updateProgressSteps('subdomain');
 });
 </script>
 @endpush
