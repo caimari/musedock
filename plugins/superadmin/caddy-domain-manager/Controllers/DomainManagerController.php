@@ -1753,6 +1753,121 @@ TEXT;
     }
 
     /**
+     * Vincular dominio existente de Cloudflare
+     * Importa la configuración sin modificar nada en Cloudflare
+     */
+    public function linkCloudflareZone(int $id): void
+    {
+        $this->requirePermission('superadmin.plugins.caddy-domain-manager.update');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['success' => false, 'error' => 'Método no permitido'], 405);
+            return;
+        }
+
+        // Verificar CSRF
+        SessionSecurity::validateCsrfToken($_POST['_csrf'] ?? '');
+
+        try {
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("SELECT * FROM tenants WHERE id = ?");
+            $stmt->execute([$id]);
+            $tenant = $stmt->fetchObject();
+
+            if (!$tenant) {
+                $this->jsonResponse(['success' => false, 'error' => 'Tenant no encontrado'], 404);
+                return;
+            }
+
+            // Verificar que NO tenga ya Cloudflare configurado
+            if (!empty($tenant->cloudflare_zone_id)) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'error' => 'Este dominio ya tiene Cloudflare configurado'
+                ], 400);
+                return;
+            }
+
+            Logger::log("[DomainManager] Linking existing Cloudflare zone for: {$tenant->domain}", 'INFO');
+
+            $cloudflareService = new \CaddyDomainManager\Services\CloudflareZoneService();
+
+            // Importar zona existente de Cloudflare
+            $importData = $cloudflareService->importExistingZone($tenant->domain);
+
+            if (!$importData || !isset($importData['zone'])) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'error' => "El dominio {$tenant->domain} no existe en Cloudflare o no está en la cuenta configurada"
+                ], 404);
+                return;
+            }
+
+            $zone = $importData['zone'];
+            $emailRouting = $importData['email_routing'];
+
+            // Guardar información en la BD
+            $stmt = $pdo->prepare("
+                UPDATE tenants
+                SET cloudflare_zone_id = ?,
+                    cloudflare_nameservers = ?,
+                    cloudflare_proxied = 1,
+                    email_routing_enabled = ?,
+                    status = 'active',
+                    updated_at = NOW()
+                WHERE id = ?
+            ");
+
+            $stmt->execute([
+                $zone['zone_id'],
+                json_encode($zone['nameservers']),
+                $zone['email_routing_enabled'] ? 1 : 0,
+                $id
+            ]);
+
+            Logger::log("[DomainManager] Cloudflare zone linked successfully: {$tenant->domain} (Zone ID: {$zone['zone_id']})", 'INFO');
+
+            // Preparar respuesta con información detallada
+            $response = [
+                'success' => true,
+                'message' => 'Dominio vinculado correctamente con Cloudflare',
+                'zone_id' => $zone['zone_id'],
+                'nameservers' => $zone['nameservers'],
+                'email_routing_enabled' => $zone['email_routing_enabled'],
+                'dns_records_count' => count($importData['dns_records'] ?? [])
+            ];
+
+            // Información sobre Email Routing
+            if ($zone['email_routing_enabled'] && $emailRouting) {
+                $catchAllEmail = null;
+                if (!empty($emailRouting['catch_all']['actions'])) {
+                    foreach ($emailRouting['catch_all']['actions'] as $action) {
+                        if ($action['type'] === 'forward' && !empty($action['value'])) {
+                            $catchAllEmail = is_array($action['value']) ? $action['value'][0] : $action['value'];
+                            break;
+                        }
+                    }
+                }
+
+                $response['email_routing'] = [
+                    'catch_all_destination' => $catchAllEmail,
+                    'rules_count' => count($emailRouting['rules'] ?? []),
+                    'verified_destinations_count' => count($emailRouting['destinations'] ?? [])
+                ];
+            }
+
+            $this->jsonResponse($response);
+
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error linking Cloudflare zone: " . $e->getMessage(), 'ERROR');
+            $this->jsonResponse([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Helper: Envía respuesta JSON
      */
     private function jsonResponse(array $data, int $statusCode = 200): void

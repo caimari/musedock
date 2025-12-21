@@ -81,10 +81,10 @@
                                 <h6 class="text-success mb-3"><i class="bi bi-cloud"></i> Cloudflare (Opcional)</h6>
 
                                 <div class="mb-3">
-                                    <div class="form-check">
+                                    <div class="form-check mb-2">
                                         <input type="checkbox" class="form-check-input" id="configure_cloudflare" name="configure_cloudflare">
                                         <label class="form-check-label" for="configure_cloudflare">
-                                            <strong>Añadir dominio a Cloudflare ahora</strong>
+                                            <strong>Añadir dominio a Cloudflare ahora (crear nueva zona)</strong>
                                         </label>
                                         <div class="form-text">
                                             Añade este dominio a Cloudflare Account 2 (Full Setup) con CNAMEs automáticos
@@ -118,6 +118,24 @@
                                             <i class="bi bi-exclamation-triangle"></i> <strong>Importante:</strong>
                                             Al activar Cloudflare, se te proporcionarán los nameservers. El dominio cambiará a estado "waiting_ns_change".
                                         </small>
+                                    </div>
+                                </div>
+
+                                {{-- Opción para vincular dominio existente de Cloudflare --}}
+                                <div class="mt-3">
+                                    <div class="alert alert-info py-2">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-info-circle me-2"></i>
+                                            <div class="flex-grow-1">
+                                                <small><strong>¿Este dominio ya existe en Cloudflare?</strong></small>
+                                                <div class="form-text mb-0">
+                                                    Si el dominio ya está configurado manualmente en Cloudflare, puedes vincularlo aquí sin perder tu configuración.
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-primary ms-2" id="btnLinkCloudflare">
+                                                <i class="bi bi-link-45deg"></i> Vincular Existente
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             @endif
@@ -888,6 +906,125 @@ if (enableEmailRoutingEdit) {
             emailRoutingOptions.classList.remove('d-none');
         } else {
             emailRoutingOptions.classList.add('d-none');
+        }
+    });
+}
+
+// Vincular dominio existente de Cloudflare
+const btnLinkCloudflare = document.getElementById('btnLinkCloudflare');
+if (btnLinkCloudflare) {
+    btnLinkCloudflare.addEventListener('click', async function() {
+        const result = await Swal.fire({
+            title: '<i class="bi bi-link-45deg text-primary"></i> Vincular Dominio Existente',
+            html: `
+                <div class="text-start">
+                    <p>¿Deseas vincular este dominio con su configuración existente en Cloudflare?</p>
+                    <div class="alert alert-info py-2 mb-2">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <small><strong>Esto hará lo siguiente:</strong></small>
+                        <ul class="mb-0 small mt-1">
+                            <li>Buscar el dominio <strong>{{ $tenant->domain }}</strong> en Cloudflare</li>
+                            <li>Importar su configuración (Zone ID, nameservers, Email Routing, etc.)</li>
+                            <li>Guardar la información en la base de datos</li>
+                            <li><strong>NO modificará nada en Cloudflare</strong> (solo lectura)</li>
+                        </ul>
+                    </div>
+                    <div class="alert alert-success py-2 mb-0">
+                        <i class="bi bi-shield-check me-2"></i>
+                        <small>Tu configuración actual de Cloudflare (DNS, Email Routing, reglas) <strong>permanecerá intacta</strong>.</small>
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '<i class="bi bi-link-45deg me-1"></i> Vincular Ahora',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#0d6efd',
+            cancelButtonColor: '#6c757d',
+            width: '550px'
+        });
+
+        if (!result.isConfirmed) return;
+
+        // Mostrar spinner en botón
+        const originalHtml = btnLinkCloudflare.innerHTML;
+        btnLinkCloudflare.disabled = true;
+        btnLinkCloudflare.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Vinculando...';
+
+        Swal.fire({
+            title: 'Vinculando dominio...',
+            html: '<p class="mb-0">Buscando configuración en Cloudflare...</p>',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        try {
+            const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/link-cloudflare', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ _csrf: csrfToken })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                let emailInfo = '';
+                if (data.email_routing_enabled && data.email_routing) {
+                    emailInfo = `
+                        <div class="alert alert-success py-2 mt-2 mb-0">
+                            <i class="bi bi-envelope-check me-1"></i>
+                            <small><strong>Email Routing detectado:</strong></small>
+                            <ul class="mb-0 small mt-1">
+                                ${data.email_routing.catch_all_destination ? `<li>Catch-All → ${data.email_routing.catch_all_destination}</li>` : ''}
+                                <li>${data.email_routing.rules_count || 0} regla(s) de forwarding</li>
+                                <li>${data.email_routing.verified_destinations_count || 0} destinatario(s) verificado(s)</li>
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Dominio Vinculado',
+                    html: `
+                        <p>El dominio se ha vinculado correctamente con Cloudflare.</p>
+                        <div class="text-start">
+                            <p class="mb-1"><strong>Zone ID:</strong> <code class="small">${data.zone_id}</code></p>
+                            <p class="mb-1"><strong>DNS Records:</strong> ${data.dns_records_count} registros encontrados</p>
+                            <p class="mb-1"><strong>Email Routing:</strong> ${data.email_routing_enabled ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-secondary">Desactivado</span>'}</p>
+                            ${emailInfo}
+                        </div>
+                    `,
+                    confirmButtonColor: '#0d6efd'
+                }).then(() => window.location.reload());
+            } else {
+                btnLinkCloudflare.disabled = false;
+                btnLinkCloudflare.innerHTML = originalHtml;
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error al vincular',
+                    html: `<p>${data.error || 'No se pudo vincular el dominio.'}</p>
+                           <div class="alert alert-info py-2 mt-2 mb-0">
+                               <small>Verifica que el dominio <strong>{{ $tenant->domain }}</strong> existe en la cuenta de Cloudflare configurada.</small>
+                           </div>`,
+                    confirmButtonColor: '#0d6efd'
+                });
+            }
+        } catch (error) {
+            btnLinkCloudflare.disabled = false;
+            btnLinkCloudflare.innerHTML = originalHtml;
+
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexión',
+                text: 'No se pudo conectar con el servidor. Inténtalo de nuevo.',
+                confirmButtonColor: '#0d6efd'
+            });
         }
     });
 }

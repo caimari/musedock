@@ -102,6 +102,11 @@ Route::post('/musedock/domain-manager/{id}/regenerate-languages', 'CaddyDomainMa
     ->middleware('superadmin')
     ->name('superadmin.domain-manager.regenerate-languages');
 
+// Vincular dominio existente de Cloudflare (AJAX)
+Route::post('/musedock/domain-manager/{id}/link-cloudflare', 'CaddyDomainManager\Controllers\DomainManagerController@linkCloudflareZone')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.link-cloudflare');
+
 // Crear subdominio FREE manual (superadmin)
 Route::post('/musedock/domain-manager/create-free', 'CaddyDomainManager\Controllers\DomainManagerController@createFreeSubdomain')
     ->middleware('superadmin')

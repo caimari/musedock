@@ -701,4 +701,154 @@ class CloudflareZoneService
 
         return $decoded;
     }
+
+    /**
+     * Busca una zona existente en Cloudflare por nombre de dominio
+     *
+     * @param string $domain Nombre del dominio (ej: ejemplo.com)
+     * @return array|null ['zone_id' => string, 'nameservers' => array, 'status' => string, 'email_routing_enabled' => bool] o null si no existe
+     * @throws Exception
+     */
+    public function findExistingZone(string $domain): ?array
+    {
+        Logger::log("[CloudflareZone] Searching for existing zone: {$domain}", 'INFO');
+
+        try {
+            $response = $this->makeRequest('GET', '/zones', [], [
+                'name' => $domain,
+                'account.id' => $this->accountId
+            ]);
+
+            if (empty($response['result']) || count($response['result']) === 0) {
+                Logger::log("[CloudflareZone] Zone not found: {$domain}", 'INFO');
+                return null;
+            }
+
+            $zone = $response['result'][0];
+            $zoneId = $zone['id'];
+
+            Logger::log("[CloudflareZone] Zone found: {$domain} (ID: {$zoneId})", 'INFO');
+
+            // Verificar si Email Routing está habilitado
+            $emailRoutingEnabled = false;
+            try {
+                $emailStatus = $this->makeRequest('GET', "/zones/{$zoneId}/email/routing");
+                $emailRoutingEnabled = ($emailStatus['result']['enabled'] ?? false) === true;
+            } catch (Exception $e) {
+                Logger::log("[CloudflareZone] Could not check Email Routing status: " . $e->getMessage(), 'WARNING');
+            }
+
+            return [
+                'zone_id' => $zoneId,
+                'nameservers' => $zone['name_servers'] ?? [],
+                'status' => $zone['status'] ?? 'unknown',
+                'email_routing_enabled' => $emailRoutingEnabled,
+                'created_on' => $zone['created_on'] ?? null,
+                'paused' => $zone['paused'] ?? false
+            ];
+
+        } catch (Exception $e) {
+            Logger::log("[CloudflareZone] Error searching zone: " . $e->getMessage(), 'ERROR');
+            throw $e;
+        }
+    }
+
+    /**
+     * Obtiene la configuración completa de Email Routing de una zona existente
+     *
+     * @param string $zoneId ID de la zona en Cloudflare
+     * @return array ['enabled' => bool, 'catch_all' => array, 'rules' => array, 'destinations' => array]
+     * @throws Exception
+     */
+    public function getEmailRoutingConfig(string $zoneId): array
+    {
+        Logger::log("[CloudflareZone] Getting Email Routing config for zone {$zoneId}", 'INFO');
+
+        try {
+            // 1. Estado del servicio
+            $status = $this->makeRequest('GET', "/zones/{$zoneId}/email/routing");
+            $enabled = ($status['result']['enabled'] ?? false) === true;
+
+            if (!$enabled) {
+                return [
+                    'enabled' => false,
+                    'catch_all' => null,
+                    'rules' => [],
+                    'destinations' => []
+                ];
+            }
+
+            // 2. Regla Catch-All
+            $catchAll = null;
+            try {
+                $catchAllResponse = $this->getCatchAllRule($zoneId);
+                $catchAll = $catchAllResponse;
+            } catch (Exception $e) {
+                Logger::log("[CloudflareZone] No catch-all rule found", 'INFO');
+            }
+
+            // 3. Reglas de forwarding
+            $rules = $this->listEmailRoutingRules($zoneId);
+
+            // 4. Destinatarios verificados
+            $destinations = $this->listEmailDestinations($zoneId);
+
+            return [
+                'enabled' => true,
+                'catch_all' => $catchAll,
+                'rules' => $rules,
+                'destinations' => $destinations
+            ];
+
+        } catch (Exception $e) {
+            Logger::log("[CloudflareZone] Error getting Email Routing config: " . $e->getMessage(), 'ERROR');
+            throw $e;
+        }
+    }
+
+    /**
+     * Importa y sincroniza una zona existente de Cloudflare
+     * Obtiene toda la configuración sin modificar nada
+     *
+     * @param string $domain Nombre del dominio
+     * @return array Información completa de la zona y su configuración
+     * @throws Exception
+     */
+    public function importExistingZone(string $domain): array
+    {
+        Logger::log("[CloudflareZone] Importing existing zone: {$domain}", 'INFO');
+
+        // 1. Buscar la zona
+        $zoneInfo = $this->findExistingZone($domain);
+
+        if (!$zoneInfo) {
+            throw new Exception("El dominio {$domain} no existe en esta cuenta de Cloudflare");
+        }
+
+        // 2. Obtener configuración de Email Routing si está habilitado
+        $emailConfig = null;
+        if ($zoneInfo['email_routing_enabled']) {
+            try {
+                $emailConfig = $this->getEmailRoutingConfig($zoneInfo['zone_id']);
+            } catch (Exception $e) {
+                Logger::log("[CloudflareZone] Could not get Email Routing config: " . $e->getMessage(), 'WARNING');
+            }
+        }
+
+        // 3. Obtener DNS records (CNAMEs, A, etc.)
+        $dnsRecords = [];
+        try {
+            $dnsResponse = $this->makeRequest('GET', "/zones/{$zoneInfo['zone_id']}/dns_records", [], ['per_page' => 100]);
+            $dnsRecords = $dnsResponse['result'] ?? [];
+        } catch (Exception $e) {
+            Logger::log("[CloudflareZone] Could not get DNS records: " . $e->getMessage(), 'WARNING');
+        }
+
+        return [
+            'zone' => $zoneInfo,
+            'email_routing' => $emailConfig,
+            'dns_records' => $dnsRecords,
+            'imported_at' => date('Y-m-d H:i:s')
+        ];
+    }
 }
