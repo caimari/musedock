@@ -1770,17 +1770,12 @@ TEXT;
             }
 
             // Verificar CSRF
-            $csrfToken = null;
             $input = file_get_contents('php://input');
-            if ($input) {
-                $data = json_decode($input, true);
-                $csrfToken = $data['_csrf'] ?? null;
-            }
+            $data = $input ? json_decode($input, true) : [];
+            $csrfToken = $data['_csrf'] ?? '';
 
-            try {
-                SessionSecurity::validateCsrfToken($csrfToken ?? '');
-            } catch (\Exception $e) {
-                Logger::log("[DomainManager] CSRF validation failed: " . $e->getMessage(), 'ERROR');
+            if (!validate_csrf($csrfToken)) {
+                Logger::log("[DomainManager] CSRF validation failed", 'ERROR');
                 $this->jsonResponse(['success' => false, 'error' => 'Token CSRF inválido'], 403);
                 return;
             }
