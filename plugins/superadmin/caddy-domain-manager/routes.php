@@ -314,3 +314,52 @@ Route::get('/customer/request-custom-domain', 'CaddyDomainManager\Controllers\Cu
 Route::post('/customer/request-custom-domain', 'CaddyDomainManager\Controllers\CustomDomainController@submitRequest')
     ->middleware('customer')
     ->name('customer.request-custom-domain.submit');
+
+// ============================================
+// DOMAIN REGISTRATION (OpenProvider)
+// ============================================
+
+// Formulario de búsqueda de dominios
+Route::get('/customer/register-domain', 'CaddyDomainManager\Controllers\DomainRegistrationController@showSearchForm')
+    ->middleware('customer')
+    ->name('customer.register-domain.search');
+
+// Formulario de contacto
+Route::get('/customer/register-domain/contact', 'CaddyDomainManager\Controllers\DomainRegistrationController@showContactForm')
+    ->middleware('customer')
+    ->name('customer.register-domain.contact');
+
+// Checkout/confirmación
+Route::get('/customer/register-domain/checkout', 'CaddyDomainManager\Controllers\DomainRegistrationController@showCheckout')
+    ->middleware('customer')
+    ->name('customer.register-domain.checkout');
+
+// AJAX: Buscar dominios
+Route::post('/customer/domain/search', 'CaddyDomainManager\Controllers\DomainRegistrationController@searchDomains')
+    ->middleware('customer')
+    ->name('customer.domain.search');
+
+// AJAX: Seleccionar dominio
+Route::post('/customer/domain/select', 'CaddyDomainManager\Controllers\DomainRegistrationController@selectDomain')
+    ->middleware('customer')
+    ->name('customer.domain.select');
+
+// AJAX: Guardar contacto
+Route::post('/customer/domain/contact/save', 'CaddyDomainManager\Controllers\DomainRegistrationController@saveContact')
+    ->middleware('customer')
+    ->name('customer.domain.contact.save');
+
+// AJAX: Seleccionar contacto existente
+Route::post('/customer/domain/contact/select', 'CaddyDomainManager\Controllers\DomainRegistrationController@selectContact')
+    ->middleware('customer')
+    ->name('customer.domain.contact.select');
+
+// AJAX: Registrar dominio
+Route::post('/customer/domain/register', 'CaddyDomainManager\Controllers\DomainRegistrationController@registerDomain')
+    ->middleware('customer')
+    ->name('customer.domain.register');
+
+// AJAX: Estado de orden
+Route::get('/customer/domain/order/{id}/status', 'CaddyDomainManager\Controllers\DomainRegistrationController@getOrderStatus')
+    ->middleware('customer')
+    ->name('customer.domain.order.status');

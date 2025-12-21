@@ -302,7 +302,10 @@
         <i class="bi bi-gift me-2"></i>Solicitar Subdominio FREE
     </a>
     <a href="/customer/request-custom-domain" class="btn btn-primary">
-        <i class="bi bi-plus-circle me-2"></i>Solicitar Dominio Personalizado
+        <i class="bi bi-plus-circle me-2"></i>Incorporar Dominio Existente
+    </a>
+    <a href="/customer/register-domain" class="btn btn-info">
+        <i class="bi bi-bag-plus me-2"></i>Registrar Nuevo Dominio
     </a>
 </div>
 @endsection
