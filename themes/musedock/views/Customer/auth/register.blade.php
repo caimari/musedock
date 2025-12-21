@@ -115,8 +115,8 @@
 
                 <!-- Seccion Subdominio FREE -->
                 <div class="domain-config" id="config_subdomain">
-                  <div class="row align-items-end">
-                    <div class="col-md-8">
+                  <div class="row align-items-center g-3">
+                    <div class="col-lg-8">
                       <label for="subdomain" class="form-label fw-semibold">{{ __('Elige tu subdominio') }}</label>
                       <div class="input-group input-group-lg">
                         <input type="text" class="form-control" id="subdomain" name="subdomain"
@@ -126,10 +126,10 @@
                       </div>
                       <div id="subdomain-indicator" class="mt-2"></div>
                     </div>
-                    <div class="col-md-4">
-                      <div class="alert alert-success mb-0 py-2 text-center">
-                        <i class="bi bi-check-circle me-1"></i>
-                        <strong>{{ __('100% Gratis') }}</strong>
+                    <div class="col-lg-4 d-flex align-items-center justify-content-center">
+                      <div class="free-badge">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        <span>{{ __('100% Gratis') }}</span>
                       </div>
                     </div>
                   </div>
@@ -210,7 +210,7 @@
               </div>
 
               <!-- PASO 3: Datos de cuenta -->
-              <div class="mb-4" id="account_section">
+              <div class="mb-0" id="account_section">
                 <h5 class="fw-bold mb-3" style="color:#243141;">
                   <span class="badge rounded-circle me-2" style="background: var(--primary-color);">3</span>
                   {{ __('Crea tu cuenta') }}
@@ -219,15 +219,15 @@
                 <div class="row g-3">
                   <div class="col-md-6">
                     <label for="name" class="form-label fw-semibold">{{ __('Nombre completo') }}</label>
-                    <input type="text" class="form-control" id="name" name="name" required placeholder="{{ __('Tu nombre') }}">
+                    <input type="text" class="form-control form-control-lg" id="name" name="name" required placeholder="{{ __('Tu nombre') }}">
                   </div>
                   <div class="col-md-6">
                     <label for="email" class="form-label fw-semibold">{{ __('Email') }}</label>
-                    <input type="email" class="form-control" id="email" name="email" required placeholder="tu@email.com">
+                    <input type="email" class="form-control form-control-lg" id="email" name="email" required placeholder="tu@email.com">
                   </div>
                   <div class="col-md-6">
                     <label for="password" class="form-label fw-semibold">{{ __('Contrasena') }}</label>
-                    <div class="input-group">
+                    <div class="input-group input-group-lg">
                       <input type="password" class="form-control" id="password" name="password" required minlength="8" placeholder="{{ __('Minimo 8 caracteres') }}">
                       <button class="btn btn-outline-secondary toggle-password" type="button">
                         <i class="bi bi-eye"></i>
@@ -236,7 +236,7 @@
                   </div>
                   <div class="col-md-6">
                     <label for="password_confirm" class="form-label fw-semibold">{{ __('Confirmar contrasena') }}</label>
-                    <div class="input-group">
+                    <div class="input-group input-group-lg">
                       <input type="password" class="form-control" id="password_confirm" name="password_confirm" required placeholder="{{ __('Repite tu contrasena') }}">
                       <button class="btn btn-outline-secondary toggle-password-confirm" type="button">
                         <i class="bi bi-eye"></i>
@@ -245,34 +245,30 @@
                   </div>
                 </div>
               </div>
-
-              <!-- Terminos y Submit -->
-              <div class="border-top pt-4">
-                <div class="row align-items-center">
-                  <div class="col-md-7">
-                    <div class="form-check">
-                      <input class="form-check-input" type="checkbox" id="terms" name="accept_terms" value="1" required>
-                      <label class="form-check-label" for="terms" style="color:#243141;">
-                        {{ __('Acepto los') }}
-                        <a href="/p/terms" target="_blank" class="fw-semibold">{{ __('terminos') }}</a>
-                        {{ __('y') }}
-                        <a href="/p/privacy" target="_blank" class="fw-semibold">{{ __('privacidad') }}</a>
-                      </label>
-                    </div>
-                  </div>
-                  <div class="col-md-5">
-                    <button type="submit" id="submitBtn" class="btn btn-lg w-100" style="background: var(--primary-gradient); color: white; border: none;" disabled>
-                      <i class="bi bi-rocket-takeoff me-2"></i>{{ __('Crear mi sitio') }}
-                    </button>
-                  </div>
-                </div>
-              </div>
             </form>
+          </div>
+        </div>
 
-            <p class="text-center mt-4 mb-0" style="color:#243141;">
-              {{ __('Ya tienes cuenta?') }}
-              <a href="/customer/login" class="fw-semibold" style="color: var(--primary-color);">{{ __('Inicia sesion') }}</a>
-            </p>
+        <!-- Seccion fuera del card: Terminos, Boton y Login -->
+        <div class="register-footer mt-4">
+          <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+            <div class="form-check mb-0">
+              <input class="form-check-input" type="checkbox" id="terms" name="accept_terms" value="1" form="registerForm" required>
+              <label class="form-check-label" for="terms" style="color:#243141;">
+                {{ __('Acepto los') }}
+                <a href="/p/terms" target="_blank" class="fw-semibold" style="color: var(--primary-color);">{{ __('terminos') }}</a>
+                {{ __('y') }}
+                <a href="/p/privacy" target="_blank" class="fw-semibold" style="color: var(--primary-color);">{{ __('privacidad') }}</a>
+              </label>
+            </div>
+            <button type="submit" id="submitBtn" form="registerForm" class="btn btn-lg px-5 submit-btn" disabled>
+              <i class="bi bi-rocket-takeoff me-2"></i>{{ __('Crear mi sitio') }}
+            </button>
+          </div>
+
+          <div class="text-center mt-4">
+            <span style="color:#6c757d;">{{ __('Ya tienes cuenta?') }}</span>
+            <a href="/customer/login" class="fw-semibold ms-1" style="color: var(--primary-color);">{{ __('Inicia sesion') }}</a>
           </div>
         </div>
       </div>
@@ -289,10 +285,50 @@
 :root {
   --primary-color: #17a2b8;
   --primary-light: #5bc0de;
-  --primary-gradient: linear-gradient(135deg, #17a2b8 0%, #20c997 100%);
+  --primary-gradient: linear-gradient(135deg, #17a2b8 0%, #5bc0de 100%);
   --primary-bg-light: #e8f7f9;
   --primary-bg-selected: linear-gradient(135deg, #e8f7f9 0%, #d4f1f4 100%);
-  --primary-shadow: rgba(23, 162, 184, 0.2);
+  --primary-shadow: rgba(23, 162, 184, 0.25);
+}
+
+/* Footer de registro */
+.register-footer {
+  padding: 0 10px;
+}
+.submit-btn {
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px var(--primary-shadow);
+}
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--primary-shadow);
+  color: white;
+}
+.submit-btn:disabled {
+  background: #adb5bd;
+  box-shadow: none;
+  color: white;
+}
+
+/* Badge 100% Gratis */
+.free-badge {
+  background: var(--primary-gradient);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 4px 15px var(--primary-shadow);
+}
+.free-badge i {
+  font-size: 1.2rem;
 }
 
 /* Opciones de dominio */
@@ -355,12 +391,14 @@
   text-transform: uppercase;
 }
 .option-badge.free {
-  background: #d4edda;
-  color: #155724;
+  background: var(--primary-bg-light);
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
 }
 .option-badge.available {
-  background: #cce5ff;
-  color: #004085;
+  background: var(--primary-bg-light);
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
 }
 .option-badge.coming {
   background: #e2e3e5;
@@ -505,7 +543,35 @@
 #subdomain-indicator .checking,
 #custom-domain-indicator .checking { color: #6c757d; }
 
+/* Card principal */
+.card.shadow-lg {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* Inputs mejorados */
+.form-control:focus,
+.form-check-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem var(--primary-shadow);
+}
+.form-check-input:checked {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+.input-group-text {
+  background: #f8f9fa;
+  border-color: #dee2e6;
+  color: #495057;
+  font-weight: 500;
+}
+
 /* Responsive */
+@media (max-width: 991px) {
+  .free-badge {
+    margin-top: 10px;
+  }
+}
 @media (max-width: 768px) {
   .progress-connector {
     width: 40px;
@@ -513,6 +579,35 @@
   .placeholder-features {
     flex-direction: column;
     gap: 8px;
+  }
+  .register-footer .d-flex {
+    flex-direction: column !important;
+    text-align: center;
+  }
+  .register-footer .form-check {
+    margin-bottom: 15px;
+  }
+  .submit-btn {
+    width: 100%;
+  }
+}
+@media (max-width: 576px) {
+  .domain-option {
+    padding: 15px 10px;
+  }
+  .option-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem !important;
+  }
+  .option-title {
+    font-size: 0.85rem !important;
+  }
+  .option-desc {
+    font-size: 0.75rem !important;
+  }
+  .progress-connector {
+    width: 25px;
   }
 }
 </style>
