@@ -26,7 +26,10 @@ require_once APP_ROOT . '/core/bootstrap.php';
 
 // Cargar clases del plugin caddy-domain-manager (no están en composer autoload)
 $pluginPath = APP_ROOT . '/plugins/superadmin/caddy-domain-manager';
+require_once $pluginPath . '/Services/CloudflareService.php';
 require_once $pluginPath . '/Services/CloudflareZoneService.php';
+require_once $pluginPath . '/Services/CaddyService.php';
+require_once $pluginPath . '/Services/HealthCheckService.php';
 require_once $pluginPath . '/Services/ProvisioningService.php';
 
 use Screenart\Musedock\Database;
