@@ -1758,7 +1758,7 @@ TEXT;
      */
     public function linkCloudflareZone(int $id): void
     {
-        $this->requirePermission('superadmin.plugins.caddy-domain-manager.update');
+        $this->checkPermission('tenants.manage');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['success' => false, 'error' => 'Método no permitido'], 405);
@@ -1766,7 +1766,13 @@ TEXT;
         }
 
         // Verificar CSRF
-        SessionSecurity::validateCsrfToken($_POST['_csrf'] ?? '');
+        $csrfToken = null;
+        $input = file_get_contents('php://input');
+        if ($input) {
+            $data = json_decode($input, true);
+            $csrfToken = $data['_csrf'] ?? null;
+        }
+        SessionSecurity::validateCsrfToken($csrfToken ?? '');
 
         try {
             $pdo = Database::connect();
