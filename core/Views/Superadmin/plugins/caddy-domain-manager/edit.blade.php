@@ -74,6 +74,56 @@
                                 </div>
                             </div>
 
+                            {{-- Opciones de Cloudflare (solo si NO está configurado) --}}
+                            @if(empty($tenant->cloudflare_zone_id))
+                                <hr class="my-3">
+
+                                <h6 class="text-success mb-3"><i class="bi bi-cloud"></i> Cloudflare (Opcional)</h6>
+
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="configure_cloudflare" name="configure_cloudflare">
+                                        <label class="form-check-label" for="configure_cloudflare">
+                                            <strong>Añadir dominio a Cloudflare ahora</strong>
+                                        </label>
+                                        <div class="form-text">
+                                            Añade este dominio a Cloudflare Account 2 (Full Setup) con CNAMEs automáticos
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="cloudflare-options-edit" class="ps-4 d-none">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" id="enable_email_routing_edit" name="enable_email_routing">
+                                            <label class="form-check-label" for="enable_email_routing_edit">
+                                                <i class="bi bi-envelope-at"></i> Activar Email Routing
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div id="email-routing-options-edit" class="mb-3 d-none">
+                                        <label for="email_routing_destination_edit" class="form-label">
+                                            Email Destino para Catch-All
+                                        </label>
+                                        <input type="email" class="form-control" id="email_routing_destination_edit"
+                                               name="email_routing_destination" placeholder="destino@gmail.com">
+                                        <div class="form-text">
+                                            Todos los emails enviados a {{ $tenant->domain }} serán redirigidos a este email
+                                        </div>
+                                    </div>
+
+                                    <div class="alert alert-warning alert-sm mb-0">
+                                        <small>
+                                            <i class="bi bi-exclamation-triangle"></i> <strong>Importante:</strong>
+                                            Al activar Cloudflare, se te proporcionarán los nameservers. El dominio cambiará a estado "waiting_ns_change".
+                                        </small>
+                                    </div>
+                                </div>
+                            @endif
+
+                            <hr class="my-3">
+
                             <div class="mb-3">
                                 <label for="caddy_status" class="form-label">Estado Caddy</label>
                                 <select class="form-select" id="caddy_status" name="caddy_status">
@@ -806,6 +856,42 @@ async function regenerateLanguages() {
         toggleBtnSpinner(btn, false);
     }
 }
+
+// ============================================
+// JavaScript para opciones de Cloudflare en EDIT
+// ============================================
+@if(empty($tenant->cloudflare_zone_id))
+// Mostrar/ocultar opciones de Cloudflare
+const configureCloudflareEdit = document.getElementById('configure_cloudflare');
+if (configureCloudflareEdit) {
+    configureCloudflareEdit.addEventListener('change', function() {
+        const cloudflareOptions = document.getElementById('cloudflare-options-edit');
+        const emailRoutingCheckbox = document.getElementById('enable_email_routing_edit');
+
+        if (this.checked) {
+            cloudflareOptions.classList.remove('d-none');
+        } else {
+            cloudflareOptions.classList.add('d-none');
+            emailRoutingCheckbox.checked = false;
+            document.getElementById('email-routing-options-edit').classList.add('d-none');
+        }
+    });
+}
+
+// Mostrar/ocultar campo de email routing destination
+const enableEmailRoutingEdit = document.getElementById('enable_email_routing_edit');
+if (enableEmailRoutingEdit) {
+    enableEmailRoutingEdit.addEventListener('change', function() {
+        const emailRoutingOptions = document.getElementById('email-routing-options-edit');
+
+        if (this.checked) {
+            emailRoutingOptions.classList.remove('d-none');
+        } else {
+            emailRoutingOptions.classList.add('d-none');
+        }
+    });
+}
+@endif
 </script>
 @endpush
 

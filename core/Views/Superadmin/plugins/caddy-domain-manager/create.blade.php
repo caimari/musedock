@@ -107,9 +107,20 @@
                                             <i class="bi bi-envelope-at"></i> Activar Email Routing
                                         </label>
                                         <div class="form-text">
-                                            Configura Email Routing de Cloudflare para el dominio.
-                                            Se creará un catch-all que redirige a <strong id="email-routing-dest">admin@miempresa.com</strong>
+                                            Configura Email Routing de Cloudflare para el dominio
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div id="email-routing-options" class="mb-3 d-none">
+                                    <label for="email_routing_destination" class="form-label">
+                                        Email Destino para Catch-All <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="email" class="form-control" id="email_routing_destination"
+                                           name="email_routing_destination" placeholder="destino@gmail.com">
+                                    <div class="form-text">
+                                        Todos los emails enviados a <strong id="domain-preview">tudominio.com</strong>
+                                        serán redirigidos a este email. Por defecto se usa el email del admin.
                                     </div>
                                 </div>
 
@@ -229,19 +240,52 @@ function generatePassword() {
 // Mostrar/ocultar opciones de Cloudflare
 document.getElementById('configure_cloudflare').addEventListener('change', function() {
     const cloudflareOptions = document.getElementById('cloudflare-options');
+    const emailRoutingCheckbox = document.getElementById('enable_email_routing');
+
     if (this.checked) {
         cloudflareOptions.classList.remove('d-none');
     } else {
         cloudflareOptions.classList.add('d-none');
-        document.getElementById('enable_email_routing').checked = false;
+        emailRoutingCheckbox.checked = false;
+        document.getElementById('email-routing-options').classList.add('d-none');
     }
 });
 
-// Actualizar email destino dinámicamente cuando cambia el admin_email
+// Mostrar/ocultar campo de email routing destination
+document.getElementById('enable_email_routing').addEventListener('change', function() {
+    const emailRoutingOptions = document.getElementById('email-routing-options');
+    const destinationInput = document.getElementById('email_routing_destination');
+
+    if (this.checked) {
+        emailRoutingOptions.classList.remove('d-none');
+        // Auto-rellenar con email del admin si está vacío
+        if (!destinationInput.value) {
+            const adminEmail = document.getElementById('admin_email').value;
+            if (adminEmail) {
+                destinationInput.value = adminEmail;
+            }
+        }
+    } else {
+        emailRoutingOptions.classList.add('d-none');
+    }
+});
+
+// Actualizar preview del dominio
+document.getElementById('domain').addEventListener('input', function() {
+    const domainPreview = document.getElementById('domain-preview');
+    if (domainPreview) {
+        domainPreview.textContent = this.value || 'tudominio.com';
+    }
+});
+
+// Auto-rellenar email routing con admin_email cuando cambia
 document.getElementById('admin_email').addEventListener('input', function() {
-    const emailRoutingDest = document.getElementById('email-routing-dest');
-    if (emailRoutingDest) {
-        emailRoutingDest.textContent = this.value || 'admin@miempresa.com';
+    const destinationInput = document.getElementById('email_routing_destination');
+    const emailRoutingEnabled = document.getElementById('enable_email_routing').checked;
+
+    // Solo auto-rellenar si Email Routing está activo y el campo está vacío
+    if (emailRoutingEnabled && !destinationInput.value) {
+        destinationInput.value = this.value;
     }
 });
 

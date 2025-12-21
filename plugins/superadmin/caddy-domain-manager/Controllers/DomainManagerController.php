@@ -145,6 +145,7 @@ class DomainManagerController
         $configureInCaddy = isset($_POST['configure_caddy']);
         $configureCloudflare = isset($_POST['configure_cloudflare']);
         $enableEmailRouting = isset($_POST['enable_email_routing']);
+        $emailRoutingDestination = trim($_POST['email_routing_destination'] ?? '');
         $adminEmail = trim($_POST['admin_email'] ?? '');
         $adminName = trim($_POST['admin_name'] ?? '');
         $adminPassword = $_POST['admin_password'] ?? '';
@@ -255,13 +256,16 @@ class DomainManagerController
 
                     // 4. Configurar Email Routing si se solicitó
                     if ($enableEmailRouting) {
-                        Logger::log("[DomainManager] Enabling Email Routing for {$domain}", 'INFO');
-                        $emailResult = $cloudflareService->enableEmailRouting($cloudflareZoneId, $adminEmail);
+                        // Usar email personalizado o admin_email como fallback
+                        $emailDestination = !empty($emailRoutingDestination) ? $emailRoutingDestination : $adminEmail;
+
+                        Logger::log("[DomainManager] Enabling Email Routing for {$domain} → {$emailDestination}", 'INFO');
+                        $emailResult = $cloudflareService->enableEmailRouting($cloudflareZoneId, $emailDestination);
 
                         if ($emailResult['enabled']) {
                             $stmt = $pdo->prepare("UPDATE tenants SET email_routing_enabled = 1 WHERE id = ?");
                             $stmt->execute([$tenantId]);
-                            $emailRoutingMessage = " Email Routing activado (catch-all → {$adminEmail}).";
+                            $emailRoutingMessage = " Email Routing activado (catch-all → {$emailDestination}).";
                         } else {
                             $emailRoutingMessage = " Email Routing no pudo activarse: " . ($emailResult['error'] ?? 'Error desconocido');
                         }
@@ -383,6 +387,9 @@ class DomainManagerController
         $status = trim($_POST['status'] ?? 'active');
         $newIncludeWww = isset($_POST['include_www']);
         $caddyStatus = trim($_POST['caddy_status'] ?? $tenant->caddy_status);
+        $configureCloudflare = isset($_POST['configure_cloudflare']);
+        $enableEmailRouting = isset($_POST['enable_email_routing']);
+        $emailRoutingDestination = trim($_POST['email_routing_destination'] ?? '');
 
         // Guardar estado anterior para detectar cambios
         $oldIncludeWww = (bool)($tenant->include_www ?? false);
@@ -402,6 +409,68 @@ class DomainManagerController
             ");
             $stmt->execute([$name, $status, $newIncludeWww ? 1 : 0, $caddyStatus, $id]);
 
+            $cloudflareMessage = '';
+            $emailRoutingMessage = '';
+
+            // Configurar Cloudflare si se solicitó (solo si NO está configurado previamente)
+            if ($configureCloudflare && empty($tenant->cloudflare_zone_id)) {
+                try {
+                    $cloudflareService = new \CaddyDomainManager\Services\CloudflareZoneService();
+
+                    // 1. Añadir zona a Cloudflare
+                    Logger::log("[DomainManager] Adding domain {$tenant->domain} to Cloudflare from EDIT", 'INFO');
+                    $zoneResult = $cloudflareService->addFullZone($tenant->domain);
+                    $cloudflareZoneId = $zoneResult['zone_id'];
+                    $cloudflareNameservers = $zoneResult['nameservers'];
+
+                    // 2. Crear CNAMEs @ y www → mortadelo.musedock.com
+                    Logger::log("[DomainManager] Creating CNAMEs for {$tenant->domain}", 'INFO');
+                    $cloudflareService->createProxiedCNAME($cloudflareZoneId, '@', 'mortadelo.musedock.com', true);
+
+                    if ($newIncludeWww) {
+                        $cloudflareService->createProxiedCNAME($cloudflareZoneId, 'www', 'mortadelo.musedock.com', true);
+                    }
+
+                    // 3. Guardar zone_id en BD
+                    $stmt = $pdo->prepare("
+                        UPDATE tenants
+                        SET cloudflare_zone_id = ?,
+                            cloudflare_nameservers = ?,
+                            cloudflare_proxied = 1,
+                            status = 'waiting_ns_change'
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([
+                        $cloudflareZoneId,
+                        json_encode($cloudflareNameservers),
+                        $id
+                    ]);
+
+                    // 4. Configurar Email Routing si se solicitó
+                    if ($enableEmailRouting && !empty($emailRoutingDestination)) {
+                        Logger::log("[DomainManager] Enabling Email Routing for {$tenant->domain} → {$emailRoutingDestination}", 'INFO');
+                        $emailResult = $cloudflareService->enableEmailRouting($cloudflareZoneId, $emailRoutingDestination);
+
+                        if ($emailResult['enabled']) {
+                            $stmt = $pdo->prepare("UPDATE tenants SET email_routing_enabled = 1 WHERE id = ?");
+                            $stmt->execute([$id]);
+                            $emailRoutingMessage = " Email Routing activado (catch-all → {$emailRoutingDestination}).";
+                        } else {
+                            $emailRoutingMessage = " Email Routing no pudo activarse: " . ($emailResult['error'] ?? 'Error desconocido');
+                        }
+                    }
+
+                    $nsString = implode(', ', $cloudflareNameservers);
+                    $cloudflareMessage = " Dominio añadido a Cloudflare. Nameservers: {$nsString}.";
+
+                    Logger::log("[DomainManager] Cloudflare configured successfully for {$tenant->domain}", 'INFO');
+
+                } catch (\Exception $e) {
+                    Logger::log("[DomainManager] Error configurando Cloudflare desde EDIT: " . $e->getMessage(), 'ERROR');
+                    $cloudflareMessage = " Error al configurar Cloudflare: " . $e->getMessage();
+                }
+            }
+
             // Si cambió include_www Y está configurado en Caddy, reconfigurar
             $needsCaddyUpdate = ($oldIncludeWww !== $newIncludeWww) &&
                                ($tenant->caddy_route_id ?? null) &&
@@ -412,12 +481,14 @@ class DomainManagerController
                 $result = $this->configureDomainInCaddy($id, $tenant->domain, $newIncludeWww);
 
                 if ($result['success']) {
-                    flash('success', "Tenant actualizado y reconfigurado en Caddy con " . ($newIncludeWww ? 'www incluido' : 'sin www') . ".");
+                    $finalMessage = "Tenant actualizado y reconfigurado en Caddy con " . ($newIncludeWww ? 'www incluido' : 'sin www') . ".{$cloudflareMessage}{$emailRoutingMessage}";
+                    flash('success', $finalMessage);
                 } else {
                     flash('warning', "Tenant actualizado, pero error al reconfigurar Caddy: " . $result['error']);
                 }
             } else {
-                flash('success', 'Tenant actualizado correctamente.');
+                $finalMessage = 'Tenant actualizado correctamente.' . $cloudflareMessage . $emailRoutingMessage;
+                flash('success', $finalMessage);
             }
 
             header('Location: /musedock/domain-manager');
