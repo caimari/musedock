@@ -104,9 +104,14 @@ class CustomDomainController
             Logger::info("[CustomDomain] Customer {$customerId} requesting domain: {$domain}");
 
             // 1. Crear tenant en estado 'waiting_ns_change'
+            // Generar nombre inicial a partir del dominio (ej: "ejemplo.com" → "Ejemplo")
+            $domainParts = explode('.', $domain);
+            $tenantName = ucfirst($domainParts[0]);
+
             $stmt = $pdo->prepare("
                 INSERT INTO tenants (
                     customer_id,
+                    name,
                     domain,
                     is_subdomain,
                     plan,
@@ -114,10 +119,11 @@ class CustomDomainController
                     cloudflare_proxied,
                     email_routing_enabled,
                     created_at
-                ) VALUES (?, ?, 0, 'custom', 'pending', 1, ?, NOW())
+                ) VALUES (?, ?, ?, 0, 'custom', 'pending', 1, ?, NOW())
             ");
             $stmt->execute([
                 $customerId,
+                $tenantName,
                 $domain,
                 $enableEmailRouting ? 1 : 0
             ]);

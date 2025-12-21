@@ -271,6 +271,9 @@ class View
     $tenant = tenant();
     $tenantId = $tenant['id'] ?? null;
 
+    // Convertir template a ruta de archivo
+    $templateFile = str_replace('.', '/', $template) . '.blade.php';
+
     // Primero intentar con tema personalizado de tenant (si existe)
     if ($tenantId) {
         $themeBase = __DIR__ . "/../themes/tenant_{$tenantId}/" . $themeSlug;
@@ -288,10 +291,27 @@ class View
     // Usar directorio de caché separado por tema para evitar conflictos
     $cache = __DIR__ . '/../storage/cache/themes/' . $themeSlug;
 
-    if (!file_exists("{$viewPath}/" . str_replace('.', '/', $template) . '.blade.php')) {
-        $viewPath = __DIR__ . '/../themes/default/views';
-        // Si usamos fallback a default, también usar su caché
-        $cache = __DIR__ . '/../storage/cache/themes/default';
+    // Orden de búsqueda de vistas:
+    // 1. Tema personalizado del tenant
+    // 2. Tema compartido (musedock, default, etc.)
+    // 3. Plugins de superadmin (para Customer panel, etc.)
+    // 4. Tema default como fallback final
+
+    if (!file_exists("{$viewPath}/{$templateFile}")) {
+        // Intentar tema default
+        $defaultViewPath = __DIR__ . '/../themes/default/views';
+
+        if (file_exists("{$defaultViewPath}/{$templateFile}")) {
+            $viewPath = $defaultViewPath;
+            $cache = __DIR__ . '/../storage/cache/themes/default';
+        } else {
+            // Buscar en plugins de superadmin (ej: caddy-domain-manager)
+            $pluginViewPath = self::findPluginView($templateFile);
+            if ($pluginViewPath !== null) {
+                $viewPath = $pluginViewPath;
+                $cache = __DIR__ . '/../storage/cache/plugins/customer';
+            }
+        }
     }
 
     if (!is_dir($cache)) mkdir($cache, 0775, true);
@@ -312,6 +332,34 @@ class View
         return "Error al renderizar tema: " . $e->getMessage();
     }
 }
+
+    /**
+     * Busca una vista en los plugins de superadmin
+     *
+     * @param string $templateFile Archivo de template (ej: Customer/request-custom-domain.blade.php)
+     * @return string|null Ruta del directorio de vistas o null si no se encuentra
+     */
+    protected static function findPluginView(string $templateFile): ?string
+    {
+        $pluginsPath = __DIR__ . '/../plugins/superadmin';
+
+        if (!is_dir($pluginsPath)) {
+            return null;
+        }
+
+        // Buscar en cada plugin
+        foreach (scandir($pluginsPath) as $plugin) {
+            if ($plugin === '.' || $plugin === '..') continue;
+
+            $pluginViewsPath = $pluginsPath . '/' . $plugin . '/Views';
+
+            if (is_dir($pluginViewsPath) && file_exists($pluginViewsPath . '/' . $templateFile)) {
+                return $pluginViewsPath;
+            }
+        }
+
+        return null;
+    }
 
 
     public static function renderModule(string $slug, string $view, array $data = [])
