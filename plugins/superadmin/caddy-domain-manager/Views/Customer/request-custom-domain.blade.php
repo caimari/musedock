@@ -8,14 +8,14 @@
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
     .request-card .card-header {
-        background: linear-gradient(135deg, #667eea, #764ba2);
+        background: #17a2b8;
         color: white;
         border-radius: 15px 15px 0 0 !important;
         padding: 25px;
     }
     .info-box {
         background: #f8f9fa;
-        border-left: 4px solid #667eea;
+        border-left: 4px solid #17a2b8;
         padding: 15px;
         border-radius: 5px;
         margin-bottom: 20px;
@@ -28,12 +28,12 @@
         margin-bottom: 20px;
     }
     .btn-primary {
-        background: linear-gradient(135deg, #667eea, #764ba2);
+        background: #17a2b8;
         border: none;
         padding: 12px 30px;
     }
     .btn-primary:hover {
-        background: linear-gradient(135deg, #5a6fd6, #6a4292);
+        background: #138496;
     }
 </style>
 @endsection

@@ -613,7 +613,7 @@ class CloudflareZoneService
      * Configurar SSL mode
      *
      * @param string $zoneId
-     * @param string $mode off, flexible, full, full_strict
+     * @param string $mode off, flexible, full, strict
      * @return bool
      * @throws Exception
      */
