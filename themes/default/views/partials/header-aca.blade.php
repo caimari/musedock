@@ -11,7 +11,7 @@
     $showLogo = site_setting('show_logo', '1') === '1';
     $showTitle = site_setting('show_title', '0') === '1';
     $siteName = site_setting('site_name', '');
-    $siteDescription = site_setting('site_description', '');
+    $siteDescription = site_setting('site_subtitle', '');
     $taglineEnabled = themeOption('header.header_tagline_enabled', true);
     $logoPath = site_setting('site_logo', '');
     $defaultLogo = asset('img/musedock_logo.png');

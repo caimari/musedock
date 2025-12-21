@@ -60,6 +60,7 @@ class SettingsController
             $settingsKeys = [
                 // Información del sitio
                 'site_name',
+                'site_subtitle',
                 'site_description',
                 'admin_email',
 

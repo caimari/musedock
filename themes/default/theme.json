@@ -303,15 +303,15 @@
         },
         "header_tagline_color": {
           "type": "color",
-          "label": "Color del subtítulo (descripción)",
+          "label": "Color del subtitulo",
           "default": "#111827",
-          "description": "Color del texto de la descripción del sitio debajo del logo (Tema 2)"
+          "description": "Color del subtitulo del sitio debajo del logo"
         },
         "header_tagline_enabled": {
           "type": "toggle",
-          "label": "Mostrar subtítulo (descripción)",
+          "label": "Mostrar subtitulo",
           "default": true,
-          "description": "Muestra/oculta la descripción del sitio debajo del logo (Tema 2 y header clásico)"
+          "description": "Muestra/oculta el subtitulo del sitio debajo del logo (configurado en Ajustes del Sitio)"
         },
         "header_sticky": {
           "type": "toggle",

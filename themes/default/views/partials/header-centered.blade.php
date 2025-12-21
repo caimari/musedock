@@ -39,7 +39,7 @@
             ]);
 
             $taglineEnabled = themeOption('header.header_tagline_enabled', true);
-            $siteTagline = site_setting('site_description', '');
+            $siteTagline = site_setting('site_subtitle', '');
         @endphp
 
         <div class="header-centered-grid">

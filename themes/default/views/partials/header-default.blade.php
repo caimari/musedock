@@ -15,7 +15,7 @@
             <div class="header-logo">
                 @php
                     $taglineEnabled = themeOption('header.header_tagline_enabled', true);
-                    $siteTagline = site_setting('site_description', '');
+                    $siteTagline = site_setting('site_subtitle', '');
                 @endphp
                 <a href="{{ url('/') }}" class="header-brand-link">
                     @php

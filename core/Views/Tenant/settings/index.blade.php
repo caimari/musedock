@@ -48,9 +48,18 @@ textarea::placeholder {
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label">Descripcion del sitio</label>
-                                <textarea name="site_description" class="form-control" rows="2">{{ $settings['site_description'] ?? '' }}</textarea>
-                                <small class="text-muted">Breve descripcion para SEO y compartir en redes sociales</small>
+                                <label class="form-label">Subtitulo del sitio</label>
+                                <input type="text" name="site_subtitle" class="form-control"
+                                       value="{{ $settings['site_subtitle'] ?? '' }}"
+                                       placeholder="Ej: Tu lema o eslogan">
+                                <small class="text-muted">Texto que se muestra debajo del logo en la cabecera (si esta activado en Apariencia)</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Descripcion del sitio (SEO)</label>
+                                <textarea name="site_description" class="form-control" rows="2"
+                                          placeholder="Descripcion breve para buscadores y redes sociales">{{ $settings['site_description'] ?? '' }}</textarea>
+                                <small class="text-muted">Solo para SEO y al compartir en redes sociales. No se muestra visualmente en el sitio.</small>
                             </div>
 
                             <div class="mb-3">
