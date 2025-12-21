@@ -88,52 +88,122 @@ class CustomDomainController
         try {
             $pdo = Database::connect();
 
-            // Verificar que el dominio no exista ya
-            $stmt = $pdo->prepare("SELECT id FROM tenants WHERE domain = ?");
+            // Verificar si el dominio ya existe en el sistema
+            $stmt = $pdo->prepare("
+                SELECT t.id, t.customer_id, t.status, t.cloudflare_zone_id, t.cloudflare_nameservers
+                FROM tenants t
+                WHERE t.domain = ?
+            ");
             $stmt->execute([$domain]);
-            if ($stmt->fetch()) {
-                $this->jsonResponse([
-                    'success' => false,
-                    'error' => 'Este dominio ya está registrado en el sistema'
-                ], 400);
-                return;
+            $existingTenant = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($existingTenant) {
+                // Verificar si pertenece al mismo cliente
+                if ((int)$existingTenant['customer_id'] !== (int)$customerId) {
+                    $this->jsonResponse([
+                        'success' => false,
+                        'error' => 'Este dominio ya está registrado por otro usuario'
+                    ], 400);
+                    return;
+                }
+
+                // El dominio es del mismo cliente - verificar estado
+                if ($existingTenant['status'] === 'active') {
+                    $this->jsonResponse([
+                        'success' => false,
+                        'error' => 'Este dominio ya está vinculado y activo en tu cuenta. Puedes verlo en tu dashboard.'
+                    ], 400);
+                    return;
+                }
+
+                // Dominio existente pero no activo - intentar continuar configuración
+                Logger::info("[CustomDomain] Found existing tenant for {$domain} with status: {$existingTenant['status']}");
+
+                // Si tiene zone_id y nameservers, devolver esa info
+                if (!empty($existingTenant['cloudflare_zone_id']) && !empty($existingTenant['cloudflare_nameservers'])) {
+                    $nameservers = json_decode($existingTenant['cloudflare_nameservers'], true) ?: [];
+
+                    $this->jsonResponse([
+                        'success' => true,
+                        'message' => 'Dominio ya configurado. Solo falta que cambies los nameservers en tu registrador.',
+                        'tenant_id' => $existingTenant['id'],
+                        'domain' => $domain,
+                        'nameservers' => $nameservers,
+                        'status' => $existingTenant['status'],
+                        'resumed' => true
+                    ]);
+                    return;
+                }
+
+                // Tiene tenant pero sin configuración de Cloudflare completa - continuar
+                $tenantId = $existingTenant['id'];
+                $resuming = true;
+            } else {
+                $resuming = false;
+                $tenantId = null;
             }
 
             $pdo->beginTransaction();
 
-            Logger::info("[CustomDomain] Customer {$customerId} requesting domain: {$domain}");
+            Logger::info("[CustomDomain] Customer {$customerId} requesting domain: {$domain}" . ($resuming ? " (resuming)" : ""));
 
-            // 1. Crear tenant en estado 'waiting_ns_change'
-            // Generar nombre inicial a partir del dominio (ej: "ejemplo.com" → "Ejemplo")
-            $domainParts = explode('.', $domain);
-            $tenantName = ucfirst($domainParts[0]);
+            // 1. Crear tenant si no existe
+            if (!$resuming) {
+                // Generar nombre inicial a partir del dominio (ej: "ejemplo.com" → "Ejemplo")
+                $domainParts = explode('.', $domain);
+                $tenantName = ucfirst($domainParts[0]);
 
-            $stmt = $pdo->prepare("
-                INSERT INTO tenants (
-                    customer_id,
-                    name,
-                    domain,
-                    is_subdomain,
-                    plan,
-                    status,
-                    cloudflare_proxied,
-                    email_routing_enabled,
-                    created_at
-                ) VALUES (?, ?, ?, 0, 'custom', 'pending', 1, ?, NOW())
-            ");
-            $stmt->execute([
-                $customerId,
-                $tenantName,
-                $domain,
-                $enableEmailRouting ? 1 : 0
-            ]);
-            $tenantId = $pdo->lastInsertId();
+                $stmt = $pdo->prepare("
+                    INSERT INTO tenants (
+                        customer_id,
+                        name,
+                        domain,
+                        is_subdomain,
+                        plan,
+                        status,
+                        cloudflare_proxied,
+                        email_routing_enabled,
+                        created_at
+                    ) VALUES (?, ?, ?, 0, 'custom', 'pending', 1, ?, NOW())
+                ");
+                $stmt->execute([
+                    $customerId,
+                    $tenantName,
+                    $domain,
+                    $enableEmailRouting ? 1 : 0
+                ]);
+                $tenantId = $pdo->lastInsertId();
+                Logger::info("[CustomDomain] Tenant created with ID: {$tenantId}");
+            }
 
-            Logger::info("[CustomDomain] Tenant created with ID: {$tenantId}");
-
-            // 2. Añadir dominio a Cloudflare Account 2
+            // 2. Añadir dominio a Cloudflare Account 2 (o recuperar existente)
             $cloudflareService = new CloudflareZoneService();
-            $zoneResult = $cloudflareService->addFullZone($domain);
+
+            try {
+                $zoneResult = $cloudflareService->addFullZone($domain);
+            } catch (Exception $cfException) {
+                // Verificar si el error es porque el dominio ya existe en Cloudflare
+                $errorMsg = $cfException->getMessage();
+
+                if (strpos($errorMsg, 'already exists') !== false) {
+                    Logger::info("[CustomDomain] Domain {$domain} already exists in Cloudflare, trying to recover zone info");
+
+                    // Intentar obtener la zona existente
+                    $existingZone = $cloudflareService->getZoneByDomain($domain);
+
+                    if ($existingZone) {
+                        $zoneResult = $existingZone;
+                        Logger::info("[CustomDomain] Recovered existing zone: {$zoneResult['zone_id']}");
+
+                        // Verificar y completar configuración de CNAMEs si faltan
+                        $this->ensureCNAMEsExist($cloudflareService, $zoneResult['zone_id'], $domain);
+                    } else {
+                        throw new Exception('El dominio ya existe en Cloudflare pero no pudimos recuperar la información. Contacta soporte.');
+                    }
+                } else {
+                    throw $cfException;
+                }
+            }
 
             // 3. Guardar zone_id y nameservers
             $stmt = $pdo->prepare("
@@ -151,11 +221,10 @@ class CustomDomainController
 
             Logger::info("[CustomDomain] Zone added to Cloudflare. Zone ID: {$zoneResult['zone_id']}");
 
-            // 4. Crear CNAMEs @ y www → mortadelo.musedock.com
-            $cloudflareService->createProxiedCNAME($zoneResult['zone_id'], '@', 'mortadelo.musedock.com', true);
-            $cloudflareService->createProxiedCNAME($zoneResult['zone_id'], 'www', 'mortadelo.musedock.com', true);
+            // 4. Crear CNAMEs @ y www → mortadelo.musedock.com (si no existen)
+            $this->ensureCNAMEsExist($cloudflareService, $zoneResult['zone_id'], $domain);
 
-            Logger::info("[CustomDomain] CNAMEs created");
+            Logger::info("[CustomDomain] CNAMEs verified/created");
 
             // 5. Habilitar Email Routing si se solicitó
             if ($enableEmailRouting) {
@@ -194,6 +263,32 @@ class CustomDomainController
                 'success' => false,
                 'error' => 'Error al añadir el dominio: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Asegurar que los CNAMEs @ y www existan y apunten a mortadelo.musedock.com
+     *
+     * @param CloudflareZoneService $cloudflareService
+     * @param string $zoneId
+     * @param string $domain
+     */
+    private function ensureCNAMEsExist(CloudflareZoneService $cloudflareService, string $zoneId, string $domain): void
+    {
+        $target = 'mortadelo.musedock.com';
+
+        // Verificar y crear CNAME para root (@)
+        try {
+            $cloudflareService->createCNAMEIfNotExists($zoneId, '@', $target, true);
+        } catch (Exception $e) {
+            Logger::warning("[CustomDomain] Could not create root CNAME for {$domain}: " . $e->getMessage());
+        }
+
+        // Verificar y crear CNAME para www
+        try {
+            $cloudflareService->createCNAMEIfNotExists($zoneId, 'www', $target, true);
+        } catch (Exception $e) {
+            Logger::warning("[CustomDomain] Could not create www CNAME for {$domain}: " . $e->getMessage());
         }
     }
 

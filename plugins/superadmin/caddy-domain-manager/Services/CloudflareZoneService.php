@@ -703,6 +703,91 @@ class CloudflareZoneService
     }
 
     /**
+     * Alias de findExistingZone para compatibilidad
+     * @param string $domain
+     * @return array|null
+     */
+    public function getZoneByDomain(string $domain): ?array
+    {
+        return $this->findExistingZone($domain);
+    }
+
+    /**
+     * Obtener todos los registros DNS de una zona
+     *
+     * @param string $zoneId
+     * @param string|null $type Filtrar por tipo (CNAME, A, MX, etc)
+     * @return array
+     */
+    public function getDNSRecords(string $zoneId, ?string $type = null): array
+    {
+        $endpoint = "/zones/{$zoneId}/dns_records";
+        if ($type) {
+            $endpoint .= "?type={$type}";
+        }
+
+        $response = $this->makeRequest('GET', $endpoint);
+        return $response['result'] ?? [];
+    }
+
+    /**
+     * Verificar si existe un registro CNAME específico
+     *
+     * @param string $zoneId
+     * @param string $name Nombre del registro (@ o www)
+     * @param string $target Target esperado
+     * @return bool
+     */
+    public function cnameExists(string $zoneId, string $name, string $target): bool
+    {
+        $records = $this->getDNSRecords($zoneId, 'CNAME');
+
+        foreach ($records as $record) {
+            // Para registros root (@), Cloudflare usa el nombre del dominio
+            $recordName = $record['name'] ?? '';
+            $recordContent = $record['content'] ?? '';
+
+            // Normalizar el nombre para comparación
+            if ($name === '@') {
+                // El registro root puede aparecer como el dominio completo
+                if ($recordContent === $target) {
+                    // Verificar si es el registro root (sin subdomain)
+                    $parts = explode('.', $recordName);
+                    if (count($parts) <= 2) { // dominio.tld
+                        return true;
+                    }
+                }
+            } else {
+                // Para www u otros subdominios
+                if (strpos($recordName, $name . '.') === 0 && $recordContent === $target) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Crear CNAME solo si no existe
+     *
+     * @param string $zoneId
+     * @param string $name
+     * @param string $target
+     * @param bool $proxied
+     * @return array|null Record creado o null si ya existía
+     */
+    public function createCNAMEIfNotExists(string $zoneId, string $name, string $target, bool $proxied = true): ?array
+    {
+        if ($this->cnameExists($zoneId, $name, $target)) {
+            Logger::info("[CloudflareZone] CNAME {$name} → {$target} already exists, skipping");
+            return null;
+        }
+
+        return $this->createProxiedCNAME($zoneId, $name, $target, $proxied);
+    }
+
+    /**
      * Busca una zona existente en Cloudflare por nombre de dominio
      *
      * @param string $domain Nombre del dominio (ej: ejemplo.com)
