@@ -43,23 +43,24 @@
     <div class="col-lg-8">
         <div class="card request-card">
             <div class="card-header text-center">
-                <h3 class="mb-0"><i class="bi bi-globe me-2"></i>Incorporar Dominio Personalizado</h3>
-                <p class="mb-0 mt-2 opacity-75">Conecta tu propio dominio a MuseDock</p>
+                <h3 class="mb-0"><i class="bi bi-link-45deg me-2"></i>Vincular Dominio Existente</h3>
+                <p class="mb-0 mt-2 opacity-75">Conecta tu dominio a MuseDock cambiando solo los nameservers</p>
             </div>
             <div class="card-body p-4">
                 <div class="info-box">
-                    <h6><i class="bi bi-info-circle me-2"></i>Como funciona</h6>
+                    <h6><i class="bi bi-info-circle me-2"></i>Como funciona (solo cambio de DNS)</h6>
                     <ul class="mb-0 ps-3">
-                        <li>Tu dominio sera protegido por Cloudflare automaticamente</li>
-                        <li>Recibiras instrucciones para cambiar los nameservers</li>
-                        <li>Tu sitio se activara automaticamente cuando detectemos el cambio</li>
-                        <li>Opcionalmente puedes habilitar Email Routing para recibir correos</li>
+                        <li><strong>Tu dominio sigue siendo tuyo</strong> - no se transfiere, solo cambias los nameservers</li>
+                        <li>Tu dominio sera protegido por Cloudflare automaticamente (SSL gratuito)</li>
+                        <li>Recibiras instrucciones para cambiar los nameservers en tu registrador</li>
+                        <li>Tu sitio se activara automaticamente cuando detectemos el cambio de DNS</li>
                     </ul>
                 </div>
 
                 <div class="warning-box">
                     <h6><i class="bi bi-exclamation-triangle me-2"></i>Importante</h6>
-                    <p class="mb-0">Debes ser el propietario del dominio y tener acceso para cambiar los nameservers en tu registrador (GoDaddy, Namecheap, etc.)</p>
+                    <p class="mb-2">Debes ser el propietario del dominio y tener acceso para cambiar los nameservers en tu registrador (GoDaddy, Namecheap, Google Domains, etc.)</p>
+                    <p class="mb-0 small"><i class="bi bi-shield-check me-1"></i>El dominio permanece registrado en tu proveedor actual - <strong>no es una transferencia</strong>.</p>
                 </div>
 
                 <form id="customDomainForm" onsubmit="submitRequest(event)">
@@ -85,11 +86,15 @@
                                 <br><small class="text-muted">Los correos enviados a cualquier direccion de tu dominio seran redirigidos a <?= htmlspecialchars($customer['email'] ?? '') ?></small>
                             </label>
                         </div>
+                        <div class="form-text mt-2">
+                            <i class="bi bi-lightbulb me-1 text-info"></i>
+                            <em>Puedes activar o configurar el Email Routing mas adelante desde tu panel de control.</em>
+                        </div>
                     </div>
 
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="bi bi-rocket-takeoff me-2"></i>Incorporar Dominio
+                            <i class="bi bi-link-45deg me-2"></i>Vincular Dominio
                         </button>
                         <a href="/customer/dashboard" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left me-2"></i>Volver al Dashboard
