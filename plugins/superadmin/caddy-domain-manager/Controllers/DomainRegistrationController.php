@@ -207,12 +207,33 @@ class DomainRegistrationController
                 return;
             }
 
-            // Limpiar query (remover espacios, caracteres especiales)
-            $query = preg_replace('/[^a-zA-Z0-9\-]/', '', $query);
-            $query = strtolower($query);
+            // Detectar si el usuario incluyó una extensión específica (ej: caracola.com)
+            $query = strtolower(trim($query));
+            $preferredExtension = null;
+
+            // Verificar si tiene formato dominio.extension
+            if (preg_match('/^([a-z0-9\-]+)\.([a-z]{2,10})$/i', $query, $matches)) {
+                $domainName = $matches[1];
+                $preferredExtension = $matches[2];
+            } else {
+                // Limpiar query (remover espacios, caracteres especiales excepto guiones)
+                $domainName = preg_replace('/[^a-z0-9\-]/', '', $query);
+            }
 
             $openProvider = new OpenProviderService();
-            $results = $openProvider->searchDomain($query);
+            $results = $openProvider->searchDomain($domainName, $preferredExtension ? [$preferredExtension] : null);
+
+            // Si hay extensión preferida, reordenar para que aparezca primero
+            if ($preferredExtension) {
+                usort($results, function($a, $b) use ($preferredExtension) {
+                    $extA = pathinfo($a['domain'] ?? '', PATHINFO_EXTENSION);
+                    $extB = pathinfo($b['domain'] ?? '', PATHINFO_EXTENSION);
+
+                    if ($extA === $preferredExtension && $extB !== $preferredExtension) return -1;
+                    if ($extB === $preferredExtension && $extA !== $preferredExtension) return 1;
+                    return 0;
+                });
+            }
 
             // Formatear resultados para la vista
             $formattedResults = array_map(function ($result) {

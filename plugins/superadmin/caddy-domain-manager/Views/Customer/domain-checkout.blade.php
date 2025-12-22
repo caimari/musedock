@@ -8,7 +8,7 @@
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
     .checkout-card .card-header {
-        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        background: #28a745;
         color: white;
         border-radius: 15px 15px 0 0 !important;
         padding: 30px;
@@ -68,14 +68,14 @@
         margin-right: 10px;
     }
     .btn-register {
-        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        background: #28a745;
         border: none;
         padding: 15px 40px;
         font-size: 1.1rem;
         border-radius: 30px;
     }
     .btn-register:hover {
-        background: linear-gradient(135deg, #218838 0%, #1a9d7d 100%);
+        background: #218838;
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
     }

@@ -302,13 +302,14 @@ function selectDomain(domain, price, currency) {
         title: 'Registrar ' + domain + '?',
         html: `
             <p>Precio: <strong>${price.toFixed(2)} ${currency}</strong> / año</p>
-            <p class="text-muted small">Incluye: SSL, Cloudflare Protection, Email Routing</p>
+            <p class="text-muted small mb-3">Incluye: SSL, Cloudflare Protection, Email Routing</p>
+            <p class="text-muted small"><i class="bi bi-info-circle me-1"></i>En el siguiente paso deberas completar los datos del registrante</p>
         `,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#667eea',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Continuar',
+        confirmButtonText: '<i class="bi bi-arrow-right-circle me-1"></i> Continuar',
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {

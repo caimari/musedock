@@ -222,19 +222,30 @@ class OpenProviderService
      * Buscar un dominio específico con múltiples extensiones populares
      *
      * @param string $domainName Nombre del dominio sin extensión
-     * @param array|null $extensions Extensiones a buscar (null = usar todas las populares)
+     * @param array|null $preferredExtensions Extensiones preferidas (se añaden al inicio, luego las populares)
      * @return array Resultados ordenados por prioridad y precio
      * @throws Exception
      */
-    public function searchDomain(string $domainName, ?array $extensions = null): array
+    public function searchDomain(string $domainName, ?array $preferredExtensions = null): array
     {
         $domainName = strtolower(trim($domainName));
 
         // Remover extensión si la incluyó el usuario
         $domainName = preg_replace('/\.[a-z]{2,}$/i', '', $domainName);
 
-        // Usar extensiones proporcionadas o las populares por defecto
-        $extensionsToCheck = $extensions ?? self::PRIORITY_EXTENSIONS;
+        // Si hay extensiones preferidas, ponerlas primero y luego añadir las demás populares
+        if ($preferredExtensions && count($preferredExtensions) > 0) {
+            // Empezar con las preferidas
+            $extensionsToCheck = $preferredExtensions;
+            // Añadir las populares que no estén ya incluidas
+            foreach (self::PRIORITY_EXTENSIONS as $ext) {
+                if (!in_array($ext, $extensionsToCheck)) {
+                    $extensionsToCheck[] = $ext;
+                }
+            }
+        } else {
+            $extensionsToCheck = self::PRIORITY_EXTENSIONS;
+        }
 
         // Construir array de dominios a verificar
         $domains = array_map(function ($ext) use ($domainName) {
