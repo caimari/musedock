@@ -290,28 +290,38 @@ class DomainContactsController
                 return; // Ya existe
             }
 
+            $type = $data['new_contact_type'] ?? 'owner_handle';
+            $type = str_replace('_handle', '', (string)$type);
+            if (!in_array($type, ['owner', 'admin', 'tech', 'billing'], true)) {
+                $type = 'owner';
+            }
+
             // Insertar nuevo
             $stmt = $pdo->prepare("
                 INSERT INTO domain_contacts (
-                    customer_id, first_name, last_name, company_name, email, phone,
-                    address, city, state, zipcode, country, vat_number,
-                    openprovider_handle, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                    customer_id, openprovider_handle, type,
+                    first_name, last_name, company, company_reg_number, email, phone,
+                    address_street, address_number, address_city, address_state, address_zipcode, address_country,
+                    is_default
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
             ");
             $stmt->execute([
                 $customerId,
+                $handle
+                ,
+                $type,
                 $data['new_first_name'] ?? '',
                 $data['new_last_name'] ?? '',
                 $data['new_company_name'] ?? null,
+                $data['new_vat'] ?? null,
                 $data['new_email'] ?? '',
                 $data['new_phone'] ?? '',
                 $data['new_address'] ?? '',
+                $data['new_address_number'] ?? null,
                 $data['new_city'] ?? '',
                 $data['new_state'] ?? null,
                 $data['new_zipcode'] ?? '',
                 $data['new_country'] ?? '',
-                $data['new_vat'] ?? null,
-                $handle
             ]);
 
         } catch (Exception $e) {

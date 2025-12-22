@@ -189,31 +189,39 @@ class DomainTransferController
                     'country' => $_POST['owner_country']
                 ]);
 
-                // Guardar contacto en BD
+                // Guardar contacto en BD (compatible MySQL/PostgreSQL)
                 $stmt = $pdo->prepare("
-                    INSERT INTO domain_contacts (
-                        customer_id, openprovider_handle, type,
-                        first_name, last_name, company, email, phone,
-                        address_street, address_number, address_city, address_state, address_zipcode, address_country,
-                        is_default
-                    ) VALUES (?, ?, 'owner', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-                    ON DUPLICATE KEY UPDATE openprovider_handle = VALUES(openprovider_handle)
+                    SELECT id FROM domain_contacts
+                    WHERE customer_id = ? AND openprovider_handle = ?
+                    LIMIT 1
                 ");
-                $stmt->execute([
-                    $customerId,
-                    $handles['owner'],
-                    $_POST['owner_first_name'],
-                    $_POST['owner_last_name'],
-                    $_POST['owner_company'] ?? null,
-                    $_POST['owner_email'],
-                    $_POST['owner_phone'],
-                    $_POST['owner_street'],
-                    $_POST['owner_number'] ?? null,
-                    $_POST['owner_city'],
-                    $_POST['owner_state'] ?? null,
-                    $_POST['owner_zipcode'],
-                    $_POST['owner_country']
-                ]);
+                $stmt->execute([$customerId, $handles['owner']]);
+
+                if (!$stmt->fetch()) {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO domain_contacts (
+                            customer_id, openprovider_handle, type,
+                            first_name, last_name, company, email, phone,
+                            address_street, address_number, address_city, address_state, address_zipcode, address_country,
+                            is_default
+                        ) VALUES (?, ?, 'owner', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                    ");
+                    $stmt->execute([
+                        $customerId,
+                        $handles['owner'],
+                        $_POST['owner_first_name'],
+                        $_POST['owner_last_name'],
+                        $_POST['owner_company'] ?? null,
+                        $_POST['owner_email'],
+                        $_POST['owner_phone'],
+                        $_POST['owner_street'],
+                        $_POST['owner_number'] ?? null,
+                        $_POST['owner_city'],
+                        $_POST['owner_state'] ?? null,
+                        $_POST['owner_zipcode'],
+                        $_POST['owner_country']
+                    ]);
+                }
             }
 
             // Usar mismo contacto para todos

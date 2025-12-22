@@ -594,13 +594,47 @@ class OpenProviderService
                 return null;
             }
 
-            return $response['data'];
+            return $this->normalizeContact($response['data']);
         } catch (Exception $e) {
             if (strpos($e->getMessage(), '404') !== false) {
                 return null;
             }
             throw $e;
         }
+    }
+
+    /**
+     * Normaliza el payload de contacto para que la UI pueda leer campos consistentes
+     * independientemente del formato (snake_case/camelCase) de OpenProvider.
+     */
+    private function normalizeContact(array $contact): array
+    {
+        $name = is_array($contact['name'] ?? null) ? $contact['name'] : [];
+        $phone = is_array($contact['phone'] ?? null) ? $contact['phone'] : [];
+        $address = is_array($contact['address'] ?? null) ? $contact['address'] : [];
+
+        $firstName = $name['firstName'] ?? $name['first_name'] ?? $name['first'] ?? $contact['first_name'] ?? $contact['firstName'] ?? null;
+        $lastName = $name['lastName'] ?? $name['last_name'] ?? $name['last'] ?? $contact['last_name'] ?? $contact['lastName'] ?? null;
+
+        $companyName = $contact['companyName'] ?? $contact['company_name'] ?? $contact['company'] ?? $contact['companyName'] ?? null;
+
+        $countryCode = $phone['countryCode'] ?? $phone['country_code'] ?? $phone['country'] ?? null;
+        $areaCode = $phone['areaCode'] ?? $phone['area_code'] ?? null;
+        $subscriberNumber = $phone['subscriberNumber'] ?? $phone['subscriber_number'] ?? $phone['subscriber'] ?? null;
+
+        return array_merge($contact, [
+            'name' => array_merge($name, [
+                'firstName' => $firstName,
+                'lastName' => $lastName,
+            ]),
+            'companyName' => $companyName,
+            'phone' => array_merge($phone, [
+                'countryCode' => $countryCode,
+                'areaCode' => $areaCode,
+                'subscriberNumber' => $subscriberNumber,
+            ]),
+            'address' => $address,
+        ]);
     }
 
     /**
@@ -879,17 +913,22 @@ class OpenProviderService
 
         $data = [];
 
-        if (!empty($handles['owner'])) {
-            $data['owner_handle'] = $handles['owner'];
+        $owner = $handles['owner_handle'] ?? $handles['owner'] ?? null;
+        $admin = $handles['admin_handle'] ?? $handles['admin'] ?? null;
+        $tech = $handles['tech_handle'] ?? $handles['tech'] ?? null;
+        $billing = $handles['billing_handle'] ?? $handles['billing'] ?? null;
+
+        if (!empty($owner)) {
+            $data['owner_handle'] = $owner;
         }
-        if (!empty($handles['admin'])) {
-            $data['admin_handle'] = $handles['admin'];
+        if (!empty($admin)) {
+            $data['admin_handle'] = $admin;
         }
-        if (!empty($handles['tech'])) {
-            $data['tech_handle'] = $handles['tech'];
+        if (!empty($tech)) {
+            $data['tech_handle'] = $tech;
         }
-        if (!empty($handles['billing'])) {
-            $data['billing_handle'] = $handles['billing'];
+        if (!empty($billing)) {
+            $data['billing_handle'] = $billing;
         }
 
         if (empty($data)) {
