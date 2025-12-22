@@ -165,18 +165,8 @@ class FreeSubdomainController
                 return;
             }
 
-            // Verificar que el email del admin no exista (si se proporciona)
-            if ($customAdminCredentials) {
-                $stmt = $pdo->prepare("SELECT id FROM admins WHERE email = ?");
-                $stmt->execute([$customAdminCredentials['email']]);
-                if ($stmt->fetch()) {
-                    $this->jsonResponse([
-                        'success' => false,
-                        'error' => 'El email del admin ya está en uso por otro administrador'
-                    ], 400);
-                    return;
-                }
-            }
+            // El email de admin puede repetirse entre diferentes tenants
+            // Solo verificamos que no esté duplicado dentro del mismo tenant (nuevo)
 
             // Obtener datos del customer
             $stmt = $pdo->prepare("SELECT * FROM customers WHERE id = ?");

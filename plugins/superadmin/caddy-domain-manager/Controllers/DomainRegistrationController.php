@@ -123,11 +123,17 @@ class DomainRegistrationController
             // Lista de países (ISO 3166-1 alpha-2)
             $countries = $this->getCountriesList();
 
+            // Obtener códigos de teléfono
+            $phoneCodes = OpenProviderService::getPhoneCountryCodes();
+
             echo View::renderTheme('Customer.domain-contact', [
                 'customer' => $_SESSION['customer'],
                 'contacts' => $contacts,
                 'selectedDomain' => $selectedDomain,
+                'selectedPrice' => $_SESSION['domain_registration']['price'] ?? 0,
+                'selectedCurrency' => $_SESSION['domain_registration']['currency'] ?? 'EUR',
                 'countries' => $countries,
+                'phoneCodes' => $phoneCodes,
                 'csrf_token' => csrf_token()
             ]);
 
@@ -368,13 +374,18 @@ class DomainRegistrationController
                     }
                 }
 
+                // Construir teléfono con código de país
+                $ownerPhoneCode = $_POST['owner_phone_code'] ?? '34';
+                $ownerPhoneNumber = preg_replace('/[^\d]/', '', $_POST['owner_phone']);
+                $ownerPhone = '+' . $ownerPhoneCode . $ownerPhoneNumber;
+
                 // Obtener o crear contacto Owner en OpenProvider (reutiliza si ya existe)
                 $handles['owner'] = $openProvider->getOrCreateContact([
                     'first_name' => $_POST['owner_first_name'],
                     'last_name' => $_POST['owner_last_name'],
                     'company' => $_POST['owner_company'] ?? '',
                     'email' => $_POST['owner_email'],
-                    'phone' => $_POST['owner_phone'],
+                    'phone' => $ownerPhone,
                     'address' => $_POST['owner_street'],
                     'address_number' => $_POST['owner_number'] ?? '',
                     'city' => $_POST['owner_city'],
@@ -431,16 +442,31 @@ class DomainRegistrationController
                     $phone = $_POST["{$type}_phone"] ?? '';
 
                     if ($firstName && $lastName && $email && $phone) {
+                        // Construir teléfono con código de país
+                        $phoneCode = $_POST["{$type}_phone_code"] ?? '34';
+                        $phoneNumber = preg_replace('/[^\d]/', '', $phone);
+                        $fullPhone = '+' . $phoneCode . $phoneNumber;
+
+                        // Usar dirección propia si está disponible, si no usar la del owner
+                        $street = !empty($_POST["{$type}_street"]) ? $_POST["{$type}_street"] : $_POST['owner_street'];
+                        $city = !empty($_POST["{$type}_city"]) ? $_POST["{$type}_city"] : $_POST['owner_city'];
+                        $zipcode = !empty($_POST["{$type}_zipcode"]) ? $_POST["{$type}_zipcode"] : $_POST['owner_zipcode'];
+                        $country = !empty($_POST["{$type}_country"]) ? $_POST["{$type}_country"] : $_POST['owner_country'];
+                        $number = !empty($_POST["{$type}_number"]) ? $_POST["{$type}_number"] : ($_POST['owner_number'] ?? '');
+                        $state = !empty($_POST["{$type}_state"]) ? $_POST["{$type}_state"] : ($_POST['owner_state'] ?? '');
+
                         // Obtener o crear contacto (reutiliza si ya existe por email)
                         $handles[$type] = $openProvider->getOrCreateContact([
                             'first_name' => $firstName,
                             'last_name' => $lastName,
                             'email' => $email,
-                            'phone' => $phone,
-                            'address' => $_POST['owner_street'],
-                            'city' => $_POST['owner_city'],
-                            'zipcode' => $_POST['owner_zipcode'],
-                            'country' => $_POST['owner_country']
+                            'phone' => $fullPhone,
+                            'address' => $street,
+                            'address_number' => $number,
+                            'city' => $city,
+                            'state' => $state,
+                            'zipcode' => $zipcode,
+                            'country' => $country
                         ]);
                     } else {
                         // Usar el mismo que owner
@@ -670,9 +696,21 @@ class DomainRegistrationController
                 // 4. Configurar Cloudflare según tipo de hosting
                 $cloudflareResult = null;
                 $tenantId = null;
+                $openproviderDomainId = $registrationResult['id'] ?? null;
 
                 if ($useCloudflareNs) {
                     $cloudflareResult = $this->configureCloudflare($domain, $orderId, $pdo, $hostingType);
+
+                    // 4.1 Actualizar nameservers en OpenProvider con los asignados por Cloudflare
+                    if ($openproviderDomainId && !empty($cloudflareResult['nameservers'])) {
+                        try {
+                            $openProvider->updateDomainNameservers($openproviderDomainId, $cloudflareResult['nameservers']);
+                            Logger::info("[DomainRegistration] Nameservers updated in OpenProvider: " . implode(', ', $cloudflareResult['nameservers']));
+                        } catch (Exception $nsEx) {
+                            // No es crítico, los NS se pueden actualizar luego manualmente
+                            Logger::warning("[DomainRegistration] Could not update nameservers in OpenProvider: " . $nsEx->getMessage());
+                        }
+                    }
                 }
 
                 // 5. Crear tenant solo si es musedock_hosting

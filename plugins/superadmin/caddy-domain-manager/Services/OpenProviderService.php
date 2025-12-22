@@ -468,6 +468,11 @@ class OpenProviderService
             }
         }
 
+        // Extraer código de país del teléfono usando el país de la dirección como fallback
+        $countryCode = strtoupper($contactData['country']);
+        $phoneCountryCode = $this->extractPhoneCountryCode($contactData['phone'], $countryCode);
+        $phoneNumber = $this->extractPhoneNumber($contactData['phone']);
+
         $data = [
             'name' => [
                 'first_name' => $contactData['first_name'],
@@ -477,9 +482,9 @@ class OpenProviderService
             'company_name' => $contactData['company'] ?? '',
             'email' => $contactData['email'],
             'phone' => [
-                'country_code' => $this->extractPhoneCountryCode($contactData['phone']),
+                'country_code' => $phoneCountryCode,
                 'area_code' => '',
-                'subscriber_number' => $this->extractPhoneNumber($contactData['phone'])
+                'subscriber_number' => $phoneNumber
             ],
             'address' => [
                 'street' => $contactData['address'],
@@ -487,9 +492,11 @@ class OpenProviderService
                 'zipcode' => $contactData['zipcode'],
                 'city' => $contactData['city'],
                 'state' => $contactData['state'] ?? '',
-                'country' => strtoupper($contactData['country'])
+                'country' => $countryCode
             ]
         ];
+
+        Logger::info("[OpenProvider] Creating contact with phone: +{$phoneCountryCode} {$phoneNumber}");
 
         $response = $this->makeRequest('POST', '/customers', $data);
 
@@ -915,20 +922,97 @@ class OpenProviderService
     }
 
     /**
+     * Códigos de país de teléfono comunes - OpenProvider requiere solo el número sin +
+     * Formato: ISO2 => código numérico
+     */
+    private const PHONE_COUNTRY_CODES = [
+        'ES' => '34',   // España
+        'US' => '1',    // Estados Unidos
+        'MX' => '52',   // México
+        'AR' => '54',   // Argentina
+        'CO' => '57',   // Colombia
+        'CL' => '56',   // Chile
+        'PE' => '51',   // Perú
+        'VE' => '58',   // Venezuela
+        'EC' => '593',  // Ecuador
+        'UY' => '598',  // Uruguay
+        'PY' => '595',  // Paraguay
+        'BO' => '591',  // Bolivia
+        'CR' => '506',  // Costa Rica
+        'PA' => '507',  // Panamá
+        'DO' => '1',    // Rep. Dominicana (mismo que US)
+        'GT' => '502',  // Guatemala
+        'HN' => '504',  // Honduras
+        'SV' => '503',  // El Salvador
+        'NI' => '505',  // Nicaragua
+        'CU' => '53',   // Cuba
+        'PR' => '1',    // Puerto Rico
+        'GB' => '44',   // Reino Unido
+        'DE' => '49',   // Alemania
+        'FR' => '33',   // Francia
+        'IT' => '39',   // Italia
+        'PT' => '351',  // Portugal
+        'NL' => '31',   // Países Bajos
+        'BE' => '32',   // Bélgica
+        'CH' => '41',   // Suiza
+        'AT' => '43',   // Austria
+        'PL' => '48',   // Polonia
+        'SE' => '46',   // Suecia
+        'NO' => '47',   // Noruega
+        'DK' => '45',   // Dinamarca
+        'FI' => '358',  // Finlandia
+        'IE' => '353',  // Irlanda
+        'GR' => '30',   // Grecia
+        'RU' => '7',    // Rusia
+        'UA' => '380',  // Ucrania
+        'TR' => '90',   // Turquía
+        'IL' => '972',  // Israel
+        'AE' => '971',  // Emiratos
+        'SA' => '966',  // Arabia Saudita
+        'IN' => '91',   // India
+        'CN' => '86',   // China
+        'JP' => '81',   // Japón
+        'KR' => '82',   // Corea del Sur
+        'AU' => '61',   // Australia
+        'NZ' => '64',   // Nueva Zelanda
+        'BR' => '55',   // Brasil
+        'ZA' => '27',   // Sudáfrica
+        'EG' => '20',   // Egipto
+        'MA' => '212',  // Marruecos
+        'NG' => '234',  // Nigeria
+        'CA' => '1',    // Canadá
+    ];
+
+    /**
      * Extraer código de país del teléfono
+     * OpenProvider espera solo el número sin +
      *
      * @param string $phone Número de teléfono
-     * @return string Código de país (ej: +34)
+     * @param string|null $countryCode ISO2 del país (para inferir si no hay código)
+     * @return string Código de país (ej: 34)
      */
-    private function extractPhoneCountryCode(string $phone): string
+    private function extractPhoneCountryCode(string $phone, ?string $countryCode = null): string
     {
+        // Limpiar el teléfono
+        $phone = trim($phone);
+
         // Si empieza con +, extraer el código
-        if (preg_match('/^\+(\d{1,3})/', $phone, $matches)) {
-            return '+' . $matches[1];
+        if (preg_match('/^\+(\d{1,4})/', $phone, $matches)) {
+            return $matches[1]; // Sin el +
+        }
+
+        // Si empieza con 00, extraer el código
+        if (preg_match('/^00(\d{1,4})/', $phone, $matches)) {
+            return $matches[1];
+        }
+
+        // Si se proporcionó código de país ISO, usar ese
+        if ($countryCode && isset(self::PHONE_COUNTRY_CODES[strtoupper($countryCode)])) {
+            return self::PHONE_COUNTRY_CODES[strtoupper($countryCode)];
         }
 
         // Por defecto España
-        return '+34';
+        return '34';
     }
 
     /**
@@ -939,11 +1023,28 @@ class OpenProviderService
      */
     private function extractPhoneNumber(string $phone): string
     {
-        // Remover código de país y espacios/guiones
-        $phone = preg_replace('/^\+\d{1,3}/', '', $phone);
-        $phone = preg_replace('/[\s\-\(\)]/', '', $phone);
+        $phone = trim($phone);
+
+        // Remover código de país con + (hasta 4 dígitos)
+        $phone = preg_replace('/^\+\d{1,4}/', '', $phone);
+
+        // Remover código de país con 00 (hasta 4 dígitos)
+        $phone = preg_replace('/^00\d{1,4}/', '', $phone);
+
+        // Remover espacios, guiones, paréntesis
+        $phone = preg_replace('/[\s\-\(\)\.\/]/', '', $phone);
 
         return $phone;
+    }
+
+    /**
+     * Obtener lista de códigos de país para select de teléfono
+     *
+     * @return array
+     */
+    public static function getPhoneCountryCodes(): array
+    {
+        return self::PHONE_COUNTRY_CODES;
     }
 
     /**

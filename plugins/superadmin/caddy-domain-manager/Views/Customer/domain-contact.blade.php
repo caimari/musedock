@@ -220,9 +220,14 @@
                                     </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="tel" class="form-control" id="owner_phone" name="owner_phone" placeholder="Telefono">
-                                        <label>Telefono * (ej: +34612345678)</label>
+                                    <label class="form-label small text-muted">Telefono *</label>
+                                    <div class="input-group">
+                                        <select class="form-select" id="owner_phone_code" name="owner_phone_code" style="max-width: 110px;">
+                                            <?php foreach ($phoneCodes as $code => $number): ?>
+                                            <option value="<?= $number ?>" <?= $code === 'ES' ? 'selected' : '' ?>>+<?= $number ?> (<?= $code ?>)</option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <input type="tel" class="form-control" id="owner_phone" name="owner_phone" placeholder="612345678">
                                     </div>
                                 </div>
                                 <div class="col-md-9">
@@ -277,32 +282,77 @@
                         <!-- Admin Contact -->
                         <div class="contact-section">
                             <div class="contact-section-header mb-3">
-                                <h5><i class="bi bi-person-gear me-2"></i>Contacto Administrativo</h5>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5><i class="bi bi-person-gear me-2"></i>Contacto Administrativo</h5>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyFromOwner('admin')">
+                                        <i class="bi bi-files me-1"></i>Copiar del Propietario
+                                    </button>
+                                </div>
                             </div>
                             <div class="contact-fields">
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <div class="form-floating">
-                                            <input type="text" class="form-control" name="admin_first_name" placeholder="Nombre">
-                                            <label>Nombre</label>
+                                            <input type="text" class="form-control" id="admin_first_name" name="admin_first_name" placeholder="Nombre">
+                                            <label>Nombre *</label>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-floating">
-                                            <input type="text" class="form-control" name="admin_last_name" placeholder="Apellidos">
-                                            <label>Apellidos</label>
+                                            <input type="text" class="form-control" id="admin_last_name" name="admin_last_name" placeholder="Apellidos">
+                                            <label>Apellidos *</label>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-floating">
-                                            <input type="email" class="form-control" name="admin_email" placeholder="Email">
-                                            <label>Email</label>
+                                            <input type="email" class="form-control" id="admin_email" name="admin_email" placeholder="Email">
+                                            <label>Email *</label>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
+                                        <label class="form-label small text-muted">Telefono *</label>
+                                        <div class="input-group">
+                                            <select class="form-select" id="admin_phone_code" name="admin_phone_code" style="max-width: 110px;">
+                                                <?php foreach ($phoneCodes as $code => $number): ?>
+                                                <option value="<?= $number ?>" <?= $code === 'ES' ? 'selected' : '' ?>>+<?= $number ?> (<?= $code ?>)</option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <input type="tel" class="form-control" id="admin_phone" name="admin_phone" placeholder="612345678">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-9">
                                         <div class="form-floating">
-                                            <input type="tel" class="form-control" name="admin_phone" placeholder="Telefono">
-                                            <label>Telefono</label>
+                                            <input type="text" class="form-control" id="admin_street" name="admin_street" placeholder="Direccion">
+                                            <label>Direccion *</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control" id="admin_number" name="admin_number" placeholder="Numero">
+                                            <label>Numero</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control" id="admin_city" name="admin_city" placeholder="Ciudad">
+                                            <label>Ciudad *</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control" id="admin_zipcode" name="admin_zipcode" placeholder="CP">
+                                            <label>Codigo Postal *</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            <select class="form-select" id="admin_country" name="admin_country">
+                                                <option value="">Seleccionar...</option>
+                                                <?php foreach ($countries as $code => $name): ?>
+                                                <option value="<?= $code ?>" <?= $code === 'ES' ? 'selected' : '' ?>><?= htmlspecialchars($name) ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <label>Pais *</label>
                                         </div>
                                     </div>
                                 </div>
@@ -312,32 +362,77 @@
                         <!-- Tech Contact -->
                         <div class="contact-section">
                             <div class="contact-section-header mb-3">
-                                <h5><i class="bi bi-tools me-2"></i>Contacto Tecnico</h5>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5><i class="bi bi-tools me-2"></i>Contacto Tecnico</h5>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyFromOwner('tech')">
+                                        <i class="bi bi-files me-1"></i>Copiar del Propietario
+                                    </button>
+                                </div>
                             </div>
                             <div class="contact-fields">
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <div class="form-floating">
-                                            <input type="text" class="form-control" name="tech_first_name" placeholder="Nombre">
-                                            <label>Nombre</label>
+                                            <input type="text" class="form-control" id="tech_first_name" name="tech_first_name" placeholder="Nombre">
+                                            <label>Nombre *</label>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-floating">
-                                            <input type="text" class="form-control" name="tech_last_name" placeholder="Apellidos">
-                                            <label>Apellidos</label>
+                                            <input type="text" class="form-control" id="tech_last_name" name="tech_last_name" placeholder="Apellidos">
+                                            <label>Apellidos *</label>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-floating">
-                                            <input type="email" class="form-control" name="tech_email" placeholder="Email">
-                                            <label>Email</label>
+                                            <input type="email" class="form-control" id="tech_email" name="tech_email" placeholder="Email">
+                                            <label>Email *</label>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
+                                        <label class="form-label small text-muted">Telefono *</label>
+                                        <div class="input-group">
+                                            <select class="form-select" id="tech_phone_code" name="tech_phone_code" style="max-width: 110px;">
+                                                <?php foreach ($phoneCodes as $code => $number): ?>
+                                                <option value="<?= $number ?>" <?= $code === 'ES' ? 'selected' : '' ?>>+<?= $number ?> (<?= $code ?>)</option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <input type="tel" class="form-control" id="tech_phone" name="tech_phone" placeholder="612345678">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-9">
                                         <div class="form-floating">
-                                            <input type="tel" class="form-control" name="tech_phone" placeholder="Telefono">
-                                            <label>Telefono</label>
+                                            <input type="text" class="form-control" id="tech_street" name="tech_street" placeholder="Direccion">
+                                            <label>Direccion *</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control" id="tech_number" name="tech_number" placeholder="Numero">
+                                            <label>Numero</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control" id="tech_city" name="tech_city" placeholder="Ciudad">
+                                            <label>Ciudad *</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control" id="tech_zipcode" name="tech_zipcode" placeholder="CP">
+                                            <label>Codigo Postal *</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            <select class="form-select" id="tech_country" name="tech_country">
+                                                <option value="">Seleccionar...</option>
+                                                <?php foreach ($countries as $code => $name): ?>
+                                                <option value="<?= $code ?>" <?= $code === 'ES' ? 'selected' : '' ?>><?= htmlspecialchars($name) ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <label>Pais *</label>
                                         </div>
                                     </div>
                                 </div>
@@ -347,32 +442,77 @@
                         <!-- Billing Contact -->
                         <div class="contact-section">
                             <div class="contact-section-header mb-3">
-                                <h5><i class="bi bi-credit-card me-2"></i>Contacto de Facturacion</h5>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5><i class="bi bi-credit-card me-2"></i>Contacto de Facturacion</h5>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyFromOwner('billing')">
+                                        <i class="bi bi-files me-1"></i>Copiar del Propietario
+                                    </button>
+                                </div>
                             </div>
                             <div class="contact-fields">
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <div class="form-floating">
-                                            <input type="text" class="form-control" name="billing_first_name" placeholder="Nombre">
-                                            <label>Nombre</label>
+                                            <input type="text" class="form-control" id="billing_first_name" name="billing_first_name" placeholder="Nombre">
+                                            <label>Nombre *</label>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-floating">
-                                            <input type="text" class="form-control" name="billing_last_name" placeholder="Apellidos">
-                                            <label>Apellidos</label>
+                                            <input type="text" class="form-control" id="billing_last_name" name="billing_last_name" placeholder="Apellidos">
+                                            <label>Apellidos *</label>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-floating">
-                                            <input type="email" class="form-control" name="billing_email" placeholder="Email">
-                                            <label>Email</label>
+                                            <input type="email" class="form-control" id="billing_email" name="billing_email" placeholder="Email">
+                                            <label>Email *</label>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
+                                        <label class="form-label small text-muted">Telefono *</label>
+                                        <div class="input-group">
+                                            <select class="form-select" id="billing_phone_code" name="billing_phone_code" style="max-width: 110px;">
+                                                <?php foreach ($phoneCodes as $code => $number): ?>
+                                                <option value="<?= $number ?>" <?= $code === 'ES' ? 'selected' : '' ?>>+<?= $number ?> (<?= $code ?>)</option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <input type="tel" class="form-control" id="billing_phone" name="billing_phone" placeholder="612345678">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-9">
                                         <div class="form-floating">
-                                            <input type="tel" class="form-control" name="billing_phone" placeholder="Telefono">
-                                            <label>Telefono</label>
+                                            <input type="text" class="form-control" id="billing_street" name="billing_street" placeholder="Direccion">
+                                            <label>Direccion *</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control" id="billing_number" name="billing_number" placeholder="Numero">
+                                            <label>Numero</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control" id="billing_city" name="billing_city" placeholder="Ciudad">
+                                            <label>Ciudad *</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control" id="billing_zipcode" name="billing_zipcode" placeholder="CP">
+                                            <label>Codigo Postal *</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            <select class="form-select" id="billing_country" name="billing_country">
+                                                <option value="">Seleccionar...</option>
+                                                <?php foreach ($countries as $code => $name): ?>
+                                                <option value="<?= $code ?>" <?= $code === 'ES' ? 'selected' : '' ?>><?= htmlspecialchars($name) ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <label>Pais *</label>
                                         </div>
                                     </div>
                                 </div>
@@ -504,6 +644,31 @@ function addNsField() {
     div.className = 'ns-input-group';
     div.innerHTML = '<input type="text" class="form-control" name="custom_ns[]" placeholder="ns' + (count + 1) + '.tudominio.com">';
     container.insertBefore(div, container.lastElementChild);
+}
+
+// Copiar datos del propietario a otro contacto
+function copyFromOwner(targetType) {
+    const fields = ['first_name', 'last_name', 'email', 'phone', 'phone_code', 'street', 'number', 'city', 'zipcode', 'country'];
+
+    fields.forEach(field => {
+        const sourceEl = document.getElementById('owner_' + field);
+        const targetEl = document.getElementById(targetType + '_' + field);
+
+        if (sourceEl && targetEl) {
+            targetEl.value = sourceEl.value;
+        }
+    });
+
+    // Mostrar confirmacion
+    Swal.fire({
+        icon: 'success',
+        title: 'Datos copiados',
+        text: 'Se han copiado los datos del propietario',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2000
+    });
 }
 
 function submitRegistration(event) {

@@ -415,12 +415,8 @@ class ProvisioningService
             throw new \Exception('La contraseña del admin debe tener al menos 8 caracteres');
         }
 
-        // Verificar que el email no exista en admins
-        $stmt = $this->pdo->prepare("SELECT id FROM admins WHERE email = ?");
-        $stmt->execute([$email]);
-        if ($stmt->fetch()) {
-            throw new \Exception('El email del admin ya está en uso por otro administrador');
-        }
+        // El email de admin puede repetirse entre diferentes tenants
+        // Solo debe ser único dentro del mismo tenant (esto se valida al crear)
 
         return [
             'name' => $customerData['name'],
