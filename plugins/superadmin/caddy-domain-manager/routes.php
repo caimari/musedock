@@ -72,6 +72,12 @@ Route::post('/musedock/domain-manager/{id}/delete-secure', 'CaddyDomainManager\C
     ->middleware('superadmin')
     ->name('superadmin.domain-manager.destroy.secure');
 
+// Eliminar domain order (registro de cliente) con verificación de contraseña (AJAX)
+// NOTA: No elimina el dominio de OpenProvider (solo puede expirar), solo BD local y Cloudflare opcional
+Route::post('/musedock/domain-manager/order/{id}/delete-secure', 'CaddyDomainManager\Controllers\DomainManagerController@destroyDomainOrderWithPassword')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.order.destroy.secure');
+
 // Reconfigurar en Caddy
 Route::post('/musedock/domain-manager/{id}/reconfigure', 'CaddyDomainManager\Controllers\DomainManagerController@reconfigure')
     ->middleware('superadmin')

@@ -315,6 +315,12 @@
                                                 <i class="bi bi-box-arrow-up-right"></i>
                                             </a>
                                         @endif
+                                        <!-- Eliminar orden de dominio -->
+                                        @if(!empty($order->id))
+                                            <button type="button" class="btn btn-outline-danger" onclick="confirmDeleteDomainOrder({{ $order->id }}, '{{ $fullDomain }}', {{ !empty($order->cloudflare_zone_id) ? 'true' : 'false' }})" title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
@@ -510,6 +516,111 @@ async function checkStatus(id) {
             confirmButtonColor: '#0d6efd'
         });
     }
+}
+
+// ========== ELIMINAR DOMAIN ORDER (Customer) con SweetAlert2 ==========
+function confirmDeleteDomainOrder(id, domain, hasCloudflare) {
+    Swal.fire({
+        title: '<i class="bi bi-exclamation-triangle text-danger"></i> Eliminar Dominio Registrado',
+        html: `
+            <div class="text-start">
+                <p class="mb-3">¿Estás seguro de eliminar el registro del dominio <strong>${domain}</strong>?</p>
+                <div class="alert alert-warning py-2 mb-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <small><strong>Importante:</strong> El dominio NO se eliminará de OpenProvider (los dominios solo pueden caducar, no eliminarse).</small>
+                </div>
+                <div class="alert alert-danger py-2 mb-3">
+                    <i class="bi bi-trash me-2"></i>
+                    <small><strong>Se eliminará:</strong> El registro de la base de datos local${hasCloudflare ? ' y opcionalmente de Cloudflare' : ''}.</small>
+                </div>
+                ${hasCloudflare ? `
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="deleteOrderFromCloudflare" checked>
+                    <label class="form-check-label" for="deleteOrderFromCloudflare">
+                        <i class="bi bi-cloud me-1"></i> Eliminar zona de Cloudflare
+                        <br><small class="text-muted">Desmarcar si quieres mantener la zona DNS en Cloudflare</small>
+                    </label>
+                </div>
+                ` : ''}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Introduce tu contraseña para confirmar:</label>
+                    <input type="password" id="deleteOrderPassword" class="form-control" placeholder="Contraseña del superadmin" autocomplete="current-password">
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-trash me-1"></i> Eliminar Registro',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        width: '550px',
+        focusConfirm: false,
+        didOpen: () => {
+            document.getElementById('deleteOrderPassword').focus();
+        },
+        preConfirm: () => {
+            const password = document.getElementById('deleteOrderPassword').value;
+            if (!password) {
+                Swal.showValidationMessage('La contraseña es requerida');
+                return false;
+            }
+            const deleteFromCloudflare = hasCloudflare ? document.getElementById('deleteOrderFromCloudflare').checked : false;
+            return {
+                password: password,
+                deleteFromCloudflare: deleteFromCloudflare
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Eliminando registro...',
+                html: '<p class="mb-0">Por favor espera...</p>',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            fetch(`/musedock/domain-manager/order/${id}/delete-secure`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    _csrf: csrfToken,
+                    password: result.value.password,
+                    deleteFromCloudflare: result.value.deleteFromCloudflare
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Registro Eliminado',
+                        text: data.message,
+                        confirmButtonColor: '#0d6efd'
+                    }).then(() => location.reload());
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message,
+                        confirmButtonColor: '#0d6efd'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error de conexión. Intenta de nuevo.',
+                    confirmButtonColor: '#0d6efd'
+                });
+            });
+        }
+    });
 }
 
 // ========== RECONFIGURAR con SweetAlert2 ==========

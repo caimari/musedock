@@ -322,11 +322,12 @@
                         </div>
                         <div class="col-md-8">
                             <label class="form-label">Empresa (opcional)</label>
-                            <input type="text" class="form-control" name="company" id="editCompany">
+                            <input type="text" class="form-control" name="company" id="editCompany" onchange="toggleCifNifField()">
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">CIF/NIF</label>
+                        <div class="col-md-4" id="cifNifContainer" style="display: none;">
+                            <label class="form-label">CIF/NIF <span class="text-danger es-cif-required">*</span></label>
                             <input type="text" class="form-control" name="company_reg_number" id="editCompanyRegNumber">
+                            <small class="text-muted"><i class="bi bi-info-circle"></i> Obligatorio para .ES si es empresa</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Email *</label>
@@ -335,13 +336,10 @@
                         <div class="col-md-6">
                             <label class="form-label">Telefono *</label>
                             <div class="input-group">
-                                <select class="form-select" name="phone_code" id="editPhoneCode" style="max-width: 100px;">
-                                    <option value="34">+34</option>
-                                    <option value="1">+1</option>
-                                    <option value="52">+52</option>
-                                    <option value="44">+44</option>
-                                    <option value="49">+49</option>
-                                    <option value="33">+33</option>
+                                <select class="form-select" name="phone_code" id="editPhoneCode" style="max-width: 110px;">
+                                    <?php foreach ($phoneCodes as $code => $number): ?>
+                                    <option value="<?= $number ?>" <?= $code === 'ES' ? 'selected' : '' ?>>+<?= $number ?> (<?= $code ?>)</option>
+                                    <?php endforeach; ?>
                                 </select>
                                 <input type="text" class="form-control" name="phone" id="editPhone" required>
                             </div>
@@ -351,7 +349,7 @@
                             <input type="text" class="form-control" name="address_street" id="editStreet" required>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Numero *</label>
+                            <label class="form-label">Numero</label>
                             <input type="text" class="form-control" name="address_number" id="editNumber">
                         </div>
                         <div class="col-md-4">
@@ -359,8 +357,9 @@
                             <input type="text" class="form-control" name="address_city" id="editCity" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Provincia</label>
+                            <label class="form-label">Provincia <span class="es-state-required">*</span></label>
                             <input type="text" class="form-control" name="address_state" id="editState">
+                            <small class="text-muted es-state-hint" style="display:none;"><i class="bi bi-info-circle"></i> Obligatorio segun pais</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Codigo Postal *</label>
@@ -368,19 +367,11 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Pais *</label>
-                            <select class="form-select" name="address_country" id="editCountry" required>
-                                <option value="ES">Espana</option>
-                                <option value="US">Estados Unidos</option>
-                                <option value="MX">Mexico</option>
-                                <option value="AR">Argentina</option>
-                                <option value="CO">Colombia</option>
-                                <option value="CL">Chile</option>
-                                <option value="PE">Peru</option>
-                                <option value="GB">Reino Unido</option>
-                                <option value="DE">Alemania</option>
-                                <option value="FR">Francia</option>
-                                <option value="IT">Italia</option>
-                                <option value="PT">Portugal</option>
+                            <select class="form-select" name="address_country" id="editCountry" required onchange="toggleStateRequired()">
+                                <option value="">Seleccionar...</option>
+                                <?php foreach ($countries as $code => $name): ?>
+                                <option value="<?= $code ?>"><?= htmlspecialchars($name) ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                     </div>
@@ -403,10 +394,45 @@
 const csrfToken = '<?= $csrf_token ?>';
 let editModal = null;
 let currentContactDomainsCount = 0;
+let currentContactHasEsDomains = false;
+
+// Paises que requieren estado/provincia obligatorio
+const countriesRequiringState = ['ES', 'US', 'MX', 'CA', 'AU', 'BR', 'AR', 'IN', 'DE'];
 
 document.addEventListener('DOMContentLoaded', function() {
     editModal = new bootstrap.Modal(document.getElementById('editContactModal'));
 });
+
+// Mostrar/ocultar campo CIF/NIF segun empresa y dominios .ES
+function toggleCifNifField() {
+    const company = document.getElementById('editCompany')?.value?.trim() || '';
+    const container = document.getElementById('cifNifContainer');
+    const countrySelect = document.getElementById('editCountry');
+    const country = countrySelect?.value || '';
+
+    // Mostrar CIF si hay empresa Y (tiene dominios .ES asociados O pais es ES)
+    if (company && (currentContactHasEsDomains || country === 'ES')) {
+        container.style.display = 'block';
+    } else {
+        container.style.display = 'none';
+    }
+}
+
+// Mostrar/ocultar requisito de provincia segun pais seleccionado
+function toggleStateRequired() {
+    const country = document.getElementById('editCountry')?.value || '';
+    const requiresState = countriesRequiringState.includes(country);
+
+    document.querySelectorAll('.es-state-hint').forEach(el => {
+        el.style.display = requiresState ? 'block' : 'none';
+    });
+    document.querySelectorAll('.es-state-required').forEach(el => {
+        el.style.display = requiresState ? 'inline' : 'none';
+    });
+
+    // Re-evaluar el campo CIF/NIF
+    toggleCifNifField();
+}
 
 function editContact(contactId) {
     // Obtener datos del contacto
@@ -438,10 +464,33 @@ function editContact(contactId) {
                     }
                 }
 
-                // Buscar el domains_count de este contacto
+                // Seleccionar codigo de telefono si existe
+                const phoneCode = contact.phone_code || '34';
+                const phoneCodeSelect = document.getElementById('editPhoneCode');
+                for (let i = 0; i < phoneCodeSelect.options.length; i++) {
+                    if (phoneCodeSelect.options[i].value === phoneCode) {
+                        phoneCodeSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+
+                // Buscar info del contacto desde la tarjeta
                 const contactCard = document.querySelector(`[onclick="editContact(${contactId})"]`).closest('.contact-card');
                 const badgeDomains = contactCard.querySelector('.badge-domains');
                 currentContactDomainsCount = badgeDomains ? parseInt(badgeDomains.textContent.match(/\d+/)[0]) : 0;
+
+                // Detectar si tiene dominios .ES asociados
+                const domainsList = contactCard.querySelector('.domains-list');
+                currentContactHasEsDomains = false;
+                if (domainsList) {
+                    const domainItems = domainsList.querySelectorAll('li');
+                    domainItems.forEach(item => {
+                        const text = item.textContent.toLowerCase();
+                        if (text.endsWith('.es') || text.includes('.es ')) {
+                            currentContactHasEsDomains = true;
+                        }
+                    });
+                }
 
                 // Mostrar warning si tiene multiples dominios
                 const warningBox = document.getElementById('multiDomainWarning');
@@ -451,6 +500,10 @@ function editContact(contactId) {
                 } else {
                     warningBox.style.display = 'none';
                 }
+
+                // Actualizar campos condicionales
+                toggleStateRequired();
+                toggleCifNifField();
 
                 editModal.show();
             } else {

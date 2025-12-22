@@ -102,9 +102,15 @@ class ContactsController
                 }
             }
 
+            // Lista de países y códigos de teléfono
+            $countries = $this->getCountriesList();
+            $phoneCodes = OpenProviderService::getPhoneCountryCodes();
+
             echo View::renderTheme('Customer.contacts', [
                 'customer' => $_SESSION['customer'],
                 'contacts' => $contacts,
+                'countries' => $countries,
+                'phoneCodes' => $phoneCodes,
                 'page_title' => 'Mis Contactos - MuseDock',
                 'current_page' => 'contacts',
                 'csrf_token' => csrf_token()
@@ -466,5 +472,59 @@ class ContactsController
             Logger::error("[ContactsController] Error setting default contact: " . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Error al establecer contacto predeterminado']);
         }
+    }
+
+    /**
+     * Lista de paises (ISO 3166-1 alpha-2)
+     */
+    private function getCountriesList(): array
+    {
+        return [
+            'ES' => 'Espana',
+            'US' => 'Estados Unidos',
+            'MX' => 'Mexico',
+            'AR' => 'Argentina',
+            'CO' => 'Colombia',
+            'CL' => 'Chile',
+            'PE' => 'Peru',
+            'VE' => 'Venezuela',
+            'EC' => 'Ecuador',
+            'GT' => 'Guatemala',
+            'CU' => 'Cuba',
+            'DO' => 'Republica Dominicana',
+            'HN' => 'Honduras',
+            'SV' => 'El Salvador',
+            'NI' => 'Nicaragua',
+            'CR' => 'Costa Rica',
+            'PA' => 'Panama',
+            'UY' => 'Uruguay',
+            'PY' => 'Paraguay',
+            'BO' => 'Bolivia',
+            'DE' => 'Alemania',
+            'FR' => 'Francia',
+            'IT' => 'Italia',
+            'PT' => 'Portugal',
+            'GB' => 'Reino Unido',
+            'NL' => 'Paises Bajos',
+            'BE' => 'Belgica',
+            'AT' => 'Austria',
+            'CH' => 'Suiza',
+            'PL' => 'Polonia',
+            'SE' => 'Suecia',
+            'NO' => 'Noruega',
+            'DK' => 'Dinamarca',
+            'FI' => 'Finlandia',
+            'IE' => 'Irlanda',
+            'BR' => 'Brasil',
+            'CA' => 'Canada',
+            'AU' => 'Australia',
+            'NZ' => 'Nueva Zelanda',
+            'JP' => 'Japon',
+            'CN' => 'China',
+            'KR' => 'Corea del Sur',
+            'IN' => 'India',
+            'RU' => 'Rusia',
+            'ZA' => 'Sudafrica'
+        ];
     }
 }

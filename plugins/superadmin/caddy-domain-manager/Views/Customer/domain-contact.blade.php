@@ -325,7 +325,34 @@
                                     <i class="bi bi-files me-1"></i>Copiar del Propietario
                                 </button>
                             </div>
-                            <div class="contact-fields">
+
+                            <?php if (!empty($contacts)): ?>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Seleccionar contacto existente:</label>
+                                <select class="form-select" id="admin_existing" name="admin_existing" onchange="toggleContactForm('admin', this.value)">
+                                    <option value="">-- Crear nuevo contacto --</option>
+                                    <?php foreach ($contacts as $contact): ?>
+                                    <option value="<?= $contact['id'] ?>"
+                                        data-firstname="<?= htmlspecialchars($contact['first_name'] ?? '') ?>"
+                                        data-lastname="<?= htmlspecialchars($contact['last_name'] ?? '') ?>"
+                                        data-email="<?= htmlspecialchars($contact['email'] ?? '') ?>"
+                                        data-phone="<?= htmlspecialchars($contact['phone'] ?? '') ?>"
+                                        data-phonecode="<?= htmlspecialchars($contact['phone_code'] ?? '34') ?>"
+                                        data-street="<?= htmlspecialchars($contact['address_street'] ?? '') ?>"
+                                        data-number="<?= htmlspecialchars($contact['address_number'] ?? '') ?>"
+                                        data-city="<?= htmlspecialchars($contact['address_city'] ?? '') ?>"
+                                        data-state="<?= htmlspecialchars($contact['address_state'] ?? '') ?>"
+                                        data-zipcode="<?= htmlspecialchars($contact['address_zipcode'] ?? '') ?>"
+                                        data-country="<?= htmlspecialchars($contact['address_country'] ?? 'ES') ?>">
+                                        <?= htmlspecialchars($contact['first_name'] . ' ' . $contact['last_name']) ?>
+                                        (<?= htmlspecialchars($contact['email']) ?>)
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <?php endif; ?>
+
+                            <div class="contact-fields" id="adminFields">
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <div class="form-floating">
@@ -409,7 +436,34 @@
                                     <i class="bi bi-files me-1"></i>Copiar del Propietario
                                 </button>
                             </div>
-                            <div class="contact-fields">
+
+                            <?php if (!empty($contacts)): ?>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Seleccionar contacto existente:</label>
+                                <select class="form-select" id="tech_existing" name="tech_existing" onchange="toggleContactForm('tech', this.value)">
+                                    <option value="">-- Crear nuevo contacto --</option>
+                                    <?php foreach ($contacts as $contact): ?>
+                                    <option value="<?= $contact['id'] ?>"
+                                        data-firstname="<?= htmlspecialchars($contact['first_name'] ?? '') ?>"
+                                        data-lastname="<?= htmlspecialchars($contact['last_name'] ?? '') ?>"
+                                        data-email="<?= htmlspecialchars($contact['email'] ?? '') ?>"
+                                        data-phone="<?= htmlspecialchars($contact['phone'] ?? '') ?>"
+                                        data-phonecode="<?= htmlspecialchars($contact['phone_code'] ?? '34') ?>"
+                                        data-street="<?= htmlspecialchars($contact['address_street'] ?? '') ?>"
+                                        data-number="<?= htmlspecialchars($contact['address_number'] ?? '') ?>"
+                                        data-city="<?= htmlspecialchars($contact['address_city'] ?? '') ?>"
+                                        data-state="<?= htmlspecialchars($contact['address_state'] ?? '') ?>"
+                                        data-zipcode="<?= htmlspecialchars($contact['address_zipcode'] ?? '') ?>"
+                                        data-country="<?= htmlspecialchars($contact['address_country'] ?? 'ES') ?>">
+                                        <?= htmlspecialchars($contact['first_name'] . ' ' . $contact['last_name']) ?>
+                                        (<?= htmlspecialchars($contact['email']) ?>)
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <?php endif; ?>
+
+                            <div class="contact-fields" id="techFields">
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <div class="form-floating">
@@ -493,7 +547,34 @@
                                     <i class="bi bi-files me-1"></i>Copiar del Propietario
                                 </button>
                             </div>
-                            <div class="contact-fields">
+
+                            <?php if (!empty($contacts)): ?>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Seleccionar contacto existente:</label>
+                                <select class="form-select" id="billing_existing" name="billing_existing" onchange="toggleContactForm('billing', this.value)">
+                                    <option value="">-- Crear nuevo contacto --</option>
+                                    <?php foreach ($contacts as $contact): ?>
+                                    <option value="<?= $contact['id'] ?>"
+                                        data-firstname="<?= htmlspecialchars($contact['first_name'] ?? '') ?>"
+                                        data-lastname="<?= htmlspecialchars($contact['last_name'] ?? '') ?>"
+                                        data-email="<?= htmlspecialchars($contact['email'] ?? '') ?>"
+                                        data-phone="<?= htmlspecialchars($contact['phone'] ?? '') ?>"
+                                        data-phonecode="<?= htmlspecialchars($contact['phone_code'] ?? '34') ?>"
+                                        data-street="<?= htmlspecialchars($contact['address_street'] ?? '') ?>"
+                                        data-number="<?= htmlspecialchars($contact['address_number'] ?? '') ?>"
+                                        data-city="<?= htmlspecialchars($contact['address_city'] ?? '') ?>"
+                                        data-state="<?= htmlspecialchars($contact['address_state'] ?? '') ?>"
+                                        data-zipcode="<?= htmlspecialchars($contact['address_zipcode'] ?? '') ?>"
+                                        data-country="<?= htmlspecialchars($contact['address_country'] ?? 'ES') ?>">
+                                        <?= htmlspecialchars($contact['first_name'] . ' ' . $contact['last_name']) ?>
+                                        (<?= htmlspecialchars($contact['email']) ?>)
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <?php endif; ?>
+
+                            <div class="contact-fields" id="billingFields">
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <div class="form-floating">
@@ -764,6 +845,42 @@ function clearOwnerFields() {
     });
     // Ocultar campo CIF
     toggleCompanyRegNumber();
+}
+
+// Toggle form visibility for admin/tech/billing contacts based on selection
+function toggleContactForm(contactType, value) {
+    const fieldsId = contactType + 'Fields';
+    const fields = document.getElementById(fieldsId);
+
+    if (!fields) return;
+
+    if (value) {
+        // Se selecciono un contacto existente - ocultar formulario
+        fields.style.display = 'none';
+    } else {
+        // Crear nuevo contacto - mostrar formulario y limpiar campos
+        fields.style.display = 'block';
+        clearContactFields(contactType);
+    }
+}
+
+// Limpiar campos de un tipo de contacto
+function clearContactFields(contactType) {
+    const fields = ['first_name', 'last_name', 'email', 'phone', 'street', 'number', 'city', 'state', 'zipcode'];
+    fields.forEach(field => {
+        const el = document.getElementById(contactType + '_' + field);
+        if (el) el.value = '';
+    });
+    // Resetear pais a ES
+    const countryEl = document.getElementById(contactType + '_country');
+    if (countryEl) {
+        for (let i = 0; i < countryEl.options.length; i++) {
+            if (countryEl.options[i].value === 'ES') {
+                countryEl.selectedIndex = i;
+                break;
+            }
+        }
+    }
 }
 
 function toggleOtherContacts() {

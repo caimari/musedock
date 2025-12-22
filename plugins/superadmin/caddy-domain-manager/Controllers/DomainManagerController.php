@@ -1998,6 +1998,130 @@ TEXT;
     }
 
     /**
+     * Eliminar domain order (registro de dominio de customer) con verificación de contraseña (AJAX)
+     *
+     * IMPORTANTE: NO elimina el dominio de OpenProvider (los dominios solo pueden caducar).
+     * Solo elimina:
+     * - El registro de la base de datos local (domain_orders)
+     * - Opcionalmente la zona de Cloudflare si existe y el usuario lo solicita
+     */
+    public function destroyDomainOrderWithPassword($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        // Obtener input JSON
+        $input = $GLOBALS['_JSON_INPUT'] ?? json_decode(file_get_contents('php://input'), true) ?? [];
+
+        // Validar CSRF
+        $csrfToken = $input['_csrf'] ?? $_POST['_csrf'] ?? '';
+        if (!validate_csrf($csrfToken)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido']);
+            exit;
+        }
+
+        $password = $input['password'] ?? $_POST['password'] ?? '';
+        if (empty($password)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'La contraseña es requerida']);
+            exit;
+        }
+
+        // Verificar contraseña del superadmin actual
+        $auth = $_SESSION['super_admin'] ?? null;
+        if (!$auth || empty($auth['id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Sesión no válida']);
+            exit;
+        }
+
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("SELECT password FROM super_admins WHERE id = ?");
+        $stmt->execute([$auth['id']]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$user || !password_verify($password, $user['password'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Contraseña incorrecta']);
+            exit;
+        }
+
+        // Obtener opción de eliminar de Cloudflare (por defecto true)
+        $deleteFromCloudflare = $input['deleteFromCloudflare'] ?? true;
+
+        // Obtener la orden del dominio
+        $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ?");
+        $stmt->execute([$id]);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$order) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Orden de dominio no encontrada']);
+            exit;
+        }
+
+        $fullDomain = trim(($order['domain'] ?? '') . '.' . ($order['extension'] ?? ''), '.');
+        $cloudflareWarning = null;
+
+        try {
+            // 1. Eliminar zona de Cloudflare si existe y el usuario lo solicitó
+            if ($deleteFromCloudflare && !empty($order['cloudflare_zone_id'])) {
+                try {
+                    $cloudflareZoneService = new \CaddyDomainManager\Services\CloudflareZoneService();
+                    $cloudflareZoneService->deleteZone($order['cloudflare_zone_id']);
+                    Logger::log("[DomainManager] Zona de Cloudflare eliminada para domain order: {$order['cloudflare_zone_id']} ({$fullDomain})", 'INFO');
+                } catch (\Exception $e) {
+                    $errorMsg = $e->getMessage();
+                    if (strpos($errorMsg, 'Cloudflare Registrar') !== false) {
+                        $cloudflareWarning = "La zona permanece en Cloudflare porque el dominio está registrado con Cloudflare Registrar.";
+                        Logger::log("[DomainManager] Dominio {$fullDomain} usa Cloudflare Registrar - zona no eliminada", 'WARNING');
+                    } else {
+                        $cloudflareWarning = "No se pudo eliminar la zona de Cloudflare: " . $errorMsg;
+                        Logger::log("[DomainManager] Warning eliminando zona de Cloudflare para order: " . $errorMsg, 'WARNING');
+                    }
+                }
+            } else if (!$deleteFromCloudflare && !empty($order['cloudflare_zone_id'])) {
+                Logger::log("[DomainManager] Usuario eligió NO eliminar zona de Cloudflare para: {$fullDomain}", 'INFO');
+            }
+
+            // 2. Eliminar el registro de domain_orders de la BD
+            // NOTA: NO eliminamos de OpenProvider - los dominios solo pueden expirar
+            $stmt = $pdo->prepare("DELETE FROM domain_orders WHERE id = ?");
+            $stmt->execute([$id]);
+
+            Logger::log("[DomainManager] Domain order eliminado: {$fullDomain} (ID: {$id}) - OpenProvider no afectado (solo puede expirar)", 'INFO');
+
+            $message = "Registro del dominio '{$fullDomain}' eliminado correctamente de la base de datos local.";
+
+            if (!empty($order['openprovider_domain_id'])) {
+                $message .= " El dominio permanece en OpenProvider hasta su fecha de expiración.";
+            }
+
+            if ($cloudflareWarning) {
+                $message .= " Advertencia: " . $cloudflareWarning;
+            }
+
+            echo json_encode([
+                'success' => true,
+                'message' => $message,
+                'cloudflare_warning' => $cloudflareWarning,
+                'openprovider_note' => 'El dominio no fue eliminado de OpenProvider (solo puede expirar)'
+            ]);
+            exit;
+
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error eliminando domain order: " . $e->getMessage(), 'ERROR');
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Error al eliminar: ' . $e->getMessage()]);
+            exit;
+        }
+    }
+
+    /**
      * Helper: Envía respuesta JSON
      */
     private function jsonResponse(array $data, int $statusCode = 200): void
