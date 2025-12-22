@@ -604,6 +604,36 @@ class OpenProviderService
     }
 
     /**
+     * Actualizar un contacto existente en OpenProvider
+     *
+     * @param string $handle Handle del contacto a actualizar
+     * @param array $contactData Datos actualizados del contacto
+     * @return bool True si se actualizo correctamente
+     * @throws Exception
+     */
+    public function updateContact(string $handle, array $contactData): bool
+    {
+        Logger::info("[OpenProvider] Updating contact: {$handle}");
+
+        try {
+            $response = $this->makeRequest('PUT', "/customers/{$handle}", $contactData);
+
+            if (isset($response['code']) && $response['code'] === 0) {
+                Logger::info("[OpenProvider] Contact {$handle} updated successfully");
+                return true;
+            }
+
+            $error = $response['desc'] ?? $response['message'] ?? 'Unknown error';
+            Logger::error("[OpenProvider] Failed to update contact {$handle}: {$error}");
+            return false;
+
+        } catch (Exception $e) {
+            Logger::error("[OpenProvider] Error updating contact {$handle}: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
      * Normaliza el payload de contacto para que la UI pueda leer campos consistentes
      * independientemente del formato (snake_case/camelCase) de OpenProvider.
      */
@@ -711,25 +741,6 @@ class OpenProviderService
 
         // Si no existe, crear uno nuevo
         return $this->createContact($contactData);
-    }
-
-    /**
-     * Actualizar un contacto
-     *
-     * @param string $handle Handle del contacto
-     * @param array $data Datos a actualizar
-     * @return bool
-     * @throws Exception
-     */
-    public function updateContact(string $handle, array $data): bool
-    {
-        Logger::info("[OpenProvider] Updating contact: {$handle}");
-
-        $response = $this->makeRequest('PUT', "/customers/{$handle}", $data);
-
-        Logger::info("[OpenProvider] Contact updated");
-
-        return true;
     }
 
     // ============================================

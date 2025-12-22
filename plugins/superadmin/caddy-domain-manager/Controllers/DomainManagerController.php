@@ -63,6 +63,8 @@ class DomainManagerController
         $caddyStatusFilter = $_GET['caddy_status'] ?? '';
         $statusFilter = $_GET['status'] ?? '';
         $search = $_GET['search'] ?? '';
+        $orderStatusFilter = $_GET['order_status'] ?? '';
+        $hostingTypeFilter = $_GET['hosting_type'] ?? '';
 
         // Construir query
         $sql = "SELECT * FROM tenants WHERE 1=1";
@@ -90,17 +92,73 @@ class DomainManagerController
         $stmt->execute($params);
         $tenants = $stmt->fetchAll(PDO::FETCH_OBJ);
 
+        // Dominios registrados por customers (domain_orders)
+        $domainOrders = [];
+        try {
+            $orderSql = "
+                SELECT
+                    dord.*,
+                    c.email AS customer_email,
+                    c.name AS customer_name,
+                    t.domain AS tenant_domain
+                FROM domain_orders dord
+                LEFT JOIN customers c ON c.id = dord.customer_id
+                LEFT JOIN tenants t ON t.id = dord.tenant_id
+                WHERE 1=1
+            ";
+            $orderParams = [];
+
+            if (!empty($orderStatusFilter)) {
+                $orderSql .= " AND dord.status = ?";
+                $orderParams[] = $orderStatusFilter;
+            }
+
+            if (!empty($hostingTypeFilter)) {
+                $orderSql .= " AND dord.hosting_type = ?";
+                $orderParams[] = $hostingTypeFilter;
+            }
+
+            if (!empty($search)) {
+                $orderSql .= " AND (
+                    LOWER(dord.domain) LIKE LOWER(?) OR
+                    LOWER(dord.extension) LIKE LOWER(?) OR
+                    LOWER(CONCAT(dord.domain, '.', dord.extension)) LIKE LOWER(?) OR
+                    LOWER(COALESCE(c.email, '')) LIKE LOWER(?) OR
+                    LOWER(COALESCE(c.name, '')) LIKE LOWER(?)
+                )";
+                $like = "%{$search}%";
+                $orderParams[] = $like;
+                $orderParams[] = $like;
+                $orderParams[] = $like;
+                $orderParams[] = $like;
+                $orderParams[] = $like;
+            }
+
+            $orderSql .= " ORDER BY dord.created_at DESC";
+
+            $stmt = $pdo->prepare($orderSql);
+            $stmt->execute($orderParams);
+            $domainOrders = $stmt->fetchAll(PDO::FETCH_OBJ) ?: [];
+        } catch (\Throwable $e) {
+            // Tabla no existe aún o error de compatibilidad - no romper la vista
+            Logger::warning("[DomainManager] Could not load domain_orders: " . $e->getMessage());
+            $domainOrders = [];
+        }
+
         // Verificar disponibilidad de Caddy API
         $caddyApiAvailable = $this->caddyService->isApiAvailable();
 
         return View::renderSuperadmin('plugins.caddy-domain-manager.index', [
             'title' => 'Domain Manager',
             'tenants' => $tenants,
+            'domainOrders' => $domainOrders,
             'caddyApiAvailable' => $caddyApiAvailable,
             'filters' => [
                 'caddy_status' => $caddyStatusFilter,
                 'status' => $statusFilter,
-                'search' => $search
+                'search' => $search,
+                'order_status' => $orderStatusFilter,
+                'hosting_type' => $hostingTypeFilter
             ]
         ]);
     }

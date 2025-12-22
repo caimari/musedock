@@ -433,6 +433,35 @@ Route::post('/customer/transfer-domain/{id}/complete', 'CaddyDomainManager\Contr
     ->name('customer.transfer-domain.complete');
 
 // ============================================
+// CUSTOMER CONTACTS DIRECTORY
+// ============================================
+
+// Listar todos los contactos del cliente
+Route::get('/customer/contacts', 'CaddyDomainManager\Controllers\ContactsController@index')
+    ->middleware('customer')
+    ->name('customer.contacts');
+
+// AJAX: Obtener datos de un contacto
+Route::get('/customer/contacts/{id}', 'CaddyDomainManager\Controllers\ContactsController@get')
+    ->middleware('customer')
+    ->name('customer.contacts.get');
+
+// AJAX: Actualizar contacto
+Route::post('/customer/contacts/{id}/update', 'CaddyDomainManager\Controllers\ContactsController@update')
+    ->middleware('customer')
+    ->name('customer.contacts.update');
+
+// AJAX: Eliminar contacto
+Route::post('/customer/contacts/{id}/delete', 'CaddyDomainManager\Controllers\ContactsController@delete')
+    ->middleware('customer')
+    ->name('customer.contacts.delete');
+
+// AJAX: Establecer contacto como predeterminado
+Route::post('/customer/contacts/{id}/set-default', 'CaddyDomainManager\Controllers\ContactsController@setDefault')
+    ->middleware('customer')
+    ->name('customer.contacts.set-default');
+
+// ============================================
 // DOMAIN CONTACTS MANAGEMENT
 // ============================================
 

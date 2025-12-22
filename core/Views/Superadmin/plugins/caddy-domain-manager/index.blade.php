@@ -201,12 +201,148 @@
             </div>
         </div>
 
+        <!-- Dominios registrados (Customers) -->
+        <div class="card mt-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0"><i class="bi bi-bag-check"></i> Dominios Registrados (Customers)</h5>
+                    <small class="text-muted">Órdenes creadas desde el frontend (registro/transferencia)</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <select class="form-select form-select-sm" onchange="applyOrderFilter('hosting_type', this.value)" style="min-width: 190px;">
+                        <option value="">Hosting: Todos</option>
+                        <option value="musedock_hosting" {{ ($filters['hosting_type'] ?? '') === 'musedock_hosting' ? 'selected' : '' }}>DNS + Hosting MuseDock</option>
+                        <option value="dns_only" {{ ($filters['hosting_type'] ?? '') === 'dns_only' ? 'selected' : '' }}>Solo DNS</option>
+                    </select>
+                    <select class="form-select form-select-sm" onchange="applyOrderFilter('order_status', this.value)" style="min-width: 170px;">
+                        <option value="">Estado: Todos</option>
+                        <option value="processing" {{ ($filters['order_status'] ?? '') === 'processing' ? 'selected' : '' }}>processing</option>
+                        <option value="pending" {{ ($filters['order_status'] ?? '') === 'pending' ? 'selected' : '' }}>pending</option>
+                        <option value="registered" {{ ($filters['order_status'] ?? '') === 'registered' ? 'selected' : '' }}>registered</option>
+                        <option value="active" {{ ($filters['order_status'] ?? '') === 'active' ? 'selected' : '' }}>active</option>
+                        <option value="failed" {{ ($filters['order_status'] ?? '') === 'failed' ? 'selected' : '' }}>failed</option>
+                        <option value="cancelled" {{ ($filters['order_status'] ?? '') === 'cancelled' ? 'selected' : '' }}>cancelled</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body table-responsive p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Dominio</th>
+                            <th>Cliente</th>
+                            <th>Tipo</th>
+                            <th>Estado</th>
+                            <th>Cloudflare</th>
+                            <th>Tenant</th>
+                            <th>Creado</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php
+                            $statusBadge = function ($status) {
+                                $status = strtolower((string)$status);
+                                return match ($status) {
+                                    'active' => 'bg-success',
+                                    'registered' => 'bg-success',
+                                    'processing' => 'bg-warning text-dark',
+                                    'pending' => 'bg-warning text-dark',
+                                    'failed' => 'bg-danger',
+                                    'cancelled', 'canceled' => 'bg-secondary',
+                                    default => 'bg-secondary',
+                                };
+                            };
+                        @endphp
+                        @forelse($domainOrders as $order)
+                            @php
+                                $fullDomain = $order->full_domain ?? trim(($order->domain ?? '') . (!empty($order->extension) ? '.' . $order->extension : ''), '.');
+                                $hostingType = $order->hosting_type ?? 'musedock_hosting';
+                                $tenantDomain = $order->tenant_domain ?? null;
+                            @endphp
+                            <tr>
+                                <td class="fw-semibold">{{ $fullDomain }}</td>
+                                <td>
+                                    <div class="small text-muted">{{ $order->customer_name ?? '—' }}</div>
+                                    <div>{{ $order->customer_email ?? '—' }}</div>
+                                </td>
+                                <td>
+                                    @if($hostingType === 'dns_only')
+                                        <span class="badge bg-secondary">Solo DNS</span>
+                                    @else
+                                        <span class="badge bg-info text-dark">DNS + Hosting</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <span class="badge {{ $statusBadge($order->status ?? '') }}">{{ $order->status ?? '—' }}</span>
+                                </td>
+                                <td>
+                                    @if(!empty($order->cloudflare_zone_id))
+                                        <span class="badge bg-warning text-dark"><i class="bi bi-shield-fill-check"></i> Zona</span>
+                                        <div class="small text-muted text-truncate" style="max-width: 220px;">{{ $order->cloudflare_zone_id }}</div>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if(!empty($order->tenant_id))
+                                        <a href="/musedock/tenants/{{ $order->tenant_id }}/edit" class="text-decoration-none">
+                                            {{ $tenantDomain ?? ('#' . $order->tenant_id) }}
+                                        </a>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td class="small text-muted">
+                                    @if(!empty($order->created_at))
+                                        {{ date('d/m/Y H:i', strtotime($order->created_at)) }}
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        @if(!empty($order->id))
+                                            <a href="/customer/domain/{{ $order->id }}/dns" class="btn btn-outline-primary" title="DNS (Cloudflare)">
+                                                <i class="bi bi-hdd-network"></i>
+                                            </a>
+                                            <a href="/customer/domain/{{ $order->id }}/contacts" class="btn btn-outline-secondary" title="Contactos (OpenProvider)">
+                                                <i class="bi bi-person-lines-fill"></i>
+                                            </a>
+                                        @endif
+                                        @if(!empty($tenantDomain))
+                                            <a href="https://{{ $tenantDomain }}/admin" target="_blank" class="btn btn-outline-success" title="Admin Tenant">
+                                                <i class="bi bi-box-arrow-up-right"></i>
+                                            </a>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                                    No hay dominios registrados por customers.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 </div>
 
 @push('scripts')
 <script>
 const csrfToken = '<?= csrf_token() ?>';
+function applyOrderFilter(key, value) {
+    const url = new URL(window.location.href);
+    if (!value) url.searchParams.delete(key);
+    else url.searchParams.set(key, value);
+    window.location.href = url.toString();
+}
 
 // ========== ELIMINAR TENANT con SweetAlert2 y verificación de contraseña ==========
 function confirmDelete(id, domain) {

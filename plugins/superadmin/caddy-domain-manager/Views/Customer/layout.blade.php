@@ -451,6 +451,9 @@
                     <a class="nav-link <?= ($current_page ?? '') === 'dashboard' ? 'active' : '' ?>" href="/customer/dashboard">
                         <i class="bi bi-speedometer2"></i> Dashboard
                     </a>
+                    <a class="nav-link <?= ($current_page ?? '') === 'contacts' ? 'active' : '' ?>" href="/customer/contacts">
+                        <i class="bi bi-person-lines-fill"></i> Mis Contactos
+                    </a>
                     <a class="nav-link <?= ($current_page ?? '') === 'profile' ? 'active' : '' ?>" href="/customer/profile">
                         <i class="bi bi-person"></i> Mi Perfil
                     </a>
