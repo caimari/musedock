@@ -352,11 +352,18 @@ class Customer
     {
         $pdo = Database::connect();
 
+        // Nota: El campo 'domain' debe contener solo el nombre (ej: "caracola22")
+        // y 'extension' la extensión (ej: "com"). full_domain concatena ambos.
+        // Si domain ya contiene la extensión (datos antiguos), evitamos duplicar.
         $stmt = $pdo->prepare("
             SELECT
                 dord.*,
                 t.domain as tenant_domain,
-                CONCAT(dord.domain, '.', dord.extension) as full_domain
+                CASE
+                    WHEN dord.domain LIKE CONCAT('%.',  dord.extension)
+                    THEN dord.domain
+                    ELSE CONCAT(dord.domain, '.', dord.extension)
+                END as full_domain
             FROM domain_orders dord
             LEFT JOIN tenants t ON t.id = dord.tenant_id
             WHERE dord.customer_id = ?

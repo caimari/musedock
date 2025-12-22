@@ -134,6 +134,9 @@ class DomainRegistrationController
                 'selectedCurrency' => $_SESSION['domain_registration']['currency'] ?? 'EUR',
                 'countries' => $countries,
                 'phoneCodes' => $phoneCodes,
+                'hosting_type' => $_SESSION['domain_registration']['hosting_type'] ?? 'musedock_hosting',
+                'ns_type' => $_SESSION['domain_registration']['ns_type'] ?? 'cloudflare',
+                'custom_ns' => isset($_SESSION['domain_registration']['custom_ns']) ? json_decode($_SESSION['domain_registration']['custom_ns'], true) : null,
                 'csrf_token' => csrf_token()
             ]);
 
@@ -397,11 +400,24 @@ class DomainRegistrationController
                 $ownerPhoneCode = $_POST['owner_phone_code'] ?? '34';
                 $ownerPhoneNumber = trim($_POST['owner_phone'] ?? '');
 
+                // Obtener datos de empresa y CIF
+                $ownerCompany = trim($_POST['owner_company'] ?? '');
+                $ownerCompanyRegNumber = trim($_POST['owner_company_reg_number'] ?? '');
+
+                // Validar CIF obligatorio para .ES si hay empresa
+                $domain = $_SESSION['domain_registration']['domain'] ?? '';
+                $isEsDomain = str_ends_with(strtolower($domain), '.es');
+                if ($isEsDomain && !empty($ownerCompany) && empty($ownerCompanyRegNumber)) {
+                    $this->jsonResponse(['success' => false, 'error' => 'El CIF/NIF es obligatorio para dominios .ES cuando el titular es una empresa'], 400);
+                    return;
+                }
+
                 // Obtener o crear contacto Owner en OpenProvider (reutiliza si ya existe)
                 $handles['owner'] = $openProvider->getOrCreateContact([
                     'first_name' => $_POST['owner_first_name'],
                     'last_name' => $_POST['owner_last_name'],
-                    'company' => $_POST['owner_company'] ?? '',
+                    'company' => $ownerCompany,
+                    'company_reg_number' => $ownerCompanyRegNumber,
                     'email' => $_POST['owner_email'],
                     'phone' => $ownerPhoneNumber,
                     'phone_code' => $ownerPhoneCode,
@@ -421,17 +437,18 @@ class DomainRegistrationController
                 $stmt = $pdo->prepare("
                     INSERT INTO domain_contacts (
                         customer_id, openprovider_handle, type,
-                        first_name, last_name, company, email, phone,
+                        first_name, last_name, company, company_reg_number, email, phone,
                         address_street, address_number, address_city, address_state, address_zipcode, address_country,
                         is_default
-                    ) VALUES (?, ?, 'owner', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, 'owner', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $stmt->execute([
                     $customerId,
                     $handles['owner'],
                     $_POST['owner_first_name'],
                     $_POST['owner_last_name'],
-                    $_POST['owner_company'] ?? null,
+                    $ownerCompany ?: null,
+                    $ownerCompanyRegNumber ?: null,
                     $_POST['owner_email'],
                     $_POST['owner_phone'],
                     $_POST['owner_street'],
@@ -649,7 +666,7 @@ class DomainRegistrationController
                 ");
                 $stmt->execute([
                     $customerId,
-                    $domain,
+                    $domainName,  // Solo el nombre sin extensión (ej: "caracola22" no "caracola22.com")
                     $extension,
                     $ownerHandle,
                     $ownerHandle,
@@ -664,7 +681,7 @@ class DomainRegistrationController
                 ]);
                 $orderId = $pdo->lastInsertId();
 
-                Logger::info("[DomainRegistration] Order created. ID: {$orderId}, Domain: {$domain}, Hosting: {$hostingType}");
+                Logger::info("[DomainRegistration] Order created. ID: {$orderId}, Domain: {$domain} (name: {$domainName}, ext: {$extension}), Hosting: {$hostingType}");
 
                 // 2. Determinar nameservers
                 $nameservers = [];

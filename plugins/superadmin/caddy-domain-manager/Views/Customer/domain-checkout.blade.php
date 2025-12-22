@@ -237,7 +237,7 @@
                             </div>
                             <div class="summary-row">
                                 <span>Periodo</span>
-                                <span>1 ano</span>
+                                <span>1 año</span>
                             </div>
                             <div class="summary-row">
                                 <span>Tipo de Servicio</span>
@@ -358,7 +358,7 @@
                         <div class="summary-section">
                             <h6><i class="bi bi-gift me-2"></i>Tu Registro Incluye</h6>
                             <ul class="feature-list">
-                                <li><i class="bi bi-check-circle-fill"></i>Registro por 1 ano</li>
+                                <li><i class="bi bi-check-circle-fill"></i>Registro por 1 año</li>
                                 <li><i class="bi bi-check-circle-fill"></i>Renovacion automatica</li>
                                 <li><i class="bi bi-check-circle-fill"></i>DNS gestionado por Cloudflare</li>
                                 <li><i class="bi bi-check-circle-fill"></i>Certificado SSL gratuito</li>

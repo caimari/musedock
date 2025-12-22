@@ -187,15 +187,33 @@
                         <?php if (!empty($contacts)): ?>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Seleccionar contacto existente:</label>
-                            <select class="form-select" id="owner_existing" name="owner_existing" onchange="toggleOwnerForm(this.value)">
-                                <option value="">-- Crear nuevo contacto --</option>
-                                <?php foreach ($contacts as $contact): ?>
-                                <option value="<?= $contact['id'] ?>">
-                                    <?= htmlspecialchars($contact['first_name'] . ' ' . $contact['last_name']) ?>
-                                    (<?= htmlspecialchars($contact['email']) ?>)
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
+                            <div class="input-group">
+                                <select class="form-select" id="owner_existing" name="owner_existing" onchange="toggleOwnerForm(this.value)">
+                                    <option value="">-- Crear nuevo contacto --</option>
+                                    <?php foreach ($contacts as $contact): ?>
+                                    <option value="<?= $contact['id'] ?>"
+                                        data-firstname="<?= htmlspecialchars($contact['first_name'] ?? '') ?>"
+                                        data-lastname="<?= htmlspecialchars($contact['last_name'] ?? '') ?>"
+                                        data-company="<?= htmlspecialchars($contact['company'] ?? '') ?>"
+                                        data-companyregnumber="<?= htmlspecialchars($contact['company_reg_number'] ?? '') ?>"
+                                        data-email="<?= htmlspecialchars($contact['email'] ?? '') ?>"
+                                        data-phone="<?= htmlspecialchars($contact['phone'] ?? '') ?>"
+                                        data-phonecode="<?= htmlspecialchars($contact['phone_code'] ?? '34') ?>"
+                                        data-street="<?= htmlspecialchars($contact['address_street'] ?? '') ?>"
+                                        data-number="<?= htmlspecialchars($contact['address_number'] ?? '') ?>"
+                                        data-city="<?= htmlspecialchars($contact['address_city'] ?? '') ?>"
+                                        data-state="<?= htmlspecialchars($contact['address_state'] ?? '') ?>"
+                                        data-zipcode="<?= htmlspecialchars($contact['address_zipcode'] ?? '') ?>"
+                                        data-country="<?= htmlspecialchars($contact['address_country'] ?? 'ES') ?>">
+                                        <?= htmlspecialchars($contact['first_name'] . ' ' . $contact['last_name']) ?>
+                                        (<?= htmlspecialchars($contact['email']) ?>)
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary" id="btnEditOwner" onclick="editSelectedContact()" style="display: none;" title="Editar contacto seleccionado">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </button>
+                            </div>
                         </div>
                         <?php endif; ?>
 
@@ -213,11 +231,18 @@
                                         <label>Apellidos *</label>
                                     </div>
                                 </div>
-                                <div class="col-12">
+                                <div class="col-md-8">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="owner_company" name="owner_company" placeholder="Empresa">
+                                        <input type="text" class="form-control" id="owner_company" name="owner_company" placeholder="Empresa" onchange="toggleCompanyRegNumber()">
                                         <label>Empresa (opcional)</label>
                                     </div>
+                                </div>
+                                <div class="col-md-4" id="owner_company_reg_container" style="display: none;">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="owner_company_reg_number" name="owner_company_reg_number" placeholder="CIF/NIF">
+                                        <label>CIF/NIF <span class="es-company-required">*</span></label>
+                                    </div>
+                                    <small class="text-muted es-company-hint"><i class="bi bi-info-circle"></i> Obligatorio para .ES si es empresa</small>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
@@ -546,12 +571,13 @@
                     </div>
 
                     <!-- SECCION: Opciones de Hosting/DNS -->
+                    <?php $savedHostingType = $hosting_type ?? 'musedock_hosting'; ?>
                     <div class="options-section">
                         <h5><i class="bi bi-hdd-network me-2"></i>Tipo de Servicio</h5>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="option-card selected" onclick="selectOption('hosting_type', 'musedock_hosting', this)">
-                                    <input type="radio" name="hosting_type" value="musedock_hosting" checked>
+                                <label class="option-card<?= $savedHostingType === 'musedock_hosting' ? ' selected' : '' ?>" onclick="selectOption('hosting_type', 'musedock_hosting', this)">
+                                    <input type="radio" name="hosting_type" value="musedock_hosting"<?= $savedHostingType === 'musedock_hosting' ? ' checked' : '' ?>>
                                     <div class="option-title"><i class="bi bi-cloud-check me-2"></i>DNS + Hosting MuseDock</div>
                                     <div class="option-desc">
                                         Tu dominio apuntara a tu sitio en MuseDock con SSL incluido.
@@ -560,8 +586,8 @@
                                 </label>
                             </div>
                             <div class="col-md-6">
-                                <label class="option-card" onclick="selectOption('hosting_type', 'dns_only', this)">
-                                    <input type="radio" name="hosting_type" value="dns_only">
+                                <label class="option-card<?= $savedHostingType === 'dns_only' ? ' selected' : '' ?>" onclick="selectOption('hosting_type', 'dns_only', this)">
+                                    <input type="radio" name="hosting_type" value="dns_only"<?= $savedHostingType === 'dns_only' ? ' checked' : '' ?>>
                                     <div class="option-title"><i class="bi bi-diagram-3 me-2"></i>Solo Gestion DNS</div>
                                     <div class="option-desc">
                                         Gestionaras tus DNS libremente via Cloudflare.
@@ -573,12 +599,16 @@
                     </div>
 
                     <!-- SECCION: Nameservers -->
+                    <?php
+                        $savedNsType = $ns_type ?? 'cloudflare';
+                        $savedCustomNs = $custom_ns ?? [];
+                    ?>
                     <div class="options-section">
                         <h5><i class="bi bi-server me-2"></i>Nameservers</h5>
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label class="option-card selected" onclick="selectOption('ns_type', 'cloudflare', this); toggleCustomNS(false)">
-                                    <input type="radio" name="ns_type" value="cloudflare" checked>
+                                <label class="option-card<?= $savedNsType === 'cloudflare' ? ' selected' : '' ?>" onclick="selectOption('ns_type', 'cloudflare', this); toggleCustomNS(false)">
+                                    <input type="radio" name="ns_type" value="cloudflare"<?= $savedNsType === 'cloudflare' ? ' checked' : '' ?>>
                                     <div class="option-title"><i class="bi bi-shield-check me-2"></i>Cloudflare (Recomendado)</div>
                                     <div class="option-desc">
                                         Usaras los nameservers de Cloudflare para proteccion y velocidad.
@@ -586,8 +616,8 @@
                                 </label>
                             </div>
                             <div class="col-md-6">
-                                <label class="option-card" onclick="selectOption('ns_type', 'custom', this); toggleCustomNS(true)">
-                                    <input type="radio" name="ns_type" value="custom">
+                                <label class="option-card<?= $savedNsType === 'custom' ? ' selected' : '' ?>" onclick="selectOption('ns_type', 'custom', this); toggleCustomNS(true)">
+                                    <input type="radio" name="ns_type" value="custom"<?= $savedNsType === 'custom' ? ' checked' : '' ?>>
                                     <div class="option-title"><i class="bi bi-pencil-square me-2"></i>Personalizados</div>
                                     <div class="option-desc">
                                         Usaras tus propios nameservers.
@@ -596,14 +626,22 @@
                             </div>
                         </div>
 
-                        <div id="customNsContainer" style="display: none;">
+                        <div id="customNsContainer" style="display: <?= $savedNsType === 'custom' ? 'block' : 'none' ?>;">
                             <label class="form-label">Ingresa tus nameservers:</label>
+                            <?php if (!empty($savedCustomNs)): ?>
+                                <?php foreach ($savedCustomNs as $index => $ns): ?>
+                                <div class="ns-input-group">
+                                    <input type="text" class="form-control" name="custom_ns[]" placeholder="ns<?= $index + 1 ?>.tudominio.com" value="<?= htmlspecialchars($ns) ?>">
+                                </div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
                             <div class="ns-input-group">
                                 <input type="text" class="form-control" name="custom_ns[]" placeholder="ns1.tudominio.com">
                             </div>
                             <div class="ns-input-group">
                                 <input type="text" class="form-control" name="custom_ns[]" placeholder="ns2.tudominio.com">
                             </div>
+                            <?php endif; ?>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addNsField()">
                                 <i class="bi bi-plus"></i> Agregar otro NS
                             </button>
@@ -632,13 +670,100 @@
 
 @section('scripts')
 <script>
+// Variable para saber si estamos editando un contacto existente
+let isEditingExistingContact = false;
+
 function toggleOwnerForm(value) {
     const fields = document.getElementById('ownerFields');
+    const btnEdit = document.getElementById('btnEditOwner');
+
     if (value) {
+        // Se selecciono un contacto existente - ocultar formulario, mostrar boton editar
         fields.style.display = 'none';
+        if (btnEdit) btnEdit.style.display = 'block';
+        isEditingExistingContact = false;
     } else {
+        // Crear nuevo contacto - mostrar formulario, ocultar boton editar
         fields.style.display = 'block';
+        if (btnEdit) btnEdit.style.display = 'none';
+        isEditingExistingContact = false;
+        // Limpiar campos al seleccionar "nuevo contacto"
+        clearOwnerFields();
     }
+}
+
+// Editar el contacto seleccionado - cargar datos en el formulario
+function editSelectedContact() {
+    const select = document.getElementById('owner_existing');
+    const selectedOption = select.options[select.selectedIndex];
+
+    if (!selectedOption || !selectedOption.value) {
+        return;
+    }
+
+    // Cargar datos del contacto en los campos
+    document.getElementById('owner_first_name').value = selectedOption.dataset.firstname || '';
+    document.getElementById('owner_last_name').value = selectedOption.dataset.lastname || '';
+    document.getElementById('owner_company').value = selectedOption.dataset.company || '';
+    document.getElementById('owner_company_reg_number').value = selectedOption.dataset.companyregnumber || '';
+    document.getElementById('owner_email').value = selectedOption.dataset.email || '';
+    document.getElementById('owner_phone').value = selectedOption.dataset.phone || '';
+    document.getElementById('owner_street').value = selectedOption.dataset.street || '';
+    document.getElementById('owner_number').value = selectedOption.dataset.number || '';
+    document.getElementById('owner_city').value = selectedOption.dataset.city || '';
+    document.getElementById('owner_state').value = selectedOption.dataset.state || '';
+    document.getElementById('owner_zipcode').value = selectedOption.dataset.zipcode || '';
+
+    // Seleccionar codigo de telefono
+    const phoneCode = selectedOption.dataset.phonecode || '34';
+    const phoneCodeSelect = document.getElementById('owner_phone_code');
+    for (let i = 0; i < phoneCodeSelect.options.length; i++) {
+        if (phoneCodeSelect.options[i].value === phoneCode) {
+            phoneCodeSelect.selectedIndex = i;
+            break;
+        }
+    }
+
+    // Seleccionar pais
+    const country = selectedOption.dataset.country || 'ES';
+    const countrySelect = document.getElementById('owner_country');
+    for (let i = 0; i < countrySelect.options.length; i++) {
+        if (countrySelect.options[i].value === country) {
+            countrySelect.selectedIndex = i;
+            break;
+        }
+    }
+
+    // Mostrar el formulario
+    const fields = document.getElementById('ownerFields');
+    fields.style.display = 'block';
+    isEditingExistingContact = true;
+
+    // Actualizar requisitos de provincia y CIF
+    toggleStateRequired();
+    toggleCompanyRegNumber();
+
+    // Notificar al usuario
+    Swal.fire({
+        icon: 'info',
+        title: 'Editando contacto',
+        text: 'Modifica los datos que necesites. Los cambios se guardaran al continuar.',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+    });
+}
+
+// Limpiar campos del owner
+function clearOwnerFields() {
+    const fields = ['first_name', 'last_name', 'company', 'company_reg_number', 'email', 'phone', 'street', 'number', 'city', 'state', 'zipcode'];
+    fields.forEach(field => {
+        const el = document.getElementById('owner_' + field);
+        if (el) el.value = '';
+    });
+    // Ocultar campo CIF
+    toggleCompanyRegNumber();
 }
 
 function toggleOtherContacts() {
@@ -664,8 +789,28 @@ function toggleStateRequired() {
     });
 }
 
+// Mostrar/ocultar campo CIF cuando hay empresa y dominio .ES
+function toggleCompanyRegNumber() {
+    const company = document.getElementById('owner_company')?.value?.trim() || '';
+    const domain = '<?= htmlspecialchars($selectedDomain ?? '') ?>';
+    const isEsDomain = domain.toLowerCase().endsWith('.es');
+    const container = document.getElementById('owner_company_reg_container');
+
+    if (container) {
+        // Mostrar si hay empresa Y es dominio .ES
+        if (company && isEsDomain) {
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    }
+}
+
 // Ejecutar al cargar
-document.addEventListener('DOMContentLoaded', toggleStateRequired);
+document.addEventListener('DOMContentLoaded', function() {
+    toggleStateRequired();
+    toggleCompanyRegNumber();
+});
 
 function selectOption(name, value, element) {
     // Deseleccionar hermanos
@@ -697,16 +842,48 @@ function addNsField() {
 
 // Copiar datos del propietario a otro contacto
 function copyFromOwner(targetType) {
-    const fields = ['first_name', 'last_name', 'email', 'phone', 'phone_code', 'street', 'number', 'city', 'state', 'zipcode', 'country'];
+    const ownerExisting = document.getElementById('owner_existing');
+    const isUsingExistingContact = ownerExisting && ownerExisting.value && !isEditingExistingContact;
 
-    fields.forEach(field => {
-        const sourceEl = document.getElementById('owner_' + field);
-        const targetEl = document.getElementById(targetType + '_' + field);
+    // Si esta usando un contacto existente sin editar, obtener datos del select
+    if (isUsingExistingContact) {
+        const selectedOption = ownerExisting.options[ownerExisting.selectedIndex];
 
-        if (sourceEl && targetEl) {
-            targetEl.value = sourceEl.value;
-        }
-    });
+        // Mapeo de campos del data attribute al formulario
+        const dataMapping = {
+            'first_name': 'firstname',
+            'last_name': 'lastname',
+            'email': 'email',
+            'phone': 'phone',
+            'phone_code': 'phonecode',
+            'street': 'street',
+            'number': 'number',
+            'city': 'city',
+            'state': 'state',
+            'zipcode': 'zipcode',
+            'country': 'country'
+        };
+
+        Object.keys(dataMapping).forEach(field => {
+            const targetEl = document.getElementById(targetType + '_' + field);
+            const dataAttr = dataMapping[field];
+            if (targetEl && selectedOption.dataset[dataAttr]) {
+                targetEl.value = selectedOption.dataset[dataAttr];
+            }
+        });
+    } else {
+        // Copiar desde los campos del formulario del owner
+        const fields = ['first_name', 'last_name', 'email', 'phone', 'phone_code', 'street', 'number', 'city', 'state', 'zipcode', 'country'];
+
+        fields.forEach(field => {
+            const sourceEl = document.getElementById('owner_' + field);
+            const targetEl = document.getElementById(targetType + '_' + field);
+
+            if (sourceEl && targetEl) {
+                targetEl.value = sourceEl.value;
+            }
+        });
+    }
 
     // Mostrar confirmacion
     Swal.fire({

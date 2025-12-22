@@ -545,6 +545,12 @@ class OpenProviderService
             ]
         ];
 
+        // Añadir numero de registro de empresa (CIF/NIF) si existe
+        // OpenProvider usa 'vat' para el número de identificación fiscal de empresas
+        if (!empty($contactData['company_reg_number'])) {
+            $data['vat'] = $contactData['company_reg_number'];
+        }
+
         Logger::info("[OpenProvider] Creating contact with phone: country_code={$phoneCountryCode}, area_code={$areaCode}, subscriber={$phoneNumber}");
         Logger::info("[OpenProvider] Full contact data: " . json_encode($data['phone']));
 
