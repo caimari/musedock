@@ -364,20 +364,38 @@ class DomainRegistrationController
                 $handles['owner'] = $contact['openprovider_handle'];
                 $_SESSION['domain_registration']['contact_id'] = $ownerExisting;
             } else {
-                // Validar campos requeridos para nuevo contacto
-                $required = ['owner_first_name', 'owner_last_name', 'owner_email', 'owner_phone', 'owner_street', 'owner_city', 'owner_zipcode', 'owner_country'];
+                // Validar campos requeridos para nuevo contacto (incluyendo numero)
+                $required = ['owner_first_name', 'owner_last_name', 'owner_email', 'owner_phone', 'owner_street', 'owner_number', 'owner_city', 'owner_zipcode', 'owner_country'];
+                $fieldLabels = [
+                    'owner_first_name' => 'Nombre',
+                    'owner_last_name' => 'Apellidos',
+                    'owner_email' => 'Email',
+                    'owner_phone' => 'Telefono',
+                    'owner_street' => 'Direccion',
+                    'owner_number' => 'Numero de direccion',
+                    'owner_city' => 'Ciudad',
+                    'owner_zipcode' => 'Codigo Postal',
+                    'owner_country' => 'Pais'
+                ];
                 foreach ($required as $field) {
-                    if (empty($_POST[$field])) {
-                        $fieldName = str_replace('owner_', '', $field);
-                        $this->jsonResponse(['success' => false, 'error' => "El campo {$fieldName} es requerido"], 400);
+                    $value = trim($_POST[$field] ?? '');
+                    if (empty($value)) {
+                        $label = $fieldLabels[$field] ?? str_replace('owner_', '', $field);
+                        $this->jsonResponse(['success' => false, 'error' => "El campo '{$label}' es requerido"], 400);
                         return;
                     }
                 }
 
-                // Construir teléfono con código de país
+                // Validar que el telefono no sea el placeholder
+                $ownerPhoneNumber = trim($_POST['owner_phone'] ?? '');
+                if ($ownerPhoneNumber === '612345678' || strlen($ownerPhoneNumber) < 6) {
+                    $this->jsonResponse(['success' => false, 'error' => "Por favor ingresa un numero de telefono valido"], 400);
+                    return;
+                }
+
+                // Obtener código y número de teléfono por separado
                 $ownerPhoneCode = $_POST['owner_phone_code'] ?? '34';
-                $ownerPhoneNumber = preg_replace('/[^\d]/', '', $_POST['owner_phone']);
-                $ownerPhone = '+' . $ownerPhoneCode . $ownerPhoneNumber;
+                $ownerPhoneNumber = trim($_POST['owner_phone'] ?? '');
 
                 // Obtener o crear contacto Owner en OpenProvider (reutiliza si ya existe)
                 $handles['owner'] = $openProvider->getOrCreateContact([
@@ -385,7 +403,8 @@ class DomainRegistrationController
                     'last_name' => $_POST['owner_last_name'],
                     'company' => $_POST['owner_company'] ?? '',
                     'email' => $_POST['owner_email'],
-                    'phone' => $ownerPhone,
+                    'phone' => $ownerPhoneNumber,
+                    'phone_code' => $ownerPhoneCode,
                     'address' => $_POST['owner_street'],
                     'address_number' => $_POST['owner_number'] ?? '',
                     'city' => $_POST['owner_city'],
@@ -436,17 +455,19 @@ class DomainRegistrationController
             } else {
                 // Crear o reutilizar contactos separados (Admin, Tech, Billing)
                 foreach (['admin', 'tech', 'billing'] as $type) {
-                    $firstName = $_POST["{$type}_first_name"] ?? '';
-                    $lastName = $_POST["{$type}_last_name"] ?? '';
-                    $email = $_POST["{$type}_email"] ?? '';
-                    $phone = $_POST["{$type}_phone"] ?? '';
+                    $firstName = trim($_POST["{$type}_first_name"] ?? '');
+                    $lastName = trim($_POST["{$type}_last_name"] ?? '');
+                    $email = trim($_POST["{$type}_email"] ?? '');
+                    $phone = trim($_POST["{$type}_phone"] ?? '');
+                    $phoneCode = $_POST["{$type}_phone_code"] ?? '34';
+                    $number = trim($_POST["{$type}_number"] ?? '');
 
-                    if ($firstName && $lastName && $email && $phone) {
-                        // Construir teléfono con código de país
-                        $phoneCode = $_POST["{$type}_phone_code"] ?? '34';
-                        $phoneNumber = preg_replace('/[^\d]/', '', $phone);
-                        $fullPhone = '+' . $phoneCode . $phoneNumber;
+                    // Validar que el telefono no sea placeholder
+                    if ($phone === '612345678') {
+                        $phone = '';
+                    }
 
+                    if ($firstName && $lastName && $email && $phone && strlen($phone) >= 6 && $number) {
                         // Usar dirección propia si está disponible, si no usar la del owner
                         $street = !empty($_POST["{$type}_street"]) ? $_POST["{$type}_street"] : $_POST['owner_street'];
                         $city = !empty($_POST["{$type}_city"]) ? $_POST["{$type}_city"] : $_POST['owner_city'];
@@ -460,7 +481,8 @@ class DomainRegistrationController
                             'first_name' => $firstName,
                             'last_name' => $lastName,
                             'email' => $email,
-                            'phone' => $fullPhone,
+                            'phone' => $phone,
+                            'phone_code' => $phoneCode,
                             'address' => $street,
                             'address_number' => $number,
                             'city' => $city,

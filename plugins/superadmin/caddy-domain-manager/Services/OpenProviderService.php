@@ -468,10 +468,30 @@ class OpenProviderService
             }
         }
 
-        // Extraer código de país del teléfono usando el país de la dirección como fallback
         $countryCode = strtoupper($contactData['country']);
-        $phoneCountryCode = $this->extractPhoneCountryCode($contactData['phone'], $countryCode);
-        $phoneNumber = $this->extractPhoneNumber($contactData['phone']);
+
+        // Si se proporciona phone_code separado, usarlo directamente
+        if (!empty($contactData['phone_code'])) {
+            // Limpiar el código: quitar + si existe, y luego añadirlo limpio
+            $cleanCode = preg_replace('/[^\d]/', '', $contactData['phone_code']);
+            $phoneCountryCode = '+' . $cleanCode;
+            // El phone ya es solo el número sin código
+            $phoneNumber = preg_replace('/[^\d]/', '', $contactData['phone']);
+        } else {
+            // Extraer código de país del teléfono usando el país de la dirección como fallback
+            $phoneCountryCode = $this->extractPhoneCountryCode($contactData['phone'], $countryCode);
+            $phoneNumber = $this->extractPhoneNumber($contactData['phone']);
+        }
+
+        // Validar que el número de teléfono no esté vacío
+        if (empty($phoneNumber) || $phoneNumber === '0') {
+            throw new Exception("Se requiere un numero de telefono valido");
+        }
+
+        // Validar longitud mínima del número
+        if (strlen($phoneNumber) < 6) {
+            throw new Exception("El numero de telefono es demasiado corto (minimo 6 digitos)");
+        }
 
         $data = [
             'name' => [

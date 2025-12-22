@@ -244,8 +244,8 @@
                                 </div>
                                 <div class="col-md-3">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="owner_number" name="owner_number" placeholder="Numero">
-                                        <label>Numero</label>
+                                        <input type="text" class="form-control" id="owner_number" name="owner_number" placeholder="Numero" required>
+                                        <label>Numero *</label>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -334,8 +334,8 @@
                                     </div>
                                     <div class="col-md-3">
                                         <div class="form-floating">
-                                            <input type="text" class="form-control" id="admin_number" name="admin_number" placeholder="Numero">
-                                            <label>Numero</label>
+                                            <input type="text" class="form-control" id="admin_number" name="admin_number" placeholder="Numero" required>
+                                            <label>Numero *</label>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
@@ -414,8 +414,8 @@
                                     </div>
                                     <div class="col-md-3">
                                         <div class="form-floating">
-                                            <input type="text" class="form-control" id="tech_number" name="tech_number" placeholder="Numero">
-                                            <label>Numero</label>
+                                            <input type="text" class="form-control" id="tech_number" name="tech_number" placeholder="Numero" required>
+                                            <label>Numero *</label>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
@@ -494,8 +494,8 @@
                                     </div>
                                     <div class="col-md-3">
                                         <div class="form-floating">
-                                            <input type="text" class="form-control" id="billing_number" name="billing_number" placeholder="Numero">
-                                            <label>Numero</label>
+                                            <input type="text" class="form-control" id="billing_number" name="billing_number" placeholder="Numero" required>
+                                            <label>Numero *</label>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
@@ -683,18 +683,107 @@ function submitRegistration(event) {
     const form = event.target;
     const formData = new FormData(form);
 
+    // Definir campos requeridos con sus etiquetas en espanol
+    const fieldLabels = {
+        'owner_first_name': 'Nombre',
+        'owner_last_name': 'Apellidos',
+        'owner_email': 'Email',
+        'owner_phone': 'Telefono',
+        'owner_street': 'Direccion',
+        'owner_number': 'Numero de direccion',
+        'owner_city': 'Ciudad',
+        'owner_zipcode': 'Codigo Postal',
+        'owner_country': 'Pais'
+    };
+
     // Validar contacto owner si es nuevo
     const ownerExisting = document.getElementById('owner_existing');
     if (!ownerExisting || !ownerExisting.value) {
-        const required = ['owner_first_name', 'owner_last_name', 'owner_email', 'owner_phone', 'owner_street', 'owner_city', 'owner_zipcode', 'owner_country'];
+        const required = ['owner_first_name', 'owner_last_name', 'owner_email', 'owner_phone', 'owner_street', 'owner_number', 'owner_city', 'owner_zipcode', 'owner_country'];
+        const missingFields = [];
+
         for (const field of required) {
-            if (!formData.get(field)) {
+            const value = formData.get(field)?.trim();
+            if (!value) {
+                missingFields.push(fieldLabels[field] || field);
+            }
+        }
+
+        // Validar que el telefono no este vacio (no usar placeholder)
+        const phoneValue = document.getElementById('owner_phone').value.trim();
+        if (!phoneValue || phoneValue === '612345678') {
+            if (!missingFields.includes('Telefono')) {
+                missingFields.push('Telefono (ingresa un numero real)');
+            }
+        }
+
+        // Validar formato email
+        const emailValue = formData.get('owner_email')?.trim();
+        if (emailValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Email invalido',
+                text: 'Por favor ingresa un email valido',
+                confirmButtonText: 'Entendido'
+            });
+            document.getElementById('owner_email')?.focus();
+            return;
+        }
+
+        if (missingFields.length > 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campos requeridos',
+                html: '<p>Por favor completa los siguientes campos del contacto propietario:</p><ul style="text-align:left;margin-top:10px;">' +
+                      missingFields.map(f => '<li>' + f + '</li>').join('') + '</ul>',
+                confirmButtonText: 'Entendido'
+            });
+            // Enfocar el primer campo vacio
+            const firstMissing = required.find(f => !formData.get(f)?.trim());
+            if (firstMissing) {
+                document.getElementById(firstMissing)?.focus();
+            }
+            return;
+        }
+    }
+
+    // Validar otros contactos si no se usa el mismo
+    const sameContactAll = document.getElementById('same_contact_all');
+    if (sameContactAll && !sameContactAll.checked) {
+        const contactTypes = ['admin', 'tech', 'billing'];
+        const contactLabels = { 'admin': 'Administrativo', 'tech': 'Tecnico', 'billing': 'Facturacion' };
+
+        for (const type of contactTypes) {
+            const requiredOther = [type + '_first_name', type + '_last_name', type + '_email', type + '_phone', type + '_street', type + '_number', type + '_city', type + '_zipcode', type + '_country'];
+            const missingOther = [];
+
+            for (const field of requiredOther) {
+                const value = formData.get(field)?.trim();
+                if (!value) {
+                    const fieldName = field.replace(type + '_', '');
+                    missingOther.push(fieldLabels['owner_' + fieldName] || fieldName);
+                }
+            }
+
+            // Validar telefono no vacio
+            const phoneEl = document.getElementById(type + '_phone');
+            if (phoneEl) {
+                const phoneVal = phoneEl.value.trim();
+                if (!phoneVal || phoneVal === '612345678') {
+                    if (!missingOther.includes('Telefono')) {
+                        missingOther.push('Telefono (ingresa un numero real)');
+                    }
+                }
+            }
+
+            if (missingOther.length > 0) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Campos requeridos',
-                    text: 'Por favor completa todos los campos del contacto propietario'
+                    title: 'Campos requeridos - Contacto ' + contactLabels[type],
+                    html: '<p>Por favor completa los siguientes campos:</p><ul style="text-align:left;margin-top:10px;">' +
+                          missingOther.map(f => '<li>' + f + '</li>').join('') + '</ul>',
+                    confirmButtonText: 'Entendido'
                 });
-                document.getElementById(field)?.focus();
                 return;
             }
         }
@@ -707,7 +796,8 @@ function submitRegistration(event) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Nameservers requeridos',
-                text: 'Debes ingresar al menos 2 nameservers personalizados'
+                text: 'Debes ingresar al menos 2 nameservers personalizados',
+                confirmButtonText: 'Entendido'
             });
             return;
         }
@@ -743,7 +833,8 @@ function submitRegistration(event) {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: data.error || 'Error al guardar datos'
+                text: data.error || 'Error al guardar datos',
+                confirmButtonText: 'Entendido'
             });
         }
     })
@@ -752,8 +843,9 @@ function submitRegistration(event) {
         document.getElementById('submitBtn').disabled = false;
         Swal.fire({
             icon: 'error',
-            title: 'Error',
-            text: 'Error de conexion. Intenta de nuevo.'
+            title: 'Error de conexion',
+            text: 'No se pudo conectar con el servidor. Intenta de nuevo.',
+            confirmButtonText: 'Entendido'
         });
     });
 }
