@@ -28,8 +28,12 @@ class OpenProviderService
 {
     private string $apiUrl;
     private string $token;
+    private ?string $username;
+    private ?string $password;
 
     private const DEFAULT_API_URL = 'http://api.sandbox.openprovider.nl:8480/v1beta';
+    private const TOKEN_CACHE_KEY = 'openprovider_token';
+    private const TOKEN_CACHE_TTL = 43200; // 12 hours (tokens valid for 24h)
 
     /**
      * Extensiones prioritarias para mostrar primero en resultados de búsqueda
@@ -43,9 +47,118 @@ class OpenProviderService
     {
         $this->apiUrl = rtrim(Env::get('OPENPROVIDER_API_URL', self::DEFAULT_API_URL), '/');
         $this->token = Env::get('OPENPROVIDER_TOKEN', '');
+        $this->username = Env::get('OPENPROVIDER_USERNAME', '');
+        $this->password = Env::get('OPENPROVIDER_PASSWORD', '');
+
+        // Si no hay token pero hay username/password, autenticar
+        if (empty($this->token) && !empty($this->username) && !empty($this->password)) {
+            $this->token = $this->authenticate();
+        }
 
         if (empty($this->token)) {
-            throw new Exception('OpenProvider token not configured in .env (OPENPROVIDER_TOKEN)');
+            throw new Exception('OpenProvider credentials not configured. Set OPENPROVIDER_TOKEN or OPENPROVIDER_USERNAME + OPENPROVIDER_PASSWORD in .env');
+        }
+    }
+
+    /**
+     * Autenticar con username/password y obtener token JWT
+     *
+     * @return string Token JWT
+     * @throws Exception
+     */
+    private function authenticate(): string
+    {
+        // Intentar obtener token del cache primero
+        $cachedToken = $this->getCachedToken();
+        if ($cachedToken) {
+            Logger::info("[OpenProvider] Using cached token");
+            return $cachedToken;
+        }
+
+        Logger::info("[OpenProvider] Authenticating with username/password");
+
+        $url = $this->apiUrl . '/auth/login';
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Accept: application/json'
+            ],
+            CURLOPT_POSTFIELDS => json_encode([
+                'username' => $this->username,
+                'password' => $this->password
+            ]),
+            CURLOPT_TIMEOUT => 30
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            throw new Exception("OpenProvider authentication failed: {$error}");
+        }
+
+        $decoded = json_decode($response, true);
+
+        if (!isset($decoded['data']['token'])) {
+            $errorMsg = $decoded['desc'] ?? $decoded['message'] ?? 'Unknown error';
+            Logger::error("[OpenProvider] Auth failed: {$errorMsg}");
+            throw new Exception("OpenProvider authentication failed: {$errorMsg}");
+        }
+
+        $token = $decoded['data']['token'];
+
+        // Guardar en cache
+        $this->cacheToken($token);
+
+        Logger::info("[OpenProvider] Authentication successful. Reseller ID: " . ($decoded['data']['reseller_id'] ?? 'unknown'));
+
+        return $token;
+    }
+
+    /**
+     * Obtener token del cache (archivo temporal)
+     */
+    private function getCachedToken(): ?string
+    {
+        $cacheFile = sys_get_temp_dir() . '/' . self::TOKEN_CACHE_KEY . '_' . md5($this->username);
+
+        if (file_exists($cacheFile)) {
+            $data = json_decode(file_get_contents($cacheFile), true);
+            if ($data && isset($data['token'], $data['expires']) && $data['expires'] > time()) {
+                return $data['token'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Guardar token en cache
+     */
+    private function cacheToken(string $token): void
+    {
+        $cacheFile = sys_get_temp_dir() . '/' . self::TOKEN_CACHE_KEY . '_' . md5($this->username);
+
+        file_put_contents($cacheFile, json_encode([
+            'token' => $token,
+            'expires' => time() + self::TOKEN_CACHE_TTL
+        ]));
+    }
+
+    /**
+     * Invalidar cache del token
+     */
+    public function invalidateTokenCache(): void
+    {
+        $cacheFile = sys_get_temp_dir() . '/' . self::TOKEN_CACHE_KEY . '_' . md5($this->username);
+        if (file_exists($cacheFile)) {
+            unlink($cacheFile);
         }
     }
 
@@ -530,10 +643,11 @@ class OpenProviderService
      * @param string $method GET, POST, PUT, DELETE
      * @param string $endpoint Endpoint relativo (ej: /domains)
      * @param array $data Datos para POST/PUT o query params para GET
+     * @param bool $retry Si es true, reintenta con nuevo token si falla autenticación
      * @return array Respuesta decodificada
      * @throws Exception
      */
-    private function makeRequest(string $method, string $endpoint, array $data = []): array
+    private function makeRequest(string $method, string $endpoint, array $data = [], bool $retry = true): array
     {
         $url = $this->apiUrl . $endpoint;
 
@@ -576,6 +690,18 @@ class OpenProviderService
         if (json_last_error() !== JSON_ERROR_NONE) {
             Logger::error("[OpenProvider] Invalid JSON response: " . substr($response, 0, 500));
             throw new Exception("Invalid JSON response from OpenProvider");
+        }
+
+        // Si hay error de autenticación y podemos re-autenticar, intentar
+        $isAuthError = ($httpCode === 401) ||
+                       (isset($decoded['code']) && in_array($decoded['code'], [196, 197])) ||
+                       (isset($decoded['desc']) && stripos($decoded['desc'], 'Authentication') !== false);
+
+        if ($isAuthError && $retry && !empty($this->username) && !empty($this->password)) {
+            Logger::warning("[OpenProvider] Token expired, re-authenticating...");
+            $this->invalidateTokenCache();
+            $this->token = $this->authenticate();
+            return $this->makeRequest($method, $endpoint, $data, false); // No reintentar de nuevo
         }
 
         // OpenProvider usa 'code' = 0 para éxito
