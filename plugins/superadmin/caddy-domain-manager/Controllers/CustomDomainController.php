@@ -192,6 +192,9 @@ class CustomDomainController
 
             Logger::info("[CustomDomain] Customer {$customerId} requesting domain: {$domain}" . ($resuming ? " (resuming)" : ""));
 
+            // Variable para guardar credenciales generadas
+            $generatedAdminCredentials = null;
+
             // 1. Crear tenant si no existe
             if (!$resuming) {
                 // Generar nombre inicial a partir del dominio (ej: "ejemplo.com" → "Ejemplo")
@@ -219,6 +222,22 @@ class CustomDomainController
                 ]);
                 $tenantId = $pdo->lastInsertId();
                 Logger::info("[CustomDomain] Tenant created with ID: {$tenantId}");
+
+                // Crear admin del tenant usando ProvisioningService
+                $provisioningService = new ProvisioningService();
+                $adminResult = $provisioningService->createAdminForTenant(
+                    (int)$tenantId,
+                    $_SESSION['customer'],
+                    $domain,
+                    $customAdminCredentials
+                );
+
+                if ($adminResult['success']) {
+                    Logger::info("[CustomDomain] Admin created for tenant {$tenantId}");
+                    $generatedAdminCredentials = $adminResult['admin_credentials'];
+                } else {
+                    Logger::warning("[CustomDomain] Could not create admin for tenant {$tenantId}: " . ($adminResult['error'] ?? 'Unknown error'));
+                }
             }
 
             // 2. Añadir dominio a Cloudflare Account 2 (o recuperar existente)
@@ -288,14 +307,24 @@ class CustomDomainController
 
             Logger::info("[CustomDomain] Domain {$domain} successfully added. Waiting for NS change.");
 
-            $this->jsonResponse([
+            $response = [
                 'success' => true,
                 'message' => '¡Dominio añadido exitosamente!',
                 'tenant_id' => $tenantId,
                 'domain' => $domain,
                 'nameservers' => $zoneResult['nameservers'],
                 'status' => 'waiting_ns_change'
-            ]);
+            ];
+
+            // Incluir credenciales si fueron generadas automaticamente
+            if ($generatedAdminCredentials && !$customAdminCredentials) {
+                $response['admin_credentials'] = [
+                    'email' => $generatedAdminCredentials['email'],
+                    'password' => $generatedAdminCredentials['password']
+                ];
+            }
+
+            $this->jsonResponse($response);
 
         } catch (Exception $e) {
             if (isset($pdo) && $pdo->inTransaction()) {

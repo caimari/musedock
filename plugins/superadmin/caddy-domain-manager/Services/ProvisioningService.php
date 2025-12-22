@@ -577,6 +577,74 @@ class ProvisioningService
     }
 
     /**
+     * Crea admin para un tenant existente (usado por CustomDomainController)
+     *
+     * Este método se usa cuando el tenant ya fue creado por otro controlador
+     * y solo necesitamos crear el admin con credenciales opcionales.
+     *
+     * @param int $tenantId ID del tenant existente
+     * @param array $customer Datos del customer
+     * @param string $domain Dominio del tenant
+     * @param array|null $adminCredentials Credenciales personalizadas opcionales
+     * @return array ['success', 'admin_id', 'admin_credentials', 'error']
+     */
+    public function createAdminForTenant(int $tenantId, array $customer, string $domain, ?array $adminCredentials = null): array
+    {
+        try {
+            // Verificar que el tenant existe
+            $stmt = $this->pdo->prepare("SELECT id, customer_id FROM tenants WHERE id = ?");
+            $stmt->execute([$tenantId]);
+            $tenant = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$tenant) {
+                return [
+                    'success' => false,
+                    'error' => 'Tenant no encontrado'
+                ];
+            }
+
+            // Verificar que no tenga ya un admin
+            $stmt = $this->pdo->prepare("SELECT id FROM admins WHERE tenant_id = ? AND is_root_admin = 1");
+            $stmt->execute([$tenantId]);
+            if ($stmt->fetch()) {
+                return [
+                    'success' => false,
+                    'error' => 'El tenant ya tiene un admin'
+                ];
+            }
+
+            // Preparar datos del customer
+            $customerData = [
+                'name' => $customer['name'],
+                'email' => $customer['email'],
+                'password' => ''
+            ];
+
+            // Crear admin del tenant
+            $adminId = $this->createTenantAdmin($tenantId, $customerData, (int)$customer['id'], $domain, $adminCredentials);
+
+            // Aplicar defaults del tenant (permisos, roles, menús)
+            $this->applyTenantDefaults($tenantId);
+
+            Logger::info("[ProvisioningService] Admin created for existing tenant {$tenantId}: ID {$adminId}");
+
+            return [
+                'success' => true,
+                'admin_id' => $adminId,
+                'admin_credentials' => $this->lastCreatedAdminCredentials
+            ];
+
+        } catch (\Exception $e) {
+            Logger::error("[ProvisioningService] Error creating admin for tenant {$tenantId}: " . $e->getMessage());
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * Crea un tenant para un customer existente (dominios personalizados, transferencias)
      *
      * @param array $customer Datos del customer existente

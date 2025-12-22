@@ -356,7 +356,7 @@ class Customer
             SELECT
                 dord.*,
                 t.domain as tenant_domain,
-                CONCAT(dord.domain_name, '.', dord.domain_extension) as full_domain
+                CONCAT(dord.domain, '.', dord.extension) as full_domain
             FROM domain_orders dord
             LEFT JOIN tenants t ON t.id = dord.tenant_id
             WHERE dord.customer_id = ?
