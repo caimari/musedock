@@ -78,7 +78,7 @@
 
 @section('content')
 <?php
-    $domain = $order['domain'] ?? '';
+    $domain = $order['full_domain'] ?? trim(($order['domain'] ?? '') . (!empty($order['extension']) ? '.' . $order['extension'] : ''), '.');
     $zoneId = $order['cloudflare_zone_id'] ?? '';
     $nsServers = $zoneInfo['name_servers'] ?? [];
     $useCloudflareNs = $order['use_cloudflare_ns'] ?? 1;

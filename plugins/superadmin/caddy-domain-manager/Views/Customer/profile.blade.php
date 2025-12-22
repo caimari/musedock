@@ -141,20 +141,37 @@
         <div class="profile-card" style="border: 1px solid #dc3545;">
             <h5 style="color: #dc3545;"><i class="bi bi-exclamation-triangle-fill me-2"></i>Zona de Peligro</h5>
             <?php
-            $hasActiveSites = ($stats['total_tenants'] ?? 0) > 0;
+            $totalTenants = (int)($stats['total_tenants'] ?? 0);
+            $blockingDomainOrders = (int)($domain_orders_blocking_count ?? 0);
+            $blockingDomainTransfers = (int)($domain_transfers_blocking_count ?? 0);
+            $hasBlockingResources = ($totalTenants > 0) || ($blockingDomainOrders > 0) || ($blockingDomainTransfers > 0);
             ?>
-            <?php if ($hasActiveSites): ?>
+            <?php if ($hasBlockingResources): ?>
                 <div class="alert alert-warning mb-3">
                     <i class="bi bi-info-circle me-2"></i>
                     <strong>No puedes eliminar tu cuenta</strong>
-                    <p class="mb-0 mt-2 small">Tienes <?= $stats['total_tenants'] ?> dominio(s)/subdominio(s) activos con nosotros. Para eliminar tu cuenta, primero debes eliminar todos tus sitios o contactar con el administrador.</p>
+                    <div class="mb-0 mt-2 small">
+                        <p class="mb-2">Tu cuenta tiene recursos activos asociados:</p>
+                        <ul class="mb-2">
+                            <?php if ($totalTenants > 0): ?>
+                            <li><?= htmlspecialchars((string)$totalTenants) ?> sitio(s)/subdominio(s) asociado(s)</li>
+                            <?php endif; ?>
+                            <?php if ($blockingDomainOrders > 0): ?>
+                            <li><?= htmlspecialchars((string)$blockingDomainOrders) ?> dominio(s) registrado(s) o en proceso</li>
+                            <?php endif; ?>
+                            <?php if ($blockingDomainTransfers > 0): ?>
+                            <li><?= htmlspecialchars((string)$blockingDomainTransfers) ?> transferencia(s) de dominio en proceso</li>
+                            <?php endif; ?>
+                        </ul>
+                        <p class="mb-0">Para eliminar tu cuenta, primero debes eliminar/cancelar estos recursos o contactar con soporte.</p>
+                    </div>
                 </div>
                 <button class="btn btn-outline-danger w-100" disabled>
                     <i class="bi bi-trash me-2"></i>Eliminar mi cuenta
                 </button>
                 <div class="mt-2 text-center">
                     <small class="text-muted">
-                        <a href="/customer/support" class="text-decoration-none">Contactar soporte</a> para solicitar eliminacion
+                        <a href="mailto:soporte@musedock.com" class="text-decoration-none">Contactar soporte</a> para solicitar eliminación
                     </small>
                 </div>
             <?php else: ?>

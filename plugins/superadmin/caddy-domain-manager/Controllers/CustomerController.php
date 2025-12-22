@@ -225,11 +225,33 @@ class CustomerController
         // Obtener estadísticas
         $stats = Customer::getStats($customerId);
 
+        // Dominios registrados / transferencias (para bloquear eliminación de cuenta)
+        $domainOrders = Customer::getDomainOrders($customerId);
+        $domainTransfers = Customer::getDomainTransfers($customerId);
+
+        $nonBlockingDomainOrderStatuses = ['failed', 'cancelled', 'canceled'];
+        $blockingDomainOrdersCount = 0;
+        foreach ($domainOrders as $order) {
+            $status = strtolower((string)($order['status'] ?? ''));
+            if (!in_array($status, $nonBlockingDomainOrderStatuses, true)) {
+                $blockingDomainOrdersCount++;
+            }
+        }
+
+        $blockingTransfersCount = 0;
+        foreach ($domainTransfers as $transfer) {
+            if (($transfer['status'] ?? '') !== 'completed') {
+                $blockingTransfersCount++;
+            }
+        }
+
         $data = [
             'page_title' => 'Mi Perfil - MuseDock',
             'current_page' => 'profile',
             'customer' => $customer,
             'stats' => $stats,
+            'domain_orders_blocking_count' => $blockingDomainOrdersCount,
+            'domain_transfers_blocking_count' => $blockingTransfersCount,
             'csrf_token' => csrf_token()
         ];
 
@@ -973,6 +995,46 @@ class CustomerController
                     'error' => 'No puedes eliminar tu cuenta mientras tengas dominios/subdominios activos'
                 ], 400);
                 return;
+            }
+
+            // Verificar que no tenga dominios registrados/en proceso
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) as count
+                FROM domain_orders
+                WHERE customer_id = ?
+                  AND COALESCE(status, '') NOT IN ('failed', 'cancelled', 'canceled')
+            ");
+            $stmt->execute([$customerId]);
+            $domainOrdersCount = (int) $stmt->fetchColumn();
+
+            if ($domainOrdersCount > 0) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'error' => 'No puedes eliminar tu cuenta mientras tengas dominios registrados o en proceso'
+                ], 400);
+                return;
+            }
+
+            // Verificar transferencias en proceso (tabla puede no existir)
+            try {
+                $stmt = $pdo->prepare("
+                    SELECT COUNT(*) as count
+                    FROM domain_transfers
+                    WHERE customer_id = ?
+                      AND COALESCE(status, '') <> 'completed'
+                ");
+                $stmt->execute([$customerId]);
+                $transfersCount = (int) $stmt->fetchColumn();
+
+                if ($transfersCount > 0) {
+                    $this->jsonResponse([
+                        'success' => false,
+                        'error' => 'No puedes eliminar tu cuenta mientras tengas transferencias de dominio en proceso'
+                    ], 400);
+                    return;
+                }
+            } catch (\PDOException $e) {
+                // Tabla no existe aún
             }
 
             // Soft delete: marcar como eliminado

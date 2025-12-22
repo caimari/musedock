@@ -149,6 +149,12 @@
         <i class="fas fa-arrow-left"></i> Volver al Dashboard
     </a>
 
+    @php
+        $fullDomain = $order['full_domain'] ?? trim(($order['domain'] ?? '') . (!empty($order['extension']) ? '.' . $order['extension'] : ''), '.');
+        $orderStatus = $order['status'] ?? '';
+        $isEditable = in_array($orderStatus, ['active', 'registered'], true) && !empty($order['openprovider_domain_id']);
+    @endphp
+
     @if($openprovider_mode === 'sandbox')
     <div class="sandbox-warning">
         <i class="fas fa-flask"></i>
@@ -161,14 +167,14 @@
             <div class="card contacts-card">
                 <div class="card-header">
                     <h4 class="mb-0"><i class="fas fa-address-book"></i> Contactos del Dominio</h4>
-                    <div class="domain-display">{{ $order['domain_name'] }}.{{ $order['domain_extension'] }}</div>
+                    <div class="domain-display">{{ $fullDomain }}</div>
                 </div>
                 <div class="card-body p-4">
 
-                    @if($order['status'] !== 'active')
+                    @if(!$isEditable)
                     <div class="alert alert-warning">
                         <i class="fas fa-exclamation-triangle"></i>
-                        El dominio no esta activo. Solo puedes editar contactos de dominios activos.
+                        El dominio no está listo para edición de contactos. Debe estar registrado/activo y tener ID en OpenProvider.
                     </div>
                     @else
 
