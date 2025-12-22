@@ -108,6 +108,14 @@
 @endsection
 
 @section('content')
+<?php if (($openprovider_mode ?? 'sandbox') === 'sandbox'): ?>
+<div class="alert alert-warning mb-3 d-flex align-items-center" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    <div>
+        <strong>Modo Sandbox:</strong> Los registros de dominios son de prueba y no se procesaran en produccion.
+    </div>
+</div>
+<?php endif; ?>
 <div class="row justify-content-center">
     <div class="col-lg-10">
         <div class="card search-card">

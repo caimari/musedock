@@ -57,7 +57,13 @@ class CustomerController
 
         // Validar CSRF
         if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
-            $this->jsonResponse(['success' => false, 'error' => 'Token CSRF inválido'], 403);
+            // Generar nuevo token CSRF para el cliente
+            $newToken = csrf_token();
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'csrf_token_mismatch',
+                'new_csrf_token' => $newToken
+            ], 403);
             return;
         }
 
@@ -72,7 +78,9 @@ class CustomerController
 
         $email = trim(strtolower($_POST['email'] ?? ''));
         $password = $_POST['password'] ?? '';
-        $remember = isset($_POST['remember']) && $_POST['remember'] === '1';
+        // Aceptar tanto 'remember' como 'remember_me' del formulario
+        $remember = (isset($_POST['remember']) && $_POST['remember'] === '1') ||
+                    (isset($_POST['remember_me']) && $_POST['remember_me'] === '1');
 
         // Validaciones básicas
         if (empty($email) || empty($password)) {

@@ -19,8 +19,9 @@ use Exception;
  * - Renovar dominios
  *
  * Requiere configuración en .env:
- * OPENPROVIDER_API_URL (default: sandbox)
- * OPENPROVIDER_TOKEN (Bearer token)
+ * OPENPROVIDER_MODE=sandbox|live
+ * OPENPROVIDER_SANDBOX_USERNAME / OPENPROVIDER_SANDBOX_PASSWORD
+ * OPENPROVIDER_LIVE_USERNAME / OPENPROVIDER_LIVE_PASSWORD
  *
  * @package CaddyDomainManager\Services
  */
@@ -28,10 +29,12 @@ class OpenProviderService
 {
     private string $apiUrl;
     private string $token;
-    private ?string $username;
-    private ?string $password;
+    private string $username;
+    private string $password;
+    private string $mode;
 
-    private const DEFAULT_API_URL = 'http://api.sandbox.openprovider.nl:8480/v1beta';
+    private const SANDBOX_API_URL = 'http://api.sandbox.openprovider.nl:8480/v1beta';
+    private const LIVE_API_URL = 'https://api.openprovider.eu/v1beta';
     private const TOKEN_CACHE_KEY = 'openprovider_token';
     private const TOKEN_CACHE_TTL = 43200; // 12 hours (tokens valid for 24h)
 
@@ -45,19 +48,43 @@ class OpenProviderService
 
     public function __construct()
     {
-        $this->apiUrl = rtrim(Env::get('OPENPROVIDER_API_URL', self::DEFAULT_API_URL), '/');
-        $this->token = Env::get('OPENPROVIDER_TOKEN', '');
-        $this->username = Env::get('OPENPROVIDER_USERNAME', '');
-        $this->password = Env::get('OPENPROVIDER_PASSWORD', '');
+        // Determinar modo: sandbox o live
+        $this->mode = strtolower(Env::get('OPENPROVIDER_MODE', 'sandbox'));
 
-        // Si no hay token pero hay username/password, autenticar
-        if (empty($this->token) && !empty($this->username) && !empty($this->password)) {
-            $this->token = $this->authenticate();
+        if ($this->mode === 'live') {
+            $this->apiUrl = self::LIVE_API_URL;
+            $this->username = Env::get('OPENPROVIDER_LIVE_USERNAME', '');
+            $this->password = Env::get('OPENPROVIDER_LIVE_PASSWORD', '');
+        } else {
+            $this->apiUrl = self::SANDBOX_API_URL;
+            $this->username = Env::get('OPENPROVIDER_SANDBOX_USERNAME', '');
+            $this->password = Env::get('OPENPROVIDER_SANDBOX_PASSWORD', '');
         }
 
-        if (empty($this->token)) {
-            throw new Exception('OpenProvider credentials not configured. Set OPENPROVIDER_TOKEN or OPENPROVIDER_USERNAME + OPENPROVIDER_PASSWORD in .env');
+        Logger::info("[OpenProvider] Mode: {$this->mode}, API: {$this->apiUrl}");
+
+        // Autenticar con username/password
+        if (empty($this->username) || empty($this->password)) {
+            throw new Exception("OpenProvider credentials not configured for mode '{$this->mode}'. Set OPENPROVIDER_{$this->mode}_USERNAME and OPENPROVIDER_{$this->mode}_PASSWORD in .env");
         }
+
+        $this->token = $this->authenticate();
+    }
+
+    /**
+     * Obtener el modo actual (sandbox o live)
+     */
+    public function getMode(): string
+    {
+        return $this->mode;
+    }
+
+    /**
+     * Verificar si está en modo sandbox
+     */
+    public function isSandbox(): bool
+    {
+        return $this->mode === 'sandbox';
     }
 
     /**
@@ -126,7 +153,7 @@ class OpenProviderService
      */
     private function getCachedToken(): ?string
     {
-        $cacheFile = sys_get_temp_dir() . '/' . self::TOKEN_CACHE_KEY . '_' . md5($this->username);
+        $cacheFile = sys_get_temp_dir() . '/' . self::TOKEN_CACHE_KEY . '_' . $this->mode . '_' . md5($this->username);
 
         if (file_exists($cacheFile)) {
             $data = json_decode(file_get_contents($cacheFile), true);
@@ -143,7 +170,7 @@ class OpenProviderService
      */
     private function cacheToken(string $token): void
     {
-        $cacheFile = sys_get_temp_dir() . '/' . self::TOKEN_CACHE_KEY . '_' . md5($this->username);
+        $cacheFile = sys_get_temp_dir() . '/' . self::TOKEN_CACHE_KEY . '_' . $this->mode . '_' . md5($this->username);
 
         file_put_contents($cacheFile, json_encode([
             'token' => $token,
@@ -156,7 +183,7 @@ class OpenProviderService
      */
     public function invalidateTokenCache(): void
     {
-        $cacheFile = sys_get_temp_dir() . '/' . self::TOKEN_CACHE_KEY . '_' . md5($this->username);
+        $cacheFile = sys_get_temp_dir() . '/' . self::TOKEN_CACHE_KEY . '_' . $this->mode . '_' . md5($this->username);
         if (file_exists($cacheFile)) {
             unlink($cacheFile);
         }

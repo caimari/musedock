@@ -54,30 +54,20 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-document.getElementById('loginForm').addEventListener('submit', function(e) {
-    e.preventDefault();
+let csrfRetryCount = 0;
+const MAX_CSRF_RETRIES = 1;
 
-    const formData = new FormData(this);
-    const submitBtn = document.getElementById('submitBtn');
-
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Iniciando sesión...';
-
+function submitLogin(formData, submitBtn) {
     fetch('/customer/login', {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
         },
-        body: formData
+        body: formData,
+        credentials: 'same-origin'
     })
-    .then(response => {
-        // Verificar si la respuesta es exitosa
-        if (!response.ok) {
-            console.error('HTTP Error:', response.status, response.statusText);
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
         if (data.success) {
             Swal.fire({
@@ -87,20 +77,28 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
                 showConfirmButton: false,
                 timer: 1500
             }).then(() => {
-                window.location.href = '/customer/dashboard';
+                window.location.href = data.redirect || '/customer/dashboard';
             });
         } else {
-            // Manejar error de CSRF
+            // Manejar error de CSRF con reintento automático
             if (data.error === 'csrf_token_mismatch' && data.new_csrf_token) {
                 // Actualizar token CSRF en el formulario
                 document.querySelector('input[name="_csrf_token"]').value = data.new_csrf_token;
 
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Sesión expirada',
-                    text: 'Tu sesión ha expirado. Por favor, intenta de nuevo.',
-                    confirmButtonText: 'Entendido'
-                });
+                if (csrfRetryCount < MAX_CSRF_RETRIES) {
+                    csrfRetryCount++;
+                    // Reintentar automáticamente con el nuevo token
+                    formData.set('_csrf_token', data.new_csrf_token);
+                    submitLogin(formData, submitBtn);
+                    return;
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Sesión expirada',
+                        text: 'Tu sesión ha expirado. Por favor, intenta de nuevo.',
+                        confirmButtonText: 'Reintentar'
+                    });
+                }
             } else {
                 Swal.fire({
                     icon: 'error',
@@ -122,6 +120,19 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
         submitBtn.disabled = false;
         submitBtn.innerHTML = 'Iniciar sesión';
     });
+}
+
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    csrfRetryCount = 0;
+
+    const formData = new FormData(this);
+    const submitBtn = document.getElementById('submitBtn');
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Iniciando sesión...';
+
+    submitLogin(formData, submitBtn);
 });
 </script>
 @endsection

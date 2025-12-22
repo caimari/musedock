@@ -64,11 +64,15 @@ class DomainRegistrationController
             $stmt->execute([$customerId]);
             $recentOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+            // Obtener modo OpenProvider
+            $openProviderMode = strtolower(\Screenart\Musedock\Env::get('OPENPROVIDER_MODE', 'sandbox'));
+
             echo View::renderTheme('Customer.register-domain', [
                 'customer' => $_SESSION['customer'],
                 'contacts' => $contacts,
                 'recentOrders' => $recentOrders,
-                'csrf_token' => csrf_token()
+                'csrf_token' => csrf_token(),
+                'openprovider_mode' => $openProviderMode
             ]);
 
         } catch (Exception $e) {
@@ -78,6 +82,7 @@ class DomainRegistrationController
                 'contacts' => [],
                 'recentOrders' => [],
                 'csrf_token' => csrf_token(),
+                'openprovider_mode' => 'sandbox',
                 'error' => 'Error al cargar la pagina. Intenta de nuevo.'
             ]);
         }

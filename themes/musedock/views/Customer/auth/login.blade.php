@@ -75,30 +75,23 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-document.getElementById('loginForm')?.addEventListener('submit', function(e) {
-  e.preventDefault();
+let csrfRetryCount = 0;
+const MAX_CSRF_RETRIES = 1;
 
-  const form = this;
-  const formData = new FormData(form);
-  const submitBtn = document.getElementById('submitBtn');
-
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>{{ __('Iniciando sesión...') }}';
-  }
-
+function submitLogin(formData, submitBtn) {
   fetch('/customer/login', {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
       'X-Requested-With': 'XMLHttpRequest'
     },
-    body: formData
+    body: formData,
+    credentials: 'same-origin'
   })
   .then(async (response) => {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      return { success: false, error: data.error || data.message || 'HTTP ' + response.status };
+      return { success: false, error: data.error || data.message || 'HTTP ' + response.status, new_csrf_token: data.new_csrf_token };
     }
     return data;
   })
@@ -116,11 +109,30 @@ document.getElementById('loginForm')?.addEventListener('submit', function(e) {
       return;
     }
 
-    Swal.fire({
-      icon: 'error',
-      title: '{{ __('Error de acceso') }}',
-      text: (data && (data.error || data.message)) ? (data.error || data.message) : '{{ __('Email o contraseña incorrectos') }}'
-    });
+    // Manejar error de CSRF con reintento automático
+    if (data.error === 'csrf_token_mismatch' && data.new_csrf_token) {
+      document.querySelector('input[name="_csrf_token"]').value = data.new_csrf_token;
+
+      if (csrfRetryCount < MAX_CSRF_RETRIES) {
+        csrfRetryCount++;
+        formData.set('_csrf_token', data.new_csrf_token);
+        submitLogin(formData, submitBtn);
+        return;
+      } else {
+        Swal.fire({
+          icon: 'warning',
+          title: '{{ __('Sesión expirada') }}',
+          text: '{{ __('Tu sesión ha expirado. Por favor, intenta de nuevo.') }}',
+          confirmButtonText: '{{ __('Reintentar') }}'
+        });
+      }
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: '{{ __('Error de acceso') }}',
+        text: (data && (data.error || data.message)) ? (data.error || data.message) : '{{ __('Email o contraseña incorrectos') }}'
+      });
+    }
 
     if (submitBtn) {
       submitBtn.disabled = false;
@@ -138,6 +150,21 @@ document.getElementById('loginForm')?.addEventListener('submit', function(e) {
       submitBtn.innerHTML = '{{ __('Iniciar sesión') }}';
     }
   });
+}
+
+document.getElementById('loginForm')?.addEventListener('submit', function(e) {
+  e.preventDefault();
+  csrfRetryCount = 0;
+
+  const formData = new FormData(this);
+  const submitBtn = document.getElementById('submitBtn');
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>{{ __('Iniciando sesión...') }}';
+  }
+
+  submitLogin(formData, submitBtn);
 });
 </script>
 @endpush
