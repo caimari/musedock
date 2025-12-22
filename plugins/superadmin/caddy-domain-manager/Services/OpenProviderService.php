@@ -403,6 +403,14 @@ class OpenProviderService
     }
 
     /**
+     * Back-compat alias used by controllers/views.
+     */
+    public function getDomainDetails(int $domainId): ?array
+    {
+        return $this->getDomain($domainId);
+    }
+
+    /**
      * Buscar dominios en la cuenta
      *
      * @param array $filters Filtros de búsqueda (domain_name_pattern, status, limit, offset)

@@ -524,6 +524,18 @@ class CloudflareZoneService
     }
 
     /**
+     * Obtener detalles completos de una zona (back-compat: getZoneDetails()).
+     *
+     * @return array|null Zone data (Cloudflare API "result")
+     * @throws Exception
+     */
+    public function getZoneDetails(string $zoneId): ?array
+    {
+        $response = $this->makeRequest('GET', "/zones/{$zoneId}");
+        return $response['result'] ?? null;
+    }
+
+    /**
      * Crear un DNS record
      *
      * @param string $zoneId
