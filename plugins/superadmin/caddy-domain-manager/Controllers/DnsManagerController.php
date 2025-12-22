@@ -51,7 +51,7 @@ class DnsManagerController
                 exit;
             }
 
-            if ($order['status'] !== 'registered') {
+            if (!in_array($order['status'] ?? null, ['registered', 'active'], true)) {
                 $_SESSION['flash_error'] = 'El dominio no está registrado aún';
                 header('Location: /customer/dashboard');
                 exit;
@@ -118,7 +118,7 @@ class DnsManagerController
             $pdo = Database::connect();
 
             // Verificar propiedad del dominio
-            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status = 'registered'");
+            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status IN ('registered', 'active')");
             $stmt->execute([$orderId, $customerId]);
             $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -198,7 +198,7 @@ class DnsManagerController
             $pdo = Database::connect();
 
             // Verificar propiedad
-            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status = 'registered'");
+            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status IN ('registered', 'active')");
             $stmt->execute([$orderId, $customerId]);
             $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -267,7 +267,7 @@ class DnsManagerController
             $pdo = Database::connect();
 
             // Verificar propiedad
-            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status = 'registered'");
+            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status IN ('registered', 'active')");
             $stmt->execute([$orderId, $customerId]);
             $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -309,7 +309,7 @@ class DnsManagerController
 
             $pdo = Database::connect();
 
-            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status = 'registered'");
+            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status IN ('registered', 'active')");
             $stmt->execute([$orderId, $customerId]);
             $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -353,7 +353,7 @@ class DnsManagerController
 
             $pdo = Database::connect();
 
-            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status = 'registered'");
+            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status IN ('registered', 'active')");
             $stmt->execute([$orderId, $customerId]);
             $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -422,7 +422,7 @@ class DnsManagerController
 
             $pdo = Database::connect();
 
-            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status = 'registered'");
+            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status IN ('registered', 'active')");
             $stmt->execute([$orderId, $customerId]);
             $order = $stmt->fetch(PDO::FETCH_ASSOC);
 

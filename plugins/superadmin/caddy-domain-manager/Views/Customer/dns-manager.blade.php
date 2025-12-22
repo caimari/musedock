@@ -436,7 +436,7 @@ function createRecord() {
         didOpen: () => Swal.showLoading()
     });
 
-    fetch(`/customer/domain/${orderId}/dns/create`, {
+    fetch(`/customer/domain/${orderId}/dns/records`, {
         method: 'POST',
         body: formData
     })
@@ -493,7 +493,7 @@ function updateRecord() {
         didOpen: () => Swal.showLoading()
     });
 
-    fetch(`/customer/domain/${orderId}/dns/${recordId}/update`, {
+    fetch(`/customer/domain/${orderId}/dns/records/${recordId}/update`, {
         method: 'POST',
         body: formData
     })
@@ -528,7 +528,7 @@ function deleteRecord(recordId) {
             const formData = new FormData();
             formData.append('_csrf_token', csrfToken);
 
-            fetch(`/customer/domain/${orderId}/dns/${recordId}/delete`, {
+            fetch(`/customer/domain/${orderId}/dns/records/${recordId}/delete`, {
                 method: 'POST',
                 body: formData
             })

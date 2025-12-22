@@ -54,7 +54,7 @@ class DomainContactsController
             $domainInfo = null;
             $contactDetails = [];
 
-            if ($order['status'] === 'active' && !empty($order['openprovider_domain_id'])) {
+            if (in_array($order['status'] ?? null, ['active', 'registered'], true) && !empty($order['openprovider_domain_id'])) {
                 try {
                     $openProvider = new OpenProviderService();
                     $domainInfo = $openProvider->getDomainDetails((int)$order['openprovider_domain_id']);
@@ -126,7 +126,7 @@ class DomainContactsController
             // Obtener orden del dominio
             $stmt = $pdo->prepare("
                 SELECT * FROM domain_orders
-                WHERE id = ? AND customer_id = ? AND status = 'active'
+                WHERE id = ? AND customer_id = ? AND status IN ('active', 'registered')
             ");
             $stmt->execute([$id, $customerId]);
             $order = $stmt->fetch(PDO::FETCH_ASSOC);
