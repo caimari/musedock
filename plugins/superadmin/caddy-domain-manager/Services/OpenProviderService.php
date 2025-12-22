@@ -472,14 +472,13 @@ class OpenProviderService
 
         // Si se proporciona phone_code separado, usarlo directamente
         if (!empty($contactData['phone_code'])) {
-            // Limpiar el código: quitar + si existe, y luego añadirlo limpio
+            // Limpiar el código - solo dígitos
             $cleanCode = preg_replace('/[^\d]/', '', $contactData['phone_code']);
-            $phoneCountryCode = '+' . $cleanCode;
             // El phone ya es solo el número sin código
             $phoneNumber = preg_replace('/[^\d]/', '', $contactData['phone']);
         } else {
             // Extraer código de país del teléfono usando el país de la dirección como fallback
-            $phoneCountryCode = $this->extractPhoneCountryCode($contactData['phone'], $countryCode);
+            $cleanCode = preg_replace('/[^\d]/', '', $this->extractPhoneCountryCode($contactData['phone'], $countryCode));
             $phoneNumber = $this->extractPhoneNumber($contactData['phone']);
         }
 
@@ -493,6 +492,26 @@ class OpenProviderService
             throw new Exception("El numero de telefono es demasiado corto (minimo 6 digitos)");
         }
 
+        // Formatear el número - OpenProvider puede requerir formato específico
+        // El subscriber_number debe ser solo dígitos, sin espacios ni guiones
+        $phoneNumber = preg_replace('/[^\d]/', '', $phoneNumber);
+
+        // Para números españoles (código 34), extraer area_code si es teléfono fijo
+        // Móviles españoles empiezan con 6 o 7, fijos con 9
+        $areaCode = '';
+        if ($cleanCode === '34' && strlen($phoneNumber) >= 9) {
+            $firstDigit = substr($phoneNumber, 0, 1);
+            if ($firstDigit === '9') {
+                // Teléfono fijo español - los 2-3 primeros dígitos son el código de área
+                $areaCode = substr($phoneNumber, 0, 2);
+                $phoneNumber = substr($phoneNumber, 2);
+            }
+            // Móviles (6xx, 7xx) no tienen área code, se deja vacío
+        }
+
+        // Formatear country_code - OpenProvider espera formato "+XX"
+        $phoneCountryCode = '+' . $cleanCode;
+
         $data = [
             'name' => [
                 'first_name' => $contactData['first_name'],
@@ -503,7 +522,7 @@ class OpenProviderService
             'email' => $contactData['email'],
             'phone' => [
                 'country_code' => $phoneCountryCode,
-                'area_code' => '',
+                'area_code' => $areaCode,
                 'subscriber_number' => $phoneNumber
             ],
             'address' => [
@@ -516,12 +535,14 @@ class OpenProviderService
             ]
         ];
 
-        Logger::info("[OpenProvider] Creating contact with phone: {$phoneCountryCode} {$phoneNumber}");
+        Logger::info("[OpenProvider] Creating contact with phone: country_code={$phoneCountryCode}, area_code={$areaCode}, subscriber={$phoneNumber}");
+        Logger::info("[OpenProvider] Full contact data: " . json_encode($data['phone']));
 
         $response = $this->makeRequest('POST', '/customers', $data);
 
         if (!isset($response['data']['handle'])) {
-            $error = $response['desc'] ?? 'Unknown error';
+            $error = $response['desc'] ?? $response['message'] ?? 'Unknown error';
+            Logger::error("[OpenProvider] Failed to create contact. Response: " . json_encode($response));
             throw new Exception("Failed to create contact: {$error}");
         }
 
