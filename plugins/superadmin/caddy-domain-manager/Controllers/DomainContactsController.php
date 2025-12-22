@@ -36,10 +36,10 @@ class DomainContactsController
 
             // Obtener orden del dominio
             $stmt = $pdo->prepare("
-                SELECT do.*, t.domain as tenant_domain
-                FROM domain_orders do
-                LEFT JOIN tenants t ON t.id = do.tenant_id
-                WHERE do.id = ? AND do.customer_id = ?
+                SELECT dord.*, t.domain as tenant_domain
+                FROM domain_orders dord
+                LEFT JOIN tenants t ON t.id = dord.tenant_id
+                WHERE dord.id = ? AND dord.customer_id = ?
             ");
             $stmt->execute([$id, $customerId]);
             $order = $stmt->fetch(PDO::FETCH_ASSOC);

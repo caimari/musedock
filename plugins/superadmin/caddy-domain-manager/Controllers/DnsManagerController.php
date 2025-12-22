@@ -37,10 +37,10 @@ class DnsManagerController
 
             // Obtener la orden de dominio
             $stmt = $pdo->prepare("
-                SELECT do.*, t.domain as tenant_domain, t.id as tenant_id
-                FROM domain_orders do
-                LEFT JOIN tenants t ON do.tenant_id = t.id
-                WHERE do.id = ? AND do.customer_id = ?
+                SELECT dord.*, t.domain as tenant_domain, t.id as tenant_id
+                FROM domain_orders dord
+                LEFT JOIN tenants t ON dord.tenant_id = t.id
+                WHERE dord.id = ? AND dord.customer_id = ?
             ");
             $stmt->execute([$orderId, $customerId]);
             $order = $stmt->fetch(PDO::FETCH_ASSOC);
