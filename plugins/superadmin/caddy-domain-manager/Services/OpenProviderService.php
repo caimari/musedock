@@ -496,17 +496,27 @@ class OpenProviderService
         // El subscriber_number debe ser solo dígitos, sin espacios ni guiones
         $phoneNumber = preg_replace('/[^\d]/', '', $phoneNumber);
 
-        // Para números españoles (código 34), extraer area_code si es teléfono fijo
-        // Móviles españoles empiezan con 6 o 7, fijos con 9
+        // OpenProvider REQUIERE area_code con valor - extraer primer dígito(s) del número
+        // Para números españoles: móviles (6xx, 7xx) usar primer dígito, fijos (9xx) usar 2 dígitos
         $areaCode = '';
-        if ($cleanCode === '34' && strlen($phoneNumber) >= 9) {
+        if (strlen($phoneNumber) >= 6) {
             $firstDigit = substr($phoneNumber, 0, 1);
-            if ($firstDigit === '9') {
-                // Teléfono fijo español - los 2-3 primeros dígitos son el código de área
-                $areaCode = substr($phoneNumber, 0, 2);
-                $phoneNumber = substr($phoneNumber, 2);
+            if ($cleanCode === '34') {
+                // España: móviles empiezan con 6 o 7, fijos con 9
+                if ($firstDigit === '9') {
+                    // Teléfono fijo español - usar 2 dígitos como área
+                    $areaCode = substr($phoneNumber, 0, 2);
+                    $phoneNumber = substr($phoneNumber, 2);
+                } else {
+                    // Móvil español - usar primer dígito como área
+                    $areaCode = substr($phoneNumber, 0, 1);
+                    $phoneNumber = substr($phoneNumber, 1);
+                }
+            } else {
+                // Otros países - usar primer dígito como área por defecto
+                $areaCode = substr($phoneNumber, 0, 1);
+                $phoneNumber = substr($phoneNumber, 1);
             }
-            // Móviles (6xx, 7xx) no tienen área code, se deja vacío
         }
 
         // Formatear country_code - OpenProvider espera formato "+XX"

@@ -256,13 +256,20 @@
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-floating">
+                                        <input type="text" class="form-control" id="owner_state" name="owner_state" placeholder="Provincia">
+                                        <label>Provincia <span class="es-required">*</span></label>
+                                    </div>
+                                    <small class="text-muted es-hint" style="display:none;"><i class="bi bi-info-circle"></i> Obligatorio segun pais</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-floating">
                                         <input type="text" class="form-control" id="owner_zipcode" name="owner_zipcode" placeholder="CP">
                                         <label>Codigo Postal *</label>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-floating">
-                                        <select class="form-select" id="owner_country" name="owner_country">
+                                        <select class="form-select" id="owner_country" name="owner_country" onchange="toggleStateRequired()">
                                             <option value="">Seleccionar...</option>
                                             <?php foreach ($countries as $code => $name): ?>
                                             <option value="<?= $code ?>" <?= $code === 'ES' ? 'selected' : '' ?>><?= htmlspecialchars($name) ?></option>
@@ -342,6 +349,12 @@
                                         <div class="form-floating">
                                             <input type="text" class="form-control" id="admin_city" name="admin_city" placeholder="Ciudad">
                                             <label>Ciudad *</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control" id="admin_state" name="admin_state" placeholder="Provincia">
+                                            <label>Provincia <span class="es-required">*</span></label>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
@@ -426,6 +439,12 @@
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-floating">
+                                            <input type="text" class="form-control" id="tech_state" name="tech_state" placeholder="Provincia">
+                                            <label>Provincia <span class="es-required">*</span></label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
                                             <input type="text" class="form-control" id="tech_zipcode" name="tech_zipcode" placeholder="CP">
                                             <label>Codigo Postal *</label>
                                         </div>
@@ -502,6 +521,12 @@
                                         <div class="form-floating">
                                             <input type="text" class="form-control" id="billing_city" name="billing_city" placeholder="Ciudad">
                                             <label>Ciudad *</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control" id="billing_state" name="billing_state" placeholder="Provincia">
+                                            <label>Provincia <span class="es-required">*</span></label>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
@@ -628,6 +653,26 @@ function toggleOtherContacts() {
     container.style.display = checkbox.checked ? 'none' : 'block';
 }
 
+// Paises que requieren estado/provincia obligatorio
+const countriesRequiringState = ['ES', 'US', 'MX', 'CA', 'AU', 'BR', 'AR', 'IN', 'DE'];
+
+// Mostrar/ocultar requisito de provincia segun pais seleccionado
+function toggleStateRequired() {
+    const ownerCountry = document.getElementById('owner_country')?.value || 'ES';
+    const requiresState = countriesRequiringState.includes(ownerCountry);
+
+    // Mostrar hints y marcar como requerido segun pais
+    document.querySelectorAll('.es-hint').forEach(el => {
+        el.style.display = requiresState ? 'block' : 'none';
+    });
+    document.querySelectorAll('.es-required').forEach(el => {
+        el.style.display = requiresState ? 'inline' : 'none';
+    });
+}
+
+// Ejecutar al cargar
+document.addEventListener('DOMContentLoaded', toggleStateRequired);
+
 function selectOption(name, value, element) {
     // Deseleccionar hermanos
     element.parentElement.parentElement.querySelectorAll('.option-card').forEach(card => {
@@ -658,7 +703,7 @@ function addNsField() {
 
 // Copiar datos del propietario a otro contacto
 function copyFromOwner(targetType) {
-    const fields = ['first_name', 'last_name', 'email', 'phone', 'phone_code', 'street', 'number', 'city', 'zipcode', 'country'];
+    const fields = ['first_name', 'last_name', 'email', 'phone', 'phone_code', 'street', 'number', 'city', 'state', 'zipcode', 'country'];
 
     fields.forEach(field => {
         const sourceEl = document.getElementById('owner_' + field);
@@ -732,6 +777,16 @@ function submitRegistration(event) {
             });
             document.getElementById('owner_email')?.focus();
             return;
+        }
+
+        // Validar provincia/estado obligatorio segun pais
+        const ownerCountry = formData.get('owner_country');
+        if (countriesRequiringState.includes(ownerCountry)) {
+            const stateValue = formData.get('owner_state')?.trim();
+            if (!stateValue) {
+                const stateLabel = ['US', 'MX', 'AU', 'BR', 'AR', 'IN'].includes(ownerCountry) ? 'Estado' : 'Provincia';
+                missingFields.push(stateLabel + ' (obligatorio para ' + ownerCountry + ')');
+            }
         }
 
         if (missingFields.length > 0) {
