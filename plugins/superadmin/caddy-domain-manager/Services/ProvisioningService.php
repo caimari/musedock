@@ -82,8 +82,8 @@ class ProvisioningService
             $tenantId = $this->createTenant($customerId, $fullDomain, $subdomain);
             Logger::info("[ProvisioningService] Tenant created: ID {$tenantId}");
 
-            // Crear admin del tenant (mismo email y password que customer)
-            $adminId = $this->createTenantAdmin($tenantId, $customerData);
+            // Crear admin del tenant con credenciales únicas
+            $adminId = $this->createTenantAdmin($tenantId, $customerData, $customerId, $fullDomain);
             Logger::info("[ProvisioningService] Tenant admin created: ID {$adminId}");
 
             // Generar slug único
@@ -330,16 +330,25 @@ class ProvisioningService
     }
 
     /**
-     * Crea admin del tenant (mismo email/password que customer)
+     * Crea admin del tenant con credenciales únicas
+     *
+     * Genera un email único basado en el dominio y una contraseña segura aleatoria.
+     * Guarda la relación en customer_tenant_credentials para que el customer
+     * pueda ver y gestionar las credenciales desde su panel.
      *
      * @param int $tenantId
      * @param array $customerData
+     * @param int|null $customerId ID del customer (opcional)
+     * @param string|null $domain Dominio del tenant para generar email único
      * @return int Admin ID
      * @throws \Exception
      */
-    private function createTenantAdmin(int $tenantId, array $customerData): int
+    private function createTenantAdmin(int $tenantId, array $customerData, ?int $customerId = null, ?string $domain = null): int
     {
-        $hashedPassword = password_hash($customerData['password'], PASSWORD_DEFAULT);
+        // Generar credenciales únicas para este tenant
+        $adminCredentials = $this->generateUniqueAdminCredentials($customerData, $domain);
+
+        $hashedPassword = password_hash($adminCredentials['password'], PASSWORD_DEFAULT);
 
         $stmt = $this->pdo->prepare("
             INSERT INTO admins (tenant_id, name, email, password, is_root_admin, created_at)
@@ -348,12 +357,256 @@ class ProvisioningService
 
         $stmt->execute([
             $tenantId,
-            $customerData['name'],
-            $customerData['email'],
+            $adminCredentials['name'],
+            $adminCredentials['email'],
             $hashedPassword
         ]);
 
-        return (int) $this->pdo->lastInsertId();
+        $adminId = (int) $this->pdo->lastInsertId();
+
+        // Guardar la relación customer-tenant-admin para gestión posterior
+        if ($customerId) {
+            $this->saveCustomerTenantCredentials(
+                $customerId,
+                $tenantId,
+                $adminId,
+                $adminCredentials['email'],
+                $hashedPassword,
+                $adminCredentials['password']
+            );
+        }
+
+        // Guardar las credenciales para envío de email
+        $this->lastCreatedAdminCredentials = $adminCredentials;
+
+        return $adminId;
+    }
+
+    /**
+     * Genera credenciales únicas para el admin del tenant
+     */
+    private function generateUniqueAdminCredentials(array $customerData, ?string $domain = null): array
+    {
+        if ($domain) {
+            $adminEmail = 'admin@' . $domain;
+            $stmt = $this->pdo->prepare("SELECT id FROM admins WHERE email = ?");
+            $stmt->execute([$adminEmail]);
+            if ($stmt->fetch()) {
+                $adminEmail = 'admin-' . substr(md5(uniqid()), 0, 6) . '@' . $domain;
+            }
+        } else {
+            $adminEmail = $customerData['email'];
+        }
+
+        $password = $this->generateSecurePassword(12);
+
+        return [
+            'name' => $customerData['name'],
+            'email' => $adminEmail,
+            'password' => $password
+        ];
+    }
+
+    /**
+     * Genera una contraseña segura aleatoria
+     */
+    private function generateSecurePassword(int $length = 12): string
+    {
+        $uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        $lowercase = 'abcdefghjkmnpqrstuvwxyz';
+        $numbers = '23456789';
+        $special = '!@#$%&*';
+
+        $password = '';
+        $password .= $uppercase[random_int(0, strlen($uppercase) - 1)];
+        $password .= $lowercase[random_int(0, strlen($lowercase) - 1)];
+        $password .= $numbers[random_int(0, strlen($numbers) - 1)];
+        $password .= $special[random_int(0, strlen($special) - 1)];
+
+        $allChars = $uppercase . $lowercase . $numbers . $special;
+        for ($i = 4; $i < $length; $i++) {
+            $password .= $allChars[random_int(0, strlen($allChars) - 1)];
+        }
+
+        return str_shuffle($password);
+    }
+
+    /**
+     * Guarda la relación customer-tenant-admin
+     */
+    private function saveCustomerTenantCredentials(
+        int $customerId,
+        int $tenantId,
+        int $adminId,
+        string $adminEmail,
+        string $passwordHash,
+        string $initialPassword
+    ): void {
+        try {
+            $this->ensureCustomerTenantCredentialsTable();
+
+            $stmt = $this->pdo->prepare("
+                INSERT INTO customer_tenant_credentials
+                (customer_id, tenant_id, admin_id, admin_email, admin_password_hash, initial_password, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, NOW())
+                ON DUPLICATE KEY UPDATE
+                    admin_id = VALUES(admin_id),
+                    admin_email = VALUES(admin_email),
+                    admin_password_hash = VALUES(admin_password_hash),
+                    initial_password = VALUES(initial_password),
+                    updated_at = NOW()
+            ");
+
+            $stmt->execute([
+                $customerId,
+                $tenantId,
+                $adminId,
+                $adminEmail,
+                $passwordHash,
+                $initialPassword
+            ]);
+
+            Logger::info("[ProvisioningService] Customer-tenant credentials saved for customer {$customerId}, tenant {$tenantId}");
+
+        } catch (\Exception $e) {
+            Logger::warning("[ProvisioningService] Could not save customer-tenant credentials: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Asegura que existe la tabla customer_tenant_credentials
+     */
+    private function ensureCustomerTenantCredentialsTable(): void
+    {
+        $driver = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+        if ($driver === 'mysql') {
+            $this->pdo->exec("
+                CREATE TABLE IF NOT EXISTS customer_tenant_credentials (
+                    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    customer_id INT UNSIGNED NOT NULL,
+                    tenant_id INT UNSIGNED NOT NULL,
+                    admin_id INT UNSIGNED NOT NULL,
+                    admin_email VARCHAR(255) NOT NULL,
+                    admin_password_hash VARCHAR(255) NOT NULL,
+                    initial_password VARCHAR(100) NULL,
+                    password_changed TINYINT(1) DEFAULT 0,
+                    last_password_change TIMESTAMP NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY uk_customer_tenant (customer_id, tenant_id),
+                    INDEX idx_customer (customer_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ");
+        } else {
+            $this->pdo->exec("
+                CREATE TABLE IF NOT EXISTS customer_tenant_credentials (
+                    id SERIAL PRIMARY KEY,
+                    customer_id INTEGER NOT NULL,
+                    tenant_id INTEGER NOT NULL,
+                    admin_id INTEGER NOT NULL,
+                    admin_email VARCHAR(255) NOT NULL,
+                    admin_password_hash VARCHAR(255) NOT NULL,
+                    initial_password VARCHAR(100) NULL,
+                    password_changed BOOLEAN DEFAULT FALSE,
+                    last_password_change TIMESTAMP NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(customer_id, tenant_id)
+                )
+            ");
+        }
+    }
+
+    /** @var array|null Últimas credenciales de admin creadas */
+    private ?array $lastCreatedAdminCredentials = null;
+
+    /**
+     * Obtiene las últimas credenciales de admin creadas
+     */
+    public function getLastCreatedAdminCredentials(): ?array
+    {
+        return $this->lastCreatedAdminCredentials;
+    }
+
+    /**
+     * Crea un tenant para un customer existente (dominios personalizados, transferencias)
+     *
+     * @param array $customer Datos del customer existente
+     * @param string $plan Plan del tenant ('free' o 'custom')
+     * @param string $domain Dominio del tenant
+     * @return array ['success', 'tenant_id', 'admin_id', 'admin_credentials']
+     */
+    public function createTenantForCustomer(array $customer, string $plan, string $domain): array
+    {
+        Logger::info("[ProvisioningService] Creating tenant for existing customer: {$customer['email']}, domain: {$domain}");
+
+        try {
+            $this->pdo->beginTransaction();
+
+            // Determinar nombre del tenant basado en el dominio
+            $domainParts = explode('.', $domain);
+            $tenantName = ucfirst($domainParts[0]);
+            $isSubdomain = (count($domainParts) > 2);
+            $baseDomain = $isSubdomain ? implode('.', array_slice($domainParts, -2)) : null;
+
+            // Crear tenant
+            $stmt = $this->pdo->prepare("
+                INSERT INTO tenants (
+                    customer_id, domain, name, is_subdomain, parent_domain, include_www,
+                    plan, status, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', NOW())
+            ");
+
+            $stmt->execute([
+                $customer['id'],
+                $domain,
+                $tenantName,
+                $isSubdomain ? 1 : 0,
+                $baseDomain,
+                0,
+                $plan
+            ]);
+
+            $tenantId = (int) $this->pdo->lastInsertId();
+            Logger::info("[ProvisioningService] Tenant created: ID {$tenantId}");
+
+            // Preparar datos del customer para crear admin
+            $customerData = [
+                'name' => $customer['name'],
+                'email' => $customer['email'],
+                'password' => '' // No necesario, se genera uno nuevo
+            ];
+
+            // Crear admin del tenant con credenciales únicas
+            $adminId = $this->createTenantAdmin($tenantId, $customerData, (int)$customer['id'], $domain);
+            Logger::info("[ProvisioningService] Tenant admin created: ID {$adminId}");
+
+            // Generar slug
+            $slug = strtolower(preg_replace('/[^a-z0-9]+/', '-', $domainParts[0]));
+            $this->generateUniqueSlug($tenantId, $slug);
+
+            // Aplicar defaults
+            $this->applyTenantDefaults($tenantId);
+
+            $this->pdo->commit();
+
+            return [
+                'success' => true,
+                'tenant_id' => $tenantId,
+                'admin_id' => $adminId,
+                'admin_credentials' => $this->lastCreatedAdminCredentials
+            ];
+
+        } catch (\Exception $e) {
+            $this->pdo->rollBack();
+            Logger::error("[ProvisioningService] Error creating tenant for customer: " . $e->getMessage());
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
     }
 
     /**

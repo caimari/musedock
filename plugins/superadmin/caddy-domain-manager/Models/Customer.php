@@ -344,4 +344,50 @@ class Customer
 
         return $tenants;
     }
+
+    /**
+     * Obtener dominios registrados de un customer
+     */
+    public static function getDomainOrders(int $customerId): array
+    {
+        $pdo = Database::connect();
+
+        $stmt = $pdo->prepare("
+            SELECT
+                do.*,
+                t.domain as tenant_domain,
+                CONCAT(do.domain_name, '.', do.domain_extension) as full_domain
+            FROM domain_orders do
+            LEFT JOIN tenants t ON t.id = do.tenant_id
+            WHERE do.customer_id = ?
+            ORDER BY do.created_at DESC
+        ");
+        $stmt->execute([$customerId]);
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Obtener transferencias pendientes de un customer
+     */
+    public static function getDomainTransfers(int $customerId): array
+    {
+        $pdo = Database::connect();
+
+        // Verificar si la tabla existe
+        try {
+            $stmt = $pdo->prepare("
+                SELECT *
+                FROM domain_transfers
+                WHERE customer_id = ?
+                ORDER BY created_at DESC
+            ");
+            $stmt->execute([$customerId]);
+
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        } catch (\PDOException $e) {
+            // Tabla no existe aún
+            return [];
+        }
+    }
 }

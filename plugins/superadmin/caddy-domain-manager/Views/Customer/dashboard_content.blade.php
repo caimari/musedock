@@ -206,13 +206,131 @@
     <?php endforeach; ?>
 <?php endif; ?>
 
+<!-- Dominios Registrados -->
+<?php if (!empty($domainOrders)): ?>
+<h4 class="mt-4 mb-3"><i class="bi bi-globe2"></i> Mis Dominios Registrados</h4>
+
+<?php foreach ($domainOrders as $order): ?>
+<div class="tenant-card">
+    <div class="domain">
+        <i class="bi bi-globe"></i>
+        <?= htmlspecialchars($order['full_domain'] ?? $order['domain_name'] . '.' . $order['domain_extension']) ?>
+    </div>
+
+    <div class="info">
+        <?php
+        $statusBadge = match($order['status']) {
+            'active', 'registered' => 'bg-success',
+            'pending' => 'bg-warning',
+            'failed' => 'bg-danger',
+            default => 'bg-secondary'
+        };
+        $statusText = match($order['status']) {
+            'active', 'registered' => 'Activo',
+            'pending' => 'Pendiente',
+            'failed' => 'Error',
+            default => ucfirst($order['status'])
+        };
+        ?>
+        <span class="badge <?= $statusBadge ?>"><?= $statusText ?></span>
+
+        <?php if (($order['hosting_type'] ?? 'musedock_hosting') === 'musedock_hosting'): ?>
+        <span class="badge bg-info">Hosting MuseDock</span>
+        <?php else: ?>
+        <span class="badge bg-secondary">Solo DNS</span>
+        <?php endif; ?>
+
+        <?php if (!empty($order['cloudflare_zone_id'])): ?>
+        <span class="badge bg-warning text-dark"><i class="bi bi-shield-fill"></i> Cloudflare</span>
+        <?php endif; ?>
+    </div>
+
+    <div class="mt-3">
+        <?php if (in_array($order['status'], ['active', 'registered'])): ?>
+        <a href="/customer/domain/<?= $order['id'] ?>/dns" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-hdd-network"></i> Gestionar DNS
+        </a>
+        <a href="/customer/domain/<?= $order['id'] ?>/contacts" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-person-lines-fill"></i> Contactos
+        </a>
+        <?php if (($order['hosting_type'] ?? 'musedock_hosting') === 'musedock_hosting' && !empty($order['tenant_domain'])): ?>
+        <a href="https://<?= htmlspecialchars($order['tenant_domain']) ?>/admin" class="btn btn-sm btn-primary" target="_blank">
+            <i class="bi bi-gear"></i> Panel Admin
+        </a>
+        <?php endif; ?>
+        <?php endif; ?>
+    </div>
+</div>
+<?php endforeach; ?>
+<?php endif; ?>
+
+<!-- Transferencias Pendientes -->
+<?php if (!empty($domainTransfers)): ?>
+<h4 class="mt-4 mb-3"><i class="bi bi-arrow-left-right"></i> Transferencias en Proceso</h4>
+
+<?php foreach ($domainTransfers as $transfer): ?>
+<?php if ($transfer['status'] !== 'completed'): ?>
+<div class="tenant-card">
+    <div class="domain">
+        <i class="bi bi-arrow-left-right"></i>
+        <?= htmlspecialchars($transfer['domain']) ?>
+    </div>
+
+    <div class="info">
+        <?php
+        $statusBadge = match($transfer['status']) {
+            'completed' => 'bg-success',
+            'pending', 'processing', 'in_progress' => 'bg-warning',
+            'ACT' => 'bg-info',
+            'failed', 'FAI' => 'bg-danger',
+            default => 'bg-secondary'
+        };
+        $statusText = match($transfer['status']) {
+            'completed' => 'Completada',
+            'pending' => 'Pendiente',
+            'processing', 'in_progress' => 'En Proceso',
+            'ACT' => 'Lista para Configurar',
+            'failed', 'FAI' => 'Fallida',
+            default => ucfirst($transfer['status'])
+        };
+        ?>
+        <span class="badge <?= $statusBadge ?>"><?= $statusText ?></span>
+        <span class="badge bg-light text-dark">
+            <i class="bi bi-calendar"></i> <?= date('d/m/Y', strtotime($transfer['created_at'])) ?>
+        </span>
+    </div>
+
+    <div class="mt-3">
+        <a href="/customer/transfer-domain/<?= $transfer['id'] ?>/status" class="btn btn-sm btn-outline-info">
+            <i class="bi bi-eye"></i> Ver Estado
+        </a>
+        <?php if ($transfer['status'] === 'ACT'): ?>
+        <a href="/customer/transfer-domain/<?= $transfer['id'] ?>/status" class="btn btn-sm btn-success">
+            <i class="bi bi-check-circle"></i> Completar Configuracion
+        </a>
+        <?php endif; ?>
+    </div>
+</div>
+<?php endif; ?>
+<?php endforeach; ?>
+<?php endif; ?>
+
 <!-- Botones de acción -->
 <div class="text-center mt-4 mb-4">
-    <a href="/customer/request-free-subdomain" class="btn btn-success btn-lg me-2">
-        <i class="bi bi-gift"></i> Solicitar Subdominio FREE
+    <a href="/customer/request-free-subdomain" class="btn btn-success btn-lg me-2 mb-2">
+        <i class="bi bi-gift"></i> Subdominio FREE
     </a>
-    <a href="/customer/request-custom-domain" class="btn btn-primary btn-lg">
-        <i class="bi bi-plus-circle"></i> Solicitar Dominio Personalizado
+    <a href="/customer/request-custom-domain" class="btn btn-primary btn-lg me-2 mb-2">
+        <i class="bi bi-plus-circle"></i> Dominio Personalizado
+    </a>
+    <a href="/customer/register-domain" class="btn btn-info btn-lg me-2 mb-2">
+        <i class="bi bi-cart-plus"></i> Registrar Dominio
+    </a>
+    <a href="/customer/transfer-domain" class="btn btn-warning btn-lg me-2 mb-2">
+        <i class="bi bi-arrow-left-right"></i> Transferir Dominio
+    </a>
+    <a href="/customer/tenant-admins" class="btn btn-secondary btn-lg mb-2">
+        <i class="bi bi-person-gear"></i> Gestionar Accesos
     </a>
 </div>
 

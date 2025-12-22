@@ -1,0 +1,483 @@
+<?php
+
+namespace CaddyDomainManager\Controllers;
+
+use Screenart\Musedock\Database;
+use Screenart\Musedock\View;
+use Screenart\Musedock\Logger;
+use CaddyDomainManager\Services\CloudflareZoneService;
+use CaddyDomainManager\Services\OpenProviderService;
+use PDO;
+use Exception;
+
+/**
+ * DnsManagerController
+ *
+ * Gestiona los registros DNS en Cloudflare para dominios del cliente.
+ * Permite crear, editar, eliminar registros A, AAAA, CNAME, MX, TXT, etc.
+ *
+ * @package CaddyDomainManager\Controllers
+ */
+class DnsManagerController
+{
+    /**
+     * Mostrar gestor de DNS para un dominio
+     */
+    public function index(int $orderId): void
+    {
+        $customerId = $_SESSION['customer']['id'] ?? null;
+
+        if (!$customerId) {
+            header('Location: /customer/login');
+            exit;
+        }
+
+        try {
+            $pdo = Database::connect();
+
+            // Obtener la orden de dominio
+            $stmt = $pdo->prepare("
+                SELECT do.*, t.domain as tenant_domain, t.id as tenant_id
+                FROM domain_orders do
+                LEFT JOIN tenants t ON do.tenant_id = t.id
+                WHERE do.id = ? AND do.customer_id = ?
+            ");
+            $stmt->execute([$orderId, $customerId]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$order) {
+                $_SESSION['flash_error'] = 'Dominio no encontrado';
+                header('Location: /customer/dashboard');
+                exit;
+            }
+
+            if ($order['status'] !== 'registered') {
+                $_SESSION['flash_error'] = 'El dominio no está registrado aún';
+                header('Location: /customer/dashboard');
+                exit;
+            }
+
+            $cloudflare = new CloudflareZoneService();
+            $records = [];
+            $zoneInfo = null;
+
+            if (!empty($order['cloudflare_zone_id'])) {
+                // Obtener registros DNS
+                $records = $cloudflare->listDnsRecords($order['cloudflare_zone_id']);
+                $zoneInfo = $cloudflare->getZoneDetails($order['cloudflare_zone_id']);
+            }
+
+            // Tipos de registros disponibles
+            $recordTypes = [
+                'A' => 'A (IPv4)',
+                'AAAA' => 'AAAA (IPv6)',
+                'CNAME' => 'CNAME (Alias)',
+                'MX' => 'MX (Mail)',
+                'TXT' => 'TXT (Text)',
+                'NS' => 'NS (Nameserver)',
+                'SRV' => 'SRV (Service)',
+                'CAA' => 'CAA (Certificate Authority)'
+            ];
+
+            echo View::renderTheme('Customer.dns-manager', [
+                'customer' => $_SESSION['customer'],
+                'order' => $order,
+                'records' => $records,
+                'zoneInfo' => $zoneInfo,
+                'recordTypes' => $recordTypes,
+                'csrf_token' => csrf_token()
+            ]);
+
+        } catch (Exception $e) {
+            Logger::error("[DnsManager] Error loading DNS manager: " . $e->getMessage());
+            $_SESSION['flash_error'] = 'Error al cargar el gestor de DNS';
+            header('Location: /customer/dashboard');
+            exit;
+        }
+    }
+
+    /**
+     * Crear nuevo registro DNS (AJAX)
+     */
+    public function createRecord(int $orderId): void
+    {
+        header('Content-Type: application/json');
+
+        try {
+            if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
+                $this->jsonResponse(['success' => false, 'error' => 'Token de seguridad inválido'], 403);
+                return;
+            }
+
+            $customerId = $_SESSION['customer']['id'] ?? null;
+            if (!$customerId) {
+                $this->jsonResponse(['success' => false, 'error' => 'Sesión expirada'], 401);
+                return;
+            }
+
+            $pdo = Database::connect();
+
+            // Verificar propiedad del dominio
+            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status = 'registered'");
+            $stmt->execute([$orderId, $customerId]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$order || empty($order['cloudflare_zone_id'])) {
+                $this->jsonResponse(['success' => false, 'error' => 'Dominio no encontrado o sin zona DNS'], 404);
+                return;
+            }
+
+            // Validar datos
+            $type = strtoupper(trim($_POST['type'] ?? ''));
+            $name = strtolower(trim($_POST['name'] ?? ''));
+            $content = trim($_POST['content'] ?? '');
+            $ttl = intval($_POST['ttl'] ?? 3600);
+            $proxied = isset($_POST['proxied']) && $_POST['proxied'] === '1';
+            $priority = intval($_POST['priority'] ?? 10);
+
+            $allowedTypes = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SRV', 'CAA'];
+            if (!in_array($type, $allowedTypes)) {
+                $this->jsonResponse(['success' => false, 'error' => 'Tipo de registro no válido'], 400);
+                return;
+            }
+
+            if (empty($name) || empty($content)) {
+                $this->jsonResponse(['success' => false, 'error' => 'Nombre y contenido son requeridos'], 400);
+                return;
+            }
+
+            // Crear registro en Cloudflare
+            $cloudflare = new CloudflareZoneService();
+            $recordData = [
+                'type' => $type,
+                'name' => $name,
+                'content' => $content,
+                'ttl' => $ttl,
+                'proxied' => $proxied && in_array($type, ['A', 'AAAA', 'CNAME'])
+            ];
+
+            if ($type === 'MX') {
+                $recordData['priority'] = $priority;
+            }
+
+            $result = $cloudflare->createDnsRecord($order['cloudflare_zone_id'], $recordData);
+
+            Logger::info("[DnsManager] DNS record created: {$type} {$name} for order {$orderId}");
+
+            $this->jsonResponse([
+                'success' => true,
+                'record' => $result,
+                'message' => 'Registro DNS creado correctamente'
+            ]);
+
+        } catch (Exception $e) {
+            Logger::error("[DnsManager] Error creating DNS record: " . $e->getMessage());
+            $this->jsonResponse(['success' => false, 'error' => 'Error al crear registro: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Actualizar registro DNS (AJAX)
+     */
+    public function updateRecord(int $orderId, string $recordId): void
+    {
+        header('Content-Type: application/json');
+
+        try {
+            if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
+                $this->jsonResponse(['success' => false, 'error' => 'Token de seguridad inválido'], 403);
+                return;
+            }
+
+            $customerId = $_SESSION['customer']['id'] ?? null;
+            if (!$customerId) {
+                $this->jsonResponse(['success' => false, 'error' => 'Sesión expirada'], 401);
+                return;
+            }
+
+            $pdo = Database::connect();
+
+            // Verificar propiedad
+            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status = 'registered'");
+            $stmt->execute([$orderId, $customerId]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$order || empty($order['cloudflare_zone_id'])) {
+                $this->jsonResponse(['success' => false, 'error' => 'Dominio no encontrado'], 404);
+                return;
+            }
+
+            // Validar datos
+            $type = strtoupper(trim($_POST['type'] ?? ''));
+            $name = strtolower(trim($_POST['name'] ?? ''));
+            $content = trim($_POST['content'] ?? '');
+            $ttl = intval($_POST['ttl'] ?? 3600);
+            $proxied = isset($_POST['proxied']) && $_POST['proxied'] === '1';
+            $priority = intval($_POST['priority'] ?? 10);
+
+            // Actualizar en Cloudflare
+            $cloudflare = new CloudflareZoneService();
+            $recordData = [
+                'type' => $type,
+                'name' => $name,
+                'content' => $content,
+                'ttl' => $ttl,
+                'proxied' => $proxied && in_array($type, ['A', 'AAAA', 'CNAME'])
+            ];
+
+            if ($type === 'MX') {
+                $recordData['priority'] = $priority;
+            }
+
+            $result = $cloudflare->updateDnsRecord($order['cloudflare_zone_id'], $recordId, $recordData);
+
+            Logger::info("[DnsManager] DNS record updated: {$recordId} for order {$orderId}");
+
+            $this->jsonResponse([
+                'success' => true,
+                'record' => $result,
+                'message' => 'Registro DNS actualizado'
+            ]);
+
+        } catch (Exception $e) {
+            Logger::error("[DnsManager] Error updating DNS record: " . $e->getMessage());
+            $this->jsonResponse(['success' => false, 'error' => 'Error al actualizar: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Eliminar registro DNS (AJAX)
+     */
+    public function deleteRecord(int $orderId, string $recordId): void
+    {
+        header('Content-Type: application/json');
+
+        try {
+            if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
+                $this->jsonResponse(['success' => false, 'error' => 'Token de seguridad inválido'], 403);
+                return;
+            }
+
+            $customerId = $_SESSION['customer']['id'] ?? null;
+            if (!$customerId) {
+                $this->jsonResponse(['success' => false, 'error' => 'Sesión expirada'], 401);
+                return;
+            }
+
+            $pdo = Database::connect();
+
+            // Verificar propiedad
+            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status = 'registered'");
+            $stmt->execute([$orderId, $customerId]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$order || empty($order['cloudflare_zone_id'])) {
+                $this->jsonResponse(['success' => false, 'error' => 'Dominio no encontrado'], 404);
+                return;
+            }
+
+            // Eliminar en Cloudflare
+            $cloudflare = new CloudflareZoneService();
+            $cloudflare->deleteDnsRecord($order['cloudflare_zone_id'], $recordId);
+
+            Logger::info("[DnsManager] DNS record deleted: {$recordId} for order {$orderId}");
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Registro DNS eliminado'
+            ]);
+
+        } catch (Exception $e) {
+            Logger::error("[DnsManager] Error deleting DNS record: " . $e->getMessage());
+            $this->jsonResponse(['success' => false, 'error' => 'Error al eliminar: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Obtener registros DNS (AJAX)
+     */
+    public function getRecords(int $orderId): void
+    {
+        header('Content-Type: application/json');
+
+        try {
+            $customerId = $_SESSION['customer']['id'] ?? null;
+            if (!$customerId) {
+                $this->jsonResponse(['success' => false, 'error' => 'Sesión expirada'], 401);
+                return;
+            }
+
+            $pdo = Database::connect();
+
+            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status = 'registered'");
+            $stmt->execute([$orderId, $customerId]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$order || empty($order['cloudflare_zone_id'])) {
+                $this->jsonResponse(['success' => false, 'error' => 'Dominio no encontrado'], 404);
+                return;
+            }
+
+            $cloudflare = new CloudflareZoneService();
+            $records = $cloudflare->listDnsRecords($order['cloudflare_zone_id']);
+
+            $this->jsonResponse([
+                'success' => true,
+                'records' => $records
+            ]);
+
+        } catch (Exception $e) {
+            Logger::error("[DnsManager] Error getting DNS records: " . $e->getMessage());
+            $this->jsonResponse(['success' => false, 'error' => 'Error al obtener registros'], 500);
+        }
+    }
+
+    /**
+     * Actualizar nameservers del dominio en OpenProvider (AJAX)
+     */
+    public function updateNameservers(int $orderId): void
+    {
+        header('Content-Type: application/json');
+
+        try {
+            if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
+                $this->jsonResponse(['success' => false, 'error' => 'Token de seguridad inválido'], 403);
+                return;
+            }
+
+            $customerId = $_SESSION['customer']['id'] ?? null;
+            if (!$customerId) {
+                $this->jsonResponse(['success' => false, 'error' => 'Sesión expirada'], 401);
+                return;
+            }
+
+            $pdo = Database::connect();
+
+            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status = 'registered'");
+            $stmt->execute([$orderId, $customerId]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$order) {
+                $this->jsonResponse(['success' => false, 'error' => 'Dominio no encontrado'], 404);
+                return;
+            }
+
+            // Validar nameservers
+            $nameservers = array_filter($_POST['nameservers'] ?? [], fn($ns) => !empty(trim($ns)));
+
+            if (count($nameservers) < 2) {
+                $this->jsonResponse(['success' => false, 'error' => 'Se requieren al menos 2 nameservers'], 400);
+                return;
+            }
+
+            // Actualizar en OpenProvider
+            $openProvider = new OpenProviderService();
+            $openProvider->updateDomainNameservers(
+                $order['openprovider_domain_id'],
+                $nameservers
+            );
+
+            // Actualizar en BD
+            $stmt = $pdo->prepare("
+                UPDATE domain_orders
+                SET custom_nameservers = ?,
+                    use_cloudflare_ns = 0,
+                    updated_at = NOW()
+                WHERE id = ?
+            ");
+            $stmt->execute([json_encode(array_values($nameservers)), $orderId]);
+
+            Logger::info("[DnsManager] Nameservers updated for order {$orderId}");
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Nameservers actualizados correctamente',
+                'nameservers' => array_values($nameservers)
+            ]);
+
+        } catch (Exception $e) {
+            Logger::error("[DnsManager] Error updating nameservers: " . $e->getMessage());
+            $this->jsonResponse(['success' => false, 'error' => 'Error al actualizar: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Restaurar nameservers de Cloudflare (AJAX)
+     */
+    public function restoreCloudflareNs(int $orderId): void
+    {
+        header('Content-Type: application/json');
+
+        try {
+            if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
+                $this->jsonResponse(['success' => false, 'error' => 'Token de seguridad inválido'], 403);
+                return;
+            }
+
+            $customerId = $_SESSION['customer']['id'] ?? null;
+            if (!$customerId) {
+                $this->jsonResponse(['success' => false, 'error' => 'Sesión expirada'], 401);
+                return;
+            }
+
+            $pdo = Database::connect();
+
+            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ? AND status = 'registered'");
+            $stmt->execute([$orderId, $customerId]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$order || empty($order['cloudflare_zone_id'])) {
+                $this->jsonResponse(['success' => false, 'error' => 'Dominio no encontrado'], 404);
+                return;
+            }
+
+            // Obtener nameservers de Cloudflare
+            $cloudflare = new CloudflareZoneService();
+            $zoneInfo = $cloudflare->getZoneDetails($order['cloudflare_zone_id']);
+            $cloudflareNs = $zoneInfo['name_servers'] ?? [];
+
+            if (empty($cloudflareNs)) {
+                $this->jsonResponse(['success' => false, 'error' => 'No se encontraron NS de Cloudflare'], 400);
+                return;
+            }
+
+            // Actualizar en OpenProvider
+            $openProvider = new OpenProviderService();
+            $openProvider->updateDomainNameservers(
+                $order['openprovider_domain_id'],
+                $cloudflareNs
+            );
+
+            // Actualizar en BD
+            $stmt = $pdo->prepare("
+                UPDATE domain_orders
+                SET custom_nameservers = NULL,
+                    use_cloudflare_ns = 1,
+                    updated_at = NOW()
+                WHERE id = ?
+            ");
+            $stmt->execute([$orderId]);
+
+            Logger::info("[DnsManager] Cloudflare NS restored for order {$orderId}");
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Nameservers de Cloudflare restaurados',
+                'nameservers' => $cloudflareNs
+            ]);
+
+        } catch (Exception $e) {
+            Logger::error("[DnsManager] Error restoring Cloudflare NS: " . $e->getMessage());
+            $this->jsonResponse(['success' => false, 'error' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Helper: JSON response
+     */
+    private function jsonResponse(array $data, int $code = 200): void
+    {
+        http_response_code($code);
+        echo json_encode($data);
+    }
+}

@@ -185,12 +185,20 @@ class CustomerController
         // Obtener estadísticas
         $stats = Customer::getStats($customerId);
 
+        // Obtener dominios registrados
+        $domainOrders = Customer::getDomainOrders($customerId);
+
+        // Obtener transferencias pendientes
+        $domainTransfers = Customer::getDomainTransfers($customerId);
+
         $data = [
             'page_title' => 'Dashboard - MuseDock',
             'current_page' => 'dashboard',
             'customer' => $customer,
             'tenants' => $tenants,
             'stats' => $stats,
+            'domainOrders' => $domainOrders,
+            'domainTransfers' => $domainTransfers,
             'show_verification_warning' => $customer['status'] === 'pending_verification'
         ];
 

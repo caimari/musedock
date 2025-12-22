@@ -171,12 +171,20 @@ class DomainRegistrationController
                 exit;
             }
 
+            // Obtener modo OpenProvider
+            $openProviderMode = strtolower(\Screenart\Musedock\Env::get('OPENPROVIDER_MODE', 'sandbox'));
+
             echo View::renderTheme('Customer.domain-checkout', [
                 'customer' => $_SESSION['customer'],
                 'domain' => $domainData['domain'],
                 'price' => $domainData['price'] ?? 0,
                 'currency' => $domainData['currency'] ?? 'EUR',
                 'contact' => $contact,
+                'handles' => $domainData['handles'] ?? [],
+                'hosting_type' => $domainData['hosting_type'] ?? 'musedock_hosting',
+                'ns_type' => $domainData['ns_type'] ?? 'cloudflare',
+                'custom_ns' => $domainData['custom_ns'] ? json_decode($domainData['custom_ns'], true) : null,
+                'openprovider_mode' => $openProviderMode,
                 'csrf_token' => csrf_token()
             ]);
 
@@ -312,7 +320,7 @@ class DomainRegistrationController
     }
 
     /**
-     * Guardar contacto (AJAX)
+     * Guardar contacto y opciones de registro (AJAX)
      */
     public function saveContact(): void
     {
@@ -331,36 +339,55 @@ class DomainRegistrationController
                 return;
             }
 
-            // Validar campos requeridos
-            $required = ['first_name', 'last_name', 'email', 'phone', 'address_street', 'address_city', 'address_zipcode', 'address_country'];
-            foreach ($required as $field) {
-                if (empty($_POST[$field])) {
-                    $this->jsonResponse(['success' => false, 'error' => "El campo {$field} es requerido"], 400);
+            $pdo = Database::connect();
+            $openProvider = new OpenProviderService();
+            $handles = [];
+
+            // Procesar contacto Owner
+            $ownerExisting = $_POST['owner_existing'] ?? '';
+
+            if ($ownerExisting) {
+                // Usar contacto existente
+                $stmt = $pdo->prepare("SELECT openprovider_handle FROM domain_contacts WHERE id = ? AND customer_id = ?");
+                $stmt->execute([$ownerExisting, $customerId]);
+                $contact = $stmt->fetch(PDO::FETCH_ASSOC);
+                if (!$contact) {
+                    $this->jsonResponse(['success' => false, 'error' => 'Contacto no encontrado'], 404);
                     return;
                 }
-            }
+                $handles['owner'] = $contact['openprovider_handle'];
+                $_SESSION['domain_registration']['contact_id'] = $ownerExisting;
+            } else {
+                // Validar campos requeridos para nuevo contacto
+                $required = ['owner_first_name', 'owner_last_name', 'owner_email', 'owner_phone', 'owner_street', 'owner_city', 'owner_zipcode', 'owner_country'];
+                foreach ($required as $field) {
+                    if (empty($_POST[$field])) {
+                        $fieldName = str_replace('owner_', '', $field);
+                        $this->jsonResponse(['success' => false, 'error' => "El campo {$fieldName} es requerido"], 400);
+                        return;
+                    }
+                }
 
-            $pdo = Database::connect();
-            $pdo->beginTransaction();
-
-            try {
-                // Crear contacto en OpenProvider
-                $openProvider = new OpenProviderService();
-                $handle = $openProvider->createContact([
-                    'first_name' => $_POST['first_name'],
-                    'last_name' => $_POST['last_name'],
-                    'company' => $_POST['company'] ?? '',
-                    'email' => $_POST['email'],
-                    'phone' => $_POST['phone'],
-                    'address' => $_POST['address_street'],
-                    'address_number' => $_POST['address_number'] ?? '',
-                    'city' => $_POST['address_city'],
-                    'state' => $_POST['address_state'] ?? '',
-                    'zipcode' => $_POST['address_zipcode'],
-                    'country' => $_POST['address_country']
+                // Obtener o crear contacto Owner en OpenProvider (reutiliza si ya existe)
+                $handles['owner'] = $openProvider->getOrCreateContact([
+                    'first_name' => $_POST['owner_first_name'],
+                    'last_name' => $_POST['owner_last_name'],
+                    'company' => $_POST['owner_company'] ?? '',
+                    'email' => $_POST['owner_email'],
+                    'phone' => $_POST['owner_phone'],
+                    'address' => $_POST['owner_street'],
+                    'address_number' => $_POST['owner_number'] ?? '',
+                    'city' => $_POST['owner_city'],
+                    'state' => $_POST['owner_state'] ?? '',
+                    'zipcode' => $_POST['owner_zipcode'],
+                    'country' => $_POST['owner_country']
                 ]);
 
-                // Guardar en base de datos
+                // Guardar contacto en BD
+                $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM domain_contacts WHERE customer_id = ?");
+                $stmtCount->execute([$customerId]);
+                $isDefault = ($stmtCount->fetchColumn() == 0) ? 1 : 0;
+
                 $stmt = $pdo->prepare("
                     INSERT INTO domain_contacts (
                         customer_id, openprovider_handle, type,
@@ -369,49 +396,85 @@ class DomainRegistrationController
                         is_default
                     ) VALUES (?, ?, 'owner', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
-
-                // Si es el primer contacto, hacerlo default
-                $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM domain_contacts WHERE customer_id = ?");
-                $stmtCount->execute([$customerId]);
-                $isDefault = ($stmtCount->fetchColumn() == 0) ? 1 : 0;
-
                 $stmt->execute([
                     $customerId,
-                    $handle,
-                    $_POST['first_name'],
-                    $_POST['last_name'],
-                    $_POST['company'] ?? null,
-                    $_POST['email'],
-                    $_POST['phone'],
-                    $_POST['address_street'],
-                    $_POST['address_number'] ?? null,
-                    $_POST['address_city'],
-                    $_POST['address_state'] ?? null,
-                    $_POST['address_zipcode'],
-                    $_POST['address_country'],
+                    $handles['owner'],
+                    $_POST['owner_first_name'],
+                    $_POST['owner_last_name'],
+                    $_POST['owner_company'] ?? null,
+                    $_POST['owner_email'],
+                    $_POST['owner_phone'],
+                    $_POST['owner_street'],
+                    $_POST['owner_number'] ?? null,
+                    $_POST['owner_city'],
+                    $_POST['owner_state'] ?? null,
+                    $_POST['owner_zipcode'],
+                    $_POST['owner_country'],
                     $isDefault
                 ]);
-
-                $contactId = $pdo->lastInsertId();
-
-                $pdo->commit();
-
-                // Guardar en sesión
-                $_SESSION['domain_registration']['contact_id'] = $contactId;
-
-                Logger::info("[DomainRegistration] Contact created. ID: {$contactId}, Handle: {$handle}");
-
-                $this->jsonResponse([
-                    'success' => true,
-                    'contact_id' => $contactId,
-                    'handle' => $handle,
-                    'redirect' => '/customer/register-domain/checkout'
-                ]);
-
-            } catch (Exception $e) {
-                $pdo->rollBack();
-                throw $e;
+                $_SESSION['domain_registration']['contact_id'] = $pdo->lastInsertId();
             }
+
+            // Si usa el mismo contacto para todos
+            $sameContactAll = isset($_POST['same_contact_all']) && $_POST['same_contact_all'] === '1';
+
+            if ($sameContactAll) {
+                $handles['admin'] = $handles['owner'];
+                $handles['tech'] = $handles['owner'];
+                $handles['billing'] = $handles['owner'];
+            } else {
+                // Crear o reutilizar contactos separados (Admin, Tech, Billing)
+                foreach (['admin', 'tech', 'billing'] as $type) {
+                    $firstName = $_POST["{$type}_first_name"] ?? '';
+                    $lastName = $_POST["{$type}_last_name"] ?? '';
+                    $email = $_POST["{$type}_email"] ?? '';
+                    $phone = $_POST["{$type}_phone"] ?? '';
+
+                    if ($firstName && $lastName && $email && $phone) {
+                        // Obtener o crear contacto (reutiliza si ya existe por email)
+                        $handles[$type] = $openProvider->getOrCreateContact([
+                            'first_name' => $firstName,
+                            'last_name' => $lastName,
+                            'email' => $email,
+                            'phone' => $phone,
+                            'address' => $_POST['owner_street'],
+                            'city' => $_POST['owner_city'],
+                            'zipcode' => $_POST['owner_zipcode'],
+                            'country' => $_POST['owner_country']
+                        ]);
+                    } else {
+                        // Usar el mismo que owner
+                        $handles[$type] = $handles['owner'];
+                    }
+                }
+            }
+
+            // Guardar opciones de hosting y nameservers
+            $hostingType = $_POST['hosting_type'] ?? 'musedock_hosting';
+            $nsType = $_POST['ns_type'] ?? 'cloudflare';
+            $customNs = null;
+
+            if ($nsType === 'custom') {
+                $customNsArray = array_filter($_POST['custom_ns'] ?? [], fn($ns) => !empty(trim($ns)));
+                if (count($customNsArray) >= 2) {
+                    $customNs = json_encode(array_values($customNsArray));
+                }
+            }
+
+            // Guardar todo en sesión
+            $_SESSION['domain_registration']['handles'] = $handles;
+            $_SESSION['domain_registration']['hosting_type'] = $hostingType;
+            $_SESSION['domain_registration']['ns_type'] = $nsType;
+            $_SESSION['domain_registration']['custom_ns'] = $customNs;
+            $_SESSION['domain_registration']['use_cloudflare_ns'] = ($nsType === 'cloudflare');
+
+            Logger::info("[DomainRegistration] Contacts saved. Owner: {$handles['owner']}, Hosting: {$hostingType}, NS: {$nsType}");
+
+            $this->jsonResponse([
+                'success' => true,
+                'handles' => $handles,
+                'redirect' => '/customer/register-domain/checkout'
+            ]);
 
         } catch (Exception $e) {
             Logger::error("[DomainRegistration] Save contact error: " . $e->getMessage());
@@ -490,6 +553,11 @@ class DomainRegistrationController
             $contactId = $domainData['contact_id'];
             $price = $domainData['price'] ?? 0;
             $currency = $domainData['currency'] ?? 'EUR';
+            $handles = $domainData['handles'] ?? [];
+            $hostingType = $domainData['hosting_type'] ?? 'musedock_hosting';
+            $nsType = $domainData['ns_type'] ?? 'cloudflare';
+            $customNs = $domainData['custom_ns'] ?? null;
+            $useCloudflareNs = $domainData['use_cloudflare_ns'] ?? true;
 
             // Separar nombre y extensión
             $parts = explode('.', $domain, 2);
@@ -513,6 +581,12 @@ class DomainRegistrationController
                 return;
             }
 
+            // Usar handles de sesión o el del contacto como fallback
+            $ownerHandle = $handles['owner'] ?? $contact['openprovider_handle'];
+            $adminHandle = $handles['admin'] ?? $ownerHandle;
+            $techHandle = $handles['tech'] ?? $ownerHandle;
+            $billingHandle = $handles['billing'] ?? $ownerHandle;
+
             $pdo->beginTransaction();
 
             try {
@@ -520,38 +594,60 @@ class DomainRegistrationController
                 $stmt = $pdo->prepare("
                     INSERT INTO domain_orders (
                         customer_id, domain, extension, openprovider_contact_handle,
+                        owner_handle, admin_handle, tech_handle, billing_handle,
+                        hosting_type, custom_nameservers, use_cloudflare_ns,
                         price_amount, price_currency, status
-                    ) VALUES (?, ?, ?, ?, ?, ?, 'processing')
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'processing')
                 ");
                 $stmt->execute([
                     $customerId,
                     $domain,
                     $extension,
-                    $contact['openprovider_handle'],
+                    $ownerHandle,
+                    $ownerHandle,
+                    $adminHandle,
+                    $techHandle,
+                    $billingHandle,
+                    $hostingType,
+                    $customNs,
+                    $useCloudflareNs ? 1 : 0,
                     $price,
                     $currency
                 ]);
                 $orderId = $pdo->lastInsertId();
 
-                Logger::info("[DomainRegistration] Order created. ID: {$orderId}, Domain: {$domain}");
+                Logger::info("[DomainRegistration] Order created. ID: {$orderId}, Domain: {$domain}, Hosting: {$hostingType}");
 
-                // 2. Registrar dominio en OpenProvider
+                // 2. Determinar nameservers
+                $nameservers = [];
+                if ($nsType === 'custom' && $customNs) {
+                    $customNsArray = json_decode($customNs, true);
+                    foreach ($customNsArray as $ns) {
+                        $nameservers[] = ['name' => $ns];
+                    }
+                } else {
+                    // Cloudflare nameservers - se actualizarán después de crear la zona
+                    $nameservers = [
+                        ['name' => 'aria.ns.cloudflare.com'],
+                        ['name' => 'dom.ns.cloudflare.com']
+                    ];
+                }
+
+                // 3. Registrar dominio en OpenProvider
                 $openProvider = new OpenProviderService();
-
-                // Obtener nameservers de Cloudflare (los obtendremos después de crear la zona)
-                // Por ahora usamos los NS genéricos de Cloudflare que se actualizarán
-                $tempNameservers = [
-                    ['name' => 'ns1.musedock-dns.com'],
-                    ['name' => 'ns2.musedock-dns.com']
-                ];
 
                 $registrationResult = $openProvider->registerDomain(
                     $domainName,
                     $extension,
-                    $contact['openprovider_handle'],
-                    $tempNameservers,
+                    $ownerHandle,
+                    $nameservers,
                     1,
-                    ['autorenew' => 'on']
+                    [
+                        'admin_handle' => $adminHandle,
+                        'tech_handle' => $techHandle,
+                        'billing_handle' => $billingHandle,
+                        'autorenew' => 'on'
+                    ]
                 );
 
                 // Actualizar orden con datos de OpenProvider
@@ -571,15 +667,22 @@ class DomainRegistrationController
 
                 Logger::info("[DomainRegistration] Domain registered in OpenProvider. Domain ID: {$registrationResult['id']}");
 
-                // 3. Configurar Cloudflare
-                $cloudflareResult = $this->configureCloudflare($domain, $orderId, $pdo);
+                // 4. Configurar Cloudflare según tipo de hosting
+                $cloudflareResult = null;
+                $tenantId = null;
 
-                // 4. Crear tenant
-                $tenantId = $this->createTenant($customerId, $domain, $orderId, $pdo);
+                if ($useCloudflareNs) {
+                    $cloudflareResult = $this->configureCloudflare($domain, $orderId, $pdo, $hostingType);
+                }
 
-                // Actualizar orden con tenant_id
-                $stmt = $pdo->prepare("UPDATE domain_orders SET tenant_id = ? WHERE id = ?");
-                $stmt->execute([$tenantId, $orderId]);
+                // 5. Crear tenant solo si es musedock_hosting
+                if ($hostingType === 'musedock_hosting') {
+                    $tenantId = $this->createTenant($customerId, $domain, $orderId, $pdo);
+
+                    // Actualizar orden con tenant_id
+                    $stmt = $pdo->prepare("UPDATE domain_orders SET tenant_id = ? WHERE id = ?");
+                    $stmt->execute([$tenantId, $orderId]);
+                }
 
                 $pdo->commit();
 
@@ -587,15 +690,16 @@ class DomainRegistrationController
                 unset($_SESSION['domain_registration']);
 
                 // Enviar email de confirmación
-                $this->sendConfirmationEmail($customerId, $domain, $cloudflareResult['nameservers'] ?? []);
+                $this->sendConfirmationEmail($customerId, $domain, $cloudflareResult['nameservers'] ?? [], $hostingType);
 
-                Logger::info("[DomainRegistration] Registration complete. Order: {$orderId}, Tenant: {$tenantId}");
+                Logger::info("[DomainRegistration] Registration complete. Order: {$orderId}, Tenant: " . ($tenantId ?? 'N/A'));
 
                 $this->jsonResponse([
                     'success' => true,
                     'order_id' => $orderId,
                     'domain' => $domain,
                     'tenant_id' => $tenantId,
+                    'hosting_type' => $hostingType,
                     'nameservers' => $cloudflareResult['nameservers'] ?? [],
                     'message' => 'Dominio registrado exitosamente!',
                     'redirect' => '/customer/dashboard'
@@ -670,10 +774,15 @@ class DomainRegistrationController
 
     /**
      * Configurar Cloudflare para el dominio
+     *
+     * @param string $domain Nombre del dominio
+     * @param int $orderId ID de la orden
+     * @param PDO $pdo Conexión a base de datos
+     * @param string $hostingType Tipo: 'musedock_hosting' o 'dns_only'
      */
-    private function configureCloudflare(string $domain, int $orderId, PDO $pdo): array
+    private function configureCloudflare(string $domain, int $orderId, PDO $pdo, string $hostingType = 'musedock_hosting'): array
     {
-        Logger::info("[DomainRegistration] Configuring Cloudflare for {$domain}");
+        Logger::info("[DomainRegistration] Configuring Cloudflare for {$domain}, hosting type: {$hostingType}");
 
         try {
             $cloudflare = new CloudflareZoneService();
@@ -681,9 +790,16 @@ class DomainRegistrationController
             // Crear zona en Cloudflare
             $zoneResult = $cloudflare->addFullZone($domain);
 
-            // Crear CNAMEs
-            $cloudflare->createCNAMEIfNotExists($zoneResult['zone_id'], '@', 'mortadelo.musedock.com', true);
-            $cloudflare->createCNAMEIfNotExists($zoneResult['zone_id'], 'www', 'mortadelo.musedock.com', true);
+            // Crear registros DNS solo si es musedock_hosting
+            if ($hostingType === 'musedock_hosting') {
+                // Crear CNAMEs apuntando al servidor de MuseDock
+                $cloudflare->createCNAMEIfNotExists($zoneResult['zone_id'], '@', 'mortadelo.musedock.com', true);
+                $cloudflare->createCNAMEIfNotExists($zoneResult['zone_id'], 'www', 'mortadelo.musedock.com', true);
+                Logger::info("[DomainRegistration] DNS records created for {$domain} -> mortadelo.musedock.com");
+            } else {
+                // dns_only: Solo crear la zona sin registros
+                Logger::info("[DomainRegistration] Zone created without DNS records (dns_only mode)");
+            }
 
             // Actualizar orden
             $stmt = $pdo->prepare("

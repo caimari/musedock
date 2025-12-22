@@ -554,6 +554,60 @@ class OpenProviderService
     }
 
     /**
+     * Buscar contacto existente por email exacto
+     *
+     * @param string $email Email del contacto
+     * @return string|null Handle si existe, null si no
+     * @throws Exception
+     */
+    public function findContactByEmail(string $email): ?string
+    {
+        Logger::info("[OpenProvider] Searching for contact by email: {$email}");
+
+        try {
+            $result = $this->listContacts([
+                'email_pattern' => $email,
+                'limit' => 1
+            ]);
+
+            if (!empty($result['contacts'])) {
+                $handle = $result['contacts'][0]['handle'] ?? null;
+                if ($handle) {
+                    Logger::info("[OpenProvider] Found existing contact: {$handle}");
+                    return $handle;
+                }
+            }
+
+            Logger::info("[OpenProvider] No existing contact found for email: {$email}");
+            return null;
+        } catch (Exception $e) {
+            Logger::warning("[OpenProvider] Error searching contact by email: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Obtener o crear contacto - reutiliza handle existente si ya existe por email
+     *
+     * @param array $contactData Datos del contacto
+     * @return string Handle del contacto (existente o nuevo)
+     * @throws Exception
+     */
+    public function getOrCreateContact(array $contactData): string
+    {
+        // Primero buscar si ya existe un contacto con ese email
+        $existingHandle = $this->findContactByEmail($contactData['email']);
+
+        if ($existingHandle) {
+            Logger::info("[OpenProvider] Reusing existing contact handle: {$existingHandle}");
+            return $existingHandle;
+        }
+
+        // Si no existe, crear uno nuevo
+        return $this->createContact($contactData);
+    }
+
+    /**
      * Actualizar un contacto
      *
      * @param string $handle Handle del contacto
@@ -570,6 +624,243 @@ class OpenProviderService
         Logger::info("[OpenProvider] Contact updated");
 
         return true;
+    }
+
+    // ============================================
+    // DOMAIN TRANSFER
+    // ============================================
+
+    /**
+     * Verificar si un dominio es transferible
+     *
+     * @param string $domain Dominio completo (ejemplo.com)
+     * @return array Información de transferibilidad
+     * @throws Exception
+     */
+    public function checkTransfer(string $domain): array
+    {
+        Logger::info("[OpenProvider] Checking transferability for {$domain}");
+
+        $parts = explode('.', $domain);
+        $extension = array_pop($parts);
+        $name = implode('.', $parts);
+
+        $response = $this->makeRequest('POST', '/domains/check', [
+            'domains' => [
+                ['name' => $name, 'extension' => $extension]
+            ],
+            'with_price' => true
+        ]);
+
+        $result = $response['data']['results'][0] ?? null;
+
+        if (!$result) {
+            return [
+                'transferable' => false,
+                'status' => 'unknown',
+                'reason' => 'No se pudo verificar el dominio'
+            ];
+        }
+
+        // Si el dominio está activo en otro registrador, es transferible
+        $transferable = in_array($result['status'] ?? '', ['active', 'taken']);
+
+        return [
+            'transferable' => $transferable,
+            'status' => $result['status'] ?? 'unknown',
+            'price' => $result['price']['reseller']['price'] ?? null,
+            'currency' => $result['price']['reseller']['currency'] ?? 'EUR',
+            'reason' => $transferable ? null : 'El dominio no está registrado o no puede transferirse'
+        ];
+    }
+
+    /**
+     * Iniciar transferencia de dominio
+     *
+     * @param string $name Nombre del dominio (sin extensión)
+     * @param string $extension Extensión (sin punto)
+     * @param string $authCode Código de autorización (EPP code)
+     * @param string $ownerHandle Handle del contacto propietario
+     * @param array $nameservers Nameservers a usar
+     * @param int $period Periodo en años
+     * @param array $options Opciones adicionales
+     * @return array Datos de la transferencia
+     * @throws Exception
+     */
+    public function transferDomain(
+        string $name,
+        string $extension,
+        string $authCode,
+        string $ownerHandle,
+        array $nameservers,
+        int $period = 1,
+        array $options = []
+    ): array {
+        Logger::info("[OpenProvider] Initiating transfer for {$name}.{$extension}");
+
+        $data = [
+            'domain' => [
+                'name' => $name,
+                'extension' => $extension
+            ],
+            'period' => $period,
+            'auth_code' => $authCode,
+            'owner_handle' => $ownerHandle,
+            'admin_handle' => $options['admin_handle'] ?? $ownerHandle,
+            'tech_handle' => $options['tech_handle'] ?? $ownerHandle,
+            'billing_handle' => $options['billing_handle'] ?? $ownerHandle,
+            'name_servers' => $this->formatNameservers($nameservers),
+            'autorenew' => $options['autorenew'] ?? 'default'
+        ];
+
+        $response = $this->makeRequest('POST', '/domains/transfer', $data);
+
+        if (!isset($response['data']['id'])) {
+            $error = $response['desc'] ?? 'Unknown error';
+            throw new Exception("Failed to initiate transfer: {$error}");
+        }
+
+        Logger::info("[OpenProvider] Transfer initiated. ID: {$response['data']['id']}");
+
+        return [
+            'id' => $response['data']['id'],
+            'status' => $response['data']['status'] ?? 'pending'
+        ];
+    }
+
+    /**
+     * Obtener estado de transferencia
+     *
+     * @param int $transferId ID de la transferencia
+     * @return array|null Estado de la transferencia
+     * @throws Exception
+     */
+    public function getTransferStatus(int $transferId): ?array
+    {
+        Logger::info("[OpenProvider] Getting transfer status for ID: {$transferId}");
+
+        try {
+            $response = $this->makeRequest('GET', "/domains/{$transferId}");
+
+            return [
+                'status' => $this->mapDomainStatus($response['data']['status'] ?? ''),
+                'raw_status' => $response['data']['status'] ?? null
+            ];
+        } catch (Exception $e) {
+            Logger::warning("[OpenProvider] Could not get transfer status: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Mapear estado de dominio de OpenProvider a estado interno
+     */
+    private function mapDomainStatus(string $opStatus): string
+    {
+        $mapping = [
+            'ACT' => 'completed',
+            'REQ' => 'processing',
+            'PEN' => 'pending',
+            'FAI' => 'failed',
+            'DEL' => 'cancelled'
+        ];
+
+        return $mapping[$opStatus] ?? 'pending';
+    }
+
+    // ============================================
+    // DOMAIN MANAGEMENT
+    // ============================================
+
+    /**
+     * Actualizar nameservers de un dominio
+     *
+     * @param int $domainId ID del dominio en OpenProvider
+     * @param array $nameservers Array de nameservers
+     * @return bool
+     * @throws Exception
+     */
+    public function updateDomainNameservers(int $domainId, array $nameservers): bool
+    {
+        Logger::info("[OpenProvider] Updating nameservers for domain ID: {$domainId}");
+
+        $response = $this->makeRequest('PUT', "/domains/{$domainId}", [
+            'name_servers' => $this->formatNameservers($nameservers)
+        ]);
+
+        Logger::info("[OpenProvider] Nameservers updated");
+
+        return true;
+    }
+
+    /**
+     * Actualizar contactos de un dominio
+     *
+     * @param int $domainId ID del dominio
+     * @param array $handles Array asociativo de handles [owner, admin, tech, billing]
+     * @return bool
+     * @throws Exception
+     */
+    public function updateDomainContacts(int $domainId, array $handles): bool
+    {
+        Logger::info("[OpenProvider] Updating contacts for domain ID: {$domainId}");
+
+        $data = [];
+
+        if (!empty($handles['owner'])) {
+            $data['owner_handle'] = $handles['owner'];
+        }
+        if (!empty($handles['admin'])) {
+            $data['admin_handle'] = $handles['admin'];
+        }
+        if (!empty($handles['tech'])) {
+            $data['tech_handle'] = $handles['tech'];
+        }
+        if (!empty($handles['billing'])) {
+            $data['billing_handle'] = $handles['billing'];
+        }
+
+        if (empty($data)) {
+            return false;
+        }
+
+        $response = $this->makeRequest('PUT', "/domains/{$domainId}", $data);
+
+        Logger::info("[OpenProvider] Domain contacts updated");
+
+        return true;
+    }
+
+    /**
+     * Obtener auth code de un dominio
+     *
+     * @param int $domainId ID del dominio
+     * @return string|null Auth code
+     * @throws Exception
+     */
+    public function getDomainAuthCode(int $domainId): ?string
+    {
+        Logger::info("[OpenProvider] Getting auth code for domain ID: {$domainId}");
+
+        $response = $this->makeRequest('GET', "/domains/{$domainId}");
+
+        return $response['data']['auth_code'] ?? null;
+    }
+
+    /**
+     * Regenerar auth code de un dominio
+     *
+     * @param int $domainId ID del dominio
+     * @return string Nuevo auth code
+     * @throws Exception
+     */
+    public function regenerateAuthCode(int $domainId): string
+    {
+        Logger::info("[OpenProvider] Regenerating auth code for domain ID: {$domainId}");
+
+        $response = $this->makeRequest('POST', "/domains/{$domainId}/authcode/reset");
+
+        return $response['data']['auth_code'] ?? '';
     }
 
     // ============================================
