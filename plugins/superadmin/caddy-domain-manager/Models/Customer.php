@@ -354,13 +354,13 @@ class Customer
 
         $stmt = $pdo->prepare("
             SELECT
-                do.*,
+                dord.*,
                 t.domain as tenant_domain,
-                CONCAT(do.domain_name, '.', do.domain_extension) as full_domain
-            FROM domain_orders do
-            LEFT JOIN tenants t ON t.id = do.tenant_id
-            WHERE do.customer_id = ?
-            ORDER BY do.created_at DESC
+                CONCAT(dord.domain_name, '.', dord.domain_extension) as full_domain
+            FROM domain_orders dord
+            LEFT JOIN tenants t ON t.id = dord.tenant_id
+            WHERE dord.customer_id = ?
+            ORDER BY dord.created_at DESC
         ");
         $stmt->execute([$customerId]);
 

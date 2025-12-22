@@ -92,6 +92,48 @@
                         </div>
                     </div>
 
+                    <!-- Credenciales de Admin (opcionales) -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="customAdminToggle" onchange="toggleCustomAdmin()">
+                                <label class="form-check-label fw-bold" for="customAdminToggle">
+                                    Personalizar credenciales de admin
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-text mb-3">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Por defecto se generan credenciales automaticamente (admin@tudominio.com + password aleatorio).
+                            Puedes personalizarlas si lo prefieres.
+                        </div>
+
+                        <div id="customAdminFields" style="display: none;">
+                            <div class="card bg-light border-0 p-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Email del Admin</label>
+                                    <input type="email" class="form-control" name="admin_email"
+                                           id="adminEmailInput"
+                                           placeholder="admin@ejemplo.com">
+                                    <div class="form-text">Debe ser un email valido y unico en el sistema.</div>
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label">Password del Admin</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" name="admin_password"
+                                               id="adminPasswordInput"
+                                               placeholder="Minimo 8 caracteres"
+                                               minlength="8">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility()">
+                                            <i class="bi bi-eye" id="passwordToggleIcon"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Minimo 8 caracteres. Usa una combinacion segura.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary btn-lg">
                             <i class="bi bi-link-45deg me-2"></i>Vincular Dominio
@@ -109,6 +151,37 @@
 
 @section('scripts')
 <script>
+function toggleCustomAdmin() {
+    const checkbox = document.getElementById('customAdminToggle');
+    const fields = document.getElementById('customAdminFields');
+    const emailInput = document.getElementById('adminEmailInput');
+    const passwordInput = document.getElementById('adminPasswordInput');
+
+    if (checkbox.checked) {
+        fields.style.display = 'block';
+    } else {
+        fields.style.display = 'none';
+        // Limpiar campos cuando se desactiva
+        emailInput.value = '';
+        passwordInput.value = '';
+    }
+}
+
+function togglePasswordVisibility() {
+    const passwordInput = document.getElementById('adminPasswordInput');
+    const icon = document.getElementById('passwordToggleIcon');
+
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
+}
+
 function submitRequest(event) {
     event.preventDefault();
 
@@ -124,6 +197,42 @@ function submitRequest(event) {
             text: 'Para subdominios de musedock.com usa "Solicitar Subdominio FREE"'
         });
         return;
+    }
+
+    // Validar credenciales personalizadas si estan activadas
+    const customAdminEnabled = document.getElementById('customAdminToggle').checked;
+    if (customAdminEnabled) {
+        const adminEmail = formData.get('admin_email').trim();
+        const adminPassword = formData.get('admin_password');
+
+        if (!adminEmail || !adminPassword) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Si personalizas las credenciales, debes completar email y password'
+            });
+            return;
+        }
+
+        // Validar formato de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(adminEmail)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'El email del admin no tiene un formato valido'
+            });
+            return;
+        }
+
+        if (adminPassword.length < 8) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'El password del admin debe tener al menos 8 caracteres'
+            });
+            return;
+        }
     }
 
     Swal.fire({
@@ -152,6 +261,17 @@ function submitRequest(event) {
                 nsHtml += `<p class="mb-1"><code>NS${i+1}: ${ns}</code></p>`;
             });
             nsHtml += '</div>';
+
+            // Mostrar credenciales si fueron generadas automaticamente
+            if (data.admin_credentials && !customAdminEnabled) {
+                nsHtml += `<div class="mt-3 p-3 bg-success bg-opacity-10 rounded">
+                    <strong>Credenciales de Admin:</strong><br>
+                    <small>Email: <code>${data.admin_credentials.email}</code></small><br>
+                    <small>Password: <code>${data.admin_credentials.password}</code></small><br>
+                    <small class="text-muted">Guarda estas credenciales!</small>
+                </div>`;
+            }
+
             nsHtml += '<p class="mt-3 text-muted small">Te hemos enviado un email con instrucciones detalladas.</p>';
             nsHtml += '</div>';
 

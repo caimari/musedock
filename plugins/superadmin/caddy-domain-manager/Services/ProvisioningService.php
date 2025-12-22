@@ -330,23 +330,30 @@ class ProvisioningService
     }
 
     /**
-     * Crea admin del tenant con credenciales únicas
+     * Crea admin del tenant con credenciales únicas o personalizadas
      *
-     * Genera un email único basado en el dominio y una contraseña segura aleatoria.
-     * Guarda la relación en customer_tenant_credentials para que el customer
-     * pueda ver y gestionar las credenciales desde su panel.
+     * Si se proporcionan credenciales personalizadas (admin_email y admin_password),
+     * las usa después de validar que el email no existe. Si no, genera credenciales
+     * únicas automáticamente.
      *
      * @param int $tenantId
-     * @param array $customerData
+     * @param array $customerData Datos del customer (name, email, etc.)
      * @param int|null $customerId ID del customer (opcional)
      * @param string|null $domain Dominio del tenant para generar email único
+     * @param array|null $customAdminCredentials Credenciales personalizadas ['email' => ..., 'password' => ...]
      * @return int Admin ID
      * @throws \Exception
      */
-    private function createTenantAdmin(int $tenantId, array $customerData, ?int $customerId = null, ?string $domain = null): int
+    private function createTenantAdmin(int $tenantId, array $customerData, ?int $customerId = null, ?string $domain = null, ?array $customAdminCredentials = null): int
     {
-        // Generar credenciales únicas para este tenant
-        $adminCredentials = $this->generateUniqueAdminCredentials($customerData, $domain);
+        // Determinar credenciales a usar
+        if ($customAdminCredentials && !empty($customAdminCredentials['email']) && !empty($customAdminCredentials['password'])) {
+            // Usar credenciales personalizadas
+            $adminCredentials = $this->validateAndPrepareCustomCredentials($customAdminCredentials, $customerData);
+        } else {
+            // Generar credenciales únicas automáticamente
+            $adminCredentials = $this->generateUniqueAdminCredentials($customerData, $domain);
+        }
 
         $hashedPassword = password_hash($adminCredentials['password'], PASSWORD_DEFAULT);
 
@@ -366,13 +373,16 @@ class ProvisioningService
 
         // Guardar la relación customer-tenant-admin para gestión posterior
         if ($customerId) {
+            // Para credenciales personalizadas, no mostrar el password inicial
+            $initialPassword = isset($customAdminCredentials['email']) ? null : $adminCredentials['password'];
+
             $this->saveCustomerTenantCredentials(
                 $customerId,
                 $tenantId,
                 $adminId,
                 $adminCredentials['email'],
                 $hashedPassword,
-                $adminCredentials['password']
+                $initialPassword
             );
         }
 
@@ -380,6 +390,43 @@ class ProvisioningService
         $this->lastCreatedAdminCredentials = $adminCredentials;
 
         return $adminId;
+    }
+
+    /**
+     * Valida y prepara credenciales personalizadas para el admin
+     *
+     * @param array $customCredentials ['email' => ..., 'password' => ...]
+     * @param array $customerData Datos del customer para el nombre
+     * @return array ['name' => ..., 'email' => ..., 'password' => ...]
+     * @throws \Exception Si el email ya existe o no es válido
+     */
+    private function validateAndPrepareCustomCredentials(array $customCredentials, array $customerData): array
+    {
+        $email = strtolower(trim($customCredentials['email']));
+        $password = $customCredentials['password'];
+
+        // Validar formato de email
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new \Exception('El email del admin no es válido');
+        }
+
+        // Validar longitud de password
+        if (strlen($password) < 8) {
+            throw new \Exception('La contraseña del admin debe tener al menos 8 caracteres');
+        }
+
+        // Verificar que el email no exista en admins
+        $stmt = $this->pdo->prepare("SELECT id FROM admins WHERE email = ?");
+        $stmt->execute([$email]);
+        if ($stmt->fetch()) {
+            throw new \Exception('El email del admin ya está en uso por otro administrador');
+        }
+
+        return [
+            'name' => $customerData['name'],
+            'email' => $email,
+            'password' => $password
+        ];
     }
 
     /**
@@ -535,9 +582,10 @@ class ProvisioningService
      * @param array $customer Datos del customer existente
      * @param string $plan Plan del tenant ('free' o 'custom')
      * @param string $domain Dominio del tenant
+     * @param array|null $adminCredentials Credenciales personalizadas opcionales ['email' => ..., 'password' => ...]
      * @return array ['success', 'tenant_id', 'admin_id', 'admin_credentials']
      */
-    public function createTenantForCustomer(array $customer, string $plan, string $domain): array
+    public function createTenantForCustomer(array $customer, string $plan, string $domain, ?array $adminCredentials = null): array
     {
         Logger::info("[ProvisioningService] Creating tenant for existing customer: {$customer['email']}, domain: {$domain}");
 
@@ -578,8 +626,8 @@ class ProvisioningService
                 'password' => '' // No necesario, se genera uno nuevo
             ];
 
-            // Crear admin del tenant con credenciales únicas
-            $adminId = $this->createTenantAdmin($tenantId, $customerData, (int)$customer['id'], $domain);
+            // Crear admin del tenant (con credenciales personalizadas si se proporcionan)
+            $adminId = $this->createTenantAdmin($tenantId, $customerData, (int)$customer['id'], $domain, $adminCredentials);
             Logger::info("[ProvisioningService] Tenant admin created: ID {$adminId}");
 
             // Generar slug

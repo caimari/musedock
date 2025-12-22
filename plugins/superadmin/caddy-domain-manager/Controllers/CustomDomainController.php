@@ -9,6 +9,7 @@ use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Security\CSRFProtection;
 use Screenart\Musedock\Mail\Mailer;
 use CaddyDomainManager\Services\CloudflareZoneService;
+use CaddyDomainManager\Services\ProvisioningService;
 use PDO;
 use Exception;
 
@@ -67,6 +68,10 @@ class CustomDomainController
         $domain = strtolower(trim($_POST['domain'] ?? ''));
         $enableEmailRouting = isset($_POST['enable_email_routing']);
 
+        // Obtener credenciales personalizadas (opcionales)
+        $adminEmail = trim($_POST['admin_email'] ?? '');
+        $adminPassword = $_POST['admin_password'] ?? '';
+
         // Validar formato de dominio
         if (!$this->isValidDomain($domain)) {
             $this->jsonResponse([
@@ -85,8 +90,48 @@ class CustomDomainController
             return;
         }
 
+        // Validar credenciales personalizadas si se proporcionan
+        $customAdminCredentials = null;
+        if (!empty($adminEmail) && !empty($adminPassword)) {
+            // Validar formato de email
+            if (!filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'error' => 'El email del admin no es válido'
+                ], 400);
+                return;
+            }
+
+            // Validar longitud de password
+            if (strlen($adminPassword) < 8) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'error' => 'La contraseña del admin debe tener al menos 8 caracteres'
+                ], 400);
+                return;
+            }
+
+            $customAdminCredentials = [
+                'email' => strtolower($adminEmail),
+                'password' => $adminPassword
+            ];
+        }
+
         try {
             $pdo = Database::connect();
+
+            // Verificar que el email del admin no exista (si se proporciona)
+            if ($customAdminCredentials) {
+                $stmt = $pdo->prepare("SELECT id FROM admins WHERE email = ?");
+                $stmt->execute([$customAdminCredentials['email']]);
+                if ($stmt->fetch()) {
+                    $this->jsonResponse([
+                        'success' => false,
+                        'error' => 'El email del admin ya está en uso por otro administrador'
+                    ], 400);
+                    return;
+                }
+            }
 
             // Verificar si el dominio ya existe en el sistema
             $stmt = $pdo->prepare("

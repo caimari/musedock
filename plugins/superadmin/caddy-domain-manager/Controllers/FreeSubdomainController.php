@@ -82,6 +82,10 @@ class FreeSubdomainController
         $customerId = $_SESSION['customer']['id'];
         $subdomain = trim($_POST['subdomain'] ?? '');
 
+        // Obtener credenciales personalizadas (opcionales)
+        $adminEmail = trim($_POST['admin_email'] ?? '');
+        $adminPassword = $_POST['admin_password'] ?? '';
+
         // Validar formato de subdominio
         if (!preg_match('/^[a-z0-9-]{3,30}$/', $subdomain)) {
             $this->jsonResponse([
@@ -99,6 +103,33 @@ class FreeSubdomainController
                 'error' => 'Este subdominio está reservado. Por favor elige otro.'
             ], 400);
             return;
+        }
+
+        // Validar credenciales personalizadas si se proporcionan
+        $customAdminCredentials = null;
+        if (!empty($adminEmail) && !empty($adminPassword)) {
+            // Validar formato de email
+            if (!filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'error' => 'El email del admin no es válido'
+                ], 400);
+                return;
+            }
+
+            // Validar longitud de password
+            if (strlen($adminPassword) < 8) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'error' => 'La contraseña del admin debe tener al menos 8 caracteres'
+                ], 400);
+                return;
+            }
+
+            $customAdminCredentials = [
+                'email' => strtolower($adminEmail),
+                'password' => $adminPassword
+            ];
         }
 
         try {
@@ -134,24 +165,69 @@ class FreeSubdomainController
                 return;
             }
 
+            // Verificar que el email del admin no exista (si se proporciona)
+            if ($customAdminCredentials) {
+                $stmt = $pdo->prepare("SELECT id FROM admins WHERE email = ?");
+                $stmt->execute([$customAdminCredentials['email']]);
+                if ($stmt->fetch()) {
+                    $this->jsonResponse([
+                        'success' => false,
+                        'error' => 'El email del admin ya está en uso por otro administrador'
+                    ], 400);
+                    return;
+                }
+            }
+
+            // Obtener datos del customer
+            $stmt = $pdo->prepare("SELECT * FROM customers WHERE id = ?");
+            $stmt->execute([$customerId]);
+            $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$customer) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'error' => 'Customer no encontrado'
+                ], 404);
+                return;
+            }
+
             // Crear tenant usando ProvisioningService
             Logger::info("[FreeSubdomainController] Creating FREE subdomain '{$subdomain}' for customer {$customerId}");
 
             $provisioningService = new ProvisioningService();
-            $tenantId = $provisioningService->createTenant(
-                $customerId,
-                $subdomain,
-                true // is FREE subdomain
+            $result = $provisioningService->createTenantForCustomer(
+                $customer,
+                'free',
+                $domain,
+                $customAdminCredentials
             );
 
-            Logger::info("[FreeSubdomainController] FREE subdomain created successfully. Tenant ID: {$tenantId}");
+            if (!$result['success']) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'error' => $result['error'] ?? 'Error al crear el tenant'
+                ], 500);
+                return;
+            }
 
-            $this->jsonResponse([
+            Logger::info("[FreeSubdomainController] FREE subdomain created successfully. Tenant ID: {$result['tenant_id']}");
+
+            $response = [
                 'success' => true,
-                'message' => '¡Subdominio creado exitosamente! Redirigiendo...',
-                'tenant_id' => $tenantId,
+                'message' => '¡Subdominio creado exitosamente!',
+                'tenant_id' => $result['tenant_id'],
                 'domain' => $domain
-            ]);
+            ];
+
+            // Incluir credenciales si fueron generadas automaticamente
+            if ($result['admin_credentials'] && !$customAdminCredentials) {
+                $response['admin_credentials'] = [
+                    'email' => $result['admin_credentials']['email'],
+                    'password' => $result['admin_credentials']['password']
+                ];
+            }
+
+            $this->jsonResponse($response);
 
         } catch (\Exception $e) {
             Logger::error("[FreeSubdomainController] Error creating FREE subdomain: " . $e->getMessage());

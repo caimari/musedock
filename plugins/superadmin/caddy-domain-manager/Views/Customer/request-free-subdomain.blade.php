@@ -79,6 +79,48 @@
                         </div>
                     </div>
 
+                    <!-- Credenciales de Admin (opcionales) -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="customAdminToggle" onchange="toggleCustomAdmin()">
+                                <label class="form-check-label fw-bold" for="customAdminToggle">
+                                    Personalizar credenciales de admin
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-text mb-3">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Por defecto se generan credenciales automaticamente (admin@tusubdominio.musedock.com + password aleatorio).
+                            Puedes personalizarlas si lo prefieres.
+                        </div>
+
+                        <div id="customAdminFields" style="display: none;">
+                            <div class="card bg-light border-0 p-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Email del Admin</label>
+                                    <input type="email" class="form-control" name="admin_email"
+                                           id="adminEmailInput"
+                                           placeholder="admin@ejemplo.com">
+                                    <div class="form-text">Debe ser un email valido y unico en el sistema.</div>
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label">Password del Admin</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" name="admin_password"
+                                               id="adminPasswordInput"
+                                               placeholder="Minimo 8 caracteres"
+                                               minlength="8">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility()">
+                                            <i class="bi bi-eye" id="passwordToggleIcon"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Minimo 8 caracteres. Usa una combinacion segura.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-success btn-lg">
                             <i class="bi bi-rocket-takeoff me-2"></i>Crear mi Subdominio FREE
@@ -102,6 +144,37 @@ function updatePreview() {
     const value = input.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
     input.value = value;
     preview.innerHTML = `<strong>${value || '<span class="text-muted">tuempresa</span>'}</strong>.musedock.com`;
+}
+
+function toggleCustomAdmin() {
+    const checkbox = document.getElementById('customAdminToggle');
+    const fields = document.getElementById('customAdminFields');
+    const emailInput = document.getElementById('adminEmailInput');
+    const passwordInput = document.getElementById('adminPasswordInput');
+
+    if (checkbox.checked) {
+        fields.style.display = 'block';
+    } else {
+        fields.style.display = 'none';
+        // Limpiar campos cuando se desactiva
+        emailInput.value = '';
+        passwordInput.value = '';
+    }
+}
+
+function togglePasswordVisibility() {
+    const passwordInput = document.getElementById('adminPasswordInput');
+    const icon = document.getElementById('passwordToggleIcon');
+
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
 }
 
 function submitRequest(event) {
@@ -130,6 +203,42 @@ function submitRequest(event) {
         return;
     }
 
+    // Validar credenciales personalizadas si estan activadas
+    const customAdminEnabled = document.getElementById('customAdminToggle').checked;
+    if (customAdminEnabled) {
+        const adminEmail = formData.get('admin_email').trim();
+        const adminPassword = formData.get('admin_password');
+
+        if (!adminEmail || !adminPassword) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Si personalizas las credenciales, debes completar email y password'
+            });
+            return;
+        }
+
+        // Validar formato de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(adminEmail)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'El email del admin no tiene un formato valido'
+            });
+            return;
+        }
+
+        if (adminPassword.length < 8) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'El password del admin debe tener al menos 8 caracteres'
+            });
+            return;
+        }
+    }
+
     Swal.fire({
         title: 'Procesando solicitud...',
         html: 'Estamos creando tu subdominio...',
@@ -149,10 +258,22 @@ function submitRequest(event) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            let successHtml = `Tu sitio web esta listo en:<br><strong><a href="https://${data.domain}" target="_blank">${data.domain}</a></strong>`;
+
+            // Mostrar credenciales si fueron generadas automaticamente
+            if (data.admin_credentials && !customAdminEnabled) {
+                successHtml += `<br><br><div class="text-start mt-3 p-3 bg-light rounded">
+                    <strong>Credenciales de Admin:</strong><br>
+                    <small>Email: <code>${data.admin_credentials.email}</code></small><br>
+                    <small>Password: <code>${data.admin_credentials.password}</code></small><br>
+                    <small class="text-muted">Guarda estas credenciales!</small>
+                </div>`;
+            }
+
             Swal.fire({
                 icon: 'success',
                 title: 'Subdominio Creado!',
-                html: `Tu sitio web esta listo en:<br><strong><a href="https://${data.domain}" target="_blank">${data.domain}</a></strong>`,
+                html: successHtml,
                 confirmButtonColor: '#28a745',
                 confirmButtonText: 'Ir al Dashboard'
             }).then(() => {
