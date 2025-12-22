@@ -8,7 +8,7 @@
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
     .search-card .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #667eea;
         color: white;
         border-radius: 15px 15px 0 0 !important;
         padding: 30px;
@@ -207,8 +207,6 @@
 
 @section('scripts')
 <script>
-let searchTimeout = null;
-
 function searchDomains(event) {
     event.preventDefault();
 
@@ -349,14 +347,5 @@ function selectDomain(domain, price, currency) {
     });
 }
 
-// Auto-search al escribir (con debounce)
-document.getElementById('domainQuery').addEventListener('input', function(e) {
-    clearTimeout(searchTimeout);
-    if (this.value.length >= 3) {
-        searchTimeout = setTimeout(() => {
-            document.getElementById('searchForm').dispatchEvent(new Event('submit'));
-        }, 500);
-    }
-});
 </script>
 @endsection
