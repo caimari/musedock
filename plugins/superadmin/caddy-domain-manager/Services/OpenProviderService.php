@@ -496,7 +496,7 @@ class OpenProviderService
             ]
         ];
 
-        Logger::info("[OpenProvider] Creating contact with phone: +{$phoneCountryCode} {$phoneNumber}");
+        Logger::info("[OpenProvider] Creating contact with phone: {$phoneCountryCode} {$phoneNumber}");
 
         $response = $this->makeRequest('POST', '/customers', $data);
 
@@ -985,34 +985,34 @@ class OpenProviderService
 
     /**
      * Extraer código de país del teléfono
-     * OpenProvider espera solo el número sin +
+     * OpenProvider espera el código CON el signo + (ej: "+34", "+1")
      *
      * @param string $phone Número de teléfono
      * @param string|null $countryCode ISO2 del país (para inferir si no hay código)
-     * @return string Código de país (ej: 34)
+     * @return string Código de país con + (ej: +34)
      */
     private function extractPhoneCountryCode(string $phone, ?string $countryCode = null): string
     {
         // Limpiar el teléfono
         $phone = trim($phone);
 
-        // Si empieza con +, extraer el código
-        if (preg_match('/^\+(\d{1,4})/', $phone, $matches)) {
-            return $matches[1]; // Sin el +
+        // Si empieza con +, extraer el código completo
+        if (preg_match('/^(\+\d{1,4})/', $phone, $matches)) {
+            return $matches[1]; // Con el +
         }
 
-        // Si empieza con 00, extraer el código
+        // Si empieza con 00, convertir a formato +
         if (preg_match('/^00(\d{1,4})/', $phone, $matches)) {
-            return $matches[1];
+            return '+' . $matches[1];
         }
 
         // Si se proporcionó código de país ISO, usar ese
         if ($countryCode && isset(self::PHONE_COUNTRY_CODES[strtoupper($countryCode)])) {
-            return self::PHONE_COUNTRY_CODES[strtoupper($countryCode)];
+            return '+' . self::PHONE_COUNTRY_CODES[strtoupper($countryCode)];
         }
 
         // Por defecto España
-        return '34';
+        return '+34';
     }
 
     /**

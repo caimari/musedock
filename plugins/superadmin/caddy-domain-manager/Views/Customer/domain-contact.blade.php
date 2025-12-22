@@ -11,14 +11,20 @@
         background: #17a2b8;
         color: white;
         border-radius: 15px 15px 0 0 !important;
-        padding: 25px;
+        padding: 20px 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
     }
     .domain-badge {
         background: rgba(255,255,255,0.2);
         padding: 8px 15px;
         border-radius: 20px;
-        display: inline-block;
-        margin-top: 10px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.95rem;
     }
     .contact-section {
         border: 1px solid #e0e0e0;
@@ -165,7 +171,7 @@
                 <h3 class="mb-0 text-white"><i class="bi bi-person-vcard me-2 text-white"></i>Registro de Dominio</h3>
                 <div class="domain-badge">
                     <i class="bi bi-globe me-1"></i><?= htmlspecialchars($selectedDomain ?? '') ?>
-                    <span class="ms-2">- <?= number_format($selectedPrice ?? 0, 2) ?> <?= htmlspecialchars($selectedCurrency ?? 'USD') ?>/ano</span>
+                    <span class="ms-2">- <?= number_format($selectedPrice ?? 0, 2) ?> <?= htmlspecialchars($selectedCurrency ?? 'USD') ?>/año</span>
                 </div>
             </div>
             <div class="card-body p-4">
