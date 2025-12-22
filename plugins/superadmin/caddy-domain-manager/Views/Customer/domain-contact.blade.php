@@ -334,7 +334,7 @@
                                     </div>
                                     <div class="col-md-3">
                                         <div class="form-floating">
-                                            <input type="text" class="form-control" id="admin_number" name="admin_number" placeholder="Numero" required>
+                                            <input type="text" class="form-control" id="admin_number" name="admin_number" placeholder="Numero">
                                             <label>Numero *</label>
                                         </div>
                                     </div>
@@ -414,7 +414,7 @@
                                     </div>
                                     <div class="col-md-3">
                                         <div class="form-floating">
-                                            <input type="text" class="form-control" id="tech_number" name="tech_number" placeholder="Numero" required>
+                                            <input type="text" class="form-control" id="tech_number" name="tech_number" placeholder="Numero">
                                             <label>Numero *</label>
                                         </div>
                                     </div>
@@ -494,7 +494,7 @@
                                     </div>
                                     <div class="col-md-3">
                                         <div class="form-floating">
-                                            <input type="text" class="form-control" id="billing_number" name="billing_number" placeholder="Numero" required>
+                                            <input type="text" class="form-control" id="billing_number" name="billing_number" placeholder="Numero">
                                             <label>Numero *</label>
                                         </div>
                                     </div>
@@ -594,7 +594,11 @@
                     <!-- Botones -->
                     <div class="d-grid gap-2 mt-4">
                         <button type="submit" class="btn btn-primary btn-submit btn-lg" id="submitBtn">
-                            <i class="bi bi-arrow-right-circle me-2"></i>Continuar al Checkout
+                            <span id="submitBtnText"><i class="bi bi-arrow-right-circle me-2"></i>Continuar al Checkout</span>
+                            <span id="submitBtnSpinner" style="display: none;">
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                Procesando...
+                            </span>
                         </button>
                         <a href="/customer/register-domain" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left me-2"></i>Volver a busqueda
@@ -803,14 +807,14 @@ function submitRegistration(event) {
         }
     }
 
-    Swal.fire({
-        title: 'Procesando...',
-        html: 'Guardando datos y preparando checkout...',
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-    });
+    // Mostrar spinner en el boton
+    const submitBtn = document.getElementById('submitBtn');
+    const submitBtnText = document.getElementById('submitBtnText');
+    const submitBtnSpinner = document.getElementById('submitBtnSpinner');
 
-    document.getElementById('submitBtn').disabled = true;
+    submitBtn.disabled = true;
+    submitBtnText.style.display = 'none';
+    submitBtnSpinner.style.display = 'inline';
 
     fetch('/customer/domain/contact/save', {
         method: 'POST',
@@ -829,7 +833,11 @@ function submitRegistration(event) {
                 window.location.href = data.redirect || '/customer/register-domain/checkout';
             });
         } else {
-            document.getElementById('submitBtn').disabled = false;
+            // Restaurar boton
+            submitBtn.disabled = false;
+            submitBtnText.style.display = 'inline';
+            submitBtnSpinner.style.display = 'none';
+
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -840,7 +848,12 @@ function submitRegistration(event) {
     })
     .catch(error => {
         console.error('Error:', error);
-        document.getElementById('submitBtn').disabled = false;
+
+        // Restaurar boton
+        submitBtn.disabled = false;
+        submitBtnText.style.display = 'inline';
+        submitBtnSpinner.style.display = 'none';
+
         Swal.fire({
             icon: 'error',
             title: 'Error de conexion',
