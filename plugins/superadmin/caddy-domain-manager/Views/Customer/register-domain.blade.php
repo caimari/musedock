@@ -112,7 +112,7 @@
     <div class="col-lg-10">
         <div class="card search-card">
             <div class="card-header">
-                <h2 class="mb-2"><i class="bi bi-globe2 me-2"></i>Registrar Dominio</h2>
+                <h2 class="mb-2 text-white"><i class="bi bi-globe2 me-2 text-white"></i>Registrar Dominio</h2>
                 <p class="mb-0 opacity-75">Busca y registra tu dominio perfecto</p>
             </div>
             <div class="card-body p-4">

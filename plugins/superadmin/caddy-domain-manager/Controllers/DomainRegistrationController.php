@@ -5,7 +5,6 @@ namespace CaddyDomainManager\Controllers;
 use Screenart\Musedock\Database;
 use Screenart\Musedock\View;
 use Screenart\Musedock\Logger;
-use Screenart\Musedock\Security\CSRFProtection;
 use Screenart\Musedock\Mail\Mailer;
 use CaddyDomainManager\Services\OpenProviderService;
 use CaddyDomainManager\Services\CloudflareZoneService;
@@ -196,7 +195,7 @@ class DomainRegistrationController
 
         try {
             // Validar CSRF
-            if (!CSRFProtection::validate($_POST['_csrf_token'] ?? '')) {
+            if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
                 $this->jsonResponse(['success' => false, 'error' => 'Token de seguridad invalido'], 403);
                 return;
             }
@@ -252,7 +251,7 @@ class DomainRegistrationController
         header('Content-Type: application/json');
 
         try {
-            if (!CSRFProtection::validate($_POST['_csrf_token'] ?? '')) {
+            if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
                 $this->jsonResponse(['success' => false, 'error' => 'Token de seguridad invalido'], 403);
                 return;
             }
@@ -294,7 +293,7 @@ class DomainRegistrationController
         header('Content-Type: application/json');
 
         try {
-            if (!CSRFProtection::validate($_POST['_csrf_token'] ?? '')) {
+            if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
                 $this->jsonResponse(['success' => false, 'error' => 'Token de seguridad invalido'], 403);
                 return;
             }
@@ -402,7 +401,7 @@ class DomainRegistrationController
         header('Content-Type: application/json');
 
         try {
-            if (!CSRFProtection::validate($_POST['_csrf_token'] ?? '')) {
+            if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
                 $this->jsonResponse(['success' => false, 'error' => 'Token de seguridad invalido'], 403);
                 return;
             }
@@ -448,7 +447,7 @@ class DomainRegistrationController
         header('Content-Type: application/json');
 
         try {
-            if (!CSRFProtection::validate($_POST['_csrf_token'] ?? '')) {
+            if (!verify_csrf_token($_POST['_csrf_token'] ?? '')) {
                 $this->jsonResponse(['success' => false, 'error' => 'Token de seguridad invalido'], 403);
                 return;
             }
