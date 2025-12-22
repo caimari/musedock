@@ -244,7 +244,7 @@
                                 </div>
                                 <div class="col-md-3">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="owner_number" name="owner_number" placeholder="Numero" required>
+                                        <input type="text" class="form-control" id="owner_number" name="owner_number" placeholder="Numero">
                                         <label>Numero *</label>
                                     </div>
                                 </div>
@@ -295,12 +295,10 @@
                         <!-- Admin Contact -->
                         <div class="contact-section">
                             <div class="contact-section-header mb-3">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h5><i class="bi bi-person-gear me-2"></i>Contacto Administrativo</h5>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyFromOwner('admin')">
-                                        <i class="bi bi-files me-1"></i>Copiar del Propietario
-                                    </button>
-                                </div>
+                                <h5><i class="bi bi-person-gear me-2"></i>Contacto Administrativo</h5>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyFromOwner('admin')">
+                                    <i class="bi bi-files me-1"></i>Copiar del Propietario
+                                </button>
                             </div>
                             <div class="contact-fields">
                                 <div class="row g-3">
@@ -381,12 +379,10 @@
                         <!-- Tech Contact -->
                         <div class="contact-section">
                             <div class="contact-section-header mb-3">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h5><i class="bi bi-tools me-2"></i>Contacto Tecnico</h5>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyFromOwner('tech')">
-                                        <i class="bi bi-files me-1"></i>Copiar del Propietario
-                                    </button>
-                                </div>
+                                <h5><i class="bi bi-tools me-2"></i>Contacto Tecnico</h5>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyFromOwner('tech')">
+                                    <i class="bi bi-files me-1"></i>Copiar del Propietario
+                                </button>
                             </div>
                             <div class="contact-fields">
                                 <div class="row g-3">
@@ -467,12 +463,10 @@
                         <!-- Billing Contact -->
                         <div class="contact-section">
                             <div class="contact-section-header mb-3">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h5><i class="bi bi-credit-card me-2"></i>Contacto de Facturacion</h5>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyFromOwner('billing')">
-                                        <i class="bi bi-files me-1"></i>Copiar del Propietario
-                                    </button>
-                                </div>
+                                <h5><i class="bi bi-credit-card me-2"></i>Contacto de Facturacion</h5>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyFromOwner('billing')">
+                                    <i class="bi bi-files me-1"></i>Copiar del Propietario
+                                </button>
                             </div>
                             <div class="contact-fields">
                                 <div class="row g-3">
