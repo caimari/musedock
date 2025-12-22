@@ -296,6 +296,159 @@
     <?php endforeach; ?>
 <?php endif; ?>
 
+<!-- Dominios Registrados -->
+<h4 class="section-title">Mis Dominios Registrados</h4>
+
+<?php if (empty($domainOrders)): ?>
+<div class="alert alert-info" style="border-radius: 10px; border: 1px solid #3b82f6; background: #eff6ff;">
+    <i class="bi bi-info-circle me-2"></i>
+    Aún no tienes dominios registrados. Puedes registrar uno nuevo o transferir un dominio existente.
+</div>
+<?php else: ?>
+    <?php foreach ($domainOrders as $order): ?>
+    <?php
+        $fullDomain = $order['full_domain'] ?? (($order['domain'] ?? '') . '.' . ($order['extension'] ?? ''));
+        $orderStatus = $order['status'] ?? 'unknown';
+        $statusClassMap = [
+            'active' => 'bg-success',
+            'registered' => 'bg-success',
+            'pending' => 'bg-warning',
+            'processing' => 'bg-warning',
+            'in_progress' => 'bg-warning',
+            'failed' => 'bg-danger',
+            'error' => 'bg-danger',
+        ];
+        $statusLabelMap = [
+            'active' => 'Activo',
+            'registered' => 'Registrado',
+            'pending' => 'Pendiente',
+            'processing' => 'En Proceso',
+            'in_progress' => 'En Proceso',
+            'failed' => 'Error',
+            'error' => 'Error',
+        ];
+        $statusBadgeClass = $statusClassMap[$orderStatus] ?? 'bg-secondary';
+        $statusText = $statusLabelMap[$orderStatus] ?? ucfirst((string)$orderStatus);
+        $hostingType = $order['hosting_type'] ?? 'musedock_hosting';
+    ?>
+    <div class="tenant-card">
+        <div class="domain">
+            <i class="bi bi-globe"></i>
+            <?= htmlspecialchars($fullDomain) ?>
+        </div>
+
+        <div class="info">
+            <span class="badge <?= htmlspecialchars($statusBadgeClass) ?>">
+                <?= htmlspecialchars($statusText) ?>
+            </span>
+
+            <?php if ($hostingType === 'musedock_hosting'): ?>
+            <span class="badge bg-info">
+                <i class="bi bi-hdd-stack"></i> DNS + Hosting MuseDock
+            </span>
+            <?php else: ?>
+            <span class="badge bg-secondary">
+                <i class="bi bi-globe"></i> Solo Gestion DNS
+            </span>
+            <?php endif; ?>
+
+            <?php if (!empty($order['cloudflare_zone_id'])): ?>
+            <span class="badge bg-warning text-dark">
+                <i class="bi bi-shield-fill-check"></i> Cloudflare
+            </span>
+            <?php endif; ?>
+        </div>
+
+        <div class="actions">
+            <?php if (in_array($orderStatus, ['active', 'registered'], true)): ?>
+            <a href="/customer/domain/<?= (int)$order['id'] ?>/dns" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-hdd-network"></i> Gestionar DNS
+            </a>
+            <a href="/customer/domain/<?= (int)$order['id'] ?>/contacts" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-person-lines-fill"></i> Contactos
+            </a>
+            <?php if ($hostingType === 'musedock_hosting' && !empty($order['tenant_domain'])): ?>
+            <a href="https://<?= htmlspecialchars($order['tenant_domain']) ?>/<?= \Screenart\Musedock\Env::get('ADMIN_PATH_TENANT', 'admin') ?>"
+               class="btn btn-sm btn-primary" target="_blank">
+                <i class="bi bi-gear"></i> Admin
+            </a>
+            <?php endif; ?>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php endforeach; ?>
+<?php endif; ?>
+
+<!-- Transferencias en Proceso -->
+<?php
+    $hasPendingTransfers = false;
+    if (!empty($domainTransfers)) {
+        foreach ($domainTransfers as $transferTmp) {
+            if (($transferTmp['status'] ?? '') !== 'completed') {
+                $hasPendingTransfers = true;
+                break;
+            }
+        }
+    }
+?>
+<?php if (!empty($domainTransfers) && $hasPendingTransfers): ?>
+<h4 class="section-title">Transferencias en Proceso</h4>
+
+<?php foreach ($domainTransfers as $transfer): ?>
+<?php if (($transfer['status'] ?? '') !== 'completed'): ?>
+<?php
+    $transferStatus = $transfer['status'] ?? 'unknown';
+    $transferStatusClassMap = [
+        'completed' => 'bg-success',
+        'pending' => 'bg-warning',
+        'processing' => 'bg-warning',
+        'in_progress' => 'bg-warning',
+        'ACT' => 'bg-info',
+        'failed' => 'bg-danger',
+        'FAI' => 'bg-danger',
+    ];
+    $transferStatusLabelMap = [
+        'completed' => 'Completada',
+        'pending' => 'Pendiente',
+        'processing' => 'En Proceso',
+        'in_progress' => 'En Proceso',
+        'ACT' => 'Lista para Configurar',
+        'failed' => 'Fallida',
+        'FAI' => 'Fallida',
+    ];
+    $transferBadgeClass = $transferStatusClassMap[$transferStatus] ?? 'bg-secondary';
+    $transferStatusText = $transferStatusLabelMap[$transferStatus] ?? ucfirst((string)$transferStatus);
+?>
+<div class="tenant-card">
+    <div class="domain">
+        <i class="bi bi-arrow-left-right"></i>
+        <?= htmlspecialchars($transfer['domain'] ?? '') ?>
+    </div>
+
+    <div class="info">
+        <span class="badge <?= htmlspecialchars($transferBadgeClass) ?>"><?= htmlspecialchars($transferStatusText) ?></span>
+        <?php if (!empty($transfer['created_at'])): ?>
+        <span class="badge bg-light text-dark">
+            <i class="bi bi-calendar"></i> <?= htmlspecialchars(date('d/m/Y', strtotime($transfer['created_at']))) ?>
+        </span>
+        <?php endif; ?>
+    </div>
+
+    <div class="actions">
+        <a href="/customer/transfer-domain/<?= (int)$transfer['id'] ?>/status" class="btn btn-sm btn-outline-info">
+            <i class="bi bi-eye"></i> Ver Estado
+        </a>
+        <?php if ($transferStatus === 'ACT'): ?>
+        <a href="/customer/transfer-domain/<?= (int)$transfer['id'] ?>/status" class="btn btn-sm btn-success">
+            <i class="bi bi-check-circle"></i> Completar Configuracion
+        </a>
+        <?php endif; ?>
+    </div>
+</div>
+<?php endif; ?>
+<?php endforeach; ?>
+<?php endif; ?>
+
 <!-- Botones de accion -->
 <div class="action-buttons">
     <a href="/customer/request-free-subdomain" class="btn btn-success">
