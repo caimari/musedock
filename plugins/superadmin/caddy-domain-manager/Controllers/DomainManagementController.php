@@ -34,10 +34,10 @@ class DomainManagementController
             $pdo = Database::connect();
 
             $stmt = $pdo->prepare("
-                SELECT do.*, t.domain as tenant_domain
-                FROM domain_orders do
-                LEFT JOIN tenants t ON do.tenant_id = t.id
-                WHERE do.id = ? AND do.customer_id = ? AND do.status IN ('registered', 'active')
+                SELECT d.*, t.domain as tenant_domain
+                FROM domain_orders d
+                LEFT JOIN tenants t ON d.tenant_id = t.id
+                WHERE d.id = ? AND d.customer_id = ? AND d.status IN ('registered', 'active')
             ");
             $stmt->execute([$orderId, $customerId]);
             $order = $stmt->fetch(\PDO::FETCH_ASSOC);
