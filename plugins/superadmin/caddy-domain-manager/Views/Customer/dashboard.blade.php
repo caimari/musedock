@@ -257,7 +257,7 @@
                 <i class="bi bi-eye"></i> Ver Sitio
             </a>
             <?php if (!empty($tenant['cloudflare_zone_id'])): ?>
-            <a href="/customer/domain/<?= $tenant['id'] ?>/manage" class="btn btn-sm btn-outline-info">
+            <a href="/customer/tenant/<?= $tenant['id'] ?>/dns-email" class="btn btn-sm btn-outline-info">
                 <i class="bi bi-envelope-at"></i> DNS / Email
             </a>
             <?php endif; ?>
@@ -269,7 +269,7 @@
                 <i class="bi bi-hourglass-split"></i> Esperando cambio de nameservers...
             </span>
             <?php if (!empty($tenant['cloudflare_zone_id'])): ?>
-            <a href="/customer/domain/<?= $tenant['id'] ?>/manage" class="btn btn-sm btn-outline-info">
+            <a href="/customer/tenant/<?= $tenant['id'] ?>/dns-email" class="btn btn-sm btn-outline-info">
                 <i class="bi bi-envelope-at"></i> Gestionar
             </a>
             <?php endif; ?>

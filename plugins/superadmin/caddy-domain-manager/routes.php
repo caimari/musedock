@@ -258,10 +258,11 @@ Route::get('/customer/tenant/{id}/health-check', 'CaddyDomainManager\Controllers
 // CUSTOMER DOMAIN MANAGEMENT (DNS + Email Routing)
 // ============================================
 
-// Panel de gestión de dominio
-Route::get('/customer/domain/{id}/manage', 'CaddyDomainManager\Controllers\CustomerDomainController@manage')
+// Panel de gestión de dominio (para TENANTS con CloudFlare)
+// NOTA: Esta ruta usa tenant_id, no domain_order_id
+Route::get('/customer/tenant/{id}/dns-email', 'CaddyDomainManager\Controllers\CustomerDomainController@manage')
     ->middleware('customer')
-    ->name('customer.domain.manage');
+    ->name('customer.tenant.dns-email');
 
 // Activar Email Routing
 Route::post('/customer/domain/{id}/email-routing/enable', 'CaddyDomainManager\Controllers\CustomerDomainController@enableEmailRouting')
