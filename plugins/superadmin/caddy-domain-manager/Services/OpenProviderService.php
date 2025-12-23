@@ -1352,10 +1352,18 @@ class OpenProviderService
                 continue;
             }
 
-            // Determinar si el nameserver es PROPIO del dominio (ej: ns1.example.com para example.com)
+            // Determinar si el nameserver es PROPIO del dominio
+            // Debe TERMINAR con el dominio exacto (ej: ns1.example.com para example.com)
+            // NO usar strpos() porque detectaría falsamente "ns1.he.net" como propio si domainName="he.net"
             $isOwnNameserver = false;
-            if ($domainName && strpos($ns, $domainName) !== false) {
-                $isOwnNameserver = true;
+            if ($domainName) {
+                // Verificar que el nameserver termine exactamente con ".dominio.ext"
+                // Ejemplo: ns1.example.com termina con "example.com" ✅
+                // Ejemplo: ns1.he.net NO termina con "example.com" ❌
+                $domainSuffix = '.' . $domainName;
+                if (substr($ns, -strlen($domainSuffix)) === $domainSuffix || $ns === $domainName) {
+                    $isOwnNameserver = true;
+                }
             }
 
             if ($isOwnNameserver) {
