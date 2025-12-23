@@ -4,6 +4,7 @@ namespace CaddyDomainManager\Controllers;
 
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Logger;
+use Screenart\Musedock\View;
 use CaddyDomainManager\Services\OpenProviderService;
 use Exception;
 
@@ -16,7 +17,7 @@ use Exception;
  * - Auto-renovación
  * - WHOIS privado
  */
-class DomainManagementController extends BaseController
+class DomainManagementController
 {
     /**
      * Vista principal de administración del dominio
@@ -26,8 +27,8 @@ class DomainManagementController extends BaseController
         try {
             $customerId = $_SESSION['customer']['id'] ?? null;
             if (!$customerId) {
-                $this->redirect('/customer/login');
-                return;
+                header('Location: /customer/login');
+                exit;
             }
 
             $pdo = Database::connect();
@@ -40,9 +41,9 @@ class DomainManagementController extends BaseController
             $order = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if (!$order || empty($order['openprovider_domain_id'])) {
-                $this->setFlash('error', 'Dominio no encontrado');
-                $this->redirect('/customer/dashboard');
-                return;
+                $_SESSION['flash_error'] = 'Dominio no encontrado';
+                header('Location: /customer/dashboard');
+                exit;
             }
 
             // Obtener información actualizada del dominio desde OpenProvider
@@ -50,21 +51,24 @@ class DomainManagementController extends BaseController
             $domainInfo = $openProvider->getDomain($order['openprovider_domain_id']);
 
             if (!$domainInfo) {
-                $this->setFlash('error', 'No se pudo obtener información del dominio');
-                $this->redirect('/customer/dashboard');
-                return;
+                $_SESSION['flash_error'] = 'No se pudo obtener información del dominio';
+                header('Location: /customer/dashboard');
+                exit;
             }
 
-            $this->view('Customer/domain-management', [
+            echo View::renderTheme('Customer.domain-management', [
+                'customer' => $_SESSION['customer'],
                 'order' => $order,
                 'domainInfo' => $domainInfo,
-                'pageTitle' => 'Administrar Dominio - ' . $order['full_domain']
+                'pageTitle' => 'Administrar Dominio - ' . $order['full_domain'],
+                'csrf_token' => csrf_token()
             ]);
 
         } catch (Exception $e) {
             Logger::error("[DomainManagement] Error loading domain management: " . $e->getMessage());
-            $this->setFlash('error', 'Error al cargar la información del dominio');
-            $this->redirect('/customer/dashboard');
+            $_SESSION['flash_error'] = 'Error al cargar la información del dominio';
+            header('Location: /customer/dashboard');
+            exit;
         }
     }
 
@@ -330,5 +334,14 @@ class DomainManagementController extends BaseController
             Logger::error("[DomainManagement] Error toggling WHOIS privacy: " . $e->getMessage());
             $this->jsonResponse(['success' => false, 'error' => 'Error al cambiar la protección WHOIS'], 500);
         }
+    }
+
+    /**
+     * Helper para respuestas JSON
+     */
+    private function jsonResponse(array $data, int $code = 200): void
+    {
+        http_response_code($code);
+        echo json_encode($data);
     }
 }
