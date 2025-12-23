@@ -903,9 +903,25 @@ class OpenProviderService
         Logger::info("[OpenProvider] Nameservers to set: " . json_encode($nameservers));
 
         try {
+            // Verificar si el dominio está bloqueado
+            $domainInfo = $this->getDomain($domainId);
+            $wasLocked = $domainInfo['is_locked'] ?? false;
+
+            if ($wasLocked) {
+                Logger::info("[OpenProvider] Domain is locked. Temporarily unlocking to change nameservers...");
+                $this->unlockDomain($domainId);
+            }
+
+            // Actualizar nameservers
             $response = $this->makeRequest('PUT', "/domains/{$domainId}", [
                 'name_servers' => $this->formatNameservers($nameservers)
             ]);
+
+            // Restaurar el lock si estaba activado
+            if ($wasLocked) {
+                Logger::info("[OpenProvider] Re-locking domain...");
+                $this->lockDomain($domainId);
+            }
 
             Logger::info("[OpenProvider] Nameservers updated successfully");
 
@@ -969,6 +985,46 @@ class OpenProviderService
         $response = $this->makeRequest('PUT', "/domains/{$domainId}", $data);
 
         Logger::info("[OpenProvider] Domain contacts updated");
+
+        return true;
+    }
+
+    /**
+     * Desbloquear un dominio (quitar transfer lock)
+     *
+     * @param int $domainId ID del dominio
+     * @return bool
+     * @throws Exception
+     */
+    public function unlockDomain(int $domainId): bool
+    {
+        Logger::info("[OpenProvider] Unlocking domain ID: {$domainId}");
+
+        $response = $this->makeRequest('PUT', "/domains/{$domainId}", [
+            'is_locked' => false
+        ]);
+
+        Logger::info("[OpenProvider] Domain unlocked successfully");
+
+        return true;
+    }
+
+    /**
+     * Bloquear un dominio (activar transfer lock)
+     *
+     * @param int $domainId ID del dominio
+     * @return bool
+     * @throws Exception
+     */
+    public function lockDomain(int $domainId): bool
+    {
+        Logger::info("[OpenProvider] Locking domain ID: {$domainId}");
+
+        $response = $this->makeRequest('PUT', "/domains/{$domainId}", [
+            'is_locked' => true
+        ]);
+
+        Logger::info("[OpenProvider] Domain locked successfully");
 
         return true;
     }
