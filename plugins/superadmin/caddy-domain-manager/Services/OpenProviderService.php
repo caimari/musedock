@@ -342,9 +342,10 @@ class OpenProviderService
     ): array {
         Logger::info("[OpenProvider] Registering domain {$name}.{$extension}");
 
-        // Resolver IPs de nameservers externos para glue records
-        $nameserversWithIps = $this->resolveNameserverIps($nameservers);
-        Logger::info("[OpenProvider] Nameservers with IPs for registration: " . json_encode($nameserversWithIps));
+        // Procesar nameservers: solo agregar IP si son nameservers propios del dominio
+        $fullDomain = $name . '.' . $extension;
+        $nameserversWithIps = $this->resolveNameserverIps($nameservers, $fullDomain);
+        Logger::info("[OpenProvider] Nameservers for registration: " . json_encode($nameserversWithIps));
 
         $data = [
             'domain' => [
@@ -820,9 +821,10 @@ class OpenProviderService
     ): array {
         Logger::info("[OpenProvider] Initiating transfer for {$name}.{$extension}");
 
-        // Resolver IPs de nameservers externos para glue records
-        $nameserversWithIps = $this->resolveNameserverIps($nameservers);
-        Logger::info("[OpenProvider] Nameservers with IPs for transfer: " . json_encode($nameserversWithIps));
+        // Procesar nameservers: solo agregar IP si son nameservers propios del dominio
+        $fullDomain = $name . '.' . $extension;
+        $nameserversWithIps = $this->resolveNameserverIps($nameservers, $fullDomain);
+        Logger::info("[OpenProvider] Nameservers for transfer: " . json_encode($nameserversWithIps));
 
         $data = [
             'domain' => [
@@ -916,14 +918,17 @@ class OpenProviderService
             $domainInfo = $this->getDomain($domainId);
             $wasLocked = $domainInfo['is_locked'] ?? false;
 
+            // Construir nombre completo del dominio
+            $fullDomain = ($domainInfo['name'] ?? '') . '.' . ($domainInfo['extension'] ?? '');
+
             if ($wasLocked) {
                 Logger::info("[OpenProvider] Domain is locked. Temporarily unlocking to change nameservers...");
                 $this->unlockDomain($domainId);
             }
 
-            // Resolver IPs de nameservers externos para crear glue records
-            $nameserversWithIps = $this->resolveNameserverIps($nameservers);
-            Logger::info("[OpenProvider] Nameservers with IPs resolved: " . json_encode($nameserversWithIps));
+            // Procesar nameservers: solo agregar IP si son nameservers propios del dominio
+            $nameserversWithIps = $this->resolveNameserverIps($nameservers, $fullDomain);
+            Logger::info("[OpenProvider] Nameservers processed: " . json_encode($nameserversWithIps));
 
             // Actualizar nameservers
             $response = $this->makeRequest('PUT', "/domains/{$domainId}", [
@@ -954,17 +959,21 @@ class OpenProviderService
                     strpos($errorMsg, 'does not own') !== false) {
 
                     throw new Exception("Error 2201: El registry rechazó los nameservers.\n\n" .
-                        "🔴 CAUSA POSIBLE:\n" .
-                        "Los nameservers externos no pudieron ser verificados por el registry, o los glue records no están disponibles.\n\n" .
+                        "🔴 CAUSA:\n" .
+                        "Los nameservers externos que intentas usar no tienen glue records accesibles desde el registry,\n" .
+                        "o hay un problema temporal de propagación DNS.\n\n" .
                         "✅ SOLUCIONES:\n" .
-                        "1. Usa nameservers de CloudFlare (recomendado, glue records públicos)\n" .
-                        "2. Usa nameservers de OpenProvider (ns1.openprovider.nl, ns2.openprovider.nl, ns3.openprovider.nl)\n" .
-                        "3. Si el nameserver externo no resuelve su IP públicamente:\n" .
-                        "   → Contacta al registrador del dominio del nameserver\n" .
-                        "   → Verifica que los glue records estén creados correctamente\n" .
-                        "4. Espera unos minutos y reintenta (propagación DNS)\n\n" .
-                        "ℹ️ NOTA: El sistema intentó resolver automáticamente las IPs de los nameservers.\n" .
-                        "         Revisa los logs para ver si la resolución fue exitosa.\n\n" .
+                        "1. Usa nameservers de CloudFlare (recomendado)\n" .
+                        "   → Se crean automáticamente y están disponibles globalmente\n" .
+                        "\n" .
+                        "2. Usa nameservers de OpenProvider\n" .
+                        "   → ns1.openprovider.nl, ns2.openprovider.nl, ns3.openprovider.nl\n" .
+                        "\n" .
+                        "3. Si necesitas usar nameservers externos específicos:\n" .
+                        "   → Verifica que el dominio del nameserver tenga glue records públicos\n" .
+                        "   → Prueba con: dig ns1.ejemplo.com +short\n" .
+                        "   → Si no resuelve, contacta al propietario del nameserver\n" .
+                        "   → Espera 24-48h para propagación DNS y reintenta\n\n" .
                         "ℹ️ Más info: https://support.openprovider.eu/hc/en-us/articles/360035146353\n\n" .
                         "Error del registry: {$errorMsg}");
                 }
@@ -1322,33 +1331,50 @@ class OpenProviderService
     /**
      * Resolver IPs de nameservers para glue records
      *
+     * IMPORTANTE: Solo se deben enviar IPs para nameservers PROPIOS del dominio.
+     * Para nameservers EXTERNOS (de terceros), enviar SOLO el nombre.
+     *
+     * Razón: Cuando pasas IP, OpenProvider intenta CREAR un glue record.
+     * Si el nameserver no es tuyo, el registry rechaza con error 2201.
+     *
      * @param array $nameservers Array de strings ['ns1.example.com', 'ns2.example.com']
-     * @return array Array de nameservers con IPs [['name' => 'ns1.example.com', 'ip' => '1.2.3.4'], ...]
+     * @param string|null $domainName Nombre del dominio (para detectar nameservers propios)
+     * @return array Array de nameservers [['name' => 'ns1.example.com'], ...] o con IP si es nameserver propio
      */
-    private function resolveNameserverIps(array $nameservers): array
+    private function resolveNameserverIps(array $nameservers, ?string $domainName = null): array
     {
         $resolved = [];
 
         foreach ($nameservers as $ns) {
-            // Si ya es un array con IP, mantenerlo
+            // Si ya es un array, mantenerlo
             if (is_array($ns)) {
                 $resolved[] = $ns;
                 continue;
             }
 
-            // Intentar resolver la IP del nameserver
-            $ip = gethostbyname($ns);
+            // Determinar si el nameserver es PROPIO del dominio (ej: ns1.example.com para example.com)
+            $isOwnNameserver = false;
+            if ($domainName && strpos($ns, $domainName) !== false) {
+                $isOwnNameserver = true;
+            }
 
-            // gethostbyname() devuelve el mismo hostname si no puede resolver
-            if ($ip !== $ns && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                Logger::info("[OpenProvider] Resolved {$ns} -> {$ip}");
-                $resolved[] = [
-                    'name' => $ns,
-                    'ip' => $ip
-                ];
+            if ($isOwnNameserver) {
+                // Es un nameserver PROPIO: necesitamos crear glue record con IP
+                $ip = gethostbyname($ns);
+
+                if ($ip !== $ns && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                    Logger::info("[OpenProvider] Own nameserver {$ns} -> {$ip} (will create glue record)");
+                    $resolved[] = [
+                        'name' => $ns,
+                        'ip' => $ip
+                    ];
+                } else {
+                    Logger::warning("[OpenProvider] Own nameserver {$ns} could not be resolved, sending without IP");
+                    $resolved[] = ['name' => $ns];
+                }
             } else {
-                // No se pudo resolver, enviar solo el nombre (puede fallar en registry)
-                Logger::warning("[OpenProvider] Could not resolve IP for {$ns}, sending without glue record");
+                // Es un nameserver EXTERNO: enviar SOLO el nombre (usará glue records existentes)
+                Logger::info("[OpenProvider] External nameserver {$ns} (using existing glue records)");
                 $resolved[] = ['name' => $ns];
             }
         }
