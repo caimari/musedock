@@ -170,6 +170,18 @@
                     <div class="domain-display">{{ $fullDomain }}</div>
                 </div>
                 <div class="card-body p-4">
+                    <!-- Navigation -->
+                    <div class="mb-4 pb-3 border-bottom">
+                        <p class="small text-muted mb-2"><i class="bi bi-compass me-1"></i>Navegación</p>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <a href="/customer/domain/{{ $order['id'] }}/manage" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-gear-fill me-1"></i>Administrar
+                            </a>
+                            <a href="/customer/domain/{{ $order['id'] }}/dns" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-hdd-network me-1"></i>Gestionar DNS
+                            </a>
+                        </div>
+                    </div>
 
                     @if(!$isEditable)
                     <div class="alert alert-warning">

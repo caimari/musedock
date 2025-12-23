@@ -46,6 +46,9 @@ class DomainManagementController
                 exit;
             }
 
+            // Construir el dominio completo
+            $fullDomain = $order['full_domain'] ?? trim(($order['domain'] ?? '') . (!empty($order['extension']) ? '.' . $order['extension'] : ''), '.');
+
             // Obtener información actualizada del dominio desde OpenProvider
             $openProvider = new OpenProviderService();
             $domainInfo = $openProvider->getDomain($order['openprovider_domain_id']);
@@ -56,11 +59,14 @@ class DomainManagementController
                 exit;
             }
 
+            // Agregar full_domain al array order para la vista
+            $order['full_domain'] = $fullDomain;
+
             echo View::renderTheme('Customer.domain-management', [
                 'customer' => $_SESSION['customer'],
                 'order' => $order,
                 'domainInfo' => $domainInfo,
-                'pageTitle' => 'Administrar Dominio - ' . $order['full_domain'],
+                'pageTitle' => 'Administrar Dominio - ' . $fullDomain,
                 'csrf_token' => csrf_token()
             ]);
 

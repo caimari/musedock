@@ -245,18 +245,130 @@
                                 </button>
                             </div>
                         </div>
+                        <?php
+                            // TLDs que soportan WHOIS Privacy Protection (WPP) según OpenProvider
+                            // Fuente: OpenProvider TLD Reference Sheet (columna AJ) - Actualizado: Dic 2025
+                            // Total: 537 TLDs con WPP configurable
+                            $tldsSupportingWpp = [
+                                'ac', 'ac.mu', 'academy', 'accountant', 'accountants', 'actor', 'adult', 'africa', 'agency',
+                                'ai', 'alsace', 'amsterdam', 'apartments', 'app', 'archi', 'army', 'art', 'associates', 'audio',
+                                'auto', 'autos', 'band', 'bar', 'bargains', 'basketball', 'bayern', 'beauty', 'beer', 'berlin',
+                                'best', 'bet', 'bible', 'bid', 'bike', 'bingo', 'bio', 'biz', 'black', 'blackfriday', 'blog',
+                                'blue', 'boats', 'bond', 'boo', 'boston', 'boutique', 'brussels', 'build', 'builders', 'business',
+                                'buzz', 'bzh', 'cab', 'cafe', 'camera', 'camp', 'capetown', 'capital', 'car', 'cards', 'care',
+                                'career', 'careers', 'cars', 'casa', 'case', 'cash', 'casino', 'catering', 'cc', 'center', 'ceo',
+                                'cfd', 'channel', 'charity', 'chat', 'cheap', 'christmas', 'church', 'city', 'claims', 'cleaning',
+                                'click', 'clinic', 'clothing', 'club', 'co', 'co.mu', 'co.uk', 'coach', 'codes', 'coffee', 'college',
+                                'cologne', 'com', 'com.co', 'com.mu', 'community', 'company', 'compare', 'computer', 'condos',
+                                'construction', 'consulting', 'contact', 'contractors', 'cooking', 'cool', 'corsica', 'country',
+                                'coupons', 'courses', 'credit', 'creditcard', 'cricket', 'cruises', 'cx', 'cymru', 'cyou', 'dad',
+                                'dance', 'date', 'dating', 'day', 'de', 'dealer', 'deals', 'delivery', 'democrat', 'dental', 'dentist',
+                                'design', 'diamonds', 'diet', 'digital', 'direct', 'directory', 'discount', 'diy', 'doctor', 'dog',
+                                'domains', 'download', 'durban', 'earth', 'eco', 'education', 'email', 'energy', 'engineer',
+                                'engineering', 'enterprises', 'equipment', 'esq', 'estate', 'events', 'exchange', 'expert', 'exposed',
+                                'express', 'fail', 'faith', 'family', 'fan', 'fans', 'farm', 'fashion', 'feedback', 'film', 'finance',
+                                'financial', 'fish', 'fishing', 'fit', 'fitness', 'flights', 'florist', 'flowers', 'fm', 'foo', 'food',
+                                'football', 'forum', 'foundation', 'fr', 'frl', 'fun', 'fund', 'furniture', 'futbol', 'fyi', 'gallery',
+                                'game', 'games', 'garden', 'gay', 'gdn', 'gent', 'gift', 'gifts', 'giving', 'glass', 'global', 'gmbh',
+                                'gold', 'golf', 'graphics', 'gratis', 'green', 'gripe', 'group', 'guide', 'guitars', 'guru', 'hair',
+                                'hamburg', 'haus', 'health', 'healthcare', 'help', 'hiphop', 'hiv', 'hockey', 'holdings', 'holiday',
+                                'homes', 'horse', 'hospital', 'host', 'hosting', 'house', 'how', 'icu', 'immo', 'immobilien', 'inc',
+                                'industries', 'info', 'ing', 'ink', 'institute', 'insure', 'international', 'investments', 'io',
+                                'irish', 'ist', 'istanbul', 'jetzt', 'jewelry', 'joburg', 'juegos', 'kaufen', 'kids', 'kim', 'kitchen',
+                                'kiwi', 'koeln', 'krd', 'kyoto', 'land', 'lat', 'lease', 'legal', 'lgbt', 'life', 'lifestyle',
+                                'lighting', 'limited', 'limo', 'link', 'live', 'living', 'loan', 'loans', 'lol', 'london', 'love',
+                                'ltd', 'ltda', 'luxe', 'luxury', 'maison', 'makeup', 'management', 'market', 'marketing', 'markets',
+                                'mba', 'me', 'media', 'melbourne', 'meme', 'memorial', 'men', 'menu', 'miami', 'mn', 'moda', 'moe',
+                                'mom', 'money', 'monster', 'moscow', 'motorcycles', 'mov', 'movie', 'mu', 'music', 'nagoya', 'net',
+                                'net.co', 'net.mu', 'network', 'new', 'news', 'nexus', 'ngo', 'ninja', 'nom.co', 'nrw', 'observer',
+                                'okinawa', 'one', 'ong', 'onl', 'online', 'ooo', 'or.mu', 'org', 'org.mu', 'organic', 'osaka', 'page',
+                                'paris', 'partners', 'parts', 'party', 'pet', 'phd', 'photo', 'photography', 'photos', 'physio',
+                                'pics', 'pictures', 'pink', 'pizza', 'place', 'plumbing', 'plus', 'pm', 'poker', 'porn', 'press',
+                                'productions', 'prof', 'promo', 'properties', 'property', 'protection', 'pub', 'pw', 'qpon', 'quebec',
+                                'quest', 'racing', 're', 'realestate', 'realty', 'recipes', 'red', 'reise', 'reisen', 'ren', 'rent',
+                                'rentals', 'repair', 'report', 'republican', 'rest', 'restaurant', 'review', 'reviews', 'rich', 'rip',
+                                'rocks', 'rsvp', 'ruhr', 'run', 'ryukyu', 'sale', 'salon', 'sarl', 'sbs', 'school', 'schule',
+                                'science', 'security', 'select', 'services', 'sex', 'sexy', 'sh', 'shiksha', 'shoes', 'shop',
+                                'shopping', 'show', 'singles', 'site', 'skin', 'soccer', 'social', 'software', 'solar', 'solutions',
+                                'soy', 'spa', 'space', 'srl', 'storage', 'store', 'stream', 'studio', 'study', 'style', 'su', 'sucks',
+                                'supplies', 'supply', 'support', 'surf', 'surgery', 'sydney', 'systems', 'taipei', 'tatar', 'tattoo',
+                                'tax', 'taxi', 'team', 'tech', 'technology', 'tennis', 'tf', 'theater', 'theatre', 'tickets', 'tienda',
+                                'tips', 'tires', 'tirol', 'today', 'tokyo', 'tools', 'top', 'tours', 'town', 'toys', 'trade',
+                                'training', 'tv', 'uk', 'university', 'uno', 'vacations', 'vana', 'vegas', 'ventures', 'viajes',
+                                'video', 'villas', 'vin', 'vip', 'vision', 'vlaanderen', 'vodka', 'voting', 'voyage', 'vuelos',
+                                'wales', 'wang', 'watch', 'watches', 'webcam', 'website', 'wedding', 'wf', 'whoswho', 'wien', 'wiki',
+                                'win', 'wine', 'work', 'works', 'world', 'wtf', 'xyz', 'yachts', 'yoga', 'yokohama', 'yt', 'zip', 'zone'
+                            ];
+
+                            // Países de la Unión Europea (28 países)
+                            $euCountries = [
+                                'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR',
+                                'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL',
+                                'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'EU'
+                            ];
+
+                            $extension = $order['extension'] ?? '';
+                            $supportsWpp = in_array(strtolower($extension), $tldsSupportingWpp);
+
+                            // Obtener país del owner desde domainInfo
+                            $ownerCountry = strtoupper($domainInfo['owner']['country_code'] ?? '');
+                            $isEuOwner = in_array($ownerCountry, $euCountries);
+                        ?>
+
                         <div class="info-row">
-                            <div>
+                            <div class="flex-grow-1">
                                 <span class="info-label d-block">Protección WHOIS</span>
-                                <small class="text-muted">Oculta tus datos de contacto en el WHOIS público</small>
+                                <?php if ($supportsWpp): ?>
+                                    <small class="text-muted">
+                                        <?= $isPrivateWhois ? 'Activado' : 'Desactivado' ?> - Oculta tus datos de contacto en el WHOIS público
+                                    </small>
+                                    <?php if ($isEuOwner): ?>
+                                        <small class="text-muted d-block">
+                                            <i class="bi bi-info-circle"></i>
+                                            Titular de la UE: GDPR también protege tus datos automáticamente
+                                        </small>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <?php if ($isEuOwner): ?>
+                                        <small class="text-muted">
+                                            <i class="bi bi-shield-check text-success"></i>
+                                            Protegido por <strong>GDPR</strong> (titular de la UE)
+                                        </small>
+                                        <small class="text-muted d-block">
+                                            El TLD <strong>.<?= htmlspecialchars($extension) ?></strong> no soporta WHOIS Privacy configurable,
+                                            pero tus datos aparecen como "REDACTED FOR PRIVACY" por regulación europea.
+                                        </small>
+                                    <?php else: ?>
+                                        <small class="text-warning">
+                                            <i class="bi bi-exclamation-triangle"></i>
+                                            <strong>Sin protección WHOIS</strong>
+                                        </small>
+                                        <small class="text-muted d-block">
+                                            El TLD <strong>.<?= htmlspecialchars($extension) ?></strong> no soporta WHOIS Privacy.
+                                            Tus datos de contacto son públicos en el WHOIS.
+                                        </small>
+                                    <?php endif; ?>
+                                <?php endif; ?>
                             </div>
                             <div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="whoisPrivacyToggle"
-                                           <?= $isPrivateWhois ? 'checked' : '' ?>
-                                           onchange="toggleWhoisPrivacy(this.checked)">
-                                    <span class="toggle-slider"></span>
-                                </label>
+                                <?php if ($supportsWpp): ?>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="whoisPrivacyToggle"
+                                               <?= $isPrivateWhois ? 'checked' : '' ?>
+                                               onchange="toggleWhoisPrivacy(this.checked)">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                <?php else: ?>
+                                    <?php if ($isEuOwner): ?>
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-shield-fill-check"></i> GDPR Activo
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="bi bi-eye"></i> Público
+                                        </span>
+                                    <?php endif; ?>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -293,15 +405,19 @@
                     </div>
                     <div class="card-body">
                         <div class="info-row">
-                            <div>
+                            <div class="flex-grow-1">
                                 <span class="info-label d-block">Auto-Renovación</span>
-                                <small class="text-muted">Configura la renovación automática del dominio</small>
+                                <small class="text-muted d-block mb-1">Renovación automática del dominio al vencimiento</small>
+                                <small class="text-warning d-block">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    Temporalmente deshabilitado hasta implementar sistema de pagos de clientes
+                                </small>
                             </div>
                             <div>
-                                <select class="renewal-select" id="autorenewSelect" onchange="updateAutoRenew(this.value)">
-                                    <option value="on" <?= $autorenew === 'on' ? 'selected' : '' ?>>Activada</option>
-                                    <option value="off" <?= $autorenew === 'off' ? 'selected' : '' ?>>Desactivada</option>
-                                    <option value="default" <?= $autorenew === 'default' ? 'selected' : '' ?>>Por defecto</option>
+                                <select class="renewal-select" id="autorenewSelect" disabled title="Disponible cuando se implemente el sistema de pagos">
+                                    <option value="off" selected>Desactivada</option>
+                                    <option value="on">Activada</option>
+                                    <option value="default">Por defecto</option>
                                 </select>
                             </div>
                         </div>
@@ -317,9 +433,12 @@
                 <!-- Navigation Links -->
                 <div class="card management-card">
                     <div class="card-header">
-                        <h5><i class="bi bi-compass me-2"></i>Otras Opciones</h5>
+                        <h5><i class="bi bi-compass me-2"></i>Navegación</h5>
                     </div>
                     <div class="card-body">
+                        <a href="/customer/domain/<?= $order['id'] ?>/manage" class="btn btn-success quick-action-btn w-100">
+                            <i class="bi bi-gear-fill me-2"></i>Administrar Dominio
+                        </a>
                         <a href="/customer/domain/<?= $order['id'] ?>/dns" class="btn btn-outline-primary quick-action-btn w-100">
                             <i class="bi bi-hdd-network me-2"></i>Gestionar DNS
                         </a>
@@ -501,6 +620,32 @@ function updateAutoRenew(value) {
 }
 
 function toggleWhoisPrivacy(enabled) {
+    // Verificar si el TLD soporta WPP
+    const supportsWpp = <?= $supportsWpp ? 'true' : 'false' ?>;
+    const isEuOwner = <?= $isEuOwner ? 'true' : 'false' ?>;
+
+    if (!supportsWpp) {
+        <?php if ($isEuOwner): ?>
+        Swal.fire({
+            icon: 'info',
+            title: 'WHOIS Privacy no disponible',
+            html: 'El TLD <strong>.<?= htmlspecialchars($extension) ?></strong> no soporta WHOIS Privacy configurable.<br><br>' +
+                  'Sin embargo, como titular de la Unión Europea, tus datos están protegidos automáticamente por <strong>GDPR</strong> ' +
+                  'y aparecen como "REDACTED FOR PRIVACY" en el WHOIS público.',
+            confirmButtonText: 'Entendido'
+        });
+        <?php else: ?>
+        Swal.fire({
+            icon: 'warning',
+            title: 'WHOIS Privacy no disponible',
+            html: 'El TLD <strong>.<?= htmlspecialchars($extension) ?></strong> no soporta WHOIS Privacy configurable.<br><br>' +
+                  '<strong>⚠️ Tus datos de contacto son públicos</strong> en el WHOIS ya que el titular no es de la Unión Europea.',
+            confirmButtonText: 'Entendido'
+        });
+        <?php endif; ?>
+        return;
+    }
+
     const formData = new FormData();
     formData.append('_csrf_token', csrfToken);
     formData.append('enabled', enabled ? '1' : '0');
@@ -528,12 +673,14 @@ function toggleWhoisPrivacy(enabled) {
         } else {
             Swal.fire('Error', data.error || 'No se pudo cambiar la protección WHOIS', 'error');
             // Revert toggle
-            document.getElementById('whoisPrivacyToggle').checked = <?= $isPrivateWhois ? 'true' : 'false' ?>;
+            const toggle = document.getElementById('whoisPrivacyToggle');
+            if (toggle) toggle.checked = <?= $isPrivateWhois ? 'true' : 'false' ?>;
         }
     })
     .catch(() => {
         Swal.fire('Error', 'Error de conexión', 'error');
-        document.getElementById('whoisPrivacyToggle').checked = <?= $isPrivateWhois ? 'true' : 'false' ?>;
+        const toggle = document.getElementById('whoisPrivacyToggle');
+        if (toggle) toggle.checked = <?= $isPrivateWhois ? 'true' : 'false' ?>;
     });
 }
 </script>

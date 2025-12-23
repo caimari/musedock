@@ -194,6 +194,15 @@
                         <button type="button" class="btn btn-sm btn-outline-secondary w-100" data-bs-toggle="modal" data-bs-target="#nsModal">
                             <i class="bi bi-pencil me-1"></i>Cambiar Nameservers
                         </button>
+
+                        <hr>
+                        <p class="small text-muted mb-2"><i class="bi bi-compass me-1"></i>Navegación</p>
+                        <a href="/customer/domain/<?= $order['id'] ?>/manage" class="btn btn-sm btn-outline-success w-100 mb-2">
+                            <i class="bi bi-gear-fill me-1"></i>Administrar
+                        </a>
+                        <a href="/customer/domain/<?= $order['id'] ?>/contacts" class="btn btn-sm btn-outline-secondary w-100">
+                            <i class="bi bi-person-lines-fill me-1"></i>Contactos
+                        </a>
                     </div>
                 </div>
             </div>

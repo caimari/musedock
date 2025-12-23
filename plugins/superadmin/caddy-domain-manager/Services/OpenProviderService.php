@@ -353,7 +353,8 @@ class OpenProviderService
             'tech_handle' => $options['tech_handle'] ?? $ownerHandle,
             'billing_handle' => $options['billing_handle'] ?? $ownerHandle,
             'name_servers' => $nameservers,
-            'autorenew' => $options['autorenew'] ?? 'default'
+            'autorenew' => $options['autorenew'] ?? 'default',
+            'is_private_whois_enabled' => $options['is_private_whois_enabled'] ?? true  // WPP ON por defecto
         ];
 
         $response = $this->makeRequest('POST', '/domains', $data);
