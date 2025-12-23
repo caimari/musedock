@@ -83,6 +83,21 @@
     $nsServers = $zoneInfo['name_servers'] ?? [];
     $useCloudflareNs = $order['use_cloudflare_ns'] ?? 1;
     $customNs = json_decode($order['custom_nameservers'] ?? '[]', true) ?: [];
+    $gracePeriodUntil = $order['cloudflare_grace_period_until'] ?? null;
+
+    // Calcular tiempo restante del periodo de gracia
+    $gracePeriodActive = false;
+    $hoursRemaining = 0;
+    if ($gracePeriodUntil) {
+        $now = new DateTime();
+        $gracePeriodDate = new DateTime($gracePeriodUntil);
+        if ($gracePeriodDate > $now) {
+            $gracePeriodActive = true;
+            $interval = $now->diff($gracePeriodDate);
+            $hoursRemaining = ($interval->days * 24) + $interval->h;
+            $minutesRemaining = $interval->i;
+        }
+    }
 ?>
 <div class="row">
     <div class="col-12">
@@ -103,6 +118,47 @@
             Este dominio no tiene una zona DNS configurada en Cloudflare.
         </div>
         <?php else: ?>
+
+        <!-- Alerta de Periodo de Gracia -->
+        <?php if (!$useCloudflareNs && $gracePeriodActive): ?>
+        <div class="alert alert-warning border-warning shadow-sm mb-4">
+            <div class="d-flex align-items-start">
+                <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-warning"></i>
+                <div class="flex-grow-1">
+                    <h5 class="alert-heading mb-2">
+                        <i class="bi bi-clock-history me-2"></i>Registros DNS Inactivos - Periodo de Gracia
+                    </h5>
+                    <p class="mb-2">
+                        Tus registros DNS de Cloudflare están <strong>INACTIVOS</strong> porque estás usando nameservers personalizados.
+                        Los registros mostrados abajo no afectan la resolución de tu dominio.
+                    </p>
+                    <div class="alert alert-dark mb-3 py-2">
+                        <strong>⏰ Tiempo restante: <?= $hoursRemaining ?>h <?= $minutesRemaining ?>min</strong>
+                    </div>
+                    <p class="mb-3 small">
+                        Después de este tiempo, la configuración DNS se eliminará permanentemente de Cloudflare.
+                        Si deseas conservarla, restaura los nameservers de Cloudflare o exporta tu configuración.
+                    </p>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button onclick="restoreCloudflareNs()" class="btn btn-warning btn-sm">
+                            <i class="bi bi-cloud-arrow-down me-1"></i>
+                            Restaurar Nameservers de Cloudflare
+                        </button>
+                        <a href="/customer/domain/<?= $order['id'] ?>/dns/export" class="btn btn-outline-secondary btn-sm" target="_blank">
+                            <i class="bi bi-download me-1"></i>
+                            Exportar Configuración DNS
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php elseif (!$useCloudflareNs && !$gracePeriodActive && !empty($zoneId)): ?>
+        <!-- Periodo de gracia expirado pero zona aún existe (por si acaso) -->
+        <div class="alert alert-info mb-4">
+            <i class="bi bi-info-circle me-2"></i>
+            Estás usando nameservers personalizados. Los registros DNS se gestionan en tu proveedor de nameservers.
+        </div>
+        <?php endif; ?>
 
         <div class="row">
             <!-- Nameservers Section -->
@@ -144,14 +200,23 @@
 
             <!-- DNS Records Section -->
             <div class="col-lg-8 mb-4">
-                <div class="card dns-card">
+                <div class="card dns-card <?= (!$useCloudflareNs ? 'position-relative' : '') ?>">
+                    <?php if (!$useCloudflareNs): ?>
+                    <!-- Overlay para deshabilitar cuando no está activo -->
+                    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.7); z-index: 10; border-radius: 15px; backdrop-filter: blur(2px);"></div>
+                    <?php endif; ?>
+
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Registros DNS</h5>
+                        <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Registros DNS <?= (!$useCloudflareNs ? '(INACTIVOS)' : '') ?></h5>
+                        <?php if ($useCloudflareNs): ?>
                         <button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addRecordModal">
                             <i class="bi bi-plus-lg me-1"></i>Nuevo Registro
                         </button>
+                        <?php else: ?>
+                        <span class="badge bg-secondary">Solo lectura</span>
+                        <?php endif; ?>
                     </div>
-                    <div class="card-body p-0">
+                    <div class="card-body p-0 <?= (!$useCloudflareNs ? 'opacity-50' : '') ?>">
                         <div class="table-responsive">
                             <table class="table table-hover mb-0">
                                 <thead class="table-light">
@@ -194,12 +259,16 @@
                                             <?php endif; ?>
                                         </td>
                                         <td>
+                                            <?php if ($useCloudflareNs): ?>
                                             <button type="button" class="btn btn-outline-primary btn-action" onclick="editRecord('<?= htmlspecialchars($record['id']) ?>')">
                                                 <i class="bi bi-pencil"></i>
                                             </button>
                                             <button type="button" class="btn btn-outline-danger btn-action" onclick="deleteRecord('<?= htmlspecialchars($record['id']) ?>')">
                                                 <i class="bi bi-trash"></i>
                                             </button>
+                                            <?php else: ?>
+                                            <span class="text-muted small">-</span>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>

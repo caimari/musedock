@@ -409,6 +409,11 @@ Route::post('/customer/domain/{id}/dns/restore-cloudflare', 'CaddyDomainManager\
     ->middleware('customer')
     ->name('customer.domain.dns.restore-cloudflare');
 
+// Exportar registros DNS
+Route::get('/customer/domain/{id}/dns/export', 'CaddyDomainManager\Controllers\DnsManagerController@exportDnsRecords')
+    ->middleware('customer')
+    ->name('customer.domain.dns.export');
+
 // ============================================
 // DOMAIN TRANSFER (OpenProvider)
 // ============================================

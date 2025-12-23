@@ -391,11 +391,20 @@ class DnsManagerController
                 $nameservers
             );
 
-            // Actualizar en BD
+            // Actualizar en BD con periodo de gracia de 48 horas
+            $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+            if ($driver === 'mysql') {
+                $gracePeriodSql = "DATE_ADD(NOW(), INTERVAL 48 HOUR)";
+            } else {
+                $gracePeriodSql = "NOW() + INTERVAL '48 hours'";
+            }
+
             $stmt = $pdo->prepare("
                 UPDATE domain_orders
                 SET custom_nameservers = ?,
                     use_cloudflare_ns = 0,
+                    cloudflare_grace_period_until = $gracePeriodSql,
                     updated_at = NOW()
                 WHERE id = ?
             ");
@@ -462,11 +471,12 @@ class DnsManagerController
                 $cloudflareNs
             );
 
-            // Actualizar en BD
+            // Actualizar en BD - Cancelar periodo de gracia
             $stmt = $pdo->prepare("
                 UPDATE domain_orders
                 SET custom_nameservers = NULL,
                     use_cloudflare_ns = 1,
+                    cloudflare_grace_period_until = NULL,
                     updated_at = NOW()
                 WHERE id = ?
             ");
@@ -483,6 +493,81 @@ class DnsManagerController
         } catch (Exception $e) {
             Logger::error("[DnsManager] Error restoring Cloudflare NS: " . $e->getMessage());
             $this->jsonResponse(['success' => false, 'error' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Exportar registros DNS en formato texto (AJAX)
+     */
+    public function exportDnsRecords(int $orderId): void
+    {
+        header('Content-Type: text/plain; charset=utf-8');
+
+        try {
+            $customerId = $_SESSION['customer']['id'] ?? null;
+            if (!$customerId) {
+                http_response_code(401);
+                echo "Error: Sesión expirada";
+                return;
+            }
+
+            $pdo = Database::connect();
+
+            $stmt = $pdo->prepare("SELECT * FROM domain_orders WHERE id = ? AND customer_id = ?");
+            $stmt->execute([$orderId, $customerId]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$order || empty($order['cloudflare_zone_id'])) {
+                http_response_code(404);
+                echo "Error: Dominio no encontrado o sin zona DNS";
+                return;
+            }
+
+            $domain = $order['full_domain'] ?? trim(($order['domain'] ?? '') . (!empty($order['extension']) ? '.' . $order['extension'] : ''), '.');
+
+            // Obtener registros de Cloudflare
+            $cloudflare = new CloudflareZoneService();
+            $records = $cloudflare->listDNSRecords($order['cloudflare_zone_id']);
+
+            // Generar archivo de exportación
+            $output = "";
+            $output .= "# Configuración DNS de: {$domain}\n";
+            $output .= "# Exportado el: " . date('Y-m-d H:i:s') . "\n";
+            $output .= "# Total de registros: " . count($records) . "\n";
+            $output .= str_repeat("=", 70) . "\n\n";
+
+            foreach ($records as $record) {
+                $type = str_pad($record['type'], 6);
+                $name = str_pad($record['name'], 30);
+                $ttl = str_pad($record['ttl'], 6);
+                $content = $record['content'];
+
+                $output .= "{$type} {$name} {$ttl} {$content}";
+
+                if (isset($record['priority'])) {
+                    $output .= " (Priority: {$record['priority']})";
+                }
+
+                if (isset($record['proxied']) && $record['proxied']) {
+                    $output .= " [PROXIED]";
+                }
+
+                $output .= "\n";
+            }
+
+            $output .= "\n" . str_repeat("=", 70) . "\n";
+            $output .= "# Fin de la exportación\n";
+
+            // Enviar como descarga
+            header('Content-Disposition: attachment; filename="dns-' . $domain . '-' . date('Ymd-His') . '.txt"');
+            echo $output;
+
+            Logger::info("[DnsManager] DNS records exported for order {$orderId}");
+
+        } catch (Exception $e) {
+            Logger::error("[DnsManager] Error exporting DNS records: " . $e->getMessage());
+            http_response_code(500);
+            echo "Error al exportar registros DNS: " . $e->getMessage();
         }
     }
 
