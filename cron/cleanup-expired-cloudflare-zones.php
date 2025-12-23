@@ -14,7 +14,7 @@
  * Compatible con MySQL y PostgreSQL
  */
 
-require_once __DIR__ . '/../bootstrap.php';
+require_once __DIR__ . '/../core/bootstrap.php';
 
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Logger;
@@ -34,7 +34,7 @@ try {
 
     // Buscar dominios con periodo de gracia expirado
     $sql = "
-        SELECT id, cloudflare_zone_id, full_domain, domain, extension, cloudflare_grace_period_until
+        SELECT id, cloudflare_zone_id, domain, extension, cloudflare_grace_period_until
         FROM domain_orders
         WHERE ";
 
@@ -74,7 +74,7 @@ try {
     $cloudflare = new CloudflareZoneService();
 
     foreach ($expiredDomains as $order) {
-        $domainName = $order['full_domain'] ?? trim(
+        $domainName = trim(
             ($order['domain'] ?? '') . (!empty($order['extension']) ? '.' . $order['extension'] : ''),
             '.'
         );
