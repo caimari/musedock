@@ -46,6 +46,11 @@ class SessionSecurity
             $config = require __DIR__ . '/../../config/config.php';
             $security = $config['security'] ?? [];
 
+            // IMPORTANTE: Aumentar gc_maxlifetime para sesiones persistentes
+            // Esto permite que las sesiones con "remember me" duren hasta 24 horas
+            // antes de que el garbage collector de PHP las elimine
+            ini_set('session.gc_maxlifetime', self::TIMEOUT_PERSISTENT); // 86400 segundos = 24 horas
+
             // Configurar parámetros de sesión ANTES de session_start()
             ini_set('session.cookie_httponly', $security['session_httponly'] ?? 1);
             ini_set('session.cookie_secure', $security['session_secure'] ?? 1);
