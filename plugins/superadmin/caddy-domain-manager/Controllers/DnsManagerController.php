@@ -393,19 +393,24 @@ class DnsManagerController
 
             // Actualizar en BD con periodo de gracia de 48 horas
             $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            $isPostgres = ($driver === 'pgsql');
 
-            if ($driver === 'mysql') {
-                $gracePeriodSql = "DATE_ADD(NOW(), INTERVAL 48 HOUR)";
-            } else {
+            if ($isPostgres) {
                 $gracePeriodSql = "NOW() + INTERVAL '48 hours'";
+                $cloudflareNsValue = "FALSE";
+                $nowSql = "CURRENT_TIMESTAMP";
+            } else {
+                $gracePeriodSql = "DATE_ADD(NOW(), INTERVAL 48 HOUR)";
+                $cloudflareNsValue = "0";
+                $nowSql = "NOW()";
             }
 
             $stmt = $pdo->prepare("
                 UPDATE domain_orders
                 SET custom_nameservers = ?,
-                    use_cloudflare_ns = 0,
+                    use_cloudflare_ns = $cloudflareNsValue,
                     cloudflare_grace_period_until = $gracePeriodSql,
-                    updated_at = NOW()
+                    updated_at = $nowSql
                 WHERE id = ?
             ");
             $stmt->execute([json_encode(array_values($nameservers)), $orderId]);
@@ -472,12 +477,23 @@ class DnsManagerController
             );
 
             // Actualizar en BD - Cancelar periodo de gracia
+            $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            $isPostgres = ($driver === 'pgsql');
+
+            if ($isPostgres) {
+                $cloudflareNsValue = "TRUE";
+                $nowSql = "CURRENT_TIMESTAMP";
+            } else {
+                $cloudflareNsValue = "1";
+                $nowSql = "NOW()";
+            }
+
             $stmt = $pdo->prepare("
                 UPDATE domain_orders
                 SET custom_nameservers = NULL,
-                    use_cloudflare_ns = 1,
+                    use_cloudflare_ns = $cloudflareNsValue,
                     cloudflare_grace_period_until = NULL,
-                    updated_at = NOW()
+                    updated_at = $nowSql
                 WHERE id = ?
             ");
             $stmt->execute([$orderId]);

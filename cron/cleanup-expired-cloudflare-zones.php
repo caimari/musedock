@@ -36,7 +36,16 @@ try {
     $sql = "
         SELECT id, cloudflare_zone_id, full_domain, domain, extension, cloudflare_grace_period_until
         FROM domain_orders
-        WHERE use_cloudflare_ns = 0
+        WHERE ";
+
+    // PostgreSQL usa BOOLEAN (FALSE), MySQL usa TINYINT (0)
+    if ($driver === 'mysql') {
+        $sql .= "use_cloudflare_ns = 0";
+    } else {
+        $sql .= "use_cloudflare_ns = FALSE";
+    }
+
+    $sql .= "
           AND cloudflare_zone_id IS NOT NULL
           AND cloudflare_grace_period_until IS NOT NULL
           AND cloudflare_grace_period_until < ";

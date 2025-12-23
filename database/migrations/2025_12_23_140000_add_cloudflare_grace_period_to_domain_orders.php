@@ -98,7 +98,7 @@ class AddCloudflareGracePeriodToDomainOrders_2025_12_23_140000
                     $pdo->exec("
                         CREATE INDEX idx_grace_period_cleanup
                         ON domain_orders(use_cloudflare_ns, cloudflare_zone_id, cloudflare_grace_period_until)
-                        WHERE use_cloudflare_ns = 0 AND cloudflare_zone_id IS NOT NULL
+                        WHERE use_cloudflare_ns = FALSE AND cloudflare_zone_id IS NOT NULL
                     ");
                 } else {
                     $pdo->exec("
