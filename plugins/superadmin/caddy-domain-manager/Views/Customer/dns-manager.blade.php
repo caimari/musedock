@@ -261,16 +261,21 @@
                                             }
                                         }
                                     ?>
-                                    <?php if (!$isCMSRecord): // Solo mostrar si NO es un registro del CMS ?>
-                                    <tr class="record-row" data-record-id="<?= htmlspecialchars($record['id']) ?>">
+                                    <tr class="record-row <?= $isCMSRecord ? 'table-warning' : '' ?>" data-record-id="<?= htmlspecialchars($record['id']) ?>">
                                         <td>
                                             <span class="record-type-badge record-type-<?= htmlspecialchars($recordType) ?>">
                                                 <?= htmlspecialchars($recordType) ?>
                                             </span>
                                         </td>
                                         <td class="record-name"><?= htmlspecialchars($recordName) ?></td>
-                                        <td class="record-content" title="<?= htmlspecialchars($recordContent) ?>">
-                                            <?= htmlspecialchars(strlen($recordContent) > 50 ? substr($recordContent, 0, 50) . '...' : $recordContent) ?>
+                                        <td class="record-content" title="<?= $isCMSRecord ? 'Registro del CMS - Oculto por seguridad' : htmlspecialchars($recordContent) ?>">
+                                            <?php if ($isCMSRecord): ?>
+                                                <span class="text-muted fst-italic">
+                                                    <i class="bi bi-shield-lock-fill me-1"></i>--OCULTO POR SEGURIDAD--
+                                                </span>
+                                            <?php else: ?>
+                                                <?= htmlspecialchars(strlen($recordContent) > 50 ? substr($recordContent, 0, 50) . '...' : $recordContent) ?>
+                                            <?php endif; ?>
                                         </td>
                                         <td><?= $record['ttl'] == 1 ? 'Auto' : $record['ttl'] ?></td>
                                         <td>
@@ -283,7 +288,11 @@
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <?php if ($useCloudflareNs): ?>
+                                            <?php if ($isCMSRecord): ?>
+                                                <span class="text-muted small" title="Registro gestionado por el CMS - No editable">
+                                                    <i class="bi bi-lock-fill"></i> Protegido
+                                                </span>
+                                            <?php elseif ($useCloudflareNs): ?>
                                             <button type="button" class="btn btn-outline-primary btn-action" onclick="editRecord('<?= htmlspecialchars($record['id']) ?>')">
                                                 <i class="bi bi-pencil"></i>
                                             </button>
@@ -295,7 +304,6 @@
                                             <?php endif; ?>
                                         </td>
                                     </tr>
-                                    <?php endif; // Fin del if (!$isCMSRecord) ?>
                                     <?php endforeach; ?>
                                     <?php endif; // Fin del if (empty($records)) ?>
                                 </tbody>
