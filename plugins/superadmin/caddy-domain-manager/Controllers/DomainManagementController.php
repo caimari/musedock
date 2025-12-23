@@ -338,6 +338,16 @@ class DomainManagementController
 
         } catch (Exception $e) {
             Logger::error("[DomainManagement] Error toggling WHOIS privacy: " . $e->getMessage());
+
+            // Detectar error de contrato WPP no firmado
+            if (strpos($e->getMessage(), 'Wpp contract is not signed') !== false || strpos($e->getMessage(), '19010') !== false) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'error' => 'El contrato de WHOIS Privacy Protection no está firmado en tu cuenta de OpenProvider. Por favor, accede al panel de OpenProvider y firma el contrato WPP para habilitar esta funcionalidad.'
+                ], 400);
+                return;
+            }
+
             $this->jsonResponse(['success' => false, 'error' => 'Error al cambiar la protección WHOIS'], 500);
         }
     }
