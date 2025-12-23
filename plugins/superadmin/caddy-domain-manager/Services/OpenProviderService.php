@@ -1061,6 +1061,52 @@ class OpenProviderService
         return $response['data']['auth_code'] ?? '';
     }
 
+    /**
+     * Actualizar configuración de auto-renovación
+     *
+     * @param int $domainId ID del dominio
+     * @param string $autorenew "on", "off", o "default"
+     * @return bool
+     * @throws Exception
+     */
+    public function updateAutoRenew(int $domainId, string $autorenew): bool
+    {
+        Logger::info("[OpenProvider] Updating autorenew for domain ID: {$domainId} to: {$autorenew}");
+
+        if (!in_array($autorenew, ['on', 'off', 'default'])) {
+            throw new Exception("Invalid autorenew value. Must be 'on', 'off', or 'default'");
+        }
+
+        $response = $this->makeRequest('PUT', "/domains/{$domainId}", [
+            'autorenew' => $autorenew
+        ]);
+
+        Logger::info("[OpenProvider] Autorenew updated successfully");
+
+        return true;
+    }
+
+    /**
+     * Activar/desactivar protección WHOIS privado
+     *
+     * @param int $domainId ID del dominio
+     * @param bool $enabled True para activar, false para desactivar
+     * @return bool
+     * @throws Exception
+     */
+    public function toggleWhoisPrivacy(int $domainId, bool $enabled): bool
+    {
+        Logger::info("[OpenProvider] Toggling WHOIS privacy for domain ID: {$domainId} to: " . ($enabled ? 'ON' : 'OFF'));
+
+        $response = $this->makeRequest('PUT', "/domains/{$domainId}", [
+            'is_private_whois_enabled' => $enabled
+        ]);
+
+        Logger::info("[OpenProvider] WHOIS privacy updated successfully");
+
+        return true;
+    }
+
     // ============================================
     // EXTENSIONS & PRICING
     // ============================================
@@ -1329,6 +1375,11 @@ class OpenProviderService
         if (isset($decoded['code']) && $decoded['code'] !== 0) {
             $errorMsg = $decoded['desc'] ?? 'Unknown error';
 
+            // Para error 399, registrar la respuesta COMPLETA para debug
+            if ($decoded['code'] == 399) {
+                Logger::error("[OpenProvider] Full API response for error 399: " . json_encode($decoded, JSON_PRETTY_PRINT));
+            }
+
             // Intentar capturar mensaje del registry si existe (error 399 específicamente)
             $registryMessage = '';
             if (isset($decoded['data']['errors']) && is_array($decoded['data']['errors'])) {
@@ -1337,6 +1388,14 @@ class OpenProviderService
                         $registryMessage .= $error['message'] . '; ';
                     }
                 }
+            }
+
+            // También intentar capturar de otras ubicaciones posibles
+            if (empty($registryMessage) && isset($decoded['data']['message'])) {
+                $registryMessage = $decoded['data']['message'];
+            }
+            if (empty($registryMessage) && isset($decoded['data']['desc'])) {
+                $registryMessage = $decoded['data']['desc'];
             }
 
             Logger::error("[OpenProvider] API error ({$decoded['code']}): {$errorMsg}");
