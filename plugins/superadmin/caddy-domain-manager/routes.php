@@ -415,6 +415,40 @@ Route::get('/customer/domain/{id}/dns/export', 'CaddyDomainManager\Controllers\D
     ->name('customer.domain.dns.export');
 
 // ============================================
+// DOMAIN MANAGEMENT (Panel de Administración)
+// ============================================
+
+// Vista principal de administración del dominio
+Route::get('/customer/domain/{id}/manage', 'CaddyDomainManager\Controllers\DomainManagementController@manage')
+    ->middleware('customer')
+    ->name('customer.domain.manage');
+
+// AJAX: Toggle lock del dominio
+Route::post('/customer/domain/{id}/toggle-lock', 'CaddyDomainManager\Controllers\DomainManagementController@toggleLock')
+    ->middleware('customer')
+    ->name('customer.domain.toggle-lock');
+
+// AJAX: Obtener auth code
+Route::get('/customer/domain/{id}/auth-code', 'CaddyDomainManager\Controllers\DomainManagementController@getAuthCode')
+    ->middleware('customer')
+    ->name('customer.domain.auth-code');
+
+// AJAX: Regenerar auth code
+Route::post('/customer/domain/{id}/regenerate-auth-code', 'CaddyDomainManager\Controllers\DomainManagementController@regenerateAuthCode')
+    ->middleware('customer')
+    ->name('customer.domain.regenerate-auth-code');
+
+// AJAX: Toggle auto-renovación
+Route::post('/customer/domain/{id}/toggle-autorenew', 'CaddyDomainManager\Controllers\DomainManagementController@toggleAutoRenew')
+    ->middleware('customer')
+    ->name('customer.domain.toggle-autorenew');
+
+// AJAX: Toggle WHOIS privado
+Route::post('/customer/domain/{id}/toggle-whois-privacy', 'CaddyDomainManager\Controllers\DomainManagementController@toggleWhoisPrivacy')
+    ->middleware('customer')
+    ->name('customer.domain.toggle-whois-privacy');
+
+// ============================================
 // DOMAIN TRANSFER (OpenProvider)
 // ============================================
 

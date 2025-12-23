@@ -935,6 +935,17 @@ class OpenProviderService
 
             // Si es error 399, proporcionar más contexto
             if (strpos($errorMsg, '399') !== false) {
+                // Detectar si es error de autorización de nameservers
+                if (strpos($errorMsg, 'Authorization error') !== false || strpos($errorMsg, 'does not own') !== false) {
+                    throw new Exception("No se pudieron actualizar los nameservers. El registry rechazó los nameservers porque no son de tu propiedad.\n\n" .
+                        "Nameservers permitidos:\n" .
+                        "• Nameservers de CloudFlare (alba.ns.cloudflare.com, dee.ns.cloudflare.com)\n" .
+                        "• Nameservers de OpenProvider (ns1.openprovider.nl, ns2.openprovider.nl, ns3.openprovider.nl)\n" .
+                        "• Nameservers propios registrados en tu cuenta\n\n" .
+                        "Los nameservers de terceros (como ns1.he.net) pueden no funcionar en sandbox.\n\n" .
+                        "Error del registry: {$errorMsg}");
+                }
+
                 throw new Exception("No se pudieron actualizar los nameservers. El registro de dominio rechazó la solicitud. Esto puede ocurrir si:\n" .
                     "1. Los nameservers no están registrados en el sistema del registry\n" .
                     "2. Los nameservers no tienen direcciones IP (glue records) cuando son requeridas\n" .
@@ -1396,6 +1407,10 @@ class OpenProviderService
             }
             if (empty($registryMessage) && isset($decoded['data']['desc'])) {
                 $registryMessage = $decoded['data']['desc'];
+            }
+            // El 'data' puede ser un string directo con el mensaje del registry
+            if (empty($registryMessage) && isset($decoded['data']) && is_string($decoded['data'])) {
+                $registryMessage = $decoded['data'];
             }
 
             Logger::error("[OpenProvider] API error ({$decoded['code']}): {$errorMsg}");

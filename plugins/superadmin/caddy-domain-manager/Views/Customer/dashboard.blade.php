@@ -361,6 +361,9 @@
 
         <div class="actions">
             <?php if (in_array($orderStatus, ['active', 'registered'], true)): ?>
+            <a href="/customer/domain/<?= (int)$order['id'] ?>/manage" class="btn btn-sm btn-success">
+                <i class="bi bi-gear-fill"></i> Administrar
+            </a>
             <a href="/customer/domain/<?= (int)$order['id'] ?>/dns" class="btn btn-sm btn-outline-primary">
                 <i class="bi bi-hdd-network"></i> Gestionar DNS
             </a>
