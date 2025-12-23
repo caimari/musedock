@@ -544,10 +544,11 @@ class CloudflareZoneService
      * @param string $content Contenido del record
      * @param bool $proxied Si debe estar proxied (solo A, AAAA, CNAME)
      * @param int $ttl TTL en segundos (1 = auto)
+     * @param int|null $priority Prioridad (requerido para MX, SRV)
      * @return array Record creado
      * @throws Exception
      */
-    public function createDNSRecord(string $zoneId, string $type, string $name, string $content, bool $proxied = false, int $ttl = 1): array
+    public function createDNSRecord(string $zoneId, string $type, string $name, string $content, bool $proxied = false, int $ttl = 1, ?int $priority = null): array
     {
         Logger::info("[CloudflareZone] Creating DNS record: {$type} {$name} → {$content}");
 
@@ -561,6 +562,11 @@ class CloudflareZoneService
         // Proxy solo disponible para A, AAAA, CNAME
         if (in_array(strtoupper($type), ['A', 'AAAA', 'CNAME'])) {
             $data['proxied'] = $proxied;
+        }
+
+        // Priority requerido para MX y SRV
+        if ($priority !== null && in_array(strtoupper($type), ['MX', 'SRV'])) {
+            $data['priority'] = $priority;
         }
 
         $response = $this->makeRequest('POST', "/zones/{$zoneId}/dns_records", $data);

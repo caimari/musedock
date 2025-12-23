@@ -135,6 +135,17 @@ class DnsManagerController
             $proxied = isset($_POST['proxied']) && $_POST['proxied'] === '1';
             $priority = intval($_POST['priority'] ?? 10);
 
+            // Debug logging
+            Logger::debug("[DnsManager] Creating DNS record", [
+                'type' => $type,
+                'type_is_array' => is_array($_POST['type'] ?? null),
+                'name' => $name,
+                'content' => $content,
+                'ttl' => $ttl,
+                'proxied' => $proxied,
+                'priority' => $priority
+            ]);
+
             $allowedTypes = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SRV', 'CAA'];
             if (!in_array($type, $allowedTypes)) {
                 $this->jsonResponse(['success' => false, 'error' => 'Tipo de registro no válido'], 400);
@@ -148,19 +159,22 @@ class DnsManagerController
 
             // Crear registro en Cloudflare
             $cloudflare = new CloudflareZoneService();
-            $recordData = [
-                'type' => $type,
-                'name' => $name,
-                'content' => $content,
-                'ttl' => $ttl,
-                'proxied' => $proxied && in_array($type, ['A', 'AAAA', 'CNAME'])
-            ];
 
-            if ($type === 'MX') {
-                $recordData['priority'] = $priority;
-            }
+            // Determinar si debe estar proxied (solo para A, AAAA, CNAME)
+            $shouldProxy = $proxied && in_array($type, ['A', 'AAAA', 'CNAME']);
 
-            $result = $cloudflare->createDnsRecord($order['cloudflare_zone_id'], $recordData);
+            // Determinar priority para MX y SRV
+            $recordPriority = in_array($type, ['MX', 'SRV']) ? $priority : null;
+
+            $result = $cloudflare->createDNSRecord(
+                $order['cloudflare_zone_id'],
+                $type,
+                $name,
+                $content,
+                $shouldProxy,
+                $ttl,
+                $recordPriority
+            );
 
             Logger::info("[DnsManager] DNS record created: {$type} {$name} for order {$orderId}");
 
