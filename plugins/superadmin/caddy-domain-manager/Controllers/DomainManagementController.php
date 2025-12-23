@@ -373,6 +373,25 @@ class DomainManagementController
                 return;
             }
 
+            // Get admin credentials from request
+            $adminEmail = trim($_POST['admin_email'] ?? '');
+            $adminPassword = $_POST['admin_password'] ?? '';
+
+            if (empty($adminEmail) || empty($adminPassword)) {
+                $this->jsonResponse(['success' => false, 'error' => 'Email y contraseña del administrador son requeridos'], 400);
+                return;
+            }
+
+            if (!filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+                $this->jsonResponse(['success' => false, 'error' => 'Email inválido'], 400);
+                return;
+            }
+
+            if (strlen($adminPassword) < 8) {
+                $this->jsonResponse(['success' => false, 'error' => 'La contraseña debe tener al menos 8 caracteres'], 400);
+                return;
+            }
+
             $pdo = Database::connect();
 
             // Get domain order
@@ -402,7 +421,7 @@ class DomainManagementController
 
             $fullDomain = trim(($order['domain'] ?? '') . (!empty($order['extension']) ? '.' . $order['extension'] : ''), '.');
 
-            Logger::info("[DomainManagement] Upgrading domain to CMS: {$fullDomain} (Order ID: {$orderId})");
+            Logger::info("[DomainManagement] Upgrading domain to CMS: {$fullDomain} (Order ID: {$orderId}, Admin: {$adminEmail})");
 
             // Get customer info for tenant creation
             $customerStmt = $pdo->prepare("SELECT * FROM customers WHERE id = ?");
@@ -417,8 +436,8 @@ class DomainManagementController
             $pdo->beginTransaction();
 
             try {
-                // Create tenant
-                $tenantId = $this->createTenantForDomain($customerId, $fullDomain, $orderId, $pdo);
+                // Create tenant with custom admin credentials
+                $tenantId = $this->createTenantForDomain($customerId, $fullDomain, $orderId, $pdo, $adminEmail, $adminPassword);
                 Logger::info("[DomainManagement] Tenant created: ID {$tenantId}");
 
                 // Create CNAME records in CloudFlare
@@ -441,11 +460,14 @@ class DomainManagementController
                 $adminPath = \Screenart\Musedock\Env::get('ADMIN_PATH_TENANT', 'admin');
                 $adminUrl = "https://{$fullDomain}/{$adminPath}";
 
+                // Send notification emails
+                $this->sendCMSActivationEmails($fullDomain, $adminEmail, $adminPassword, $customer);
+
                 Logger::info("[DomainManagement] Successfully upgraded {$fullDomain} to CMS");
 
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'CMS activado correctamente. Ya puedes acceder al panel de administración.',
+                    'message' => 'CMS activado correctamente. Las credenciales han sido enviadas por email.',
                     'admin_url' => $adminUrl,
                     'tenant_id' => $tenantId
                 ]);
@@ -557,7 +579,7 @@ class DomainManagementController
     /**
      * Create tenant for domain (similar to DomainRegistrationController::createTenant)
      */
-    private function createTenantForDomain(int $customerId, string $domain, int $orderId, \PDO $pdo): int
+    private function createTenantForDomain(int $customerId, string $domain, int $orderId, \PDO $pdo, string $adminEmail = '', string $adminPassword = ''): int
     {
         // Generate tenant name from domain
         $domainParts = explode('.', $domain);
@@ -580,8 +602,8 @@ class DomainManagementController
         // Apply tenant defaults (permissions, roles, menus)
         $this->applyTenantDefaults($tenantId, $pdo);
 
-        // Create admin user for tenant
-        $this->createTenantAdmin($tenantId, $customerId, $domain, $pdo);
+        // Create admin user for tenant with custom credentials
+        $this->createTenantAdmin($tenantId, $customerId, $domain, $pdo, $adminEmail, $adminPassword);
 
         return $tenantId;
     }
@@ -616,18 +638,20 @@ class DomainManagementController
     /**
      * Create admin user for tenant
      */
-    private function createTenantAdmin(int $tenantId, int $customerId, string $domain, \PDO $pdo): void
+    private function createTenantAdmin(int $tenantId, int $customerId, string $domain, \PDO $pdo, string $adminEmail = '', string $adminPassword = ''): void
     {
-        // Get customer email
+        // Get customer info as fallback
         $customerStmt = $pdo->prepare("SELECT email, name FROM customers WHERE id = ?");
         $customerStmt->execute([$customerId]);
         $customer = $customerStmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!$customer) return;
 
-        // Create admin user
-        $adminPassword = bin2hex(random_bytes(8));
-        $hashedPassword = password_hash($adminPassword, PASSWORD_BCRYPT);
+        // Use provided credentials or fallback to customer
+        $email = !empty($adminEmail) ? $adminEmail : $customer['email'];
+        $password = !empty($adminPassword) ? $adminPassword : bin2hex(random_bytes(8));
+
+        $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
 
         $stmt = $pdo->prepare("
             INSERT INTO tenant_{$tenantId}_users (
@@ -636,11 +660,11 @@ class DomainManagementController
         ");
         $stmt->execute([
             $customer['name'] ?? 'Admin',
-            $customer['email'],
+            $email,
             $hashedPassword
         ]);
 
-        Logger::info("[DomainManagement] Admin user created for tenant {$tenantId}");
+        Logger::info("[DomainManagement] Admin user created for tenant {$tenantId} with email: {$email}");
     }
 
     /**
@@ -710,6 +734,296 @@ class DomainManagementController
         // Delete tenant record
         $stmt = $pdo->prepare("DELETE FROM tenants WHERE id = ?");
         $stmt->execute([$tenantId]);
+    }
+
+    /**
+     * Send CMS activation notification emails
+     */
+    private function sendCMSActivationEmails(string $domain, string $adminEmail, string $adminPassword, array $customer): void
+    {
+        try {
+            $adminPath = \Screenart\Musedock\Env::get('ADMIN_PATH_TENANT', 'admin');
+            $adminUrl = "https://{$domain}/{$adminPath}";
+            $webmasterEmail = \Screenart\Musedock\Env::get('WEBMASTER_EMAIL', 'hello@musedock.com');
+
+            // Email to admin with credentials
+            $adminSubject = "CMS Activado - Credenciales de Acceso para {$domain}";
+            $adminHtmlBody = $this->getCMSActivationAdminEmailTemplate($domain, $adminUrl, $adminEmail, $adminPassword);
+            $adminTextBody = $this->getCMSActivationAdminEmailText($domain, $adminUrl, $adminEmail, $adminPassword);
+
+            \Screenart\Musedock\Mail\Mailer::send($adminEmail, $adminSubject, $adminHtmlBody, $adminTextBody);
+            Logger::info("[DomainManagement] Credentials email sent to admin: {$adminEmail}");
+
+            // Email to webmaster notification
+            $webmasterSubject = "Nuevo CMS Activado - {$domain}";
+            $webmasterHtmlBody = $this->getCMSActivationWebmasterEmailTemplate($domain, $customer, $adminEmail);
+            $webmasterTextBody = $this->getCMSActivationWebmasterEmailText($domain, $customer, $adminEmail);
+
+            \Screenart\Musedock\Mail\Mailer::send($webmasterEmail, $webmasterSubject, $webmasterHtmlBody, $webmasterTextBody);
+            Logger::info("[DomainManagement] Notification email sent to webmaster: {$webmasterEmail}");
+
+        } catch (Exception $e) {
+            Logger::error("[DomainManagement] Error sending emails: " . $e->getMessage());
+            // Don't throw - email failure shouldn't block CMS activation
+        }
+    }
+
+    /**
+     * Generate HTML email template for admin credentials
+     */
+    private function getCMSActivationAdminEmailTemplate(string $domain, string $adminUrl, string $adminEmail, string $adminPassword): string
+    {
+        $appName = \Screenart\Musedock\Env::get('APP_NAME', 'MuseDock CMS');
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMS Activado</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f3f4f6;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 600px; max-width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px 8px 0 0;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
+                                🚀 ¡CMS Activado Exitosamente!
+                            </h1>
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px;">
+                            <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
+                                ¡Felicidades! El CMS ha sido activado exitosamente para tu dominio <strong>{$domain}</strong>.
+                            </p>
+
+                            <div style="margin: 30px 0; padding: 20px; background-color: #f0f9ff; border-left: 4px solid #0284c7; border-radius: 4px;">
+                                <h3 style="margin: 0 0 15px; font-size: 18px; color: #0c4a6e;">Credenciales de Acceso</h3>
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #64748b; font-size: 14px;"><strong>URL de acceso:</strong></td>
+                                        <td style="padding: 8px 0;">
+                                            <a href="{$adminUrl}" style="color: #0284c7; text-decoration: none; font-weight: 600;">{$adminUrl}</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #64748b; font-size: 14px;"><strong>Email:</strong></td>
+                                        <td style="padding: 8px 0; color: #374151; font-family: monospace;">{$adminEmail}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #64748b; font-size: 14px;"><strong>Contraseña:</strong></td>
+                                        <td style="padding: 8px 0; color: #374151; font-family: monospace; background-color: #fef3c7; padding: 4px 8px; border-radius: 3px;">{$adminPassword}</td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <!-- Access button -->
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{$adminUrl}"
+                                           style="display: inline-block; padding: 16px 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">
+                                            Acceder al Panel de Administración
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Security notice -->
+                            <div style="margin: 30px 0; padding: 16px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
+                                <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #92400e;">
+                                    <strong>🔐 Importante:</strong> Por tu seguridad, te recomendamos cambiar la contraseña después del primer inicio de sesión.
+                                </p>
+                            </div>
+
+                            <p style="margin: 20px 0 0; font-size: 14px; line-height: 1.6; color: #6b7280;">
+                                Si tienes alguna pregunta o necesitas ayuda, no dudes en contactarnos.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 8px 8px; border-top: 1px solid #e5e7eb;">
+                            <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #9ca3af; text-align: center;">
+                                Este correo fue enviado por <strong>{$appName}</strong>
+                            </p>
+                            <p style="margin: 15px 0 0; font-size: 12px; line-height: 1.6; color: #9ca3af; text-align: center;">
+                                © 2025 {$appName}. Todos los derechos reservados.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+HTML;
+    }
+
+    /**
+     * Generate plain text email for admin credentials
+     */
+    private function getCMSActivationAdminEmailText(string $domain, string $adminUrl, string $adminEmail, string $adminPassword): string
+    {
+        $appName = \Screenart\Musedock\Env::get('APP_NAME', 'MuseDock CMS');
+
+        return <<<TEXT
+¡CMS Activado Exitosamente! - {$appName}
+
+¡Felicidades! El CMS ha sido activado exitosamente para tu dominio {$domain}.
+
+CREDENCIALES DE ACCESO:
+- URL de acceso: {$adminUrl}
+- Email: {$adminEmail}
+- Contraseña: {$adminPassword}
+
+IMPORTANTE: Por tu seguridad, te recomendamos cambiar la contraseña después del primer inicio de sesión.
+
+Si tienes alguna pregunta o necesitas ayuda, no dudes en contactarnos.
+
+---
+© 2025 {$appName}
+TEXT;
+    }
+
+    /**
+     * Generate HTML email template for webmaster notification
+     */
+    private function getCMSActivationWebmasterEmailTemplate(string $domain, array $customer, string $adminEmail): string
+    {
+        $appName = \Screenart\Musedock\Env::get('APP_NAME', 'MuseDock CMS');
+        $customerName = $customer['name'] ?? 'N/A';
+        $customerEmail = $customer['email'] ?? 'N/A';
+        $currentDate = date('Y-m-d H:i:s');
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuevo CMS Activado</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f3f4f6;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 600px; max-width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #059669 0%, #047857 100%); border-radius: 8px 8px 0 0;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
+                                📢 Nuevo CMS Activado
+                            </h1>
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px;">
+                            <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
+                                Se ha activado un nuevo CMS en la plataforma.
+                            </p>
+
+                            <div style="margin: 30px 0; padding: 20px; background-color: #f0fdf4; border-left: 4px solid #059669; border-radius: 4px;">
+                                <h3 style="margin: 0 0 15px; font-size: 18px; color: #065f46;">Detalles del Servicio</h3>
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #64748b; font-size: 14px; width: 150px;"><strong>Dominio:</strong></td>
+                                        <td style="padding: 8px 0; color: #374151; font-weight: 600;">{$domain}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #64748b; font-size: 14px;"><strong>Cliente:</strong></td>
+                                        <td style="padding: 8px 0; color: #374151;">{$customerName}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #64748b; font-size: 14px;"><strong>Email Cliente:</strong></td>
+                                        <td style="padding: 8px 0; color: #374151;">{$customerEmail}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #64748b; font-size: 14px;"><strong>Admin Email:</strong></td>
+                                        <td style="padding: 8px 0; color: #374151;">{$adminEmail}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #64748b; font-size: 14px;"><strong>Fecha:</strong></td>
+                                        <td style="padding: 8px 0; color: #374151;">{$currentDate}</td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <div style="margin: 20px 0; padding: 16px; background-color: #f0f9ff; border-left: 4px solid #0284c7; border-radius: 4px;">
+                                <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #0c4a6e;">
+                                    <strong>✓ Servicios Configurados:</strong><br>
+                                    • Tenant dedicado con CMS<br>
+                                    • Registros DNS @ y www a MuseDock<br>
+                                    • Certificado SSL automático<br>
+                                    • CDN y protección DDoS activos
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 8px 8px; border-top: 1px solid #e5e7eb;">
+                            <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #9ca3af; text-align: center;">
+                                Notificación automática de <strong>{$appName}</strong>
+                            </p>
+                            <p style="margin: 15px 0 0; font-size: 12px; line-height: 1.6; color: #9ca3af; text-align: center;">
+                                © 2025 {$appName}. Todos los derechos reservados.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+HTML;
+    }
+
+    /**
+     * Generate plain text email for webmaster notification
+     */
+    private function getCMSActivationWebmasterEmailText(string $domain, array $customer, string $adminEmail): string
+    {
+        $appName = \Screenart\Musedock\Env::get('APP_NAME', 'MuseDock CMS');
+        $customerName = $customer['name'] ?? 'N/A';
+        $customerEmail = $customer['email'] ?? 'N/A';
+        $currentDate = date('Y-m-d H:i:s');
+
+        return <<<TEXT
+Nuevo CMS Activado - {$appName}
+
+Se ha activado un nuevo CMS en la plataforma.
+
+DETALLES DEL SERVICIO:
+- Dominio: {$domain}
+- Cliente: {$customerName}
+- Email Cliente: {$customerEmail}
+- Admin Email: {$adminEmail}
+- Fecha: {$currentDate}
+
+SERVICIOS CONFIGURADOS:
+✓ Tenant dedicado con CMS
+✓ Registros DNS @ y www a MuseDock
+✓ Certificado SSL automático
+✓ CDN y protección DDoS activos
+
+---
+Notificación automática de {$appName}
+© 2025 {$appName}
+TEXT;
     }
 
     /**

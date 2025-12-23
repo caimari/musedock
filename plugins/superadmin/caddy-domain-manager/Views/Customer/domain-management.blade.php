@@ -773,46 +773,108 @@ function upgradeToCMS() {
         html: 'Se creará un tenant con panel de administración completo para tu dominio.<br><br>' +
               '<strong>Se configurará:</strong><br>' +
               '• Tenant dedicado con CMS<br>' +
-              '• Registros DNS @ y www → mortadelo.musedock.com<br>' +
+              '• Registros DNS @ y www a MuseDock<br>' +
               '• Certificado SSL automático<br>' +
               '• CDN y protección DDoS',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#667eea',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Sí, activar CMS',
+        confirmButtonText: 'Continuar',
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
-            const formData = new FormData();
-            formData.append('_csrf_token', csrfToken);
-
+            // Segundo paso: pedir credenciales del admin
             Swal.fire({
-                title: 'Activando CMS...',
-                html: 'Esto puede tardar unos segundos...',
-                allowOutsideClick: false,
-                showConfirmButton: false,
-                didOpen: () => Swal.showLoading()
-            });
+                title: 'Credenciales del Administrador',
+                html:
+                    '<div class="text-start">' +
+                    '<p class="small text-muted mb-3">Configura las credenciales para acceder al panel CMS</p>' +
+                    '<div class="mb-3">' +
+                    '<label class="form-label small fw-bold">Email del Administrador</label>' +
+                    '<input id="admin-email" class="swal2-input" placeholder="admin@ejemplo.com" type="email" style="width: 100%; margin: 0;">' +
+                    '<small class="text-muted d-block mt-1">Recibirás las credenciales de acceso en este email</small>' +
+                    '</div>' +
+                    '<div class="mb-3">' +
+                    '<label class="form-label small fw-bold">Contraseña</label>' +
+                    '<input id="admin-password" class="swal2-input" placeholder="Mínimo 8 caracteres" type="password" style="width: 100%; margin: 0;">' +
+                    '</div>' +
+                    '<div class="mb-2">' +
+                    '<label class="form-label small fw-bold">Confirmar Contraseña</label>' +
+                    '<input id="admin-password-confirm" class="swal2-input" placeholder="Repite la contraseña" type="password" style="width: 100%; margin: 0;">' +
+                    '</div>' +
+                    '</div>',
+                showCancelButton: true,
+                confirmButtonColor: '#667eea',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Activar CMS',
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => {
+                    const email = document.getElementById('admin-email').value;
+                    const password = document.getElementById('admin-password').value;
+                    const passwordConfirm = document.getElementById('admin-password-confirm').value;
 
-            fetch(`/customer/domain/${orderId}/upgrade-to-cms`, {
-                method: 'POST',
-                body: formData
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡CMS Activado!',
-                        html: data.message + (data.admin_url ? '<br><br><a href="' + data.admin_url + '" class="btn btn-sm btn-primary mt-2" target="_blank">Ir al Panel CMS</a>' : ''),
-                        confirmButtonText: 'Entendido'
-                    }).then(() => location.reload());
-                } else {
-                    Swal.fire('Error', data.error || 'No se pudo activar el CMS', 'error');
+                    if (!email) {
+                        Swal.showValidationMessage('Por favor ingresa un email');
+                        return false;
+                    }
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                        Swal.showValidationMessage('Por favor ingresa un email válido');
+                        return false;
+                    }
+                    if (!password) {
+                        Swal.showValidationMessage('Por favor ingresa una contraseña');
+                        return false;
+                    }
+                    if (password.length < 8) {
+                        Swal.showValidationMessage('La contraseña debe tener al menos 8 caracteres');
+                        return false;
+                    }
+                    if (password !== passwordConfirm) {
+                        Swal.showValidationMessage('Las contraseñas no coinciden');
+                        return false;
+                    }
+
+                    return { email: email, password: password };
                 }
-            })
-            .catch(() => Swal.fire('Error', 'Error de conexión', 'error'));
+            }).then((credentialsResult) => {
+                if (credentialsResult.isConfirmed) {
+                    const formData = new FormData();
+                    formData.append('_csrf_token', csrfToken);
+                    formData.append('admin_email', credentialsResult.value.email);
+                    formData.append('admin_password', credentialsResult.value.password);
+
+                    Swal.fire({
+                        title: 'Activando CMS...',
+                        html: 'Creando tenant, configurando DNS y enviando credenciales...',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: () => Swal.showLoading()
+                    });
+
+                    fetch(`/customer/domain/${orderId}/upgrade-to-cms`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '¡CMS Activado!',
+                                html: data.message +
+                                      '<br><br><strong>Credenciales enviadas a:</strong><br>' +
+                                      credentialsResult.value.email +
+                                      (data.admin_url ? '<br><br><a href="' + data.admin_url + '" class="btn btn-sm btn-primary mt-2" target="_blank">Ir al Panel CMS</a>' : ''),
+                                confirmButtonText: 'Entendido'
+                            }).then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', data.error || 'No se pudo activar el CMS', 'error');
+                        }
+                    })
+                    .catch(() => Swal.fire('Error', 'Error de conexión', 'error'));
+                }
+            });
         }
     });
 }
