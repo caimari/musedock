@@ -879,25 +879,48 @@ class DomainManagementController
     }
 
     /**
-     * Delete CNAME records for CMS hosting
+     * Delete CNAME records for CMS hosting (@ and www pointing to mortadelo.musedock.com)
      */
     private function deleteCMSDNSRecords(string $zoneId): void
     {
         try {
             $cloudflare = new \CaddyDomainManager\Services\CloudflareZoneService();
 
+            // Get zone details to know the domain name
+            $zoneDetails = $cloudflare->getZoneDetails($zoneId);
+            $domainName = $zoneDetails['name'] ?? '';
+
+            if (empty($domainName)) {
+                Logger::warning("[DomainManagement] Could not get domain name for zone {$zoneId}");
+                return;
+            }
+
             // Get all DNS records for the zone
             $records = $cloudflare->listDNSRecords($zoneId);
 
+            Logger::info("[DomainManagement] Deleting CMS DNS records for {$domainName}");
+
             // Delete @ and www CNAME records pointing to mortadelo.musedock.com
             foreach ($records as $record) {
-                if ($record['type'] === 'CNAME' &&
-                    in_array($record['name'] ?? '', ['@', 'www']) &&
-                    strpos($record['content'] ?? '', 'mortadelo.musedock.com') !== false) {
-                    $cloudflare->deleteDNSRecord($zoneId, $record['id']);
-                    Logger::info("[DomainManagement] Deleted DNS record: {$record['name']}");
+                $recordName = $record['name'] ?? '';
+                $recordType = $record['type'] ?? '';
+                $recordContent = $record['content'] ?? '';
+
+                // Solo eliminar CNAMEs que apunten a mortadelo.musedock.com
+                if ($recordType === 'CNAME' && strpos($recordContent, 'mortadelo.musedock.com') !== false) {
+                    // Verificar si es @ (root) o www
+                    $isRoot = ($recordName === $domainName);
+                    $isWww = ($recordName === "www.{$domainName}");
+
+                    if ($isRoot || $isWww) {
+                        Logger::info("[DomainManagement] Deleting CNAME {$recordName} → {$recordContent}");
+                        $cloudflare->deleteDNSRecord($zoneId, $record['id']);
+                    }
                 }
             }
+
+            Logger::info("[DomainManagement] CMS DNS records deleted successfully");
+
         } catch (Exception $e) {
             Logger::error("[DomainManagement] Error deleting DNS records: " . $e->getMessage());
             // Don't throw, continue with downgrade

@@ -246,20 +246,35 @@
                                         </td>
                                     </tr>
                                     <?php else: ?>
-                                    <?php foreach ($records as $record): ?>
+                                    <?php foreach ($records as $record):
+                                        // Verificar si es un registro del CMS (@ o www apuntando a mortadelo.musedock.com)
+                                        $isCMSRecord = false;
+                                        $recordName = $record['name'] ?? '';
+                                        $recordContent = $record['content'] ?? '';
+                                        $recordType = $record['type'] ?? '';
+
+                                        if ($recordType === 'CNAME' && strpos($recordContent, 'mortadelo.musedock.com') !== false) {
+                                            $isRoot = ($recordName === $domain);
+                                            $isWww = ($recordName === "www.{$domain}");
+                                            if ($isRoot || $isWww) {
+                                                $isCMSRecord = true;
+                                            }
+                                        }
+                                    ?>
+                                    <?php if (!$isCMSRecord): // Solo mostrar si NO es un registro del CMS ?>
                                     <tr class="record-row" data-record-id="<?= htmlspecialchars($record['id']) ?>">
                                         <td>
-                                            <span class="record-type-badge record-type-<?= htmlspecialchars($record['type']) ?>">
-                                                <?= htmlspecialchars($record['type']) ?>
+                                            <span class="record-type-badge record-type-<?= htmlspecialchars($recordType) ?>">
+                                                <?= htmlspecialchars($recordType) ?>
                                             </span>
                                         </td>
-                                        <td class="record-name"><?= htmlspecialchars($record['name']) ?></td>
-                                        <td class="record-content" title="<?= htmlspecialchars($record['content']) ?>">
-                                            <?= htmlspecialchars(strlen($record['content']) > 50 ? substr($record['content'], 0, 50) . '...' : $record['content']) ?>
+                                        <td class="record-name"><?= htmlspecialchars($recordName) ?></td>
+                                        <td class="record-content" title="<?= htmlspecialchars($recordContent) ?>">
+                                            <?= htmlspecialchars(strlen($recordContent) > 50 ? substr($recordContent, 0, 50) . '...' : $recordContent) ?>
                                         </td>
                                         <td><?= $record['ttl'] == 1 ? 'Auto' : $record['ttl'] ?></td>
                                         <td>
-                                            <?php if (in_array($record['type'], ['A', 'AAAA', 'CNAME'])): ?>
+                                            <?php if (in_array($recordType, ['A', 'AAAA', 'CNAME'])): ?>
                                             <span class="proxied-badge <?= $record['proxied'] ? 'proxied-on' : 'proxied-off' ?>">
                                                 <?= $record['proxied'] ? 'ON' : 'OFF' ?>
                                             </span>
@@ -280,8 +295,9 @@
                                             <?php endif; ?>
                                         </td>
                                     </tr>
+                                    <?php endif; // Fin del if (!$isCMSRecord) ?>
                                     <?php endforeach; ?>
-                                    <?php endif; ?>
+                                    <?php endif; // Fin del if (empty($records)) ?>
                                 </tbody>
                             </table>
                         </div>
