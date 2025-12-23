@@ -43,8 +43,20 @@ class CustomerAuthMiddleware
 
         // Verificar si hay sesión de customer
         if (!isset($_SESSION['customer'])) {
-            $this->handleUnauthorized('No estás autenticado como customer');
-            return;
+            // Intentar restaurar sesión desde token "remember me"
+            if (isset($_COOKIE['remember_token']) && SessionSecurity::checkRemembered()) {
+                // Sesión restaurada exitosamente, verificar que sea de customer
+                if (!isset($_SESSION['customer'])) {
+                    // El token no era de customer, rechazar
+                    $this->handleUnauthorized('No estás autenticado como customer');
+                    return;
+                }
+                // Token de customer válido, continuar con las verificaciones
+            } else {
+                // No hay sesión ni token válido
+                $this->handleUnauthorized('No estás autenticado como customer');
+                return;
+            }
         }
 
         $customerId = $_SESSION['customer']['id'];

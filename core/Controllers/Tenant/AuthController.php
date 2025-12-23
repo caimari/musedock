@@ -14,11 +14,20 @@ class AuthController
     public function loginForm()
     {
         SessionSecurity::startSession();
-        
+
         // Si el usuario ya está autenticado, redirigir al dashboard
         if (isset($_SESSION['admin']) || isset($_SESSION['user'])) {
             header("Location: /" . admin_path() . "/dashboard");
             exit;
+        }
+
+        // Intentar restaurar sesión desde token "recordarme" si no hay sesión activa
+        if (SessionSecurity::checkRemembered()) {
+            // Verificar que la sesión restaurada sea de admin o user (no customer ni super_admin)
+            if (isset($_SESSION['admin']) || isset($_SESSION['user'])) {
+                header("Location: /" . admin_path() . "/dashboard");
+                exit;
+            }
         }
 
         return View::renderTenantAdmin('auth.login', [
