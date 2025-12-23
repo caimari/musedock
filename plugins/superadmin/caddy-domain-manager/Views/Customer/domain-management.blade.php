@@ -880,6 +880,7 @@ function upgradeToCMS() {
 }
 
 function downgradeToDNS() {
+    // Step 1: Show warning and checkbox
     Swal.fire({
         title: '¿Desactivar CMS?',
         html: '<strong class="text-danger">⚠️ ADVERTENCIA:</strong><br>' +
@@ -892,7 +893,7 @@ function downgradeToDNS() {
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Sí, desactivar CMS',
+        confirmButtonText: 'Continuar',
         cancelButtonText: 'Cancelar',
         input: 'checkbox',
         inputPlaceholder: 'Entiendo que se eliminarán todos los datos',
@@ -901,35 +902,65 @@ function downgradeToDNS() {
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            const formData = new FormData();
-            formData.append('_csrf_token', csrfToken);
-
+            // Step 2: Request password confirmation
             Swal.fire({
-                title: 'Desactivando CMS...',
-                html: 'Eliminando tenant y registros DNS...',
-                allowOutsideClick: false,
-                showConfirmButton: false,
-                didOpen: () => Swal.showLoading()
-            });
+                title: 'Confirmar con Contraseña',
+                html: '<div class="text-start">' +
+                      '<p class="text-danger mb-3"><strong>Por seguridad, confirma tu contraseña de acceso:</strong></p>' +
+                      '<div class="mb-2">' +
+                      '<label class="form-label small fw-bold">Contraseña</label>' +
+                      '<input id="customer-password" class="swal2-input" type="password" placeholder="Tu contraseña">' +
+                      '</div>' +
+                      '</div>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'Desactivar CMS',
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => {
+                    const password = document.getElementById('customer-password').value;
 
-            fetch(`/customer/domain/${orderId}/downgrade-to-dns`, {
-                method: 'POST',
-                body: formData
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'CMS Desactivado',
-                        text: data.message,
-                        confirmButtonText: 'Entendido'
-                    }).then(() => location.reload());
-                } else {
-                    Swal.fire('Error', data.error || 'No se pudo desactivar el CMS', 'error');
+                    if (!password || password.trim() === '') {
+                        Swal.showValidationMessage('La contraseña es requerida');
+                        return false;
+                    }
+
+                    return { password: password };
                 }
-            })
-            .catch(() => Swal.fire('Error', 'Error de conexión', 'error'));
+            }).then((passwordResult) => {
+                if (passwordResult.isConfirmed) {
+                    const formData = new FormData();
+                    formData.append('_csrf_token', csrfToken);
+                    formData.append('customer_password', passwordResult.value.password);
+
+                    Swal.fire({
+                        title: 'Desactivando CMS...',
+                        html: 'Eliminando tenant y registros DNS...',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: () => Swal.showLoading()
+                    });
+
+                    fetch(`/customer/domain/${orderId}/downgrade-to-dns`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'CMS Desactivado',
+                                text: data.message,
+                                confirmButtonText: 'Entendido'
+                            }).then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', data.error || 'No se pudo desactivar el CMS', 'error');
+                        }
+                    })
+                    .catch(() => Swal.fire('Error', 'Error de conexión', 'error'));
+                }
+            });
         }
     });
 }

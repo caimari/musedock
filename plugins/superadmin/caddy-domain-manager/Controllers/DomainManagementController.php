@@ -507,7 +507,27 @@ class DomainManagementController
                 return;
             }
 
+            // Verify customer password
+            $customerPassword = $_POST['customer_password'] ?? '';
+            if (empty($customerPassword)) {
+                $this->jsonResponse(['success' => false, 'error' => 'La contraseña es requerida'], 400);
+                return;
+            }
+
             $pdo = Database::connect();
+
+            // Verify customer password
+            $customerStmt = $pdo->prepare("SELECT password FROM customers WHERE id = ?");
+            $customerStmt->execute([$customerId]);
+            $customer = $customerStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$customer || !password_verify($customerPassword, $customer['password'])) {
+                Logger::warning("[DomainManagement] Failed password verification for customer {$customerId} attempting to downgrade order {$orderId}");
+                $this->jsonResponse(['success' => false, 'error' => 'Contraseña incorrecta'], 403);
+                return;
+            }
+
+            Logger::info("[DomainManagement] Password verified for customer {$customerId}");
 
             // Get domain order
             $stmt = $pdo->prepare("
@@ -541,6 +561,9 @@ class DomainManagementController
                 $tenant = $tenantStmt->fetch(\PDO::FETCH_ASSOC);
 
                 if ($tenant) {
+                    // Remove Caddy configuration before deleting tenant
+                    $this->removeCaddyConfigurationForTenant($tenant['id'], $pdo);
+
                     // Delete tenant and all related data
                     $this->deleteTenant($tenant['id'], $pdo);
                     Logger::info("[DomainManagement] Tenant deleted: ID {$tenant['id']}");
@@ -666,7 +689,7 @@ class DomainManagementController
     }
 
     /**
-     * Setup tenant defaults (roles, permissions, menus, etc.)
+     * Setup tenant defaults (roles, permissions, menus, Caddy, etc.)
      * Called AFTER the main transaction is committed to avoid nested transaction issues
      */
     private function setupTenantDefaults(int $tenantId, int $adminId, \PDO $pdo): void
@@ -681,9 +704,121 @@ class DomainManagementController
             } else {
                 Logger::info("[DomainManagement] Tenant setup completed successfully for tenant {$tenantId}");
             }
+
+            // Configure Caddy for the tenant domain
+            $this->configureCaddyForTenant($tenantId, $pdo);
+
         } catch (Exception $e) {
             Logger::error("[DomainManagement] Error setting up tenant defaults: " . $e->getMessage());
             // Don't throw - tenant is already created, this is just configuration
+        }
+    }
+
+    /**
+     * Configure Caddy to serve the tenant domain with automatic HTTPS
+     *
+     * NOTA IMPORTANTE:
+     * - Caddy intentará obtener certificados SSL automáticamente via ACME (Let's Encrypt)
+     * - Para que esto funcione, el dominio DEBE estar apuntando a este servidor
+     * - Si el DNS aún no está propagado, Caddy marcará el estado como 'pending_dns'
+     * - Caddy reintentará automáticamente obtener el certificado cuando el DNS esté listo
+     * - Mientras tanto, el sitio NO será accesible via HTTPS hasta que el certificado se obtenga
+     */
+    private function configureCaddyForTenant(int $tenantId, \PDO $pdo): void
+    {
+        try {
+            // Get tenant domain
+            $tenantStmt = $pdo->prepare("SELECT domain FROM tenants WHERE id = ?");
+            $tenantStmt->execute([$tenantId]);
+            $tenant = $tenantStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$tenant || empty($tenant['domain'])) {
+                Logger::warning("[DomainManagement] Could not configure Caddy: Tenant domain not found");
+                return;
+            }
+
+            $domain = $tenant['domain'];
+            Logger::info("[DomainManagement] Configuring Caddy for domain: {$domain}");
+            Logger::info("[DomainManagement] NOTA: El certificado SSL se generará automáticamente cuando el DNS esté propagado");
+
+            // Use CaddyService to add the domain
+            $caddyService = new \CaddyDomainManager\Services\CaddyService();
+            $result = $caddyService->addDomain($domain, true); // true = include www
+
+            if ($result['success']) {
+                Logger::info("[DomainManagement] Caddy configured successfully for {$domain}, route ID: {$result['route_id']}");
+                Logger::info("[DomainManagement] Caddy intentará obtener certificado SSL automáticamente");
+
+                // Update tenant with Caddy route ID and status
+                // Status 'active' significa que Caddy está configurado, pero el certificado puede estar pendiente
+                $updateStmt = $pdo->prepare("
+                    UPDATE tenants
+                    SET caddy_route_id = ?,
+                        caddy_status = 'active',
+                        caddy_configured_at = NOW()
+                    WHERE id = ?
+                ");
+                $updateStmt->execute([$result['route_id'], $tenantId]);
+
+            } else {
+                Logger::error("[DomainManagement] Caddy configuration failed for {$domain}: " . ($result['error'] ?? 'Unknown error'));
+
+                // Update tenant with error status
+                $updateStmt = $pdo->prepare("
+                    UPDATE tenants
+                    SET caddy_status = 'error',
+                        caddy_error_log = ?
+                    WHERE id = ?
+                ");
+                $updateStmt->execute([$result['error'] ?? 'Unknown error', $tenantId]);
+            }
+
+        } catch (Exception $e) {
+            Logger::error("[DomainManagement] Exception configuring Caddy: " . $e->getMessage());
+            // Don't throw - tenant is usable even without Caddy configuration
+        }
+    }
+
+    /**
+     * Remove Caddy configuration for a tenant domain
+     */
+    private function removeCaddyConfigurationForTenant(int $tenantId, \PDO $pdo): void
+    {
+        try {
+            // Get tenant domain and caddy_route_id
+            $tenantStmt = $pdo->prepare("SELECT domain, caddy_route_id FROM tenants WHERE id = ?");
+            $tenantStmt->execute([$tenantId]);
+            $tenant = $tenantStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$tenant || empty($tenant['domain'])) {
+                Logger::warning("[DomainManagement] Could not remove Caddy config: Tenant not found");
+                return;
+            }
+
+            $domain = $tenant['domain'];
+            $routeId = $tenant['caddy_route_id'] ?? null;
+
+            if (empty($routeId)) {
+                Logger::info("[DomainManagement] No Caddy route ID found for {$domain}, skipping removal");
+                return;
+            }
+
+            Logger::info("[DomainManagement] Removing Caddy configuration for domain: {$domain}, route ID: {$routeId}");
+
+            // Use CaddyService to remove the domain
+            $caddyService = new \CaddyDomainManager\Services\CaddyService();
+            $result = $caddyService->removeDomain($routeId);
+
+            if ($result['success']) {
+                Logger::info("[DomainManagement] Caddy configuration removed successfully for {$domain}");
+            } else {
+                Logger::warning("[DomainManagement] Failed to remove Caddy config for {$domain}: " . ($result['error'] ?? 'Unknown'));
+                // Don't throw - continue with tenant deletion anyway
+            }
+
+        } catch (Exception $e) {
+            Logger::error("[DomainManagement] Exception removing Caddy configuration: " . $e->getMessage());
+            // Don't throw - continue with tenant deletion
         }
     }
 
