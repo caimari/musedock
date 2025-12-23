@@ -448,6 +448,16 @@ Route::post('/customer/domain/{id}/toggle-whois-privacy', 'CaddyDomainManager\Co
     ->middleware('customer')
     ->name('customer.domain.toggle-whois-privacy');
 
+// AJAX: Upgrade domain to CMS/Hosting
+Route::post('/customer/domain/{id}/upgrade-to-cms', 'CaddyDomainManager\Controllers\DomainManagementController@upgradeToCMS')
+    ->middleware('customer')
+    ->name('customer.domain.upgrade-to-cms');
+
+// AJAX: Downgrade domain to DNS Only
+Route::post('/customer/domain/{id}/downgrade-to-dns', 'CaddyDomainManager\Controllers\DomainManagementController@downgradeToDNS')
+    ->middleware('customer')
+    ->name('customer.domain.downgrade-to-dns');
+
 // ============================================
 // DOMAIN TRANSFER (OpenProvider)
 // ============================================

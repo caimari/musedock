@@ -430,6 +430,83 @@
                     </div>
                 </div>
 
+                <!-- Service Type Management -->
+                <?php
+                    $hostingType = $order['hosting_type'] ?? 'musedock_hosting';
+                    $useCloudflareNs = $order['use_cloudflare_ns'] ?? true;
+                    $cloudflareZoneId = $order['cloudflare_zone_id'] ?? null;
+                    $tenantDomain = $order['tenant_domain'] ?? null;
+                ?>
+                <div class="card management-card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-hdd-stack me-2"></i>Tipo de Servicio</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <div class="flex-grow-1">
+                                <span class="info-label d-block">Servicio Actual</span>
+                                <small class="text-muted">
+                                    <?php if ($hostingType === 'musedock_hosting'): ?>
+                                        <i class="bi bi-hdd-stack text-primary"></i> DNS + Hosting MuseDock CMS
+                                    <?php else: ?>
+                                        <i class="bi bi-globe text-secondary"></i> Solo Gestión DNS
+                                    <?php endif; ?>
+                                </small>
+                            </div>
+                            <div>
+                                <?php if ($hostingType === 'musedock_hosting'): ?>
+                                    <span class="badge bg-primary">
+                                        <i class="bi bi-check-circle"></i> CMS Activo
+                                    </span>
+                                <?php else: ?>
+                                    <span class="badge bg-secondary">
+                                        <i class="bi bi-dash-circle"></i> DNS Solo
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <?php if ($hostingType === 'dns_only'): ?>
+                        <!-- Upgrade to CMS/Hosting -->
+                        <div class="alert alert-info mt-3 mb-0">
+                            <h6 class="mb-2"><i class="bi bi-info-circle me-1"></i>Activar MuseDock CMS</h6>
+                            <p class="mb-2 small">Puedes activar el hosting y CMS de MuseDock para este dominio. Esto incluye:</p>
+                            <ul class="small mb-2">
+                                <li>Tenant dedicado con panel de administración</li>
+                                <li>CMS completo con gestor de contenidos</li>
+                                <li>Certificado SSL automático</li>
+                                <li>CDN y protección DDoS con Cloudflare</li>
+                            </ul>
+                            <p class="small text-warning mb-2">
+                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                <strong>Requisito:</strong> El dominio debe usar nameservers de Cloudflare
+                            </p>
+                            <button class="btn btn-sm btn-primary w-100" onclick="upgradeToCMS()" <?= !$useCloudflareNs ? 'disabled title="Primero debes usar nameservers de Cloudflare"' : '' ?>>
+                                <i class="bi bi-arrow-up-circle me-1"></i>Activar CMS + Hosting
+                            </button>
+                        </div>
+                        <?php else: ?>
+                        <!-- Downgrade to DNS Only -->
+                        <div class="alert alert-warning mt-3 mb-0">
+                            <h6 class="mb-2"><i class="bi bi-exclamation-triangle me-1"></i>Desactivar CMS</h6>
+                            <p class="mb-2 small">Si desactivas el CMS, se eliminará:</p>
+                            <ul class="small mb-2">
+                                <li>El tenant y todos sus datos</li>
+                                <li>Los registros DNS @ y www → mortadelo.musedock.com</li>
+                                <li>El acceso al panel de administración</li>
+                            </ul>
+                            <p class="small text-muted mb-2">
+                                <i class="bi bi-info-circle me-1"></i>
+                                La zona de Cloudflare se mantendrá para gestión DNS
+                            </p>
+                            <button class="btn btn-sm btn-outline-danger w-100" onclick="downgradeToDNS()">
+                                <i class="bi bi-arrow-down-circle me-1"></i>Desactivar CMS (Solo DNS)
+                            </button>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
                 <!-- Navigation Links -->
                 <div class="card management-card">
                     <div class="card-header">
@@ -445,6 +522,12 @@
                         <a href="/customer/domain/<?= $order['id'] ?>/contacts" class="btn btn-outline-secondary quick-action-btn w-100">
                             <i class="bi bi-person-lines-fill me-2"></i>Administrar Contactos
                         </a>
+                        <?php if ($hostingType === 'musedock_hosting' && !empty($tenantDomain)): ?>
+                        <a href="https://<?= htmlspecialchars($tenantDomain) ?>/<?= \Screenart\Musedock\Env::get('ADMIN_PATH_TENANT', 'admin') ?>"
+                           class="btn btn-primary quick-action-btn w-100" target="_blank">
+                            <i class="bi bi-box-arrow-up-right me-2"></i>Ir al Panel CMS
+                        </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -681,6 +764,111 @@ function toggleWhoisPrivacy(enabled) {
         Swal.fire('Error', 'Error de conexión', 'error');
         const toggle = document.getElementById('whoisPrivacyToggle');
         if (toggle) toggle.checked = <?= $isPrivateWhois ? 'true' : 'false' ?>;
+    });
+}
+
+function upgradeToCMS() {
+    Swal.fire({
+        title: '¿Activar MuseDock CMS?',
+        html: 'Se creará un tenant con panel de administración completo para tu dominio.<br><br>' +
+              '<strong>Se configurará:</strong><br>' +
+              '• Tenant dedicado con CMS<br>' +
+              '• Registros DNS @ y www → mortadelo.musedock.com<br>' +
+              '• Certificado SSL automático<br>' +
+              '• CDN y protección DDoS',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#667eea',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, activar CMS',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const formData = new FormData();
+            formData.append('_csrf_token', csrfToken);
+
+            Swal.fire({
+                title: 'Activando CMS...',
+                html: 'Esto puede tardar unos segundos...',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            fetch(`/customer/domain/${orderId}/upgrade-to-cms`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡CMS Activado!',
+                        html: data.message + (data.admin_url ? '<br><br><a href="' + data.admin_url + '" class="btn btn-sm btn-primary mt-2" target="_blank">Ir al Panel CMS</a>' : ''),
+                        confirmButtonText: 'Entendido'
+                    }).then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.error || 'No se pudo activar el CMS', 'error');
+                }
+            })
+            .catch(() => Swal.fire('Error', 'Error de conexión', 'error'));
+        }
+    });
+}
+
+function downgradeToDNS() {
+    Swal.fire({
+        title: '¿Desactivar CMS?',
+        html: '<strong class="text-danger">⚠️ ADVERTENCIA:</strong><br>' +
+              'Esta acción eliminará permanentemente:<br><br>' +
+              '• El tenant y todos sus datos<br>' +
+              '• Los registros DNS @ y www<br>' +
+              '• El acceso al panel de administración<br><br>' +
+              '<strong>Esta acción NO se puede deshacer.</strong>',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, desactivar CMS',
+        cancelButtonText: 'Cancelar',
+        input: 'checkbox',
+        inputPlaceholder: 'Entiendo que se eliminarán todos los datos',
+        inputValidator: (result) => {
+            return !result && 'Debes confirmar que entiendes las consecuencias'
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const formData = new FormData();
+            formData.append('_csrf_token', csrfToken);
+
+            Swal.fire({
+                title: 'Desactivando CMS...',
+                html: 'Eliminando tenant y registros DNS...',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            fetch(`/customer/domain/${orderId}/downgrade-to-dns`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'CMS Desactivado',
+                        text: data.message,
+                        confirmButtonText: 'Entendido'
+                    }).then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.error || 'No se pudo desactivar el CMS', 'error');
+                }
+            })
+            .catch(() => Swal.fire('Error', 'Error de conexión', 'error'));
+        }
     });
 }
 </script>
