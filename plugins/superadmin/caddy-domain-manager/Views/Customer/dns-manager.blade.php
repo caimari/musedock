@@ -685,7 +685,7 @@ function restoreCloudflareNs() {
             const formData = new FormData();
             formData.append('_csrf_token', csrfToken);
 
-            fetch(`/customer/domain/${orderId}/nameservers/restore-cloudflare`, {
+            fetch(`/customer/domain/${orderId}/dns/restore-cloudflare`, {
                 method: 'POST',
                 body: formData
             })
