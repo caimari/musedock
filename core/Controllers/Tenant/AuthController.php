@@ -238,12 +238,7 @@ class AuthController
         try {
             $db = Database::connect();
 
-            if (isset($_COOKIE['remember_token'])) {
-                $hash = hash('sha256', $_COOKIE['remember_token']);
-                $db->prepare("DELETE FROM session_tokens WHERE token = :token")
-                   ->execute(['token' => $hash]);
-            }
-
+            // Eliminar registros de actividad
             if ($userType === 'admin') {
                 $db->prepare("DELETE FROM admin_activity WHERE admin_id = :id")
                    ->execute(['id' => $userId]);
@@ -251,7 +246,7 @@ class AuthController
                 $db->prepare("DELETE FROM user_activity WHERE user_id = :id")
                    ->execute(['id' => $userId]);
             }
-            
+
             error_log("Actividad eliminada para $userType $userId");
 
         } catch (\Exception $e) {
@@ -259,8 +254,15 @@ class AuthController
         }
     }
 
-    SessionSecurity::destroy();
-    session_start();
+    // Usar logout selectivo - solo cierra sesión del tipo actual
+    if ($userType) {
+        SessionSecurity::logoutUserType($userType);
+    }
+
+    // Nueva sesión para flash message (la sesión PHP sigue activa)
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        session_start();
+    }
     flash('logout_success', 'Has cerrado sesión correctamente.');
     header("Location: /" . admin_path() . "/login");
     exit;

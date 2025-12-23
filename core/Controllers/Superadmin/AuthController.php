@@ -196,11 +196,25 @@ class AuthController
     {
         SessionSecurity::startSession();
 
-        // Eliminar la sesión y los tokens
-        SessionSecurity::destroy();
+        // Determinar tipo de usuario y hacer logout selectivo
+        $userType = null;
+        if (isset($_SESSION['super_admin'])) {
+            $userType = 'super_admin';
+        } elseif (isset($_SESSION['admin'])) {
+            $userType = 'admin';
+        } elseif (isset($_SESSION['user'])) {
+            $userType = 'user';
+        }
 
-        // Nueva sesión para flash message
-        session_start();
+        if ($userType) {
+            // Logout selectivo - solo cierra sesión del tipo actual
+            SessionSecurity::logoutUserType($userType);
+        }
+
+        // Nueva sesión para flash message (la sesión PHP sigue activa)
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
         flash('logout_success', __('auth.logout_success'));
         header("Location: /musedock/login");
         exit;

@@ -1093,4 +1093,87 @@ class SessionSecurity
             error_log("Error al refrescar token remember de customer: " . $e->getMessage());
         }
     }
+
+    /**
+     * Cierra la sesión de un tipo de usuario específico sin afectar otros tipos
+     *
+     * @param string $userType Tipo de usuario: 'super_admin', 'admin', 'user', 'customer'
+     * @return void
+     */
+    public static function logoutUserType(string $userType): void
+    {
+        // Obtener información del usuario antes de limpiar
+        $userId = null;
+
+        switch ($userType) {
+            case 'super_admin':
+                $userId = $_SESSION['super_admin']['id'] ?? null;
+                unset($_SESSION['super_admin']);
+                break;
+            case 'admin':
+                $userId = $_SESSION['admin']['id'] ?? null;
+                unset($_SESSION['admin']);
+                break;
+            case 'user':
+                $userId = $_SESSION['user']['id'] ?? null;
+                unset($_SESSION['user']);
+                break;
+            case 'customer':
+                $userId = $_SESSION['customer']['id'] ?? null;
+                unset($_SESSION['customer']);
+                break;
+            default:
+                error_log("Tipo de usuario no válido para logout: {$userType}");
+                return;
+        }
+
+        // Eliminar flag de sesión persistente solo si es del mismo tipo
+        if (isset($_SESSION['persistent'])) {
+            unset($_SESSION['persistent']);
+        }
+
+        // Eliminar token remember me de la base de datos si existe
+        // IMPORTANTE: Solo eliminar de BD, NO eliminar la cookie compartida
+        // Esto permite que otros tipos de usuario sigan usando su remember token
+        if ($userId && isset($_COOKIE['remember_token'])) {
+            try {
+                $token = $_COOKIE['remember_token'];
+                $tokenHash = hash('sha256', $token);
+                $db = self::getDatabase();
+
+                switch ($userType) {
+                    case 'super_admin':
+                        $sql = "DELETE FROM super_admin_session_tokens WHERE super_admin_id = :user_id";
+                        break;
+                    case 'admin':
+                        $sql = "DELETE FROM admin_session_tokens WHERE admin_id = :user_id";
+                        break;
+                    case 'user':
+                        $sql = "DELETE FROM user_session_tokens WHERE user_id = :user_id";
+                        break;
+                    case 'customer':
+                        $sql = "DELETE FROM customer_session_tokens WHERE customer_id = :user_id";
+                        break;
+                    default:
+                        $sql = null;
+                }
+
+                if ($sql) {
+                    $stmt = $db->prepare($sql);
+                    $stmt->execute(['user_id' => $userId]);
+
+                    $rowsAffected = $stmt->rowCount();
+                    error_log("Token(s) remember eliminado(s) para {$userType} ID {$userId}: {$rowsAffected} registro(s)");
+                }
+            } catch (\Exception $e) {
+                error_log("Error al eliminar token de {$userType}: " . $e->getMessage());
+            }
+        }
+
+        // NO eliminar la cookie compartida 'remember_token'
+        // Esto permite que otros tipos de usuario (admin, super_admin, etc.)
+        // mantengan su sesión activa incluso después del logout de este tipo
+
+        error_log("SessionSecurity - Logout selectivo para {$userType} (sesión eliminada, otros tipos no afectados)");
+    }
 }

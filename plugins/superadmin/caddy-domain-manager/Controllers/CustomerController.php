@@ -267,7 +267,8 @@ class CustomerController
     {
         SessionSecurity::startSession();
 
-        $this->forceLogout();
+        // Usar logout selectivo para NO afectar otras sesiones activas
+        SessionSecurity::logoutUserType('customer');
 
         // Si es AJAX
         if ($this->isAjaxRequest()) {
@@ -280,6 +281,10 @@ class CustomerController
         }
 
         // Si es request normal
+        // Crear nueva sesión para el flash message
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
         $_SESSION['flash_success'] = 'Sesión cerrada exitosamente';
         header('Location: /customer/login');
         exit;
