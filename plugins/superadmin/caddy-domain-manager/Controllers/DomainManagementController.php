@@ -436,8 +436,10 @@ class DomainManagementController
             $pdo->beginTransaction();
 
             try {
-                // Create tenant with custom admin credentials
-                $tenantId = $this->createTenantForDomain($customerId, $fullDomain, $orderId, $pdo, $adminEmail, $adminPassword);
+                // Create tenant with custom admin credentials (returns array with tenant_id and admin_id)
+                $tenantData = $this->createTenantForDomain($customerId, $fullDomain, $orderId, $pdo, $adminEmail, $adminPassword);
+                $tenantId = $tenantData['tenant_id'];
+                $adminId = $tenantData['admin_id'];
                 Logger::info("[DomainManagement] Tenant created: ID {$tenantId}");
 
                 // Create CNAME records in CloudFlare
@@ -456,6 +458,9 @@ class DomainManagementController
                 $updateStmt->execute([$orderId]);
 
                 $pdo->commit();
+
+                // Setup tenant defaults AFTER commit to avoid nested transactions
+                $this->setupTenantDefaults($tenantId, $adminId, $pdo);
 
                 $adminPath = \Screenart\Musedock\Env::get('ADMIN_PATH_TENANT', 'admin');
                 $adminUrl = "https://{$fullDomain}/{$adminPath}";
@@ -577,9 +582,9 @@ class DomainManagementController
     }
 
     /**
-     * Create tenant for domain using TenantCreationService
+     * Create tenant for domain (basic tenant + admin creation only)
      */
-    private function createTenantForDomain(int $customerId, string $domain, int $orderId, \PDO $pdo, string $adminEmail = '', string $adminPassword = ''): int
+    private function createTenantForDomain(int $customerId, string $domain, int $orderId, \PDO $pdo, string $adminEmail = '', string $adminPassword = ''): array
     {
         // Get customer info
         $customerStmt = $pdo->prepare("SELECT email, name FROM customers WHERE id = ?");
@@ -654,17 +659,32 @@ class DomainManagementController
         $adminId = (int) $pdo->lastInsertId();
         Logger::info("[DomainManagement] Admin user created: ID {$adminId}, Email: {$email}");
 
-        // Use TenantCreationService to setup roles, permissions, menus, etc.
-        $tenantService = new \Screenart\Musedock\Services\TenantCreationService($pdo);
-        $setupResult = $tenantService->setupExistingTenant($tenantId, $adminId);
+        return [
+            'tenant_id' => $tenantId,
+            'admin_id' => $adminId
+        ];
+    }
 
-        if (!$setupResult['success']) {
-            Logger::warning("[DomainManagement] Tenant setup had issues: " . ($setupResult['error'] ?? 'Unknown'));
+    /**
+     * Setup tenant defaults (roles, permissions, menus, etc.)
+     * Called AFTER the main transaction is committed to avoid nested transaction issues
+     */
+    private function setupTenantDefaults(int $tenantId, int $adminId, \PDO $pdo): void
+    {
+        try {
+            // Use TenantCreationService to setup roles, permissions, menus, etc.
+            $tenantService = new \Screenart\Musedock\Services\TenantCreationService($pdo);
+            $setupResult = $tenantService->setupExistingTenant($tenantId, $adminId);
+
+            if (!$setupResult['success']) {
+                Logger::warning("[DomainManagement] Tenant setup had issues: " . ($setupResult['error'] ?? 'Unknown'));
+            } else {
+                Logger::info("[DomainManagement] Tenant setup completed successfully for tenant {$tenantId}");
+            }
+        } catch (Exception $e) {
+            Logger::error("[DomainManagement] Error setting up tenant defaults: " . $e->getMessage());
+            // Don't throw - tenant is already created, this is just configuration
         }
-
-        Logger::info("[DomainManagement] Tenant created successfully: ID {$tenantId}, Admin ID {$adminId}");
-
-        return $tenantId;
     }
 
     /**
