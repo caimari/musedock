@@ -577,94 +577,94 @@ class DomainManagementController
     }
 
     /**
-     * Create tenant for domain (similar to DomainRegistrationController::createTenant)
+     * Create tenant for domain using TenantCreationService
      */
     private function createTenantForDomain(int $customerId, string $domain, int $orderId, \PDO $pdo, string $adminEmail = '', string $adminPassword = ''): int
     {
-        // Generate tenant name from domain
-        $domainParts = explode('.', $domain);
-        $tenantName = ucfirst($domainParts[0]);
-
-        // Insert tenant
-        $stmt = $pdo->prepare("
-            INSERT INTO tenants (
-                customer_id, domain, name, plan, status,
-                cloudflare_proxied, is_subdomain, created_at
-            ) VALUES (?, ?, ?, 'custom', 'active', 1, 0, NOW())
-        ");
-        $stmt->execute([$customerId, $domain, $tenantName]);
-        $tenantId = (int) $pdo->lastInsertId();
-
-        // Update domain_orders with tenant reference
-        $updateStmt = $pdo->prepare("UPDATE domain_orders SET tenant_id = ? WHERE id = ?");
-        $updateStmt->execute([$tenantId, $orderId]);
-
-        // Apply tenant defaults (permissions, roles, menus)
-        $this->applyTenantDefaults($tenantId, $pdo);
-
-        // Create admin user for tenant with custom credentials
-        $this->createTenantAdmin($tenantId, $customerId, $domain, $pdo, $adminEmail, $adminPassword);
-
-        return $tenantId;
-    }
-
-    /**
-     * Apply default tenant configuration
-     */
-    private function applyTenantDefaults(int $tenantId, \PDO $pdo): void
-    {
-        // Copy default permissions
-        $pdo->exec("
-            INSERT INTO tenant_{$tenantId}_permissions (name, display_name, description)
-            SELECT name, display_name, description FROM default_permissions
-        ");
-
-        // Copy default roles
-        $pdo->exec("
-            INSERT INTO tenant_{$tenantId}_roles (name, display_name, description)
-            SELECT name, display_name, description FROM default_roles
-        ");
-
-        // Copy default role permissions
-        $pdo->exec("
-            INSERT INTO tenant_{$tenantId}_role_permissions (role_id, permission_id)
-            SELECT r.id, p.id
-            FROM tenant_{$tenantId}_roles r
-            CROSS JOIN tenant_{$tenantId}_permissions p
-            WHERE r.name = 'admin'
-        ");
-    }
-
-    /**
-     * Create admin user for tenant
-     */
-    private function createTenantAdmin(int $tenantId, int $customerId, string $domain, \PDO $pdo, string $adminEmail = '', string $adminPassword = ''): void
-    {
-        // Get customer info as fallback
+        // Get customer info
         $customerStmt = $pdo->prepare("SELECT email, name FROM customers WHERE id = ?");
         $customerStmt->execute([$customerId]);
         $customer = $customerStmt->fetch(\PDO::FETCH_ASSOC);
 
-        if (!$customer) return;
+        if (!$customer) {
+            throw new Exception("Customer not found: {$customerId}");
+        }
+
+        // Generate tenant name from domain
+        $domainParts = explode('.', $domain);
+        $tenantName = ucfirst($domainParts[0]);
 
         // Use provided credentials or fallback to customer
         $email = !empty($adminEmail) ? $adminEmail : $customer['email'];
         $password = !empty($adminPassword) ? $adminPassword : bin2hex(random_bytes(8));
 
-        $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+        $adminPath = \Screenart\Musedock\Env::get('ADMIN_PATH_TENANT', 'admin');
+        $defaultStorageQuota = (int) \Screenart\Musedock\Env::get('TENANT_DEFAULT_STORAGE_QUOTA_MB', 1024);
 
+        // Insert tenant manually with all required fields
         $stmt = $pdo->prepare("
-            INSERT INTO tenant_{$tenantId}_users (
-                name, email, password, is_superadmin, created_at
-            ) VALUES (?, ?, ?, 1, NOW())
+            INSERT INTO tenants (
+                customer_id, domain, name, plan, status, admin_path,
+                cloudflare_proxied, is_subdomain, storage_quota_mb, storage_used_bytes,
+                theme, theme_type, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
+
         $stmt->execute([
-            $customer['name'] ?? 'Admin',
+            $customerId,
+            $domain,
+            $tenantName,
+            'custom',
+            'active',
+            $adminPath,
+            1, // cloudflare_proxied
+            0, // is_subdomain
+            $defaultStorageQuota,
+            0, // storage_used_bytes
+            'default', // theme
+            'global' // theme_type
+        ]);
+
+        $tenantId = (int) $pdo->lastInsertId();
+
+        if (!$tenantId) {
+            throw new Exception("Failed to create tenant - no ID returned");
+        }
+
+        Logger::info("[DomainManagement] Tenant record created: ID {$tenantId}");
+
+        // Update domain_orders with tenant reference
+        $updateStmt = $pdo->prepare("UPDATE domain_orders SET tenant_id = ? WHERE id = ?");
+        $updateStmt->execute([$tenantId, $orderId]);
+
+        // Create admin user using admins table
+        $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+        $adminStmt = $pdo->prepare("
+            INSERT INTO admins (tenant_id, is_root_admin, email, name, password, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+        ");
+        $adminStmt->execute([
+            $tenantId,
+            1, // is_root_admin
             $email,
+            $customer['name'] ?? 'Admin',
             $hashedPassword
         ]);
 
-        Logger::info("[DomainManagement] Admin user created for tenant {$tenantId} with email: {$email}");
+        $adminId = (int) $pdo->lastInsertId();
+        Logger::info("[DomainManagement] Admin user created: ID {$adminId}, Email: {$email}");
+
+        // Use TenantCreationService to setup roles, permissions, menus, etc.
+        $tenantService = new \Screenart\Musedock\Services\TenantCreationService($pdo);
+        $setupResult = $tenantService->setupExistingTenant($tenantId, $adminId);
+
+        if (!$setupResult['success']) {
+            Logger::warning("[DomainManagement] Tenant setup had issues: " . ($setupResult['error'] ?? 'Unknown'));
+        }
+
+        Logger::info("[DomainManagement] Tenant created successfully: ID {$tenantId}, Admin ID {$adminId}");
+
+        return $tenantId;
     }
 
     /**
