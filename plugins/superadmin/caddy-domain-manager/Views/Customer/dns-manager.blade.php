@@ -267,11 +267,19 @@
                             </select>
                         </div>
                         <div class="col-6" id="proxiedField">
-                            <label class="form-label">Proxy Cloudflare</label>
+                            <label class="form-label">
+                                Proxy Cloudflare
+                                <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
+                                   title="Activado (naranja): El tráfico pasa por Cloudflare, ocultando tu IP real, con protección DDoS, firewall, cache y SSL automático. Desactivado (gris): DNS directo a tu servidor sin protecciones adicionales."></i>
+                            </label>
                             <select class="form-select" name="proxied">
-                                <option value="1">Activado (naranja)</option>
-                                <option value="0">Desactivado (gris)</option>
+                                <option value="1">Activado (🟠 naranja) - Recomendado</option>
+                                <option value="0">Desactivado (⚪ gris) - Solo DNS</option>
                             </select>
+                            <small class="text-muted">
+                                <strong>Naranja:</strong> Protección DDoS + SSL + Cache + Oculta tu IP real<br>
+                                <strong>Gris:</strong> Solo resolución DNS sin protecciones
+                            </small>
                         </div>
                     </div>
                 </form>
@@ -331,10 +339,14 @@
                             </select>
                         </div>
                         <div class="col-6" id="editProxiedField">
-                            <label class="form-label">Proxy Cloudflare</label>
+                            <label class="form-label">
+                                Proxy Cloudflare
+                                <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
+                                   title="Activado (naranja): El tráfico pasa por Cloudflare, ocultando tu IP real, con protección DDoS, firewall, cache y SSL automático. Desactivado (gris): DNS directo a tu servidor sin protecciones adicionales."></i>
+                            </label>
                             <select class="form-select" name="proxied" id="editRecordProxied">
-                                <option value="1">Activado</option>
-                                <option value="0">Desactivado</option>
+                                <option value="1">Activado (🟠 naranja) - Recomendado</option>
+                                <option value="0">Desactivado (⚪ gris) - Solo DNS</option>
                             </select>
                         </div>
                     </div>
@@ -562,7 +574,7 @@ function updateNameservers() {
         didOpen: () => Swal.showLoading()
     });
 
-    fetch(`/customer/domain/${orderId}/nameservers/update`, {
+    fetch(`/customer/domain/${orderId}/dns/nameservers`, {
         method: 'POST',
         body: formData
     })

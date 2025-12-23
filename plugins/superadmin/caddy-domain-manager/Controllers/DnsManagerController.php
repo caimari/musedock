@@ -181,12 +181,12 @@ class DnsManagerController
             $this->jsonResponse([
                 'success' => true,
                 'record' => $result,
-                'message' => 'Registro DNS creado correctamente'
+                'message' => 'Registro DNS creado correctamente. Los cambios pueden tardar algunos minutos en propagarse.'
             ]);
 
         } catch (Exception $e) {
             Logger::error("[DnsManager] Error creating DNS record: " . $e->getMessage());
-            $this->jsonResponse(['success' => false, 'error' => 'Error al crear registro: ' . $e->getMessage()], 500);
+            $this->jsonResponse(['success' => false, 'error' => 'Error al crear el registro DNS. Por favor, verifica los datos e intenta nuevamente.'], 500);
         }
     }
 
@@ -250,12 +250,12 @@ class DnsManagerController
             $this->jsonResponse([
                 'success' => true,
                 'record' => $result,
-                'message' => 'Registro DNS actualizado'
+                'message' => 'Registro DNS actualizado correctamente. Los cambios pueden tardar algunos minutos en propagarse.'
             ]);
 
         } catch (Exception $e) {
             Logger::error("[DnsManager] Error updating DNS record: " . $e->getMessage());
-            $this->jsonResponse(['success' => false, 'error' => 'Error al actualizar: ' . $e->getMessage()], 500);
+            $this->jsonResponse(['success' => false, 'error' => 'Error al actualizar el registro DNS. Por favor, intenta nuevamente.'], 500);
         }
     }
 
@@ -298,12 +298,12 @@ class DnsManagerController
 
             $this->jsonResponse([
                 'success' => true,
-                'message' => 'Registro DNS eliminado'
+                'message' => 'Registro DNS eliminado correctamente.'
             ]);
 
         } catch (Exception $e) {
             Logger::error("[DnsManager] Error deleting DNS record: " . $e->getMessage());
-            $this->jsonResponse(['success' => false, 'error' => 'Error al eliminar: ' . $e->getMessage()], 500);
+            $this->jsonResponse(['success' => false, 'error' => 'Error al eliminar el registro DNS. Por favor, intenta nuevamente.'], 500);
         }
     }
 
@@ -405,13 +405,13 @@ class DnsManagerController
 
             $this->jsonResponse([
                 'success' => true,
-                'message' => 'Nameservers actualizados correctamente',
+                'message' => 'Nameservers actualizados correctamente. Los cambios pueden tardar de 24 a 48 horas en propagarse.',
                 'nameservers' => array_values($nameservers)
             ]);
 
         } catch (Exception $e) {
             Logger::error("[DnsManager] Error updating nameservers: " . $e->getMessage());
-            $this->jsonResponse(['success' => false, 'error' => 'Error al actualizar: ' . $e->getMessage()], 500);
+            $this->jsonResponse(['success' => false, 'error' => 'Error al actualizar los nameservers. Por favor, intenta nuevamente.'], 500);
         }
     }
 
