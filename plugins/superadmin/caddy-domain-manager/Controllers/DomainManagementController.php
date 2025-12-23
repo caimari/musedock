@@ -689,16 +689,58 @@ class DomainManagementController
 
     /**
      * Create CNAME records for CMS hosting
+     * Deletes any existing A/AAAA/CNAME records first to avoid conflicts
      */
     private function createCMSDNSRecords(string $zoneId): void
     {
         $cloudflare = new \CaddyDomainManager\Services\CloudflareZoneService();
+        $target = 'mortadelo.musedock.com';
 
-        // Create @ CNAME → mortadelo.musedock.com
-        $cloudflare->createCNAMEIfNotExists($zoneId, '@', 'mortadelo.musedock.com', true);
+        // Get zone details to know the domain name
+        $zoneDetails = $cloudflare->getZoneDetails($zoneId);
+        $domainName = $zoneDetails['name'] ?? '';
 
-        // Create www CNAME → mortadelo.musedock.com
-        $cloudflare->createCNAMEIfNotExists($zoneId, 'www', 'mortadelo.musedock.com', true);
+        if (empty($domainName)) {
+            throw new Exception("Could not determine domain name from zone ID");
+        }
+
+        Logger::info("[CloudflareZone] Setting up DNS for {$domainName}");
+
+        // Get all DNS records for the zone
+        $records = $cloudflare->listDNSRecords($zoneId);
+
+        // For @ and www, delete any existing A, AAAA, or CNAME records
+        $hostnamesToReplace = ['@', 'www'];
+        foreach ($records as $record) {
+            $recordName = $record['name'] ?? '';
+            $recordType = $record['type'] ?? '';
+
+            // Check if this record should be replaced
+            foreach ($hostnamesToReplace as $hostname) {
+                // Match: '@' as domain root, 'www' as www subdomain
+                $shouldReplace = false;
+                if ($hostname === '@' && $recordName === $domainName) {
+                    $shouldReplace = true;
+                } elseif ($hostname === 'www' && $recordName === "www.{$domainName}") {
+                    $shouldReplace = true;
+                }
+
+                if ($shouldReplace && in_array($recordType, ['A', 'AAAA', 'CNAME'])) {
+                    Logger::info("[CloudflareZone] Deleting existing {$recordType} record {$recordName} → {$record['content']}");
+                    $cloudflare->deleteDNSRecord($zoneId, $record['id']);
+                    break; // Move to next record
+                }
+            }
+        }
+
+        // Now create the CNAME records
+        Logger::info("[CloudflareZone] Creating CNAME @ → {$target} (proxied: yes)");
+        $cloudflare->createProxiedCNAME($zoneId, '@', $target, true);
+
+        Logger::info("[CloudflareZone] Creating CNAME www → {$target} (proxied: yes)");
+        $cloudflare->createProxiedCNAME($zoneId, 'www', $target, true);
+
+        Logger::info("[CloudflareZone] DNS records created successfully for {$domainName}");
     }
 
     /**
