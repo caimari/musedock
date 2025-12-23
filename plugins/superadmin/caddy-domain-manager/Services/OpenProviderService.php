@@ -342,6 +342,10 @@ class OpenProviderService
     ): array {
         Logger::info("[OpenProvider] Registering domain {$name}.{$extension}");
 
+        // Resolver IPs de nameservers externos para glue records
+        $nameserversWithIps = $this->resolveNameserverIps($nameservers);
+        Logger::info("[OpenProvider] Nameservers with IPs for registration: " . json_encode($nameserversWithIps));
+
         $data = [
             'domain' => [
                 'name' => $name,
@@ -352,7 +356,7 @@ class OpenProviderService
             'admin_handle' => $options['admin_handle'] ?? $ownerHandle,
             'tech_handle' => $options['tech_handle'] ?? $ownerHandle,
             'billing_handle' => $options['billing_handle'] ?? $ownerHandle,
-            'name_servers' => $nameservers,
+            'name_servers' => $this->formatNameservers($nameserversWithIps),
             'autorenew' => $options['autorenew'] ?? 'default',
             'is_private_whois_enabled' => $options['is_private_whois_enabled'] ?? true  // WPP ON por defecto
         ];
@@ -816,6 +820,10 @@ class OpenProviderService
     ): array {
         Logger::info("[OpenProvider] Initiating transfer for {$name}.{$extension}");
 
+        // Resolver IPs de nameservers externos para glue records
+        $nameserversWithIps = $this->resolveNameserverIps($nameservers);
+        Logger::info("[OpenProvider] Nameservers with IPs for transfer: " . json_encode($nameserversWithIps));
+
         $data = [
             'domain' => [
                 'name' => $name,
@@ -827,7 +835,7 @@ class OpenProviderService
             'admin_handle' => $options['admin_handle'] ?? $ownerHandle,
             'tech_handle' => $options['tech_handle'] ?? $ownerHandle,
             'billing_handle' => $options['billing_handle'] ?? $ownerHandle,
-            'name_servers' => $this->formatNameservers($nameservers),
+            'name_servers' => $this->formatNameservers($nameserversWithIps),
             'autorenew' => $options['autorenew'] ?? 'default'
         ];
 
@@ -913,9 +921,13 @@ class OpenProviderService
                 $this->unlockDomain($domainId);
             }
 
+            // Resolver IPs de nameservers externos para crear glue records
+            $nameserversWithIps = $this->resolveNameserverIps($nameservers);
+            Logger::info("[OpenProvider] Nameservers with IPs resolved: " . json_encode($nameserversWithIps));
+
             // Actualizar nameservers
             $response = $this->makeRequest('PUT', "/domains/{$domainId}", [
-                'name_servers' => $this->formatNameservers($nameservers)
+                'name_servers' => $this->formatNameservers($nameserversWithIps)
             ]);
 
             // Restaurar el lock si estaba activado
@@ -934,23 +946,34 @@ class OpenProviderService
 
             Logger::error("[OpenProvider] Failed to update nameservers for domain {$domainId}: {$errorMsg}");
 
-            // Si es error 399, proporcionar más contexto
+            // Si es error 399 (code 2201 del registry)
             if (strpos($errorMsg, '399') !== false) {
-                // Detectar si es error de autorización de nameservers
-                if (strpos($errorMsg, 'Authorization error') !== false || strpos($errorMsg, 'does not own') !== false) {
-                    throw new Exception("No se pudieron actualizar los nameservers. El registry rechazó los nameservers porque no son de tu propiedad.\n\n" .
-                        "Nameservers permitidos:\n" .
-                        "• Nameservers de CloudFlare (alba.ns.cloudflare.com, dee.ns.cloudflare.com)\n" .
-                        "• Nameservers de OpenProvider (ns1.openprovider.nl, ns2.openprovider.nl, ns3.openprovider.nl)\n" .
-                        "• Nameservers propios registrados en tu cuenta\n\n" .
-                        "Los nameservers de terceros (como ns1.he.net) pueden no funcionar en sandbox.\n\n" .
+                // Detectar si es error de autorización de nameservers (glue records)
+                if (strpos($errorMsg, 'Authorization error') !== false ||
+                    strpos($errorMsg, '2201') !== false ||
+                    strpos($errorMsg, 'does not own') !== false) {
+
+                    throw new Exception("Error 2201: El registry rechazó los nameservers.\n\n" .
+                        "🔴 CAUSA POSIBLE:\n" .
+                        "Los nameservers externos no pudieron ser verificados por el registry, o los glue records no están disponibles.\n\n" .
+                        "✅ SOLUCIONES:\n" .
+                        "1. Usa nameservers de CloudFlare (recomendado, glue records públicos)\n" .
+                        "2. Usa nameservers de OpenProvider (ns1.openprovider.nl, ns2.openprovider.nl, ns3.openprovider.nl)\n" .
+                        "3. Si el nameserver externo no resuelve su IP públicamente:\n" .
+                        "   → Contacta al registrador del dominio del nameserver\n" .
+                        "   → Verifica que los glue records estén creados correctamente\n" .
+                        "4. Espera unos minutos y reintenta (propagación DNS)\n\n" .
+                        "ℹ️ NOTA: El sistema intentó resolver automáticamente las IPs de los nameservers.\n" .
+                        "         Revisa los logs para ver si la resolución fue exitosa.\n\n" .
+                        "ℹ️ Más info: https://support.openprovider.eu/hc/en-us/articles/360035146353\n\n" .
                         "Error del registry: {$errorMsg}");
                 }
 
-                throw new Exception("No se pudieron actualizar los nameservers. El registro de dominio rechazó la solicitud. Esto puede ocurrir si:\n" .
-                    "1. Los nameservers no están registrados en el sistema del registry\n" .
-                    "2. Los nameservers no tienen direcciones IP (glue records) cuando son requeridas\n" .
-                    "3. Los nameservers no responden o son inválidos\n\n" .
+                throw new Exception("No se pudieron actualizar los nameservers. El registro de dominio rechazó la solicitud.\n\n" .
+                    "Posibles causas:\n" .
+                    "1. Faltan glue records obligatorios para los nameservers\n" .
+                    "2. Los nameservers no responden o son inválidos\n" .
+                    "3. Problema de configuración DNS\n\n" .
                     "Error original: {$errorMsg}");
             }
 
@@ -1294,6 +1317,43 @@ class OpenProviderService
     public static function getPhoneCountryCodes(): array
     {
         return self::PHONE_COUNTRY_CODES;
+    }
+
+    /**
+     * Resolver IPs de nameservers para glue records
+     *
+     * @param array $nameservers Array de strings ['ns1.example.com', 'ns2.example.com']
+     * @return array Array de nameservers con IPs [['name' => 'ns1.example.com', 'ip' => '1.2.3.4'], ...]
+     */
+    private function resolveNameserverIps(array $nameservers): array
+    {
+        $resolved = [];
+
+        foreach ($nameservers as $ns) {
+            // Si ya es un array con IP, mantenerlo
+            if (is_array($ns)) {
+                $resolved[] = $ns;
+                continue;
+            }
+
+            // Intentar resolver la IP del nameserver
+            $ip = gethostbyname($ns);
+
+            // gethostbyname() devuelve el mismo hostname si no puede resolver
+            if ($ip !== $ns && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                Logger::info("[OpenProvider] Resolved {$ns} -> {$ip}");
+                $resolved[] = [
+                    'name' => $ns,
+                    'ip' => $ip
+                ];
+            } else {
+                // No se pudo resolver, enviar solo el nombre (puede fallar en registry)
+                Logger::warning("[OpenProvider] Could not resolve IP for {$ns}, sending without glue record");
+                $resolved[] = ['name' => $ns];
+            }
+        }
+
+        return $resolved;
     }
 
     /**
