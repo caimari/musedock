@@ -900,14 +900,34 @@ class OpenProviderService
     public function updateDomainNameservers(int $domainId, array $nameservers): bool
     {
         Logger::info("[OpenProvider] Updating nameservers for domain ID: {$domainId}");
+        Logger::info("[OpenProvider] Nameservers to set: " . json_encode($nameservers));
 
-        $response = $this->makeRequest('PUT', "/domains/{$domainId}", [
-            'name_servers' => $this->formatNameservers($nameservers)
-        ]);
+        try {
+            $response = $this->makeRequest('PUT', "/domains/{$domainId}", [
+                'name_servers' => $this->formatNameservers($nameservers)
+            ]);
 
-        Logger::info("[OpenProvider] Nameservers updated");
+            Logger::info("[OpenProvider] Nameservers updated successfully");
 
-        return true;
+            return true;
+
+        } catch (Exception $e) {
+            // Capturar mensaje de error específico del registry
+            $errorMsg = $e->getMessage();
+
+            Logger::error("[OpenProvider] Failed to update nameservers for domain {$domainId}: {$errorMsg}");
+
+            // Si es error 399, proporcionar más contexto
+            if (strpos($errorMsg, '399') !== false) {
+                throw new Exception("No se pudieron actualizar los nameservers. El registro de dominio rechazó la solicitud. Esto puede ocurrir si:\n" .
+                    "1. Los nameservers no están registrados en el sistema del registry\n" .
+                    "2. Los nameservers no tienen direcciones IP (glue records) cuando son requeridas\n" .
+                    "3. Los nameservers no responden o son inválidos\n\n" .
+                    "Error original: {$errorMsg}");
+            }
+
+            throw $e;
+        }
     }
 
     /**
@@ -1252,7 +1272,23 @@ class OpenProviderService
         // OpenProvider usa 'code' = 0 para éxito
         if (isset($decoded['code']) && $decoded['code'] !== 0) {
             $errorMsg = $decoded['desc'] ?? 'Unknown error';
+
+            // Intentar capturar mensaje del registry si existe (error 399 específicamente)
+            $registryMessage = '';
+            if (isset($decoded['data']['errors']) && is_array($decoded['data']['errors'])) {
+                foreach ($decoded['data']['errors'] as $error) {
+                    if (isset($error['message'])) {
+                        $registryMessage .= $error['message'] . '; ';
+                    }
+                }
+            }
+
             Logger::error("[OpenProvider] API error ({$decoded['code']}): {$errorMsg}");
+            if ($registryMessage) {
+                Logger::error("[OpenProvider] Registry message: {$registryMessage}");
+                $errorMsg .= " | Registry: " . trim($registryMessage);
+            }
+
             throw new Exception("OpenProvider API error: {$errorMsg}");
         }
 
