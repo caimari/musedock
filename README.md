@@ -1,12 +1,12 @@
 # MuseDock CMS
 
-Version 2.0.0 (CMS Estable) - Panel secundario de los Admins de los Multitenant en proceso.
+Version 2.2.0 (CMS Estable) - Panel secundario de los Admins de los Multitenant en proceso.
 
 CMS modular con framework MVC propio basado en Blade One. Arquitectura multi-tenant experimental para alojar múltiples dominios. Sistema de módulos base (compartidos) y plugins independientes por tenant. Almacenamiento seguro en storage/ (no public/) con soporte S3/R2. Multi-idioma integrado.
 
 ![PHP Version](https://img.shields.io/badge/PHP-8.0+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Version](https://img.shields.io/badge/version-1.0.0-orange.svg)
+![Version](https://img.shields.io/badge/version-2.2.0-orange.svg)
 
 > **IMPORTANTE:** El hosting debe apuntar el document root a la carpeta `public/`
 
