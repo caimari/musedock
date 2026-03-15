@@ -19,13 +19,13 @@ if (!function_exists('aiwriter_is_active')) {
                      SELECT m.active, m.cms_enabled, tm.enabled
                      FROM modules m
                      LEFT JOIN tenant_modules tm ON tm.module_id = m.id AND tm.tenant_id = :tenant_id
-                     WHERE m.slug = 'aiwriter'
+                     WHERE m.slug = 'ai-writer'
                  ";
                  $module = Database::query($query, ['tenant_id' => $tenantId])->fetch();
 
                  return $module && $module['active'] && ($module['enabled'] ?? false);
              } else {
-                 $query = "SELECT active, cms_enabled FROM modules WHERE slug = 'aiwriter'";
+                 $query = "SELECT active, cms_enabled FROM modules WHERE slug = 'ai-writer'";
                  $module = Database::query($query)->fetch();
 
                  return $module && $module['active'] && $module['cms_enabled'];

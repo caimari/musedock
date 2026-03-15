@@ -224,8 +224,8 @@ class HomeController
      */
     private function showLatestPosts()
     {
-        // Obtener número de posts por página desde settings
-        $postsPerPage = (int) setting('posts_per_page', 10);
+        // Obtener número de posts por página desde settings del tenant
+        $postsPerPage = (int) tenant_setting('posts_per_page', setting('posts_per_page', 10));
 
         // Obtener página actual
         $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
@@ -285,6 +285,7 @@ class HomeController
                 'posts' => $posts,
                 'categories' => $categories,
                 'pagination' => $pagination,
+                'is_home' => true,
             ]);
 
         } catch (\Exception $e) {

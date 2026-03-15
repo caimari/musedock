@@ -8,21 +8,7 @@
 
         @include('plugins.news-aggregator._nav', ['activeTab' => 'items'])
 
-        {{-- Flash Messages --}}
-        @if(session('flash_success'))
-            <div class="alert alert-success alert-dismissible fade show">
-                {{ session('flash_success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            @php unset($_SESSION['flash_success']); @endphp
-        @endif
-        @if(session('flash_error'))
-            <div class="alert alert-danger alert-dismissible fade show">
-                {{ session('flash_error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            @php unset($_SESSION['flash_error']); @endphp
-        @endif
+        @include('partials.alerts-sweetalert2')
 
         {{-- Filters --}}
         <div class="card border-0 shadow-sm mb-3">
@@ -98,84 +84,117 @@
                             </thead>
                             <tbody>
                                 @foreach($items as $item)
+                                    @php
+                                        $isGroup = $item->_is_group ?? false;
+                                        $clusterItems = $item->_cluster_items ?? [];
+                                        $sourceCount = $item->_source_count ?? 1;
+                                        $bestItem = $item->_best_item ?? $item;
+                                        $statusClass = match($bestItem->status) {
+                                            'pending' => 'secondary',
+                                            'processing' => 'info',
+                                            'ready' => 'warning',
+                                            'approved' => 'success',
+                                            'rejected' => 'danger',
+                                            'published' => 'primary',
+                                            default => 'secondary'
+                                        };
+                                        $statusLabel = match($bestItem->status) {
+                                            'pending' => 'Pendiente',
+                                            'processing' => 'Procesando',
+                                            'ready' => 'Listo',
+                                            'approved' => 'Aprobado',
+                                            'rejected' => 'Rechazado',
+                                            'published' => 'Publicado',
+                                            default => $bestItem->status
+                                        };
+                                    @endphp
                                     <tr>
                                         <td>
-                                            <input type="checkbox" name="ids[]" value="{{ $item->id }}" class="form-check-input item-checkbox">
+                                            <input type="checkbox" name="ids[]" value="{{ $bestItem->id }}" class="form-check-input item-checkbox">
                                         </td>
                                         <td>
-                                            <a href="{{ admin_url('/plugins/news-aggregator/items/' . $item->id) }}">
-                                                <strong>{{ mb_strimwidth($item->original_title ?? '', 0, 80, '...') }}</strong>
+                                            <a href="{{ admin_url('/plugins/news-aggregator/items/' . $bestItem->id) }}">
+                                                <strong>{{ mb_strimwidth($bestItem->original_title ?? '', 0, 80, '...') }}</strong>
                                             </a>
-                                            @if(!empty($item->rewritten_title))
+                                            @if(!empty($bestItem->rewritten_title))
                                                 <br><small class="text-success">
                                                     <i class="bi bi-check-circle"></i>
-                                                    {{ mb_strimwidth($item->rewritten_title ?? '', 0, 60, '...') }}
+                                                    {{ mb_strimwidth($bestItem->rewritten_title ?? '', 0, 60, '...') }}
                                                 </small>
                                             @endif
-                                            @if(!empty($item->media_keywords))
+                                            @if(!empty($bestItem->media_keywords))
                                                 <br>
-                                                @foreach(array_slice(explode(',', $item->media_keywords), 0, 4) as $kw)
+                                                @foreach(array_slice(explode(',', $bestItem->media_keywords), 0, 4) as $kw)
                                                     <span class="badge bg-light text-muted border" style="font-size:0.65em;">{{ trim($kw) }}</span>
                                                 @endforeach
                                             @endif
-                                        </td>
-                                        <td>
-                                            <small>{{ $item->source_name ?? '-' }}</small>
-                                            @if(($item->processing_type ?? 'direct') === 'verified')
-                                                @php
-                                                    $csList = !empty($item->cluster_sources) ? json_decode($item->cluster_sources, true) : [];
-                                                    $csCount = count($csList);
-                                                @endphp
-                                                @if($csCount > 1)
-                                                    <br><span class="badge bg-info" style="font-size:0.6em;">
-                                                        <i class="bi bi-shield-check"></i> {{ $csCount }} fuentes
-                                                    </span>
-                                                @else
-                                                    <br><span class="badge bg-info" style="font-size:0.6em;"><i class="bi bi-shield-check"></i> Verificada</span>
-                                                @endif
+                                            {{-- Fuentes verificadas expandibles --}}
+                                            @if($isGroup && $sourceCount > 1)
+                                                <div class="mt-2">
+                                                    <a href="javascript:void(0)" class="text-decoration-none small" onclick="document.getElementById('cluster-{{ $bestItem->id }}').classList.toggle('d-none')">
+                                                        <span class="badge bg-info"><i class="bi bi-shield-check"></i> {{ $sourceCount }} fuentes verificadas</span>
+                                                        <i class="bi bi-chevron-down ms-1" style="font-size:0.7em;"></i>
+                                                    </a>
+                                                    <div id="cluster-{{ $bestItem->id }}" class="d-none mt-2 border rounded p-2" style="background:#f8f9fa; font-size:0.8em;">
+                                                        @foreach($clusterItems as $ci)
+                                                            <div class="d-flex align-items-start mb-2 {{ !$loop->last ? 'pb-2 border-bottom' : '' }}">
+                                                                <span class="badge bg-{{ $ci->id === $bestItem->id ? 'primary' : 'light text-dark border' }} me-2" style="font-size:0.7em; min-width: 22px;">{{ $loop->iteration }}</span>
+                                                                <div class="flex-grow-1">
+                                                                    <a href="{{ admin_url('/plugins/news-aggregator/items/' . $ci->id) }}" class="fw-semibold text-decoration-none">
+                                                                        {{ mb_strimwidth($ci->original_title ?? '', 0, 90, '...') }}
+                                                                    </a>
+                                                                    <div class="text-muted" style="font-size:0.85em;">
+                                                                        @if(!empty($ci->feed_name))
+                                                                            <span><i class="bi bi-rss"></i> {{ $ci->feed_name }}</span>
+                                                                        @endif
+                                                                        @if(!empty($ci->original_url))
+                                                                            <a href="{{ $ci->original_url }}" target="_blank" rel="noopener noreferrer" class="ms-2 text-muted">
+                                                                                <i class="bi bi-box-arrow-up-right"></i> URL original
+                                                                            </a>
+                                                                        @endif
+                                                                        @if(!empty($ci->original_author))
+                                                                            <span class="ms-2"><i class="bi bi-person"></i> {{ $ci->original_author }}</span>
+                                                                        @endif
+                                                                        <span class="ms-2"><i class="bi bi-calendar"></i> {{ date('d/m H:i', strtotime($ci->created_at)) }}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
                                             @endif
                                         </td>
                                         <td>
-                                            @php
-                                                $statusClass = match($item->status) {
-                                                    'pending' => 'secondary',
-                                                    'processing' => 'info',
-                                                    'ready' => 'warning',
-                                                    'approved' => 'success',
-                                                    'rejected' => 'danger',
-                                                    'published' => 'primary',
-                                                    default => 'secondary'
-                                                };
-                                                $statusLabel = match($item->status) {
-                                                    'pending' => 'Pendiente',
-                                                    'processing' => 'Procesando',
-                                                    'ready' => 'Listo',
-                                                    'approved' => 'Aprobado',
-                                                    'rejected' => 'Rechazado',
-                                                    'published' => 'Publicado',
-                                                    default => $item->status
-                                                };
-                                            @endphp
+                                            <small>{{ $bestItem->source_name ?? '-' }}</small>
+                                            @if($isGroup && $sourceCount > 1)
+                                                <br><span class="badge {{ $sourceCount >= 3 ? 'bg-success' : 'bg-info' }}" style="font-size:0.6em;">
+                                                    <i class="bi bi-shield-check"></i> {{ $sourceCount }} fuentes
+                                                </span>
+                                            @elseif(($item->processing_type ?? 'direct') === 'verified')
+                                                <br><span class="badge bg-info" style="font-size:0.6em;"><i class="bi bi-shield-check"></i> Verificada</span>
+                                            @endif
+                                        </td>
+                                        <td>
                                             <span class="badge bg-{{ $statusClass }}">{{ $statusLabel }}</span>
-                                            @if($item->tokens_used > 0)
-                                                <br><small class="text-muted">{{ number_format($item->tokens_used) }} tokens</small>
+                                            @if($bestItem->tokens_used > 0)
+                                                <br><small class="text-muted">{{ number_format($bestItem->tokens_used) }} tokens</small>
                                             @endif
                                         </td>
-                                        <td><small>{{ date('d/m/Y H:i', strtotime($item->created_at)) }}</small></td>
+                                        <td><small>{{ date('d/m/Y H:i', strtotime($bestItem->created_at)) }}</small></td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <a href="{{ admin_url('/plugins/news-aggregator/items/' . $item->id) }}"
+                                                <a href="{{ admin_url('/plugins/news-aggregator/items/' . $bestItem->id) }}"
                                                    class="btn btn-outline-primary" title="Ver">
                                                     <i class="bi bi-eye"></i>
                                                 </a>
-                                                @if($item->status === 'ready' || $item->status === 'approved')
-                                                    <a href="{{ admin_url('/plugins/news-aggregator/items/' . $item->id . '/approve') }}"
+                                                @if($bestItem->status === 'ready' || $bestItem->status === 'approved')
+                                                    <a href="{{ admin_url('/plugins/news-aggregator/items/' . $bestItem->id . '/approve') }}"
                                                        class="btn btn-outline-success" title="Aprobar">
                                                         <i class="bi bi-check"></i>
                                                     </a>
                                                 @endif
-                                                @if($item->status === 'approved')
-                                                    <a href="{{ admin_url('/plugins/news-aggregator/items/' . $item->id . '/publish') }}"
+                                                @if($bestItem->status === 'approved')
+                                                    <a href="{{ admin_url('/plugins/news-aggregator/items/' . $bestItem->id . '/publish') }}"
                                                        class="btn btn-outline-primary" title="Crear Post">
                                                         <i class="bi bi-send"></i>
                                                     </a>

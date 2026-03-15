@@ -61,7 +61,8 @@ class BlogTag extends Model
     public function getPublicUrl(): string
     {
         $host = $_SERVER['HTTP_HOST'] ?? env('APP_URL', 'localhost');
-        return "https://{$host}/blog/tag/{$this->slug}";
+        $path = function_exists('blog_url') ? blog_url($this->slug, 'tag') : "/blog/tag/{$this->slug}";
+        return "https://{$host}{$path}";
     }
 
     /**

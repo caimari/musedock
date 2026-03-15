@@ -46,13 +46,6 @@
                                  <p style="color: var(--footer-text-color, #333);">{{ translatable_site_setting('footer_short_description', '') }}</p>
                             </div>
 
-                            <!-- Enlace configuración de cookies (RGPD) -->
-                            <div class="cookie-settings-link my-2">
-                                <a href="javascript:void(0);" id="open-cookie-settings" style="color: var(--footer-link-color, #333); font-size: 13px; text-decoration: underline;">
-                                    <i class="fas fa-cookie-bite me-1"></i>{{ __('footer.cookie_settings') }}
-                                </a>
-                            </div>
-
                             <!-- Selector de idiomas como SELECT (solo si hay más de un idioma activo y no está forzado) -->
                             @php
                                 $pdo = \Screenart\Musedock\Database::connect();
@@ -71,6 +64,13 @@
                                 // No mostrar selector si hay idioma forzado o solo hay un idioma
                                 $forceLang = site_setting('force_lang', '');
                                 $showFooterLangSelector = count($activeLanguages) > 1 && empty($forceLang);
+                                // Respetar setting del tenant para ocultar selector
+                                if ($showFooterLangSelector && function_exists('tenant_setting')) {
+                                    $showLangSwitcherSetting = tenant_setting('show_language_switcher', '1');
+                                    if ($showLangSwitcherSetting === '0') {
+                                        $showFooterLangSelector = false;
+                                    }
+                                }
                             @endphp
 
                             @if($showFooterLangSelector)
@@ -281,12 +281,119 @@
     <div class="footer-bottom-area footer-bg" style="background-color: var(--footer-bg-color, #f8fafe);">
         <div class="container">
             <div class="footer-border" style="border-top: 1px solid var(--footer-border-color, #e5e5e5);">
+                @php
+                    $pdo = \Screenart\Musedock\Database::connect();
+                    $tenantId = tenant_id();
+
+                    // Verificar si hay menú footer-legal personalizado (prioridad máxima)
+                    if ($tenantId) {
+                        $stmt = $pdo->prepare("SELECT id FROM site_menus WHERE location = 'footer-legal' AND tenant_id = ? LIMIT 1");
+                        $stmt->execute([$tenantId]);
+                    } else {
+                        $stmt = $pdo->prepare("SELECT id FROM site_menus WHERE location = 'footer-legal' AND tenant_id IS NULL LIMIT 1");
+                        $stmt->execute();
+                    }
+                    $hasFooterLegalMenu = !empty($stmt->fetch(\PDO::FETCH_ASSOC));
+
+                    // Función helper: busca la URL real de una página publicada por slug(s)
+                    // Si el tenant tiene una página publicada con ese slug, devuelve su URL real.
+                    // Si no, devuelve la URL de fallback /p/{defaultSlug}
+                    $legalPageUrl = function(array $slugCandidates, string $defaultSlug) use ($pdo, $tenantId) {
+                        $placeholders = implode(',', array_fill(0, count($slugCandidates), '?'));
+                        if ($tenantId) {
+                            $stmt = $pdo->prepare("
+                                SELECT s.slug, s.prefix
+                                FROM slugs s
+                                JOIN pages p ON p.id = s.reference_id
+                                WHERE s.module = 'pages'
+                                  AND s.slug IN ($placeholders)
+                                  AND s.tenant_id = ?
+                                  AND p.status = 'published'
+                                LIMIT 1
+                            ");
+                            $stmt->execute(array_merge($slugCandidates, [$tenantId]));
+                        } else {
+                            $stmt = $pdo->prepare("
+                                SELECT s.slug, s.prefix
+                                FROM slugs s
+                                JOIN pages p ON p.id = s.reference_id
+                                WHERE s.module = 'pages'
+                                  AND s.slug IN ($placeholders)
+                                  AND s.tenant_id IS NULL
+                                  AND p.status = 'published'
+                                LIMIT 1
+                            ");
+                            $stmt->execute($slugCandidates);
+                        }
+                        // Buscar el primer candidato que coincida (respeta orden de prioridad)
+                        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                        foreach ($slugCandidates as $candidate) {
+                            foreach ($rows as $row) {
+                                if ($row['slug'] === $candidate) {
+                                    $prefix = $row['prefix'] ? '/' . $row['prefix'] . '/' : '/';
+                                    return url($prefix . $row['slug']);
+                                }
+                            }
+                        }
+                        return url('/p/' . $defaultSlug);
+                    };
+
+                    // Resolver URL de cada página legal (acepta varios slugs alternativos por si el tenant usa nombres propios)
+                    $urlAvisoLegal   = $legalPageUrl(['aviso-legal', 'legal', 'aviso_legal'],                                                      'aviso-legal');
+                    $urlPrivacidad   = $legalPageUrl(['privacy', 'privacidad', 'politica-de-privacidad', 'politica-privacidad'],                  'privacy');
+                    $urlCookies      = $legalPageUrl(['cookie-policy', 'cookies', 'politica-de-cookies', 'politica-cookies'],                     'cookie-policy');
+                    $urlTerminos     = $legalPageUrl(['terms-and-conditions', 'terminos-y-condiciones', 'terminos', 'terms', 'condiciones-de-uso'], 'terms-and-conditions');
+                @endphp
+
                 <div class="row d-flex align-items-center">
-                    <div class="col-xl-12 ">
+                    <div class="col-xl-12">
                         <div class="footer-copy-right text-center">
                             <p style="color: var(--footer-text-color, #333);">
                                 {!! site_setting('footer_copyright', '© Copyright ' . site_setting('site_name', 'MuseDock') . ' ' . date('Y') . '.') !!}
                             </p>
+                        </div>
+                    </div>
+                    <div class="col-xl-12">
+                        <div class="footer-legal-links text-center" style="padding: 8px 0 4px;">
+                            @if($hasFooterLegalMenu)
+                                {{-- Menú personalizado del tenant --}}
+                                @custommenu('footer-legal', null, [
+                                    'nav_class' => 'footer-legal-nav',
+                                    'li_class' => 'footer-legal-item',
+                                    'a_class' => 'footer-legal-link',
+                                ])
+                            @else
+                                {{-- Links legales automáticos: usan página real si existe, si no el fallback dinámico --}}
+                                <ul class="footer-legal-nav" style="list-style:none; padding:0; margin:0; display:inline-flex; flex-wrap:wrap; gap:4px 16px; justify-content:center;">
+                                    <li class="footer-legal-item">
+                                        <a href="{{ $urlAvisoLegal }}" class="footer-legal-link" style="color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75;">
+                                            {{ $currentLang === 'en' ? 'Legal Notice' : 'Aviso Legal' }}
+                                        </a>
+                                    </li>
+                                    <li class="footer-legal-item">
+                                        <a href="{{ $urlPrivacidad }}" class="footer-legal-link" style="color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75;">
+                                            {{ $currentLang === 'en' ? 'Privacy Policy' : 'Política de Privacidad' }}
+                                        </a>
+                                    </li>
+                                    <li class="footer-legal-item">
+                                        <a href="{{ $urlCookies }}" class="footer-legal-link" style="color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75;">
+                                            {{ $currentLang === 'en' ? 'Cookie Policy' : 'Política de Cookies' }}
+                                        </a>
+                                    </li>
+                                    <li class="footer-legal-item">
+                                        <a href="{{ $urlTerminos }}" class="footer-legal-link" style="color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75;">
+                                            {{ $currentLang === 'en' ? 'Terms & Conditions' : 'Términos y Condiciones' }}
+                                        </a>
+                                    </li>
+                                    @if(site_setting('cookies_enabled', '1') == '1')
+                                    <li class="footer-legal-item">
+                                        <a href="javascript:void(0);" id="open-cookie-settings" style="color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75;">
+                                            🍪 {{ $currentLang === 'en' ? 'Cookie Settings' : 'Configuración de Cookies' }}
+                                        </a>
+                                    </li>
+                                    @endif
+                                </ul>
+                            @endif
                         </div>
                     </div>
                 </div>

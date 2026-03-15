@@ -80,7 +80,7 @@ class ApiAIController
             Logger::debug("Usuario autenticado", ['userId' => $userId, 'userType' => $userType]);
             
             // Verificar permiso
-            if (!has_permission('ai.use')) {
+            if (!has_permission('advanced.ai') && !has_permission('ai.use')) {
                 throw new \Exception("No tienes permiso para usar la IA");
             }
             
@@ -156,11 +156,12 @@ class ApiAIController
             Logger::debug("Prompt construido", ['action' => $data['action'] ?? 'generate']);
             
             // Opciones adicionales
+            $defaultSystemMsg = 'Eres un asistente de redacción para un editor web. Responde SOLO con el contenido solicitado en formato HTML limpio (párrafos con <p>, listas con <ul>/<ol>, encabezados con <h2>/<h3> si aplica). No incluyas explicaciones, razonamientos, preámbulos ni comentarios sobre tu proceso. No uses markdown. Responde en el mismo idioma del prompt del usuario.';
             $options = [
                 'model' => $data['model'] ?? null,
                 'temperature' => $data['temperature'] ?? null,
                 'max_tokens' => $data['max_tokens'] ?? null,
-                'system_message' => $data['system_message'] ?? null
+                'system_message' => $data['system_message'] ?? $defaultSystemMsg
             ];
             
             // Metadatos para el registro
@@ -265,7 +266,7 @@ class ApiAIController
             Logger::debug("Usuario autenticado", ['userId' => $userId, 'userType' => $userType]);
             
             // Verificar permiso
-            if (!has_permission('ai.use')) {
+            if (!has_permission('advanced.ai') && !has_permission('ai.use')) {
                 throw new \Exception("No tienes permiso para usar la IA");
             }
             
@@ -294,7 +295,7 @@ class ApiAIController
             $prompt = "";
             
             Logger::debug("Construyendo prompt", ['action' => $data['action']]);
-            
+
             switch ($data['action']) {
                 case 'generate':
                     if (empty($data['prompt'])) {
@@ -342,9 +343,9 @@ class ApiAIController
                 default:
                     $prompt = $data['prompt'] ?? '';
             }
-            
+
             Logger::debug("Prompt construido", ['action' => $data['action']]);
-            
+
             // Metadatos para el registro
             $metadata = [
                 'user_id' => $userId,
@@ -353,19 +354,23 @@ class ApiAIController
                 'action' => $data['action'],
                 'tenant_id' => $tenantId
             ];
-            
+
             Logger::debug("Metadatos preparados", ['metadata' => $metadata]);
-            
+
             // Verificar si la clase AIService existe antes de llamarla
             if (!class_exists('\\Screenart\\Musedock\\Services\\AI\\AIService')) {
                 throw new \Exception("La clase AIService no está disponible. Verifica la instalación del sistema de IA.");
             }
-            
+
+            // System message para que el modelo devuelva solo contenido útil
+            $aiOptions = [
+                'system_message' => 'Eres un asistente de redacción para un editor web. Responde SOLO con el contenido solicitado en formato HTML limpio (párrafos con <p>, listas con <ul>/<ol>, encabezados con <h2>/<h3> si aplica). No incluyas explicaciones, razonamientos, preámbulos ni comentarios sobre tu proceso. No uses markdown. Responde en el mismo idioma del prompt del usuario.'
+            ];
+
             // Generar contenido con el proveedor por defecto
             Logger::info("Llamando a AIService::generateWithDefault");
-            
-            // Intentar usar la clase directamente (con namespace completo)
-            $result = \Screenart\Musedock\Services\AI\AIService::generateWithDefault($prompt, [], $metadata);
+
+            $result = \Screenart\Musedock\Services\AI\AIService::generateWithDefault($prompt, $aiOptions, $metadata);
             
             Logger::info("Contenido generado exitosamente");
             

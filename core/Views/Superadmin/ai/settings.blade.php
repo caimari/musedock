@@ -6,12 +6,7 @@
 <div class="container-fluid">
     <h1 class="h3 mb-4 text-gray-800">Configuración del Sistema de IA</h1>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
+    {{-- Flash messages handled by layout SweetAlert2 --}}
 
     <div class="card shadow mb-4">
         <div class="card-header py-3">
@@ -19,7 +14,7 @@
             <small>Configuración por defecto del sistema de IA. Se aplica a todos los tenants que no tengan una cuota específica asignada en la tabla de abajo.</small>
         </div>
         <div class="card-body">
-            <form action="/musedock/aiwriter/settings/update" method="POST">
+            <form action="/musedock/ai/settings/update" method="POST">
                 @csrf
 
                 <div class="mb-3">

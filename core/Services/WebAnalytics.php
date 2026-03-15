@@ -117,8 +117,8 @@ class WebAnalytics
         $pageUrl = $customData['page_url'] ?? $_SERVER['REQUEST_URI'] ?? '/';
         $pageTitle = $customData['page_title'] ?? null;
 
-        // Tenant ID (si aplica)
-        $tenantId = $_SESSION['tenant_id'] ?? null;
+        // Tenant ID: use passed data first, then session fallback
+        $tenantId = $customData['tenant_id'] ?? $_SESSION['tenant_id'] ?? null;
 
         return [
             'tenant_id' => $tenantId,
@@ -370,7 +370,39 @@ class WebAnalytics
             ";
 
             $stmt = $db->prepare($sql);
-            return $stmt->execute($data);
+
+            // Cast booleans explicitly for PostgreSQL compatibility
+            $params = [
+                ':tenant_id'        => $data['tenant_id'],
+                ':session_id'       => $data['session_id'],
+                ':visitor_id'       => $data['visitor_id'],
+                ':ip_hash'          => $data['ip_hash'],
+                ':country'          => $data['country'],
+                ':page_url'         => $data['page_url'],
+                ':page_title'       => $data['page_title'],
+                ':referrer'         => $data['referrer'],
+                ':referrer_domain'  => $data['referrer_domain'],
+                ':referrer_type'    => $data['referrer_type'],
+                ':search_engine'    => $data['search_engine'],
+                ':search_query'     => $data['search_query'],
+                ':user_agent'       => $data['user_agent'],
+                ':device_type'      => $data['device_type'],
+                ':browser'          => $data['browser'],
+                ':os'               => $data['os'],
+                ':language'         => $data['language'],
+                ':screen_resolution'=> $data['screen_resolution'],
+                ':cf_ray'           => $data['cf_ray'],
+            ];
+
+            $stmt->bindValue(':is_bot', (bool)($data['is_bot'] ?? false), \PDO::PARAM_BOOL);
+            $stmt->bindValue(':is_returning', (bool)($data['is_returning'] ?? false), \PDO::PARAM_BOOL);
+            $stmt->bindValue(':tracking_enabled', (bool)($data['tracking_enabled'] ?? true), \PDO::PARAM_BOOL);
+
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+
+            return $stmt->execute();
 
         } catch (\Exception $e) {
             Logger::exception($e, 'ERROR', ['source' => 'WebAnalytics::saveVisit']);

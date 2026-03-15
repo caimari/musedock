@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Nuevo Dominio Custom')
+@section('title', 'Nuevo Dominio')
 
 @section('content')
 <div class="app-content">
@@ -8,8 +8,8 @@
 
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
-                <h2><i class="bi bi-plus-circle"></i> Nuevo Dominio Custom</h2>
-                <p class="text-muted mb-0">Crea un nuevo tenant con dominio personalizado</p>
+                <h2><i class="bi bi-plus-circle"></i> Nuevo Dominio</h2>
+                <p class="text-muted mb-0">Crea un nuevo tenant con dominio custom o subdominio</p>
             </div>
             <a href="/musedock/domain-manager" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Volver
@@ -51,9 +51,15 @@
                                 <div class="input-group">
                                     <span class="input-group-text">https://</span>
                                     <input type="text" class="form-control" id="domain" name="domain" required
-                                           placeholder="miempresa.com" value="{{ old('domain') }}">
+                                           placeholder="miempresa.com o sub.musedock.com" value="{{ old('domain') }}">
                                 </div>
-                                <div class="form-text">El dominio debe apuntar a este servidor antes de configurar Caddy</div>
+                                <div class="form-text" id="domain-help-default">Acepta dominios custom (miempresa.com) o subdominios (mi-sitio.musedock.com)</div>
+                                <div class="form-text text-success d-none" id="domain-help-subdomain">
+                                    <i class="bi bi-check-circle"></i> <strong>Subdominio detectado.</strong> Se creará un CNAME automáticamente en Cloudflare. No necesita configuración DNS adicional.
+                                </div>
+                                <div class="form-text text-info d-none" id="domain-help-external-sub">
+                                    <i class="bi bi-info-circle"></i> <strong>Subdominio externo detectado.</strong> Asegúrate de que el subdominio apunte a este servidor (CNAME o A record).
+                                </div>
                             </div>
 
                             <div class="mb-3">
@@ -87,7 +93,7 @@
 
                             <h6 class="text-success mb-3"><i class="bi bi-cloud"></i> Cloudflare (Opcional)</h6>
 
-                            <div class="mb-3">
+                            <div class="mb-3" id="cloudflare-zone-option">
                                 <div class="form-check">
                                     <input type="checkbox" class="form-check-input" id="configure_cloudflare" name="configure_cloudflare">
                                     <label class="form-check-label" for="configure_cloudflare">
@@ -95,6 +101,18 @@
                                     </label>
                                     <div class="form-text">
                                         Añade el dominio a Cloudflare Account 2 (Full Setup) con CNAMEs automáticos a mortadelo.musedock.com
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3" id="skip-cloudflare-option">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="skip_cloudflare" name="skip_cloudflare">
+                                    <label class="form-check-label" for="skip_cloudflare">
+                                        <strong>No crear zona en Cloudflare</strong>
+                                    </label>
+                                    <div class="form-text">
+                                        Marca esta opción si el dominio ya apunta a este servidor desde otro registrador/proveedor DNS.
                                     </div>
                                 </div>
                             </div>
@@ -181,12 +199,12 @@
                     <!-- Info DNS -->
                     <div class="alert alert-info">
                         <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Requisitos DNS</h6>
-                        <p class="mb-2">Antes de configurar el dominio en Caddy, asegúrate de que:</p>
-                        <ol class="mb-0">
-                            <li>El registro A del dominio apunte a la IP de este servidor</li>
-                            <li>Si incluyes www, también el registro CNAME o A para www</li>
-                            <li>La propagación DNS esté completa (puede tardar hasta 48h)</li>
-                        </ol>
+                        <p class="mb-2">Dependiendo del tipo de dominio:</p>
+                        <ul class="mb-0">
+                            <li><strong>Subdominio .{{ \Screenart\Musedock\Env::get('TENANT_BASE_DOMAIN', 'musedock.com') }}:</strong> DNS automático (CNAME). Solo configura Caddy.</li>
+                            <li><strong>Dominio custom con Cloudflare:</strong> Se crearán nameservers. Configúralos en tu registrador.</li>
+                            <li><strong>Dominio/subdominio sin Cloudflare:</strong> Asegúrate de que apunte a este servidor (A/CNAME) antes de configurar Caddy.</li>
+                        </ul>
                     </div>
 
                     <div class="d-flex justify-content-end gap-2">
@@ -236,6 +254,77 @@ function generatePassword() {
     document.getElementById('togglePasswordIcon').classList.remove('bi-eye');
     document.getElementById('togglePasswordIcon').classList.add('bi-eye-slash');
 }
+
+// Detección de tipo de dominio
+const baseDomain = '{{ \Screenart\Musedock\Env::get("TENANT_BASE_DOMAIN", "musedock.com") }}';
+
+function detectDomainType(domain) {
+    domain = domain.toLowerCase().replace(/^www\./, '').replace(/^https?:\/\//, '').split('/')[0];
+    if (!domain) return 'empty';
+    if (domain.endsWith('.' + baseDomain)) return 'musedock_sub';
+    // Count dots: domain.com = 1 dot (TLD), sub.domain.com = 2+ dots
+    const dots = (domain.match(/\./g) || []).length;
+    if (dots >= 2) return 'external_sub';
+    return 'custom';
+}
+
+function updateDomainUI() {
+    const domain = document.getElementById('domain').value.trim();
+    const type = detectDomainType(domain);
+
+    const helpDefault = document.getElementById('domain-help-default');
+    const helpSubdomain = document.getElementById('domain-help-subdomain');
+    const helpExternalSub = document.getElementById('domain-help-external-sub');
+    const cfZoneOption = document.getElementById('cloudflare-zone-option');
+    const skipCfOption = document.getElementById('skip-cloudflare-option');
+    const cfCheckbox = document.getElementById('configure_cloudflare');
+    const skipCfCheckbox = document.getElementById('skip_cloudflare');
+    const cloudflareOptions = document.getElementById('cloudflare-options');
+
+    // Reset
+    helpDefault.classList.add('d-none');
+    helpSubdomain.classList.add('d-none');
+    helpExternalSub.classList.add('d-none');
+
+    if (type === 'musedock_sub') {
+        helpSubdomain.classList.remove('d-none');
+        // Ocultar opciones de Cloudflare — CNAME automático
+        cfZoneOption.classList.add('d-none');
+        skipCfOption.classList.add('d-none');
+        cloudflareOptions.classList.add('d-none');
+        cfCheckbox.checked = false;
+        skipCfCheckbox.checked = false;
+    } else if (type === 'external_sub') {
+        helpExternalSub.classList.remove('d-none');
+        cfZoneOption.classList.remove('d-none');
+        skipCfOption.classList.remove('d-none');
+    } else if (type === 'custom') {
+        helpDefault.classList.remove('d-none');
+        cfZoneOption.classList.remove('d-none');
+        skipCfOption.classList.remove('d-none');
+    } else {
+        helpDefault.classList.remove('d-none');
+        cfZoneOption.classList.remove('d-none');
+        skipCfOption.classList.remove('d-none');
+    }
+}
+
+document.getElementById('domain').addEventListener('input', updateDomainUI);
+
+// Exclusión mutua: configure_cloudflare vs skip_cloudflare
+document.getElementById('configure_cloudflare').addEventListener('change', function() {
+    if (this.checked) {
+        document.getElementById('skip_cloudflare').checked = false;
+    }
+});
+document.getElementById('skip_cloudflare').addEventListener('change', function() {
+    if (this.checked) {
+        document.getElementById('configure_cloudflare').checked = false;
+        document.getElementById('cloudflare-options').classList.add('d-none');
+        document.getElementById('enable_email_routing').checked = false;
+        document.getElementById('email-routing-options').classList.add('d-none');
+    }
+});
 
 // Mostrar/ocultar opciones de Cloudflare
 document.getElementById('configure_cloudflare').addEventListener('change', function() {

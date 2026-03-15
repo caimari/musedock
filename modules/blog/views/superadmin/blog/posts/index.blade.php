@@ -85,9 +85,48 @@
         <a href="/musedock/blog/posts/trash" class="btn btn-outline-danger" title="{{ __('blog.post.view_trash') }}">
           <i class="bi bi-trash me-1"></i> {{ __('blog.post.trash') }}
         </a>
-        <a href="{{ route('blog.posts.create') }}" class="btn btn-primary">{{ __('blog.post.add_post') }}</a>
+        @if (!empty($crossPublisherActive) && !empty($currentScope) && str_starts_with($currentScope, 'tenant:'))
+          <a href="/musedock/blog/posts/create?tenant_id={{ substr($currentScope, 7) }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> Crear post en {{ $scope['label'] ?? 'tenant' }}
+          </a>
+        @else
+          <a href="{{ route('blog.posts.create') }}" class="btn btn-primary">{{ __('blog.post.add_post') }}</a>
+        @endif
       </div>
     </div>
+
+    {{-- Filtro Cross-Publisher (solo si el plugin esta activo) --}}
+    @if (!empty($crossPublisherActive))
+    <div class="card mb-3">
+      <div class="card-body py-2">
+        <form method="GET" action="/musedock/blog/posts" class="d-flex align-items-center gap-3 flex-wrap">
+          @if (!empty($search))<input type="hidden" name="search" value="{{ $search }}">@endif
+          <label class="form-label mb-0 fw-bold text-nowrap"><i class="bi bi-funnel me-1"></i> Filtrar por:</label>
+          <select name="scope" class="form-select form-select-sm" style="width: auto; min-width: 280px;" onchange="this.form.submit()">
+            <option value="mine" @if(($currentScope ?? 'mine') === 'mine') selected @endif>Mis posts (Superadmin)</option>
+            @foreach ($groups as $group)
+              <optgroup label="{{ $group->name }} ({{ $group->member_count }} sitios)">
+                <option value="group:{{ $group->id }}" @if(($currentScope ?? '') === "group:{$group->id}") selected @endif>
+                  Todo el grupo: {{ $group->name }}
+                </option>
+                @foreach ($groupedTenants as $tenant)
+                  @if ($tenant->group_id == $group->id)
+                    <option value="tenant:{{ $tenant->id }}" @if(($currentScope ?? '') === "tenant:{$tenant->id}") selected @endif>
+                      {{ $tenant->domain }}
+                    </option>
+                  @endif
+                @endforeach
+              </optgroup>
+            @endforeach
+          </select>
+          @if (($currentScope ?? 'mine') !== 'mine')
+            <span class="badge bg-info text-dark">{{ $scope['label'] ?? '' }}</span>
+            <a href="/musedock/blog/posts" class="btn btn-sm btn-outline-secondary">Limpiar filtro</a>
+          @endif
+        </form>
+      </div>
+    </div>
+    @endif
 
     {{-- Alertas con SweetAlert2 --}}
     @if (session('success'))
@@ -118,10 +157,14 @@
     {{-- Formulario de Búsqueda y Selector de registros por página --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <form method="GET" action="{{ route('blog.posts.index') }}" class="d-flex align-items-center">
+        @if (!empty($currentScope) && $currentScope !== 'mine')
+          <input type="hidden" name="scope" value="{{ $currentScope }}">
+        @endif
         <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="{{ __('blog.post.search_placeholder') }}" class="form-control form-control-sm me-2" style="width: 250px;" id="search-input">
         <button type="submit" class="btn btn-outline-secondary btn-sm me-2">{{ __('common.search') }}</button>
         @if (!empty($search))
-          <a href="{{ route('blog.posts.index') }}" class="btn btn-outline-danger btn-sm">{{ __('common.clear_filter') }}</a>
+          @php $clearUrl = '/musedock/blog/posts' . ((!empty($currentScope) && $currentScope !== 'mine') ? '?scope=' . urlencode($currentScope) : ''); @endphp
+          <a href="{{ $clearUrl }}" class="btn btn-outline-danger btn-sm">{{ __('common.clear_filter') }}</a>
         @endif
       </form>
 
@@ -152,6 +195,9 @@
                     {{ __('blog.post.title') }} {!! $sortIcon('title') !!}
                   </a>
                 </th>
+                @if (!empty($scope) && ($scope['mode'] ?? 'mine') !== 'mine')
+                <th>Sitio</th>
+                @endif
                 <th>{{ __('blog.post.author') }}</th>
                 <th>{{ __('blog.post.categories') }}</th>
                 <th>
@@ -160,6 +206,11 @@
                   </a>
                 </th>
                 <th>{{ __('blog.post.language') }}</th>
+                <th>
+                  <a href="{{ $sortUrl('view_count') }}" class="sortable-link {{ $isActiveSort('view_count') }}">
+                    {{ __('blog.views') }} {!! $sortIcon('view_count') !!}
+                  </a>
+                </th>
                 <th>
                   <a href="{{ $sortUrl('published_at') }}" class="sortable-link {{ $isActiveSort('published_at') }}">
                     {{ __('blog.post.published_at') }} {!! $sortIcon('published_at') !!}
@@ -204,15 +255,28 @@
                   @endif
                   <br>
                   <small>
-                    <a href="{{ route('blog.posts.edit', ['id' => $post->id]) }}">{{ __('common.edit') }}</a>
+                    @php
+                      $editScope = (!empty($scope) && ($scope['mode'] ?? 'mine') !== 'mine') ? '?scope=' . urlencode($currentScope ?? '') : '';
+                    @endphp
+                    <a href="{{ route('blog.posts.edit', ['id' => $post->id]) }}{{ $editScope }}">{{ __('common.edit') }}</a>
                     @if ($post->status === 'published')
                        |
-                      <a href="/blog/{{ $post->slug }}" target="_blank" rel="noopener noreferrer">{{ __('blog.post.view_post') }}</a>
+                      @if ($post->tenant_id && !empty($tenantMap[$post->tenant_id]))
+                        <a href="https://{{ $tenantMap[$post->tenant_id]->domain }}/{{ $post->slug }}" target="_blank" rel="noopener noreferrer">{{ __('blog.post.view_post') }}</a>
+                      @else
+                        <a href="/blog/{{ $post->slug }}" target="_blank" rel="noopener noreferrer">{{ __('blog.post.view_post') }}</a>
+                      @endif
                     @endif
                      |
                     <a href="#" class="delete-post-link" data-post-id="{{ $post->id }}" data-post-title="{{ htmlspecialchars($post->title, ENT_QUOTES, 'UTF-8') }}" style="color: #dc3545; text-decoration: none;">{{ __('common.delete') }}</a>
                   </small>
                 </td>
+                @if (!empty($scope) && ($scope['mode'] ?? 'mine') !== 'mine')
+                <td>
+                  @php $tenantInfo = $tenantMap[$post->tenant_id] ?? null; @endphp
+                  <small class="text-muted">{{ $tenantInfo->domain ?? '—' }}</small>
+                </td>
+                @endif
                 <td>{{ $author?->name ?? '—' }}</td>
                 <td><small class="text-muted">{{ $categoryNames ?: '—' }}</small></td>
                 <td>
@@ -231,6 +295,9 @@
                   @endif
                 </td>
                 <td>{{ strtoupper($baseLang) }}</td>
+                <td class="text-center">
+                  <span class="badge bg-light text-dark"><i class="bi bi-eye"></i> {{ number_format($post->view_count ?? 0) }}</span>
+                </td>
                 <td data-date="{{ $post->published_at ? $post->published_at->format('Y-m-d H:i:s') : ($post->created_at ? $post->created_at->format('Y-m-d H:i:s') : '') }}">
                   {{ $post->published_at ? $post->published_at->format($dateTimeFormat) : ($post->created_at ? $post->created_at->format($dateTimeFormat) : '—') }}
                 </td>

@@ -266,19 +266,16 @@ class Usage
            return ['exceeded' => false, 'used' => 0, 'limit' => 0];
        }
 
-       $todayStart = date('Y-m-d 00:00:00');
-       $todayEnd = date('Y-m-d 23:59:59');
-
+       // Usar CURRENT_DATE de DB para evitar desfase de timezone PHP vs PostgreSQL
        $tokensUsed = (int) Database::query("
            SELECT COALESCE(SUM(tokens_used), 0)
            FROM ai_usage_logs
            WHERE tenant_id = :tenant_id
            AND status = 'success'
-           AND created_at BETWEEN :date_from AND :date_to
+           AND created_at >= CURRENT_DATE
+           AND created_at < CURRENT_DATE + INTERVAL '1 day'
        ", [
            'tenant_id' => $tenantId,
-           'date_from' => $todayStart,
-           'date_to' => $todayEnd
        ])->fetchColumn();
 
        return [

@@ -8,6 +8,9 @@
 
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="mb-0">Configuración de IA</h4>
+            <a href="/{{ admin_path() }}/ai/auto-tagger" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-tags"></i> Auto-Categorizar Posts
+            </a>
         </div>
 
         {{-- Flash Messages --}}

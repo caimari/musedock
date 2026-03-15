@@ -51,6 +51,7 @@
                     <thead>
                         <tr>
                             <th>Timestamp</th>
+                            <th>Tenant</th>
                             <th>Proveedor</th>
                             <th>Módulo</th>
                             <th>Acción</th>
@@ -64,10 +65,25 @@
                         @forelse ($logs as $log)
                         <tr>
                             <td>{{ $log['created_at'] }}</td>
+                            <td>
+                                @if($log['tenant_domain'])
+                                    <small class="text-primary">{{ $log['tenant_domain'] }}</small>
+                                @else
+                                    <small class="text-muted">Sistema</small>
+                                @endif
+                            </td>
                             <td>{{ $log['provider_name'] ?? 'N/A' }} ({{ $log['provider_type'] ?? 'N/A' }})</td>
                             <td>{{ $log['module'] ?: 'N/A' }}</td>
                             <td>{{ $log['action'] ?: 'N/A' }}</td>
-                            <td>{{ $log['user_type'] ? $log['user_type'] . ':' . $log['user_id'] : 'Sistema' }}</td>
+                            <td>
+                                @if($log['admin_name'])
+                                    {{ $log['admin_name'] }}
+                                @elseif($log['user_id'])
+                                    {{ $log['user_type'] }}:#{{ $log['user_id'] }}
+                                @else
+                                    <span class="text-muted">Cron/Sistema</span>
+                                @endif
+                            </td>
                             <td>
                                 @if(strpos($log['status'], 'error') === 0)
                                     <span class="badge bg-danger" title="{{ $log['status'] }}">Error</span>
@@ -76,11 +92,11 @@
                                 @endif
                             </td>
                             <td>{{ $log['tokens_used'] }}</td>
-                            <td title="{{ $log['prompt'] }}">{{ Str::limit($log['prompt'], 50) }}</td>
+                            <td title="{{ $log['prompt'] }}">{{ mb_substr($log['prompt'] ?? '', 0, 50) }}{{ mb_strlen($log['prompt'] ?? '') > 50 ? '...' : '' }}</td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="text-center">No se encontraron logs con los filtros aplicados.</td>
+                            <td colspan="9" class="text-center">No se encontraron logs con los filtros aplicados.</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -93,8 +109,4 @@
         </div>
     </div>
 </div>
-{{-- Importar Str si no está disponible globalmente --}}
-@php
-use Illuminate\Support\Str;
-@endphp
 @endsection

@@ -6,11 +6,25 @@
 <div class="app-content">
   <div class="container-fluid">
     {{-- Navegación --}}
+    @php
+      $backUrl = !empty($targetTenant)
+          ? route('blog.categories.index') . '?scope=tenant:' . $targetTenant->id
+          : route('blog.categories.index');
+      $backLabel = !empty($targetTenant)
+          ? ($targetTenant->domain ?? $targetTenant->name)
+          : __('blog.categories');
+    @endphp
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="breadcrumb">
-        <a href="{{ route('blog.categories.index') }}">{{ __('blog.categories') }}</a> <span class="mx-2">/</span> <span>{{ __('blog.category.new_category') }}</span>
+        <a href="{{ route('blog.categories.index') }}">{{ __('blog.categories') }}</a>
+        @if(!empty($targetTenant))
+          <span class="mx-2">/</span>
+          <a href="{{ $backUrl }}">{{ $backLabel }}</a>
+        @endif
+        <span class="mx-2">/</span>
+        <span>{{ __('blog.category.new_category') }}</span>
       </div>
-      <a href="{{ route('blog.categories.index') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> {{ __('blog.category.back_to_categories') }}</a>
+      <a href="{{ $backUrl }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> {{ $backLabel }}</a>
     </div>
 
     {{-- Alertas Toast --}}
@@ -45,8 +59,20 @@
       </script>
     @endif
 
+    @if(!empty($targetTenant))
+      <div class="alert alert-info d-flex align-items-center mb-3">
+        <i class="bi bi-globe me-2 fs-5"></i>
+        <div>
+          <strong>Creando categoría para:</strong> <a href="https://{{ $targetTenant->domain }}" target="_blank">{{ $targetTenant->domain }}</a>
+        </div>
+      </div>
+    @endif
+
     <form method="POST" action="{{ route('blog.categories.store') }}" id="categoryForm" enctype="multipart/form-data">
       @csrf
+      @if(!empty($targetTenantId))
+        <input type="hidden" name="target_tenant_id" value="{{ $targetTenantId }}">
+      @endif
 
       <div class="row">
         {{-- Columna izquierda --}}

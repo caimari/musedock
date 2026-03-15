@@ -274,6 +274,10 @@
                  <button type="button" id="browse-button" class="btn btn-outline-primary mb-2">
                      <i class="bi bi-upload me-1"></i> Seleccionar Archivos
                  </button>
+                 <div class="form-check form-check-inline mt-1 mb-1">
+                     <input class="form-check-input" type="checkbox" id="compress-images" name="compress" value="1" checked>
+                     <label class="form-check-label small text-muted" for="compress-images">Comprimir imágenes (recomendado)</label>
+                 </div>
                  <p class="text-muted small mb-0">o arrastra los archivos aquí</p>
                  <div class="progress mt-3" id="upload-progress-bar" style="height: 5px;">
                      <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>

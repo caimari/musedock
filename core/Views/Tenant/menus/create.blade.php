@@ -34,6 +34,7 @@
             <small class="text-muted">Define dónde se mostrará este menú en el sitio web.</small>
           </div>
 
+          @if(count($languages) > 1)
           <div class="mb-3">
             <label for="locale" class="form-label">Idioma</label>
             <select class="form-select" id="locale" name="locale">
@@ -45,6 +46,9 @@
             </select>
             <small class="text-muted">El idioma principal para este menú. Podrás añadir más traducciones después.</small>
           </div>
+          @else
+          <input type="hidden" name="locale" value="{{ $languages[0]->code ?? $defaultLanguage }}">
+          @endif
 
           <div class="d-flex justify-content-end">
             <a href="{{ '/' . admin_path() . '/menus' }}" class="btn btn-secondary me-2">Cancelar</a>

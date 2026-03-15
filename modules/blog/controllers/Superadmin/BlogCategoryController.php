@@ -12,6 +12,7 @@ use Screenart\Musedock\Traits\RequiresPermission;
 class BlogCategoryController
 {
     use RequiresPermission;
+    use \Blog\Traits\CrossPublisherScope;
 
     private function updateAllCategoryCounts(): void
     {
@@ -59,6 +60,10 @@ class BlogCategoryController
     {
         $this->checkPermission('blog.view');
         $this->updateAllCategoryCounts();
+
+        // Resolver scope del cross-publisher
+        $scope = $this->resolveTenantScope();
+
         // Capturamos parámetros de búsqueda y paginación
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
@@ -66,11 +71,17 @@ class BlogCategoryController
         $perPage = isset($_GET['perPage']) ? intval($_GET['perPage']) : 10;
         $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 
-        // Consulta de las categorías
+        // Consulta de las categorías según el scope
         $query = BlogCategory::query()
-            ->whereRaw('(tenant_id IS NULL OR tenant_id = 0)')
             ->orderBy('order', 'ASC')
             ->orderBy('name', 'ASC');
+
+        if ($scope['mode'] === 'mine') {
+            $query->whereRaw('(tenant_id IS NULL OR tenant_id = 0)');
+        } else {
+            $placeholders = implode(',', array_fill(0, count($scope['tenantIds']), '?'));
+            $query->whereRaw("tenant_id IN ({$placeholders})", $scope['tenantIds']);
+        }
 
         // Aplicar búsqueda si existe
         if (!empty($search)) {
@@ -101,26 +112,52 @@ class BlogCategoryController
         // Procesamos los objetos BlogCategory
         $processedCategories = array_map(fn($row) => ($row instanceof BlogCategory) ? $row : new BlogCategory((array) $row), $categories);
 
+        // Mapa de tenants para mostrar dominio
+        $tenantMap = ($scope['mode'] !== 'mine') ? $this->buildTenantMap($scope['tenantIds']) : [];
+
         // Renderizamos la vista
-        return View::renderSuperadmin('blog.categories.index', [
+        return View::renderSuperadmin('blog.categories.index', array_merge([
             'title'       => 'Listado de categorías',
             'categories'  => $processedCategories,
             'search'      => $search,
             'pagination'  => $pagination,
-        ]);
+            'scope'       => $scope,
+            'tenantMap'   => $tenantMap,
+        ], $this->getCrossPublisherFilterData()));
     }
 
     public function create()
     {
         $this->checkPermission('blog.create');
-        // Obtener todas las categorías para el selector de categoría padre
-        $categories = BlogCategory::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')->orderBy('name', 'ASC')->get();
+
+        // Detectar si se crea categoría para un tenant específico
+        $targetTenantId = null;
+        $targetTenant = null;
+        if (!empty($_GET['tenant_id']) && is_cross_publisher_active()) {
+            $tenantId = (int) $_GET['tenant_id'];
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("SELECT id, name, domain FROM tenants WHERE id = ? AND group_id IS NOT NULL");
+            $stmt->execute([$tenantId]);
+            $targetTenant = $stmt->fetch(\PDO::FETCH_OBJ);
+            if ($targetTenant) {
+                $targetTenantId = $targetTenant->id;
+            }
+        }
+
+        // Cargar categorías padre del tenant o globales
+        if ($targetTenantId) {
+            $categories = BlogCategory::where('tenant_id', $targetTenantId)->orderBy('name', 'ASC')->get();
+        } else {
+            $categories = BlogCategory::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')->orderBy('name', 'ASC')->get();
+        }
 
         return View::renderSuperadmin('blog.categories.create', [
             'title' => 'Crear Categoría',
             'category' => new BlogCategory(),
             'categories' => $categories,
             'isNew' => true,
+            'targetTenantId' => $targetTenantId,
+            'targetTenant' => $targetTenant,
         ]);
     }
 
@@ -130,8 +167,12 @@ class BlogCategoryController
         $data = $_POST;
         unset($data['_token'], $data['_csrf']);
 
-        // Eliminamos tenant_id del conjunto de datos inicial
-        unset($data['tenant_id']);
+        // Detectar si se crea categoría para un tenant específico
+        $targetTenantId = null;
+        if (!empty($data['target_tenant_id']) && is_cross_publisher_active()) {
+            $targetTenantId = (int) $data['target_tenant_id'];
+        }
+        unset($data['target_tenant_id'], $data['tenant_id']);
 
         // Procesar la subida de imagen si existe
         if ($_FILES && isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
@@ -166,11 +207,16 @@ class BlogCategoryController
             throw $e;
         }
 
-        // Actualizamos específicamente el tenant_id a NULL después de crear
+        // Establecer tenant_id correcto
         try {
             $pdo = Database::connect();
-            $stmt = $pdo->prepare("UPDATE blog_categories SET tenant_id = NULL WHERE id = ?");
-            $stmt->execute([$category->id]);
+            if ($targetTenantId) {
+                $stmt = $pdo->prepare("UPDATE blog_categories SET tenant_id = ? WHERE id = ?");
+                $stmt->execute([$targetTenantId, $category->id]);
+            } else {
+                $stmt = $pdo->prepare("UPDATE blog_categories SET tenant_id = NULL WHERE id = ?");
+                $stmt->execute([$category->id]);
+            }
         } catch (\Exception $e) {
             error_log("ERROR AL ACTUALIZAR TENANT_ID EN STORE: " . $e->getMessage());
         }
@@ -195,11 +241,27 @@ class BlogCategoryController
             exit;
         }
 
-        // Obtener todas las categorías para el selector de categoría padre (excluyendo la actual)
-        $categories = BlogCategory::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')
-            ->where('id', '!=', $id)
-            ->orderBy('name', 'ASC')
-            ->get();
+        // Detectar si la categoría pertenece a un tenant
+        $editingTenant = null;
+        if ($category->tenant_id && is_cross_publisher_active()) {
+            $pdo2 = Database::connect();
+            $stmt2 = $pdo2->prepare("SELECT id, name, domain FROM tenants WHERE id = ?");
+            $stmt2->execute([$category->tenant_id]);
+            $editingTenant = $stmt2->fetch(\PDO::FETCH_OBJ);
+        }
+
+        // Obtener categorías padre: del tenant si es categoría de tenant, o globales
+        if ($editingTenant) {
+            $categories = BlogCategory::where('tenant_id', $category->tenant_id)
+                ->where('id', '!=', $id)
+                ->orderBy('name', 'ASC')
+                ->get();
+        } else {
+            $categories = BlogCategory::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')
+                ->where('id', '!=', $id)
+                ->orderBy('name', 'ASC')
+                ->get();
+        }
 
         // Obtener y formatear fechas
         $category->created_at_formatted = 'Desconocido';
@@ -234,6 +296,7 @@ class BlogCategoryController
             'title'      => 'Editar categoría: ' . e($category->name),
             'category'   => $category,
             'categories' => $categories,
+            'editingTenant' => $editingTenant,
         ]);
     }
 
@@ -296,7 +359,8 @@ class BlogCategoryController
         }
         unset($_SESSION['_old_input']);
 
-        // Procesar datos
+        // Preservar tenant_id original
+        $originalTenantId = $category->tenant_id;
         $data = $validationData;
         unset($data['tenant_id']);
 
@@ -307,9 +371,14 @@ class BlogCategoryController
             // Actualizar datos principales
             $category->update($data);
 
-            // Actualizar tenant_id
-            $updateStmt = $pdo->prepare("UPDATE blog_categories SET tenant_id = NULL WHERE id = ?");
-            $updateStmt->execute([$id]);
+            // Preservar tenant_id original
+            if ($originalTenantId) {
+                $updateStmt = $pdo->prepare("UPDATE blog_categories SET tenant_id = ? WHERE id = ?");
+                $updateStmt->execute([$originalTenantId, $id]);
+            } else {
+                $updateStmt = $pdo->prepare("UPDATE blog_categories SET tenant_id = NULL WHERE id = ?");
+                $updateStmt->execute([$id]);
+            }
 
             $pdo->commit();
 

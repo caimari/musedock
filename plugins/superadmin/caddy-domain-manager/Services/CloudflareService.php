@@ -87,6 +87,24 @@ class CloudflareService
             // Continuar con verificación de Cloudflare
         }
 
+        // 1b. Verificar en domain_aliases
+        try {
+            $pdo = \Screenart\Musedock\Database::connect();
+            $stmt = $pdo->prepare("SELECT id FROM domain_aliases WHERE domain = ? LIMIT 1");
+            $stmt->execute([$fullDomain]);
+
+            if ($stmt->fetch()) {
+                Logger::info("[CloudflareService] Subdomain already used as alias: {$subdomain}");
+                return [
+                    'available' => false,
+                    'error' => 'Subdominio no disponible',
+                    'reason' => 'Este subdominio ya está en uso como alias de dominio.'
+                ];
+            }
+        } catch (\Exception $e) {
+            // Table may not exist yet
+        }
+
         // 2. Verificar contra lista de reservados
         if (in_array(strtolower($subdomain), $this->reservedSubdomains)) {
             Logger::info("[CloudflareService] Subdomain is reserved: {$subdomain}");

@@ -27,6 +27,103 @@ class PageController
         }
     }
 
+    /**
+     * Resolver el scope del cross-publisher para páginas.
+     */
+    private function resolvePagesScope(): array
+    {
+        $scope = $_GET['scope'] ?? 'mine';
+
+        if (!is_cross_publisher_active() || $scope === 'mine') {
+            return ['mode' => 'mine', 'tenantIds' => [], 'label' => 'Mis páginas'];
+        }
+
+        if (str_starts_with($scope, 'group:')) {
+            $groupId = (int) substr($scope, 6);
+            $group = \CrossPublisherAdmin\Models\DomainGroup::find($groupId);
+            if (!$group) {
+                return ['mode' => 'mine', 'tenantIds' => [], 'label' => 'Mis páginas'];
+            }
+            $members = \CrossPublisherAdmin\Models\DomainGroup::getMembers($groupId);
+            $tenantIds = array_map(fn($m) => $m->id, $members);
+            return [
+                'mode' => 'group',
+                'groupId' => $groupId,
+                'tenantIds' => $tenantIds,
+                'label' => 'Grupo: ' . $group->name,
+                'members' => $members,
+            ];
+        }
+
+        if (str_starts_with($scope, 'tenant:')) {
+            $tenantId = (int) substr($scope, 7);
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("SELECT id, name, domain FROM tenants WHERE id = ? AND group_id IS NOT NULL");
+            $stmt->execute([$tenantId]);
+            $tenant = $stmt->fetch(\PDO::FETCH_OBJ);
+            if (!$tenant) {
+                return ['mode' => 'mine', 'tenantIds' => [], 'label' => 'Mis páginas'];
+            }
+            return [
+                'mode' => 'tenant',
+                'tenantIds' => [$tenant->id],
+                'tenantId' => $tenantId,
+                'label' => $tenant->domain,
+                'tenant' => $tenant,
+            ];
+        }
+
+        return ['mode' => 'mine', 'tenantIds' => [], 'label' => 'Mis páginas'];
+    }
+
+    /**
+     * Obtener datos para el dropdown de filtro del cross-publisher (páginas).
+     */
+    private function getPagesFilterData(): array
+    {
+        if (!is_cross_publisher_active()) {
+            return ['crossPublisherActive' => false, 'groups' => [], 'groupedTenants' => []];
+        }
+
+        $groups = \CrossPublisherAdmin\Models\DomainGroup::allWithCounts();
+
+        $pdo = Database::connect();
+        $stmt = $pdo->query("
+            SELECT t.id, t.name, t.domain, t.group_id, dg.name as group_name
+            FROM tenants t
+            JOIN domain_groups dg ON t.group_id = dg.id
+            WHERE t.status = 'active' AND t.group_id IS NOT NULL
+            ORDER BY dg.name, t.domain
+        ");
+        $tenants = $stmt->fetchAll(\PDO::FETCH_OBJ);
+
+        return [
+            'crossPublisherActive' => true,
+            'groups' => $groups,
+            'groupedTenants' => $tenants,
+            'currentScope' => $_GET['scope'] ?? 'mine',
+        ];
+    }
+
+    /**
+     * Construir un mapa tenantId => {id, name, domain} para el listado de páginas.
+     */
+    private function buildPagesTenantMap(array $tenantIds): array
+    {
+        if (empty($tenantIds)) return [];
+
+        $pdo = Database::connect();
+        $placeholders = implode(',', array_fill(0, count($tenantIds), '?'));
+        $stmt = $pdo->prepare("SELECT id, name, domain FROM tenants WHERE id IN ({$placeholders})");
+        $stmt->execute($tenantIds);
+
+        $map = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_OBJ) as $t) {
+            $map[$t->id] = $t;
+        }
+        return $map;
+    }
+
 public function index()
 {
     // Verificar permiso de visualización
@@ -42,12 +139,22 @@ public function index()
     // Obtener registros por página (10 por defecto, -1 para todos)
     $perPage = isset($_GET['perPage']) ? intval($_GET['perPage']) : 10;
     $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-    
+
+    // Resolver scope cross-publisher
+    $scope = $this->resolvePagesScope();
+
     // Consulta de las páginas
-    $query = Page::query()
-        ->whereNull('tenant_id') // Asumiendo que las páginas del superadmin no tienen tenant
-        ->whereRaw("(status != ? OR status IS NULL)", ['trash'])
-        ->orderBy('updated_at', 'DESC');
+    if ($scope['mode'] === 'mine') {
+        $query = Page::query()
+            ->whereNull('tenant_id')
+            ->whereRaw("(status != ? OR status IS NULL)", ['trash'])
+            ->orderBy('updated_at', 'DESC');
+    } else {
+        $query = Page::query()
+            ->whereIn('tenant_id', $scope['tenantIds'])
+            ->whereRaw("(status != ? OR status IS NULL)", ['trash'])
+            ->orderBy('updated_at', 'DESC');
+    }
     
     // Aplicar búsqueda si existe
     if (!empty($search)) {
@@ -134,16 +241,21 @@ public function index()
     $homepageId = Page::where('is_homepage', 1)
                       ->whereNull('tenant_id')
                       ->value('id');
-    
+
+    // Mapa de tenants para mostrar dominio en la columna "Sitio"
+    $tenantMap = ($scope['mode'] !== 'mine') ? $this->buildPagesTenantMap($scope['tenantIds']) : [];
+
     // Renderizamos la vista
-    return View::renderSuperadmin('pages.index', [
+    return View::renderSuperadmin('pages.index', array_merge([
         'title'       => 'Listado de páginas',
         'pages'       => $processedPages,
         'authors'     => $authors,
         'search'      => $search,
         'pagination'  => $pagination,
         'homepageId'  => $homepageId,
-    ]);
+        'scope'       => $scope,
+        'tenantMap'   => $tenantMap,
+    ], $this->getPagesFilterData()));
 }
 public function create()
 {
@@ -153,6 +265,16 @@ public function create()
     $currentPageTemplate = 'page.blade.php'; // Plantilla por defecto para nuevas páginas
     // ==============================================
 
+    // Detectar si se crea página para un tenant específico (cross-publisher)
+    $targetTenant = null;
+    if (!empty($_GET['tenant_id']) && is_cross_publisher_active()) {
+        $tenantId = (int) $_GET['tenant_id'];
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("SELECT id, name, domain FROM tenants WHERE id = ? AND group_id IS NOT NULL");
+        $stmt->execute([$tenantId]);
+        $targetTenant = $stmt->fetch(\PDO::FETCH_OBJ);
+    }
+
     return View::renderSuperadmin('pages.create', [
         'title' => 'Crear Página',
         'Page'  => new Page(),
@@ -160,6 +282,7 @@ public function create()
         'baseUrl' => $_SERVER['HTTP_HOST'], // Para mostrar la URL base
         'availableTemplates' => $availableTemplates,    // Lista de plantillas disponibles
         'currentPageTemplate' => $currentPageTemplate,  // Plantilla por defecto
+        'targetTenant' => $targetTenant,
     ]);
 }
 public function store()
@@ -167,10 +290,19 @@ public function store()
     $this->checkPermission('pages.create');
     $data = $_POST;
     unset($data['_token'], $data['_csrf']);
-    
-    // Eliminamos tenant_id del conjunto de datos inicial
+
+    // Manejar tenant_id para cross-publisher (solo si el plugin está activo y el tenant existe)
+    $tenantIdFromForm = !empty($data['tenant_id']) ? (int) $data['tenant_id'] : null;
     unset($data['tenant_id']);
-    
+    if ($tenantIdFromForm && is_cross_publisher_active()) {
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("SELECT id FROM tenants WHERE id = ? AND group_id IS NOT NULL");
+        $stmt->execute([$tenantIdFromForm]);
+        if ($stmt->fetch()) {
+            $data['tenant_id'] = $tenantIdFromForm;
+        }
+    }
+
     // Seteamos otros valores automáticos
     $data['user_id'] = $_SESSION['super_admin']['id'] ?? null;
     $data['user_type'] = 'superadmin';
@@ -232,29 +364,40 @@ public function store()
         }
     }
 
-    // Actualizamos específicamente el tenant_id a NULL después de crear
+    // Actualizamos el tenant_id apropiado después de crear
+    $finalTenantId = $data['tenant_id'] ?? null;
     try {
         $pdo = \Screenart\Musedock\Database::connect();
-        $stmt = $pdo->prepare("UPDATE pages SET tenant_id = NULL WHERE id = ?");
-        $stmt->execute([$page->id]);
+        if ($finalTenantId) {
+            $stmt = $pdo->prepare("UPDATE pages SET tenant_id = ? WHERE id = ?");
+            $stmt->execute([$finalTenantId, $page->id]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE pages SET tenant_id = NULL WHERE id = ?");
+            $stmt->execute([$page->id]);
+        }
     } catch (\Exception $e) {
         // Log error pero continuamos
-        file_put_contents(__DIR__ . '/../../../storage/logs/debug.log', 
-            "ERROR AL ACTUALIZAR TENANT_ID EN STORE: " . $e->getMessage() . "\n", 
+        file_put_contents(__DIR__ . '/../../../storage/logs/debug.log',
+            "ERROR AL ACTUALIZAR TENANT_ID EN STORE: " . $e->getMessage() . "\n",
             FILE_APPEND);
     }
-    
-    // Usamos SQL directo para crear el slug con tenant_id NULL
+
+    // Usamos SQL directo para crear el slug con el tenant_id correcto
     try {
         // Primero eliminamos cualquier slug existente por si acaso
         $pdo = \Screenart\Musedock\Database::connect();
         $deleteStmt = $pdo->prepare("DELETE FROM slugs WHERE module = 'pages' AND reference_id = ?");
         $deleteStmt->execute([$page->id]);
-        
-        // Creamos el nuevo slug directamente con SQL para garantizar tenant_id NULL
+
+        // Creamos el nuevo slug con el tenant_id correcto
         $prefix = $data['prefix'] ?? 'p';
-        $insertStmt = $pdo->prepare("INSERT INTO slugs (module, reference_id, slug, tenant_id, prefix) VALUES (?, ?, ?, NULL, ?)");
-        $insertStmt->execute(['pages', $page->id, $data['slug'], $prefix]);
+        if ($finalTenantId) {
+            $insertStmt = $pdo->prepare("INSERT INTO slugs (module, reference_id, slug, tenant_id, prefix) VALUES (?, ?, ?, ?, ?)");
+            $insertStmt->execute(['pages', $page->id, $data['slug'], $finalTenantId, $prefix]);
+        } else {
+            $insertStmt = $pdo->prepare("INSERT INTO slugs (module, reference_id, slug, tenant_id, prefix) VALUES (?, ?, ?, NULL, ?)");
+            $insertStmt->execute(['pages', $page->id, $data['slug'], $prefix]);
+        }
         
     } catch (\Exception $e) {
         // Log error pero continuamos
@@ -360,6 +503,15 @@ public function edit($id)
     $availableTemplates = get_page_templates(); // Helper que escanea las plantillas disponibles
     $currentPageTemplate = PageMeta::getMeta($id, 'page_template', 'page.blade.php'); // Plantilla actual o por defecto
 
+    // Detectar si la página pertenece a un tenant (cross-publisher)
+    $editingTenant = null;
+    if (!empty($page->tenant_id) && is_cross_publisher_active()) {
+        $pdo2 = Database::connect();
+        $stmt2 = $pdo2->prepare("SELECT id, name, domain FROM tenants WHERE id = ? AND group_id IS NOT NULL");
+        $stmt2->execute([$page->tenant_id]);
+        $editingTenant = $stmt2->fetch(\PDO::FETCH_OBJ) ?: null;
+    }
+
     // --- Renderizar vista ---
     return View::renderSuperadmin('pages.edit', [
         'title'               => 'Editar página: ' . e($page->title),
@@ -369,6 +521,7 @@ public function edit($id)
         'baseUrl'             => $_SERVER['HTTP_HOST'] ?? 'localhost',
         'availableTemplates'  => $availableTemplates,    // Lista de plantillas disponibles
         'currentPageTemplate' => $currentPageTemplate,   // Plantilla actual seleccionada
+        'editingTenant'       => $editingTenant,
     ]);
 }
 

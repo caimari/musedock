@@ -21,17 +21,24 @@ class SafeHtml
         'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
         'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
         'a', 'img', 'table', 'thead', 'tbody', 'tr', 'td', 'th',
-        'div', 'span', 'hr'
+        'div', 'span', 'hr',
+        'iframe', 'video', 'source', 'embed', 'figure', 'figcaption'
     ];
 
     protected $allowedAttributes = [
         'a' => ['href', 'title', 'target', 'rel'],
-        'img' => ['src', 'alt', 'title', 'width', 'height'],
+        'img' => ['src', 'alt', 'title', 'width', 'height', 'loading'],
         'table' => ['class'],
         'td' => ['colspan', 'rowspan'],
         'th' => ['colspan', 'rowspan'],
-        'div' => ['class'],
-        'span' => ['class'],
+        'div' => ['class', 'style'],
+        'span' => ['class', 'style'],
+        'iframe' => ['src', 'width', 'height', 'frameborder', 'allowfullscreen', 'allow', 'title', 'loading', 'referrerpolicy', 'style'],
+        'video' => ['src', 'width', 'height', 'controls', 'autoplay', 'loop', 'muted', 'poster', 'preload', 'style'],
+        'source' => ['src', 'type'],
+        'embed' => ['src', 'type', 'width', 'height', 'style'],
+        'figure' => ['class', 'style'],
+        'figcaption' => ['class'],
     ];
 
     /**

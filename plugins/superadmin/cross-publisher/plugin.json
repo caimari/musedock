@@ -1,0 +1,17 @@
+{
+    "name": "Cross-Publisher",
+    "slug": "cross-publisher",
+    "description": "Sistema centralizado de sindicación editorial. Republica posts entre tenants del mismo grupo editorial con traducción IA y sincronización automática.",
+    "version": "2.0.0",
+    "author": "MuseDock Team",
+    "type": "superadmin",
+    "requires_modules": ["blog"],
+    "main_file": "routes.php",
+    "namespace": "CrossPublisherAdmin",
+    "admin_menu": {
+        "title": "Cross-Publisher",
+        "icon": "bi-share",
+        "route": "/musedock/cross-publisher",
+        "order": 95
+    }
+}

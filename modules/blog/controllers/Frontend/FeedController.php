@@ -146,7 +146,7 @@ class FeedController
         }
 
         foreach ($posts as $post) {
-            $postUrl = $siteUrl . '/blog/' . $post->slug;
+            $postUrl = $siteUrl . blog_url($post->slug);
             $pubDate = !empty($post->published_at) ? date('r', strtotime($post->published_at)) : date('r');
 
             // Detectar idioma para traducción
@@ -159,8 +159,15 @@ class FeedController
             $content = $translation ? ($translation->content ?? $post->content) : $post->content;
             $excerpt = $translation ? ($translation->excerpt ?? $post->excerpt) : $post->excerpt;
 
-            // Usar excerpt si existe, sino los primeros 300 caracteres del contenido
-            $description = !empty($excerpt) ? $excerpt : $this->truncateHtml($content, 300);
+            // Extracto: texto plano corto para <description> (max 160 chars)
+            $shortDescription = !empty($excerpt)
+                ? $this->truncateHtml($excerpt, 160)
+                : $this->truncateHtml($content, 160);
+
+            // Extracto largo para content:encoded (max 500 chars, texto plano)
+            $longExcerpt = !empty($excerpt)
+                ? $this->truncateHtml($excerpt, 500)
+                : $this->truncateHtml($content, 500);
 
             // Obtener nombre del autor
             $authorName = $this->getAuthorName($post, $tenantId);
@@ -170,10 +177,10 @@ class FeedController
             $xml .= '      <link>' . $this->escapeXml($postUrl) . '</link>' . "\n";
             $xml .= '      <guid isPermaLink="true">' . $this->escapeXml($postUrl) . '</guid>' . "\n";
             $xml .= '      <pubDate>' . $pubDate . '</pubDate>' . "\n";
-            $xml .= '      <description><![CDATA[' . $description . ']]></description>' . "\n";
+            $xml .= '      <description><![CDATA[' . $shortDescription . ']]></description>' . "\n";
 
-            // Contenido completo (para lectores que lo soporten)
-            $xml .= '      <content:encoded><![CDATA[' . $content . ']]></content:encoded>' . "\n";
+            // Extracto extendido (solo resumen, no el artículo completo)
+            $xml .= '      <content:encoded><![CDATA[<p>' . $longExcerpt . '</p>]]></content:encoded>' . "\n";
 
             // Autor
             if (!empty($authorName)) {
@@ -184,19 +191,26 @@ class FeedController
             if (!empty($post->featured_image) && empty($post->hide_featured_image)) {
                 $imageUrl = $this->getFullImageUrl($post->featured_image, $siteUrl);
                 $imageType = $this->getImageMimeType($post->featured_image);
-                $xml .= '      <enclosure url="' . $this->escapeXml($imageUrl) . '" type="' . $imageType . '" length="0" />' . "\n";
+                $imageLength = $this->getImageFileSize($post->featured_image);
+                $xml .= '      <enclosure url="' . $this->escapeXml($imageUrl) . '" type="' . $imageType . '" length="' . $imageLength . '" />' . "\n";
             }
 
             // Agregar categorías
             $categories = $this->getPostCategories($post->id);
             foreach ($categories as $category) {
-                $xml .= '      <category>' . $this->escapeXml($category->name) . '</category>' . "\n";
+                $catName = trim($category->name);
+                if ($catName !== '') {
+                    $xml .= '      <category>' . $this->escapeXml($catName) . '</category>' . "\n";
+                }
             }
 
             // Agregar etiquetas
             $tags = $this->getPostTags($post->id);
             foreach ($tags as $tag) {
-                $xml .= '      <category>' . $this->escapeXml($tag->name) . '</category>' . "\n";
+                $tagName = trim($tag->name);
+                if ($tagName !== '') {
+                    $xml .= '      <category>' . $this->escapeXml($tagName) . '</category>' . "\n";
+                }
             }
 
             $xml .= '    </item>' . "\n";
@@ -339,12 +353,10 @@ class FeedController
     }
 
     /**
-     * Obtiene el tipo MIME de una imagen basado en su extensión
+     * Obtiene el tipo MIME de una imagen basado en su extensión o segmento de URL
      */
     private function getImageMimeType($imagePath)
     {
-        $extension = strtolower(pathinfo($imagePath, PATHINFO_EXTENSION));
-
         $mimeTypes = [
             'jpg' => 'image/jpeg',
             'jpeg' => 'image/jpeg',
@@ -355,7 +367,94 @@ class FeedController
             'avif' => 'image/avif',
         ];
 
-        return $mimeTypes[$extension] ?? 'image/jpeg';
+        // Intentar con pathinfo primero
+        $extension = strtolower(pathinfo($imagePath, PATHINFO_EXTENSION));
+        if (isset($mimeTypes[$extension])) {
+            return $mimeTypes[$extension];
+        }
+
+        // Fallback: buscar en el último segmento de la URL (ej: /media/p/xxx/png)
+        $lastSegment = strtolower(basename($imagePath));
+        if (isset($mimeTypes[$lastSegment])) {
+            return $mimeTypes[$lastSegment];
+        }
+
+        // Buscar en cualquier parte de la ruta
+        foreach ($mimeTypes as $ext => $mime) {
+            if (strpos(strtolower($imagePath), '/' . $ext) !== false || strpos(strtolower($imagePath), '.' . $ext) !== false) {
+                return $mime;
+            }
+        }
+
+        return 'image/jpeg';
+    }
+
+    /**
+     * Obtiene el tamaño de un archivo de imagen en bytes
+     */
+    private function getImageFileSize($imagePath)
+    {
+        // Si es una ruta local, intentar obtener el tamaño real del archivo
+        if (strpos($imagePath, 'http') !== 0) {
+            $localPath = $imagePath;
+            if (strpos($localPath, '/') === 0) {
+                $localPath = APP_ROOT . '/public' . $localPath;
+            }
+            if (file_exists($localPath)) {
+                return (int) filesize($localPath);
+            }
+        }
+
+        // Valor por defecto estimado (no usar 0 que es inválido en RSS spec)
+        return 0;
+    }
+
+    /**
+     * Limpia el contenido HTML para el feed RSS
+     * Elimina iframes, scripts, estilos inline, spans decorativos y clases innecesarias.
+     * Deja solo HTML semántico limpio (p, h2, h3, strong, em, a, img, ul, ol, li, blockquote).
+     */
+    private function sanitizeContentForFeed($html)
+    {
+        if (empty($html)) {
+            return '';
+        }
+
+        // 1. Eliminar bloques completos: iframes, scripts, style, object, embed
+        $html = preg_replace('/<iframe[^>]*>.*?<\/iframe>/is', '', $html);
+        $html = preg_replace('/<script[^>]*>.*?<\/script>/is', '', $html);
+        $html = preg_replace('/<style[^>]*>.*?<\/style>/is', '', $html);
+        $html = preg_replace('/<object[^>]*>.*?<\/object>/is', '', $html);
+        $html = preg_replace('/<embed[^>]*\/?>/is', '', $html);
+
+        // 2. Eliminar todos los atributos style="..." de cualquier etiqueta
+        $html = preg_replace('/\s+style\s*=\s*"[^"]*"/is', '', $html);
+        $html = preg_replace("/\s+style\s*=\s*'[^']*'/is", '', $html);
+
+        // 3. Eliminar atributos class="..." y align="..."
+        $html = preg_replace('/\s+class\s*=\s*"[^"]*"/is', '', $html);
+        $html = preg_replace('/\s+align\s*=\s*"[^"]*"/is', '', $html);
+
+        // 4. Desenvolver <span> (quitar etiqueta pero mantener contenido)
+        $html = preg_replace('/<span[^>]*>/is', '', $html);
+        $html = str_replace('</span>', '', $html);
+
+        // 5. Eliminar <br> sueltos dentro de párrafos vacíos: <p><br><br></p> -> nada
+        $html = preg_replace('/<p>\s*(<br\s*\/?>[\s\n]*)+<\/p>/is', '', $html);
+
+        // 6. Eliminar párrafos vacíos o con solo espacios/nbsp
+        $html = preg_replace('/<p>\s*(&nbsp;|\xc2\xa0|\s)*<\/p>/is', '', $html);
+
+        // 7. Convertir h2/h3 con class="western" a h2/h3 limpios (ya se quitó class arriba)
+        // No hace falta acción adicional
+
+        // 8. Asegurar que no haya secuencias ]]> dentro del CDATA que rompan el XML
+        $html = str_replace(']]>', ']]&gt;', $html);
+
+        // 9. Colapsar líneas vacías múltiples
+        $html = preg_replace('/(\s*\n){3,}/', "\n\n", $html);
+
+        return trim($html);
     }
 
     /**
@@ -367,12 +466,15 @@ class FeedController
     }
 
     /**
-     * Trunca HTML a un número específico de caracteres
+     * Trunca HTML a un número específico de caracteres (texto plano)
      */
-    private function truncateHtml($html, $length = 300)
+    private function truncateHtml($html, $length = 160)
     {
         // Eliminar etiquetas HTML
         $text = strip_tags($html ?? '');
+        // Colapsar espacios múltiples y saltos de línea
+        $text = preg_replace('/\s+/', ' ', $text);
+        $text = trim($text);
 
         // Truncar a la longitud especificada
         if (mb_strlen($text) > $length) {

@@ -442,9 +442,18 @@ class MediaController
             return null;
         }
 
-        // Fondo blanco para transparencias (output JPEG)
-        $white = imagecolorallocate($thumb, 255, 255, 255);
-        imagefilledrectangle($thumb, 0, 0, $dstWidth, $dstHeight, $white);
+        // WebP soporta transparencia; JPEG necesita fondo blanco
+        $useWebP = function_exists('imagewebp');
+        if ($useWebP && in_array($sourceMime, ['image/png', 'image/webp', 'image/gif'])) {
+            imagealphablending($thumb, false);
+            imagesavealpha($thumb, true);
+            $transparent = imagecolorallocatealpha($thumb, 0, 0, 0, 127);
+            imagefilledrectangle($thumb, 0, 0, $dstWidth, $dstHeight, $transparent);
+            imagealphablending($thumb, true);
+        } else {
+            $white = imagecolorallocate($thumb, 255, 255, 255);
+            imagefilledrectangle($thumb, 0, 0, $dstWidth, $dstHeight, $white);
+        }
 
         imagecopyresampled($thumb, $img, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
         imagedestroy($img);
@@ -455,24 +464,90 @@ class MediaController
             return null;
         }
 
-        $tmpJpg = $tmp . '.jpg';
-        @unlink($tmp);
-
-        $ok = imagejpeg($thumb, $tmpJpg, 82);
+        // Prefer WebP (30% smaller than JPEG) with JPEG fallback
+        if ($useWebP) {
+            $tmpOut = $tmp . '.webp';
+            @unlink($tmp);
+            imagesavealpha($thumb, true);
+            $ok = imagewebp($thumb, $tmpOut, 80);
+            $outMime = 'image/webp';
+        } else {
+            $tmpOut = $tmp . '.jpg';
+            @unlink($tmp);
+            $ok = imagejpeg($thumb, $tmpOut, 82);
+            $outMime = 'image/jpeg';
+        }
         imagedestroy($thumb);
 
-        if (!$ok || !file_exists($tmpJpg)) {
-            @unlink($tmpJpg);
+        if (!$ok || !file_exists($tmpOut)) {
+            @unlink($tmpOut);
             return null;
         }
 
         return [
-            'tmp_path' => $tmpJpg,
-            'mime_type' => 'image/jpeg',
-            'size' => (int)filesize($tmpJpg),
+            'tmp_path' => $tmpOut,
+            'mime_type' => $outMime,
+            'size' => (int)filesize($tmpOut),
             'width' => $dstWidth,
             'height' => $dstHeight,
         ];
+    }
+
+    /**
+     * Compress an image maintaining reasonable quality.
+     * Resizes if larger than 2048px on any side, converts to JPEG at quality 85.
+     * Returns path to compressed temp file, or null if compression not possible.
+     */
+    private function compressImage(string $sourcePath, string $mimeType, int $maxDim = 2048, int $quality = 85): ?string
+    {
+        if (!function_exists('imagecreatetruecolor')) {
+            return null;
+        }
+
+        $img = match ($mimeType) {
+            'image/jpeg' => @imagecreatefromjpeg($sourcePath),
+            'image/png'  => @imagecreatefrompng($sourcePath),
+            'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($sourcePath) : null,
+            'image/gif'  => @imagecreatefromgif($sourcePath),
+            default      => null,
+        };
+
+        if (!$img) return null;
+
+        $srcW = imagesx($img);
+        $srcH = imagesy($img);
+
+        // Resize if larger than max dimension
+        $ratio = min($maxDim / max($srcW, 1), $maxDim / max($srcH, 1), 1);
+        $dstW = (int)max(1, floor($srcW * $ratio));
+        $dstH = (int)max(1, floor($srcH * $ratio));
+
+        if ($ratio < 1) {
+            $resized = imagecreatetruecolor($dstW, $dstH);
+            $white = imagecolorallocate($resized, 255, 255, 255);
+            imagefilledrectangle($resized, 0, 0, $dstW, $dstH, $white);
+            imagecopyresampled($resized, $img, 0, 0, 0, 0, $dstW, $dstH, $srcW, $srcH);
+            imagedestroy($img);
+            $img = $resized;
+        }
+
+        // Save as JPEG
+        $tmp = tempnam(sys_get_temp_dir(), 'md_compress_') . '.jpg';
+        $ok = imagejpeg($img, $tmp, $quality);
+        imagedestroy($img);
+
+        if (!$ok || !file_exists($tmp)) {
+            @unlink($tmp);
+            return null;
+        }
+
+        // Only use compressed if it's actually smaller
+        if (filesize($tmp) >= filesize($sourcePath)) {
+            @unlink($tmp);
+            return null;
+        }
+
+        return $tmp;
     }
 
     /**
@@ -619,16 +694,16 @@ class MediaController
                 $url = in_array($media->disk, ['r2', 's3'], true) ? $media->getPublicUrl(false) : $media->getPublicUrl();
                 $thumbnailUrl = $media->getThumbnailUrl();
 
-                // Obtener dimensiones de imagen si es posible
+                // Obtener dimensiones de imagen desde metadata (sin leer archivo en cada request)
                 $dimensions = '';
                 if (strpos($media->mime_type, 'image/') === 0) {
-                    $filePath = $media->getFullPath();
-                    if ($filePath && file_exists($filePath)) {
-                        $imageInfo = @getimagesize($filePath);
-                        if ($imageInfo) {
-                            $dimensions = $imageInfo[0] . ' por ' . $imageInfo[1] . ' píxeles';
-                        }
+                    $meta = is_array($media->metadata) ? $media->metadata : (is_string($media->metadata) ? json_decode($media->metadata, true) : []);
+                    $w = $meta['width'] ?? null;
+                    $h = $meta['height'] ?? null;
+                    if ($w && $h) {
+                        $dimensions = $w . ' por ' . $h . ' píxeles';
                     }
+                    // No hay dimensiones en metadata — no leer archivo para no ralentizar el listado
                 }
 
             // Obtener usuario que subió el archivo
@@ -1003,9 +1078,22 @@ public function upload()
                 }
             }
 
+            // Optionally compress image before saving
+            $sourceForUpload = $file['tmp_name'];
+            $tmpCompressed = null;
+            $shouldCompress = !empty($_POST['compress']) && strpos($realMimeType, 'image/') === 0 && $realMimeType !== 'image/svg+xml';
+            if ($shouldCompress) {
+                $tmpCompressed = $this->compressImage($file['tmp_name'], $realMimeType);
+                if ($tmpCompressed) {
+                    $sourceForUpload = $tmpCompressed;
+                    $file['size'] = filesize($tmpCompressed);
+                }
+            }
+
             // Abrir el archivo temporal
-            $stream = fopen($file['tmp_name'], 'r+');
+            $stream = fopen($sourceForUpload, 'r+');
             if (!$stream) {
+                if ($tmpCompressed) @unlink($tmpCompressed);
                 $errors[] = "No se pudo abrir el archivo temporal: {$file['name']}";
                 continue;
             }
@@ -1013,6 +1101,7 @@ public function upload()
             // Guardar el archivo en el sistema de archivos
             $filesystem->writeStream($relativePath, $stream, $this->buildWriteConfig($diskName, $realMimeType));
             fclose($stream);
+            if ($tmpCompressed) @unlink($tmpCompressed);
 
             // Establecer permisos solo para discos locales
             if ($localRoot) {
@@ -1036,7 +1125,10 @@ public function upload()
             // Thumbnail real (solo imágenes raster)
             $thumbnail = null;
             $thumbRelativePath = null;
+            $medium = null;
+            $mediumRelativePath = null;
             if (strpos($realMimeType, 'image/') === 0 && $realMimeType !== 'image/svg+xml') {
+                // Thumbnail (420px) para listados del media manager
                 $thumbnail = $this->createImageThumbnail($file['tmp_name'], $realMimeType);
                 if ($thumbnail && !empty($thumbnail['tmp_path'])) {
                     $thumbDir = "{$subPath}/{$yearMonth}/thumbs";
@@ -1046,7 +1138,8 @@ public function upload()
                             @chmod($localRoot . '/' . $thumbDir, 0755);
                         }
                     }
-                    $thumbBasename = pathinfo($safeFilename, PATHINFO_FILENAME) . '_thumb.jpg';
+                    $thumbExt = ($thumbnail['mime_type'] ?? '') === 'image/webp' ? 'webp' : 'jpg';
+                    $thumbBasename = pathinfo($safeFilename, PATHINFO_FILENAME) . '_thumb.' . $thumbExt;
                     $thumbRelativePath = "{$thumbDir}/{$thumbBasename}";
                     $thumbStream = fopen($thumbnail['tmp_path'], 'r+');
                     if ($thumbStream) {
@@ -1054,6 +1147,27 @@ public function upload()
                         fclose($thumbStream);
                     }
                     @unlink($thumbnail['tmp_path']);
+                }
+
+                // Medium (800px) para listados de blog, cards, previews
+                $medium = $this->createImageThumbnail($file['tmp_name'], $realMimeType, 800, 800);
+                if ($medium && !empty($medium['tmp_path'])) {
+                    $mediumDir = "{$subPath}/{$yearMonth}/medium";
+                    if (!$filesystem->directoryExists($mediumDir)) {
+                        $filesystem->createDirectory($mediumDir);
+                        if ($localRoot) {
+                            @chmod($localRoot . '/' . $mediumDir, 0755);
+                        }
+                    }
+                    $mediumExt = ($medium['mime_type'] ?? '') === 'image/webp' ? 'webp' : 'jpg';
+                    $mediumBasename = pathinfo($safeFilename, PATHINFO_FILENAME) . '_medium.' . $mediumExt;
+                    $mediumRelativePath = "{$mediumDir}/{$mediumBasename}";
+                    $mediumStream = fopen($medium['tmp_path'], 'r+');
+                    if ($mediumStream) {
+                        $filesystem->writeStream($mediumRelativePath, $mediumStream, $this->buildWriteConfig($diskName, $medium['mime_type']));
+                        fclose($mediumStream);
+                    }
+                    @unlink($medium['tmp_path']);
                 }
             }
 
@@ -1065,15 +1179,36 @@ public function upload()
             $seoFilename = $slug . '-' . $publicToken . '.' . $extension;
 
             $metadata = null;
+
+            // Guardar dimensiones del original en metadata (evita getimagesize en listados)
+            if (strpos($realMimeType, 'image/') === 0 && $realMimeType !== 'image/svg+xml') {
+                $imageInfo = @getimagesize($file['tmp_name']);
+                if ($imageInfo) {
+                    $metadata = [
+                        'width' => $imageInfo[0],
+                        'height' => $imageInfo[1],
+                    ];
+                }
+            }
+
             if ($thumbRelativePath && $thumbnail) {
-                $metadata = [
-                    'thumbnail' => [
-                        'path' => $thumbRelativePath,
-                        'mime_type' => $thumbnail['mime_type'] ?? 'image/jpeg',
-                        'size' => $thumbnail['size'] ?? null,
-                        'width' => $thumbnail['width'] ?? null,
-                        'height' => $thumbnail['height'] ?? null,
-                    ],
+                if (!$metadata) $metadata = [];
+                $metadata['thumbnail'] = [
+                    'path' => $thumbRelativePath,
+                    'mime_type' => $thumbnail['mime_type'] ?? 'image/jpeg',
+                    'size' => $thumbnail['size'] ?? null,
+                    'width' => $thumbnail['width'] ?? null,
+                    'height' => $thumbnail['height'] ?? null,
+                ];
+            }
+            if ($mediumRelativePath && $medium) {
+                if (!$metadata) $metadata = [];
+                $metadata['medium'] = [
+                    'path' => $mediumRelativePath,
+                    'mime_type' => $medium['mime_type'] ?? 'image/jpeg',
+                    'size' => $medium['size'] ?? null,
+                    'width' => $medium['width'] ?? null,
+                    'height' => $medium['height'] ?? null,
                 ];
             }
 
@@ -1096,17 +1231,17 @@ public function upload()
             ]);
 
             $dimensions = '';
-            if (strpos($realMimeType, 'image/') === 0) {
-                $imageInfo = @getimagesize($file['tmp_name']);
-                if ($imageInfo) {
-                    $dimensions = $imageInfo[0] . 'x' . $imageInfo[1];
-                }
+            if ($metadata && isset($metadata['width']) && isset($metadata['height'])) {
+                $dimensions = $metadata['width'] . 'x' . $metadata['height'];
             }
 
             // 📊 Actualizar el espacio usado por el tenant
             $bytesChange = (int)$file['size'];
             if ($metadata && isset($metadata['thumbnail']['size']) && is_numeric($metadata['thumbnail']['size'])) {
                 $bytesChange += (int)$metadata['thumbnail']['size'];
+            }
+            if ($metadata && isset($metadata['medium']['size']) && is_numeric($metadata['medium']['size'])) {
+                $bytesChange += (int)$metadata['medium']['size'];
             }
             $this->updateTenantStorageUsed($bytesChange);
 
@@ -1160,6 +1295,187 @@ public function upload()
         'errors'  => $errors,
         'media'   => $uploadedFiles[0] ?? null // Para compatibilidad con código existente
     ]);
+}
+
+/**
+ * Programmatic upload: save a local file into the Media Manager.
+ * Used by AIImageService and other internal services to register files
+ * with proper thumbnails, quota tracking, and Flysystem/R2 support.
+ *
+ * @param string $filePath Absolute path to the file on disk
+ * @param string $mimeType MIME type of the file
+ * @param int|null $tenantId Tenant ID (null for global)
+ * @param array $options ['original_name', 'user_id', 'folder_id', 'disk', 'compress']
+ * @return array|null ['id', 'url', 'thumbnail_url', 'token'] or null on failure
+ */
+public function uploadFromFile(string $filePath, string $mimeType, ?int $tenantId = null, array $options = []): ?array
+{
+    if (!file_exists($filePath)) {
+        return null;
+    }
+
+    $fileSize = filesize($filePath);
+    $originalName = $options['original_name'] ?? basename($filePath);
+    $diskName = $options['disk'] ?? 'media';
+    $userId = $options['user_id'] ?? null;
+    $folderId = $options['folder_id'] ?? null;
+    $compress = $options['compress'] ?? false;
+
+    try {
+        // Build storage path
+        $scope = $tenantId ? "tenant_{$tenantId}" : 'global';
+        $yearMonth = date('Y/m');
+        $safeFilename = slugify(pathinfo($originalName, PATHINFO_FILENAME)) . '_' . uniqid() . '.' . strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        $relativePath = "{$scope}/{$yearMonth}/{$safeFilename}";
+        $dirPath = dirname($relativePath);
+
+        [$filesystem, $localRoot, $diskConfig] = $this->createFilesystemForDisk($diskName);
+
+        // Create directory
+        if (!$filesystem->directoryExists($dirPath)) {
+            $filesystem->createDirectory($dirPath);
+            if ($localRoot) {
+                @chmod($localRoot . '/' . $dirPath, 0755);
+            }
+        }
+
+        // Optionally compress image before saving
+        $sourceForUpload = $filePath;
+        $tmpCompressed = null;
+        if ($compress && strpos($mimeType, 'image/') === 0 && $mimeType !== 'image/svg+xml') {
+            $tmpCompressed = $this->compressImage($filePath, $mimeType);
+            if ($tmpCompressed) {
+                $sourceForUpload = $tmpCompressed;
+                $fileSize = filesize($tmpCompressed);
+            }
+        }
+
+        // Write file via Flysystem
+        $stream = fopen($sourceForUpload, 'r');
+        if (!$stream) {
+            if ($tmpCompressed) @unlink($tmpCompressed);
+            return null;
+        }
+        $filesystem->writeStream($relativePath, $stream, $this->buildWriteConfig($diskName, $mimeType));
+        fclose($stream);
+
+        if ($localRoot) {
+            @chmod($localRoot . '/' . $relativePath, 0644);
+        }
+        if ($tmpCompressed) @unlink($tmpCompressed);
+
+        // Generate thumbnails (420px + 800px)
+        $thumbnail = null;
+        $thumbRelativePath = null;
+        $medium = null;
+        $mediumRelativePath = null;
+
+        if (strpos($mimeType, 'image/') === 0 && $mimeType !== 'image/svg+xml') {
+            // Thumbnail (420px)
+            $thumbnail = $this->createImageThumbnail($filePath, $mimeType);
+            if ($thumbnail && !empty($thumbnail['tmp_path'])) {
+                $thumbDir = "{$scope}/{$yearMonth}/thumbs";
+                if (!$filesystem->directoryExists($thumbDir)) {
+                    $filesystem->createDirectory($thumbDir);
+                    if ($localRoot) @chmod($localRoot . '/' . $thumbDir, 0755);
+                }
+                $thumbExt = ($thumbnail['mime_type'] ?? '') === 'image/webp' ? 'webp' : 'jpg';
+                $thumbBasename = pathinfo($safeFilename, PATHINFO_FILENAME) . '_thumb.' . $thumbExt;
+                $thumbRelativePath = "{$thumbDir}/{$thumbBasename}";
+                $thumbStream = fopen($thumbnail['tmp_path'], 'r');
+                if ($thumbStream) {
+                    $filesystem->writeStream($thumbRelativePath, $thumbStream, $this->buildWriteConfig($diskName, $thumbnail['mime_type']));
+                    fclose($thumbStream);
+                }
+                @unlink($thumbnail['tmp_path']);
+            }
+
+            // Medium (800px)
+            $medium = $this->createImageThumbnail($filePath, $mimeType, 800, 800);
+            if ($medium && !empty($medium['tmp_path'])) {
+                $mediumDir = "{$scope}/{$yearMonth}/medium";
+                if (!$filesystem->directoryExists($mediumDir)) {
+                    $filesystem->createDirectory($mediumDir);
+                    if ($localRoot) @chmod($localRoot . '/' . $mediumDir, 0755);
+                }
+                $mediumExt = ($medium['mime_type'] ?? '') === 'image/webp' ? 'webp' : 'jpg';
+                $mediumBasename = pathinfo($safeFilename, PATHINFO_FILENAME) . '_medium.' . $mediumExt;
+                $mediumRelativePath = "{$mediumDir}/{$mediumBasename}";
+                $mediumStream = fopen($medium['tmp_path'], 'r');
+                if ($mediumStream) {
+                    $filesystem->writeStream($mediumRelativePath, $mediumStream, $this->buildWriteConfig($diskName, $medium['mime_type']));
+                    fclose($mediumStream);
+                }
+                @unlink($medium['tmp_path']);
+            }
+        }
+
+        // Build metadata
+        $metadataArr = null;
+        if ($thumbRelativePath && $thumbnail) {
+            $metadataArr = [
+                'thumbnail' => [
+                    'path' => $thumbRelativePath,
+                    'mime_type' => $thumbnail['mime_type'] ?? 'image/jpeg',
+                    'size' => $thumbnail['size'] ?? null,
+                    'width' => $thumbnail['width'] ?? null,
+                    'height' => $thumbnail['height'] ?? null,
+                ],
+            ];
+        }
+        if ($mediumRelativePath && $medium) {
+            if (!$metadataArr) $metadataArr = [];
+            $metadataArr['medium'] = [
+                'path' => $mediumRelativePath,
+                'mime_type' => $medium['mime_type'] ?? 'image/jpeg',
+                'size' => $medium['size'] ?? null,
+                'width' => $medium['width'] ?? null,
+                'height' => $medium['height'] ?? null,
+            ];
+        }
+
+        // Create DB record using same token system as normal uploads
+        $publicToken = Media::generatePublicToken();
+        $slug = Media::generateSlug($originalName);
+        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        $seoFilename = $slug . '-' . $publicToken . '.' . $extension;
+
+        $media = Media::create([
+            'tenant_id'    => $tenantId,
+            'user_id'      => $userId,
+            'folder_id'    => $folderId,
+            'disk'         => $diskName,
+            'path'         => $relativePath,
+            'public_token' => $publicToken,
+            'slug'         => $slug,
+            'seo_filename' => $seoFilename,
+            'filename'     => $originalName,
+            'mime_type'    => $mimeType,
+            'size'         => $fileSize,
+            'metadata'     => $metadataArr ? json_encode($metadataArr) : null,
+        ]);
+
+        // Update tenant storage quota
+        $bytesChange = (int)$fileSize;
+        if ($metadataArr && isset($metadataArr['thumbnail']['size'])) {
+            $bytesChange += (int)$metadataArr['thumbnail']['size'];
+        }
+        if ($metadataArr && isset($metadataArr['medium']['size'])) {
+            $bytesChange += (int)$metadataArr['medium']['size'];
+        }
+        $this->updateTenantStorageUsed($bytesChange);
+
+        return [
+            'id' => $media->id,
+            'url' => $media->getPublicUrl(),
+            'thumbnail_url' => $media->getThumbnailUrl(),
+            'token' => $publicToken,
+        ];
+
+    } catch (\Exception $e) {
+        error_log("[MediaManager::uploadFromFile] Error: " . $e->getMessage());
+        return null;
+    }
 }
 
 /**
@@ -1225,6 +1541,8 @@ private function getUploadErrorMessage($errorCode)
             $meta = is_array($media->metadata) ? $media->metadata : (is_string($media->metadata) ? json_decode($media->metadata, true) : []);
             $thumbSize = isset($meta['thumbnail']['size']) && is_numeric($meta['thumbnail']['size']) ? (int)$meta['thumbnail']['size'] : 0;
             $thumbPath = $meta['thumbnail']['path'] ?? null;
+            $mediumSize = isset($meta['medium']['size']) && is_numeric($meta['medium']['size']) ? (int)$meta['medium']['size'] : 0;
+            $mediumPath = $meta['medium']['path'] ?? null;
 
             [$filesystem] = $this->createFilesystemForDisk($media->disk ?: 'media');
             try {
@@ -1238,10 +1556,16 @@ private function getUploadErrorMessage($errorCode)
                 } catch (\Throwable $e) {
                 }
             }
+            if ($mediumPath) {
+                try {
+                    $filesystem->delete((string)$mediumPath);
+                } catch (\Throwable $e) {
+                }
+            }
 
             if ($media->delete()) {
                 // 📊 Restar el espacio usado del tenant
-                $bytes = (int)$fileSize + (int)$thumbSize;
+                $bytes = (int)$fileSize + (int)$thumbSize + (int)$mediumSize;
                 if ($bytes > 0) {
                     $this->updateTenantStorageUsed(-$bytes);
                 }
@@ -1804,6 +2128,9 @@ private function getUploadErrorMessage($errorCode)
                     $bytesChange = (int)($media->size ?? 0);
                     if (is_array($meta) && isset($meta['thumbnail']['size']) && is_numeric($meta['thumbnail']['size'])) {
                         $bytesChange += (int)$meta['thumbnail']['size'];
+                    }
+                    if (is_array($meta) && isset($meta['medium']['size']) && is_numeric($meta['medium']['size'])) {
+                        $bytesChange += (int)$meta['medium']['size'];
                     }
                     if ($bytesChange > 0) {
                         $this->updateTenantStorageUsed($bytesChange);

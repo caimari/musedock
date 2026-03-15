@@ -24,7 +24,7 @@
                     <i class="bi bi-gift"></i> Crear Subdominio FREE
                 </button>
                 <a href="/musedock/domain-manager/create" class="btn btn-primary">
-                    <i class="bi bi-plus-lg"></i> Nuevo Dominio Custom
+                    <i class="bi bi-plus-lg"></i> Nuevo Dominio
                 </a>
             </div>
         </div>
@@ -61,13 +61,23 @@
                         </select>
                     </div>
                     <div class="col-md-2">
+                        <label class="form-label">Tipo</label>
+                        <select name="domain_type" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="musedock" {{ ($filters['domain_type'] ?? '') === 'musedock' ? 'selected' : '' }}>{{ $baseDomain ?? 'musedock.com' }}</option>
+                            <option value="custom" {{ ($filters['domain_type'] ?? '') === 'custom' ? 'selected' : '' }}>Custom</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">&nbsp;</label>
                         <button type="submit" class="btn btn-outline-primary w-100">
-                            <i class="bi bi-filter"></i> Filtrar
+                            <i class="bi bi-filter"></i>
                         </button>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-1">
+                        <label class="form-label">&nbsp;</label>
                         <a href="/musedock/domain-manager" class="btn btn-outline-secondary w-100">
-                            <i class="bi bi-x-lg"></i> Limpiar
+                            <i class="bi bi-x-lg"></i>
                         </a>
                     </div>
                 </form>
@@ -82,6 +92,7 @@
                         <tr>
                             <th>Tenant</th>
                             <th>Dominio</th>
+                            <th>Tipo</th>
                             <th>Estado Caddy</th>
                             <th>SSL</th>
                             <th>Route ID</th>
@@ -102,7 +113,17 @@
                                         <i class="bi bi-box-arrow-up-right small"></i>
                                     </a>
                                     @if($tenant->include_www ?? false)
-                                        <br><small class="text-muted">+ www</small>
+                                        <small class="text-muted">+ www</small>
+                                    @endif
+                                    @if(($aliasCounts[$tenant->id] ?? 0) > 0)
+                                        <br><small class="text-info"><i class="bi bi-link-45deg"></i> {{ $aliasCounts[$tenant->id] }} alias</small>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if(str_ends_with($tenant->domain, '.' . ($baseDomain ?? 'musedock.com')))
+                                        <span class="badge bg-info">{{ $baseDomain ?? 'musedock.com' }}</span>
+                                    @else
+                                        <span class="badge bg-warning text-dark">Custom</span>
                                     @endif
                                 </td>
                                 <td>
@@ -189,7 +210,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-4">
+                                <td colspan="8" class="text-center text-muted py-4">
                                     <i class="bi bi-inbox display-4 d-block mb-2"></i>
                                     No hay dominios configurados.
                                     <br><a href="/musedock/domain-manager/create">Crear el primero</a>

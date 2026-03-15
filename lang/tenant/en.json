@@ -62,7 +62,6 @@
     "update": "Update",
     "clear_filter": "Clear filter"
   },
-
   "menu": {
     "dashboard": "Dashboard",
     "pages": "Pages",
@@ -82,7 +81,6 @@
     "media": "Media",
     "advanced": "Advanced"
   },
-
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Welcome, :name",
@@ -98,7 +96,6 @@
     "manage_modules_desc": "View and manage installed modules",
     "view_site": "View Site"
   },
-
   "pages": {
     "pages": "Pages",
     "title": "Pages",
@@ -214,7 +211,6 @@
     "compare_revisions": "Compare revisions",
     "preview_revision": "Preview revision"
   },
-
   "blog": {
     "title": "Blog",
     "posts": "Posts",
@@ -233,6 +229,8 @@
       "no_posts_in_category": "No posts in this category.",
       "no_posts_with_tag": "No posts with this tag."
     },
+    "posts_by": "Posts by",
+    "author_bio": "About the author",
     "post": {
       "title": "Blog Posts",
       "list": "Posts List",
@@ -433,22 +431,18 @@
       "error_update": "Error updating tag",
       "error_delete": "Error deleting tag"
     },
-    "title": "Blog",
     "recent_posts": "Recent Posts",
     "view_all": "View All",
     "read_more": "Read More",
     "no_posts": "No posts published yet.",
     "no_posts_category": "No posts in this category.",
     "no_posts_tag": "No posts with this tag.",
-    "tags": "Tags",
     "back_to_all": "Back to All Posts",
     "published_on": "Published on",
-    "categories": "Categories",
     "popular_posts": "Popular Posts",
     "search": "Search",
     "search_placeholder": "Search posts...",
     "archives": "Archives",
-    "tags": "Tags",
     "share": "Share",
     "related_posts": "Related Posts",
     "posted_in": "Posted in",
@@ -456,9 +450,13 @@
     "by": "by",
     "comments": "Comments",
     "no_comments": "No comments yet.",
-    "leave_comment": "Leave a Comment"
+    "leave_comment": "Leave a Comment",
+    "popular_tags": "Popular Tags",
+    "popular_categories": "Categories",
+    "views": "Views",
+    "previous_post": "Previous",
+    "next_post": "Next"
   },
-
   "users": {
     "title": "Users",
     "list": "Users List",
@@ -480,7 +478,6 @@
     "change_password": "Change Password",
     "confirm_password": "Confirm Password"
   },
-
   "themes": {
     "title": "Themes",
     "subtitle": "Customize the look of your website",
@@ -541,7 +538,6 @@
     "version": "Version",
     "description": "Description"
   },
-
   "modules": {
     "title": "Modules",
     "list": "Modules List",
@@ -566,7 +562,6 @@
     "description": "Description",
     "requirements": "Requirements"
   },
-
   "plugins": {
     "title": "Plugins",
     "list": "Plugins List",
@@ -594,7 +589,6 @@
     "requirements": "Requirements",
     "statistics": "Statistics"
   },
-
   "tickets": {
     "title": "Support Tickets",
     "list": "Tickets List",
@@ -635,7 +629,6 @@
     "total": "Total",
     "statistics": "Statistics"
   },
-
   "menus": {
     "title": "Menus",
     "list": "Menus List",
@@ -658,7 +651,6 @@
     "item_target": "Target",
     "parent_item": "Parent Item"
   },
-
   "tenants": {
     "title": "Tenants",
     "list": "Tenants List",
@@ -682,7 +674,6 @@
     "success_deleted": "Tenant deleted successfully",
     "error_not_found": "Tenant not found"
   },
-
   "roles": {
     "title": "Roles",
     "list": "Roles List",
@@ -700,7 +691,6 @@
     "select_all": "Select All",
     "deselect_all": "Deselect All"
   },
-
   "permissions": {
     "title": "Permissions",
     "list": "Permissions List",
@@ -714,7 +704,6 @@
     "success_updated": "Permission updated successfully",
     "no_permission": "You don't have permission to access this section"
   },
-
   "settings": {
     "title": "Settings",
     "general": "General",
@@ -732,7 +721,6 @@
     "success_updated": "Settings updated successfully",
     "cache_cleared": "Cache cleared successfully"
   },
-
   "logs": {
     "title": "Logs",
     "system_logs": "System Logs",
@@ -748,7 +736,6 @@
     "ip_address": "IP Address",
     "success_cleared": "Logs cleared successfully"
   },
-
   "auth": {
     "login": "Log In",
     "login_title": "Access the panel",
@@ -776,7 +763,6 @@
     "password_reset_sent": "A password reset link has been sent",
     "password_reset_success": "Password reset successfully"
   },
-
   "languages": {
     "title": "Languages",
     "select_language": "Select Language",
@@ -784,7 +770,6 @@
     "english": "English",
     "current_language": "Current Language"
   },
-
   "validation": {
     "required": "The :field field is required",
     "email": "The :field field must be a valid email address",
@@ -793,7 +778,6 @@
     "unique": "The :field is already taken",
     "confirmed": "The :field confirmation does not match"
   },
-
   "messages": {
     "success": "Operation completed successfully",
     "error": "An error occurred while processing the request",
@@ -808,7 +792,6 @@
     "no_all_permissions": "You don't have all the required permissions to access this section",
     "superadmin_only": "Access restricted to super administrators only"
   },
-
   "footer": {
     "cookie_settings": "Cookie settings",
     "contact": "Contact",
@@ -850,7 +833,6 @@
     "bulk_domain_search": "Bulk Domain Search",
     "transfer_domain": "Transfer Domain"
   },
-
   "header": {
     "login_button": "Login",
     "mail": "Mail",
@@ -858,7 +840,6 @@
     "support": "Support",
     "login": "Login"
   },
-
   "cookies": {
     "title": "We use cookies",
     "text": "This site uses cookies to improve your browsing experience. By continuing to browse, you accept their use.",
@@ -875,7 +856,6 @@
     "cat_analytics_desc": "Allow us to measure traffic and analyze your behavior to improve our service.",
     "save_preferences": "Save preferences"
   },
-
   "mobile_menu": {
     "select_language": "Select your language:"
   }

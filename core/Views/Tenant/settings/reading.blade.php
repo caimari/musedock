@@ -123,6 +123,77 @@
         </div>
       </div>
 
+      <!-- Estructura de URLs del blog -->
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">Estructura de URLs del blog</h5>
+        </div>
+        <div class="card-body">
+          @php
+            $currentPrefix = $settings['blog_url_prefix'] ?? 'blog';
+            $hasBlogPrefix = ($currentPrefix !== '');
+          @endphp
+
+          <div class="mb-3">
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="blog_url_mode" id="blog_url_with_prefix" value="prefix"
+                @if($hasBlogPrefix) checked @endif>
+              <label class="form-check-label" for="blog_url_with_prefix">
+                <strong>Con prefijo</strong>
+                <small class="d-block text-muted">Los posts se acceden con un prefijo en la URL (ej: /blog/mi-post)</small>
+              </label>
+            </div>
+
+            <div id="blog-prefix-input" class="ms-4 mb-3" style="display: {{ $hasBlogPrefix ? 'block' : 'none' }};">
+              <label class="form-label">Nombre del prefijo</label>
+              <div class="input-group" style="max-width: 400px;">
+                <span class="input-group-text">/</span>
+                <input type="text" name="blog_url_prefix" id="blog_url_prefix_input" class="form-control"
+                  value="{{ $currentPrefix }}" placeholder="blog"
+                  pattern="[a-z0-9\-]+" title="Solo letras minúsculas, números y guiones">
+                <span class="input-group-text">/mi-post</span>
+              </div>
+              <small class="text-muted">Solo letras minúsculas, números y guiones. Ejemplos: blog, noticias, articulos</small>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="blog_url_mode" id="blog_url_no_prefix" value="none"
+                @if(!$hasBlogPrefix) checked @endif>
+              <label class="form-check-label" for="blog_url_no_prefix">
+                <strong>Sin prefijo</strong>
+                <small class="d-block text-muted">Los posts se acceden directamente desde la raíz (ej: /mi-post)</small>
+              </label>
+            </div>
+          </div>
+
+          <div class="alert alert-info mb-0 mt-3">
+            <i class="bi bi-eye"></i> <strong>Vista previa:</strong>
+            <span id="blog-url-preview">{{ $_SERVER['HTTP_HOST'] ?? 'dominio.com' }}/<span id="prefix-preview">{{ $hasBlogPrefix ? $currentPrefix . '/' : '' }}</span>ejemplo-de-post</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Opciones de visualización -->
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">Opciones de visualización</h5>
+        </div>
+        <div class="card-body">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="blog_show_views" id="blog_show_views" value="1"
+              @if(($settings['blog_show_views'] ?? '1') === '1') checked @endif>
+            <label class="form-check-label" for="blog_show_views">
+              <strong>Mostrar número de visitas en los posts</strong>
+            </label>
+          </div>
+          <small class="text-muted d-block mt-2">
+            <i class="bi bi-info-circle"></i> Si se desactiva, el contador de visitas no se mostrará en la página del post.
+          </small>
+        </div>
+      </div>
+
       <!-- Visibilidad en motores de búsqueda -->
       <div class="card mb-4">
         <div class="card-header bg-light">
@@ -152,6 +223,34 @@
 </div>
 
 <script>
+// ─── Blog URL prefix ───
+document.querySelectorAll('input[name="blog_url_mode"]').forEach(radio => {
+  radio.addEventListener('change', function() {
+    const prefixInput = document.getElementById('blog-prefix-input');
+    const prefixPreview = document.getElementById('prefix-preview');
+    const inputField = document.getElementById('blog_url_prefix_input');
+
+    if (this.value === 'prefix') {
+      prefixInput.style.display = 'block';
+      const val = inputField.value.trim() || 'blog';
+      prefixPreview.textContent = val + '/';
+    } else {
+      prefixInput.style.display = 'none';
+      prefixPreview.textContent = '';
+    }
+  });
+});
+
+// Actualizar preview al escribir
+const prefixField = document.getElementById('blog_url_prefix_input');
+if (prefixField) {
+  prefixField.addEventListener('input', function() {
+    const val = this.value.replace(/[^a-z0-9\-]/g, '').trim();
+    this.value = val;
+    document.getElementById('prefix-preview').textContent = val ? val + '/' : '';
+  });
+}
+
 // Mostrar/ocultar selectores según la opción seleccionada
 document.querySelectorAll('input[name="show_on_front"]').forEach(radio => {
   radio.addEventListener('change', function() {

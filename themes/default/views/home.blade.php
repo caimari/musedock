@@ -1,7 +1,8 @@
 @extends('layouts.app')
 
 @section('title')
-    {{ ($translation->seo_title ?? $page->seo_title ?? $translation->title ?? $page->title ?? __('home_title')) . ' | ' . site_setting('site_name', '') }}
+    @php $__subtitle = site_setting('site_subtitle', ''); @endphp
+    {{ site_setting('site_name', '') . ($__subtitle ? ' | ' . $__subtitle : '') }}
 @endsection
 
 @section('keywords')
@@ -47,7 +48,7 @@
                     $sliderPath = $defaultHeroImages[array_rand($defaultHeroImages)];
                 }
 
-                $sliderUrl = (str_starts_with($sliderPath, '/media/') || str_starts_with($sliderPath, 'http')) ? $sliderPath : asset($sliderPath);
+                $sliderUrl = (str_starts_with($sliderPath, '/') || str_starts_with($sliderPath, 'http')) ? $sliderPath : asset($sliderPath);
             @endphp
             <!-- Cabecera Area Start-->
             <div class="slider-area">

@@ -38,11 +38,13 @@
                  <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="model" class="form-label">Modelo por Defecto</label>
-                        <input type="text" class="form-control" id="model" name="model" value="{{ old('model', 'gpt-4') }}" placeholder="Ej: gpt-4, claude-3-opus...">
+                        <input type="text" class="form-control" id="model" name="model" value="{{ old('model') }}" placeholder="Ej: gpt-4, claude-3-opus...">
+                        <div class="form-text" id="model-suggestions"></div>
                     </div>
                      <div class="col-md-6 mb-3">
                         <label for="endpoint" class="form-label">Endpoint (Opcional)</label>
-                        <input type="url" class="form-control" id="endpoint" name="endpoint" value="{{ old('endpoint') }}" placeholder="URL de la API si es diferente a la estándar">
+                        <input type="url" class="form-control" id="endpoint" name="endpoint" value="{{ old('endpoint') }}" placeholder="URL de la API si es diferente a la estandar">
+                        <div class="form-text" id="endpoint-hint"></div>
                     </div>
                 </div>
 
@@ -89,4 +91,87 @@
         </div>
     </div>
 </div>
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var providerSelect = document.getElementById('provider_type');
+    var modelInput = document.getElementById('model');
+    var suggestionsDiv = document.getElementById('model-suggestions');
+    var endpointInput = document.getElementById('endpoint');
+    var endpointHint = document.getElementById('endpoint-hint');
+
+    var providerModels = {
+        openai: {
+            models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'o1', 'o1-mini'],
+            defaultModel: 'gpt-4o',
+            endpoint: ''
+        },
+        claude: {
+            models: ['claude-sonnet-4-20250514', 'claude-haiku-4-20250414', 'claude-opus-4-20250514'],
+            defaultModel: 'claude-sonnet-4-20250514',
+            endpoint: ''
+        },
+        gemini: {
+            models: ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro', 'gemini-1.5-flash'],
+            defaultModel: 'gemini-2.0-flash',
+            endpoint: ''
+        },
+        ollama: {
+            models: ['llama3.1', 'llama3.2', 'mistral', 'gemma2', 'qwen2.5'],
+            defaultModel: 'llama3.1',
+            endpoint: 'http://localhost:11434/api/chat'
+        },
+        minimax: {
+            models: ['MiniMax-M2.5', 'MiniMax-M2.5-highspeed', 'MiniMax-M2.1', 'MiniMax-M2.1-highspeed', 'MiniMax-M2'],
+            defaultModel: 'MiniMax-M2.5',
+            endpoint: 'https://api.minimax.io/v1/chat/completions'
+        },
+        other: {
+            models: [],
+            defaultModel: '',
+            endpoint: ''
+        }
+    };
+
+    function updateSuggestions() {
+        var type = providerSelect.value;
+        var info = providerModels[type];
+        if (info && info.models.length > 0) {
+            var links = info.models.map(function(m) {
+                return '<a href="#" class="model-pick" data-model="' + m + '">' + m + '</a>';
+            });
+            suggestionsDiv.innerHTML = 'Modelos: ' + links.join(' · ');
+        } else {
+            suggestionsDiv.innerHTML = '';
+        }
+        if (info && info.endpoint) {
+            endpointHint.innerHTML = 'Endpoint por defecto: <code>' + info.endpoint + '</code>';
+        } else {
+            endpointHint.innerHTML = '';
+        }
+    }
+
+    providerSelect.addEventListener('change', function() {
+        var type = this.value;
+        var info = providerModels[type];
+        if (info && info.defaultModel && !modelInput.value) {
+            modelInput.value = info.defaultModel;
+        }
+        if (info && info.endpoint && !endpointInput.value) {
+            endpointInput.value = info.endpoint;
+        }
+        updateSuggestions();
+    });
+
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('model-pick')) {
+            e.preventDefault();
+            modelInput.value = e.target.getAttribute('data-model');
+        }
+    });
+
+    updateSuggestions();
+});
+</script>
+@endpush
 @endsection

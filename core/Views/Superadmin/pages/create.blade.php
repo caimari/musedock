@@ -5,12 +5,40 @@
 @section('content')
 <div class="app-content">
   <div class="container-fluid">
+    {{-- Navegación / Breadcrumb --}}
+    @php
+      $backUrl = !empty($targetTenant)
+          ? route('pages.index') . '?scope=tenant:' . $targetTenant->id
+          : route('pages.index');
+      $backLabel = !empty($targetTenant)
+          ? ($targetTenant->domain ?? $targetTenant->name)
+          : __('pages.pages');
+    @endphp
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="breadcrumb">
+        <a href="{{ route('pages.index') }}">{{ __('pages.pages') }}</a>
+        @if(!empty($targetTenant))
+          <span class="mx-2">/</span>
+          <a href="{{ $backUrl }}">{{ $backLabel }}</a>
+        @endif
+        <span class="mx-2">/</span>
+        <span>{{ __('pages.add_page') }}</span>
+      </div>
+      <a href="{{ $backUrl }}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i> {{ $backLabel }}
+      </a>
+    </div>
+
     {{-- El action y method cambian si es editar --}}
     <form method="POST" action="{{ isset($Page) && $Page->id ? route('pages.update', ['id' => $Page->id]) : route('pages.store') }}" id="pageForm" enctype="multipart/form-data">
       {!! csrf_field() !!}
       {{-- Añadir campo _method para PUT en la edición --}}
       @if(isset($Page) && $Page->id)
         @method('PUT')
+      @endif
+      {{-- Tenant context para cross-publisher --}}
+      @if(!empty($targetTenant))
+        <input type="hidden" name="tenant_id" value="{{ $targetTenant->id }}">
       @endif
 
       <div class="row">
@@ -32,6 +60,13 @@
                 <label class="form-label">{{ __('pages.slug') }}
                     {{-- El span para el resultado del check AJAX --}}
                     <span id="slug-check-result" class="ms-2 {{ old('slug_error') ? 'text-danger' : 'text-success' }} fw-bold"></span>
+                    {{-- Icono de info para páginas legales (siempre visible) --}}
+                    <a href="#" onclick="showLegalPagesInfo(); return false;"
+                       class="ms-2 text-muted" style="font-size: 13px; text-decoration:none;"
+                       title="{{ detectLanguage() === 'en' ? 'Legal pages info' : 'Info sobre páginas legales' }}">
+                        <i class="bi bi-info-circle-fill"></i>
+                        <span style="font-size:12px; font-weight:normal;">{{ detectLanguage() === 'en' ? 'Legal pages' : 'Páginas legales' }}</span>
+                    </a>
                 </label>
                 <div class="input-group"> {{-- Grupo para añadir botón de bloqueo/desbloqueo si es edición --}}
                     <input type="text" class="form-control" name="slug" id="slug-input"
@@ -49,6 +84,24 @@
                    {{-- Podrías añadir un campo para el prefijo si fuera editable --}}
                    {{-- <input type="hidden" name="prefix" value="{{ $Page->getPrefix() ?? 'p' }}"> --}}
                 </small>
+
+                {{-- Aviso legal slug --}}
+                <div id="legal-slug-notice" class="alert alert-info d-flex align-items-start gap-2 mt-2 mb-0 py-2 px-3" style="display:none !important; font-size: 13px;">
+                    <i class="bi bi-shield-check fs-5 mt-1 flex-shrink-0"></i>
+                    <div>
+                        @if(detectLanguage() === 'en')
+                            <strong>Legal page detected.</strong>
+                            This slug matches one of the legal pages automatically shown in the footer (<em>Legal Notice, Privacy Policy, Cookie Policy, Terms &amp; Conditions</em>).
+                            Once you publish this page, the footer will automatically link here instead of the default template.
+                            <a href="#" onclick="showLegalPagesInfo(); return false;" class="alert-link ms-1">Learn more</a>
+                        @else
+                            <strong>Página legal detectada.</strong>
+                            Este slug coincide con una de las páginas legales que aparecen automáticamente en el pie de página (<em>Aviso Legal, Política de Privacidad, Política de Cookies, Términos y Condiciones</em>).
+                            Al publicar esta página, el footer enlazará aquí automáticamente en lugar de la plantilla por defecto.
+                            <a href="#" onclick="showLegalPagesInfo(); return false;" class="alert-link ms-1">Más información</a>
+                        @endif
+                    </div>
+                </div>
               </div>
 
               {{-- Editor TinyMCE --}}
@@ -203,4 +256,78 @@
 @push('scripts')
 {{-- Incluimos el partial con el JavaScript existente --}}
 @include('partials._page_scripts', ['isEdit' => isset($Page) && $Page->id]) {{-- Pasamos 'isEdit' al script --}}
+
+<script>
+@if(detectLanguage() === 'en')
+const _legalPagesHtml = `
+<div style="text-align:left">
+  <p>Your site's footer automatically shows links to the main legal pages required by law.</p>
+  <p>By default they point to <strong>auto-generated templates</strong>. When you publish a page with one of these slugs, <strong>the footer links here automatically</strong>:</p>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tr style="background:#f8f9fa"><td style="padding:6px 8px;font-weight:600;white-space:nowrap">Legal Notice</td><td style="padding:6px 8px"><code>aviso-legal</code>, <code>legal</code></td></tr>
+    <tr><td style="padding:6px 8px;font-weight:600;white-space:nowrap">Privacy Policy</td><td style="padding:6px 8px"><code>privacy</code>, <code>privacidad</code>, <code>politica-de-privacidad</code></td></tr>
+    <tr style="background:#f8f9fa"><td style="padding:6px 8px;font-weight:600;white-space:nowrap">Cookie Policy</td><td style="padding:6px 8px"><code>cookie-policy</code>, <code>cookies</code>, <code>politica-de-cookies</code></td></tr>
+    <tr><td style="padding:6px 8px;font-weight:600;white-space:nowrap">Terms &amp; Conditions</td><td style="padding:6px 8px"><code>terms-and-conditions</code>, <code>terms</code>, <code>terminos-y-condiciones</code></td></tr>
+  </table>
+  <p style="margin-top:12px;font-size:12px;color:#6c757d">No setup needed — just publish the page.</p>
+</div>`;
+const _legalPagesTitle = '🛡️ Legal pages & footer';
+const _legalPagesBtn   = 'Got it';
+@else
+const _legalPagesHtml = `
+<div style="text-align:left">
+  <p>El footer de tu sitio muestra automáticamente enlaces a las páginas legales exigidas por ley.</p>
+  <p>Por defecto apuntan a <strong>plantillas autogeneradas</strong>. Cuando publiques una página con uno de estos slugs, <strong>el footer enlazará aquí automáticamente</strong>:</p>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tr style="background:#f8f9fa"><td style="padding:6px 8px;font-weight:600;white-space:nowrap">Aviso Legal</td><td style="padding:6px 8px"><code>aviso-legal</code>, <code>legal</code></td></tr>
+    <tr><td style="padding:6px 8px;font-weight:600;white-space:nowrap">Política de Privacidad</td><td style="padding:6px 8px"><code>privacy</code>, <code>privacidad</code>, <code>politica-de-privacidad</code></td></tr>
+    <tr style="background:#f8f9fa"><td style="padding:6px 8px;font-weight:600;white-space:nowrap">Política de Cookies</td><td style="padding:6px 8px"><code>cookie-policy</code>, <code>cookies</code>, <code>politica-de-cookies</code></td></tr>
+    <tr><td style="padding:6px 8px;font-weight:600;white-space:nowrap">Términos y Condiciones</td><td style="padding:6px 8px"><code>terms-and-conditions</code>, <code>terminos-y-condiciones</code>, <code>terminos</code></td></tr>
+  </table>
+  <p style="margin-top:12px;font-size:12px;color:#6c757d">No necesitas configurar nada — en cuanto publiques la página aparecerá automáticamente.</p>
+</div>`;
+const _legalPagesTitle = '🛡️ Páginas legales y footer';
+const _legalPagesBtn   = 'Entendido';
+@endif
+
+function showLegalPagesInfo() {
+    Swal.fire({
+        title: _legalPagesTitle,
+        html: _legalPagesHtml,
+        icon: 'info',
+        confirmButtonText: _legalPagesBtn,
+        confirmButtonColor: '#4f46e5',
+        width: 560,
+        customClass: { htmlContainer: 'text-start' }
+    });
+}
+
+(function () {
+    const legalSlugs = [
+        'aviso-legal', 'legal', 'aviso_legal',
+        'privacy', 'privacidad', 'politica-de-privacidad', 'politica-privacidad',
+        'cookie-policy', 'cookies', 'politica-de-cookies', 'politica-cookies',
+        'terms-and-conditions', 'terminos', 'terms', 'terminos-y-condiciones',
+        'terminos-condiciones', 'condiciones-de-uso'
+    ];
+
+    const slugInput = document.getElementById('slug-input');
+    const notice    = document.getElementById('legal-slug-notice');
+
+    function checkLegalSlug() {
+        const val = (slugInput ? slugInput.value : '').trim().toLowerCase();
+        if (legalSlugs.includes(val)) {
+            notice.style.setProperty('display', 'flex', 'important');
+        } else {
+            notice.style.setProperty('display', 'none', 'important');
+        }
+    }
+
+    if (slugInput && notice) {
+        slugInput.addEventListener('input', checkLegalSlug);
+        slugInput.addEventListener('change', checkLegalSlug);
+        checkLegalSlug();
+    }
+})();
+</script>
 @endpush

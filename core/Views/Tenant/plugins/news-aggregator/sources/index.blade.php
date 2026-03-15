@@ -8,21 +8,7 @@
 
         @include('plugins.news-aggregator._nav', ['activeTab' => 'sources'])
 
-        {{-- Flash Messages --}}
-        @if(session('flash_success'))
-            <div class="alert alert-success alert-dismissible fade show">
-                {{ session('flash_success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            @php unset($_SESSION['flash_success']); @endphp
-        @endif
-        @if(session('flash_error'))
-            <div class="alert alert-danger alert-dismissible fade show">
-                {{ session('flash_error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            @php unset($_SESSION['flash_error']); @endphp
-        @endif
+        @include('partials.alerts-sweetalert2')
 
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="mb-0">Fuentes de noticias</h4>

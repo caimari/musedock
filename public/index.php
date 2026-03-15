@@ -243,11 +243,92 @@ WidgetManager::registerAvailableWidgets();
 Logger::debug("Cargando archivos de rutas...");
 require_once __DIR__ . '/../routes/superadmin.php';
 require_once __DIR__ . '/../routes/admin.php';
+require_once __DIR__ . '/../routes/api_ai.php';
 require_once __DIR__ . '/../routes/tenant.php';
 require_once __DIR__ . '/../routes/web.php';
 Logger::debug("Archivos de rutas cargados.");
 
-// 4. Cargar MenuComposer (si aplica)
+// 4. Analytics Middleware (tracking de visitas públicas)
+try {
+    $__uri = strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
+    $__method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    $__skip_prefixes = ['/musedock/', '/admin/', '/api/', '/assets/', '/vendor/', '/uploads/', '/media/'];
+    $__skip_ext = ['.css','.js','.jpg','.jpeg','.png','.gif','.svg','.webp','.ico','.woff','.woff2','.ttf','.pdf','.zip','.xml','.json','.php','.php7','.env','.log','.yml'];
+    $__attack = ['/.env','/.git','/wp-','/phpmyadmin','/xmlrpc','/shell','/webshell','/passwd','/setup-config'];
+    $__should_skip = false;
+    if ($__method !== 'GET') $__should_skip = true;
+    foreach ($__skip_prefixes as $p) { if (str_starts_with($__uri, $p)) { $__should_skip = true; break; } }
+    if (!$__should_skip) foreach ($__skip_ext as $e) { if (str_ends_with($__uri, $e)) { $__should_skip = true; break; } }
+    if (!$__should_skip) foreach ($__attack as $a) { if (stripos($__uri, $a) !== false) { $__should_skip = true; break; } }
+    if (!$__should_skip) {
+        $__ua = strtolower($_SERVER['HTTP_USER_AGENT'] ?? '');
+        $__bots = ['bot','crawl','spider','slurp','googlebot','bingbot','yandex','baidu','facebookexternalhit'];
+        foreach ($__bots as $b) { if (strpos($__ua, $b) !== false) { $__should_skip = true; break; } }
+    }
+    if (!$__should_skip) {
+        // Detectar tenant desde $GLOBALS['tenant'] (ya resuelto por TenantResolver)
+        $__tenant_id = isset($GLOBALS['tenant']['id']) ? (int)$GLOBALS['tenant']['id'] : null;
+        // Session/visitor IDs
+        if (session_status() === PHP_SESSION_NONE) { try { session_start(); } catch (\Throwable $__e) {} }
+        if (!isset($_SESSION['_a_sid'])) $_SESSION['_a_sid'] = bin2hex(random_bytes(16));
+        $__vid = $_COOKIE['_musedock_vid'] ?? null;
+        if (!$__vid) {
+            $__vid = bin2hex(random_bytes(16));
+            @setcookie('_musedock_vid', $__vid, ['expires'=>time()+63072000,'path'=>'/','secure'=>true,'httponly'=>true,'samesite'=>'Lax']);
+        }
+        // Referrer
+        $__ref = $_SERVER['HTTP_REFERER'] ?? null;
+        $__ref_type = 'direct';
+        $__ref_domain = null;
+        if ($__ref) {
+            $__ref_domain = parse_url($__ref, PHP_URL_HOST);
+            // Si el referrer es del mismo dominio del tenant, es navegación interna
+            $__tenant_domain = $GLOBALS['tenant']['domain'] ?? null;
+            if ($__ref_domain && $__tenant_domain && (strcasecmp($__ref_domain, $__tenant_domain) === 0 || strcasecmp($__ref_domain, 'www.' . $__tenant_domain) === 0)) {
+                $__ref_type = 'internal';
+            } else {
+                $__ref_type = 'referral';
+                foreach (['google','bing','yahoo','duckduckgo','baidu','yandex'] as $__se) {
+                    if ($__ref_domain && stripos($__ref_domain, $__se) !== false) { $__ref_type = 'search'; break; }
+                }
+                foreach (['facebook.com','twitter.com','x.com','instagram.com','linkedin.com','tiktok.com'] as $__sn) {
+                    if ($__ref_domain && stripos($__ref_domain, $__sn) !== false) { $__ref_type = 'social'; break; }
+                }
+            }
+        }
+        // Device/browser
+        $__ua_raw = $_SERVER['HTTP_USER_AGENT'] ?? null;
+        $__ua_l = strtolower($__ua_raw ?? '');
+        $__browser = 'Unknown';
+        if (stripos($__ua_raw, 'Edge') !== false) $__browser = 'Edge';
+        elseif (stripos($__ua_raw, 'Chrome') !== false) $__browser = 'Chrome';
+        elseif (stripos($__ua_raw, 'Safari') !== false) $__browser = 'Safari';
+        elseif (stripos($__ua_raw, 'Firefox') !== false) $__browser = 'Firefox';
+        $__os = 'Unknown';
+        if (stripos($__ua_raw, 'Windows') !== false) $__os = 'Windows';
+        elseif (stripos($__ua_raw, 'Mac OS X') !== false) $__os = 'macOS';
+        elseif (stripos($__ua_raw, 'Android') !== false) $__os = 'Android';
+        elseif (stripos($__ua_raw, 'iPhone') !== false || stripos($__ua_raw, 'iPad') !== false) $__os = 'iOS';
+        elseif (stripos($__ua_raw, 'Linux') !== false) $__os = 'Linux';
+        $__device = preg_match('/(ipad|tablet)/i', $__ua_raw ?? '') ? 'tablet' : (preg_match('/(android|iphone|mobile)/i', $__ua_raw ?? '') ? 'mobile' : 'desktop');
+        // IP hash
+        $__ip = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '';
+        $__ip = explode(',', $__ip)[0];
+        $__ip_hash = hash('sha256', trim($__ip) . date('Y-m-d'));
+        // INSERT
+        try {
+            $__db = \Screenart\Musedock\Database::connect();
+            $__ins = $__db->prepare("INSERT INTO web_analytics (tenant_id, session_id, visitor_id, ip_hash, page_url, referrer, referrer_domain, referrer_type, user_agent, device_type, browser, os, language, is_bot, is_returning, tracking_enabled, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,false,false,true,NOW())");
+            $__ins->execute([$__tenant_id, $_SESSION['_a_sid'], $__vid, $__ip_hash, $_SERVER['REQUEST_URI'] ?? '/', $__ref, $__ref_domain, $__ref_type, $__ua_raw, $__device, $__browser, $__os, $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? null]);
+        } catch (\Throwable $__e) {
+            Logger::error("Analytics INSERT error: " . $__e->getMessage());
+        }
+    }
+} catch (\Throwable $e) {
+    Logger::error("AnalyticsMiddleware error: " . $e->getMessage());
+}
+
+// 5. Cargar MenuComposer (si aplica)
 // require_once __DIR__ . '/../core/Plugins/MenuComposer.php'; // ¿Se usa realmente aquí?
 
 // 5. Inicializar MenuComposer (si aplica)
@@ -281,8 +362,79 @@ header('Referrer-Policy: strict-origin-when-cross-origin');
 // TODO: Migrar a nonces o hashes para mayor seguridad
 $cspScriptSrc = "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://code.jquery.com";
 $cspStyleSrc = "'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com";
+$cspConnectSrc = "'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com";
 
-header("Content-Security-Policy: default-src 'self'; script-src {$cspScriptSrc}; style-src {$cspStyleSrc}; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com; connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self';");
+// CSP dinámica: buscar tenant por HTTP_HOST y añadir dominios de su JS personalizado
+$_cspHost = $_SERVER['HTTP_HOST'] ?? '';
+if ($_cspHost && file_exists(__DIR__ . '/../.env')) {
+    try {
+        $_envLines = file(__DIR__ . '/../.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $_envVars = [];
+        foreach ($_envLines as $_line) {
+            if (strpos(trim($_line), '#') === 0) continue;
+            if (strpos($_line, '=') !== false) {
+                list($_k, $_v) = explode('=', $_line, 2);
+                $_envVars[trim($_k)] = trim($_v);
+            }
+        }
+        $_dbDriver = $_envVars['DB_DRIVER'] ?? 'pgsql';
+        $_dbHost = $_envVars['DB_HOST'] ?? '127.0.0.1';
+        $_dbPort = $_envVars['DB_PORT'] ?? ($_dbDriver === 'pgsql' ? '5432' : '3306');
+        $_dbName = $_envVars['DB_NAME'] ?? $_envVars['DB_DATABASE'] ?? '';
+        $_dbUser = $_envVars['DB_USER'] ?? $_envVars['DB_USERNAME'] ?? '';
+        $_dbPass = $_envVars['DB_PASS'] ?? $_envVars['DB_PASSWORD'] ?? '';
+        if ($_dbName && $_dbUser) {
+            $_dsn = $_dbDriver === 'pgsql'
+                ? "pgsql:host={$_dbHost};port={$_dbPort};dbname={$_dbName}"
+                : "mysql:host={$_dbHost};port={$_dbPort};dbname={$_dbName};charset=utf8mb4";
+            $_pdo = new PDO($_dsn, $_dbUser, $_dbPass, [
+                PDO::ATTR_TIMEOUT => 2,
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            ]);
+            // Buscar tenant por dominio
+            $_stmt = $_pdo->prepare("SELECT id, theme FROM tenants WHERE domain = :host LIMIT 1");
+            $_stmt->execute([':host' => $_cspHost]);
+            $_tenantRow = $_stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$_tenantRow) {
+                try {
+                    $_stmt2 = $_pdo->prepare("SELECT tenant_id FROM domain_aliases WHERE alias_domain = :host LIMIT 1");
+                    $_stmt2->execute([':host' => $_cspHost]);
+                    $_aliasRow = $_stmt2->fetch(PDO::FETCH_ASSOC);
+                    if ($_aliasRow) {
+                        $_stmt3 = $_pdo->prepare("SELECT id, theme FROM tenants WHERE id = :id LIMIT 1");
+                        $_stmt3->execute([':id' => $_aliasRow['tenant_id']]);
+                        $_tenantRow = $_stmt3->fetch(PDO::FETCH_ASSOC);
+                    }
+                } catch (\Exception $_e2) { /* tabla aliases puede no existir */ }
+            }
+            if ($_tenantRow) {
+                $_tid = $_tenantRow['id'];
+                $_ttheme = $_tenantRow['theme'] ?? 'default';
+                $_customJsFile = __DIR__ . "/assets/themes/tenant_{$_tid}/{$_ttheme}/js/custom.js";
+                if (file_exists($_customJsFile)) {
+                    $_jsContent = file_get_contents($_customJsFile);
+                    if (preg_match_all('#https://([a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,})#', $_jsContent, $_m)) {
+                        foreach (array_unique($_m[0]) as $_extDomain) {
+                            $_parsed = parse_url($_extDomain);
+                            $_origin = $_parsed['scheme'] . '://' . $_parsed['host'];
+                            if (!str_contains($cspScriptSrc, $_origin)) {
+                                $cspScriptSrc .= ' ' . $_origin;
+                            }
+                            if (!str_contains($cspConnectSrc, $_origin)) {
+                                $cspConnectSrc .= ' ' . $_origin;
+                            }
+                        }
+                    }
+                }
+            }
+            $_pdo = null;
+        }
+    } catch (\Exception $_e) {
+        // Silencioso — no bloquear la carga si falla la CSP dinámica
+    }
+}
+
+header("Content-Security-Policy: default-src 'self'; script-src {$cspScriptSrc}; style-src {$cspStyleSrc}; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com; connect-src {$cspConnectSrc}; object-src 'none'; base-uri 'self'; form-action 'self';");
 
 // Permissions Policy (antes Feature Policy)
 header('Permissions-Policy: geolocation=(), microphone=(), camera=()');

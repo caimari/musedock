@@ -1,7 +1,8 @@
 @extends('layouts.app')
 
 @section('title')
-    {{ ($translation->seo_title ?? $page->seo_title ?? $translation->title ?? $page->title ?? __('home_title')) . ' | ' . site_setting('site_name', '') }}
+    @php $__subtitle = site_setting('site_subtitle', ''); @endphp
+    {{ site_setting('site_name', '') . ($__subtitle ? ' | ' . $__subtitle : '') }}
 @endsection
 
 @section('keywords')

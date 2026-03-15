@@ -13,6 +13,60 @@
   "preview": "screenshot.jpg",
   "folder": "musedock",
   "extends": "default",
+  "customizable_options": {
+    "blog": {
+      "type": "section",
+      "label": "Blog / Listado de entradas",
+      "options": {
+        "blog_layout": {
+          "type": "select",
+          "label": "Layout del listado de blog",
+          "default": "grid",
+          "options": {
+            "grid": "Cuadricula (3 columnas con tarjetas)",
+            "list": "Lista (imagen izquierda + contenido derecha)",
+            "magazine": "Revista (destacado grande + cuadricula)",
+            "minimal": "Minimalista (solo texto, sin imagenes)",
+            "newspaper": "Periodico (1 grande + 2 laterales + lista)",
+            "fashion": "Fashion (imagenes circulares, estilo elegante)"
+          }
+        },
+        "blog_header_ticker": {
+          "type": "toggle",
+          "label": "Mostrar barra de Top Tags + Latest Post",
+          "default": false,
+          "description": "Muestra una barra superior con las etiquetas mas populares y un ticker de ultimos posts"
+        },
+        "blog_sidebar_related_posts": {
+          "type": "toggle",
+          "label": "Mostrar posts relacionados en sidebar",
+          "default": true,
+          "description": "Muestra tarjetas de posts relacionados en la barra lateral del post individual"
+        },
+        "blog_sidebar_related_posts_count": {
+          "type": "select",
+          "label": "Cantidad de posts relacionados",
+          "default": "4",
+          "options": {
+            "2": "2 posts",
+            "3": "3 posts",
+            "4": "4 posts",
+            "6": "6 posts"
+          }
+        },
+        "blog_sidebar_tags": {
+          "type": "toggle",
+          "label": "Mostrar etiquetas populares en sidebar",
+          "default": true
+        },
+        "blog_sidebar_categories": {
+          "type": "toggle",
+          "label": "Mostrar categorias populares en sidebar",
+          "default": true
+        }
+      }
+    }
+  },
   "supports": [
     "multi-tenant",
     "custom-colors",

@@ -2,7 +2,12 @@
 
 {{-- SEO --}}
 @section('title')
-    {{ __('blog.title') . ' | ' . site_setting('site_name', '') }}
+    @if(!empty($is_home))
+        @php $__subtitle = site_setting('site_subtitle', ''); @endphp
+        {{ site_setting('site_name', '') . ($__subtitle ? ' | ' . $__subtitle : '') }}
+    @else
+        {{ __('blog.title') . ' | ' . site_setting('site_name', '') }}
+    @endif
 @endsection
 
 @section('description')
@@ -34,17 +39,18 @@
             <div class="col-lg-4 col-md-6 mb-4">
                 <div class="ud-single-blog">
                     <div class="ud-blog-image">
-                        <a href="/blog/{{ $post->slug }}">
+                        <a href="{{ blog_url($post->slug) }}">
                             @php
                                 if ($post->featured_image && !$post->hide_featured_image) {
-                                    $imageUrl = (str_starts_with($post->featured_image, '/media/') || str_starts_with($post->featured_image, 'http'))
+                                    $imageUrl = (str_starts_with($post->featured_image, '/') || str_starts_with($post->featured_image, 'http'))
                                         ? $post->featured_image
                                         : asset($post->featured_image);
                                 } else {
                                     $imageUrl = asset('img/no-image.png');
                                 }
+                                $imageUrl = media_thumb_url($imageUrl, 'medium');
                             @endphp
-                            <img src="{{ $imageUrl }}" alt="{{ $post->title }}" />
+                            <img src="{{ $imageUrl }}" alt="{{ $post->title }}" loading="lazy" />
                         </a>
                     </div>
                     <div class="ud-blog-content">
@@ -54,14 +60,17 @@
                         @endphp
                         <span class="ud-blog-date">{{ $dateStr }}</span>
                         <h3 class="ud-blog-title">
-                            <a href="/blog/{{ $post->slug }}">
+                            <a href="{{ blog_url($post->slug) }}">
                                 {{ $post->title }}
                             </a>
                         </h3>
-                        @if($post->excerpt)
-                        <p class="ud-blog-desc">
-                            {{ mb_strlen($post->excerpt) > 120 ? mb_substr($post->excerpt, 0, 120) . '...' : $post->excerpt }}
-                        </p>
+                        @php
+                            $__excerpt = $post->excerpt ?: strip_tags($post->content ?? '');
+                            $__excerpt = trim(preg_replace('/\s+/', ' ', $__excerpt));
+                            $__excerpt = mb_strlen($__excerpt) > 200 ? mb_substr($__excerpt, 0, 200) . '...' : $__excerpt;
+                        @endphp
+                        @if($__excerpt)
+                        <p class="ud-blog-desc">{{ $__excerpt }}</p>
                         @endif
                     </div>
                 </div>

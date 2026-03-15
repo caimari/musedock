@@ -6,11 +6,31 @@
 <div class="app-content">
   <div class="container-fluid">
     {{-- Navegación --}}
+    @php
+      $backUrl = !empty($editingTenant)
+          ? route('blog.categories.index') . '?scope=tenant:' . $editingTenant->id
+          : route('blog.categories.index');
+      $backLabel = !empty($editingTenant)
+          ? ($editingTenant->domain ?? $editingTenant->name)
+          : __('blog.categories');
+      $createUrl = !empty($editingTenant)
+          ? route('blog.categories.create') . '?tenant_id=' . $editingTenant->id
+          : route('blog.categories.create');
+    @endphp
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="breadcrumb">
-        <a href="{{ route('blog.categories.index') }}">{{ __('blog.categories') }}</a> <span class="mx-2">/</span> <span>{{ e($category->name) }}</span>
+        <a href="{{ route('blog.categories.index') }}">{{ __('blog.categories') }}</a>
+        @if(!empty($editingTenant))
+          <span class="mx-2">/</span>
+          <a href="{{ $backUrl }}">{{ $backLabel }}</a>
+        @endif
+        <span class="mx-2">/</span>
+        <span>{{ e($category->name) }}</span>
       </div>
-      <a href="{{ route('blog.categories.index') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> {{ __('blog.category.back_to_categories') }}</a>
+      <div class="d-flex gap-2">
+        <a href="{{ $backUrl }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> {{ $backLabel }}</a>
+        <a href="{{ $createUrl }}" class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i> {{ __('blog.category.add_category') }}</a>
+      </div>
     </div>
 
     {{-- Alertas Toast --}}
@@ -43,6 +63,15 @@
           });
         });
       </script>
+    @endif
+
+    @if(!empty($editingTenant))
+      <div class="alert alert-info d-flex align-items-center mb-3">
+        <i class="bi bi-globe me-2 fs-5"></i>
+        <div>
+          <strong>Editando categoría de:</strong> <a href="https://{{ $editingTenant->domain }}" target="_blank">{{ $editingTenant->domain }}</a>
+        </div>
+      </div>
     @endif
 
     <form method="POST" action="{{ route('blog.categories.update', ['id' => $category->id]) }}" id="categoryForm" enctype="multipart/form-data">

@@ -6,12 +6,7 @@
 <div class="container-fluid">
     <h1 class="h3 mb-4 text-gray-800">Dashboard de IA</h1>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
+    {{-- Flash messages handled by layout SweetAlert2 --}}
 
     <!-- Estadísticas Resumen -->
     <div class="row mb-4">
@@ -76,6 +71,41 @@
             </div>
         </div>
     </div>
+
+    <!-- Uso por Tenant -->
+    @if(!empty($tenantStats))
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Uso por Tenant</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Tenant</th>
+                                    <th>Peticiones</th>
+                                    <th>Tokens</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($tenantStats as $ts)
+                                <tr>
+                                    <td>{{ $ts['tenant_domain'] }}</td>
+                                    <td>{{ $ts['requests'] }}</td>
+                                    <td>{{ number_format($ts['tokens']) }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <!-- Uso por Proveedor y Módulo -->
     <div class="row">

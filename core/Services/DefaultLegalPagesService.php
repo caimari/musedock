@@ -16,6 +16,7 @@ class DefaultLegalPagesService
         'cookie-policy',
         'terms-and-conditions',
         'privacy',
+        'aviso-legal',
     ];
 
     /**
@@ -59,6 +60,12 @@ class DefaultLegalPagesService
 
         $page['title'] = str_replace(array_keys($replacements), array_values($replacements), $page['title']);
         $page['content'] = str_replace(array_keys($replacements), array_values($replacements), $page['content']);
+
+        // Remove address list item if contact_address is empty
+        if (empty($contactAddress)) {
+            $page['content'] = preg_replace('/<li><strong>[^<]*direcci[^<]*<\/strong>\s*<\/li>\s*/ui', '', $page['content']);
+            $page['content'] = preg_replace('/<li><strong>Address[^<]*<\/strong>\s*<\/li>\s*/ui', '', $page['content']);
+        }
 
         return $page;
     }
@@ -133,6 +140,43 @@ HTML
 
 <h2>7. Contacto</h2>
 <p>Si tienes alguna pregunta sobre estos términos y condiciones, puedes contactarnos en:</p>
+<ul>
+<li>Email: <a href="mailto:{{contact_email}}">{{contact_email}}</a></li>
+</ul>
+
+<p><em>Última actualización: {{last_updated}}</em></p>
+HTML
+            ],
+
+            'aviso-legal' => [
+                'title' => 'Aviso Legal',
+                'content' => <<<HTML
+<h2>1. Datos identificativos</h2>
+<p>En cumplimiento del artículo 10 de la Ley 34/2002, de 11 de julio, de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE), se informa a los usuarios de los datos del titular de este sitio web:</p>
+<ul>
+<li><strong>Denominación:</strong> {{site_name}}</li>
+<li><strong>Correo electrónico:</strong> <a href="mailto:{{contact_email}}">{{contact_email}}</a></li>
+<li><strong>Dirección:</strong> {{contact_address}}</li>
+</ul>
+
+<h2>2. Objeto y ámbito de aplicación</h2>
+<p>El presente Aviso Legal regula el acceso y uso del sitio web <strong>{{site_name}}</strong>. El acceso al sitio web implica la aceptación plena y sin reservas de las presentes condiciones.</p>
+
+<h2>3. Propiedad intelectual e industrial</h2>
+<p>Todos los contenidos del sitio web (textos, imágenes, diseño, código fuente, logotipos, marcas, etc.) son propiedad de <strong>{{site_name}}</strong> o de sus proveedores de contenidos, y están protegidos por la legislación vigente en materia de propiedad intelectual e industrial.</p>
+<p>Queda prohibida la reproducción, distribución, comunicación pública o transformación de dichos contenidos sin la autorización expresa del titular.</p>
+
+<h2>4. Responsabilidad</h2>
+<p><strong>{{site_name}}</strong> no se hace responsable de los daños y perjuicios que pudieran derivarse del uso de los contenidos del sitio web, ni de la falta de disponibilidad o continuidad del servicio. El usuario es el único responsable del uso que haga del sitio web.</p>
+
+<h2>5. Política de enlaces</h2>
+<p>El sitio web puede contener enlaces a sitios web de terceros. <strong>{{site_name}}</strong> no controla dichos sitios y no se hace responsable de sus contenidos. La inclusión de un enlace no implica aprobación ni recomendación del sitio enlazado.</p>
+
+<h2>6. Legislación aplicable y jurisdicción</h2>
+<p>Las presentes condiciones se rigen por la legislación española vigente. Para la resolución de cualquier controversia derivada del acceso o uso de este sitio web, las partes se someten a los Juzgados y Tribunales competentes conforme a derecho.</p>
+
+<h2>7. Contacto</h2>
+<p>Para cualquier consulta relacionada con este Aviso Legal, puede contactar con nosotros en:</p>
 <ul>
 <li>Email: <a href="mailto:{{contact_email}}">{{contact_email}}</a></li>
 </ul>
@@ -264,6 +308,42 @@ HTML
 
 <h2>7. Contact</h2>
 <p>If you have any questions about these terms and conditions, you can contact us at:</p>
+<ul>
+<li>Email: <a href="mailto:{{contact_email}}">{{contact_email}}</a></li>
+</ul>
+
+<p><em>Last updated: {{last_updated}}</em></p>
+HTML
+            ],
+
+            'aviso-legal' => [
+                'title' => 'Legal Notice',
+                'content' => <<<HTML
+<h2>1. Identifying information</h2>
+<p>In compliance with article 10 of Spanish Law 34/2002, of July 11, on Information Society Services and Electronic Commerce (LSSI-CE), users are informed of the data of the owner of this website:</p>
+<ul>
+<li><strong>Name:</strong> {{site_name}}</li>
+<li><strong>Email:</strong> <a href="mailto:{{contact_email}}">{{contact_email}}</a></li>
+</ul>
+
+<h2>2. Purpose and scope</h2>
+<p>This Legal Notice governs access to and use of the website <strong>{{site_name}}</strong>. Accessing the website implies full and unreserved acceptance of these conditions.</p>
+
+<h2>3. Intellectual and industrial property</h2>
+<p>All contents of the website (texts, images, design, source code, logos, trademarks, etc.) are the property of <strong>{{site_name}}</strong> or its content providers, and are protected by applicable intellectual and industrial property legislation.</p>
+<p>Reproduction, distribution, public communication or transformation of such content without the express authorisation of the owner is prohibited.</p>
+
+<h2>4. Liability</h2>
+<p><strong>{{site_name}}</strong> is not responsible for any damages arising from the use of website content, nor from the lack of availability or continuity of the service. The user is solely responsible for their use of the website.</p>
+
+<h2>5. Links policy</h2>
+<p>The website may contain links to third-party websites. <strong>{{site_name}}</strong> does not control such sites and is not responsible for their content. The inclusion of a link does not imply endorsement or recommendation of the linked site.</p>
+
+<h2>6. Applicable law and jurisdiction</h2>
+<p>These conditions are governed by applicable Spanish legislation. For the resolution of any dispute arising from access to or use of this website, the parties submit to the competent Courts and Tribunals.</p>
+
+<h2>7. Contact</h2>
+<p>For any queries related to this Legal Notice, you can contact us at:</p>
 <ul>
 <li>Email: <a href="mailto:{{contact_email}}">{{contact_email}}</a></li>
 </ul>

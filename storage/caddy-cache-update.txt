@@ -1,0 +1,43 @@
+INSTRUCCIONES: Aplicar estos cambios al Caddyfile (/etc/caddy/Caddyfile)
+==========================================================================
+
+1. PRIMERO hacer backup:
+   sudo cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.backup
+
+2. Añadir este snippet DESPUÉS del bloque global { ... } y ANTES del primer dominio:
+
+# Snippet: compresión y cache de assets estáticos
+(static-cache) {
+	encode gzip zstd
+
+	@staticAssets {
+		path *.jpg *.jpeg *.png *.gif *.webp *.svg *.ico
+		path *.woff *.woff2 *.ttf *.eot
+	}
+	header @staticAssets Cache-Control "public, max-age=31536000, immutable"
+
+	@cssjs {
+		path *.css *.js
+	}
+	header @cssjs Cache-Control "public, max-age=2592000"
+}
+
+3. Añadir "import static-cache" DENTRO de cada bloque de dominio:
+
+   En el bloque musedock.com { ... }, añadir después de "root *":
+       import static-cache
+
+   En el bloque *.musedock.com { ... }, añadir después de "root *":
+       import static-cache
+
+4. Validar configuración:
+   sudo caddy validate --config /etc/caddy/Caddyfile
+
+5. Recargar Caddy:
+   sudo systemctl reload caddy
+
+==========================================================================
+Esto añade:
+- Compresión gzip/zstd para todas las respuestas
+- Cache de 1 año (immutable) para imágenes, fuentes
+- Cache de 1 mes para CSS, JS

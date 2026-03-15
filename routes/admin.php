@@ -63,6 +63,10 @@ Route::post("$adminPath/profile/upload-avatar", 'tenant.ProfileController@upload
      ->middleware(['auth']);
 Route::post("$adminPath/profile/delete-avatar", 'tenant.ProfileController@deleteAvatar')
      ->middleware(['auth']);
+Route::post("$adminPath/profile/update-author", 'tenant.ProfileController@updateAuthor')
+     ->middleware(['auth']);
+Route::post("$adminPath/profile/toggle-author-page", 'tenant.ProfileController@toggleAuthorPage')
+     ->middleware(['auth']);
 Route::get("$adminPath/avatar/{filename}", 'tenant.ProfileController@serveAvatar')
      ->middleware(['auth']);
 
@@ -192,6 +196,11 @@ Route::post("$adminPath/settings/cookies", 'tenant.SettingsController@updateCook
      ->middleware(['auth', 'permission:settings.edit'])
      ->name('tenant.settings.cookies.update');
 
+// Settings - Storage (solo lectura: muestra cuota y uso)
+Route::get("$adminPath/settings/storage", 'tenant.SettingsController@storage')
+     ->middleware(['auth', 'permission:settings.view'])
+     ->name('tenant.settings.storage');
+
 // AI Settings (Configuración de IA del Tenant)
 Route::get("$adminPath/ai/settings", 'tenant.AISettingsController@settings')
      ->middleware(['auth', 'permission:settings.view'])
@@ -202,6 +211,14 @@ Route::post("$adminPath/ai/settings", 'tenant.AISettingsController@update')
 Route::get("$adminPath/ai/settings/delete-key", 'tenant.AISettingsController@deleteKey')
      ->middleware(['auth', 'permission:settings.edit'])
      ->name('tenant.ai.settings.delete');
+
+// AI Automatismos - Auto-categorizar y etiquetar posts
+Route::get("$adminPath/ai/auto-tagger", 'tenant.AISettingsController@autoTagger')
+     ->middleware(['auth', 'permission:settings.view'])
+     ->name('tenant.ai.auto-tagger');
+Route::post("$adminPath/ai/auto-tagger/run", 'tenant.AISettingsController@runAutoTagger')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.ai.auto-tagger.run');
 
 // Languages (Idiomas del Tenant)
 Route::get("$adminPath/languages", 'tenant.LanguagesController@index')
@@ -435,6 +452,48 @@ Route::post("$adminPath/api/notifications/{id}/mark-read", 'tenant.Notifications
 Route::post("$adminPath/api/notifications/mark-all-read", 'tenant.NotificationsController@markAllAsRead')
      ->middleware(['auth'])
      ->name('tenant.notifications.mark-all-read');
+
+// ============================================================================
+// SLIDERS (Gestión de sliders del tenant)
+// ============================================================================
+Route::get("$adminPath/sliders", 'tenant.SliderController@index')
+     ->middleware(['auth'])
+     ->name('tenant.sliders.index');
+Route::get("$adminPath/sliders/create", 'tenant.SliderController@create')
+     ->middleware(['auth'])
+     ->name('tenant.sliders.create');
+Route::post("$adminPath/sliders", 'tenant.SliderController@store')
+     ->middleware(['auth'])
+     ->name('tenant.sliders.store');
+Route::get("$adminPath/sliders/{id}/edit", 'tenant.SliderController@edit')
+     ->middleware(['auth'])
+     ->name('tenant.sliders.edit');
+Route::post("$adminPath/sliders/{id}/update", 'tenant.SliderController@update')
+     ->middleware(['auth'])
+     ->name('tenant.sliders.update');
+Route::post("$adminPath/sliders/{id}/destroy", 'tenant.SliderController@destroy')
+     ->middleware(['auth'])
+     ->name('tenant.sliders.destroy');
+
+// Slides (diapositivas)
+Route::get("$adminPath/sliders/{sliderId}/slides/create", 'tenant.SliderController@createSlide')
+     ->middleware(['auth'])
+     ->name('tenant.slides.create');
+Route::post("$adminPath/sliders/{sliderId}/slides", 'tenant.SliderController@storeSlide')
+     ->middleware(['auth'])
+     ->name('tenant.slides.store');
+Route::get("$adminPath/sliders/slides/{slideId}/edit", 'tenant.SliderController@editSlide')
+     ->middleware(['auth'])
+     ->name('tenant.slides.edit');
+Route::post("$adminPath/sliders/slides/{slideId}/update", 'tenant.SliderController@updateSlide')
+     ->middleware(['auth'])
+     ->name('tenant.slides.update');
+Route::post("$adminPath/sliders/slides/{slideId}/destroy", 'tenant.SliderController@destroySlide')
+     ->middleware(['auth'])
+     ->name('tenant.slides.destroy');
+Route::post("$adminPath/sliders/{sliderId}/slides/order", 'tenant.SliderController@updateOrder')
+     ->middleware(['auth'])
+     ->name('tenant.slides.order');
 
 // ============================================================================
 // UTILIDADES (Limpiar flashes, etc.)

@@ -39,8 +39,13 @@ class View
         self::$namespaces[$namespace] = rtrim($path, '/');
     }
 
-    public static function startSection(string $name)
+    public static function startSection(string $name, ?string $value = null)
     {
+        if ($value !== null) {
+            // Inline syntax: @section('name', 'value') — no ob_start needed
+            self::$sections[$name] = $value;
+            return;
+        }
         self::$currentSection = $name;
         ob_start();
     }
@@ -322,7 +327,14 @@ class View
     }
     // ==========================================================
 
-    $blade = new BladeExtended($viewPath, $cache, self::getBladeMode());
+    // Pass default theme as a fallback path so @include can find shared partials
+    // (e.g. blog/layouts/_taxonomy-chips from non-default themes)
+    $defaultViewPath = __DIR__ . '/../themes/default/views';
+    $bladePaths = ($viewPath !== $defaultViewPath && is_dir($defaultViewPath))
+        ? [$viewPath, $defaultViewPath]
+        : [$viewPath];
+
+    $blade = new BladeExtended($bladePaths, $cache, self::getBladeMode());
     self::registerDirectives($blade);
 
     try {

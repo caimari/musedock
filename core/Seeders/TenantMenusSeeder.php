@@ -79,8 +79,9 @@ class TenantMenusSeeder
 
         echo "✓ " . count($idMap) . " menús copiados al tenant {$tenantId}\n";
 
-        // Agregar menú de idiomas si no existe
+        // Agregar menús adicionales si no existen
         $this->addLanguagesMenu($tenantId);
+        $this->addStorageMenu($tenantId);
     }
 
     /**
@@ -134,6 +135,56 @@ class TenantMenusSeeder
         $stmt->execute([$tenantId, $settingsMenu['id'], $nextPos]);
 
         echo "✓ Menú de idiomas agregado al tenant {$tenantId}\n";
+    }
+
+    /**
+     * Agregar menú de Storage al tenant
+     */
+    private function addStorageMenu($tenantId)
+    {
+        $pdo = Database::connect();
+
+        // Buscar el menú padre "Settings"
+        $stmt = $pdo->prepare("
+            SELECT id FROM tenant_menus
+            WHERE tenant_id = ? AND slug = 'settings' AND parent_id IS NULL
+            LIMIT 1
+        ");
+        $stmt->execute([$tenantId]);
+        $settingsMenu = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$settingsMenu) {
+            return;
+        }
+
+        // Verificar si ya existe
+        $stmt = $pdo->prepare("
+            SELECT id FROM tenant_menus
+            WHERE tenant_id = ? AND slug = 'storage-settings'
+        ");
+        $stmt->execute([$tenantId]);
+        if ($stmt->fetch()) {
+            return;
+        }
+
+        $stmt = $pdo->prepare("
+            SELECT COALESCE(MAX(order_position), 0) + 1 as next_pos
+            FROM tenant_menus
+            WHERE tenant_id = ? AND parent_id = ?
+        ");
+        $stmt->execute([$tenantId, $settingsMenu['id']]);
+        $nextPos = $stmt->fetchColumn();
+
+        $stmt = $pdo->prepare("
+            INSERT INTO tenant_menus
+            (tenant_id, parent_id, module_id, title, slug, url, icon, icon_type,
+             order_position, permission, is_active, created_at, updated_at)
+            VALUES (?, ?, NULL, 'Almacenamiento', 'storage-settings', '/{admin_path}/settings/storage',
+                    'bi-hdd', 'bi', ?, 'settings.view', 1, NOW(), NOW())
+        ");
+        $stmt->execute([$tenantId, $settingsMenu['id'], $nextPos]);
+
+        echo "✓ Menú de almacenamiento agregado al tenant {$tenantId}\n";
     }
 
     /**

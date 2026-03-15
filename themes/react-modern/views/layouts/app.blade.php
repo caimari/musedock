@@ -35,9 +35,13 @@
     @php
         $ogTitle = \Screenart\Musedock\View::yieldSection('og_title') ?: setting('site_name', '');
         $ogDescription = \Screenart\Musedock\View::yieldSection('og_description') ?: setting('site_description', '');
+        $ogImage = trim(\Screenart\Musedock\View::yieldSection('og_image', ''));
+        $ogType = trim(\Screenart\Musedock\View::yieldSection('og_type', '')) ?: 'website';
+        $canonicalUrl = trim(\Screenart\Musedock\View::yieldSection('canonical_url', ''));
         $siteName = setting('site_name', '');
         $twitterTitle = \Screenart\Musedock\View::yieldSection('twitter_title') ?: setting('site_name', '');
         $twitterDescription = \Screenart\Musedock\View::yieldSection('twitter_description') ?: setting('site_description', '');
+        $twitterImage = trim(\Screenart\Musedock\View::yieldSection('twitter_image', ''));
         $robotsDirective = trim(\Screenart\Musedock\View::yieldSection('robots', ''));
     @endphp
     @if($ogTitle)
@@ -50,8 +54,10 @@
     @if($siteName)
     <meta property="og:site_name" content="{{ $siteName }}">
     @endif
-    <meta property="og:type" content="website">
-    @if(setting('og_image'))
+    <meta property="og:type" content="{{ $ogType }}">
+    @if($ogImage)
+    <meta property="og:image" content="{{ $ogImage }}">
+    @elseif(setting('og_image'))
     <meta property="og:image" content="{{ asset(setting('og_image')) }}">
     @endif
 
@@ -63,12 +69,19 @@
     @if($twitterDescription)
     <meta name="twitter:description" content="{{ $twitterDescription }}">
     @endif
+    @if($twitterImage)
+    <meta name="twitter:image" content="{{ $twitterImage }}">
+    @endif
     @if(setting('twitter_site'))
     <meta name="twitter:site" content="{{ setting('twitter_site') }}">
     @endif
 
     {{-- Canonical URL --}}
+    @if($canonicalUrl)
+    <link rel="canonical" href="{{ $canonicalUrl }}">
+    @else
     <link rel="canonical" href="{{ url($_SERVER['REQUEST_URI']) }}">
+    @endif
     <link rel="alternate" type="application/rss+xml" title="{{ setting('site_name', 'MuseDock') }} RSS Feed" href="{{ url('/feed') }}">
     @if($robotsDirective)
     <meta name="robots" content="{{ $robotsDirective }}">
@@ -84,6 +97,14 @@
     @if(themeOption('custom_css'))
         <style>{!! themeOption('custom_css') !!}</style>
     @endif
+
+    <style>
+        /* Embeds de video responsive */
+        .prose iframe, article iframe { max-width: 100%; border: 0; }
+        .prose iframe[src*="youtube"], .prose iframe[src*="vimeo"],
+        article iframe[src*="youtube"], article iframe[src*="vimeo"] { width: 100%; aspect-ratio: 16 / 9; height: auto; }
+        .prose video, article video { max-width: 100%; height: auto; }
+    </style>
 
     {{-- Stack de estilos adicionales --}}
     @stack('styles')

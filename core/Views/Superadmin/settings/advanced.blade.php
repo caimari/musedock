@@ -136,11 +136,20 @@
 
           <hr>
 
-          {{-- Botón para limpiar la caché de Blade --}}
+          {{-- Botón para limpiar la caché de Blade, Sitemaps y Feeds --}}
           <div class="mt-4">
             <button id="clearCacheButton" class="btn btn-outline-danger w-100">
               <i class="bi bi-trash me-1"></i> {{ __('settings.clear_blade_cache') }}
             </button>
+            <small class="text-muted d-block mt-1">Limpia la cache de vistas Blade, sitemaps XML y feeds RSS de todos los tenants.</small>
+          </div>
+
+          {{-- Botón para limpiar OPcache de PHP --}}
+          <div class="mt-3">
+            <button id="clearOpcacheButton" class="btn btn-outline-warning w-100">
+              <i class="bi bi-lightning-charge me-1"></i> Limpiar OPcache de PHP
+            </button>
+            <small class="text-muted d-block mt-1">Fuerza la recarga de todos los archivos PHP compilados en memoria. Útil tras actualizar código.</small>
           </div>
 
         </div>
@@ -278,6 +287,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
       resultDiv.innerHTML = errorHtml;
       resultDiv.style.display = 'block';
+    });
+  });
+
+  // Limpiar OPcache de PHP
+  document.getElementById('clearOpcacheButton').addEventListener('click', function (e) {
+    e.preventDefault();
+    Swal.fire({
+      title: '¿Limpiar OPcache?',
+      text: 'Se recargará en memoria el código PHP del servidor. No afecta a los usuarios activos.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#f0ad4e',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, limpiar',
+      cancelButtonText: '{{ __("common.cancel") }}'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        window.location.href = "{{ route('settings.advanced.clearOpcache') }}";
+      }
     });
   });
 

@@ -391,14 +391,106 @@ class CaddyService
     }
 
     /**
+     * Construye la lista completa de hosts para un tenant (primary + aliases).
+     *
+     * @param string $primaryDomain Dominio principal del tenant
+     * @param bool   $includeWww    Si incluir www del dominio principal
+     * @param array  $aliases       Array de alias (objetos o arrays con 'domain' y 'include_www')
+     * @return string[] Todos los hostnames que la ruta debe responder
+     */
+    public function buildHostList(string $primaryDomain, bool $includeWww, array $aliases = []): array
+    {
+        $primaryDomain = $this->sanitizeDomain($primaryDomain);
+        $hosts = [$primaryDomain];
+
+        if ($includeWww) {
+            $hosts[] = 'www.' . $primaryDomain;
+        }
+
+        foreach ($aliases as $alias) {
+            $aliasDomain = $this->sanitizeDomain($alias->domain ?? $alias['domain'] ?? '');
+            if ($aliasDomain === '' || in_array($aliasDomain, $hosts, true)) {
+                continue;
+            }
+            $hosts[] = $aliasDomain;
+
+            $aliasWww = (bool) ($alias->include_www ?? $alias['include_www'] ?? false);
+            if ($aliasWww) {
+                $wwwAlias = 'www.' . $aliasDomain;
+                if (!in_array($wwwAlias, $hosts, true)) {
+                    $hosts[] = $wwwAlias;
+                }
+            }
+        }
+
+        return $hosts;
+    }
+
+    /**
+     * Upsert de un dominio en Caddy con todos sus aliases en una sola ruta.
+     *
+     * @param string $primaryDomain Dominio principal
+     * @param bool   $includeWww    Si incluir www del principal
+     * @param array  $aliases       Array de alias (objetos con domain, include_www)
+     * @return array ['success' => bool, 'route_id' => string|null, 'error' => string|null]
+     */
+    public function upsertDomainWithAliases(string $primaryDomain, bool $includeWww, array $aliases = []): array
+    {
+        $primaryDomain = $this->sanitizeDomain($primaryDomain);
+        $routeId = $this->generateRouteId($primaryDomain);
+        $hosts = $this->buildHostList($primaryDomain, $includeWww, $aliases);
+        $config = $this->generateCaddyConfig($primaryDomain, $includeWww, $routeId, $hosts);
+
+        $indices = $this->findRouteIndicesById($routeId);
+
+        if (!empty($indices)) {
+            $primaryIndex = min($indices);
+
+            $update = $this->apiRequest(
+                'PUT',
+                "/config/apps/http/servers/srv0/routes/{$primaryIndex}",
+                $config
+            );
+
+            if (!$update['success']) {
+                Logger::log("[CaddyService] Error actualizando dominio con aliases {$primaryDomain}: " . $update['error'], 'ERROR');
+                return ['success' => false, 'route_id' => $routeId, 'error' => $update['error']];
+            }
+
+            $duplicates = array_values(array_filter($indices, static fn(int $i): bool => $i !== $primaryIndex));
+            rsort($duplicates);
+            foreach ($duplicates as $duplicateIndex) {
+                $this->apiRequest('DELETE', "/config/apps/http/servers/srv0/routes/{$duplicateIndex}");
+            }
+
+            Logger::log("[CaddyService] Dominio actualizado con aliases: {$primaryDomain} (" . count($hosts) . " hosts)", 'INFO');
+            return ['success' => true, 'route_id' => $routeId, 'error' => null];
+        }
+
+        $create = $this->apiRequest('POST', '/config/apps/http/servers/srv0/routes', $config);
+
+        if ($create['success']) {
+            Logger::log("[CaddyService] Dominio añadido con aliases: {$primaryDomain} (" . count($hosts) . " hosts)", 'INFO');
+            return ['success' => true, 'route_id' => $routeId, 'error' => null];
+        }
+
+        Logger::log("[CaddyService] Error añadiendo dominio con aliases {$primaryDomain}: " . $create['error'], 'ERROR');
+        return ['success' => false, 'route_id' => null, 'error' => $create['error']];
+    }
+
+    /**
      * Genera la configuración JSON para Caddy API
      * Configuración completa idéntica a musedock.com
      */
-    private function generateCaddyConfig(string $domain, bool $includeWww, string $routeId): array
+    private function generateCaddyConfig(string $domain, bool $includeWww, string $routeId, ?array $explicitHosts = null): array
     {
-        $hosts = [$domain];
-        if ($includeWww) {
-            $hosts[] = 'www.' . $domain;
+        if ($explicitHosts !== null) {
+            $hosts = $explicitHosts;
+        } else {
+            $hosts = [$domain];
+            if ($includeWww) {
+                $hosts[] = 'www.' . $domain;
+            }
         }
 
         return [
@@ -470,7 +562,45 @@ class CaddyService
                                 ]
                             ]
                         ],
-                        // 4. Encoding (gzip/zstd)
+                        // 4. Cache headers para assets estáticos
+                        [
+                            'match' => [
+                                [
+                                    'path' => [
+                                        '*.jpg', '*.jpeg', '*.png', '*.gif', '*.webp', '*.svg', '*.ico',
+                                        '*.woff', '*.woff2', '*.ttf', '*.eot'
+                                    ]
+                                ]
+                            ],
+                            'handle' => [
+                                [
+                                    'handler' => 'headers',
+                                    'response' => [
+                                        'set' => [
+                                            'Cache-Control' => ['public, max-age=31536000, immutable']
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        [
+                            'match' => [
+                                [
+                                    'path' => ['*.css', '*.js']
+                                ]
+                            ],
+                            'handle' => [
+                                [
+                                    'handler' => 'headers',
+                                    'response' => [
+                                        'set' => [
+                                            'Cache-Control' => ['public, max-age=2592000']
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        // 5. Encoding (gzip/zstd)
                         [
                             'handle' => [
                                 [

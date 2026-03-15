@@ -43,13 +43,6 @@
                                  <p style="color: var(--footer-text-color, #333);">{{ translatable_site_setting('footer_short_description', '') }}</p>
                             </div>
 
-                            <!-- Enlace configuración de cookies (RGPD) -->
-                            <div class="cookie-settings-link my-2">
-                                <a href="javascript:void(0);" id="open-cookie-settings" style="color: var(--footer-link-color, #333); font-size: 13px; text-decoration: underline;">
-                                    <i class="fas fa-cookie-bite me-1"></i>{{ __('footer.cookie_settings') }}
-                                </a>
-                            </div>
-
                             <!-- Selector de idiomas como SELECT (solo si hay más de un idioma activo y no está forzado) -->
                             @php
                                 $pdo = \Screenart\Musedock\Database::connect();
@@ -65,6 +58,12 @@
                                 $currentLang = function_exists('detectLanguage') ? detectLanguage() : ($_SESSION['lang'] ?? site_setting('language', 'es'));
                                 $forceLang = site_setting('force_lang', '');
                                 $showFooterLangSelector = count($activeLanguages) > 1 && empty($forceLang);
+                                if ($showFooterLangSelector && function_exists('tenant_setting')) {
+                                    $showLangSwitcherSetting = tenant_setting('show_language_switcher', '1');
+                                    if ($showLangSwitcherSetting === '0') {
+                                        $showFooterLangSelector = false;
+                                    }
+                                }
                             @endphp
 
                             @if($showFooterLangSelector)
@@ -257,11 +256,25 @@
     <div class="footer-bottom-area footer-bg footer-bottom-contrast" style="background-color: var(--footer-bottom-bg-color, #ffffff);">
         <div class="container">
             <div class="row d-flex align-items-center">
-                <div class="col-xl-12 ">
+                <div class="col-xl-12">
                     <div class="footer-copy-right text-center">
                         <p style="color: var(--footer-text-color, #333);">
                             {!! site_setting('footer_copyright', '© Copyright ' . site_setting('site_name', 'MuseDock') . ' ' . date('Y') . '.') !!}
                         </p>
+                    </div>
+                    @php
+                        $__bl = $currentLang ?? 'es';
+                    @endphp
+                    <div class="text-center" style="padding-bottom: 6px;">
+                        <ul style="list-style:none; padding:0; margin:0; display:inline-flex; flex-wrap:wrap; gap:4px 16px; justify-content:center;">
+                            <li><a href="{{ url('/p/aviso-legal') }}" style="color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75;">{{ $__bl === 'en' ? 'Legal Notice' : 'Aviso Legal' }}</a></li>
+                            <li><a href="{{ url('/p/privacy') }}" style="color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75;">{{ $__bl === 'en' ? 'Privacy Policy' : 'Política de Privacidad' }}</a></li>
+                            <li><a href="{{ url('/p/cookie-policy') }}" style="color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75;">{{ $__bl === 'en' ? 'Cookie Policy' : 'Política de Cookies' }}</a></li>
+                            <li><a href="{{ url('/p/terms-and-conditions') }}" style="color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75;">{{ $__bl === 'en' ? 'Terms & Conditions' : 'Términos y Condiciones' }}</a></li>
+                            @if(site_setting('cookies_enabled', '1') == '1')
+                            <li><a href="javascript:void(0);" id="open-cookie-settings" style="color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75;">🍪 {{ $__bl === 'en' ? 'Cookie Settings' : 'Configuración de Cookies' }}</a></li>
+                            @endif
+                        </ul>
                     </div>
                 </div>
             </div>

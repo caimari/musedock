@@ -14,7 +14,8 @@ class Slider extends Model
     protected array $fillable = [
         'name',
         'settings',
-        'engine', // Añadido para que engine también se pueda actualizar fácilmente
+        'engine',
+        'tenant_id',
     ];
 
     // Cast para que settings siempre sea un array

@@ -138,6 +138,44 @@ Route::post('/musedock/domain-manager/{id}/delete-og-image', 'CaddyDomainManager
     ->middleware('superadmin')
     ->name('superadmin.domain-manager.delete-og-image');
 
+// Blog Settings del tenant (AJAX)
+Route::post('/musedock/domain-manager/{id}/blog-settings', 'CaddyDomainManager\Controllers\DomainManagerController@updateBlogSettings')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.blog-settings');
+
+// Perfil de autor del admin root (AJAX)
+Route::post('/musedock/domain-manager/{id}/author-profile', 'CaddyDomainManager\Controllers\DomainManagerController@updateAuthorProfile')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.author-profile');
+
+// Custom CSS/JS para un tenant (AJAX)
+Route::post('/musedock/domain-manager/{id}/custom-code', 'CaddyDomainManager\Controllers\DomainManagerController@updateCustomCode')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.custom-code');
+
+// Auto-categorizar y etiquetar posts con IA (AJAX)
+Route::post('/musedock/domain-manager/{id}/auto-tag', 'CaddyDomainManager\Controllers\DomainManagerController@autoTagPosts')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.auto-tag');
+
+// Toggle plugin compartido para un tenant (AJAX)
+Route::post('/musedock/domain-manager/{id}/toggle-plugin', 'CaddyDomainManager\Controllers\DomainManagerController@toggleTenantPlugin')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.toggle-plugin');
+
+// Domain Aliases (AJAX)
+Route::get('/musedock/domain-manager/{id}/aliases', 'CaddyDomainManager\Controllers\DomainManagerController@getAliases')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.aliases');
+
+Route::post('/musedock/domain-manager/{id}/add-alias', 'CaddyDomainManager\Controllers\DomainManagerController@addAlias')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.add-alias');
+
+Route::post('/musedock/domain-manager/{id}/remove-alias', 'CaddyDomainManager\Controllers\DomainManagerController@removeAlias')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.remove-alias');
+
 // Crear subdominio FREE manual (superadmin)
 Route::post('/musedock/domain-manager/create-free', 'CaddyDomainManager\Controllers\DomainManagerController@createFreeSubdomain')
     ->middleware('superadmin')
@@ -278,6 +316,19 @@ Route::post('/customer/tenant/{id}/retry', 'CaddyDomainManager\Controllers\Custo
 Route::get('/customer/tenant/{id}/health-check', 'CaddyDomainManager\Controllers\CustomerController@healthCheck')
     ->middleware('customer')
     ->name('customer.tenant.health-check');
+
+// Domain Aliases del tenant (customer self-service)
+Route::get('/customer/tenant/{id}/aliases', 'CaddyDomainManager\Controllers\CustomerController@getAliases')
+    ->middleware('customer')
+    ->name('customer.tenant.aliases');
+
+Route::post('/customer/tenant/{id}/aliases/add', 'CaddyDomainManager\Controllers\CustomerController@addAlias')
+    ->middleware('customer')
+    ->name('customer.tenant.aliases.add');
+
+Route::post('/customer/tenant/{id}/aliases/remove', 'CaddyDomainManager\Controllers\CustomerController@removeAlias')
+    ->middleware('customer')
+    ->name('customer.tenant.aliases.remove');
 
 // ============================================
 // CUSTOMER DOMAIN MANAGEMENT (DNS + Email Routing)

@@ -11,7 +11,8 @@
         "psr-4": {
             "Blog\\Controllers\\": "controllers/",
             "Blog\\Models\\": "models/",
-            "Blog\\Requests\\": "requests/"
+            "Blog\\Requests\\": "requests/",
+            "Blog\\Traits\\": "traits/"
         }
     }
 }

@@ -266,6 +266,9 @@ foreach ($tenantPlugins as $tenantId => $plugins) {
     foreach ($plugins as $slug) {
         $handler = $pluginCronHandlers[$slug];
         $pluginDir = APP_ROOT . "/storage/tenants/{$tenantId}/plugins/{$slug}";
+        if (!is_dir($pluginDir)) {
+            $pluginDir = APP_ROOT . "/plugins/tenant-shared/{$slug}";
+        }
 
         // Verificar que existe en disco
         if (!is_dir($pluginDir)) {

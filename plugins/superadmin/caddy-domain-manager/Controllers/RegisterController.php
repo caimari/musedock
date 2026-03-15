@@ -250,14 +250,34 @@ class RegisterController
         try {
             $pdo = Database::connect();
 
-            // Verificar si ya existe en tenants
-            $stmt = $pdo->prepare("SELECT id FROM tenants WHERE domain = ?");
-            $stmt->execute([$domain]);
+            // Verificar si ya existe en tenants (incluir variante www)
+            $stmt = $pdo->prepare("SELECT id FROM tenants WHERE domain = ? OR domain = ?");
+            $stmt->execute([$domain, 'www.' . $domain]);
 
             if ($stmt->fetch()) {
                 $this->jsonResponse(['available' => false, 'error' => 'Este dominio ya está registrado']);
                 return;
             }
+
+            // Verificar en domain_aliases
+            try {
+                $stmt = $pdo->prepare("SELECT id FROM domain_aliases WHERE domain = ? OR domain = ?");
+                $stmt->execute([$domain, 'www.' . $domain]);
+                if ($stmt->fetch()) {
+                    $this->jsonResponse(['available' => false, 'error' => 'Este dominio ya está registrado']);
+                    return;
+                }
+            } catch (\Exception $e) {}
+
+            // Verificar en domain_orders
+            try {
+                $stmt = $pdo->prepare("SELECT id FROM domain_orders WHERE (domain = ? OR domain = ?) AND status NOT IN ('cancelled','failed')");
+                $stmt->execute([$domain, 'www.' . $domain]);
+                if ($stmt->fetch()) {
+                    $this->jsonResponse(['available' => false, 'error' => 'Este dominio tiene un pedido en proceso']);
+                    return;
+                }
+            } catch (\Exception $e) {}
 
             $this->jsonResponse([
                 'available' => true,
@@ -361,12 +381,30 @@ class RegisterController
         $pdo = Database::connect();
 
         try {
-            // Verificar que el dominio no exista ya
-            $stmt = $pdo->prepare("SELECT id FROM tenants WHERE domain = ?");
-            $stmt->execute([$domain]);
+            // Verificar que el dominio no exista ya (incluir variante www)
+            $stmt = $pdo->prepare("SELECT id FROM tenants WHERE domain = ? OR domain = ?");
+            $stmt->execute([$domain, 'www.' . $domain]);
             if ($stmt->fetch()) {
                 return ['success' => false, 'error' => 'Este dominio ya está registrado en el sistema'];
             }
+
+            // Verificar en domain_aliases
+            try {
+                $stmt = $pdo->prepare("SELECT id FROM domain_aliases WHERE domain = ? OR domain = ?");
+                $stmt->execute([$domain, 'www.' . $domain]);
+                if ($stmt->fetch()) {
+                    return ['success' => false, 'error' => 'Este dominio ya está registrado en el sistema'];
+                }
+            } catch (\Exception $e) {}
+
+            // Verificar en domain_orders
+            try {
+                $stmt = $pdo->prepare("SELECT id FROM domain_orders WHERE (domain = ? OR domain = ?) AND status NOT IN ('cancelled','failed')");
+                $stmt->execute([$domain, 'www.' . $domain]);
+                if ($stmt->fetch()) {
+                    return ['success' => false, 'error' => 'Este dominio tiene un pedido en proceso'];
+                }
+            } catch (\Exception $e) {}
 
             $pdo->beginTransaction();
 

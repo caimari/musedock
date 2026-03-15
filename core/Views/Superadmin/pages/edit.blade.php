@@ -6,18 +6,35 @@
 <div class="app-content">
   <div class="container-fluid">
     <!-- Navegación y botón añadir página -->
+    @php
+      $pagesBackUrl = !empty($editingTenant)
+          ? route('pages.index') . '?scope=tenant:' . $editingTenant->id
+          : route('pages.index');
+      $pagesBackLabel = !empty($editingTenant)
+          ? ($editingTenant->domain ?? $editingTenant->name)
+          : __('pages.pages');
+      $pagesCreateUrl = !empty($editingTenant)
+          ? route('pages.create') . '?tenant_id=' . $editingTenant->id
+          : route('pages.create');
+    @endphp
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="breadcrumb">
-        <a href="{{ route('pages.index') }}">{{ __('pages.pages') }}</a> <span class="mx-2">/</span> <span>{{ e($Page->title ?? __('pages.editing')) }}</span>
+        <a href="{{ route('pages.index') }}">{{ __('pages.pages') }}</a>
+        @if(!empty($editingTenant))
+          <span class="mx-2">/</span>
+          <a href="{{ $pagesBackUrl }}">{{ $pagesBackLabel }}</a>
+        @endif
+        <span class="mx-2">/</span>
+        <span>{{ e($Page->title ?? __('pages.editing')) }}</span>
       </div>
       <div class="d-flex gap-2">
         <a href="/musedock/pages/{{ $Page->id }}/revisions" class="btn btn-sm btn-outline-secondary" title="{{ __('pages.view_revisions') }}">
           <i class="bi bi-clock-history me-1"></i> {{ __('pages.revisions') }} @if(isset($Page->revision_count) && $Page->revision_count > 0)({{ $Page->revision_count }})@endif
         </a>
-        <a href="/musedock/pages/trash" class="btn btn-sm btn-outline-danger" title="{{ __('pages.view_trash') }}">
-          <i class="bi bi-trash me-1"></i> {{ __('pages.trash') }}
+        <a href="{{ $pagesBackUrl }}" class="btn btn-sm btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> {{ $pagesBackLabel }}
         </a>
-        <a href="{{ route('pages.create') }}" class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i> {{ __('pages.add_page') }}</a>
+        <a href="{{ $pagesCreateUrl }}" class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i> {{ __('pages.add_page') }}</a>
       </div>
     </div>
 

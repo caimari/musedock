@@ -179,7 +179,7 @@
 
     <div class="row g-4 mb-4">
         <!-- Top Páginas -->
-        <div class="col-lg-6">
+        <div class="col-lg-8">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3">
                     <h5 class="mb-0">
@@ -187,48 +187,35 @@
                     </h5>
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
+                    <div class="table-responsive" id="pagesScrollContainer" style="max-height: 600px; overflow-y: auto;">
                         <table class="table table-hover mb-0">
-                            <thead class="table-light">
+                            <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
                                 <tr>
                                     <th>Página</th>
-                                    <th class="text-end">Visitas</th>
-                                    <th class="text-end">Únicos</th>
+                                    <th class="text-end sortable-col" data-sort="unique_visitors" style="cursor:pointer; user-select:none;">
+                                        Únicos <i class="bi bi-arrow-down-up text-muted" style="font-size:0.75em;"></i>
+                                    </th>
+                                    <th class="text-end sortable-col" data-sort="visits" style="cursor:pointer; user-select:none;">
+                                        Visitas <i class="bi bi-arrow-down-up text-muted" style="font-size:0.75em;"></i>
+                                    </th>
                                     <th class="text-end">Tiempo Prom.</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <?php if (empty($topPages)): ?>
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted py-4">
-                                        No hay datos disponibles
-                                    </td>
-                                </tr>
-                                <?php else: ?>
-                                    <?php foreach ($topPages as $page): ?>
-                                    <tr>
-                                        <td>
-                                            <div class="text-truncate" style="max-width: 300px;" title="<?= htmlspecialchars($page['page_url']) ?>">
-                                                <strong><?= htmlspecialchars($page['page_title'] ?: 'Sin título') ?></strong>
-                                                <br>
-                                                <small class="text-muted"><?= htmlspecialchars($page['page_url']) ?></small>
-                                            </div>
-                                        </td>
-                                        <td class="text-end"><?= number_format($page['visits']) ?></td>
-                                        <td class="text-end"><?= number_format($page['unique_visitors']) ?></td>
-                                        <td class="text-end"><?= gmdate("i:s", $page['avg_time'] ?? 0) ?></td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </tbody>
+                            <tbody id="pagesTableBody"></tbody>
                         </table>
+                        <div id="pagesEnd" class="text-center py-2 text-muted small" style="display: none;">
+                            Mostrando todos los resultados
+                        </div>
                     </div>
                 </div>
+                <script>
+                var _pagesData = <?= json_encode($topPages ?? []) ?>;
+                </script>
             </div>
         </div>
 
         <!-- Top Países -->
-        <div class="col-lg-6">
+        <div class="col-lg-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3">
                     <h5 class="mb-0">
@@ -295,7 +282,7 @@
     </div>
 
     <div class="row g-4 mb-4">
-        <!-- Fuentes de Tráfico -->
+        <!-- Fuentes de Tráfico Externas -->
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3">
@@ -306,22 +293,73 @@
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
                         <?php
-                        $trafficLabels = ['search'=>'Buscadores','social'=>'Redes Sociales','direct'=>'Directo','referral'=>'Referencias'];
-                        $totalTraffic = array_sum(array_column($trafficSources, 'visits'));
-                        if (empty($trafficSources)): ?>
+                        $trafficLabels = ['search'=>'Buscadores','social'=>'Redes Sociales','direct'=>'Directo','referral'=>'Referencias externas','internal'=>'Navegación interna'];
+                        $trafficIcons = ['search'=>'bi-search','social'=>'bi-share','direct'=>'bi-cursor','referral'=>'bi-link-45deg','internal'=>'bi-arrow-repeat'];
+                        $trafficColors = ['search'=>'success','social'=>'bi-info','direct'=>'primary','referral'=>'warning','internal'=>'secondary'];
+
+                        // Separar externas e internas
+                        $externalSources = [];
+                        $internalSources = [];
+                        foreach ($trafficSources as $source) {
+                            $type = $source['referrer_type'] ?? 'direct';
+                            if ($type === 'internal') {
+                                $internalSources[] = $source;
+                            } else {
+                                $externalSources[] = $source;
+                            }
+                        }
+
+                        // Agrupar externas por tipo
+                        $byType = [];
+                        foreach ($externalSources as $source) {
+                            $type = $source['referrer_type'] ?? 'direct';
+                            if (!isset($byType[$type])) $byType[$type] = ['visits' => 0, 'sources' => []];
+                            $byType[$type]['visits'] += $source['visits'];
+                            if (!empty($source['referrer_domain'])) {
+                                $byType[$type]['sources'][] = $source;
+                            }
+                        }
+
+                        $totalExternal = array_sum(array_column($externalSources, 'visits'));
+
+                        if (empty($externalSources)): ?>
                         <div class="list-group-item text-center text-muted py-4">No hay datos</div>
                         <?php else:
-                            foreach ($trafficSources as $source):
-                                $pct = $totalTraffic > 0 ? ($source['visits'] / $totalTraffic) * 100 : 0;
+                            foreach ($byType as $type => $data):
+                                $pct = $totalExternal > 0 ? ($data['visits'] / $totalExternal) * 100 : 0;
+                                $icon = $trafficIcons[$type] ?? 'bi-globe';
+                                $color = $trafficColors[$type] ?? 'secondary';
+                                $label = $trafficLabels[$type] ?? $type;
                         ?>
                         <div class="list-group-item">
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span><?= $trafficLabels[$source['referrer_type']] ?? $source['referrer_type'] ?></span>
-                                <strong><?= number_format($source['visits']) ?></strong>
+                                <span><i class="bi <?= $icon ?> me-1 text-<?= $color ?>"></i> <?= $label ?></span>
+                                <strong><?= number_format($data['visits']) ?></strong>
                             </div>
-                            <div class="progress" style="height: 4px;">
-                                <div class="progress-bar bg-primary" style="width: <?= $pct ?>%"></div>
+                            <div class="progress mb-1" style="height: 4px;">
+                                <div class="progress-bar bg-<?= $color ?>" style="width: <?= $pct ?>%"></div>
                             </div>
+                            <?php if (!empty($data['sources'])): ?>
+                            <div class="mt-1">
+                                <?php foreach ($data['sources'] as $src): ?>
+                                <div class="d-flex justify-content-between align-items-center ps-3" style="font-size: 0.82em;">
+                                    <span class="text-truncate" style="max-width: 70%;">
+                                        <?php
+                                        $srcUrl = 'https://' . ($src['referrer_domain'] ?? '');
+                                        $srcLabel = $src['referrer_domain'] ?? '';
+                                        if ($type === 'search' && !empty($src['search_engine'])) {
+                                            $srcLabel = ucfirst($src['search_engine']);
+                                        }
+                                        ?>
+                                        <a href="<?= htmlspecialchars($srcUrl) ?>" target="_blank" rel="noopener" class="text-decoration-none text-muted" title="<?= htmlspecialchars($src['referrer_domain'] ?? '') ?>">
+                                            <i class="bi <?= $type === 'search' ? 'bi-search' : 'bi-box-arrow-up-right' ?> me-1"></i><?= htmlspecialchars($srcLabel) ?>
+                                        </a>
+                                    </span>
+                                    <span class="text-muted"><?= number_format($src['visits']) ?></span>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php endif; ?>
                         </div>
                         <?php endforeach; endif; ?>
                     </div>
@@ -329,6 +367,45 @@
             </div>
         </div>
 
+        <!-- Navegación Interna (entre dominios propios) -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">
+                        <i class="bi bi-arrow-repeat me-2"></i>Navegación Interna
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <?php
+                        $totalInternal = array_sum(array_column($internalSources, 'visits'));
+                        if (empty($internalSources)): ?>
+                        <div class="list-group-item text-center text-muted py-4">No hay datos</div>
+                        <?php else:
+                            foreach ($internalSources as $src):
+                                $pct = $totalInternal > 0 ? ($src['visits'] / $totalInternal) * 100 : 0;
+                        ?>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-truncate" style="max-width: 70%;">
+                                    <a href="https://<?= htmlspecialchars($src['referrer_domain'] ?? '') ?>" target="_blank" rel="noopener" class="text-decoration-none">
+                                        <i class="bi bi-globe me-1"></i><?= htmlspecialchars($src['referrer_domain'] ?? 'Desconocido') ?>
+                                    </a>
+                                </span>
+                                <strong><?= number_format($src['visits']) ?></strong>
+                            </div>
+                            <div class="progress" style="height: 4px;">
+                                <div class="progress-bar bg-secondary" style="width: <?= $pct ?>%"></div>
+                            </div>
+                        </div>
+                        <?php endforeach; endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
         <!-- Dispositivos -->
         <div class="col-lg-3">
             <div class="card border-0 shadow-sm h-100">
@@ -433,6 +510,111 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(function() {});
     }, 30000);
+
+    // Tabla de páginas con scroll progresivo y columnas ordenables
+    (function() {
+        var container = document.getElementById('pagesScrollContainer');
+        var tbody = document.getElementById('pagesTableBody');
+        var endMsg = document.getElementById('pagesEnd');
+        if (!container || !tbody || !window._pagesData) return;
+
+        var allData = _pagesData;
+        var displayed = 0;
+        var BATCH = 30;
+        var currentSort = '';
+        var sortDir = 'asc';
+
+        function escHtml(s) {
+            var d = document.createElement('div');
+            d.textContent = s || '';
+            return d.innerHTML;
+        }
+
+        function renderRow(page) {
+            var domain = page.tenant_domain || '';
+            var fullUrl = domain ? 'https://' + domain + page.page_url : page.page_url;
+            var title = page.page_title || page.page_url.replace(/^\//, '') || 'Inicio';
+            if (title === '/' || !title) title = 'Inicio';
+            var avg = parseFloat(page.avg_time) || 0;
+            var mins = Math.floor(avg / 60);
+            var secs = Math.floor(avg % 60);
+            var avgTime = String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
+
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td><div class="text-truncate" style="max-width:550px;" title="' + escHtml(fullUrl) + '">' +
+                '<a href="' + escHtml(fullUrl) + '" target="_blank" rel="noopener" class="text-decoration-none"><strong>' + escHtml(title) + '</strong></a>' +
+                '<br><small class="text-muted">' + escHtml(domain + page.page_url) + '</small></div></td>' +
+                '<td class="text-end">' + Number(page.unique_visitors).toLocaleString() + '</td>' +
+                '<td class="text-end">' + Number(page.visits).toLocaleString() + '</td>' +
+                '<td class="text-end">' + avgTime + '</td>';
+            return tr;
+        }
+
+        function renderBatch() {
+            var end = Math.min(displayed + BATCH, allData.length);
+            for (var i = displayed; i < end; i++) {
+                tbody.appendChild(renderRow(allData[i]));
+            }
+            displayed = end;
+            endMsg.style.display = displayed >= allData.length ? 'block' : 'none';
+        }
+
+        function renderAll() {
+            tbody.innerHTML = '';
+            displayed = 0;
+            endMsg.style.display = 'none';
+            if (allData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No hay datos</td></tr>';
+                return;
+            }
+            renderBatch();
+        }
+
+        function sortData(field) {
+            if (currentSort === field) {
+                sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+            } else {
+                currentSort = field;
+                sortDir = 'desc';
+            }
+            allData.sort(function(a, b) {
+                var va = Number(a[field]) || 0;
+                var vb = Number(b[field]) || 0;
+                return sortDir === 'desc' ? vb - va : va - vb;
+            });
+
+            // Actualizar iconos
+            document.querySelectorAll('.sortable-col i').forEach(function(icon) {
+                icon.className = 'bi bi-arrow-down-up text-muted';
+                icon.style.fontSize = '0.75em';
+            });
+            var activeCol = document.querySelector('[data-sort="' + field + '"] i');
+            if (activeCol) {
+                activeCol.className = 'bi ' + (sortDir === 'desc' ? 'bi-sort-down-alt' : 'bi-sort-up-alt') + ' text-primary';
+            }
+
+            renderAll();
+        }
+
+        // Click en columnas ordenables
+        document.querySelectorAll('.sortable-col').forEach(function(th) {
+            th.addEventListener('click', function() {
+                sortData(th.getAttribute('data-sort'));
+            });
+        });
+
+        // Scroll progresivo
+        container.addEventListener('scroll', function() {
+            if (displayed >= allData.length) return;
+            if (container.scrollTop + container.clientHeight >= container.scrollHeight - 80) {
+                renderBatch();
+            }
+        });
+
+        // Render inicial ordenado por únicos
+        sortData('unique_visitors');
+    })();
 });
 </script>
 @endpush

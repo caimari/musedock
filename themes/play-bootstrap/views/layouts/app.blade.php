@@ -52,6 +52,9 @@
         $seoKeywords = \Screenart\Musedock\View::yieldSection('keywords') ?: $_siteKeywords;
         $ogTitle = \Screenart\Musedock\View::yieldSection('og_title') ?: $_siteName;
         $ogDescription = \Screenart\Musedock\View::yieldSection('og_description') ?: $_siteDescription;
+        $ogImage = trim(\Screenart\Musedock\View::yieldSection('og_image', ''));
+        $ogType = trim(\Screenart\Musedock\View::yieldSection('og_type', '')) ?: 'website';
+        $canonicalUrl = trim(\Screenart\Musedock\View::yieldSection('canonical_url', ''));
         $robotsDirective = trim(\Screenart\Musedock\View::yieldSection('robots', ''));
 
         if ($_blogPublic == '0' && empty($robotsDirective)) {
@@ -60,6 +63,7 @@
 
         $twitterTitle = \Screenart\Musedock\View::yieldSection('twitter_title') ?: $_siteName;
         $twitterDescription = \Screenart\Musedock\View::yieldSection('twitter_description') ?: ($_twitterDescription ?: $_siteDescription);
+        $twitterImage = trim(\Screenart\Musedock\View::yieldSection('twitter_image', ''));
     @endphp
 
     @if($seoKeywords)
@@ -81,9 +85,16 @@
     @if($_siteName)
     <meta property="og:site_name" content="{{ $_siteName }}">
     @endif
-    <meta property="og:type" content="website">
-    @if($_ogImage)
+    <meta property="og:type" content="{{ $ogType }}">
+    @if($ogImage)
+    <meta property="og:image" content="{{ $ogImage }}">
+    @elseif($_ogImage)
     <meta property="og:image" content="{{ asset($_ogImage) }}">
+    @endif
+    @if($canonicalUrl)
+    <link rel="canonical" href="{{ $canonicalUrl }}">
+    @else
+    <link rel="canonical" href="{{ url($_SERVER['REQUEST_URI']) }}">
     @endif
 
     {{-- Twitter/X Cards --}}
@@ -97,7 +108,9 @@
     @if($_twitterSite)
     <meta name="twitter:site" content="{{ $_twitterSite }}">
     @endif
-    @if($_twitterImage)
+    @if($twitterImage)
+    <meta name="twitter:image" content="{{ $twitterImage }}">
+    @elseif($_twitterImage)
     <meta name="twitter:image" content="{{ asset($_twitterImage) }}">
     @elseif($_ogImage)
     <meta name="twitter:image" content="{{ asset($_ogImage) }}">
@@ -177,6 +190,12 @@
             --footer-icon-color: {{ themeOption('footer.footer_icon_color', '#3056d3') }};
             --footer-border-color: {{ themeOption('footer.footer_border_color', '#e5e5e5') }};
         }
+        /* Embeds de video responsive */
+        .post-content iframe, .ud-article-content iframe, article iframe { max-width: 100%; border: 0; }
+        .post-content iframe[src*="youtube"], .post-content iframe[src*="vimeo"],
+        .ud-article-content iframe[src*="youtube"], .ud-article-content iframe[src*="vimeo"],
+        article iframe[src*="youtube"], article iframe[src*="vimeo"] { width: 100%; aspect-ratio: 16 / 9; height: auto; }
+        .post-content video, .ud-article-content video, article video { max-width: 100%; height: auto; }
     </style>
 
     @stack('styles')

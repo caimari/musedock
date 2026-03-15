@@ -18,6 +18,28 @@ Route::any('/media/t/{token}', 'MediaManager\Controllers\MediaServeController@se
 Route::any('/media/file/{path:.*}', 'MediaManager\Controllers\MediaServeController@serve')->name('media.serve');
 Route::any('/media/id/{id}', 'MediaManager\Controllers\MediaServeController@serveById')->name('media.serve.id');
 Route::any('/media/thumb/{path:.*}', 'MediaManager\Controllers\MediaServeController@serveThumbnail')->name('media.serve.thumb');
+
+// Ruta pública para avatares de autores (sin autenticación)
+Route::get('/author-avatar/{filename}', function($filename) {
+    $filename = basename($filename);
+    if (!preg_match('/^[a-zA-Z0-9_-]+\.(jpg|jpeg|png|gif|webp)$/i', $filename)) {
+        http_response_code(403);
+        exit;
+    }
+    $avatarPath = APP_ROOT . '/storage/avatars/' . $filename;
+    if (!file_exists($avatarPath)) {
+        http_response_code(404);
+        exit;
+    }
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mimeType = finfo_file($finfo, $avatarPath);
+    finfo_close($finfo);
+    header('Content-Type: ' . $mimeType);
+    header('Content-Length: ' . filesize($avatarPath));
+    header('Cache-Control: public, max-age=86400');
+    readfile($avatarPath);
+    exit;
+});
 // ============================================================================
 
 // 1. Resolver tenant manualmente una vez
@@ -67,6 +89,18 @@ Route::get('/storage/{type}/{filename}', 'StorageController@serve')->name('stora
 Route::get('/feed', 'Blog\Controllers\Frontend\FeedController@index')->name('blog.feed.main');
 Route::get('/feed.xml', 'Blog\Controllers\Frontend\FeedController@index')->name('blog.feed.xml.main');
 Route::get('/rss', 'Blog\Controllers\Frontend\FeedController@index')->name('blog.rss.main');
+// ============================================================================
+
+// ============================================================================
+// SITEMAP XML
+// ============================================================================
+Route::get('/sitemap.xml', 'Blog\Controllers\Frontend\SitemapController@index')->name('sitemap.xml.main');
+// ============================================================================
+
+// ============================================================================
+// ROBOTS.TXT
+// ============================================================================
+Route::get('/robots.txt', 'Blog\Controllers\Frontend\RobotsController@index')->name('robots.txt.main');
 // ============================================================================
 
 // Ruta específica para /p (sin barra final)

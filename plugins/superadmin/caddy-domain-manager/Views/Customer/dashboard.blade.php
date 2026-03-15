@@ -264,6 +264,9 @@
             <button class="btn btn-sm btn-outline-secondary" onclick="runHealthCheck(<?= $tenant['id'] ?>, '<?= htmlspecialchars($tenant['domain']) ?>')">
                 <i class="bi bi-heart-pulse"></i> Verificar
             </button>
+            <button class="btn btn-sm btn-outline-info" onclick="toggleAliasPanel(<?= $tenant['id'] ?>, '<?= htmlspecialchars($tenant['domain']) ?>')">
+                <i class="bi bi-link-45deg"></i> Alias
+            </button>
             <?php elseif ($tenant['status'] === 'waiting_ns_change'): ?>
             <span class="text-warning small">
                 <i class="bi bi-hourglass-split"></i> Esperando cambio de nameservers...
@@ -291,6 +294,38 @@
                 </button>
                 <?php endif; ?>
             <?php endif; ?>
+        </div>
+
+        <!-- Panel de Aliases (oculto por defecto) -->
+        <div class="alias-panel d-none" id="alias-panel-<?= $tenant['id'] ?>" style="margin-top: 14px; padding-top: 14px; border-top: 1px solid #e5e7eb;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <strong style="font-size: 0.9rem;"><i class="bi bi-link-45deg"></i> Alias de Dominio</strong>
+                <span class="badge bg-secondary" id="alias-count-<?= $tenant['id'] ?>">...</span>
+            </div>
+
+            <div id="alias-list-<?= $tenant['id'] ?>" style="margin-bottom: 10px;">
+                <small class="text-muted">Cargando...</small>
+            </div>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <input type="text" class="form-control form-control-sm" id="alias-input-<?= $tenant['id'] ?>"
+                       placeholder="midominio.com" style="max-width: 220px; font-size: 0.85rem;"
+                       onkeypress="if(event.key==='Enter'){event.preventDefault();submitAlias(<?= $tenant['id'] ?>)}">
+                <div class="form-check form-check-inline" style="margin-bottom: 0;">
+                    <input type="checkbox" class="form-check-input" id="alias-www-<?= $tenant['id'] ?>" checked style="margin-top: 3px;">
+                    <label class="form-check-label" style="font-size: 0.8rem;" for="alias-www-<?= $tenant['id'] ?>">www</label>
+                </div>
+                <div class="form-check form-check-inline" style="margin-bottom: 0;">
+                    <input type="checkbox" class="form-check-input" id="alias-skipcf-<?= $tenant['id'] ?>" style="margin-top: 3px;">
+                    <label class="form-check-label" style="font-size: 0.8rem;" for="alias-skipcf-<?= $tenant['id'] ?>">Sin Cloudflare</label>
+                </div>
+                <button class="btn btn-sm btn-primary" onclick="submitAlias(<?= $tenant['id'] ?>)">
+                    <i class="bi bi-plus-lg"></i> Añadir
+                </button>
+            </div>
+            <div style="margin-top: 6px;">
+                <small class="text-muted"><i class="bi bi-info-circle"></i> Marca "Sin Cloudflare" si el dominio ya apunta a nuestro servidor.</small>
+            </div>
         </div>
     </div>
     <?php endforeach; ?>
@@ -619,6 +654,178 @@ function runHealthCheck(tenantId, domain) {
                 confirmButtonColor: '#667eea'
             });
         });
+}
+
+// ============================================
+// Domain Alias Management
+// ============================================
+const csrfToken = '<?= csrf_token() ?>';
+
+function toggleAliasPanel(tenantId, domain) {
+    const panel = document.getElementById('alias-panel-' + tenantId);
+    if (panel.classList.contains('d-none')) {
+        panel.classList.remove('d-none');
+        loadAliases(tenantId);
+    } else {
+        panel.classList.add('d-none');
+    }
+}
+
+function loadAliases(tenantId) {
+    const listEl = document.getElementById('alias-list-' + tenantId);
+    const countEl = document.getElementById('alias-count-' + tenantId);
+
+    fetch(`/customer/tenant/${tenantId}/aliases`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                listEl.innerHTML = '<small class="text-danger">Error cargando aliases.</small>';
+                countEl.textContent = '0';
+                return;
+            }
+
+            const aliases = data.aliases || [];
+            countEl.textContent = aliases.length;
+
+            if (aliases.length === 0) {
+                listEl.innerHTML = '<small class="text-muted">No hay alias configurados. Añade un dominio propio para que apunte a este sitio.</small>';
+                return;
+            }
+
+            let html = '';
+            aliases.forEach(a => {
+                const statusBadge = a.status === 'active'
+                    ? '<span class="badge bg-success" style="font-size:0.7rem">activo</span>'
+                    : a.status === 'error'
+                    ? '<span class="badge bg-danger" style="font-size:0.7rem" title="' + (a.error_log || '') + '">error</span>'
+                    : '<span class="badge bg-warning text-dark" style="font-size:0.7rem">' + a.status + '</span>';
+
+                const cfBadge = (!a.cloudflare_zone_id && !a.cloudflare_record_id)
+                    ? '<span class="badge bg-dark" style="font-size:0.7rem">sin CF</span>' : '';
+
+                let nsInfo = '';
+                if (a.cloudflare_nameservers && !a.is_subdomain) {
+                    try {
+                        const ns = JSON.parse(a.cloudflare_nameservers);
+                        if (Array.isArray(ns) && ns.length) {
+                            nsInfo = '<br><small class="text-info" style="font-size:0.75rem"><i class="bi bi-exclamation-circle"></i> NS: ' + ns.join(', ') + '</small>';
+                        }
+                    } catch(e) {
+                        nsInfo = '<br><small class="text-info" style="font-size:0.75rem"><i class="bi bi-exclamation-circle"></i> NS: ' + a.cloudflare_nameservers + '</small>';
+                    }
+                }
+
+                html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f3f4f6;" id="alias-row-${a.id}">
+                    <div>
+                        <strong style="font-size:0.85rem">${a.domain}</strong>
+                        ${a.include_www == 1 ? '<small class="text-muted">+ www</small>' : ''}
+                        ${statusBadge} ${cfBadge}
+                        ${nsInfo}
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" style="padding:2px 6px;font-size:0.75rem;" onclick="removeAlias(${tenantId}, ${a.id}, '${a.domain}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>`;
+            });
+            listEl.innerHTML = html;
+        })
+        .catch(() => {
+            listEl.innerHTML = '<small class="text-danger">Error de conexión.</small>';
+            countEl.textContent = '0';
+        });
+}
+
+function submitAlias(tenantId) {
+    const input = document.getElementById('alias-input-' + tenantId);
+    const domain = input.value.trim().toLowerCase();
+    const includeWww = document.getElementById('alias-www-' + tenantId).checked;
+    const skipCf = document.getElementById('alias-skipcf-' + tenantId).checked;
+
+    if (!domain) {
+        Swal.fire({ icon: 'warning', title: 'Dominio requerido', text: 'Introduce un dominio para añadir como alias.', confirmButtonColor: '#667eea' });
+        return;
+    }
+
+    if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/.test(domain)) {
+        Swal.fire({ icon: 'warning', title: 'Formato inválido', text: 'Introduce un dominio válido (ej: midominio.com).', confirmButtonColor: '#667eea' });
+        return;
+    }
+
+    Swal.fire({ title: 'Configurando...', html: 'Añadiendo alias y configurando servidor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    const body = new URLSearchParams();
+    body.append('_csrf_token', csrfToken);
+    body.append('domain', domain);
+    body.append('include_www', includeWww ? '1' : '');
+    body.append('skip_cloudflare', skipCf ? '1' : '');
+
+    fetch(`/customer/tenant/${tenantId}/aliases/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString()
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            let msg = data.message || 'Alias añadido.';
+            if (data.nameservers && data.nameservers.length) {
+                msg += '<br><br><strong>Configura estos nameservers en tu registrador:</strong><br>';
+                msg += '<div class="bg-light p-2 rounded mt-2" style="text-align:left">';
+                data.nameservers.forEach((ns, i) => { msg += `<code>NS${i+1}: ${ns}</code><br>`; });
+                msg += '</div>';
+                msg += '<br><small class="text-muted">La propagación DNS puede tardar hasta 48h.</small>';
+            } else if (data.dns_info) {
+                msg += '<br><small class="text-muted">' + data.dns_info + '</small>';
+            }
+            Swal.fire({ icon: 'success', title: 'Alias Añadido', html: msg, confirmButtonColor: '#667eea' });
+            input.value = '';
+            loadAliases(tenantId);
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.error || 'No se pudo añadir el alias.', confirmButtonColor: '#667eea' });
+        }
+    })
+    .catch(() => {
+        Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'No se pudo conectar con el servidor.', confirmButtonColor: '#667eea' });
+    });
+}
+
+function removeAlias(tenantId, aliasId, domain) {
+    Swal.fire({
+        icon: 'warning',
+        title: 'Eliminar Alias',
+        html: `¿Seguro que deseas eliminar <strong>${domain}</strong>?`,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6c757d'
+    }).then(result => {
+        if (!result.isConfirmed) return;
+
+        Swal.fire({ title: 'Eliminando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+        const body = new URLSearchParams();
+        body.append('_csrf_token', csrfToken);
+        body.append('alias_id', aliasId);
+
+        fetch(`/customer/tenant/${tenantId}/aliases/remove`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString()
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({ icon: 'success', title: 'Eliminado', text: data.message, confirmButtonColor: '#667eea', timer: 2000, timerProgressBar: true });
+                loadAliases(tenantId);
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: data.error || 'No se pudo eliminar.', confirmButtonColor: '#667eea' });
+            }
+        })
+        .catch(() => {
+            Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'No se pudo conectar.', confirmButtonColor: '#667eea' });
+        });
+    });
 }
 </script>
 @endsection

@@ -50,7 +50,7 @@
                             @endphp
                             @if($blogPublic === '1')
                             <li>
-                                <a href="{{ url('/blog') }}">{{ __('navigation.blog') }}</a>
+                                <a href="{{ blog_url() }}">{{ __('navigation.blog') }}</a>
                             </li>
                             @endif
                             <li>

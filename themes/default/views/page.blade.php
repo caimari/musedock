@@ -38,7 +38,7 @@
     @if(isset($post) && !empty($translation->featured_image))
         @php
             // Si la URL ya empieza con /media/ o es absoluta (http), usarla directamente
-            $ogImageUrl = (str_starts_with($translation->featured_image, '/media/') || str_starts_with($translation->featured_image, 'http'))
+            $ogImageUrl = (str_starts_with($translation->featured_image, '/') || str_starts_with($translation->featured_image, 'http'))
                 ? $translation->featured_image
                 : asset($translation->featured_image);
         @endphp
@@ -98,7 +98,7 @@
             $sliderPath = $defaultHeroImages[array_rand($defaultHeroImages)];
         }
 
-        $sliderUrl = (str_starts_with($sliderPath, '/media/') || str_starts_with($sliderPath, 'http')) ? $sliderPath : asset($sliderPath);
+        $sliderUrl = (str_starts_with($sliderPath, '/') || str_starts_with($sliderPath, 'http')) ? $sliderPath : asset($sliderPath);
     @endphp
     <!-- Cabecera Area Start-->
     <div class="slider-area">
@@ -153,7 +153,7 @@
             $heroPath = $defaultHeroImages[array_rand($defaultHeroImages)];
         }
 
-        $heroUrl = (str_starts_with($heroPath, '/media/') || str_starts_with($heroPath, 'http')) ? $heroPath : asset($heroPath);
+        $heroUrl = (str_starts_with($heroPath, '/') || str_starts_with($heroPath, 'http')) ? $heroPath : asset($heroPath);
         $heroTitle = $post->hero_title ?: ($translation->title ?? $post->title);
     @endphp
     <div class="slider-area">
@@ -217,7 +217,7 @@
             <div class="featured-image mb-4">
                 @php
                     // Si la URL ya empieza con /media/ o es absoluta (http), usarla directamente
-                    $imageUrl = (str_starts_with($translation->featured_image, '/media/') || str_starts_with($translation->featured_image, 'http'))
+                    $imageUrl = (str_starts_with($translation->featured_image, '/') || str_starts_with($translation->featured_image, 'http'))
                         ? $translation->featured_image
                         : asset($translation->featured_image);
                 @endphp
@@ -252,17 +252,7 @@
 
             {{-- Renderizar el contenido HTML con filtros aplicados (shortcodes, etc.) --}}
             <div class="page-body">
-                @php
-                    // Usar el contenido ya procesado (sin el slider a sangre si lo había)
-                    $content = $processedContent;
-	                    // Si hide_title está activado, eliminar el primer H1 del contenido
-	                    // Esto permite ocultar títulos que el usuario haya puesto manualmente en el editor
-	                    if (isset($customizations) && $customizations->hide_title) {
-	                        // No eliminar títulos de Elements (p.ej. <h1 class="hero-title">)
-	                        $content = preg_replace('/<h1(?![^>]*\bhero-title\b)[^>]*>.*?<\/h1>/s', '', $content, 1);
-	                    }
-	                @endphp
-	                {!! $content !!}
+                {!! $processedContent !!}
             </div>
         @endif
     </article>

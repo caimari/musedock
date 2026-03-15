@@ -53,9 +53,12 @@ $_contactAddress = site_setting('contact_address', '');
   @endif
   
   {{-- Open Graph (Facebook, LinkedIn, WhatsApp, etc.) --}}
-  @php 
-  $ogTitle = \Screenart\Musedock\View::yieldSection('og_title') ?: $_siteName; 
-  $ogDescription = \Screenart\Musedock\View::yieldSection('og_description') ?: $_siteDescription; 
+  @php
+  $ogTitle = \Screenart\Musedock\View::yieldSection('og_title') ?: $_siteName;
+  $ogDescription = \Screenart\Musedock\View::yieldSection('og_description') ?: $_siteDescription;
+  $ogImage = trim(\Screenart\Musedock\View::yieldSection('og_image', ''));
+  $ogType = trim(\Screenart\Musedock\View::yieldSection('og_type', '')) ?: 'website';
+  $canonicalUrl = trim(\Screenart\Musedock\View::yieldSection('canonical_url', ''));
   @endphp
   @if($ogTitle)
   <meta property="og:title" content="{{ $ogTitle }}">
@@ -63,19 +66,28 @@ $_contactAddress = site_setting('contact_address', '');
   @if($ogDescription)
   <meta property="og:description" content="{{ $ogDescription }}">
   @endif
+  <meta property="og:url" content="{{ url($_SERVER['REQUEST_URI']) }}">
   @if($_siteName)
   <meta property="og:site_name" content="{{ $_siteName }}">
   @endif
-  <meta property="og:type" content="website">
-  @if($_ogImage)
+  <meta property="og:type" content="{{ $ogType }}">
+  @if($ogImage)
+  <meta property="og:image" content="{{ $ogImage }}">
+  @elseif($_ogImage)
   <meta property="og:image" content="{{ asset($_ogImage) }}">
   @endif
-  
+  @if($canonicalUrl)
+  <link rel="canonical" href="{{ $canonicalUrl }}">
+  @else
+  <link rel="canonical" href="{{ url($_SERVER['REQUEST_URI']) }}">
+  @endif
+
   {{-- Twitter/X Cards --}}
   <meta name="twitter:card" content="summary_large_image">
-  @php 
-  $twitterTitle = \Screenart\Musedock\View::yieldSection('twitter_title') ?: $_siteName; 
-  $twitterDescription = \Screenart\Musedock\View::yieldSection('twitter_description') ?: ($_twitterDescription ?: $_siteDescription); 
+  @php
+  $twitterTitle = \Screenart\Musedock\View::yieldSection('twitter_title') ?: $_siteName;
+  $twitterDescription = \Screenart\Musedock\View::yieldSection('twitter_description') ?: ($_twitterDescription ?: $_siteDescription);
+  $twitterImage = trim(\Screenart\Musedock\View::yieldSection('twitter_image', ''));
   @endphp
   @if($twitterTitle)
   <meta name="twitter:title" content="{{ $twitterTitle }}">
@@ -86,7 +98,9 @@ $_contactAddress = site_setting('contact_address', '');
   @if($_twitterSite)
   <meta name="twitter:site" content="{{ $_twitterSite }}">
   @endif
-  @if($_twitterImage)
+  @if($twitterImage)
+  <meta name="twitter:image" content="{{ $twitterImage }}">
+  @elseif($_twitterImage)
   <meta name="twitter:image" content="{{ asset($_twitterImage) }}">
   @elseif($_ogImage)
   <meta name="twitter:image" content="{{ asset($_ogImage) }}">
@@ -140,8 +154,21 @@ $_contactAddress = site_setting('contact_address', '');
       background-color: #eef3f8;
       border-bottom: 1px solid rgba(36, 49, 65, 0.08);
     }
+    /* Embeds de video responsive */
+    .post-content iframe, article iframe { max-width: 100%; border: 0; }
+    .post-content iframe[src*="youtube"], .post-content iframe[src*="vimeo"],
+    article iframe[src*="youtube"], article iframe[src*="vimeo"] { width: 100%; aspect-ratio: 16 / 9; height: auto; }
+    .post-content video, article video { max-width: 100%; height: auto; }
+    /* Lineas separadoras mas visibles */
+    main hr {
+      margin: 2rem 0 !important;
+      border: 0 !important;
+      border-top: 5px solid #bbb !important;
+      height: 0 !important;
+      opacity: 1 !important;
+    }
   </style>
-  
+
   {{-- Additional CSS for theme customization --}}
   @stack('styles')
 </head>

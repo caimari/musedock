@@ -80,9 +80,15 @@
                                 <tr>
                                     <td>
                                         <strong>{{ \Illuminate\Support\Str::limit($item->post_title ?? '', 50) }}</strong>
+                                        <br>
+                                        @if(!empty($item->adapt))
+                                            <span class="badge bg-success-subtle text-success"><i class="bi bi-stars"></i> Adaptar IA</span>
+                                        @else
+                                            <span class="badge bg-info-subtle text-info"><i class="bi bi-files"></i> Clonar</span>
+                                        @endif
                                         @if($item->translate)
-                                            <br><small class="text-info">
-                                                <i class="bi bi-translate"></i> Traducir a {{ strtoupper($item->target_language) }}
+                                            <small class="text-info ms-1">
+                                                <i class="bi bi-translate"></i> {{ strtoupper($item->target_language) }}
                                             </small>
                                         @endif
                                     </td>

@@ -89,8 +89,15 @@ class MenuController
         $stmt->execute([$tenantId]);
         $languages = $stmt->fetchAll(\PDO::FETCH_OBJ);
 
-        // Obtener el idioma por defecto
-        $defaultLanguage = setting('language', 'es');
+        // Idioma por defecto del tenant (de su tabla de settings)
+        $defaultLanguage = tenant_setting('language', $languages[0]->code ?? 'es');
+
+        // Reordenar: el idioma por defecto siempre primero
+        usort($languages, function($a, $b) use ($defaultLanguage) {
+            if ($a->code === $defaultLanguage) return -1;
+            if ($b->code === $defaultLanguage) return 1;
+            return 0;
+        });
 
         // Cargar las áreas de menú dinámicamente desde el tema activo del tenant
         $menuAreas = $this->getMenuAreasFromTheme();
@@ -228,15 +235,25 @@ class MenuController
         $stmt->execute([$tenantId]);
         $allPages = $stmt->fetchAll(\PDO::FETCH_OBJ);
 
-        // Obtener idiomas disponibles
+        // Obtener idiomas activos del tenant
         $stmt = $pdo->prepare("
             SELECT id, code, name
             FROM languages
-            WHERE active = 1
-            ORDER BY id ASC
+            WHERE tenant_id = ? AND active = 1
+            ORDER BY order_position ASC, id ASC
         ");
-        $stmt->execute();
+        $stmt->execute([$tenantId]);
         $languages = $stmt->fetchAll(\PDO::FETCH_OBJ);
+
+        // Idioma por defecto del tenant
+        $defaultLanguage = tenant_setting('language', $languages[0]->code ?? 'es');
+
+        // Reordenar: idioma por defecto primero
+        usort($languages, function($a, $b) use ($defaultLanguage) {
+            if ($a->code === $defaultLanguage) return -1;
+            if ($b->code === $defaultLanguage) return 1;
+            return 0;
+        });
 
         // Obtener la traducción actual del menú
         $stmt = $pdo->prepare("
@@ -250,7 +267,7 @@ class MenuController
         $translation = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         // Obtener el idioma actual y el título
-        $currentLocale = $translation['locale'] ?? setting('language', 'es');
+        $currentLocale = $translation['locale'] ?? $defaultLanguage;
         $menu->title = $translation['title'] ?? 'Sin título';
 
         // Cargar las áreas de menú dinámicamente desde el tema activo

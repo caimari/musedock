@@ -193,7 +193,7 @@
               <div class="mb-3">
                 <label class="form-label">{{ __('pages.base_language') }}</label>
                 <select class="form-select" name="base_locale" id="base-locale-select">
-                  @php $currentLocale = old('base_locale', $Page->base_locale); @endphp
+                  @php $currentLocale = old('base_locale', $Page->base_locale ?? tenant_setting('default_lang', 'es')); @endphp
                   @foreach (getAvailableLocales() as $code => $label)
                     <option value="{{ $code }}" @selected($currentLocale === $code)>{{ $label }}</option>
                   @endforeach
@@ -468,5 +468,9 @@
 
 {{-- TinyMCE --}}
 @include('partials._tinymce')
+
+@if(function_exists('aiimage_is_active') && aiimage_is_active())
+<script src="/assets/modules/aiimage/js/ai-image-generator.js"></script>
+@endif
 
 @endsection

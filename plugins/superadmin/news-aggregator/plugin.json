@@ -1,0 +1,17 @@
+{
+    "name": "News Aggregator",
+    "slug": "news-aggregator",
+    "description": "Panel centralizado para gestionar el News Aggregator de todos los tenants desde el CMS principal.",
+    "version": "1.0.0",
+    "author": "MuseDock Team",
+    "type": "superadmin",
+    "requires_modules": ["blog"],
+    "main_file": "routes.php",
+    "namespace": "NewsAggregatorAdmin",
+    "admin_menu": {
+        "title": "News Aggregator",
+        "icon": "bi-newspaper",
+        "route": "/musedock/news-aggregator",
+        "order": 96
+    }
+}

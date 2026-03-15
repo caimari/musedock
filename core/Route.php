@@ -259,8 +259,9 @@ public static function resolve() {
         // Rutas excluidas de CSRF (APIs públicas y rutas internas seguras)
         $csrfExcludedRoutes = [
             '/api/analytics/track',
-            '/api/webhooks/',  // Para futuros webhooks
-            '/clear-flashes',  // Limpieza de flash messages (ya verifica sesión admin internamente)
+            '/api/ai/',         // API de IA (verifica sesión internamente)
+            '/api/webhooks/',   // Para futuros webhooks
+            '/clear-flashes',   // Limpieza de flash messages (ya verifica sesión admin internamente)
         ];
 
         $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';
@@ -300,6 +301,12 @@ public static function resolve() {
     $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';
     $uri = rtrim($uri, '/');
     $uri = $uri === '' ? '/' : $uri;
+
+    // HEAD requests deben resolverse como GET (RFC 7231 §4.3.2)
+    // Esto es crítico para SEO: Google usa HEAD para verificar URLs del sitemap
+    if ($method === 'HEAD') {
+        $method = 'GET';
+    }
 
     // Solo loguear en modo debug
     $isDebug = \Screenart\Musedock\Env::get('APP_DEBUG', false);

@@ -8,21 +8,7 @@
 
         @include('plugins.news-aggregator._nav', ['activeTab' => 'settings'])
 
-        {{-- Flash Messages --}}
-        @if(session('flash_success'))
-            <div class="alert alert-success alert-dismissible fade show">
-                {{ session('flash_success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            @php unset($_SESSION['flash_success']); @endphp
-        @endif
-        @if(session('flash_error'))
-            <div class="alert alert-danger alert-dismissible fade show">
-                {{ session('flash_error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            @php unset($_SESSION['flash_error']); @endphp
-        @endif
+        @include('partials.alerts-sweetalert2')
 
         <form action="{{ admin_url('/plugins/news-aggregator/settings') }}" method="POST">
             @csrf
@@ -223,6 +209,69 @@
                             Generar categorías y etiquetas automáticamente con IA
                         </label>
                         <div class="form-text">La IA sugerirá categorías existentes y creará tags nuevos al reescribir.</div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- APIs de Investigación --}}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-search"></i> APIs de Noticias (Investigación y Fuentes API)</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        Estas API keys se usan para: <strong>1)</strong> Crear fuentes de tipo API (NewsAPI, GNews, etc.) al dar de alta un medio.
+                        <strong>2)</strong> La función "Investigar" en el detalle de cada noticia, que busca información adicional en múltiples servicios.
+                        Solo necesitas configurar las que vayas a usar. El sistema rota automáticamente entre las disponibles.
+                    </p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="currentsapi_key" class="form-label">CurrentsAPI <span class="badge bg-success">600 req/día</span></label>
+                                <input type="text" class="form-control" id="currentsapi_key" name="currentsapi_key"
+                                       value="{{ $settings['currentsapi_key'] ?? '' }}"
+                                       placeholder="Tu API key de CurrentsAPI">
+                                <div class="form-text">Obtener en <a href="https://currentsapi.services/en/register" target="_blank">currentsapi.services</a></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="newsapi_key" class="form-label">NewsAPI.org <span class="badge bg-info">100 req/día</span></label>
+                                <input type="text" class="form-control" id="newsapi_key" name="newsapi_key"
+                                       value="{{ $settings['newsapi_key'] ?? '' }}"
+                                       placeholder="Tu API key de NewsAPI">
+                                <div class="form-text">Obtener en <a href="https://newsapi.org/register" target="_blank">newsapi.org</a></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="gnews_key" class="form-label">GNews.io <span class="badge bg-info">100 req/día</span></label>
+                                <input type="text" class="form-control" id="gnews_key" name="gnews_key"
+                                       value="{{ $settings['gnews_key'] ?? '' }}"
+                                       placeholder="Tu API key de GNews">
+                                <div class="form-text">Obtener en <a href="https://gnews.io/register" target="_blank">gnews.io</a></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="thenewsapi_key" class="form-label">TheNewsAPI.com <span class="badge bg-info">100 req/día</span></label>
+                                <input type="text" class="form-control" id="thenewsapi_key" name="thenewsapi_key"
+                                       value="{{ $settings['thenewsapi_key'] ?? '' }}"
+                                       placeholder="Tu API key de TheNewsAPI">
+                                <div class="form-text">Obtener en <a href="https://www.thenewsapi.com/register" target="_blank">thenewsapi.com</a></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="mediastack_key" class="form-label">MediaStack <span class="badge bg-secondary">500 req/mes</span></label>
+                                <input type="text" class="form-control" id="mediastack_key" name="mediastack_key"
+                                       value="{{ $settings['mediastack_key'] ?? '' }}"
+                                       placeholder="Tu API key de MediaStack">
+                                <div class="form-text">Obtener en <a href="https://mediastack.com/signup" target="_blank">mediastack.com</a></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -32,7 +32,19 @@ class AnalyticsMiddleware
     private const EXCLUDED_EXTENSIONS = [
         '.css', '.js', '.map', '.jpg', '.jpeg', '.png', '.gif', '.svg',
         '.webp', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.otf',
-        '.pdf', '.zip', '.tar', '.gz', '.xml', '.json'
+        '.pdf', '.zip', '.tar', '.gz', '.xml', '.json',
+        '.php', '.php7', '.php5', '.php4', '.phtml', '.asp', '.aspx', '.jsp',
+        '.env', '.git', '.htaccess', '.htpasswd', '.sql', '.log', '.bak', '.yml', '.yaml', '.toml',
+    ];
+
+    /**
+     * Patrones de rutas de ataque/escaneo que deben ser ignoradas
+     */
+    private const ATTACK_PATTERNS = [
+        '/.env', '/.git', '/wp-', '/wordpress', '/wp-admin', '/wp-login',
+        '/phpmyadmin', '/pma', '/admin.php', '/setup-config',
+        '/xmlrpc', '/shell', '/webshell', '/backdoor', '/eval',
+        '/passwd', '/etc/passwd', '/proc/', '/config.php',
     ];
 
     /**
@@ -86,7 +98,7 @@ class AnalyticsMiddleware
         // Limpiar query string
         $pathWithoutQuery = strtok($path, '?');
 
-        // Verificar rutas excluidas
+        // Verificar rutas excluidas (panel admin)
         foreach (self::EXCLUDED_PATHS as $excludedPath) {
             if (str_starts_with($pathWithoutQuery, $excludedPath)) {
                 return true;
@@ -96,6 +108,13 @@ class AnalyticsMiddleware
         // Verificar extensiones excluidas
         foreach (self::EXCLUDED_EXTENSIONS as $extension) {
             if (str_ends_with($pathWithoutQuery, $extension)) {
+                return true;
+            }
+        }
+
+        // Verificar patrones de ataque/escaneo
+        foreach (self::ATTACK_PATTERNS as $pattern) {
+            if (stripos($pathWithoutQuery, $pattern) !== false) {
                 return true;
             }
         }

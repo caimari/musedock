@@ -83,8 +83,18 @@ class SettingsController
                 'show_title',
                 'show_subtitle',
 
+                // Idioma
+                'default_lang',
+                'force_lang',
+                'show_language_switcher',
+
                 // Footer
                 'footer_copyright',
+
+                // Custom Code (head/body)
+                'custom_head_code',
+                'custom_body_start_code',
+                'custom_body_end_code',
             ];
 
             // Procesar campos traducibles (footer_short_description)
@@ -99,7 +109,7 @@ class SettingsController
                 $value = $_POST[$key] ?? null;
 
                 // Manejar checkboxes
-                if (in_array($key, ['show_logo', 'show_title', 'show_subtitle'])) {
+                if (in_array($key, ['show_logo', 'show_title', 'show_subtitle', 'show_language_switcher'])) {
                     $value = isset($_POST[$key]) ? '1' : '0';
                 }
 
@@ -411,6 +421,17 @@ class SettingsController
             $pdo->beginTransaction();
             $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
 
+            // Blog URL prefix
+            $blogUrlMode = $_POST['blog_url_mode'] ?? 'prefix';
+            if ($blogUrlMode === 'none') {
+                $blogUrlPrefix = '';
+            } else {
+                $blogUrlPrefix = preg_replace('/[^a-z0-9\-]/', '', strtolower(trim($_POST['blog_url_prefix'] ?? 'blog')));
+                if ($blogUrlPrefix === '') {
+                    $blogUrlPrefix = 'blog';
+                }
+            }
+
             // Settings de lectura
             $readingSettings = [
                 'show_on_front' => $_POST['show_on_front'] ?? 'posts',
@@ -419,6 +440,8 @@ class SettingsController
                 'posts_per_page' => $_POST['posts_per_page'] ?? '10',
                 'posts_per_rss' => $_POST['posts_per_rss'] ?? '10',
                 'blog_public' => isset($_POST['blog_public']) ? '0' : '1',
+                'blog_show_views' => isset($_POST['blog_show_views']) ? '1' : '0',
+                'blog_url_prefix' => $blogUrlPrefix,
             ];
 
             foreach ($readingSettings as $key => $value) {
@@ -433,6 +456,14 @@ class SettingsController
                 $stmt = $pdo->prepare("UPDATE pages SET is_homepage = 1 WHERE id = ? AND tenant_id = ?");
                 $stmt->execute([$readingSettings['page_on_front'], $tenantId]);
             }
+
+            // Actualizar el prefix de todos los slugs de blog existentes
+            $newPrefix = $blogUrlPrefix ?: null;
+            $stmt = $pdo->prepare("
+                UPDATE slugs SET prefix = ?
+                WHERE tenant_id = ? AND module = 'blog'
+            ");
+            $stmt->execute([$newPrefix, $tenantId]);
 
             $pdo->commit();
             clear_tenant_settings_cache();
@@ -714,5 +745,206 @@ class SettingsController
         } else {
             throw new \Exception('Error al subir la imagen Open Graph');
         }
+    }
+
+    /**
+     * Muestra la página de ajustes de Email SMTP del tenant
+     */
+    public function email()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.view');
+
+        $tenantId = tenant_id();
+        if (!$tenantId) {
+            $_SESSION['error'] = 'No se ha detectado el tenant actual';
+            header('Location: /' . admin_path());
+            exit;
+        }
+
+        $settings = $this->getTenantSettings($tenantId);
+
+        return View::renderTenantAdmin('settings/email', [
+            'title' => 'Configuración de Email',
+            'settings' => $settings,
+        ]);
+    }
+
+    /**
+     * Guarda los ajustes de Email SMTP del tenant
+     */
+    public function updateEmail()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.edit');
+
+        $tenantId = tenant_id();
+        if (!$tenantId) {
+            $_SESSION['error'] = 'No se ha detectado el tenant actual';
+            header('Location: /' . admin_path());
+            exit;
+        }
+
+        try {
+            $pdo = Database::connect();
+            $pdo->beginTransaction();
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+            $emailSettings = [
+                'smtp_host'         => trim($_POST['smtp_host'] ?? ''),
+                'smtp_port'         => (int)($_POST['smtp_port'] ?? 587),
+                'smtp_username'     => trim($_POST['smtp_username'] ?? ''),
+                'smtp_encryption'   => in_array($_POST['smtp_encryption'] ?? 'tls', ['tls', 'ssl', '']) ? ($_POST['smtp_encryption'] ?? 'tls') : 'tls',
+                'mail_from_address' => trim($_POST['mail_from_address'] ?? ''),
+                'mail_from_name'    => trim($_POST['mail_from_name'] ?? ''),
+            ];
+
+            // Solo actualizar contraseña si se proporcionó una nueva
+            if (!empty($_POST['smtp_password'])) {
+                $emailSettings['smtp_password'] = $_POST['smtp_password'];
+            }
+
+            foreach ($emailSettings as $key => $value) {
+                $this->saveTenantSetting($pdo, $tenantId, $key, (string)$value, $driver);
+            }
+
+            $pdo->commit();
+            clear_tenant_settings_cache();
+
+            $_SESSION['success'] = 'Configuración de email guardada correctamente';
+        } catch (\Exception $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log("Error updating tenant email settings: " . $e->getMessage());
+            $_SESSION['error'] = 'Error al guardar la configuración de email';
+        }
+
+        header('Location: /' . admin_path() . '/settings/email');
+        exit;
+    }
+
+    /**
+     * Muestra la página de ajustes de Storage del tenant
+     */
+    public function storage()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.view');
+
+        $tenantId = tenant_id();
+        if (!$tenantId) {
+            $_SESSION['error'] = 'No se ha detectado el tenant actual';
+            header('Location: /' . admin_path());
+            exit;
+        }
+
+        // Cuota y uso de storage del tenant
+        $storageQuota = null;
+        $storageUsedBytes = null;
+        try {
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("SELECT storage_quota_mb, storage_used_bytes FROM tenants WHERE id = ? LIMIT 1");
+            $stmt->execute([$tenantId]);
+            $row = $stmt->fetch(\PDO::FETCH_OBJ);
+            $storageQuota = $row ? $row->storage_quota_mb : null;
+            $storageUsedBytes = $row ? $row->storage_used_bytes : null;
+        } catch (\Exception $e) {
+            // silencioso
+        }
+
+        return View::renderTenantAdmin('settings/storage', [
+            'title' => 'Almacenamiento',
+            'storageQuota' => $storageQuota,
+            'storageUsedBytes' => $storageUsedBytes,
+        ]);
+    }
+
+    /**
+     * Guarda los ajustes de Storage del tenant
+     */
+    public function updateStorage()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.edit');
+
+        $tenantId = tenant_id();
+        if (!$tenantId) {
+            $_SESSION['error'] = 'No se ha detectado el tenant actual';
+            header('Location: /' . admin_path());
+            exit;
+        }
+
+        try {
+            $pdo = Database::connect();
+            $pdo->beginTransaction();
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+            $disk = in_array($_POST['filesystem_disk'] ?? 'local', ['local', 'r2', 's3', 'ionos']) ? ($_POST['filesystem_disk'] ?? 'local') : 'local';
+            $this->saveTenantSetting($pdo, $tenantId, 'filesystem_disk', $disk, $driver);
+
+            // Credenciales R2
+            if ($disk === 'r2') {
+                $r2Settings = [
+                    'r2_access_key_id' => trim($_POST['r2_access_key_id'] ?? ''),
+                    'r2_bucket'        => trim($_POST['r2_bucket'] ?? ''),
+                    'r2_endpoint'      => trim($_POST['r2_endpoint'] ?? ''),
+                    'r2_url'           => trim($_POST['r2_url'] ?? ''),
+                ];
+                if (!empty($_POST['r2_secret_access_key'])) {
+                    $r2Settings['r2_secret_access_key'] = $_POST['r2_secret_access_key'];
+                }
+                foreach ($r2Settings as $k => $v) {
+                    $this->saveTenantSetting($pdo, $tenantId, $k, $v, $driver);
+                }
+            }
+
+            // Credenciales S3
+            if ($disk === 's3') {
+                $s3Settings = [
+                    'aws_access_key_id'    => trim($_POST['aws_access_key_id'] ?? ''),
+                    'aws_default_region'   => trim($_POST['aws_default_region'] ?? 'eu-west-1'),
+                    'aws_bucket'           => trim($_POST['aws_bucket'] ?? ''),
+                    'aws_url'              => trim($_POST['aws_url'] ?? ''),
+                ];
+                if (!empty($_POST['aws_secret_access_key'])) {
+                    $s3Settings['aws_secret_access_key'] = $_POST['aws_secret_access_key'];
+                }
+                foreach ($s3Settings as $k => $v) {
+                    $this->saveTenantSetting($pdo, $tenantId, $k, $v, $driver);
+                }
+            }
+
+            // Credenciales IONOS
+            if ($disk === 'ionos') {
+                $ionosSettings = [
+                    'ionos_access_key_id' => trim($_POST['ionos_access_key_id'] ?? ''),
+                    'ionos_bucket'        => trim($_POST['ionos_bucket'] ?? ''),
+                    'ionos_region'        => trim($_POST['ionos_region'] ?? 'de'),
+                    'ionos_endpoint'      => trim($_POST['ionos_endpoint'] ?? ''),
+                    'ionos_url'           => trim($_POST['ionos_url'] ?? ''),
+                ];
+                if (!empty($_POST['ionos_secret_access_key'])) {
+                    $ionosSettings['ionos_secret_access_key'] = $_POST['ionos_secret_access_key'];
+                }
+                foreach ($ionosSettings as $k => $v) {
+                    $this->saveTenantSetting($pdo, $tenantId, $k, $v, $driver);
+                }
+            }
+
+            $pdo->commit();
+            clear_tenant_settings_cache();
+
+            $_SESSION['success'] = 'Configuración de storage guardada correctamente';
+        } catch (\Exception $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log("Error updating tenant storage settings: " . $e->getMessage());
+            $_SESSION['error'] = 'Error al guardar la configuración de storage';
+        }
+
+        header('Location: /' . admin_path() . '/settings/storage');
+        exit;
     }
 }

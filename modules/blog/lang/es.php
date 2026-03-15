@@ -20,8 +20,11 @@ return [
     'published_on' => 'Publicado el',
     'author' => 'Autor',
     'category' => 'Categoría',
+    'tag' => 'Etiqueta',
     'share' => 'Compartir',
     'related_posts' => 'Posts Relacionados',
+    'popular_tags' => 'Etiquetas Populares',
+    'popular_categories' => 'Categorias',
 
     // Sidebar
     'search' => 'Buscar',
@@ -35,6 +38,13 @@ return [
     'leave_comment' => 'Dejar un Comentario',
     'your_comment' => 'Tu Comentario',
     'post_comment' => 'Publicar Comentario',
+
+    // Stats
+    'views' => 'Vistas',
+
+    // Autor
+    'posts_by' => 'Posts de',
+    'author_bio' => 'Sobre el autor',
 
     // Meta
     'posted_in' => 'Publicado en',

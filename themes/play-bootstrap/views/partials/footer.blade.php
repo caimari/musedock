@@ -291,7 +291,7 @@
                             <ul class="ud-widget-links">
                                 @foreach($latestPosts as $post)
                                 <li>
-                                    <a href="{{ url('/blog/' . $post['slug']) }}" style="color: var(--footer-link-color);">
+                                    <a href="{{ blog_url($post['slug']) }}" style="color: var(--footer-link-color);">
                                         {{ $post['title'] }}
                                     </a>
                                 </li>

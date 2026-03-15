@@ -91,7 +91,8 @@
                   @enderror
                 </div>
                 <small class="text-muted mt-1 d-inline-block">
-                  URL: <a href="{{ config('app.url') }}/blog/{{ $post->slug }}" target="_blank">{{ config('app.url') }}/blog/{{ $post->slug }}</a>
+                  @php $blogUrlPath = blog_url($post->slug); @endphp
+                  URL: <a href="{{ config('app.url') }}{{ $blogUrlPath }}" target="_blank">{{ config('app.url') }}{{ $blogUrlPath }}</a>
                 </small>
                 <span id="slug-check-result" class="ms-3 fw-bold"></span>
               </div>
@@ -227,7 +228,7 @@
               <div class="mb-3">
                 <label class="form-label">{{ __('blog.post.base_language') }}</label>
                 <select class="form-select @error('base_locale') is-invalid @enderror" name="base_locale" id="base-locale-select">
-                  @php $currentLocale = old('base_locale', $post->base_locale); @endphp
+                  @php $currentLocale = old('base_locale', $post->base_locale ?? tenant_setting('default_lang', 'es')); @endphp
                   @foreach (getAvailableLocales() as $code => $label)
                     <option value="{{ $code }}" @selected($currentLocale === $code)>{{ $label }}</option>
                   @endforeach
@@ -260,6 +261,11 @@
                   <button type="button" class="btn btn-outline-primary" id="select-featured-image-btn">
                     <i class="bi bi-image"></i> {{ __('blog.post.select_image') }}
                   </button>
+                  @if(function_exists('aiimage_is_active') && aiimage_is_active())
+                  <button type="button" class="btn btn-outline-success ai-image-trigger" data-target="featured_image" data-preview="featured-image-preview" title="Generar imagen con IA">
+                    <i class="bi bi-stars"></i>
+                  </button>
+                  @endif
                   @error('featured_image')
                     <div class="invalid-feedback">{{ $message }}</div>
                   @enderror
@@ -326,14 +332,25 @@
             </div>
           </div>
 
-          {{-- Card Categorías --}}
+          {{-- Card Categorías y Tags con IA --}}
           <div class="card mb-4">
-            <div class="card-header"><strong>{{ __('blog.post.categories') }}</strong></div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <strong>{{ __('blog.post.categories') }} & {{ __('blog.post.tags') }}</strong>
+              <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-secondary" id="btn-paste-taxonomy" title="Pegar categorías y tags manualmente">
+                  <i class="bi bi-clipboard-plus"></i> Pegar
+                </button>
+                <button type="button" class="btn btn-outline-primary" id="btn-ai-taxonomy" title="Sugerir categorías y tags con IA">
+                  <i class="bi bi-magic"></i> Auto IA
+                </button>
+              </div>
+            </div>
             <div class="card-body">
+              {{-- Categorías --}}
+              <label class="form-label fw-semibold">{{ __('blog.post.categories') }}</label>
               <div class="mb-3">
                 <select class="form-select @error('categories') is-invalid @enderror" name="categories[]" id="categories" multiple size="5">
                   @php
-                    // Usar IDs precargados por el controlador (evita depender de propiedades inexistentes)
                     $selectedCategoryIds = $postCategoryIds ?? [];
                     $selectedCategories = old('categories', $selectedCategoryIds);
                   @endphp
@@ -348,18 +365,15 @@
                 @enderror
                 <small class="text-muted">{{ __('blog.post.select_multiple') }}</small>
               </div>
-              <a href="{{ admin_url('blog/categories/create') }}" class="btn btn-sm btn-outline-primary" target="_blank">+ {{ __('blog.category.new_category') }}</a>
-            </div>
-          </div>
+              <a href="{{ admin_url('blog/categories/create') }}" class="btn btn-sm btn-outline-primary mb-3" target="_blank">+ {{ __('blog.category.new_category') }}</a>
 
-          {{-- Card Etiquetas --}}
-          <div class="card mb-4">
-            <div class="card-header"><strong>{{ __('blog.post.tags') }}</strong></div>
-            <div class="card-body">
+              <hr>
+
+              {{-- Tags --}}
+              <label class="form-label fw-semibold">{{ __('blog.post.tags') }}</label>
               <div class="mb-3">
                 <select class="form-select @error('tags') is-invalid @enderror" name="tags[]" id="tags" multiple size="5">
                   @php
-                    // Usar IDs precargados por el controlador (evita depender de propiedades inexistentes)
                     $selectedTagIds = $postTagIds ?? [];
                     $selectedTags = old('tags', $selectedTagIds);
                   @endphp
@@ -373,6 +387,9 @@
                 <small class="text-muted">{{ __('blog.post.select_multiple') }}</small>
               </div>
               <a href="{{ admin_url('blog/tags/create') }}" class="btn btn-sm btn-outline-primary" target="_blank">+ {{ __('blog.tag.new_tag') }}</a>
+
+              {{-- AI results area --}}
+              <div id="ai-taxonomy-results" class="mt-3" style="display:none;"></div>
             </div>
           </div>
 
@@ -551,6 +568,9 @@
           console.error('No se encontró blogForm o blogSubmitBtn');
         }
         // ================================
+
+        // --- AI Auto-Taxonomy ---
+        @include('Blog::partials._ai_taxonomy_script')
       });
 
       // Función para confirmar eliminación
@@ -593,4 +613,7 @@
 
 @include('Blog::partials._slug_scripts')
 
+@if(function_exists('aiimage_is_active') && aiimage_is_active())
+<script src="/assets/modules/aiimage/js/ai-image-generator.js"></script>
+@endif
 @endsection

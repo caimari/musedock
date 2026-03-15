@@ -17,6 +17,8 @@ use Screenart\Musedock\Mail\Mailer;
 use Screenart\Musedock\Services\TenantCreationService;
 use CaddyDomainManager\Services\CaddyService;
 use Screenart\Musedock\Models\Language;
+use Screenart\Musedock\TenantPluginManager;
+use Screenart\Musedock\Models\ThemeOption;
 use PDO;
 
 class DomainManagerController
@@ -64,8 +66,12 @@ class DomainManagerController
         $caddyStatusFilter = $_GET['caddy_status'] ?? '';
         $statusFilter = $_GET['status'] ?? '';
         $search = $_GET['search'] ?? '';
+        $domainTypeFilter = $_GET['domain_type'] ?? '';
         $orderStatusFilter = $_GET['order_status'] ?? '';
         $hostingTypeFilter = $_GET['hosting_type'] ?? '';
+
+        // Base domain para detectar subdominios
+        $baseDomain = \Screenart\Musedock\Env::get('TENANT_BASE_DOMAIN', 'musedock.com');
 
         // Construir query
         $sql = "SELECT * FROM tenants WHERE 1=1";
@@ -81,6 +87,14 @@ class DomainManagerController
             $params[] = $statusFilter;
         }
 
+        if ($domainTypeFilter === 'musedock') {
+            $sql .= " AND domain LIKE ?";
+            $params[] = '%.' . $baseDomain;
+        } elseif ($domainTypeFilter === 'custom') {
+            $sql .= " AND domain NOT LIKE ?";
+            $params[] = '%.' . $baseDomain;
+        }
+
         if ($search) {
             $sql .= " AND (domain LIKE ? OR name LIKE ?)";
             $params[] = "%{$search}%";
@@ -92,6 +106,17 @@ class DomainManagerController
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $tenants = $stmt->fetchAll(PDO::FETCH_OBJ);
+
+        // Cargar conteo de aliases por tenant
+        $aliasCounts = [];
+        try {
+            $aliasStmt = $pdo->query("SELECT tenant_id, COUNT(*) as cnt FROM domain_aliases GROUP BY tenant_id");
+            foreach ($aliasStmt->fetchAll(PDO::FETCH_OBJ) as $row) {
+                $aliasCounts[$row->tenant_id] = (int) $row->cnt;
+            }
+        } catch (\Exception $e) {
+            // Table may not exist
+        }
 
         // Dominios registrados por customers (domain_orders)
         $domainOrders = [];
@@ -154,10 +179,13 @@ class DomainManagerController
             'tenants' => $tenants,
             'domainOrders' => $domainOrders,
             'caddyApiAvailable' => $caddyApiAvailable,
+            'aliasCounts' => $aliasCounts,
+            'baseDomain' => $baseDomain,
             'filters' => [
                 'caddy_status' => $caddyStatusFilter,
                 'status' => $statusFilter,
                 'search' => $search,
+                'domain_type' => $domainTypeFilter,
                 'order_status' => $orderStatusFilter,
                 'hosting_type' => $hostingTypeFilter
             ]
@@ -203,6 +231,7 @@ class DomainManagerController
         $includeWww = isset($_POST['include_www']);
         $configureInCaddy = isset($_POST['configure_caddy']);
         $configureCloudflare = isset($_POST['configure_cloudflare']);
+        $skipCloudflare = isset($_POST['skip_cloudflare']);
         $enableEmailRouting = isset($_POST['enable_email_routing']);
         $emailRoutingDestination = trim($_POST['email_routing_destination'] ?? '');
         $adminEmail = trim($_POST['admin_email'] ?? '');
@@ -222,15 +251,54 @@ class DomainManagerController
         // Sanitizar dominio
         $domain = $this->sanitizeDomain($domain);
 
-        // Verificar dominio único
+        // Detectar si es subdominio de musedock.com (o la base configurada)
+        $baseDomain = \Screenart\Musedock\Env::get('TENANT_BASE_DOMAIN', 'musedock.com');
+        $isMusedockSubdomain = str_ends_with($domain, '.' . $baseDomain);
+
+        // Si es subdominio de musedock.com: forzar Cloudflare CNAME (no zona), sin skip
+        if ($isMusedockSubdomain) {
+            $configureCloudflare = true; // Siempre crear CNAME
+            $skipCloudflare = false;
+        }
+
+        // Si skip_cloudflare está marcado, desactivar cloudflare
+        if ($skipCloudflare) {
+            $configureCloudflare = false;
+        }
+
+        // Verificar dominio único (en tenants, domain_aliases y domain_orders)
         $pdo = Database::connect();
-        $stmt = $pdo->prepare("SELECT id FROM tenants WHERE domain = ?");
-        $stmt->execute([$domain]);
+        $stmt = $pdo->prepare("SELECT id FROM tenants WHERE domain = ? OR domain = ?");
+        $stmt->execute([$domain, 'www.' . $domain]);
 
         if ($stmt->fetch()) {
             flash('error', "El dominio '{$domain}' ya está registrado.");
             header('Location: /musedock/domain-manager/create');
             exit;
+        }
+
+        try {
+            $stmtAlias = $pdo->prepare("SELECT id FROM domain_aliases WHERE domain = ? OR domain = ?");
+            $stmtAlias->execute([$domain, 'www.' . $domain]);
+            if ($stmtAlias->fetch()) {
+                flash('error', "El dominio '{$domain}' ya está registrado como alias de otro tenant.");
+                header('Location: /musedock/domain-manager/create');
+                exit;
+            }
+        } catch (\Exception $e) {
+            // domain_aliases table may not exist
+        }
+
+        try {
+            $stmtOrder = $pdo->prepare("SELECT id FROM domain_orders WHERE (domain = ? OR domain = ?) AND status NOT IN ('cancelled','failed')");
+            $stmtOrder->execute([$domain, 'www.' . $domain]);
+            if ($stmtOrder->fetch()) {
+                flash('error', "El dominio '{$domain}' tiene un pedido de registro en proceso.");
+                header('Location: /musedock/domain-manager/create');
+                exit;
+            }
+        } catch (\Exception $e) {
+            // domain_orders table may not exist
         }
 
         try {
@@ -267,10 +335,10 @@ class DomainManagerController
             // Actualizar campos específicos de Caddy (el Service no maneja esto)
             $stmt = $pdo->prepare("
                 UPDATE tenants
-                SET slug = ?, include_www = ?, caddy_status = ?, caddy_route_id = ?
+                SET slug = ?, include_www = ?, is_subdomain = ?, caddy_status = ?, caddy_route_id = ?
                 WHERE id = ?
             ");
-            $stmt->execute([$slug, $includeWww ? 1 : 0, $caddyStatus, $caddyRouteId, $tenantId]);
+            $stmt->execute([$slug, $includeWww ? 1 : 0, $isMusedockSubdomain ? 1 : 0, $caddyStatus, $caddyRouteId, $tenantId]);
 
             // Variables para mensajes
             $caddyMessage = '';
@@ -279,7 +347,46 @@ class DomainManagerController
             $cloudflareZoneId = null;
             $cloudflareNameservers = [];
 
-            // Configurar en Cloudflare si se solicitó
+            // Para subdominios de musedock.com: crear CNAME en vez de zona
+            if ($isMusedockSubdomain) {
+                try {
+                    $cloudflareService = new \CaddyDomainManager\Services\CloudflareService();
+                    $subdomain = str_replace('.' . $baseDomain, '', $domain);
+
+                    Logger::log("[DomainManager] Creating CNAME for subdomain {$subdomain}.{$baseDomain}", 'INFO');
+                    $cnameResult = $cloudflareService->createSubdomainRecord($subdomain, true);
+
+                    // Guardar record_id en BD
+                    $stmt = $pdo->prepare("
+                        UPDATE tenants
+                        SET cloudflare_record_id = ?, status = 'active'
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([$cnameResult['record_id'] ?? null, $tenantId]);
+
+                    $cloudflareMessage = " CNAME creado automáticamente en Cloudflare.";
+                    Logger::log("[DomainManager] CNAME created for {$domain}", 'INFO');
+                } catch (\Exception $e) {
+                    Logger::log("[DomainManager] Error creando CNAME para {$domain}: " . $e->getMessage(), 'ERROR');
+                    $cloudflareMessage = " Error al crear CNAME en Cloudflare: " . $e->getMessage();
+                }
+
+                // Configurar Caddy directamente (no hay que esperar NS)
+                if ($configureInCaddy) {
+                    $caddyResult = $this->configureDomainInCaddy($tenantId, $domain, $includeWww);
+                    if ($caddyResult['success']) {
+                        $caddyMessage = " Dominio configurado en Caddy con SSL.";
+                    } else {
+                        $caddyMessage = " Error al configurar Caddy: " . ($caddyResult['error'] ?? 'desconocido');
+                    }
+                }
+
+                // Skip al bloque de Cloudflare zona y Caddy condicional
+                $configureCloudflare = false;
+                $configureInCaddy = false;
+            }
+
+            // Configurar en Cloudflare si se solicitó (solo dominios custom, no subdominios)
             if ($configureCloudflare) {
                 try {
                     $cloudflareService = new \CaddyDomainManager\Services\CloudflareZoneService();
@@ -419,6 +526,70 @@ class DomainManagerController
             Logger::log("[DomainManager] Error loading languages for tenant {$tenant->id}: " . $e->getMessage(), 'ERROR');
         }
 
+        // Obtener grupos editoriales para dropdown
+        $domainGroups = [];
+        try {
+            $pdo = Database::connect();
+            $stmt = $pdo->query("SELECT id, name FROM domain_groups ORDER BY name ASC");
+            $domainGroups = $stmt->fetchAll(\PDO::FETCH_OBJ);
+        } catch (\Exception $e) {
+            // Tabla puede no existir aún
+        }
+
+        // Obtener plugins compartidos disponibles y su estado para este tenant
+        $sharedPlugins = TenantPluginManager::getAvailableSharedPlugins();
+        foreach ($sharedPlugins as &$sp) {
+            $sp['active'] = TenantPluginManager::isPluginActive($tenant->id, $sp['slug']);
+        }
+        unset($sp);
+
+        // Cargar alias de dominio del tenant
+        $domainAliases = [];
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM domain_aliases WHERE tenant_id = ? ORDER BY created_at");
+            $stmt->execute([$tenant->id]);
+            $domainAliases = $stmt->fetchAll(\PDO::FETCH_OBJ);
+        } catch (\Exception $e) {
+            // Table may not exist yet
+        }
+
+        // Cargar admin root del tenant (para perfil de autor)
+        $tenantRootAdmin = null;
+        try {
+            $stmt = $pdo->prepare("SELECT id, name, email, avatar, bio, social_twitter, social_linkedin, social_github, social_website, author_page_enabled, author_slug FROM admins WHERE tenant_id = ? AND is_root_admin = 1 LIMIT 1");
+            $stmt->execute([$tenant->id]);
+            $tenantRootAdmin = $stmt->fetch(\PDO::FETCH_OBJ);
+        } catch (\Exception $e) {
+            // Columns may not exist yet
+        }
+
+        // Cargar blog_layout desde theme_options del tenant
+        $tenantBlogLayout = 'grid';
+        $tenantBlogHeaderTicker = false;
+        try {
+            $themeSlug = $tenant->theme ?? 'default';
+            $themeOpts = ThemeOption::getOptions($themeSlug, $tenant->id);
+            $tenantBlogLayout = $themeOpts['blog']['blog_layout'] ?? 'grid';
+            $tenantBlogHeaderTicker = !empty($themeOpts['blog']['blog_header_ticker']);
+            // Default new toggles to legacy value for backward compat
+            $legacyDefault = $tenantBlogHeaderTicker ? '1' : '0';
+            $tenantBlogTickerTags = $themeOpts['blog']['blog_ticker_tags'] ?? $legacyDefault;
+            $tenantBlogTickerLatest = $themeOpts['blog']['blog_ticker_latest'] ?? $legacyDefault;
+            $tenantBlogTickerTagsPosition = $themeOpts['blog']['blog_ticker_tags_position'] ?? 'top';
+            $tenantBlogTickerLatestPosition = $themeOpts['blog']['blog_ticker_latest_position'] ?? 'top';
+            $tenantBlogTopbarClock = !empty($themeOpts['blog']['blog_topbar_clock']);
+            $tenantBlogTickerClock = !empty($themeOpts['blog']['blog_ticker_clock']);
+            $tenantBlogHeaderClockLocale = $themeOpts['blog']['blog_header_clock_locale'] ?? 'es';
+            $tenantBlogHeaderClockTimezone = $themeOpts['blog']['blog_header_clock_timezone'] ?? 'Europe/Madrid';
+            $tenantBlogSidebarRelatedPosts = $themeOpts['blog']['blog_sidebar_related_posts'] ?? '1';
+            $tenantBlogSidebarRelatedPostsCount = $themeOpts['blog']['blog_sidebar_related_posts_count'] ?? '4';
+            $tenantBlogSidebarTags = $themeOpts['blog']['blog_sidebar_tags'] ?? '1';
+            $tenantBlogSidebarCategories = $themeOpts['blog']['blog_sidebar_categories'] ?? '1';
+            $tenantScrollToTopEnabled = $themeOpts['scroll_to_top']['scroll_to_top_enabled'] ?? '1';
+        } catch (\Exception $e) {
+            // Fallback silencioso
+        }
+
         return View::renderSuperadmin('plugins.caddy-domain-manager.edit', [
             'title' => 'Editar Dominio: ' . $tenant->domain,
             'tenant' => $tenant,
@@ -426,6 +597,25 @@ class DomainManagerController
             'caddyRouteInfo' => $caddyRouteInfo,
             'tenantSettings' => $tenantSettings,
             'activeLanguages' => $activeLanguages,
+            'domainGroups' => $domainGroups,
+            'sharedPlugins' => $sharedPlugins,
+            'domainAliases' => $domainAliases,
+            'tenantBlogLayout' => $tenantBlogLayout,
+            'tenantBlogHeaderTicker' => $tenantBlogHeaderTicker,
+            'tenantBlogTickerTags' => !empty($tenantBlogTickerTags),
+            'tenantBlogTickerLatest' => !empty($tenantBlogTickerLatest),
+            'tenantBlogTickerTagsPosition' => $tenantBlogTickerTagsPosition ?? 'top',
+            'tenantBlogTickerLatestPosition' => $tenantBlogTickerLatestPosition ?? 'top',
+            'tenantBlogTopbarClock' => $tenantBlogTopbarClock ?? false,
+            'tenantBlogTickerClock' => $tenantBlogTickerClock ?? false,
+            'tenantBlogHeaderClockLocale' => $tenantBlogHeaderClockLocale ?? 'es',
+            'tenantBlogHeaderClockTimezone' => $tenantBlogHeaderClockTimezone ?? 'Europe/Madrid',
+            'tenantBlogSidebarRelatedPosts' => !empty($tenantBlogSidebarRelatedPosts),
+            'tenantBlogSidebarRelatedPostsCount' => $tenantBlogSidebarRelatedPostsCount ?? '4',
+            'tenantBlogSidebarTags' => !empty($tenantBlogSidebarTags),
+            'tenantBlogSidebarCategories' => !empty($tenantBlogSidebarCategories),
+            'tenantScrollToTopEnabled' => !empty($tenantScrollToTopEnabled ?? '1'),
+            'tenantRootAdmin' => $tenantRootAdmin,
         ]);
     }
 
@@ -472,12 +662,16 @@ class DomainManagerController
 
         try {
             $pdo = Database::connect();
+            // Obtener group_id del formulario
+            $groupId = $_POST['group_id'] ?? null;
+            $groupId = ($groupId === '' || $groupId === null) ? null : (int) $groupId;
+
             $stmt = $pdo->prepare("
                 UPDATE tenants
-                SET name = ?, status = ?, include_www = ?, caddy_status = ?, updated_at = NOW()
+                SET name = ?, status = ?, include_www = ?, caddy_status = ?, group_id = ?, updated_at = NOW()
                 WHERE id = ?
             ");
-            $stmt->execute([$name, $status, $newIncludeWww ? 1 : 0, $caddyStatus, $id]);
+            $stmt->execute([$name, $status, $newIncludeWww ? 1 : 0, $caddyStatus, $groupId, $id]);
 
             $cloudflareMessage = '';
             $emailRoutingMessage = '';
@@ -651,12 +845,31 @@ class DomainManagerController
                 }
             }
 
+            // 2b. Limpiar Cloudflare de aliases del tenant antes del DELETE CASCADE
+            try {
+                $aliasPdo = Database::connect();
+                $aliasStmt = $aliasPdo->prepare("SELECT * FROM domain_aliases WHERE tenant_id = ?");
+                $aliasStmt->execute([$id]);
+                foreach ($aliasStmt->fetchAll(\PDO::FETCH_OBJ) as $alias) {
+                    try {
+                        $this->removeAliasCloudflare($alias);
+                        Logger::log("[DomainManager] Alias Cloudflare limpiado: {$alias->domain}", 'INFO');
+                    } catch (\Exception $e) {
+                        Logger::log("[DomainManager] Warning limpiando alias Cloudflare {$alias->domain}: " . $e->getMessage(), 'WARNING');
+                    }
+                }
+            } catch (\Exception $e) {
+                // domain_aliases table may not exist
+                Logger::log("[DomainManager] No se pudieron limpiar aliases: " . $e->getMessage(), 'WARNING');
+            }
+
             // 3. Eliminar tenant y datos relacionados de la BD
             $pdo = Database::connect();
             $pdo->beginTransaction();
 
             try {
                 // Eliminar en orden de dependencias
+                $pdo->prepare("DELETE FROM domain_aliases WHERE tenant_id = ?")->execute([$id]);
                 $pdo->prepare("DELETE FROM user_roles WHERE tenant_id = ?")->execute([$id]);
                 $pdo->prepare("DELETE FROM permissions WHERE tenant_id = ?")->execute([$id]);
                 $pdo->prepare("DELETE FROM roles WHERE tenant_id = ?")->execute([$id]);
@@ -843,8 +1056,20 @@ class DomainManagerController
         $stmt = $pdo->prepare("UPDATE tenants SET caddy_status = 'configuring', caddy_error_log = NULL WHERE id = ?");
         $stmt->execute([$tenantId]);
 
-        // Intentar crear/actualizar en Caddy (sin downtime)
-        $result = $this->caddyService->upsertDomain($domain, $includeWww);
+        // Cargar aliases activos para incluirlos en la ruta de Caddy
+        $aliases = [];
+        try {
+            $aliasStmt = $pdo->prepare("SELECT domain, include_www FROM domain_aliases WHERE tenant_id = ? AND status IN ('pending','active')");
+            $aliasStmt->execute([$tenantId]);
+            $aliases = $aliasStmt->fetchAll(\PDO::FETCH_OBJ);
+        } catch (\Exception $e) {
+            // Table may not exist yet
+        }
+
+        // Intentar crear/actualizar en Caddy (sin downtime) — incluye aliases
+        $result = empty($aliases)
+            ? $this->caddyService->upsertDomain($domain, $includeWww)
+            : $this->caddyService->upsertDomainWithAliases($domain, $includeWww, $aliases);
 
         if ($result['success']) {
             // Caddy aceptó la ruta, pero el certificado SSL puede tardar
@@ -1131,6 +1356,408 @@ class DomainManagerController
         exit;
     }
 
+    /**
+     * Toggle plugin compartido para un tenant (AJAX)
+     *
+     * Activa o desactiva un plugin de plugins/tenant-shared/ para un tenant.
+     */
+    public function toggleTenantPlugin($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $tenant = $this->getTenant($id);
+
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado']);
+            exit;
+        }
+
+        // Leer datos del body JSON
+        $input = json_decode(file_get_contents('php://input'), true);
+
+        if (!validate_csrf($input['_csrf'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Token de seguridad inválido']);
+            exit;
+        }
+
+        $slug = $input['slug'] ?? '';
+        $active = (bool) ($input['active'] ?? false);
+
+        if (empty($slug)) {
+            echo json_encode(['success' => false, 'message' => 'Slug del plugin requerido']);
+            exit;
+        }
+
+        // Verificar que el plugin existe en tenant-shared
+        $sharedPath = TenantPluginManager::getSharedPluginsPath() . '/' . $slug;
+        if (!is_dir($sharedPath)) {
+            echo json_encode(['success' => false, 'message' => 'Plugin no encontrado en plugins compartidos']);
+            exit;
+        }
+
+        try {
+            if ($active) {
+                $result = TenantPluginManager::activateSharedPlugin($tenant->id, $slug);
+                $message = "Plugin {$slug} activado para {$tenant->domain}";
+            } else {
+                $result = TenantPluginManager::deactivateSharedPlugin($tenant->id, $slug);
+                $message = "Plugin {$slug} desactivado para {$tenant->domain}";
+            }
+
+            if ($result) {
+                Logger::log("[DomainManager] {$message}", 'INFO');
+                echo json_encode([
+                    'success' => true,
+                    'message' => $message,
+                    'active' => $active
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Error al cambiar estado del plugin'
+                ]);
+            }
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error toggle plugin: " . $e->getMessage(), 'ERROR');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error interno: ' . $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    // ============================================
+    // DOMAIN ALIASES MANAGEMENT
+    // ============================================
+
+    /**
+     * Lista los alias de dominio de un tenant (AJAX)
+     */
+    public function getAliases($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("SELECT * FROM domain_aliases WHERE tenant_id = ? ORDER BY created_at ASC");
+        $stmt->execute([$id]);
+        $aliases = $stmt->fetchAll(PDO::FETCH_OBJ);
+
+        echo json_encode(['success' => true, 'aliases' => $aliases]);
+        exit;
+    }
+
+    /**
+     * Añade un alias de dominio a un tenant (AJAX)
+     */
+    public function addAlias($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+
+        if (!validate_csrf($input['_csrf'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido.']);
+            exit;
+        }
+
+        $aliasDomain = trim(strtolower($input['domain'] ?? ''));
+        $includeWww = (bool) ($input['include_www'] ?? false);
+        $skipCloudflare = (bool) ($input['skip_cloudflare'] ?? false);
+
+        // Validar formato de dominio
+        if (empty($aliasDomain)) {
+            echo json_encode(['success' => false, 'message' => 'Dominio requerido.']);
+            exit;
+        }
+
+        // Quitar www si lo tiene
+        $aliasDomain = preg_replace('/^www\./', '', $aliasDomain);
+
+        // Validar formato básico
+        if (!preg_match('/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/', $aliasDomain)) {
+            echo json_encode(['success' => false, 'message' => 'Formato de dominio inválido.']);
+            exit;
+        }
+
+        $tenant = $this->getTenant($id);
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado.']);
+            exit;
+        }
+
+        // Verificar que no sea el mismo dominio principal
+        if ($aliasDomain === $tenant->domain) {
+            echo json_encode(['success' => false, 'message' => 'El alias no puede ser igual al dominio principal.']);
+            exit;
+        }
+
+        $pdo = Database::connect();
+
+        // Verificar unicidad en tenants.domain
+        $stmt = $pdo->prepare("SELECT id FROM tenants WHERE domain = ? OR domain = ?");
+        $stmt->execute([$aliasDomain, 'www.' . $aliasDomain]);
+        if ($stmt->fetch()) {
+            echo json_encode(['success' => false, 'message' => 'Este dominio ya está registrado como dominio principal de otro tenant.']);
+            exit;
+        }
+
+        // Verificar unicidad en domain_aliases (incluir variante www)
+        $stmt = $pdo->prepare("SELECT id FROM domain_aliases WHERE domain = ? OR domain = ?");
+        $stmt->execute([$aliasDomain, 'www.' . $aliasDomain]);
+        if ($stmt->fetch()) {
+            echo json_encode(['success' => false, 'message' => 'Este dominio ya está registrado como alias.']);
+            exit;
+        }
+
+        // Verificar unicidad en domain_orders (pedidos pendientes/activos)
+        try {
+            $stmt = $pdo->prepare("SELECT id FROM domain_orders WHERE (domain = ? OR domain = ?) AND status NOT IN ('cancelled','failed')");
+            $stmt->execute([$aliasDomain, 'www.' . $aliasDomain]);
+            if ($stmt->fetch()) {
+                echo json_encode(['success' => false, 'message' => 'Este dominio tiene un pedido de registro en proceso.']);
+                exit;
+            }
+        } catch (\Exception $e) {
+            // domain_orders table may not exist
+        }
+
+        // Determinar si es subdominio de la plataforma
+        $baseDomain = \Screenart\Musedock\Env::get('TENANT_BASE_DOMAIN', 'musedock.com');
+        $isSubdomain = str_ends_with($aliasDomain, '.' . $baseDomain);
+
+        try {
+            $pdo->beginTransaction();
+
+            // Insertar alias
+            $stmt = $pdo->prepare("
+                INSERT INTO domain_aliases (tenant_id, domain, include_www, is_subdomain, status, created_at)
+                VALUES (?, ?, ?, ?, 'pending', NOW())
+            ");
+            $stmt->execute([$id, $aliasDomain, $includeWww ? 1 : 0, $isSubdomain ? 1 : 0]);
+            $aliasId = $pdo->lastInsertId();
+
+            // Configurar Cloudflare DNS (a menos que el usuario lo omita)
+            $cloudflareInfo = [];
+            if (!$skipCloudflare) {
+                $cloudflareInfo = $this->configureAliasCloudflare($aliasDomain, $isSubdomain, $includeWww);
+
+                // Actualizar alias con info de Cloudflare
+                if (!empty($cloudflareInfo)) {
+                    $stmt = $pdo->prepare("
+                        UPDATE domain_aliases
+                        SET cloudflare_zone_id = ?,
+                            cloudflare_record_id = ?,
+                            cloudflare_nameservers = ?
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([
+                        $cloudflareInfo['zone_id'] ?? null,
+                        $cloudflareInfo['record_id'] ?? null,
+                        isset($cloudflareInfo['nameservers']) ? json_encode($cloudflareInfo['nameservers']) : null,
+                        $aliasId
+                    ]);
+                }
+            }
+
+            // Reconstruir ruta Caddy con TODOS los aliases
+            $aliasStmt = $pdo->prepare("SELECT domain, include_www FROM domain_aliases WHERE tenant_id = ? AND status IN ('pending','active')");
+            $aliasStmt->execute([$id]);
+            $allAliases = $aliasStmt->fetchAll(PDO::FETCH_OBJ);
+
+            $caddyResult = $this->caddyService->upsertDomainWithAliases(
+                $tenant->domain,
+                (bool) ($tenant->include_www ?? true),
+                $allAliases
+            );
+
+            if ($caddyResult['success']) {
+                $stmt = $pdo->prepare("UPDATE domain_aliases SET caddy_configured = 1, status = 'active' WHERE id = ?");
+                $stmt->execute([$aliasId]);
+            } else {
+                $stmt = $pdo->prepare("UPDATE domain_aliases SET error_log = ?, status = 'error' WHERE id = ?");
+                $stmt->execute([$caddyResult['error'], $aliasId]);
+            }
+
+            $pdo->commit();
+
+            $responseData = [
+                'success' => true,
+                'message' => "Alias {$aliasDomain} añadido correctamente.",
+                'alias_id' => $aliasId,
+                'caddy_success' => $caddyResult['success'],
+            ];
+
+            if ($skipCloudflare) {
+                $responseData['dns_info'] = 'Cloudflare omitido. Asegúrate de que el dominio apunte a este servidor.';
+            } elseif ($isSubdomain) {
+                $responseData['dns_info'] = 'CNAME creado automáticamente.';
+            } elseif (!empty($cloudflareInfo['nameservers'])) {
+                $responseData['nameservers'] = $cloudflareInfo['nameservers'];
+                $responseData['dns_info'] = 'Zona creada en Cloudflare. Cambia los nameservers del dominio.';
+            }
+
+            Logger::log("[DomainManager] Alias añadido: {$aliasDomain} → tenant {$tenant->domain}", 'INFO');
+
+            echo json_encode($responseData);
+            exit;
+
+        } catch (\Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            Logger::log("[DomainManager] Error añadiendo alias: " . $e->getMessage(), 'ERROR');
+            echo json_encode(['success' => false, 'message' => 'Error al añadir alias: ' . $e->getMessage()]);
+            exit;
+        }
+    }
+
+    /**
+     * Elimina un alias de dominio de un tenant (AJAX)
+     */
+    public function removeAlias($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+
+        if (!validate_csrf($input['_csrf'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido.']);
+            exit;
+        }
+
+        $aliasId = (int) ($input['alias_id'] ?? 0);
+        if (!$aliasId) {
+            echo json_encode(['success' => false, 'message' => 'ID de alias no válido.']);
+            exit;
+        }
+
+        $pdo = Database::connect();
+
+        // Verificar que el alias pertenece a este tenant
+        $stmt = $pdo->prepare("SELECT * FROM domain_aliases WHERE id = ? AND tenant_id = ?");
+        $stmt->execute([$aliasId, $id]);
+        $alias = $stmt->fetch(PDO::FETCH_OBJ);
+
+        if (!$alias) {
+            echo json_encode(['success' => false, 'message' => 'Alias no encontrado.']);
+            exit;
+        }
+
+        $tenant = $this->getTenant($id);
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado.']);
+            exit;
+        }
+
+        try {
+            // 1. Limpiar Cloudflare
+            $this->removeAliasCloudflare($alias);
+
+            // 2. Eliminar alias de DB
+            $stmt = $pdo->prepare("DELETE FROM domain_aliases WHERE id = ?");
+            $stmt->execute([$aliasId]);
+
+            // 3. Reconstruir ruta Caddy sin el alias eliminado
+            $remainingStmt = $pdo->prepare("SELECT domain, include_www FROM domain_aliases WHERE tenant_id = ? AND status IN ('pending','active')");
+            $remainingStmt->execute([$id]);
+            $remainingAliases = $remainingStmt->fetchAll(PDO::FETCH_OBJ);
+
+            $this->caddyService->upsertDomainWithAliases(
+                $tenant->domain,
+                (bool) ($tenant->include_www ?? true),
+                $remainingAliases
+            );
+
+            Logger::log("[DomainManager] Alias eliminado: {$alias->domain} de tenant {$tenant->domain}", 'INFO');
+
+            echo json_encode([
+                'success' => true,
+                'message' => "Alias {$alias->domain} eliminado correctamente."
+            ]);
+            exit;
+
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error eliminando alias: " . $e->getMessage(), 'ERROR');
+            echo json_encode(['success' => false, 'message' => 'Error al eliminar alias: ' . $e->getMessage()]);
+            exit;
+        }
+    }
+
+    /**
+     * Configura DNS en Cloudflare para un alias.
+     * Subdominios: CNAME automático; Custom: zona nueva.
+     */
+    private function configureAliasCloudflare(string $domain, bool $isSubdomain, bool $includeWww): array
+    {
+        try {
+            if ($isSubdomain) {
+                $cloudflareService = new \CaddyDomainManager\Services\CloudflareService();
+                $baseDomain = \Screenart\Musedock\Env::get('TENANT_BASE_DOMAIN', 'musedock.com');
+                $subdomain = str_replace('.' . $baseDomain, '', $domain);
+                $result = $cloudflareService->createSubdomainRecord($subdomain, true);
+                return [
+                    'record_id' => $result['record_id'] ?? null,
+                    'zone_id' => null,
+                    'nameservers' => null,
+                ];
+            } else {
+                $cloudflareZoneService = new \CaddyDomainManager\Services\CloudflareZoneService();
+                $zoneResult = $cloudflareZoneService->addFullZone($domain);
+                $zoneId = $zoneResult['zone_id'];
+
+                $cloudflareZoneService->createProxiedCNAME($zoneId, '@', 'mortadelo.musedock.com', true);
+                if ($includeWww) {
+                    $cloudflareZoneService->createProxiedCNAME($zoneId, 'www', 'mortadelo.musedock.com', true);
+                }
+
+                return [
+                    'zone_id' => $zoneId,
+                    'record_id' => null,
+                    'nameservers' => $zoneResult['nameservers'] ?? [],
+                ];
+            }
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error Cloudflare alias {$domain}: " . $e->getMessage(), 'WARNING');
+            return [];
+        }
+    }
+
+    /**
+     * Limpia la configuración de Cloudflare de un alias.
+     */
+    private function removeAliasCloudflare(object $alias): void
+    {
+        try {
+            if ($alias->is_subdomain && $alias->cloudflare_record_id) {
+                $cloudflareService = new \CaddyDomainManager\Services\CloudflareService();
+                $cloudflareService->deleteRecord($alias->cloudflare_record_id);
+            } elseif (!$alias->is_subdomain && $alias->cloudflare_zone_id) {
+                $cloudflareZoneService = new \CaddyDomainManager\Services\CloudflareZoneService();
+                $cloudflareZoneService->deleteZone($alias->cloudflare_zone_id);
+            }
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Warning limpiando Cloudflare alias {$alias->domain}: " . $e->getMessage(), 'WARNING');
+        }
+    }
+
     // ============================================
     // SITE SETTINGS MANAGEMENT
     // ============================================
@@ -1172,6 +1799,7 @@ class DomainManagerController
                 'social_facebook', 'social_twitter', 'social_instagram',
                 'social_linkedin', 'social_youtube', 'social_tiktok',
                 'footer_copyright',
+                'default_lang', 'force_lang',
             ];
 
             // Campos traducibles del footer
@@ -1191,6 +1819,7 @@ class DomainManagerController
             $this->saveTenantSiteSetting($pdo, $tenant->id, 'show_logo', isset($_POST['show_logo']) ? '1' : '0', $driver);
             $this->saveTenantSiteSetting($pdo, $tenant->id, 'show_title', isset($_POST['show_title']) ? '1' : '0', $driver);
             $this->saveTenantSiteSetting($pdo, $tenant->id, 'show_subtitle', isset($_POST['show_subtitle']) ? '1' : '0', $driver);
+            $this->saveTenantSiteSetting($pdo, $tenant->id, 'show_language_switcher', isset($_POST['show_language_switcher']) ? '1' : '0', $driver);
 
             // Logo upload
             if (isset($_FILES['site_logo']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
@@ -1552,6 +2181,125 @@ class DomainManagerController
         } catch (\Exception $e) {
             Logger::log("[DomainManager] Error deleting OG image for tenant {$tenant->id}: " . $e->getMessage(), 'ERROR');
             echo json_encode(['success' => false, 'message' => 'Error al eliminar la imagen OG.']);
+        }
+        exit;
+    }
+
+    /**
+     * Guarda los ajustes del blog de un tenant (AJAX)
+     */
+    public function updateBlogSettings($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $csrfToken = $_POST['_csrf'] ?? '';
+        if (!validate_csrf($csrfToken)) {
+            echo json_encode(['success' => false, 'message' => 'Token de seguridad inválido.']);
+            exit;
+        }
+
+        $tenant = $this->getTenant($id);
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado.']);
+            exit;
+        }
+
+        try {
+            $pdo = Database::connect();
+            $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            $pdo->beginTransaction();
+
+            // Blog URL prefix
+            $blogUrlMode = $_POST['blog_url_mode'] ?? 'prefix';
+            if ($blogUrlMode === 'none') {
+                $blogUrlPrefix = '';
+            } else {
+                $blogUrlPrefix = preg_replace('/[^a-z0-9\-]/', '', strtolower(trim($_POST['blog_url_prefix'] ?? 'blog')));
+                if ($blogUrlPrefix === '') {
+                    $blogUrlPrefix = 'blog';
+                }
+            }
+
+            $this->saveTenantSiteSetting($pdo, $tenant->id, 'blog_url_prefix', $blogUrlPrefix, $driver);
+
+            // Actualizar el prefix de todos los slugs de blog existentes
+            $newSlugPrefix = $blogUrlPrefix !== '' ? $blogUrlPrefix : null;
+            $stmt = $pdo->prepare("UPDATE slugs SET prefix = ? WHERE tenant_id = ? AND module = 'blog'");
+            $stmt->execute([$newSlugPrefix, $tenant->id]);
+
+            // Posts per page / RSS
+            $postsPerPage = max(1, min(100, (int)($_POST['posts_per_page'] ?? 10)));
+            $postsPerRss = max(1, min(50, (int)($_POST['posts_per_rss'] ?? 10)));
+            $this->saveTenantSiteSetting($pdo, $tenant->id, 'posts_per_page', (string)$postsPerPage, $driver);
+            $this->saveTenantSiteSetting($pdo, $tenant->id, 'posts_per_rss', (string)$postsPerRss, $driver);
+
+            // Blog public (noindex)
+            $blogPublic = isset($_POST['blog_noindex']) ? '0' : '1';
+            $this->saveTenantSiteSetting($pdo, $tenant->id, 'blog_public', $blogPublic, $driver);
+
+            // Show views
+            $blogShowViews = isset($_POST['blog_show_views']) ? '1' : '0';
+            $this->saveTenantSiteSetting($pdo, $tenant->id, 'blog_show_views', $blogShowViews, $driver);
+
+            $pdo->commit();
+
+            // Blog layout (se guarda en theme_options, no en site_settings)
+            $blogLayout = $_POST['blog_layout'] ?? 'grid';
+            $allowedLayouts = ['grid', 'list', 'magazine', 'minimal', 'newspaper', 'fashion'];
+            if (!in_array($blogLayout, $allowedLayouts)) {
+                $blogLayout = 'grid';
+            }
+            $themeSlug = $tenant->theme ?? 'default';
+            $currentOpts = ThemeOption::getOptions($themeSlug, $tenant->id);
+            if (!isset($currentOpts['blog'])) {
+                $currentOpts['blog'] = [];
+            }
+            $currentOpts['blog']['blog_layout'] = $blogLayout;
+            // Individual ticker toggles
+            $tickerTagsOn = isset($_POST['blog_ticker_tags']);
+            $tickerLatestOn = isset($_POST['blog_ticker_latest']);
+            $currentOpts['blog']['blog_ticker_tags'] = $tickerTagsOn ? '1' : '0';
+            $currentOpts['blog']['blog_ticker_latest'] = $tickerLatestOn ? '1' : '0';
+            $tickerTagsPos = $_POST['blog_ticker_tags_position'] ?? 'top';
+            $currentOpts['blog']['blog_ticker_tags_position'] = in_array($tickerTagsPos, ['top', 'bottom']) ? $tickerTagsPos : 'top';
+            $tickerLatestPos = $_POST['blog_ticker_latest_position'] ?? 'top';
+            $currentOpts['blog']['blog_ticker_latest_position'] = in_array($tickerLatestPos, ['top', 'bottom']) ? $tickerLatestPos : 'top';
+            // Legacy flag synced for backward compat
+            $currentOpts['blog']['blog_header_ticker'] = ($tickerTagsOn || $tickerLatestOn) ? '1' : '0';
+            $currentOpts['blog']['blog_topbar_clock'] = isset($_POST['blog_topbar_clock']) ? '1' : '0';
+            $currentOpts['blog']['blog_ticker_clock'] = isset($_POST['blog_ticker_clock']) ? '1' : '0';
+            $allowedClockLocales = ['es', 'en', 'fr', 'de', 'pt'];
+            $clockLocale = $_POST['blog_header_clock_locale'] ?? 'es';
+            $currentOpts['blog']['blog_header_clock_locale'] = in_array($clockLocale, $allowedClockLocales) ? $clockLocale : 'es';
+            $clockTz = $_POST['blog_header_clock_timezone'] ?? 'Europe/Madrid';
+            // Validate timezone
+            try { new \DateTimeZone($clockTz); } catch (\Exception $e) { $clockTz = 'Europe/Madrid'; }
+            $currentOpts['blog']['blog_header_clock_timezone'] = $clockTz;
+            $currentOpts['blog']['blog_sidebar_related_posts'] = isset($_POST['blog_sidebar_related_posts']) ? '1' : '0';
+            $currentOpts['blog']['blog_sidebar_related_posts_count'] = $_POST['blog_sidebar_related_posts_count'] ?? '4';
+            $currentOpts['blog']['blog_sidebar_tags'] = isset($_POST['blog_sidebar_tags']) ? '1' : '0';
+            $currentOpts['blog']['blog_sidebar_categories'] = isset($_POST['blog_sidebar_categories']) ? '1' : '0';
+
+            // Scroll to top
+            if (!isset($currentOpts['scroll_to_top'])) {
+                $currentOpts['scroll_to_top'] = [];
+            }
+            $currentOpts['scroll_to_top']['scroll_to_top_enabled'] = isset($_POST['scroll_to_top_enabled']) ? '1' : '0';
+
+            ThemeOption::saveOptions($themeSlug, $tenant->id, $currentOpts);
+
+            Logger::log("[DomainManager] Blog settings updated for tenant {$tenant->id} ({$tenant->domain})", 'INFO');
+            echo json_encode(['success' => true, 'message' => 'Configuracion del blog guardada correctamente.']);
+        } catch (\Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            Logger::log("[DomainManager] Error saving blog settings for tenant {$tenant->id}: " . $e->getMessage(), 'ERROR');
+            echo json_encode(['success' => false, 'message' => 'Error al guardar la configuracion del blog: ' . $e->getMessage()]);
         }
         exit;
     }
@@ -2566,6 +3314,238 @@ TEXT;
         http_response_code($statusCode);
         header('Content-Type: application/json');
         echo json_encode($data);
+        exit;
+    }
+
+    /**
+     * Actualiza el perfil de autor del admin root de un tenant
+     */
+    public function updateAuthorProfile($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $csrfToken = $_POST['_csrf'] ?? '';
+        if (!validate_csrf($csrfToken)) {
+            echo json_encode(['success' => false, 'message' => 'Token de seguridad inválido.']);
+            exit;
+        }
+
+        $tenant = $this->getTenant($id);
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado.']);
+            exit;
+        }
+
+        try {
+            $pdo = Database::connect();
+
+            // Find root admin
+            $stmt = $pdo->prepare("SELECT id, name, tenant_id, author_slug FROM admins WHERE tenant_id = ? AND is_root_admin = 1 LIMIT 1");
+            $stmt->execute([$tenant->id]);
+            $admin = $stmt->fetch(\PDO::FETCH_OBJ);
+
+            if (!$admin) {
+                echo json_encode(['success' => false, 'message' => 'No se encontró el administrador principal del tenant.']);
+                exit;
+            }
+
+            $bio = trim($_POST['bio'] ?? '');
+            $socialTwitter = trim($_POST['social_twitter'] ?? '');
+            $socialLinkedin = trim($_POST['social_linkedin'] ?? '');
+            $socialGithub = trim($_POST['social_github'] ?? '');
+            $socialWebsite = trim($_POST['social_website'] ?? '');
+            $authorEnabled = isset($_POST['author_page_enabled']) ? 1 : 0;
+
+            // Sanitize URLs
+            foreach ([&$socialTwitter, &$socialLinkedin, &$socialGithub, &$socialWebsite] as &$url) {
+                if ($url !== '' && !preg_match('#^https?://#i', $url)) {
+                    $url = 'https://' . $url;
+                }
+            }
+            unset($url);
+
+            // Generate slug if enabling and no slug exists
+            $slug = $admin->author_slug;
+            if ($authorEnabled && empty($slug)) {
+                $slug = \Screenart\Musedock\Models\Admin::generateSlug($admin->name, $admin->tenant_id);
+            }
+
+            $stmt = $pdo->prepare("UPDATE admins SET bio = ?, social_twitter = ?, social_linkedin = ?, social_github = ?, social_website = ?, author_page_enabled = ?, author_slug = ? WHERE id = ?");
+            $stmt->execute([
+                $bio ?: null,
+                $socialTwitter ?: null,
+                $socialLinkedin ?: null,
+                $socialGithub ?: null,
+                $socialWebsite ?: null,
+                $authorEnabled,
+                $slug,
+                $admin->id
+            ]);
+
+            echo json_encode(['success' => true, 'message' => 'Perfil de autor actualizado correctamente.']);
+            exit;
+
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+            exit;
+        }
+    }
+
+    /**
+     * Update custom CSS/JS for a tenant (AJAX)
+     */
+    public function updateCustomCode($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $csrfToken = $_POST['_csrf'] ?? '';
+        if (!validate_csrf($csrfToken)) {
+            echo json_encode(['success' => false, 'message' => 'Token de seguridad invalido.']);
+            exit;
+        }
+
+        $tenant = $this->getTenant($id);
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado.']);
+            exit;
+        }
+
+        try {
+            $themeSlug = $tenant->theme ?? 'default';
+            $customCss = $_POST['custom_css'] ?? '';
+            $customJs = $_POST['custom_js'] ?? '';
+
+            // --- CSS ---
+            $cssDir = APP_ROOT . "/public/assets/themes/tenant_{$tenant->id}/{$themeSlug}/css";
+            $cssPath = $cssDir . '/custom.css';
+
+            if (file_exists($cssPath)) {
+                $fullCss = file_get_contents($cssPath);
+                // Replace everything after the custom marker
+                $marker = '/* --- CSS Personalizado --- */';
+                $pos = strpos($fullCss, $marker);
+                if ($pos !== false) {
+                    $baseCss = substr($fullCss, 0, $pos + strlen($marker));
+                } else {
+                    $baseCss = $fullCss . "\n\n" . $marker;
+                }
+            } else {
+                if (!is_dir($cssDir)) {
+                    mkdir($cssDir, 0755, true);
+                }
+                $baseCss = '/* --- CSS Personalizado --- */';
+            }
+
+            $finalCss = $baseCss . "\n" . $customCss;
+            file_put_contents($cssPath, $finalCss);
+            file_put_contents($cssDir . '/custom.css.timestamp', time());
+
+            // --- JS ---
+            $jsDir = APP_ROOT . "/public/assets/themes/tenant_{$tenant->id}/{$themeSlug}/js";
+            if (!is_dir($jsDir)) {
+                mkdir($jsDir, 0755, true);
+            }
+            $jsPath = $jsDir . '/custom.js';
+
+            if (!empty(trim($customJs))) {
+                // Guardar tal cual — el layout lo inyecta directamente en el HTML
+                file_put_contents($jsPath, $customJs);
+                file_put_contents($jsDir . '/custom.js.timestamp', time());
+            } else {
+                // Remove JS file if empty
+                if (file_exists($jsPath)) {
+                    unlink($jsPath);
+                }
+            }
+
+            echo json_encode(['success' => true, 'message' => 'Codigo personalizado guardado correctamente.']);
+            exit;
+
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+            exit;
+        }
+    }
+
+    /**
+     * Auto-categorizar y etiquetar posts de un tenant usando IA (AJAX)
+     */
+    public function autoTagPosts($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+
+        $csrfToken = $input['_csrf'] ?? '';
+        if (!validate_csrf($csrfToken)) {
+            echo json_encode(['success' => false, 'message' => 'Token de seguridad invalido.']);
+            exit;
+        }
+
+        $tenant = $this->getTenant($id);
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado.']);
+            exit;
+        }
+
+        $dryRun = !empty($input['dry_run']);
+        $scope = $input['scope'] ?? 'all';
+        $postIds = [];
+
+        // Si se envían sugerencias preseleccionadas desde el frontend, aplicarlas directamente
+        if (!empty($input['suggestions']) && is_array($input['suggestions'])) {
+            try {
+                $result = \Screenart\Musedock\Services\AI\BlogAutoTagger::applyFiltered((int) $tenant->id, $input['suggestions']);
+                echo json_encode($result);
+            } catch (\Exception $e) {
+                echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+            }
+            exit;
+        }
+
+        // Si scope es "untagged", filtrar posts con pocas categorías/tags
+        if ($scope === 'untagged') {
+            try {
+                $pdo = Database::connect();
+                $stmt = $pdo->prepare("
+                    SELECT bp.id FROM blog_posts bp
+                    LEFT JOIN (SELECT post_id, COUNT(*) as cnt FROM blog_post_categories GROUP BY post_id) pc ON bp.id = pc.post_id
+                    LEFT JOIN (SELECT post_id, COUNT(*) as cnt FROM blog_post_tags GROUP BY post_id) pt ON bp.id = pt.post_id
+                    WHERE bp.tenant_id = ? AND bp.status = 'published'
+                    AND (COALESCE(pc.cnt, 0) + COALESCE(pt.cnt, 0)) < 4
+                    ORDER BY bp.id
+                ");
+                $stmt->execute([$tenant->id]);
+                $postIds = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+
+                if (empty($postIds)) {
+                    echo json_encode(['success' => true, 'dry_run' => $dryRun, 'suggestions' => [], 'message' => 'Todos los posts ya tienen al menos 4 categorias/tags.']);
+                    exit;
+                }
+            } catch (\Exception $e) {
+                echo json_encode(['success' => false, 'message' => 'Error al filtrar posts: ' . $e->getMessage()]);
+                exit;
+            }
+        }
+
+        try {
+            $result = \Screenart\Musedock\Services\AI\BlogAutoTagger::analyze((int) $tenant->id, $postIds, $dryRun);
+            echo json_encode($result);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        }
         exit;
     }
 }

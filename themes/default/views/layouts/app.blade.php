@@ -56,6 +56,9 @@
         $seoKeywords = \Screenart\Musedock\View::yieldSection('keywords') ?: $_siteKeywords;
         $ogTitle = \Screenart\Musedock\View::yieldSection('og_title') ?: $_siteName;
         $ogDescription = \Screenart\Musedock\View::yieldSection('og_description') ?: $_siteDescription;
+        $ogImage = trim(\Screenart\Musedock\View::yieldSection('og_image', ''));
+        $ogType = trim(\Screenart\Musedock\View::yieldSection('og_type', '')) ?: 'website';
+        $canonicalUrl = trim(\Screenart\Musedock\View::yieldSection('canonical_url', ''));
         $siteName = $_siteName;
         $robotsDirective = trim(\Screenart\Musedock\View::yieldSection('robots', ''));
 
@@ -66,6 +69,7 @@
 
         $twitterTitle = \Screenart\Musedock\View::yieldSection('twitter_title') ?: $_siteName;
         $twitterDescription = \Screenart\Musedock\View::yieldSection('twitter_description') ?: ($_twitterDescription ?: $_siteDescription);
+        $twitterImage = trim(\Screenart\Musedock\View::yieldSection('twitter_image', ''));
     @endphp
     @if($seoKeywords)
     <meta name="keywords" content="{{ $seoKeywords }}">
@@ -80,11 +84,17 @@
     @if($siteName)
     <meta property="og:site_name" content="{{ $siteName }}">
     @endif
-    <meta property="og:type" content="website">
-    @if($_ogImage)
+    <meta property="og:type" content="{{ $ogType }}">
+    @if($ogImage)
+    <meta property="og:image" content="{{ $ogImage }}">
+    @elseif($_ogImage)
     <meta property="og:image" content="{{ public_file_url($_ogImage) }}">
     @endif
+    @if($canonicalUrl)
+    <link rel="canonical" href="{{ $canonicalUrl }}">
+    @else
     <link rel="canonical" href="{{ url($_SERVER['REQUEST_URI']) }}">
+    @endif
     @if($_siteName)
     <link rel="alternate" type="application/rss+xml" title="{{ $_siteName }} RSS Feed" href="{{ url('/feed') }}">
     @endif
@@ -97,6 +107,9 @@
     @endif
     @if($twitterDescription)
     <meta name="twitter:description" content="{{ $twitterDescription }}">
+    @endif
+    @if($twitterImage)
+    <meta name="twitter:image" content="{{ $twitterImage }}">
     @endif
     @if($_twitterSite)
     <meta name="twitter:site" content="{{ $_twitterSite }}">
@@ -181,8 +194,21 @@
     {{-- CSS Personalizado - Espaciado y estilos del tema --}}
     <link rel="stylesheet" href="{{ asset('themes/default/css/template.css') }}?v={{ time() }}">
 
-    {{-- CSS Custom del tenant - DEBE ir después de template.css para sobrescribir --}}
+    {{-- CSS Custom global del tema (layout, anchos, header styles, etc.) --}}
     <link rel="stylesheet" href="{{ asset('themes/default/css/custom.css') }}?v={{ time() }}">
+
+    {{-- CSS Custom del tenant - se carga DESPUÉS del global para poder sobrescribir --}}
+    @php
+        $cssTenantId = tenant()['id'] ?? null;
+        $cssThemeSlug = themeConfig('slug', 'default');
+        $cssTenantPrefix = $cssTenantId ? "tenant_{$cssTenantId}/{$cssThemeSlug}" : $cssThemeSlug;
+        $cssCustomPath = public_path("assets/themes/{$cssTenantPrefix}/css/custom.css");
+        $cssTimestampPath = public_path("assets/themes/{$cssTenantPrefix}/css/custom.css.timestamp");
+        $cssTimestamp = file_exists($cssTimestampPath) ? file_get_contents($cssTimestampPath) : time();
+    @endphp
+    @if($cssTenantId && file_exists($cssCustomPath))
+        <link rel="stylesheet" href="{{ asset("themes/{$cssTenantPrefix}/css/custom.css") }}?v={{ $cssTimestamp }}">
+    @endif
 
     {{-- Nice Select 2 CSS --}}
     <link rel="stylesheet" href="/assets/vendor/nice-select2/nice-select2.min.css">
@@ -376,9 +402,10 @@
     }
     .page-content hr, .page-body hr, .content hr, article hr {
         margin: 2rem 0 !important;
-        border: 0;
-        border-top: 2px solid #ddd !important;
-        height: 0;
+        border: 0 !important;
+        border-top: 1px solid #aaa !important;
+        height: 0 !important;
+        opacity: 1 !important;
     }
     .page-content hr + h2, .page-body hr + h2, .content hr + h2,
     .page-content hr + h3, .page-body hr + h3, .content hr + h3 {
@@ -433,6 +460,27 @@
     }
     .page-content a:visited, .page-body a:visited, .content a:visited, article a:visited {
         color: #551a8b !important;
+    }
+
+    /* === EMBEDS DE VIDEO RESPONSIVE === */
+    .page-content iframe, .page-body iframe, .content iframe, article iframe,
+    .post-content iframe {
+        max-width: 100%;
+        border: 0;
+    }
+    .page-content iframe[src*="youtube"], .page-body iframe[src*="youtube"],
+    .page-content iframe[src*="vimeo"], .page-body iframe[src*="vimeo"],
+    .content iframe[src*="youtube"], .content iframe[src*="vimeo"],
+    .post-content iframe[src*="youtube"], .post-content iframe[src*="vimeo"],
+    article iframe[src*="youtube"], article iframe[src*="vimeo"] {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        height: auto;
+    }
+    .page-content video, .page-body video, .content video, article video,
+    .post-content video {
+        max-width: 100%;
+        height: auto;
     }
 
     /* === EVITAR BARRAS DE DESPLAZAMIENTO NO DESEADAS === */
@@ -1079,8 +1127,20 @@ body.mobile-menu-open {
 
     {{-- Estilos adicionales --}}
     @stack('styles')
+
+    {{-- Codigo personalizado del tenant en <head> --}}
+    @php $_customHeadCode = site_setting('custom_head_code', ''); @endphp
+    @if(!empty($_customHeadCode))
+    {!! $_customHeadCode !!}
+    @endif
 </head>
 <body>
+{{-- Codigo personalizado del tenant despues de <body> --}}
+@php $_customBodyStartCode = site_setting('custom_body_start_code', ''); @endphp
+@if(!empty($_customBodyStartCode))
+{!! $_customBodyStartCode !!}
+@endif
+
 @php
     // Cargar traducciones del tenant para el frontend
     \Screenart\Musedock\Services\TranslationService::setContext('tenant');
@@ -1132,7 +1192,13 @@ body.mobile-menu-open {
                </div>
            </div>
            <div class="col-xl-6 col-lg-6">
-               <div class="header-info-right text-right">
+               <div class="header-info-right text-right d-flex justify-content-end align-items-center">
+               @php
+                   $topbarClock = themeOption('blog.blog_topbar_clock', false);
+               @endphp
+               @if($topbarClock)
+               <span class="topbar-clock-display" id="topbarLiveClock" style="margin-right: 15px; font-size: 13px; opacity: 0.9; white-space: nowrap;"><i class="fas fa-clock" style="margin-right: 5px; font-size: 11px;"></i></span>
+               @endif
                <ul class="header-social d-flex justify-content-end">
                     @if(site_setting('social_linkedin', ''))
                         <li><a href="{{ site_setting('social_linkedin') }}" target="_blank"><i class="fab fa-linkedin-in"></i></a></li>
@@ -1179,6 +1245,13 @@ body.mobile-menu-open {
     $ctaText = ($currentLangCta === 'en') ? $ctaTextEn : $ctaTextEs;
     $ctaUrl = themeOption('header.header_cta_url', '#');
     $langSelectorEnabled = themeOption('header.header_lang_selector_enabled', true);
+    // Tenant puede desactivar selector de idioma desde /admin/settings
+    if ($langSelectorEnabled && function_exists('tenant_setting')) {
+        $showLangSwitcherSetting = tenant_setting('show_language_switcher', '1');
+        if ($showLangSwitcherSetting === '0') {
+            $langSelectorEnabled = false;
+        }
+    }
 
     try {
         $pdo = \Screenart\Musedock\Database::connect();
@@ -1300,7 +1373,7 @@ body.mobile-menu-open {
              @endif
         </nav>
 
-        @if($showLangSelector)
+        @if($showLangSelector && ($langSelectorEnabled ?? true))
         <div class="mobile-languages">
             <h4>{{ __('mobile_menu.select_language') }}</h4>
             <div class="mobile-lang-select">
@@ -1622,23 +1695,19 @@ if (header && header.classList.contains('enable-sticky')) {
 @php
     $tenantId = tenant()['id'] ?? null;
     $themeSlug = themeConfig('slug', 'default');
-    
-    // Definir la URL correctamente sin doble barra
-    $baseUrl = rtrim(url('/'), '/'); // Elimina la barra final si existe
-    $jsPath = "/assets/themes/{$themeSlug}/js/custom.js";
-    $fullJsUrl = $baseUrl . $jsPath;
-    
-    // Verificar si el archivo existe físicamente
-    $fullPublicPath = public_path("assets/themes/{$themeSlug}/js/custom.js");
-    $customJsExists = file_exists($fullPublicPath);
-    
-    // Timestamp para cache busting
-    $timestampPath = public_path("assets/themes/{$themeSlug}/js/custom.js.timestamp");
-    $jsTimestamp = file_exists($timestampPath) ? file_get_contents($timestampPath) : time();
+    $tenantThemePrefix = $tenantId ? "tenant_{$tenantId}/{$themeSlug}" : $themeSlug;
+    $customJsPath = public_path("assets/themes/{$tenantThemePrefix}/js/custom.js");
+    $customJsContent = file_exists($customJsPath) ? trim(file_get_contents($customJsPath)) : '';
 @endphp
 
-@if($customJsExists)
-    <script src="{{ $fullJsUrl }}?t={{ $jsTimestamp }}"></script>
+@if(!empty($customJsContent))
+    @if(str_contains($customJsContent, '<script'))
+        {{-- Contiene tags <script>, inyectar como HTML directo --}}
+        {!! $customJsContent !!}
+    @else
+        {{-- JS puro, envolver en tag script --}}
+        <script>{!! $customJsContent !!}</script>
+    @endif
 @endif
 
 <script>
@@ -1685,6 +1754,37 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+
+{{-- Topbar live clock --}}
+@if(themeOption('blog.blog_topbar_clock', false) && themeOption('topbar.topbar_enabled', true))
+<script>
+(function() {
+    var el = document.getElementById('topbarLiveClock');
+    if (!el) return;
+    var tz = @json(themeOption('blog.blog_header_clock_timezone', 'Europe/Madrid'));
+    var locale = @json(themeOption('blog.blog_header_clock_locale', 'es'));
+    var localeMap = {'es':'es-ES','en':'en-US','fr':'fr-FR','de':'de-DE','pt':'pt-PT'};
+    var fullLocale = localeMap[locale] || 'es-ES';
+    var dateOpts = {weekday:'short',year:'numeric',month:'short',day:'numeric',timeZone:tz};
+    var timeOpts = {hour:'numeric',minute:'2-digit',second:'2-digit',timeZone:tz,hour12:locale==='en'};
+    var dateFmt, timeFmt;
+    try { dateFmt = new Intl.DateTimeFormat(fullLocale, dateOpts); timeFmt = new Intl.DateTimeFormat(fullLocale, timeOpts); }
+    catch(e) { dateFmt = new Intl.DateTimeFormat('es-ES', dateOpts); timeFmt = new Intl.DateTimeFormat('es-ES', timeOpts); }
+    function tick() {
+        var now = new Date();
+        var d = dateFmt.format(now); d = d.charAt(0).toUpperCase() + d.slice(1);
+        el.innerHTML = '<i class="fas fa-clock" style="margin-right:5px;font-size:11px;"></i>' + d + ' \u00B7 ' + timeFmt.format(now);
+    }
+    tick(); setInterval(tick, 1000);
+})();
+</script>
+@endif
+
+{{-- Codigo personalizado del tenant antes de </body> --}}
+@php $_customBodyEndCode = site_setting('custom_body_end_code', ''); @endphp
+@if(!empty($_customBodyEndCode))
+{!! $_customBodyEndCode !!}
+@endif
 
 {{-- Scripts adicionales  --}}
 @stack('scripts')

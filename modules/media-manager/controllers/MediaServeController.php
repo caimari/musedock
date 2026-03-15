@@ -28,6 +28,12 @@ class MediaServeController
      */
     public function serve($path = '')
     {
+        // Limpiar headers de no-cache que PHP/sesión añade automáticamente
+        // para que los headers de caché del media server tengan efecto
+        header_remove('Pragma');
+        header_remove('Expires');
+        header_remove('Cache-Control');
+
         try {
             // Sanitizar path para prevenir path traversal
             $path = $this->sanitizePath($path);
@@ -249,8 +255,17 @@ class MediaServeController
                 }
             }
 
+            // Soporte de variantes por query param: ?size=thumb|medium
+            $size = $_GET['size'] ?? null;
+
             // Si el archivo está en el disco 'media' (sistema seguro local)
             if ($media->disk === 'media') {
+                if ($size === 'thumb') {
+                    return $this->serveThumbnail($media->path);
+                }
+                if ($size === 'medium') {
+                    return $this->serveMedium($media->path);
+                }
                 return $this->serve($media->path);
             }
 
@@ -297,8 +312,17 @@ class MediaServeController
                 return $this->notFound('Archivo no encontrado');
             }
 
+            // Soporte de variantes por query param: ?size=thumb|medium
+            $size = $_GET['size'] ?? null;
+
             // Si el archivo está en el disco 'media' (nuevo sistema seguro)
             if ($media->disk === 'media') {
+                if ($size === 'thumb') {
+                    return $this->serveThumbnail($media->path);
+                }
+                if ($size === 'medium') {
+                    return $this->serveMedium($media->path);
+                }
                 return $this->serve($media->path);
             }
 
@@ -364,9 +388,82 @@ class MediaServeController
      */
     public function serveThumbnail($path = '')
     {
-        // Por ahora, servir el archivo original
-        // TODO: Implementar generación de thumbnails on-the-fly
+        return $this->serveResizedVariant($path, 'thumbnail', 'thumbs', '_thumb');
+    }
+
+    /**
+     * Sirve la versión medium (800px) del archivo
+     * URL: /media/medium/{path}
+     *
+     * @param string $path Path relativo del archivo
+     */
+    public function serveMedium($path = '')
+    {
+        return $this->serveResizedVariant($path, 'medium', 'medium', '_medium');
+    }
+
+    /**
+     * Sirve una variante redimensionada (thumb o medium).
+     * Si la variante no existe, sirve el original como fallback.
+     */
+    private function serveResizedVariant(string $path, string $metaKey, string $subDir, string $suffix)
+    {
+        $path = $this->sanitizePath($path);
+        if (empty($path)) {
+            return $this->notFound();
+        }
+
+        // Intentar construir el path de la variante directamente
+        $dir = dirname($path);
+        $filename = pathinfo($path, PATHINFO_FILENAME);
+        $storageRoot = defined('APP_ROOT') ? APP_ROOT . '/storage/app/media' : '';
+
+        // Probar WebP primero, luego JPG
+        foreach (['webp', 'jpg'] as $ext) {
+            $variantPath = $dir . '/' . $subDir . '/' . $filename . $suffix . '.' . $ext;
+            $fullVariantPath = $storageRoot . '/' . $variantPath;
+            if ($storageRoot && file_exists($fullVariantPath)) {
+                return $this->serveLocalFile($fullVariantPath);
+            }
+        }
+
+        // Fallback: servir el original
         return $this->serve($path);
+    }
+
+    /**
+     * Sirve un archivo local directamente con cache headers
+     */
+    private function serveLocalFile(string $filePath): void
+    {
+        // Limpiar headers de no-cache de PHP/sesión
+        header_remove('Pragma');
+        header_remove('Expires');
+        header_remove('Cache-Control');
+
+        $mimeType = $this->getMimeType($filePath);
+        $fileSize = filesize($filePath);
+        $lastModified = filemtime($filePath);
+
+        // Cache headers (1 año)
+        header('Content-Type: ' . $mimeType);
+        header('Content-Length: ' . $fileSize);
+        header('Cache-Control: public, max-age=31536000, immutable');
+        header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $lastModified) . ' GMT');
+        header('ETag: "' . md5($filePath . $lastModified) . '"');
+        header('X-Content-Type-Options: nosniff');
+
+        // 304 Not Modified
+        if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])) {
+            $ifModified = strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']);
+            if ($ifModified >= $lastModified) {
+                http_response_code(304);
+                exit;
+            }
+        }
+
+        readfile($filePath);
+        exit;
     }
 
     /**

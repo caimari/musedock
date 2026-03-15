@@ -20,8 +20,11 @@ return [
     'published_on' => 'Published on',
     'author' => 'Author',
     'category' => 'Category',
+    'tag' => 'Tag',
     'share' => 'Share',
     'related_posts' => 'Related Posts',
+    'popular_tags' => 'Popular Tags',
+    'popular_categories' => 'Categories',
 
     // Sidebar
     'search' => 'Search',
@@ -35,6 +38,13 @@ return [
     'leave_comment' => 'Leave a Comment',
     'your_comment' => 'Your Comment',
     'post_comment' => 'Post Comment',
+
+    // Stats
+    'views' => 'Views',
+
+    // Author
+    'posts_by' => 'Posts by',
+    'author_bio' => 'About the author',
 
     // Meta
     'posted_in' => 'Posted in',

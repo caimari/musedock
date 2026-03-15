@@ -10,6 +10,7 @@ use Screenart\Musedock\Models\Admin;
 use Screenart\Musedock\Models\User;
 use Screenart\Musedock\Models\Tenant;
 use Screenart\Musedock\Database;
+use Screenart\Musedock\Security\IPHelper;
 use Carbon\Carbon;
 
 class BlogPost extends Model
@@ -323,8 +324,7 @@ class BlogPost extends Model
      */
     public function getPrefix(): string
     {
-        $slug = $this->getSlug();
-        return $slug ? ($slug->prefix ?? 'blog') : 'blog';
+        return function_exists('blog_prefix') ? blog_prefix() : 'blog';
     }
 
     /**
@@ -336,9 +336,9 @@ class BlogPost extends Model
         if (!$slug) return '#';
 
         $host = $_SERVER['HTTP_HOST'] ?? env('APP_URL', 'localhost');
-        $prefix = $slug->prefix ?? 'blog';
+        $path = function_exists('blog_url') ? blog_url($slug->slug) : "/blog/{$slug->slug}";
 
-        return "https://{$host}/{$prefix}/{$slug->slug}";
+        return "https://{$host}{$path}";
     }
 
     /**
@@ -370,20 +370,41 @@ class BlogPost extends Model
     }
 
     /**
-     * Incrementa el contador de vistas del post.
+     * Incrementa el contador de vistas del post (unique per IP per day).
+     * Uses GDPR-compliant IP hashing.
      */
-    public function incrementViewCount(): bool
+    public function incrementViewCount(?string $ip = null): bool
     {
         try {
             $pdo = Database::connect();
-            $stmt = $pdo->prepare("UPDATE blog_posts SET view_count = view_count + 1 WHERE id = ?");
-            $result = $stmt->execute([$this->id]);
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
 
-            if ($result) {
-                $this->view_count = ($this->view_count ?? 0) + 1;
+            $ip = $ip ?? IPHelper::getRealIP();
+            $ipHash = hash('sha256', $ip . date('Y-m-d'));
+
+            if ($driver === 'mysql') {
+                $stmt = $pdo->prepare("
+                    INSERT IGNORE INTO blog_post_views (post_id, tenant_id, ip_hash, viewed_at)
+                    VALUES (?, ?, ?, NOW())
+                ");
+            } else {
+                $stmt = $pdo->prepare("
+                    INSERT INTO blog_post_views (post_id, tenant_id, ip_hash, viewed_at)
+                    VALUES (?, ?, ?, NOW())
+                    ON CONFLICT (post_id, ip_hash) DO NOTHING
+                ");
             }
 
-            return $result;
+            $stmt->execute([$this->id, $this->tenant_id, $ipHash]);
+
+            if ($stmt->rowCount() > 0) {
+                $updateStmt = $pdo->prepare("UPDATE blog_posts SET view_count = view_count + 1 WHERE id = ?");
+                $updateStmt->execute([$this->id]);
+                $this->view_count = ($this->view_count ?? 0) + 1;
+                return true;
+            }
+
+            return false;
         } catch (\Exception $e) {
             error_log("Error al incrementar contador de vistas para post ID {$this->id}: " . $e->getMessage());
             return false;

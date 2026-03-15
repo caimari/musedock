@@ -289,6 +289,11 @@ class PageController
             error_log("Error al crear revisión inicial: " . $e->getMessage());
         }
 
+        // Invalidar caché del sitemap
+        if (($data['status'] ?? '') === 'published') {
+            \Blog\Controllers\Frontend\SitemapController::invalidateCache($tenantId);
+        }
+
         flash('success', __('pages.success_created'));
         header('Location: ' . admin_url("pages/{$page->id}/edit"));
         exit;
@@ -595,6 +600,9 @@ class PageController
                 'is_homepage' => $makeHomepage ? 1 : 0,
                 'tenant_id' => $tenantId
             ]);
+
+            // Invalidar caché del sitemap (la página podría haber cambiado de status)
+            \Blog\Controllers\Frontend\SitemapController::invalidateCache($tenantId);
 
         } catch (\Exception $e) {
             if ($pdo && $pdo->inTransaction()) { $pdo->rollBack(); }

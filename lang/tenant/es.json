@@ -263,6 +263,8 @@
       "no_posts_in_category": "No hay posts en esta categoría.",
       "no_posts_with_tag": "No hay posts con esta etiqueta."
     },
+    "posts_by": "Posts de",
+    "author_bio": "Sobre el autor",
     "post": {
       "title": "Posts del Blog",
       "list": "Listado de Posts",
@@ -503,7 +505,12 @@
     "by": "por",
     "comments": "Comentarios",
     "no_comments": "No hay comentarios todavía.",
-    "leave_comment": "Dejar un Comentario"
+    "leave_comment": "Dejar un Comentario",
+    "popular_tags": "Etiquetas Populares",
+    "popular_categories": "Categorías",
+    "views": "Vistas",
+    "previous_post": "Anterior",
+    "next_post": "Siguiente"
   },
   "image_gallery": {
     "title": "Galería de Imágenes",

@@ -1,13 +1,39 @@
 @extends('layouts.app')
 
 {{-- SEO --}}
-@section('title')
-    {{ $post->title . ' | ' . setting('site_name', 'MuseDock CMS') }}
-@endsection
+@php
+    $seoTitle = $post->seo_title ?: $post->title;
+    $seoDesc = $post->seo_description ?: ($post->excerpt ?? mb_substr(strip_tags($post->content), 0, 160));
+    $twTitle = $post->twitter_title ?: $seoTitle;
+    $twDesc = $post->twitter_description ?: $seoDesc;
+    $postImage = $post->featured_image
+        ? (str_starts_with($post->featured_image, 'http') ? $post->featured_image : url($post->featured_image))
+        : '';
+    $twImage = $post->twitter_image
+        ? (str_starts_with($post->twitter_image, 'http') ? $post->twitter_image : url($post->twitter_image))
+        : $postImage;
+@endphp
 
-@section('description')
-    {{ $post->excerpt ?? mb_substr(strip_tags($post->content), 0, 160) }}
-@endsection
+@section('title', $seoTitle . ' | ' . setting('site_name', 'MuseDock CMS'))
+@section('description', $seoDesc)
+@section('keywords', $post->seo_keywords ?? '')
+@section('og_title', $seoTitle)
+@section('og_description', $seoDesc)
+@section('og_type', 'article')
+@if($postImage)
+@section('og_image', $postImage)
+@endif
+@section('twitter_title', $twTitle)
+@section('twitter_description', $twDesc)
+@if($twImage)
+@section('twitter_image', $twImage)
+@endif
+@if($post->canonical_url)
+@section('canonical_url', $post->canonical_url)
+@endif
+@if($post->robots_directive)
+@section('robots', $post->robots_directive)
+@endif
 
 @section('content')
 
@@ -15,16 +41,6 @@
     <div class="lg:flex lg:gap-12">
         {{-- Contenido principal --}}
         <article class="lg:w-2/3">
-            {{-- Imagen destacada --}}
-            @if($post->featured_image && !$post->hide_featured_image)
-                @php
-                    $imageUrl = (str_starts_with($post->featured_image, '/media/') || str_starts_with($post->featured_image, 'http'))
-                        ? $post->featured_image
-                        : asset($post->featured_image);
-                @endphp
-                <img src="{{ $imageUrl }}" alt="{{ $post->title }}" class="w-full h-auto max-h-[500px] object-cover rounded-2xl shadow-lg mb-8">
-            @endif
-
             {{-- Header --}}
             <header class="mb-8">
                 <h1 class="text-4xl font-bold text-gray-900 mb-4">{{ $post->title }}</h1>
@@ -37,7 +53,46 @@
                         </svg>
                         <span>{{ format_datetime($post->published_at ?? $post->created_at) }}</span>
                     </div>
-                    @if($post->view_count > 0)
+                    @php
+                        $postAuthorName = null;
+                        if (!empty($post->user_id)) {
+                            if (($post->user_type ?? '') === 'superadmin' && !empty($post->tenant_id)) {
+                                $__pdo = \Screenart\Musedock\Database::connect();
+                                $__stmt = $__pdo->prepare("SELECT name FROM admins WHERE tenant_id = ? AND is_root_admin = 1 LIMIT 1");
+                                $__stmt->execute([$post->tenant_id]);
+                                $__ra = $__stmt->fetch(\PDO::FETCH_OBJ);
+                                $postAuthorName = $__ra ? $__ra->name : null;
+                            }
+                            if (!$postAuthorName) {
+                                $__author = match($post->user_type ?? 'admin') {
+                                    'superadmin' => \Screenart\Musedock\Models\SuperAdmin::find($post->user_id),
+                                    'admin' => \Screenart\Musedock\Models\Admin::find($post->user_id),
+                                    'user' => \Screenart\Musedock\Models\User::find($post->user_id),
+                                    default => null,
+                                };
+                                $postAuthorName = $__author ? $__author->name : null;
+                            }
+                        }
+                        $postAuthorUrl = null;
+                        if ($postAuthorName && ($post->user_type ?? '') === 'admin') {
+                            $__pdo = $__pdo ?? \Screenart\Musedock\Database::connect();
+                            $__aStmt = $__pdo->prepare("SELECT author_slug, author_page_enabled FROM admins WHERE id = ? LIMIT 1");
+                            $__aStmt->execute([$post->user_id]);
+                            $__aData = $__aStmt->fetch(\PDO::FETCH_OBJ);
+                            if ($__aData && $__aData->author_page_enabled && $__aData->author_slug) {
+                                $postAuthorUrl = blog_url($__aData->author_slug, 'author');
+                            }
+                        }
+                    @endphp
+                    @if($postAuthorName)
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        <span>@if($postAuthorUrl)<a href="{{ $postAuthorUrl }}" class="text-gray-500 hover:text-indigo-600 transition-colors">{{ $postAuthorName }}</a>@else{{ $postAuthorName }}@endif</span>
+                    </div>
+                    @endif
+                    @if($post->view_count > 0 && site_setting('blog_show_views', '1') === '1')
                     <div class="flex items-center">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -49,6 +104,16 @@
                 </div>
             </header>
 
+            {{-- Imagen destacada --}}
+            @if($post->featured_image && !$post->hide_featured_image)
+                @php
+                    $imageUrl = (str_starts_with($post->featured_image, '/') || str_starts_with($post->featured_image, 'http'))
+                        ? $post->featured_image
+                        : asset($post->featured_image);
+                @endphp
+                <img src="{{ $imageUrl }}" alt="{{ $post->title }}" class="w-full h-auto max-h-[500px] object-cover rounded-2xl shadow-lg mb-8" loading="lazy">
+            @endif
+
             {{-- Contenido --}}
             <div class="prose prose-lg max-w-none prose-indigo prose-headings:text-gray-900 prose-a:text-indigo-600 prose-img:rounded-xl">
                 {!! $post->content !!}
@@ -58,19 +123,17 @@
             @if(!empty($post->categories) || !empty($post->tags))
             <div class="mt-10 pt-8 border-t border-gray-200">
                 @if(!empty($post->categories))
-                <div class="mb-4">
-                    <span class="font-semibold text-gray-900 mr-2">{{ __('blog.categories') }}:</span>
+                <div class="flex flex-wrap gap-2.5 mb-4">
                     @foreach($post->categories as $category)
-                        <a href="/blog/category/{{ $category->slug }}" class="inline-block px-3 py-1 mr-2 mb-2 text-sm font-medium text-white bg-indigo-600 rounded-full hover:bg-indigo-700 transition-colors">{{ $category->name }}</a>
+                        <a href="{{ blog_url($category->slug, 'category') }}" class="inline-block px-5 py-2 text-sm font-medium text-gray-600 bg-transparent border border-gray-300 rounded hover:text-gray-900 hover:border-gray-500 hover:bg-gray-50 transition-all uppercase tracking-wide">{{ $category->name }}</a>
                     @endforeach
                 </div>
                 @endif
 
                 @if(!empty($post->tags))
-                <div>
-                    <span class="font-semibold text-gray-900 mr-2">{{ __('blog.tags') }}:</span>
+                <div class="flex flex-wrap gap-2.5">
                     @foreach($post->tags as $tag)
-                        <a href="/blog/tag/{{ $tag->slug }}" class="inline-block px-3 py-1 mr-2 mb-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors">{{ $tag->name }}</a>
+                        <a href="{{ blog_url($tag->slug, 'tag') }}" class="inline-block px-5 py-2 text-sm font-medium text-gray-600 bg-transparent border border-gray-300 rounded hover:text-gray-900 hover:border-gray-500 hover:bg-gray-50 transition-all uppercase tracking-wide">{{ $tag->name }}</a>
                     @endforeach
                 </div>
                 @endif
@@ -82,7 +145,7 @@
             <nav class="mt-10 pt-8 border-t border-gray-200">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     @if(!empty($prevPost))
-                    <a href="/blog/{{ $prevPost->slug }}" class="group flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                    <a href="{{ blog_url($prevPost->slug) }}" class="group flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                         <svg class="w-6 h-6 text-gray-400 group-hover:text-indigo-600 mr-4 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                         </svg>
@@ -94,7 +157,7 @@
                     @endif
 
                     @if(!empty($nextPost))
-                    <a href="/blog/{{ $nextPost->slug }}" class="group flex items-center justify-end p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-right">
+                    <a href="{{ blog_url($nextPost->slug) }}" class="group flex items-center justify-end p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-right">
                         <div>
                             <span class="text-sm text-gray-500 block">{{ __('blog.next_post') }}</span>
                             <span class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">{{ $nextPost->title }}</span>
@@ -118,7 +181,7 @@
                 <ul class="space-y-2">
                     @foreach($categories as $cat)
                     <li>
-                        <a href="/blog/category/{{ $cat->slug }}" class="flex items-center text-gray-600 hover:text-indigo-600 transition-colors">
+                        <a href="{{ blog_url($cat->slug, 'category') }}" class="flex items-center text-gray-600 hover:text-indigo-600 transition-colors">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                             </svg>
@@ -137,7 +200,7 @@
                 <ul class="space-y-4">
                     @foreach($recentPosts as $recentPost)
                     <li class="group">
-                        <a href="/blog/{{ $recentPost->slug }}" class="block">
+                        <a href="{{ blog_url($recentPost->slug) }}" class="block">
                             <span class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">{{ $recentPost->title }}</span>
                             <span class="block text-sm text-gray-500 mt-1">
                                 {{ format_date($recentPost->published_at ?? $recentPost->created_at) }}

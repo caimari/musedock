@@ -73,6 +73,19 @@
                                 @endif
                             </td>
                             <td class="text-end pe-4">
+                                @php
+                                    $moduleSettingsMap = [
+                                        'ai-writer' => '/musedock/aiwriter/settings',
+                                        'ai-image' => '/musedock/ai-image/settings',
+                                    ];
+                                    $settingsUrl = $moduleSettingsMap[$module['slug']] ?? null;
+                                @endphp
+                                <div class="d-inline-flex align-items-center gap-2">
+                                @if($settingsUrl && ($module['active'] ?? false))
+                                <a href="{{ $settingsUrl }}" class="text-secondary" title="Configuracion" style="font-size: 1.1rem; text-decoration: none;">
+                                    <i class="bi bi-gear"></i>
+                                </a>
+                                @endif
                                 <div class="btn-group btn-group-sm">
                                     @if(!$module['installed'])
                                     <form method="POST" action="/musedock/modules/activate" class="d-inline">
@@ -107,6 +120,7 @@
                                         </form>
                                         @endif
                                     @endif
+                                </div>
                                 </div>
                             </td>
                         </tr>

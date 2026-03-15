@@ -8,14 +8,7 @@
 
         @include('plugins.news-aggregator._nav', ['activeTab' => 'logs'])
 
-        {{-- Flash Messages --}}
-        @if(session('flash_success'))
-            <div class="alert alert-success alert-dismissible fade show">
-                {{ session('flash_success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            @php unset($_SESSION['flash_success']); @endphp
-        @endif
+        @include('partials.alerts-sweetalert2')
 
         {{-- Filters --}}
         <div class="card border-0 shadow-sm mb-3">

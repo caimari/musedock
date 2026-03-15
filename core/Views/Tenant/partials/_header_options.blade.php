@@ -85,6 +85,12 @@
                     <i class="bi bi-image"></i> Seleccionar imagen
                 </button>
 
+                @if(function_exists('aiimage_is_active') && aiimage_is_active())
+                <button type="button" class="btn btn-outline-success ai-image-trigger" data-target="header-image-input" data-preview="header-image-preview" title="Generar imagen con IA">
+                    <i class="bi bi-stars"></i>
+                </button>
+                @endif
+
                 @if($isCustom)
                 <button type="button" class="btn btn-outline-danger" id="remove-header-image-btn">
                     <i class="bi bi-x-circle"></i> Eliminar imagen

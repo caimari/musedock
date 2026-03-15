@@ -365,6 +365,193 @@ class TenantPluginManager
     }
 
     /**
+     * Obtener directorio de plugins compartidos
+     *
+     * @return string Ruta absoluta al directorio de plugins compartidos
+     */
+    public static function getSharedPluginsPath(): string
+    {
+        return APP_ROOT . '/plugins/tenant-shared';
+    }
+
+    /**
+     * Resolver la ruta real de un plugin para un tenant
+     *
+     * Busca primero en el directorio del tenant (permite overrides),
+     * luego en el directorio de plugins compartidos.
+     *
+     * @param int $tenantId ID del tenant
+     * @param string $slug Slug del plugin
+     * @return string|null Ruta absoluta al directorio del plugin, o null si no existe
+     */
+    public static function resolvePluginPath(int $tenantId, string $slug): ?string
+    {
+        // 1. Buscar en tenant-specific (prioridad)
+        $tenantPath = self::getPluginsPath($tenantId) . '/' . $slug;
+        if (is_dir($tenantPath)) {
+            return $tenantPath;
+        }
+
+        // 2. Buscar en tenant-shared
+        $sharedPath = self::getSharedPluginsPath() . '/' . $slug;
+        if (is_dir($sharedPath)) {
+            return $sharedPath;
+        }
+
+        return null;
+    }
+
+    /**
+     * Listar plugins compartidos disponibles
+     *
+     * Escanea plugins/tenant-shared/ y retorna metadata de cada plugin.
+     *
+     * @return array Lista de plugins compartidos con metadata
+     */
+    public static function getAvailableSharedPlugins(): array
+    {
+        $sharedDir = self::getSharedPluginsPath();
+        $plugins = [];
+
+        if (!is_dir($sharedDir)) {
+            return [];
+        }
+
+        foreach (glob($sharedDir . '/*', GLOB_ONLYDIR) as $pluginPath) {
+            $metadataFile = $pluginPath . '/plugin.json';
+            if (!file_exists($metadataFile)) {
+                continue;
+            }
+
+            $metadata = json_decode(file_get_contents($metadataFile), true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                continue;
+            }
+
+            $slug = basename($pluginPath);
+            $plugins[] = [
+                'slug' => $slug,
+                'name' => $metadata['name'] ?? ucfirst($slug),
+                'description' => $metadata['description'] ?? '',
+                'version' => $metadata['version'] ?? '1.0.0',
+                'author' => $metadata['author'] ?? 'MuseDock',
+                'icon' => $metadata['admin_menu']['icon'] ?? 'puzzle',
+            ];
+        }
+
+        return $plugins;
+    }
+
+    /**
+     * Verificar si un plugin está activo para un tenant
+     *
+     * @param int $tenantId ID del tenant
+     * @param string $slug Slug del plugin
+     * @return bool True si está activo
+     */
+    public static function isPluginActive(int $tenantId, string $slug): bool
+    {
+        try {
+            $db = Database::connect();
+            $stmt = $db->prepare("SELECT active FROM tenant_plugins WHERE tenant_id = :tenant_id AND slug = :slug");
+            $stmt->execute(['tenant_id' => $tenantId, 'slug' => $slug]);
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+            return $result ? (bool) $result['active'] : false;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Activar un plugin compartido para un tenant
+     *
+     * Inserta o actualiza el registro en tenant_plugins con active=1.
+     * Lee la metadata del plugin.json compartido para los datos.
+     *
+     * @param int $tenantId ID del tenant
+     * @param string $slug Slug del plugin
+     * @return bool Éxito de la operación
+     */
+    public static function activateSharedPlugin(int $tenantId, string $slug): bool
+    {
+        $sharedPath = self::getSharedPluginsPath() . '/' . $slug;
+        $metadataFile = $sharedPath . '/plugin.json';
+
+        if (!file_exists($metadataFile)) {
+            Logger::error("TenantPluginManager: Plugin compartido {$slug} no existe en tenant-shared");
+            return false;
+        }
+
+        $metadata = json_decode(file_get_contents($metadataFile), true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return false;
+        }
+
+        try {
+            $db = Database::connect();
+
+            // Verificar si ya existe el registro
+            $stmt = $db->prepare("SELECT id FROM tenant_plugins WHERE tenant_id = :tenant_id AND slug = :slug");
+            $stmt->execute(['tenant_id' => $tenantId, 'slug' => $slug]);
+            $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($existing) {
+                // Actualizar a activo
+                $stmt = $db->prepare("UPDATE tenant_plugins SET active = 1, updated_at = NOW() WHERE tenant_id = :tenant_id AND slug = :slug");
+                $stmt->execute(['tenant_id' => $tenantId, 'slug' => $slug]);
+            } else {
+                // Insertar nuevo registro activo
+                $stmt = $db->prepare("
+                    INSERT INTO tenant_plugins (tenant_id, slug, name, description, version, author, active, settings, permissions)
+                    VALUES (:tenant_id, :slug, :name, :description, :version, :author, 1, :settings, :permissions)
+                ");
+                $stmt->execute([
+                    'tenant_id' => $tenantId,
+                    'slug' => $slug,
+                    'name' => $metadata['name'] ?? ucfirst($slug),
+                    'description' => $metadata['description'] ?? '',
+                    'version' => $metadata['version'] ?? '1.0.0',
+                    'author' => $metadata['author'] ?? 'MuseDock',
+                    'settings' => json_encode($metadata['settings'] ?? []),
+                    'permissions' => json_encode($metadata['permissions'] ?? []),
+                ]);
+            }
+
+            Logger::info("TenantPluginManager: Plugin compartido {$slug} activado para tenant {$tenantId}");
+            return true;
+
+        } catch (\Exception $e) {
+            Logger::error("TenantPluginManager: Error al activar plugin compartido {$slug}", ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    /**
+     * Desactivar un plugin compartido para un tenant
+     *
+     * Solo pone active=0, no borra archivos (son compartidos).
+     *
+     * @param int $tenantId ID del tenant
+     * @param string $slug Slug del plugin
+     * @return bool Éxito de la operación
+     */
+    public static function deactivateSharedPlugin(int $tenantId, string $slug): bool
+    {
+        try {
+            $db = Database::connect();
+            $stmt = $db->prepare("UPDATE tenant_plugins SET active = 0, updated_at = NOW() WHERE tenant_id = :tenant_id AND slug = :slug");
+            $stmt->execute(['tenant_id' => $tenantId, 'slug' => $slug]);
+
+            Logger::info("TenantPluginManager: Plugin compartido {$slug} desactivado para tenant {$tenantId}");
+            return true;
+
+        } catch (\Exception $e) {
+            Logger::error("TenantPluginManager: Error al desactivar plugin compartido {$slug}", ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    /**
      * Eliminar directorio recursivamente
      *
      * @param string $dir Ruta del directorio

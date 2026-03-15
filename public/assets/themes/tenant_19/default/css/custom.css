@@ -33,10 +33,10 @@ body {
   background-color: var(--page-bg-color);
 }
 
-/* Header más compacto */
+/* Header padding */
 .musedock-header {
-  padding-top: var(--header-padding-y) !important;
-  padding-bottom: var(--header-padding-y) !important;
+  padding-top: var(--header-padding-y, 20px) !important;
+  padding-bottom: var(--header-padding-y, 20px) !important;
 }
 
 /* Footer más compacto */
@@ -72,20 +72,29 @@ body {
 
 /* Hacer imágenes responsivas en TODO el contenido - Aplicación global */
 /* Forzar max-width para sobrescribir atributos width/height inline del HTML */
+/* Excluir logo del header (.header-logo img, .header-brand-logo) */
 .page-body img,
 .post-content img,
 .page-content-wrapper img,
 .blog-post-single img,
 article img,
-.container img,
-main img,
+.container img:not(.header-brand-logo),
+main img:not(.header-brand-logo),
 .content img,
 p img,
-div img,
-img {
+img:not(.header-brand-logo) {
   max-width: 100% !important;
   height: auto !important;
   display: block;
+}
+
+/* Restaurar estilos del logo del header */
+.header-logo img,
+.header-brand-logo {
+  max-height: 45px !important;
+  height: auto !important;
+  display: block !important;
+  width: auto !important;
 }
 
 /* Resetear width inline en imágenes con atributos width/height */

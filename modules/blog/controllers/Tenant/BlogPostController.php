@@ -56,12 +56,12 @@ class BlogPostController
         $perPage = isset($_GET['perPage']) ? intval($_GET['perPage']) : 10;
         $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 
-        // Capturar parámetros de ordenamiento (por defecto: título ASC como WordPress)
-        $orderBy = isset($_GET['orderby']) ? $_GET['orderby'] : 'title';
-        $order = isset($_GET['order']) && strtoupper($_GET['order']) === 'DESC' ? 'DESC' : 'ASC';
+        // Capturar parámetros de ordenamiento (por defecto: fecha de publicación DESC)
+        $orderBy = isset($_GET['orderby']) ? $_GET['orderby'] : 'published_at';
+        $order = isset($_GET['order']) ? (strtoupper($_GET['order']) === 'ASC' ? 'ASC' : 'DESC') : 'DESC';
 
         // Validar columnas permitidas para ordenamiento
-        $allowedColumns = ['title', 'status', 'published_at', 'created_at', 'updated_at'];
+        $allowedColumns = ['title', 'status', 'published_at', 'created_at', 'updated_at', 'view_count'];
         if (!in_array($orderBy, $allowedColumns)) {
             $orderBy = 'title';
         }
@@ -235,6 +235,7 @@ class BlogPostController
         }
 
         // Procesar imagen destacada
+        // El campo featured_image viene como URL de texto (del input o Media Manager)
         if ($_FILES && isset($_FILES['featured_image']) && $_FILES['featured_image']['error'] == 0) {
             $uploadResult = $this->processFeaturedImageUpload($_FILES['featured_image']);
             if (isset($uploadResult['error'])) {
@@ -243,6 +244,8 @@ class BlogPostController
                 exit;
             }
             $data['featured_image'] = $uploadResult['path'];
+        } elseif (empty($data['featured_image'])) {
+            $data['featured_image'] = null;
         }
 
         // Procesar imagen hero
@@ -265,6 +268,13 @@ class BlogPostController
         $selectedCategories = $data['categories'] ?? [];
         $selectedTags = $data['tags'] ?? [];
         unset($data['categories'], $data['tags']);
+
+        // Sanitize URL image fields: reject non-URL values (e.g. email from Chrome autocomplete)
+        foreach (['seo_image', 'twitter_image'] as $imgField) {
+            if (!empty($data[$imgField]) && !preg_match('#^(https?://|/)#i', $data[$imgField])) {
+                $data[$imgField] = null;
+            }
+        }
 
         $data = self::processFormData($data);
 
@@ -290,7 +300,8 @@ class BlogPostController
         // Crear slug con tenant_id
         try {
             $pdo = Database::connect();
-            $prefix = $data['prefix'] ?? 'blog';
+            $prefix = function_exists('blog_prefix') ? blog_prefix() : 'blog';
+            $prefix = $prefix !== '' ? $prefix : null;
 
             $insertStmt = $pdo->prepare("INSERT INTO slugs (module, reference_id, slug, tenant_id, prefix) VALUES (?, ?, ?, ?, ?)");
             $insertStmt->execute(['blog', $post->id, $data['slug'], $tenantId, $prefix]);
@@ -320,9 +331,10 @@ class BlogPostController
             error_log("Error al crear revisión inicial: " . $e->getMessage());
         }
 
-        // Invalidar caché del feed RSS si el post está publicado
+        // Invalidar caché del feed RSS y sitemap si el post está publicado
         if ($data['status'] === 'published') {
             \Blog\Controllers\Frontend\FeedController::invalidateCache($tenantId);
+            \Blog\Controllers\Frontend\SitemapController::invalidateCache($tenantId);
         }
 
         flash('success', __('blog.post.success_created'));
@@ -522,32 +534,26 @@ class BlogPostController
         }
 
         // Procesar imagen destacada
-        $currentFeaturedImage = $data['current_featured_image'] ?? null;
+        // El campo featured_image viene como URL de texto (del input o Media Manager)
+        $featuredImageUrl = $data['featured_image'] ?? '';
         $removeImage = $data['remove_featured_image'] ?? '0';
         unset($data['current_featured_image'], $data['remove_featured_image']);
 
-        if ($removeImage === '1' && !empty($currentFeaturedImage)) {
-            $fileName = basename($currentFeaturedImage);
-            $fullPath = APP_ROOT . "/public/assets/uploads/blog/{$fileName}";
-
-            if (file_exists($fullPath)) {
-                @unlink($fullPath);
-            }
-
-            $data['featured_image'] = null;
-        }
-
-        // Nueva imagen destacada
+        // Si se subió un archivo por $_FILES, tiene prioridad
         if ($_FILES && isset($_FILES['featured_image']) && $_FILES['featured_image']['error'] == 0) {
-            $uploadResult = $this->processFeaturedImageUpload($_FILES['featured_image'], $currentFeaturedImage);
+            $uploadResult = $this->processFeaturedImageUpload($_FILES['featured_image']);
             if (isset($uploadResult['error'])) {
                 flash('error', __('blog.post.error_upload_image', ['error' => $uploadResult['error']]));
                 header("Location: /" . admin_path() . "/blog/posts/{$id}/edit");
                 exit;
             }
             $data['featured_image'] = $uploadResult['path'];
-        } elseif ($removeImage !== '1') {
-            $data['featured_image'] = $currentFeaturedImage;
+        } elseif ($removeImage === '1' || empty($featuredImageUrl)) {
+            // Eliminar imagen
+            $data['featured_image'] = null;
+        } else {
+            // Usar la URL del campo de texto (Media Manager o pegada manualmente)
+            $data['featured_image'] = $featuredImageUrl;
         }
 
         // Procesar imagen hero (ahora usa URL del Media Manager)
@@ -586,6 +592,13 @@ class BlogPostController
         }
         unset($_SESSION['_old_input']);
 
+        // Sanitize URL image fields: reject non-URL values (e.g. email from Chrome autocomplete)
+        foreach (['seo_image', 'twitter_image'] as $imgField) {
+            if (!empty($data[$imgField]) && !preg_match('#^(https?://|/)#i', $data[$imgField])) {
+                $data[$imgField] = null;
+            }
+        }
+
         // Procesar datos
         $data = self::processFormData($data);
         if (!isset($data['content']) || $data['content'] === null) {
@@ -593,7 +606,8 @@ class BlogPostController
         }
 
         $newSlug = $data['slug'];
-        $prefix = $rawData['prefix'] ?? 'blog';
+        $prefix = function_exists('blog_prefix') ? blog_prefix() : 'blog';
+        $prefix = $prefix !== '' ? $prefix : null;
 
         $pdo = null;
 
@@ -654,8 +668,9 @@ class BlogPostController
                 'tenant_id' => $tenantId
             ]);
 
-            // Invalidar caché del feed RSS (el post podría haber cambiado de status)
+            // Invalidar caché del feed RSS y sitemap (el post podría haber cambiado de status)
             \Blog\Controllers\Frontend\FeedController::invalidateCache($tenantId);
+            \Blog\Controllers\Frontend\SitemapController::invalidateCache($tenantId);
 
         } catch (\Throwable $e) {
             if ($pdo && $pdo->inTransaction()) { $pdo->rollBack(); }
@@ -768,6 +783,10 @@ class BlogPostController
             // Actualizar contadores de categorías y etiquetas
             $this->updateAllCategoryCounts($tenantId);
             $this->updateAllTagCounts($tenantId);
+
+            // Invalidar caché del feed RSS y sitemap
+            \Blog\Controllers\Frontend\FeedController::invalidateCache($tenantId);
+            \Blog\Controllers\Frontend\SitemapController::invalidateCache($tenantId);
 
             flash('success', __('blog.post.success_moved_to_trash'));
         } catch (\Exception $e) {

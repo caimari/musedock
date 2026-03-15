@@ -231,10 +231,9 @@ tinymce.PluginManager.add('aiwriter', function(editor, url) {
       });
       return;
     }
-    
-    // Para acción de generación sin texto
-    if (action === 'generate' && !prefixPrompt.trim()) {
-      // Abrir mini-prompt
+
+    // Para acción de generación: siempre pedir tema al usuario
+    if (action === 'generate') {
       editor.windowManager.open({
         title: 'Generar con IA',
         body: {
@@ -242,7 +241,8 @@ tinymce.PluginManager.add('aiwriter', function(editor, url) {
           items: [{
             type: 'input',
             name: 'topic',
-            label: 'Tema o idea'
+            label: '¿Sobre qué quieres escribir?',
+            placeholder: 'Ej: Los beneficios del ejercicio, Historia de la fotografía...'
           }]
         },
         buttons: [
@@ -258,13 +258,21 @@ tinymce.PluginManager.add('aiwriter', function(editor, url) {
         ],
         onSubmit: function(api) {
           const topic = api.getData().topic;
+          if (!topic || !topic.trim()) {
+            editor.notificationManager.open({
+              text: 'Escribe un tema para generar contenido',
+              type: 'warning',
+              timeout: 2000
+            });
+            return;
+          }
           api.close();
-          processAiRequest(action, prefixPrompt + topic, '', true);
+          processAiRequest(action, topic.trim(), '', false);
         }
       });
       return;
     }
-    
+
     // Procesar directamente
     processAiRequest(action, prefixPrompt, text, true);
   }

@@ -47,9 +47,9 @@ class SlugRouter
         file_put_contents($logPath, date('Y-m-d H:i:s') . " - RESOLVIENDO SLUG:\n", FILE_APPEND);
         file_put_contents($logPath, "- slug: $slug\n- prefix: " . json_encode($prefix) . "\n- tenant_id: " . json_encode($tenantId) . "\n- multiTenant: " . ($multiTenant ? 'true' : 'false') . "\n- locale: " . $currentLang . "\n", FILE_APPEND);
         
-        // Query Eloquent - Con todos los filtros
+        // Query Eloquent - Con todos los filtros (buscar en pages y blog)
         $query = Slug::where('slug', '=', $slug)
-            ->where('module', '=', 'pages')
+            ->whereRaw("module IN ('pages', 'blog')")
             ->whereRaw('(locale = :locale OR locale IS NULL)', [':locale' => $currentLang]);
 
         if ($multiTenant) {
@@ -70,7 +70,7 @@ class SlugRouter
         
         // FallBack: Si el ORM no encuentra nada, intenta vía SQL directa
         if (!$entry) {
-            $sql = "SELECT * FROM slugs WHERE slug = :slug AND module = 'pages'";
+            $sql = "SELECT * FROM slugs WHERE slug = :slug AND module IN ('pages', 'blog')";
             $params = [':slug' => $slug];
             
             if ($multiTenant) {
@@ -202,38 +202,11 @@ class SlugRouter
                 $controller = new \Screenart\Musedock\Controllers\Frontend\PageController();
                 return $controller->listPages();
                 break;
-            // Puedes añadir más casos para otros prefijos
-            // case 'b': // Para blog por ejemplo
-            //     $controller = new BlogController();
-            //     return $controller->listPosts();
-            //     break;
             default:
-                http_response_code(404);
-                file_put_contents($logPath, date('Y-m-d H:i:s') . " - 404 NOT FOUND: Prefijo no reconocido - Renderizando página 404\n", FILE_APPEND);
-
-                // Limpiar cualquier buffer de output
-                while (ob_get_level() > 0) {
-                    ob_end_clean();
-                }
-
-                // Asegurar headers correctos
-                if (!headers_sent()) {
-                    header('Content-Type: text/html; charset=UTF-8');
-                }
-
-                // Intentar renderizar con Blade, con fallback a HTML directo
-                try {
-                    $blade = new \Screenart\Musedock\BladeExtended(
-                        __DIR__ . '/../Views/errors',
-                        __DIR__ . '/../../storage/cache/errors',
-                        \Screenart\Musedock\BladeExtended::MODE_AUTO
-                    );
-                    echo $blade->run('404');
-                } catch (\Exception $e) {
-                    file_put_contents($logPath, date('Y-m-d H:i:s') . " - ERROR BLADE 404: " . $e->getMessage() . "\n", FILE_APPEND);
-                    echo self::getGeneric404Html();
-                }
-                exit;
+                // Prefijo no reconocido: intentar resolver como slug sin prefijo
+                // Esto permite que URLs como /slug-del-post funcionen cuando blog_prefix es vacío
+                file_put_contents($logPath, date('Y-m-d H:i:s') . " - Prefijo no reconocido, intentando como slug sin prefijo: $prefix\n", FILE_APPEND);
+                return self::resolve(null, $prefix);
         }
     }
 
@@ -323,7 +296,12 @@ class SlugRouter
 HTML;
     }
 
-    // Puedes añadir más resolvers aquí si necesitas soporte para otros módulos:
-    // public static function resolve_blog($id) { ... }
-    // public static function resolve_product($id) { ... }
+    /**
+     * Resolución de slugs para posts del blog.
+     */
+    public static function resolve_blog($id)
+    {
+        $controller = new \Blog\Controllers\Frontend\BlogController();
+        return $controller->showById($id);
+    }
 }

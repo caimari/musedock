@@ -358,16 +358,17 @@ class AIService // Nombre de clase Correcto
                 case 'minimax':
                     Logger::info("Ejecutando lógica para proveedor MiniMax", ['providerId' => $providerId]);
 
-                    $model = $options['model'] ?? $provider['model'] ?? 'MiniMax-Text-01';
-                    if (empty($model)) $model = 'MiniMax-Text-01';
+                    $model = $options['model'] ?? $provider['model'] ?? 'MiniMax-M2.5';
+                    if (empty($model)) $model = 'MiniMax-M2.5';
 
                     $temperature = $options['temperature'] ?? $provider['temperature'] ?? 0.7;
-                    $temperature = max(0.01, min(2.0, (float)$temperature));
+                    // MiniMax API: temperature range (0, 1]
+                    $temperature = max(0.01, min(1.0, (float)$temperature));
 
                     $maxTokens = self::resolveMaxTokens($provider, $options, 1500);
 
-                    // MiniMax usa API compatible con OpenAI
-                    $minimaxEndpoint = $provider['endpoint'] ?? 'https://api.minimaxi.chat/v1/text/chatcompletion_v2';
+                    // MiniMax usa API compatible con OpenAI (nueva URL oficial)
+                    $minimaxEndpoint = $provider['endpoint'] ?? 'https://api.minimax.io/v1/chat/completions';
 
                     $minimaxMessages = [];
                     if (!empty($options['system_message'])) {

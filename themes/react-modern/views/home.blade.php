@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
-@section('title', setting('site_name', 'MuseDock') . ' - Inicio')
+@php $__subtitle = site_setting('site_subtitle', ''); @endphp
+@section('title', site_setting('site_name', '') . ($__subtitle ? ' | ' . $__subtitle : ''))
 @section('description', setting('site_description', 'Bienvenido a nuestro sitio web'))
 
 @section('content')

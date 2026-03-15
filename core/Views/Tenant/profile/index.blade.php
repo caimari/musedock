@@ -118,6 +118,70 @@
           </div>
         </div>
 
+        {{-- Página de Autor --}}
+        <div class="card mb-3">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="bi bi-person-badge"></i> Página de Autor</h5>
+          </div>
+          <div class="card-body">
+            <form method="POST" action="{{ admin_url('/profile/toggle-author-page') }}">
+              @csrf
+              <div class="d-flex align-items-center justify-content-between">
+                <div>
+                  <p class="mb-1">Activar página pública de autor</p>
+                  <small class="text-muted">Si la activas, tu nombre será un enlace en los posts y tendrás una página pública con tu bio y posts.</small>
+                </div>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="author_page_enabled" name="author_page_enabled" value="1" {{ ($user->author_page_enabled ?? 0) ? 'checked' : '' }} onchange="this.form.submit()">
+                </div>
+              </div>
+              @if($user->author_page_enabled && $user->author_slug)
+              <div class="mt-2">
+                <small class="text-muted">Tu página de autor: <a href="{{ blog_url($user->author_slug, 'author') }}" target="_blank">{{ blog_url($user->author_slug, 'author') }}</a></small>
+              </div>
+              @endif
+            </form>
+          </div>
+        </div>
+
+        {{-- Biografía y Redes Sociales --}}
+        <div class="card mb-3">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="bi bi-journal-text"></i> Biografía y Redes Sociales</h5>
+          </div>
+          <div class="card-body">
+            <form method="POST" action="{{ admin_url('/profile/update-author') }}">
+              @csrf
+              <div class="mb-3">
+                <label for="bio" class="form-label">Biografía</label>
+                <textarea class="form-control" id="bio" name="bio" rows="4" placeholder="Cuéntanos sobre ti...">{{ $user->bio ?? '' }}</textarea>
+                <small class="text-muted">Se mostrará en tu página de autor pública.</small>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="social_twitter" class="form-label"><i class="bi bi-twitter-x"></i> Twitter / X</label>
+                  <input type="url" class="form-control" id="social_twitter" name="social_twitter" value="{{ $user->social_twitter ?? '' }}" placeholder="https://x.com/usuario">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="social_linkedin" class="form-label"><i class="bi bi-linkedin"></i> LinkedIn</label>
+                  <input type="url" class="form-control" id="social_linkedin" name="social_linkedin" value="{{ $user->social_linkedin ?? '' }}" placeholder="https://linkedin.com/in/usuario">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="social_github" class="form-label"><i class="bi bi-github"></i> GitHub</label>
+                  <input type="url" class="form-control" id="social_github" name="social_github" value="{{ $user->social_github ?? '' }}" placeholder="https://github.com/usuario">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="social_website" class="form-label"><i class="bi bi-globe"></i> Website</label>
+                  <input type="url" class="form-control" id="social_website" name="social_website" value="{{ $user->social_website ?? '' }}" placeholder="https://miwebsite.com">
+                </div>
+              </div>
+              <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary">Guardar Perfil de Autor</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
         {{-- Seguridad --}}
         <div class="card">
           <div class="card-header">

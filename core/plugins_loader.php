@@ -45,11 +45,17 @@ Logger::debug("Plugin Loader: Fase 1 - Registro de namespaces PSR-4 de plugins")
 
 foreach ($tenantPlugins as $plugin) {
     $slug = $plugin['slug'];
-    $pluginDir = $pluginsPath . '/' . $slug;
+    $pluginDir = TenantPluginManager::resolvePluginPath($tenantId, $slug);
+
+    if (!$pluginDir) {
+        Logger::warning("Plugin Loader: Plugin {$slug} no encontrado en disco para tenant {$tenantId}");
+        continue;
+    }
+
     $metadataFile = $pluginDir . '/plugin.json';
 
-    if (!is_dir($pluginDir) || !file_exists($metadataFile)) {
-        Logger::warning("Plugin Loader: Plugin {$slug} no encontrado en disco para tenant {$tenantId}");
+    if (!file_exists($metadataFile)) {
+        Logger::warning("Plugin Loader: Plugin {$slug} sin plugin.json para tenant {$tenantId}");
         continue;
     }
 
@@ -76,9 +82,14 @@ Logger::debug("Plugin Loader: Fase 2 - Carga de archivos de plugins");
 
 foreach ($tenantPlugins as $plugin) {
     $slug = $plugin['slug'];
-    $pluginDir = $pluginsPath . '/' . $slug;
+    $pluginDir = TenantPluginManager::resolvePluginPath($tenantId, $slug);
 
-    Logger::info("Plugin Loader: Cargando plugin {$slug} para tenant {$tenantId}");
+    if (!$pluginDir) {
+        Logger::warning("Plugin Loader: Plugin {$slug} no encontrado en disco para tenant {$tenantId} (fase 2)");
+        continue;
+    }
+
+    Logger::info("Plugin Loader: Cargando plugin {$slug} para tenant {$tenantId} desde {$pluginDir}");
 
     // Contexto para el plugin
     $pluginContext = [

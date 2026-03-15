@@ -35,8 +35,8 @@ body {
 
 /* Header más compacto */
 .musedock-header {
-  padding-top: var(--header-padding-y) !important;
-  padding-bottom: var(--header-padding-y) !important;
+  padding-top: var(--header-padding-y, 15px) !important;
+  padding-bottom: var(--header-padding-y, 15px) !important;
 }
 
 /* Footer más compacto */

@@ -7,7 +7,7 @@ class Slide extends Model {
     protected static string $primaryKey = 'id';
     protected static bool $timestamps = true;
     protected array $fillable = [
-        'slider_id', 'image_url', 'title', 'description',
+        'slider_id', 'tenant_id', 'image_url', 'title', 'description',
         'link_url', 'link_target', 'link_text',
         'link2_url', 'link2_target', 'link2_text',
         'title_bold', 'title_font', 'description_font',

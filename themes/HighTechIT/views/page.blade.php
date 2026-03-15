@@ -33,7 +33,7 @@
     @endif
     @if(isset($post) && !empty($translation->featured_image))
         @php
-            $ogImageUrl = (str_starts_with($translation->featured_image, '/media/') || str_starts_with($translation->featured_image, 'http'))
+            $ogImageUrl = (str_starts_with($translation->featured_image, '/') || str_starts_with($translation->featured_image, 'http'))
                 ? $translation->featured_image
                 : asset($translation->featured_image);
         @endphp
@@ -84,7 +84,7 @@
             @if($translation->featured_image && !$post->hide_featured_image)
             <div class="featured-image mb-4">
                 @php
-                    $imageUrl = (str_starts_with($translation->featured_image, '/media/') || str_starts_with($translation->featured_image, 'http'))
+                    $imageUrl = (str_starts_with($translation->featured_image, '/') || str_starts_with($translation->featured_image, 'http'))
                         ? $translation->featured_image
                         : asset($translation->featured_image);
                 @endphp

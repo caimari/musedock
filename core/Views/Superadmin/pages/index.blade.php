@@ -37,11 +37,50 @@
         <a href="/musedock/pages/trash" class="btn btn-outline-danger" title="{{ __('pages.view_trash') }}">
           <i class="bi bi-trash me-1"></i> {{ __('pages.trash') }}
         </a>
-        <a href="{{ route('pages.create') }}" class="btn btn-primary">
-          <i class="bi bi-plus-lg me-1"></i> {{ __('pages.add_page') }}
-        </a>
+        @if (!empty($crossPublisherActive) && !empty($currentScope) && str_starts_with($currentScope, 'tenant:'))
+          <a href="/musedock/pages/create?tenant_id={{ substr($currentScope, 7) }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> Crear página en {{ $scope['label'] ?? 'tenant' }}
+          </a>
+        @else
+          <a href="{{ route('pages.create') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> {{ __('pages.add_page') }}
+          </a>
+        @endif
       </div>
     </div>
+
+    {{-- Filtro Cross-Publisher (solo si el plugin esta activo) --}}
+    @if (!empty($crossPublisherActive))
+    <div class="card mb-3">
+      <div class="card-body py-2">
+        <form method="GET" action="/musedock/pages" class="d-flex align-items-center gap-3 flex-wrap">
+          @if (!empty($search))<input type="hidden" name="search" value="{{ $search }}">@endif
+          <label class="form-label mb-0 fw-bold text-nowrap"><i class="bi bi-funnel me-1"></i> Filtrar por:</label>
+          <select name="scope" class="form-select form-select-sm" style="width: auto; min-width: 280px;" onchange="this.form.submit()">
+            <option value="mine" @if(($currentScope ?? 'mine') === 'mine') selected @endif>Mis páginas (Superadmin)</option>
+            @foreach ($groups as $group)
+              <optgroup label="{{ $group->name }} ({{ $group->member_count }} sitios)">
+                <option value="group:{{ $group->id }}" @if(($currentScope ?? '') === "group:{$group->id}") selected @endif>
+                  Todo el grupo: {{ $group->name }}
+                </option>
+                @foreach ($groupedTenants as $tenant)
+                  @if ($tenant->group_id == $group->id)
+                    <option value="tenant:{{ $tenant->id }}" @if(($currentScope ?? '') === "tenant:{$tenant->id}") selected @endif>
+                      {{ $tenant->domain }}
+                    </option>
+                  @endif
+                @endforeach
+              </optgroup>
+            @endforeach
+          </select>
+          @if (($currentScope ?? 'mine') !== 'mine')
+            <span class="badge bg-info text-dark">{{ $scope['label'] ?? '' }}</span>
+            <a href="/musedock/pages" class="btn btn-sm btn-outline-secondary">Limpiar filtro</a>
+          @endif
+        </form>
+      </div>
+    </div>
+    @endif
 
     {{-- Alertas con SweetAlert2 --}}
     @if (session('success'))
@@ -72,10 +111,14 @@
     {{-- Formulario de Búsqueda y Selector de registros por página --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <form method="GET" action="{{ route('pages.index') }}" class="d-flex align-items-center">
+        @if (!empty($currentScope) && $currentScope !== 'mine')
+          <input type="hidden" name="scope" value="{{ $currentScope }}">
+        @endif
         <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="{{ __('pages.search_placeholder') }}" class="form-control form-control-sm me-2" style="width: 250px;" id="search-input">
         <button type="submit" class="btn btn-outline-secondary btn-sm me-2">{{ __('common.search') }}</button>
         @if (!empty($search))
-          <a href="{{ route('pages.index') }}" class="btn btn-outline-danger btn-sm">{{ __('common.clear_filter') }}</a>
+          @php $clearUrl = '/musedock/pages' . ((!empty($currentScope) && $currentScope !== 'mine') ? '?scope=' . urlencode($currentScope) : ''); @endphp
+          <a href="{{ $clearUrl }}" class="btn btn-outline-danger btn-sm">{{ __('common.clear_filter') }}</a>
         @endif
       </form>
       
@@ -102,6 +145,9 @@
               <tr>
                 <th style="width: 1%;"><input type="checkbox" class="form-check-input" id="selectAll"></th>
                 <th class="sortable" data-sort-col="1">{{ __('pages.title') }} <i class="fas fa-sort text-muted ms-1"></i></th>
+                @if (!empty($crossPublisherActive) && !empty($scope) && $scope['mode'] !== 'mine')
+                <th>Sitio</th>
+                @endif
                 <th class="sortable" data-sort-col="2">{{ __('pages.author') }} <i class="fas fa-sort text-muted ms-1"></i></th>
                 <th class="sortable" data-sort-col="3">{{ __('pages.base_language') }} <i class="fas fa-sort text-muted ms-1"></i></th>
                 <th class="sortable" data-sort-col="4">{{ __('pages.status') }} <i class="fas fa-sort text-muted ms-1"></i></th>
@@ -151,12 +197,26 @@
                     <a href="{{ route('pages.edit', ['id' => $Page->id]) }}">{{ __('common.edit') }}</a>
                     @if ($Page->status === 'published')
                        |
-                      <a href="/p/{{ $Page->slug }}" target="_blank" rel="noopener noreferrer">{{ __('pages.view_page') }}</a>
+                      @php
+                        $viewTenant = !empty($Page->tenant_id) && isset($tenantMap[$Page->tenant_id]) ? $tenantMap[$Page->tenant_id] : null;
+                        $viewUrl = $viewTenant ? 'https://' . $viewTenant->domain . '/p/' . $Page->slug : '/p/' . $Page->slug;
+                      @endphp
+                      <a href="{{ $viewUrl }}" target="_blank" rel="noopener noreferrer">{{ __('pages.view_page') }}</a>
                     @endif
                      |
                     <a href="#" class="delete-page-link" data-page-id="{{ $Page->id }}" data-page-title="{{ htmlspecialchars($Page->title, ENT_QUOTES, 'UTF-8') }}" style="color: #dc3545; text-decoration: none;">{{ __('common.delete') }}</a>
                   </small>
                 </td>
+                @if (!empty($crossPublisherActive) && !empty($scope) && $scope['mode'] !== 'mine')
+                <td>
+                  @php $rowTenant = !empty($Page->tenant_id) && isset($tenantMap[$Page->tenant_id]) ? $tenantMap[$Page->tenant_id] : null; @endphp
+                  @if ($rowTenant)
+                    <small class="text-muted">{{ $rowTenant->domain }}</small>
+                  @else
+                    <small class="text-muted">—</small>
+                  @endif
+                </td>
+                @endif
                 <td>{{ $author?->name ?? '—' }}</td>
                 <td>{{ strtoupper($baseLang) }}</td>
                 <td>

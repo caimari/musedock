@@ -11,12 +11,7 @@
         </a>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
+    {{-- Flash messages handled by layout SweetAlert2 --}}
 
     <div class="card shadow mb-4">
         <div class="card-body">

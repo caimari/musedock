@@ -499,6 +499,10 @@ function handleFilesUpload() {
         if (currentFolderId && currentFolderId !== '' && currentFolderId !== '1') {
             formData.append('folder_id', currentFolderId);
         }
+        const compressCheckbox = document.getElementById('compress-images');
+        if (compressCheckbox && compressCheckbox.checked) {
+            formData.append('compress', '1');
+        }
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', uploadUrl, true);

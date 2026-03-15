@@ -71,6 +71,9 @@
                         <div class="card-footer bg-transparent d-flex gap-2">
                             @php
                                 $pluginJsonPath = APP_ROOT . '/storage/tenants/' . tenant_id() . '/plugins/' . $plugin['slug'] . '/plugin.json';
+                                if (!file_exists($pluginJsonPath)) {
+                                    $pluginJsonPath = APP_ROOT . '/plugins/tenant-shared/' . $plugin['slug'] . '/plugin.json';
+                                }
                                 $pluginMeta = file_exists($pluginJsonPath) ? json_decode(file_get_contents($pluginJsonPath), true) : [];
                                 $hasAdminPanel = !empty($pluginMeta['admin_menu']);
                             @endphp

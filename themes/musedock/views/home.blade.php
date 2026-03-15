@@ -1,7 +1,8 @@
 @extends('layouts.app')
 
-@section('title') 
-{{ __('Home') . ' | ' . site_setting('site_name', '') }}
+@section('title')
+    @php $__subtitle = site_setting('site_subtitle', ''); @endphp
+    {{ site_setting('site_name', '') . ($__subtitle ? ' | ' . $__subtitle : '') }}
 @endsection
 
 @section('keywords') 

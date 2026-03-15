@@ -6,11 +6,25 @@
 <div class="app-content">
   <div class="container-fluid">
     {{-- Navegación --}}
+    @php
+      $backUrl = !empty($targetTenant)
+          ? route('blog.tags.index') . '?scope=tenant:' . $targetTenant->id
+          : route('blog.tags.index');
+      $backLabel = !empty($targetTenant)
+          ? ($targetTenant->domain ?? $targetTenant->name)
+          : __('blog.tags');
+    @endphp
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="breadcrumb">
-        <a href="{{ route('blog.tags.index') }}">Etiquetas</a> <span class="mx-2">/</span> <span>Nueva etiqueta</span>
+        <a href="{{ route('blog.tags.index') }}">{{ __('blog.tags') }}</a>
+        @if(!empty($targetTenant))
+          <span class="mx-2">/</span>
+          <a href="{{ $backUrl }}">{{ $backLabel }}</a>
+        @endif
+        <span class="mx-2">/</span>
+        <span>{{ __('blog.tag.new_tag') }}</span>
       </div>
-      <a href="{{ route('blog.tags.index') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Volver a Etiquetas</a>
+      <a href="{{ $backUrl }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> {{ $backLabel }}</a>
     </div>
 
     {{-- Alertas Toast --}}
@@ -45,8 +59,20 @@
       </script>
     @endif
 
+    @if(!empty($targetTenant))
+      <div class="alert alert-info d-flex align-items-center mb-3">
+        <i class="bi bi-globe me-2 fs-5"></i>
+        <div>
+          <strong>Creando etiqueta para:</strong> <a href="https://{{ $targetTenant->domain }}" target="_blank">{{ $targetTenant->domain }}</a>
+        </div>
+      </div>
+    @endif
+
     <form method="POST" action="{{ route('blog.tags.store') }}" id="tagForm">
       @csrf
+      @if(!empty($targetTenantId))
+        <input type="hidden" name="target_tenant_id" value="{{ $targetTenantId }}">
+      @endif
 
       <div class="row">
         {{-- Columna izquierda --}}

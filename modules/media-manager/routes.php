@@ -19,6 +19,7 @@ Route::any('media/p/{path:.*}', 'MediaManager\Controllers\MediaServeController@s
 Route::any('media/file/{path:.*}', 'MediaManager\Controllers\MediaServeController@serve')->name('media.serve');
 Route::any('media/id/{id}', 'MediaManager\Controllers\MediaServeController@serveById')->name('media.serve.id');
 Route::any('media/thumb/{path:.*}', 'MediaManager\Controllers\MediaServeController@serveThumbnail')->name('media.serve.thumb');
+Route::any('media/medium/{path:.*}', 'MediaManager\Controllers\MediaServeController@serveMedium')->name('media.serve.medium');
 
 // ========== MEDIA ROUTES ==========
 Route::get('musedock/media', 'MediaManager\Controllers\MediaController@index')->name('superadmin.media.index')->middleware('superadmin');

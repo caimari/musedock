@@ -41,12 +41,12 @@
                     <div class="col-md-6 mb-3">
                         <label for="model" class="form-label fw-bold">Modelo Específico</label>
                         <input type="text" class="form-control" id="model" name="model" value="{{ old('model', $provider['model']) }}" placeholder="Ej: gpt-4, claude-3-opus, gemini-pro...">
-                        <div class="form-text">Nombre técnico del modelo de IA específico que quieres utilizar</div>
+                        <div class="form-text" id="model-suggestions">Nombre técnico del modelo de IA específico que quieres utilizar</div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="endpoint" class="form-label fw-bold">Endpoint Personalizado (Opcional)</label>
                         <input type="url" class="form-control" id="endpoint" name="endpoint" value="{{ old('endpoint', $provider['endpoint']) }}" placeholder="https://api.example.com/v1/chat/completions">
-                        <div class="form-text">URL específica de la API, solo necesario si no usas la URL estándar</div>
+                        <div class="form-text" id="endpoint-hint">URL específica de la API, solo necesario si no usas la URL estandar</div>
                     </div>
                 </div>
 
@@ -109,4 +109,67 @@
         </div>
     </div>
 </div>
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var providerSelect = document.getElementById('provider_type');
+    var modelInput = document.getElementById('model');
+    var suggestionsDiv = document.getElementById('model-suggestions');
+    var endpointHint = document.getElementById('endpoint-hint');
+
+    var providerModels = {
+        openai: {
+            models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'o1', 'o1-mini'],
+            endpoint: ''
+        },
+        claude: {
+            models: ['claude-sonnet-4-20250514', 'claude-haiku-4-20250414', 'claude-opus-4-20250514'],
+            endpoint: ''
+        },
+        gemini: {
+            models: ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro', 'gemini-1.5-flash'],
+            endpoint: ''
+        },
+        ollama: {
+            models: ['llama3.1', 'llama3.2', 'mistral', 'gemma2', 'qwen2.5'],
+            endpoint: 'http://localhost:11434/api/chat'
+        },
+        minimax: {
+            models: ['MiniMax-M2.5', 'MiniMax-M2.5-highspeed', 'MiniMax-M2.1', 'MiniMax-M2.1-highspeed', 'MiniMax-M2'],
+            endpoint: 'https://api.minimax.io/v1/chat/completions'
+        },
+        other: { models: [], endpoint: '' }
+    };
+
+    function updateSuggestions() {
+        var type = providerSelect.value;
+        var info = providerModels[type];
+        if (info && info.models.length > 0) {
+            var links = info.models.map(function(m) {
+                return '<a href="#" class="model-pick" data-model="' + m + '">' + m + '</a>';
+            });
+            suggestionsDiv.innerHTML = 'Modelos: ' + links.join(' &middot; ');
+        } else {
+            suggestionsDiv.innerHTML = 'Nombre tecnico del modelo de IA especifico';
+        }
+        if (info && info.endpoint) {
+            endpointHint.innerHTML = 'Endpoint por defecto: <code>' + info.endpoint + '</code>';
+        } else {
+            endpointHint.innerHTML = 'URL especifica de la API, solo si no usas la URL estandar';
+        }
+    }
+
+    providerSelect.addEventListener('change', updateSuggestions);
+
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('model-pick')) {
+            e.preventDefault();
+            modelInput.value = e.target.getAttribute('data-model');
+        }
+    });
+
+    updateSuggestions();
+});
+</script>
+@endpush
 @endsection

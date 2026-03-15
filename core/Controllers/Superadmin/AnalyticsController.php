@@ -56,6 +56,53 @@ class AnalyticsController
     }
 
     /**
+     * API: Páginas visitadas con paginación
+     */
+    public function pagesApi()
+    {
+        // Limpiar output previo para garantizar JSON limpio
+        while (ob_get_level()) ob_end_clean();
+        header('Content-Type: application/json');
+
+        try {
+            $period = $_GET['period'] ?? '30';
+            $tenantId = $_GET['tenant_id'] ?? null;
+            $offset = (int)($_GET['offset'] ?? 0);
+            $limit = min((int)($_GET['limit'] ?? 20), 100);
+
+            $db = Database::connect();
+
+            $whereTenant = $tenantId ? "AND w.tenant_id = ?" : "";
+            $params = [$period];
+            if ($tenantId) $params[] = $tenantId;
+
+            $dateExpr = $this->dateInterval('?', 'DAY');
+            $stmt = $db->prepare("
+                SELECT w.page_url,
+                       w.page_title,
+                       t.domain as tenant_domain,
+                       COUNT(*) as visits,
+                       COUNT(DISTINCT w.visitor_id) as unique_visitors,
+                       AVG(w.session_duration) as avg_time
+                FROM web_analytics w
+                LEFT JOIN tenants t ON t.id = w.tenant_id
+                WHERE w.created_at >= {$dateExpr}
+                {$whereTenant}
+                GROUP BY w.page_url, w.page_title, t.domain
+                ORDER BY visits DESC
+                LIMIT {$limit} OFFSET {$offset}
+            ");
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            echo json_encode(['data' => $rows, 'offset' => $offset, 'limit' => $limit, 'count' => count($rows)]);
+        } catch (\Throwable $e) {
+            echo json_encode(['data' => [], 'error' => $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /**
      * Dashboard principal de Analytics
      */
     public function index()
@@ -221,23 +268,25 @@ class AnalyticsController
      */
     private function getTopPages($db, $period, $tenantId): array
     {
-        $whereTenant = $tenantId ? "AND tenant_id = ?" : "";
+        $whereTenant = $tenantId ? "AND w.tenant_id = ?" : "";
         $params = [$period];
         if ($tenantId) $params[] = $tenantId;
 
         $dateExpr = $this->dateInterval('?', 'DAY');
         $stmt = $db->prepare("
-            SELECT page_url,
-                   page_title,
+            SELECT w.page_url,
+                   w.page_title,
+                   t.domain as tenant_domain,
                    COUNT(*) as visits,
-                   COUNT(DISTINCT visitor_id) as unique_visitors,
-                   AVG(session_duration) as avg_time
-            FROM web_analytics
-            WHERE created_at >= {$dateExpr}
+                   COUNT(DISTINCT w.visitor_id) as unique_visitors,
+                   AVG(w.session_duration) as avg_time
+            FROM web_analytics w
+            LEFT JOIN tenants t ON t.id = w.tenant_id
+            WHERE w.created_at >= {$dateExpr}
             {$whereTenant}
-            GROUP BY page_url, page_title
+            GROUP BY w.page_url, w.page_title, t.domain
             ORDER BY visits DESC
-            LIMIT 10
+            LIMIT 500
         ");
         $stmt->execute($params);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);

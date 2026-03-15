@@ -170,6 +170,39 @@ textarea::placeholder {
                             </div>
                         </div>
                     </div>
+
+                    <!-- Codigo personalizado -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-code-slash"></i> Codigo personalizado</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-light border mb-4">
+                                <small><i class="bi bi-info-circle"></i> Inserta codigo HTML, CSS o JavaScript que se cargara en todas las paginas publicas de tu sitio. Ideal para Google Analytics, Search Console, Facebook Pixel, chatbots, etc. Este codigo <strong>no aparece</strong> en el panel de administracion.</small>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold">Codigo en &lt;head&gt; <small class="text-muted fw-normal">— meta tags, analytics, CSS</small></label>
+                                <textarea name="custom_head_code" class="form-control font-monospace" rows="5" style="font-size: 0.85rem;"
+                                          placeholder="<meta name=&quot;google-site-verification&quot; content=&quot;...&quot;>&#10;<script async src=&quot;https://www.googletagmanager.com/gtag/js?id=G-XXXXX&quot;></script>">{{ $settings['custom_head_code'] ?? '' }}</textarea>
+                                <small class="text-muted">Google Search Console, Google Analytics, meta tags, CSS externo, web fonts.</small>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold">Codigo inicio de &lt;body&gt; <small class="text-muted fw-normal">— tag managers</small></label>
+                                <textarea name="custom_body_start_code" class="form-control font-monospace" rows="3" style="font-size: 0.85rem;"
+                                          placeholder="<noscript><iframe src=&quot;https://www.googletagmanager.com/ns.html?id=GTM-XXXXX&quot;></iframe></noscript>">{{ $settings['custom_body_start_code'] ?? '' }}</textarea>
+                                <small class="text-muted">Google Tag Manager (noscript), scripts que deben cargar al inicio.</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Codigo final de &lt;body&gt; <small class="text-muted fw-normal">— chatbots, widgets, tracking</small></label>
+                                <textarea name="custom_body_end_code" class="form-control font-monospace" rows="5" style="font-size: 0.85rem;"
+                                          placeholder="<script src=&quot;https://widget.example.com/chat.js&quot;></script>">{{ $settings['custom_body_end_code'] ?? '' }}</textarea>
+                                <small class="text-muted">Chatbots (Tidio, Crisp, Intercom), Facebook Pixel, Hotjar, widgets externos.</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Columna lateral -->
@@ -248,6 +281,57 @@ textarea::placeholder {
                                     <label class="form-check-label" for="show_title">Mostrar titulo del sitio</label>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Idioma -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-translate"></i> Idioma</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Idioma por defecto</label>
+                                <select name="default_lang" class="form-select">
+                                    @foreach($activeLanguages as $lang)
+                                        <option value="{{ $lang->code }}" {{ ($settings['default_lang'] ?? 'es') === $lang->code ? 'selected' : '' }}>
+                                            {{ $lang->name }} ({{ $lang->code }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <small class="text-muted">Idioma principal del sitio web</small>
+                            </div>
+
+                            @if(count($activeLanguages) > 1)
+                            <div class="mb-3">
+                                <label class="form-label">Forzar idioma del sitio</label>
+                                <select name="force_lang" class="form-select">
+                                    <option value="" {{ empty($settings['force_lang'] ?? '') ? 'selected' : '' }}>
+                                        Auto (detectar idioma del navegador)
+                                    </option>
+                                    @foreach($activeLanguages as $lang)
+                                        <option value="{{ $lang->code }}" {{ ($settings['force_lang'] ?? '') === $lang->code ? 'selected' : '' }}>
+                                            Forzar {{ $lang->name }} ({{ $lang->code }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <small class="text-muted">En <strong>Auto</strong>, el sitio detecta el idioma del navegador del visitante. Si fuerzas un idioma, todos los visitantes veran el sitio en ese idioma.</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Selector de idioma en la web</label>
+                                <div class="form-check form-switch">
+                                    <input type="checkbox" class="form-check-input" id="show_language_switcher"
+                                           name="show_language_switcher" {{ ($settings['show_language_switcher'] ?? '1') == '1' ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="show_language_switcher">Mostrar selector de idioma</label>
+                                </div>
+                                <small class="text-muted">Si lo desactivas, se oculta el selector pero el idioma aun se detecta automaticamente (salvo que fuerces un idioma arriba)</small>
+                            </div>
+                            @endif
+
+                            <a href="/{{ admin_path() }}/languages" class="btn btn-outline-secondary btn-sm w-100">
+                                <i class="bi bi-gear"></i> Gestionar idiomas
+                            </a>
                         </div>
                     </div>
 

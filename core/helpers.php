@@ -2344,3 +2344,105 @@ if (!function_exists('get_blog_templates')) {
         return $templates;
     }
 }
+
+// ─── Blog URL prefix helpers ────────────────────────────────────────
+
+if (!function_exists('blog_prefix')) {
+    /**
+     * Retorna el prefijo de URL del blog para el tenant actual.
+     * Vacío = sin prefijo (posts directamente en /slug).
+     */
+    function blog_prefix(): string
+    {
+        $prefix = tenant_setting('blog_url_prefix', 'blog');
+        return ($prefix === null || $prefix === false) ? 'blog' : $prefix;
+    }
+}
+
+if (!function_exists('blog_url')) {
+    /**
+     * Genera una URL de blog con el prefijo correcto.
+     *
+     * @param string $slug  Slug del post/categoría/tag
+     * @param string $type  'post', 'category', 'tag', 'index'
+     * @return string       URL relativa (e.g. /blog/my-post, /noticias/category/tech, /my-post)
+     */
+    function blog_url(string $slug = '', string $type = 'post'): string
+    {
+        $prefix = blog_prefix();
+        $path = '';
+
+        if ($prefix !== '') {
+            $path .= '/' . $prefix;
+        }
+
+        if ($type === 'category') {
+            $path .= '/category';
+        } elseif ($type === 'tag') {
+            $path .= '/tag';
+        } elseif ($type === 'author') {
+            $path .= '/author';
+        }
+
+        if ($slug !== '') {
+            $path .= '/' . $slug;
+        }
+
+        return $path ?: '/';
+    }
+}
+
+if (!function_exists('is_cross_publisher_active')) {
+    /**
+     * Verifica si el plugin cross-publisher esta activo e instalado.
+     * Resultado cacheado en memoria para evitar queries repetidas.
+     */
+    function is_cross_publisher_active(): bool
+    {
+        static $result = null;
+        if ($result !== null) return $result;
+        try {
+            $plugin = \Screenart\Musedock\Models\SuperadminPlugin::findBySlug('cross-publisher');
+            $result = ($plugin && $plugin->is_active && $plugin->is_installed);
+        } catch (\Exception $e) {
+            $result = false;
+        }
+        return $result;
+    }
+}
+
+if (!function_exists('media_thumb_url')) {
+    /**
+     * Convierte una URL de imagen del Media Manager a su versión thumbnail.
+     * Funciona con URLs /media/p/, /media/t/ y /media/file/.
+     * Para URLs externas (http) o de /storage/ devuelve la original sin cambios.
+     *
+     * @param string $url URL original de la imagen
+     * @param string $size Tamaño deseado: 'thumb' (420px) o 'medium' (800px)
+     * @return string URL de la variante solicitada
+     */
+    function media_thumb_url(string $url, string $size = 'thumb'): string
+    {
+        if (empty($url)) return $url;
+
+        // Solo procesar URLs del Media Manager local
+        if (str_starts_with($url, '/media/p/') || str_starts_with($url, '/media/t/')) {
+            $separator = str_contains($url, '?') ? '&' : '?';
+            return $url . $separator . 'size=' . $size;
+        }
+
+        // Para /media/file/ usar las rutas dedicadas /media/thumb/ o /media/medium/
+        if (str_starts_with($url, '/media/file/')) {
+            $path = substr($url, strlen('/media/file/'));
+            if ($size === 'thumb') {
+                return '/media/thumb/' . $path;
+            }
+            if ($size === 'medium') {
+                return '/media/medium/' . $path;
+            }
+        }
+
+        // URLs externas o de /storage/ — devolver sin cambios
+        return $url;
+    }
+}

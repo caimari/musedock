@@ -9,8 +9,47 @@
     {{-- Título y Botón Añadir Categoría --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h2>{{ $title ?? __('blog.categories') }}</h2>
-      <a href="{{ route('blog.categories.create') }}" class="btn btn-primary">{{ __('blog.category.add_category') }}</a>
+      @if (!empty($crossPublisherActive) && !empty($currentScope) && str_starts_with($currentScope, 'tenant:'))
+        <a href="/musedock/blog/categories/create?tenant_id={{ substr($currentScope, 7) }}" class="btn btn-primary">
+          <i class="bi bi-plus-lg me-1"></i> Crear categoría en {{ $scope['label'] ?? 'tenant' }}
+        </a>
+      @else
+        <a href="{{ route('blog.categories.create') }}" class="btn btn-primary">{{ __('blog.category.add_category') }}</a>
+      @endif
     </div>
+
+    {{-- Filtro Cross-Publisher (solo si el plugin esta activo) --}}
+    @if (!empty($crossPublisherActive))
+    <div class="card mb-3">
+      <div class="card-body py-2">
+        <form method="GET" action="/musedock/blog/categories" class="d-flex align-items-center gap-3 flex-wrap">
+          @if (!empty($search))<input type="hidden" name="search" value="{{ $search }}">@endif
+          <label class="form-label mb-0 fw-bold text-nowrap"><i class="bi bi-funnel me-1"></i> Filtrar por:</label>
+          <select name="scope" class="form-select form-select-sm" style="width: auto; min-width: 280px;" onchange="this.form.submit()">
+            <option value="mine" @if(($currentScope ?? 'mine') === 'mine') selected @endif>Mis categorías (Superadmin)</option>
+            @foreach ($groups as $group)
+              <optgroup label="{{ $group->name }} ({{ $group->member_count }} sitios)">
+                <option value="group:{{ $group->id }}" @if(($currentScope ?? '') === "group:{$group->id}") selected @endif>
+                  Todo el grupo: {{ $group->name }}
+                </option>
+                @foreach ($groupedTenants as $tenant)
+                  @if ($tenant->group_id == $group->id)
+                    <option value="tenant:{{ $tenant->id }}" @if(($currentScope ?? '') === "tenant:{$tenant->id}") selected @endif>
+                      {{ $tenant->domain }}
+                    </option>
+                  @endif
+                @endforeach
+              </optgroup>
+            @endforeach
+          </select>
+          @if (($currentScope ?? 'mine') !== 'mine')
+            <span class="badge bg-info text-dark">{{ $scope['label'] ?? '' }}</span>
+            <a href="/musedock/blog/categories" class="btn btn-sm btn-outline-secondary">Limpiar filtro</a>
+          @endif
+        </form>
+      </div>
+    </div>
+    @endif
 
     {{-- Alertas con SweetAlert2 --}}
     @if (session('success'))
@@ -41,10 +80,13 @@
     {{-- Formulario de Búsqueda --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <form method="GET" action="{{ route('blog.categories.index') }}" class="d-flex align-items-center">
+        @if (!empty($scope) && ($scope['mode'] ?? 'mine') !== 'mine')
+          <input type="hidden" name="scope" value="{{ $_GET['scope'] ?? '' }}">
+        @endif
         <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="{{ __('blog.category.search_placeholder') }}" class="form-control form-control-sm me-2" style="width: 250px;" id="search-input">
         <button type="submit" class="btn btn-outline-secondary btn-sm me-2">{{ __('common.search') }}</button>
         @if (!empty($search))
-          <a href="{{ route('blog.categories.index') }}" class="btn btn-outline-danger btn-sm">{{ __('common.clear_filter') }}</a>
+          <a href="{{ route('blog.categories.index') }}{{ !empty($scope) && ($scope['mode'] ?? 'mine') !== 'mine' ? '?scope=' . urlencode($_GET['scope'] ?? '') : '' }}" class="btn btn-outline-danger btn-sm">{{ __('common.clear_filter') }}</a>
         @endif
       </form>
     </div>
@@ -61,6 +103,9 @@
                 <th style="width: 1%;"><input type="checkbox" class="form-check-input" id="selectAll"></th>
                 <th>{{ __('blog.category.name') }}</th>
                 <th>{{ __('blog.category.slug') }}</th>
+                @if (!empty($scope) && ($scope['mode'] ?? 'mine') !== 'mine')
+                  <th>Sitio</th>
+                @endif
                 <th>{{ __('blog.category.description') }}</th>
                 <th>{{ __('blog.category.color') }}</th>
                 <th>{{ __('blog.category.posts') }}</th>
@@ -85,6 +130,15 @@
                   </small>
                 </td>
                 <td><small class="text-muted">{{ $category->slug }}</small></td>
+                @if (!empty($scope) && ($scope['mode'] ?? 'mine') !== 'mine')
+                  <td>
+                    @if (!empty($tenantMap[$category->tenant_id]))
+                      <small><a href="https://{{ $tenantMap[$category->tenant_id]->domain }}" target="_blank">{{ $tenantMap[$category->tenant_id]->domain }}</a></small>
+                    @else
+                      <small class="text-muted">—</small>
+                    @endif
+                  </td>
+                @endif
                 <td><small class="text-muted">{{ strlen($category->description ?? '') > 50 ? substr($category->description, 0, 50) . '...' : ($category->description ?? '') }}</small></td>
                 <td>
                   @if($category->color)

@@ -262,8 +262,8 @@ class Media extends Model
                     return $this->getPublicUrl();
 
                 case 'media':
-                    // Nuevo sistema: usar URL con token seguro
-                    return '/media/t/' . $this->public_token;
+                    // Nuevo sistema: usar URL con token seguro + variante thumb
+                    return '/media/t/' . $this->public_token . '?size=thumb';
 
                 case 'local':
                 default:

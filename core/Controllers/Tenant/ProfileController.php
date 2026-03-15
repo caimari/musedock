@@ -24,7 +24,7 @@ class ProfileController
 
         // Obtener datos actuales del admin desde la BD
         $pdo = Database::connect();
-        $stmt = $pdo->prepare("SELECT id, name, email, avatar FROM admins WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT id, name, email, avatar, bio, social_twitter, social_linkedin, social_github, social_website, author_page_enabled, author_slug FROM admins WHERE id = ?");
         $stmt->execute([$user['id']]);
         $admin = $stmt->fetch(\PDO::FETCH_OBJ);
 
@@ -364,6 +364,110 @@ class ProfileController
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
             exit;
         }
+    }
+
+    /**
+     * Actualiza biografía y redes sociales
+     */
+    public function updateAuthor()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            flash('error', 'Método no permitido.');
+            header('Location: ' . admin_url('/profile'));
+            exit;
+        }
+
+        $user = SessionSecurity::getAuthenticatedUser();
+        if (!$user || $user['type'] !== 'admin') {
+            flash('error', 'Acceso denegado.');
+            header('Location: ' . admin_url('/login'));
+            exit;
+        }
+
+        $bio = trim($_POST['bio'] ?? '');
+        $socialTwitter = trim($_POST['social_twitter'] ?? '');
+        $socialLinkedin = trim($_POST['social_linkedin'] ?? '');
+        $socialGithub = trim($_POST['social_github'] ?? '');
+        $socialWebsite = trim($_POST['social_website'] ?? '');
+
+        // Sanitize URLs
+        foreach (['socialTwitter', 'socialLinkedin', 'socialGithub', 'socialWebsite'] as $var) {
+            $val = $$var;
+            if ($val !== '' && !preg_match('#^https?://#i', $val)) {
+                $$var = 'https://' . $val;
+            }
+        }
+
+        $pdo = Database::connect();
+
+        try {
+            $stmt = $pdo->prepare("UPDATE admins SET bio = ?, social_twitter = ?, social_linkedin = ?, social_github = ?, social_website = ? WHERE id = ?");
+            $stmt->execute([
+                $bio ?: null,
+                $socialTwitter ?: null,
+                $socialLinkedin ?: null,
+                $socialGithub ?: null,
+                $socialWebsite ?: null,
+                $user['id']
+            ]);
+
+            flash('success', 'Perfil de autor actualizado correctamente.');
+        } catch (\Exception $e) {
+            flash('error', 'Error al actualizar el perfil de autor: ' . $e->getMessage());
+        }
+
+        header('Location: ' . admin_url('/profile'));
+        exit;
+    }
+
+    /**
+     * Activa/desactiva la página pública de autor
+     */
+    public function toggleAuthorPage()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            flash('error', 'Método no permitido.');
+            header('Location: ' . admin_url('/profile'));
+            exit;
+        }
+
+        $user = SessionSecurity::getAuthenticatedUser();
+        if (!$user || $user['type'] !== 'admin') {
+            flash('error', 'Acceso denegado.');
+            header('Location: ' . admin_url('/login'));
+            exit;
+        }
+
+        $enabled = (int)($_POST['author_page_enabled'] ?? 0);
+        $pdo = Database::connect();
+
+        try {
+            // If enabling, ensure slug exists
+            if ($enabled) {
+                $stmt = $pdo->prepare("SELECT author_slug, name, tenant_id FROM admins WHERE id = ?");
+                $stmt->execute([$user['id']]);
+                $admin = $stmt->fetch(\PDO::FETCH_OBJ);
+
+                if (empty($admin->author_slug)) {
+                    $slug = \Screenart\Musedock\Models\Admin::generateSlug($admin->name, $admin->tenant_id);
+                    $pdo->prepare("UPDATE admins SET author_slug = ?, author_page_enabled = 1 WHERE id = ?")
+                        ->execute([$slug, $user['id']]);
+                } else {
+                    $pdo->prepare("UPDATE admins SET author_page_enabled = 1 WHERE id = ?")
+                        ->execute([$user['id']]);
+                }
+            } else {
+                $pdo->prepare("UPDATE admins SET author_page_enabled = 0 WHERE id = ?")
+                    ->execute([$user['id']]);
+            }
+
+            flash('success', $enabled ? 'Página de autor activada.' : 'Página de autor desactivada.');
+        } catch (\Exception $e) {
+            flash('error', 'Error: ' . $e->getMessage());
+        }
+
+        header('Location: ' . admin_url('/profile'));
+        exit;
     }
 
     /**

@@ -230,11 +230,20 @@ Route::get('/musedock/settings/storage', 'superadmin.SettingsController@storage'
 Route::post('/musedock/settings/storage', 'superadmin.SettingsController@updateStorage')->name('settings.storage.update')->middleware('superadmin');
 Route::post('/musedock/settings/storage/tenant', 'superadmin.SettingsController@updateStorageTenant')->name('settings.storage.tenant.update')->middleware('superadmin');
 
+// Settings - Backups
+Route::get('/musedock/settings/backups', 'superadmin.SettingsController@backups')->name('settings.backups')->middleware('superadmin');
+Route::post('/musedock/settings/backups', 'superadmin.SettingsController@updateBackups')->name('settings.backups.update')->middleware('superadmin');
+Route::post('/musedock/settings/backups/create', 'superadmin.SettingsController@createBackup')->name('settings.backups.create')->middleware('superadmin');
+Route::get('/musedock/settings/backups/download', 'superadmin.SettingsController@downloadBackup')->name('settings.backups.download')->middleware('superadmin');
+Route::post('/musedock/settings/backups/delete', 'superadmin.SettingsController@deleteBackup')->name('settings.backups.delete')->middleware('superadmin');
+Route::post('/musedock/settings/backups/restore', 'superadmin.SettingsController@restoreBackup')->name('settings.backups.restore')->middleware('superadmin');
+
 // Settings - Tenant Defaults (Configuración por defecto para nuevos tenants)
 Route::get('/musedock/settings/tenant-defaults', 'superadmin.TenantDefaultsController@index')->name('tenant-defaults.index')->middleware('superadmin');
 Route::post('/musedock/settings/tenant-defaults', 'superadmin.TenantDefaultsController@update')->name('tenant-defaults.update')->middleware('superadmin');
 
 Route::get('/musedock/settings/advanced/clear-blade-cache', 'superadmin.SettingsController@clearBladeCache')->name('settings.advanced.clearBladeCache')->middleware('superadmin');
+Route::get('/musedock/settings/advanced/clear-opcache', 'superadmin.SettingsController@clearOpcache')->name('settings.advanced.clearOpcache')->middleware('superadmin');
 
 Route::post('/musedock/clear-flashes', function() {
     $auth = SessionSecurity::getAuthenticatedUser();
@@ -441,14 +450,14 @@ Route::post('/musedock/ai/settings/tenant-quota', 'superadmin.AIController@updat
     ->middleware('superadmin');
 
 
-// AIWriter - Panel de administración (kebab-case en rutas, PascalCase en namespace)
-Route::get('/musedock/ai-writer/settings', 'AIWriter\\AdminController@settings')
+// AIWriter - Panel de administración
+Route::get('/musedock/aiwriter/settings', 'AIWriter\\AdminController@settings')
     ->middleware('superadmin')
-    ->name('ai-writer.settings');
+    ->name('aiwriter.settings');
 
-Route::post('/musedock/ai-writer/settings/update', 'AIWriter\\AdminController@updateSettings')
+Route::post('/musedock/aiwriter/settings/update', 'AIWriter\\AdminController@updateSettings')
     ->middleware('superadmin')
-    ->name('ai-writer.settings.update');
+    ->name('aiwriter.settings.update');
 
 
 
@@ -506,6 +515,19 @@ Route::get('/api/ai/providers', 'api.ApiAIController@getProviders');
 Route::post('/api/ai/generate', 'api.ApiAIController@generate');
 Route::post('/api/ai/quick', 'api.ApiAIController@quickAction');
 
+// AI Image Generation API
+Route::get('/api/ai/image/providers', function() {
+    $controller = new \Screenart\Musedock\Controllers\Api\ApiAIImageController();
+    $controller->providers();
+});
+Route::post('/api/ai/image/generate', function() {
+    $controller = new \Screenart\Musedock\Controllers\Api\ApiAIImageController();
+    $controller->generate();
+});
+Route::post('/api/ai/image/delete', function() {
+    $controller = new \Screenart\Musedock\Controllers\Api\ApiAIImageController();
+    $controller->delete();
+});
 
 
 
@@ -563,6 +585,9 @@ Route::get('/musedock/analytics', 'superadmin.AnalyticsController@index')
 
 Route::get('/musedock/analytics/realtime-api', 'superadmin.AnalyticsController@realtimeApi')
     ->name('analytics.realtime')->middleware('superadmin');
+
+Route::get('/musedock/analytics/pages-api', 'superadmin.AnalyticsController@pagesApi')
+    ->name('analytics.pages-api')->middleware('superadmin');
 
 // API endpoint para tracking (público, sin middleware superadmin)
 Route::post('/api/analytics/track', function() {

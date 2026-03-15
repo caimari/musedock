@@ -6,11 +6,31 @@
 <div class="app-content">
   <div class="container-fluid">
     {{-- Navegación --}}
+    @php
+      $backUrl = !empty($editingTenant)
+          ? route('blog.tags.index') . '?scope=tenant:' . $editingTenant->id
+          : route('blog.tags.index');
+      $backLabel = !empty($editingTenant)
+          ? ($editingTenant->domain ?? $editingTenant->name)
+          : __('blog.tags');
+      $createUrl = !empty($editingTenant)
+          ? route('blog.tags.create') . '?tenant_id=' . $editingTenant->id
+          : route('blog.tags.create');
+    @endphp
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="breadcrumb">
-        <a href="{{ route('blog.tags.index') }}">Etiquetas</a> <span class="mx-2">/</span> <span>{{ e($tag->name) }}</span>
+        <a href="{{ route('blog.tags.index') }}">{{ __('blog.tags') }}</a>
+        @if(!empty($editingTenant))
+          <span class="mx-2">/</span>
+          <a href="{{ $backUrl }}">{{ $backLabel }}</a>
+        @endif
+        <span class="mx-2">/</span>
+        <span>{{ e($tag->name) }}</span>
       </div>
-      <a href="{{ route('blog.tags.index') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Volver a Etiquetas</a>
+      <div class="d-flex gap-2">
+        <a href="{{ $backUrl }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> {{ $backLabel }}</a>
+        <a href="{{ $createUrl }}" class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i> {{ __('blog.tag.add_tag') }}</a>
+      </div>
     </div>
 
     {{-- Alertas Toast --}}
@@ -43,6 +63,15 @@
           });
         });
       </script>
+    @endif
+
+    @if(!empty($editingTenant))
+      <div class="alert alert-info d-flex align-items-center mb-3">
+        <i class="bi bi-globe me-2 fs-5"></i>
+        <div>
+          <strong>Editando etiqueta de:</strong> <a href="https://{{ $editingTenant->domain }}" target="_blank">{{ $editingTenant->domain }}</a>
+        </div>
+      </div>
     @endif
 
     <form method="POST" action="{{ route('blog.tags.update', ['id' => $tag->id]) }}" id="tagForm">

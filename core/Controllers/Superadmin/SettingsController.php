@@ -804,11 +804,39 @@ public function deleteFavicon()
         if (class_exists('\\Screenart\\Musedock\\Helpers\\SiteHelper')) {
             \Screenart\Musedock\Helpers\SiteHelper::clearCache();
         }
-        
+
+        // Limpiar caché de sitemaps y feeds
+        $xmlCacheDirs = [
+            __DIR__ . '/../../../storage/cache/sitemaps',
+            __DIR__ . '/../../../storage/cache/feeds',
+        ];
+        foreach ($xmlCacheDirs as $dir) {
+            if (is_dir($dir)) {
+                foreach (glob($dir . '/*.xml') as $file) {
+                    @unlink($file);
+                }
+            }
+        }
+
         // Mensaje de éxito para mostrar en la siguiente carga
-        flash('success', 'La caché de las vistas Blade ha sido borrada correctamente.');
+        flash('success', 'La caché de vistas Blade, sitemaps y feeds ha sido borrada correctamente.');
 
         // Redirigir de vuelta al formulario de Ajustes Avanzados
+        header('Location: ' . route('settings.advanced'));
+        exit;
+    }
+
+    public function clearOpcache()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.edit');
+
+        if (function_exists('opcache_reset') && opcache_reset()) {
+            flash('success', 'OPcache de PHP limpiado correctamente.');
+        } else {
+            flash('warning', 'OPcache no está activo o no se pudo limpiar.');
+        }
+
         header('Location: ' . route('settings.advanced'));
         exit;
     }
@@ -1108,5 +1136,575 @@ public function deleteFavicon()
         }
 
         return file_put_contents($path, implode("\n", $lines)) !== false;
+    }
+
+    // ==================== BACKUP SYSTEM ====================
+
+    private function getBackupDir(): string
+    {
+        $dir = dirname(__DIR__, 3) . '/storage/backups/db';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0750, true);
+        }
+        return $dir;
+    }
+
+    /**
+     * Backups settings page
+     */
+    public function backups()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.view');
+
+        $settings = $this->getSettings();
+        $backupDir = $this->getBackupDir();
+
+        $backups = $this->listBackups($backupDir);
+
+        return View::renderSuperadmin('settings.backups', [
+            'title' => 'Copias de seguridad',
+            'backups' => $backups,
+            'retention_days' => (int) ($settings['backup_retention_days'] ?? 15),
+            'auto_enabled' => (bool) ($settings['backup_auto_enabled'] ?? 1),
+        ]);
+    }
+
+    /**
+     * Update backup settings
+     */
+    public function updateBackups()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.edit');
+
+        $retention = max(1, min(365, (int) ($_POST['backup_retention_days'] ?? 15)));
+        $autoEnabled = ($_POST['backup_auto_enabled'] ?? '1') === '1' ? '1' : '0';
+
+        $this->saveSettings([
+            'backup_retention_days' => (string) $retention,
+            'backup_auto_enabled' => $autoEnabled,
+        ]);
+
+        flash('success', 'Configuración de backups actualizada.');
+        header('Location: /musedock/settings/backups');
+        exit;
+    }
+
+    /**
+     * Create backup (AJAX)
+     */
+    public function createBackup()
+    {
+        // Limpiar cualquier output previo y forzar JSON
+        while (ob_get_level()) ob_end_clean();
+        header('Content-Type: application/json');
+
+        try {
+            SessionSecurity::startSession();
+            $this->checkPermission('settings.edit');
+
+            ob_start();
+            $file = $this->performBackup('manual');
+            $stray = ob_get_clean(); // Capturar cualquier output accidental
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Backup creado: ' . basename($file),
+                'file' => basename($file),
+            ]);
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'debug' => $e->getFile() . ':' . $e->getLine(),
+            ]);
+        }
+        exit;
+    }
+
+    /**
+     * Download backup
+     */
+    public function downloadBackup()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.view');
+
+        $filename = basename($_GET['file'] ?? '');
+        if (!preg_match('/^musedock_db_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_(manual|auto|pre-restore)\.sql\.gz$/', $filename)) {
+            flash('error', 'Archivo de backup inválido.');
+            header('Location: /musedock/settings/backups');
+            exit;
+        }
+
+        $filepath = $this->getBackupDir() . '/' . $filename;
+        if (!file_exists($filepath)) {
+            flash('error', 'Archivo de backup no encontrado.');
+            header('Location: /musedock/settings/backups');
+            exit;
+        }
+
+        header('Content-Type: application/gzip');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . filesize($filepath));
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        readfile($filepath);
+        exit;
+    }
+
+    /**
+     * Delete backup (AJAX)
+     */
+    public function deleteBackup()
+    {
+        header('Content-Type: application/json');
+
+        try {
+            SessionSecurity::startSession();
+            $this->checkPermission('settings.edit');
+        } catch (\Exception $e) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            exit;
+        }
+
+        $data = $GLOBALS['_JSON_INPUT'] ?? json_decode(file_get_contents('php://input'), true);
+        $filename = basename($data['file'] ?? '');
+
+        if (!preg_match('/^musedock_db_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_(manual|auto|pre-restore)\.sql\.gz$/', $filename)) {
+            echo json_encode(['success' => false, 'message' => 'Nombre de archivo inválido.']);
+            exit;
+        }
+
+        $filepath = $this->getBackupDir() . '/' . $filename;
+        if (file_exists($filepath)) {
+            unlink($filepath);
+        }
+
+        echo json_encode(['success' => true, 'message' => 'Backup eliminado.']);
+        exit;
+    }
+
+    /**
+     * Restore backup (AJAX, password-protected)
+     */
+    public function restoreBackup()
+    {
+        header('Content-Type: application/json');
+
+        try {
+            SessionSecurity::startSession();
+            $this->checkPermission('settings.edit');
+        } catch (\Exception $e) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            exit;
+        }
+
+        $data = $GLOBALS['_JSON_INPUT'] ?? json_decode(file_get_contents('php://input'), true);
+        $filename = basename($data['file'] ?? '');
+        $password = $data['password'] ?? '';
+
+        try {
+            // Validate filename
+            if (!preg_match('/^musedock_db_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_(manual|auto|pre-restore)\.sql\.gz$/', $filename)) {
+                throw new \Exception('Nombre de archivo inválido.');
+            }
+
+            $filepath = $this->getBackupDir() . '/' . $filename;
+            if (!file_exists($filepath)) {
+                throw new \Exception('Archivo de backup no encontrado.');
+            }
+
+            // Verify password
+            if (empty($password)) {
+                throw new \Exception('La contraseña es obligatoria.');
+            }
+
+            $auth = SessionSecurity::getAuthenticatedUser();
+            if (!$auth || ($auth['type'] ?? '') !== 'super_admin') {
+                throw new \Exception('No autorizado.');
+            }
+
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("SELECT password FROM super_admins WHERE id = ?");
+            $stmt->execute([$auth['id']]);
+            $storedHash = $stmt->fetchColumn();
+
+            if (!$storedHash || !password_verify($password, $storedHash)) {
+                throw new \Exception('Contraseña incorrecta.');
+            }
+
+            // Create a pre-restore backup
+            $this->performBackup('pre-restore');
+
+            // Restore: leer SQL del .gz y ejecutar vía PDO
+            $gz = gzopen($filepath, 'rb');
+            if (!$gz) {
+                throw new \Exception('No se pudo abrir el archivo de backup.');
+            }
+
+            $sql = '';
+            while (!gzeof($gz)) {
+                $sql .= gzread($gz, 8192);
+            }
+            gzclose($gz);
+
+            if (empty(trim($sql))) {
+                throw new \Exception('El archivo de backup está vacío.');
+            }
+
+            $pdo = Database::connect();
+            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+            // Ejecutar el SQL completo
+            // Dividir por sentencias para mejor manejo de errores
+            $pdo->beginTransaction();
+            try {
+                $pdo->exec($sql);
+                $pdo->commit();
+            } catch (\Exception $e) {
+                $pdo->rollBack();
+                throw new \Exception('Error al restaurar la base de datos: ' . $e->getMessage());
+            }
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Base de datos restaurada correctamente desde ' . $filename,
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /**
+     * Perform a database backup
+     */
+    public function performBackup(string $type = 'auto'): string
+    {
+        // Si exec() está disponible (CLI), usar pg_dump
+        if (\function_exists('exec')) {
+            return $this->performBackupPgDump($type);
+        }
+
+        // Fallback: backup vía PDO (PHP-FPM sin exec)
+        return $this->performBackupPDO($type);
+    }
+
+    /**
+     * Backup usando pg_dump (CLI)
+     */
+    private function performBackupPgDump(string $type): string
+    {
+        $config = require dirname(__DIR__, 3) . '/config/config.php';
+        $dbHost = $config['db']['host'] ?? 'localhost';
+        $dbPort = $config['db']['port'] ?? 5432;
+        $dbName = $config['db']['name'] ?? '';
+        $dbUser = $config['db']['user'] ?? '';
+        $dbPass = $config['db']['pass'] ?? '';
+
+        $backupDir = $this->getBackupDir();
+        $timestamp = date('Y-m-d_H-i-s');
+        $filename = "musedock_db_{$timestamp}_{$type}.sql.gz";
+        $filepath = $backupDir . '/' . $filename;
+
+        $envStr = 'PGPASSWORD=' . \escapeshellarg($dbPass);
+        $cmd = \sprintf(
+            '%s pg_dump -h %s -p %s -U %s -Fp --no-owner --no-acl %s 2>&1 | gzip > %s',
+            $envStr,
+            \escapeshellarg($dbHost),
+            \escapeshellarg((string) $dbPort),
+            \escapeshellarg($dbUser),
+            \escapeshellarg($dbName),
+            \escapeshellarg($filepath)
+        );
+
+        $output = [];
+        $returnCode = 0;
+        \exec($cmd, $output, $returnCode);
+
+        if (!file_exists($filepath) || filesize($filepath) < 100) {
+            $errorMsg = implode("\n", $output);
+            if (file_exists($filepath)) unlink($filepath);
+            throw new \Exception("Backup falló: {$errorMsg}");
+        }
+
+        return $filepath;
+    }
+
+    /**
+     * Backup usando PDO puro (cuando exec no está disponible)
+     */
+    private function performBackupPDO(string $type): string
+    {
+        $pdo = Database::connect();
+        $backupDir = $this->getBackupDir();
+        $timestamp = date('Y-m-d_H-i-s');
+        $filename = "musedock_db_{$timestamp}_{$type}.sql.gz";
+        $filepath = $backupDir . '/' . $filename;
+
+        $gz = gzopen($filepath, 'wb9');
+        if (!$gz) {
+            throw new \Exception('No se pudo crear el archivo de backup.');
+        }
+
+        try {
+            gzwrite($gz, "-- MuseDock DB Backup\n");
+            gzwrite($gz, "-- Date: " . date('Y-m-d H:i:s') . "\n");
+            gzwrite($gz, "-- Type: {$type}\n");
+            gzwrite($gz, "SET client_encoding = 'UTF8';\n");
+            gzwrite($gz, "SET standard_conforming_strings = on;\n\n");
+
+            // Obtener todas las tablas
+            $tables = $pdo->query(
+                "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename"
+            )->fetchAll(\PDO::FETCH_COLUMN);
+
+            // Obtener todas las secuencias
+            $sequences = $pdo->query(
+                "SELECT sequencename FROM pg_sequences WHERE schemaname = 'public' ORDER BY sequencename"
+            )->fetchAll(\PDO::FETCH_COLUMN);
+
+            foreach ($tables as $table) {
+                $qtable = '"' . str_replace('"', '""', $table) . '"';
+
+                // Estructura de la tabla
+                // Obtener columnas
+                $cols = $pdo->query("
+                    SELECT column_name, data_type, column_default, is_nullable,
+                           character_maximum_length, numeric_precision, numeric_scale,
+                           udt_name
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public' AND table_name = " . $pdo->quote($table) . "
+                    ORDER BY ordinal_position
+                ")->fetchAll(\PDO::FETCH_ASSOC);
+
+                if (empty($cols)) continue;
+
+                gzwrite($gz, "\n-- Table: {$table}\n");
+                gzwrite($gz, "DROP TABLE IF EXISTS {$qtable} CASCADE;\n");
+                gzwrite($gz, "CREATE TABLE {$qtable} (\n");
+
+                $colDefs = [];
+                foreach ($cols as $col) {
+                    $colName = '"' . str_replace('"', '""', $col['column_name']) . '"';
+                    $colType = $this->pgColumnType($col);
+                    $nullable = $col['is_nullable'] === 'NO' ? ' NOT NULL' : '';
+                    $default = '';
+                    if ($col['column_default'] !== null) {
+                        $default = ' DEFAULT ' . $col['column_default'];
+                    }
+                    $colDefs[] = "    {$colName} {$colType}{$nullable}{$default}";
+                }
+                gzwrite($gz, implode(",\n", $colDefs) . "\n");
+                gzwrite($gz, ");\n");
+
+                // Constraints (PK, UNIQUE)
+                $constraints = $pdo->query("
+                    SELECT con.conname, con.contype,
+                           pg_get_constraintdef(con.oid) as definition
+                    FROM pg_constraint con
+                    JOIN pg_class rel ON rel.oid = con.conrelid
+                    JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+                    WHERE rel.relname = " . $pdo->quote($table) . "
+                    AND nsp.nspname = 'public'
+                    ORDER BY con.contype
+                ")->fetchAll(\PDO::FETCH_ASSOC);
+
+                foreach ($constraints as $con) {
+                    $conName = '"' . str_replace('"', '""', $con['conname']) . '"';
+                    gzwrite($gz, "ALTER TABLE {$qtable} ADD CONSTRAINT {$conName} {$con['definition']};\n");
+                }
+
+                // Datos
+                $count = $pdo->query("SELECT COUNT(*) FROM {$qtable}")->fetchColumn();
+                if ($count > 0) {
+                    gzwrite($gz, "\n-- Data for {$table} ({$count} rows)\n");
+
+                    $colNames = array_map(fn($c) => '"' . str_replace('"', '""', $c['column_name']) . '"', $cols);
+                    $colList = implode(', ', $colNames);
+
+                    // Leer por lotes para no saturar memoria
+                    $batchSize = 500;
+                    $offset = 0;
+                    while ($offset < $count) {
+                        $rows = $pdo->query("SELECT * FROM {$qtable} LIMIT {$batchSize} OFFSET {$offset}")->fetchAll(\PDO::FETCH_ASSOC);
+                        foreach ($rows as $row) {
+                            $values = [];
+                            foreach ($cols as $col) {
+                                $val = $row[$col['column_name']];
+                                if ($val === null) {
+                                    $values[] = 'NULL';
+                                } elseif ($this->pgIsNumeric($col)) {
+                                    $values[] = $val;
+                                } elseif ($col['data_type'] === 'boolean' || $col['udt_name'] === 'bool') {
+                                    $values[] = ($val === true || $val === 't' || $val === '1' || $val === 1) ? 'true' : 'false';
+                                } else {
+                                    $values[] = $pdo->quote((string) $val);
+                                }
+                            }
+                            gzwrite($gz, "INSERT INTO {$qtable} ({$colList}) VALUES (" . implode(', ', $values) . ");\n");
+                        }
+                        $offset += $batchSize;
+                    }
+                }
+            }
+
+            // Restaurar valores de secuencias
+            gzwrite($gz, "\n-- Sequences\n");
+            foreach ($sequences as $seq) {
+                $qseq = '"' . str_replace('"', '""', $seq) . '"';
+                $val = $pdo->query("SELECT last_value FROM {$qseq}")->fetchColumn();
+                if ($val) {
+                    gzwrite($gz, "SELECT setval('{$seq}', {$val}, true);\n");
+                }
+            }
+
+            // Índices (no PK/UNIQUE que ya van en constraints)
+            gzwrite($gz, "\n-- Indexes\n");
+            $indexes = $pdo->query("
+                SELECT indexname, indexdef
+                FROM pg_indexes
+                WHERE schemaname = 'public'
+                AND indexname NOT IN (
+                    SELECT conname FROM pg_constraint
+                    WHERE connamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+                )
+                ORDER BY tablename, indexname
+            ")->fetchAll(\PDO::FETCH_ASSOC);
+
+            foreach ($indexes as $idx) {
+                gzwrite($gz, $idx['indexdef'] . ";\n");
+            }
+
+            gzwrite($gz, "\n-- Backup completed\n");
+
+        } finally {
+            gzclose($gz);
+        }
+
+        if (!file_exists($filepath) || filesize($filepath) < 50) {
+            if (file_exists($filepath)) unlink($filepath);
+            throw new \Exception('El backup generado está vacío o es inválido.');
+        }
+
+        return $filepath;
+    }
+
+    /**
+     * Determina el tipo SQL de una columna PostgreSQL
+     */
+    private function pgColumnType(array $col): string
+    {
+        $type = $col['udt_name'] ?? $col['data_type'];
+
+        switch ($type) {
+            case 'int4': return 'integer';
+            case 'int8': return 'bigint';
+            case 'int2': return 'smallint';
+            case 'float4': return 'real';
+            case 'float8': return 'double precision';
+            case 'bool': return 'boolean';
+            case 'varchar':
+                $len = $col['character_maximum_length'];
+                return $len ? "character varying({$len})" : 'character varying';
+            case 'bpchar':
+                $len = $col['character_maximum_length'];
+                return $len ? "character({$len})" : 'character';
+            case 'numeric':
+                $p = $col['numeric_precision'];
+                $s = $col['numeric_scale'];
+                return ($p && $s !== null) ? "numeric({$p},{$s})" : 'numeric';
+            case 'text': return 'text';
+            case 'timestamp': return 'timestamp without time zone';
+            case 'timestamptz': return 'timestamp with time zone';
+            case 'date': return 'date';
+            case 'time': return 'time without time zone';
+            case 'timetz': return 'time with time zone';
+            case 'json': return 'json';
+            case 'jsonb': return 'jsonb';
+            case 'uuid': return 'uuid';
+            case 'bytea': return 'bytea';
+            case 'inet': return 'inet';
+            case 'cidr': return 'cidr';
+            case '_text': return 'text[]';
+            case '_int4': return 'integer[]';
+            case '_varchar': return 'character varying[]';
+            default: return $col['data_type'] ?? $type;
+        }
+    }
+
+    /**
+     * Determina si una columna es numérica
+     */
+    private function pgIsNumeric(array $col): bool
+    {
+        return in_array($col['udt_name'] ?? '', ['int2', 'int4', 'int8', 'float4', 'float8', 'numeric', 'oid']);
+    }
+
+    /**
+     * Cleanup old backups based on retention days
+     */
+    public function cleanupOldBackups(): int
+    {
+        $settings = $this->getSettings();
+        $retentionDays = (int) ($settings['backup_retention_days'] ?? 15);
+        $backupDir = $this->getBackupDir();
+        $cutoff = time() - ($retentionDays * 86400);
+        $deleted = 0;
+
+        foreach (glob($backupDir . '/musedock_db_*.sql.gz') as $file) {
+            if (filemtime($file) < $cutoff) {
+                unlink($file);
+                $deleted++;
+            }
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * List available backups
+     */
+    private function listBackups(string $dir): array
+    {
+        $backups = [];
+        $files = glob($dir . '/musedock_db_*.sql.gz');
+
+        if (!$files) return [];
+
+        // Sort by modification time, newest first
+        usort($files, fn($a, $b) => filemtime($b) - filemtime($a));
+
+        foreach ($files as $file) {
+            $filename = basename($file);
+            $size = filesize($file);
+            $mtime = filemtime($file);
+
+            // Format size
+            if ($size >= 1073741824) {
+                $sizeStr = number_format($size / 1073741824, 2) . ' GB';
+            } elseif ($size >= 1048576) {
+                $sizeStr = number_format($size / 1048576, 1) . ' MB';
+            } elseif ($size >= 1024) {
+                $sizeStr = number_format($size / 1024, 0) . ' KB';
+            } else {
+                $sizeStr = $size . ' B';
+            }
+
+            $backups[] = [
+                'filename' => $filename,
+                'date' => date('d/m/Y H:i:s', $mtime),
+                'size' => $sizeStr,
+                'is_auto' => strpos($filename, '_auto.') !== false,
+                'timestamp' => $mtime,
+            ];
+        }
+
+        return $backups;
     }
 }

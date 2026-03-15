@@ -8,28 +8,7 @@
 
         @include('plugins.news-aggregator._nav', ['activeTab' => 'dashboard'])
 
-        {{-- Flash Messages --}}
-        @if(session('flash_success'))
-            <div class="alert alert-success alert-dismissible fade show">
-                {{ session('flash_success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            @php unset($_SESSION['flash_success']); @endphp
-        @endif
-        @if(session('flash_error'))
-            <div class="alert alert-danger alert-dismissible fade show">
-                {{ session('flash_error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            @php unset($_SESSION['flash_error']); @endphp
-        @endif
-        @if(session('flash_warning'))
-            <div class="alert alert-warning alert-dismissible fade show">
-                {{ session('flash_warning') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            @php unset($_SESSION['flash_warning']); @endphp
-        @endif
+        @include('partials.alerts-sweetalert2')
 
         {{-- Pipeline Status Bar --}}
         <div class="card border-0 shadow-sm mb-4">
@@ -92,8 +71,11 @@
                                 </div>
                             </div>
                             <div>
-                                <h3 class="mb-0">{{ $stats['items_today'] ?? 0 }}</h3>
-                                <small class="text-muted">Capturadas hoy</small>
+                                <h3 class="mb-0">{{ $stats['total_items'] ?? 0 }}</h3>
+                                <small class="text-muted">Noticias capturadas</small>
+                                @if(($stats['items_today'] ?? 0) > 0)
+                                    <small class="text-success d-block">+{{ $stats['items_today'] }} hoy</small>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -105,12 +87,23 @@
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0 me-3">
                                 <div class="bg-warning bg-opacity-10 rounded-3 p-3">
-                                    <i class="bi bi-eye fs-4 text-warning"></i>
+                                    <i class="bi bi-hourglass-split fs-4 text-warning"></i>
                                 </div>
                             </div>
                             <div>
-                                <h3 class="mb-0">{{ $stats['pending_count'] ?? 0 }}</h3>
-                                <small class="text-muted">Pendientes revisión</small>
+                                <h3 class="mb-0">{{ $stats['pending_total'] ?? 0 }}</h3>
+                                <small class="text-muted">Pendientes</small>
+                                <small class="d-block text-muted" style="font-size: 0.7rem;">
+                                    @if(($stats['pending_rewrite'] ?? 0) > 0)
+                                        <span class="text-secondary">{{ $stats['pending_rewrite'] }} reescribir</span>
+                                    @endif
+                                    @if(($stats['pending_review'] ?? 0) > 0)
+                                        {{ ($stats['pending_rewrite'] ?? 0) > 0 ? ' · ' : '' }}<span class="text-warning">{{ $stats['pending_review'] }} revisar</span>
+                                    @endif
+                                    @if(($stats['pending_publish'] ?? 0) > 0)
+                                        {{ (($stats['pending_rewrite'] ?? 0) + ($stats['pending_review'] ?? 0)) > 0 ? ' · ' : '' }}<span class="text-success">{{ $stats['pending_publish'] }} publicar</span>
+                                    @endif
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -128,6 +121,9 @@
                             <div>
                                 <h3 class="mb-0">{{ number_format($stats['tokens_today'] ?? 0) }}</h3>
                                 <small class="text-muted">Tokens hoy</small>
+                                @if(($stats['published_count'] ?? 0) > 0)
+                                    <small class="text-primary d-block">{{ $stats['published_count'] }} publicadas</small>
+                                @endif
                             </div>
                         </div>
                     </div>

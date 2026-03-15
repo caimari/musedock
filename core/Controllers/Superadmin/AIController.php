@@ -12,6 +12,20 @@ class AIController
 {
     use RequiresPermission;
 
+    public function __construct()
+    {
+        // Migrate stale direct-session messages to flash system
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            @session_start();
+        }
+        foreach (['error', 'success', 'warning'] as $key) {
+            if (isset($_SESSION[$key]) && !isset($_SESSION['_flash'][$key])) {
+                flash($key, $_SESSION[$key]);
+            }
+            unset($_SESSION[$key]);
+        }
+    }
+
     /**
      * Página principal de IA
      */
@@ -26,11 +40,28 @@ class AIController
         } catch (\Exception $e) {
             $stats = [];
         }
-        
+
+        // Obtener uso por tenant
+        try {
+            $tenantStats = Database::query("
+                SELECT t.domain as tenant_domain,
+                       COUNT(*) as requests,
+                       COALESCE(SUM(l.tokens_used), 0) as tokens
+                FROM ai_usage_logs l
+                JOIN tenants t ON l.tenant_id = t.id
+                WHERE l.tenant_id IS NOT NULL
+                GROUP BY t.id, t.domain
+                ORDER BY tokens DESC
+            ")->fetchAll();
+        } catch (\Exception $e) {
+            $tenantStats = [];
+        }
+
         // Usando renderSuperadmin en lugar de render
         return View::renderSuperadmin('ai.index', [
             'title' => 'Inteligencia Artificial',
-            'stats' => $stats
+            'stats' => $stats,
+            'tenantStats' => $tenantStats
         ]);
     }
     
@@ -78,13 +109,14 @@ class AIController
         // Validar datos
         if (empty($_POST['name']) || empty($_POST['provider_type'])) {
             flash('error', 'Nombre y tipo de proveedor son obligatorios');
-            return back();
+            header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '/musedock/ai/providers'));
+            exit;
         }
-        
+
         // Crear proveedor
         $sql = "INSERT INTO ai_providers (name, api_key, endpoint, provider_type, model, temperature, max_tokens, active, system_wide, tenant_id, created_at, updated_at)
                 VALUES (:name, :api_key, :endpoint, :provider_type, :model, :temperature, :max_tokens, :active, :system_wide, :tenant_id, NOW(), NOW())";
-                
+
         $params = [
             'name' => $_POST['name'],
             'api_key' => $_POST['api_key'] ?? null,
@@ -97,7 +129,7 @@ class AIController
             'system_wide' => isset($_POST['system_wide']) ? 1 : 0,
             'tenant_id' => null
         ];
-        
+
         try {
             Database::query($sql, $params);
             flash('success', 'Proveedor creado correctamente');
@@ -105,7 +137,8 @@ class AIController
             flash('error', 'Error al crear el proveedor: ' . $e->getMessage());
         }
         
-        return redirect('/musedock/ai/providers');
+        header('Location: /musedock/ai/providers');
+        exit;
     }
     
     /**
@@ -120,9 +153,10 @@ class AIController
         
         if (!$provider) {
             flash('error', 'Proveedor no encontrado');
-            return redirect('/musedock/ai/providers');
+            header('Location: /musedock/ai/providers');
+            exit;
         }
-        
+
         return View::renderSuperadmin('ai.providers.edit', [
             'title' => 'Editar Proveedor de IA',
             'provider' => $provider
@@ -140,13 +174,17 @@ class AIController
         // Validar datos
         if (empty($_POST['name']) || empty($_POST['provider_type'])) {
             flash('error', 'Nombre y tipo de proveedor son obligatorios');
-            return back();
+            header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '/musedock/ai/providers'));
+            exit;
         }
-        
-        // Actualizar proveedor
-        $sql = "UPDATE ai_providers SET 
+
+        // Actualizar proveedor (solo actualizar api_key si se proporciona una nueva)
+        $newApiKey = trim($_POST['api_key'] ?? '');
+        $apiKeyClause = !empty($newApiKey) ? 'api_key = :api_key,' : '';
+
+        $sql = "UPDATE ai_providers SET
                 name = :name,
-                api_key = :api_key,
+                {$apiKeyClause}
                 endpoint = :endpoint,
                 provider_type = :provider_type,
                 model = :model,
@@ -156,11 +194,10 @@ class AIController
                 system_wide = :system_wide,
                 updated_at = NOW()
                 WHERE id = :id";
-                
+
         $params = [
             'id' => $id,
             'name' => $_POST['name'],
-            'api_key' => $_POST['api_key'] ?? null,
             'endpoint' => $_POST['endpoint'] ?? null,
             'provider_type' => $_POST['provider_type'],
             'model' => $_POST['model'] ?? null,
@@ -169,6 +206,10 @@ class AIController
             'active' => isset($_POST['active']) ? 1 : 0,
             'system_wide' => isset($_POST['system_wide']) ? 1 : 0
         ];
+
+        if (!empty($newApiKey)) {
+            $params['api_key'] = $newApiKey;
+        }
         
         try {
             Database::query($sql, $params);
@@ -177,7 +218,8 @@ class AIController
             flash('error', 'Error al actualizar el proveedor: ' . $e->getMessage());
         }
         
-        return redirect('/musedock/ai/providers');
+        header('Location: /musedock/ai/providers');
+        exit;
     }
     
     /**
@@ -193,22 +235,24 @@ class AIController
             
             if (!$provider) {
                 flash('error', 'Proveedor no encontrado');
-                return redirect('/musedock/ai/providers');
+                header('Location: /musedock/ai/providers');
+                exit;
             }
-            
+
             $newState = $provider['active'] ? 0 : 1;
-            
+
             Database::query(
                 "UPDATE ai_providers SET active = :active, updated_at = NOW() WHERE id = :id",
                 ['id' => $id, 'active' => $newState]
             );
-            
+
             flash('success', 'Estado del proveedor actualizado');
         } catch (\Exception $e) {
             flash('error', 'Error al cambiar el estado: ' . $e->getMessage());
         }
         
-        return redirect('/musedock/ai/providers');
+        header('Location: /musedock/ai/providers');
+        exit;
     }
     
     /**
@@ -224,28 +268,31 @@ class AIController
             
             if (!$provider) {
                 flash('error', 'Proveedor no encontrado');
-                return redirect('/musedock/ai/providers');
+                header('Location: /musedock/ai/providers');
+                exit;
             }
-            
+
             // Comprobar si hay logs que hacen referencia a este proveedor
             $usageCount = Database::query(
-                "SELECT COUNT(*) FROM ai_usage_logs WHERE provider_id = :id", 
+                "SELECT COUNT(*) FROM ai_usage_logs WHERE provider_id = :id",
                 ['id' => $id]
             )->fetchColumn();
-            
+
             if ($usageCount > 0) {
                 flash('error', 'No se puede eliminar el proveedor porque tiene registros de uso asociados');
-                return redirect('/musedock/ai/providers');
+                header('Location: /musedock/ai/providers');
+                exit;
             }
-            
+
             Database::query("DELETE FROM ai_providers WHERE id = :id", ['id' => $id]);
-            
+
             flash('success', 'Proveedor eliminado correctamente');
         } catch (\Exception $e) {
             flash('error', 'Error al eliminar: ' . $e->getMessage());
         }
         
-        return redirect('/musedock/ai/providers');
+        header('Location: /musedock/ai/providers');
+        exit;
     }
     
     /**
@@ -269,9 +316,13 @@ class AIController
         
         try {
             // Construir consulta para los logs
-            $sql = "SELECT l.*, p.name as provider_name, p.provider_type 
+            $sql = "SELECT l.*, p.name as provider_name, p.provider_type,
+                           t.domain as tenant_domain,
+                           a.name as admin_name, a.email as admin_email
                     FROM ai_usage_logs l
                     LEFT JOIN ai_providers p ON l.provider_id = p.id
+                    LEFT JOIN tenants t ON l.tenant_id = t.id
+                    LEFT JOIN admins a ON l.user_id = a.id AND l.user_type IN ('admin', 'system')
                     WHERE 1=1";
             
             $params = [];
@@ -296,9 +347,9 @@ class AIController
                 $params['module'] = $filters['module'];
             }
             
-            $sql .= " ORDER BY l.created_at DESC LIMIT :offset, :limit";
-            $params['offset'] = $offset;
+            $sql .= " ORDER BY l.created_at DESC LIMIT :limit OFFSET :offset";
             $params['limit'] = $limit;
+            $params['offset'] = $offset;
             
             $logs = Database::query($sql, $params)->fetchAll();
             
@@ -428,7 +479,8 @@ class AIController
             flash('error', 'Error al actualizar la configuración: ' . $e->getMessage());
         }
         
-        return redirect('/musedock/ai/settings');
+        header('Location: /musedock/ai/settings');
+        exit;
     }
 
     /**
@@ -480,6 +532,7 @@ class AIController
             flash('error', 'Error al actualizar cuota: ' . $e->getMessage());
         }
 
-        return redirect('/musedock/ai/settings');
+        header('Location: /musedock/ai/settings');
+        exit;
     }
 }

@@ -2,7 +2,12 @@
 
 {{-- SEO --}}
 @section('title')
-    {{ __('blog.title') . ' | ' . setting('site_name', 'MuseDock CMS') }}
+    @if(!empty($is_home))
+        @php $__subtitle = site_setting('site_subtitle', ''); @endphp
+        {{ site_setting('site_name', '') . ($__subtitle ? ' | ' . $__subtitle : '') }}
+    @else
+        {{ __('blog.title') . ' | ' . site_setting('site_name', '') }}
+    @endif
 @endsection
 
 @section('description')
@@ -35,42 +40,69 @@
                 @foreach($posts as $post)
                 <article class="card flex flex-col">
                     {{-- Imagen --}}
-                    <a href="/blog/{{ $post->slug }}" class="block overflow-hidden">
+                    <a href="{{ blog_url($post->slug) }}" class="block relative overflow-hidden bg-gray-100" style="height: 220px;">
                         @php
                             if ($post->featured_image && !$post->hide_featured_image) {
-                                $imageUrl = (str_starts_with($post->featured_image, '/media/') || str_starts_with($post->featured_image, 'http'))
+                                $imageUrl = (str_starts_with($post->featured_image, '/') || str_starts_with($post->featured_image, 'http'))
                                     ? $post->featured_image
                                     : asset($post->featured_image);
                             } else {
                                 $imageUrl = asset('themes/react-modern/assets/img/blog-placeholder.svg');
                             }
+                            $imageUrl = media_thumb_url($imageUrl, 'medium');
                         @endphp
-                        <img src="{{ $imageUrl }}" alt="{{ $post->title }}" class="w-full h-48 object-cover hover:scale-105 transition-transform duration-300">
+                        <img src="{{ $imageUrl }}" alt="{{ $post->title }}" class="absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy">
                     </a>
 
                     {{-- Content --}}
-                    <div class="p-6 flex flex-col flex-grow">
+                    <div class="px-5 pt-2 pb-4 flex flex-col flex-grow">
                         {{-- Meta --}}
                         <div class="flex items-center text-sm text-gray-500 mb-3">
                             <i class="far fa-calendar mr-2"></i>
                             <span>{{ format_date($post->published_at ?? $post->created_at) }}</span>
+                            @php
+                                $postAuthorName = null;
+                                if (!empty($post->user_id)) {
+                                    if (($post->user_type ?? '') === 'superadmin' && !empty($post->tenant_id)) {
+                                        $__pdo = \Screenart\Musedock\Database::connect();
+                                        $__stmt = $__pdo->prepare("SELECT name FROM admins WHERE tenant_id = ? AND is_root_admin = 1 LIMIT 1");
+                                        $__stmt->execute([$post->tenant_id]);
+                                        $__ra = $__stmt->fetch(\PDO::FETCH_OBJ);
+                                        $postAuthorName = $__ra ? $__ra->name : null;
+                                    }
+                                    if (!$postAuthorName) {
+                                        $__author = match($post->user_type ?? 'admin') {
+                                            'superadmin' => \Screenart\Musedock\Models\SuperAdmin::find($post->user_id),
+                                            'admin' => \Screenart\Musedock\Models\Admin::find($post->user_id),
+                                            'user' => \Screenart\Musedock\Models\User::find($post->user_id),
+                                            default => null,
+                                        };
+                                        $postAuthorName = $__author ? $__author->name : null;
+                                    }
+                                }
+                            @endphp
+                            @if($postAuthorName)
+                            <span class="ml-3"><i class="far fa-user mr-1"></i>{{ $postAuthorName }}</span>
+                            @endif
                         </div>
 
                         {{-- Title --}}
-                        <h2 class="text-xl font-bold mb-3">
-                            <a href="/blog/{{ $post->slug }}" class="text-gray-900 hover:text-primary-600 transition-colors">{{ $post->title }}</a>
+                        <h2 class="text-xl font-bold mb-3 card-title-clamp">
+                            <a href="{{ blog_url($post->slug) }}" class="text-gray-900 hover:text-primary-600 transition-colors">{{ $post->title }}</a>
                         </h2>
 
                         {{-- Excerpt --}}
-                        @if($post->excerpt)
-                        <p class="text-gray-600 mb-4 flex-grow">{{ mb_strlen($post->excerpt) > 120 ? mb_substr($post->excerpt, 0, 120) . '...' : $post->excerpt }}</p>
-                        @endif
+                        @php
+                            $__excerpt = $post->excerpt ?: strip_tags($post->content ?? '');
+                            $__excerpt = trim(preg_replace('/\s+/', ' ', $__excerpt));
+                            $__excerpt = mb_strlen($__excerpt) > 200 ? mb_substr($__excerpt, 0, 200) . '...' : $__excerpt;
+                        @endphp
+                        <p class="text-gray-600 mb-0 card-excerpt-clamp">{{ $__excerpt }}</p>
 
                         {{-- Read more --}}
-                        <div class="mt-auto pt-4">
-                            <a href="/blog/{{ $post->slug }}" class="inline-flex items-center text-primary-600 font-semibold hover:text-secondary-600 transition-colors">
+                        <div class="mt-auto pt-3">
+                            <a href="{{ blog_url($post->slug) }}" class="inline-block px-5 py-2 text-sm font-medium text-gray-600 bg-transparent border border-gray-300 rounded no-underline hover:no-underline hover:text-gray-900 hover:border-gray-500 hover:bg-gray-50 transition-all uppercase tracking-wide">
                                 {{ __('blog.read_more') }}
-                                <i class="fas fa-arrow-right ml-2"></i>
                             </a>
                         </div>
                     </div>
@@ -116,5 +148,24 @@
         @endif
     </div>
 </section>
+
+<style>
+.card-title-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.6em;
+    line-height: 1.3;
+}
+.card-excerpt-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 3.9em;
+    line-height: 1.3;
+}
+</style>
 
 @endsection

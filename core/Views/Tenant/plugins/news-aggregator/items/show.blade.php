@@ -8,21 +8,7 @@
 
         @include('plugins.news-aggregator._nav', ['activeTab' => 'items'])
 
-        {{-- Flash Messages --}}
-        @if(session('flash_success'))
-            <div class="alert alert-success alert-dismissible fade show">
-                {{ session('flash_success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            @php unset($_SESSION['flash_success']); @endphp
-        @endif
-        @if(session('flash_error'))
-            <div class="alert alert-danger alert-dismissible fade show">
-                {{ session('flash_error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            @php unset($_SESSION['flash_error']); @endphp
-        @endif
+        @include('partials.alerts-sweetalert2')
 
         {{-- Status and Actions Bar --}}
         <div class="card border-0 shadow-sm mb-4">
@@ -137,7 +123,7 @@
         <div class="row">
             {{-- Original Content (izquierda) --}}
             <div class="col-md-6">
-                <div class="card border-0 shadow-sm h-100">
+                <div class="card border-0 shadow-sm">
                     <div class="card-header bg-secondary text-white">
                         <h5 class="mb-0"><i class="bi bi-file-text"></i> Fuente original</h5>
                     </div>
@@ -250,11 +236,135 @@
                         </div>
                     </div>
                 @endif
+
+                {{-- Contexto de la fuente original --}}
+                <div class="card border-0 shadow-sm mt-3">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center"
+                         data-bs-toggle="collapse" data-bs-target="#sourceContextSection" role="button">
+                        <h6 class="mb-0">
+                            <i class="bi bi-file-earmark-text"></i> Contexto de la fuente original
+                            @if(!empty($item->source_context))
+                                <span class="badge bg-success ms-1">Extraído</span>
+                            @endif
+                            @if(!empty($item->source_context_included) && $item->source_context_included)
+                                <span class="badge bg-primary ms-1">Incluido en IA</span>
+                            @endif
+                        </h6>
+                        <i class="bi bi-chevron-down"></i>
+                    </div>
+                    <div id="sourceContextSection" class="collapse {{ !empty($item->source_context) ? 'show' : '' }}">
+                        <div class="card-body">
+                            <p class="text-muted small mb-2">
+                                Extrae el texto completo del artículo original para dar más contexto a la IA al reescribir.
+                            </p>
+
+                            <div id="sourceContextContent">
+                                @if(!empty($item->source_context))
+                                    <div class="border rounded p-3 bg-light mb-3" style="max-height: 300px; overflow-y: auto; white-space: pre-wrap; font-size: 0.85rem;">{{ $item->source_context }}</div>
+                                @else
+                                    <div class="text-center py-3 text-muted" id="sourceContextEmpty">
+                                        <i class="bi bi-file-earmark-text fs-3"></i>
+                                        <p class="mt-2 mb-0">No se ha extraído contexto todavía.</p>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center">
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="btnExtractContext" onclick="extractContext({{ $item->id }})">
+                                    <i class="bi bi-download"></i>
+                                    {{ !empty($item->source_context) ? 'Re-extraer contexto' : 'Extraer contexto' }}
+                                </button>
+
+                                @if(!empty($item->source_context))
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="sourceContextIncluded"
+                                           {{ !empty($item->source_context_included) && $item->source_context_included ? 'checked' : '' }}
+                                           onchange="toggleSourceContext({{ $item->id }}, this.checked)">
+                                    <label class="form-check-label" for="sourceContextIncluded">
+                                        <strong>Incluir en reescritura IA</strong>
+                                    </label>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Investigación externa --}}
+                <div class="card border-0 shadow-sm mt-3">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center"
+                         data-bs-toggle="collapse" data-bs-target="#researchSection" role="button">
+                        <h6 class="mb-0">
+                            <i class="bi bi-search"></i> Investigación externa
+                            @php
+                                $researchResults = !empty($item->research_context) ? json_decode($item->research_context, true) : [];
+                                $researchIncluded = !empty($item->research_context_included) ? json_decode($item->research_context_included, true) : [];
+                            @endphp
+                            @if(!empty($researchResults))
+                                <span class="badge bg-success ms-1">{{ count($researchResults) }} resultados</span>
+                            @endif
+                            @if(!empty($researchIncluded))
+                                <span class="badge bg-primary ms-1">{{ count($researchIncluded) }} incluidos</span>
+                            @endif
+                        </h6>
+                        <i class="bi bi-chevron-down"></i>
+                    </div>
+                    <div id="researchSection" class="collapse {{ !empty($researchResults) ? 'show' : '' }}">
+                        <div class="card-body">
+                            <p class="text-muted small mb-2">
+                                Busca noticias relacionadas en múltiples servicios de noticias para enriquecer la reescritura.
+                            </p>
+
+                            <div id="researchResults">
+                                @if(!empty($researchResults))
+                                    <div class="list-group mb-3">
+                                        @foreach($researchResults as $rr)
+                                            <div class="list-group-item">
+                                                <div class="d-flex align-items-start">
+                                                    <div class="form-check me-2 mt-1">
+                                                        <input class="form-check-input research-check" type="checkbox"
+                                                               value="{{ $rr['id'] }}"
+                                                               {{ in_array($rr['id'], $researchIncluded) ? 'checked' : '' }}
+                                                               onchange="updateResearchInclusion({{ $item->id }})">
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <div class="d-flex justify-content-between">
+                                                            <strong class="small">{{ $rr['title'] }}</strong>
+                                                            @if(!empty($rr['url']))
+                                                                <a href="{{ $rr['url'] }}" target="_blank" class="btn btn-sm btn-link p-0">
+                                                                    <i class="bi bi-box-arrow-up-right"></i>
+                                                                </a>
+                                                            @endif
+                                                        </div>
+                                                        <small class="text-muted d-block">{{ $rr['source'] ?? '' }}{{ !empty($rr['published_at']) ? ' — ' . date('d/m/Y', strtotime($rr['published_at'])) : '' }}</small>
+                                                        @if(!empty($rr['excerpt']))
+                                                            <small class="text-muted d-block mt-1" style="max-height: 60px; overflow: hidden;">{{ $rr['excerpt'] }}</small>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <div class="text-center py-3 text-muted" id="researchEmpty">
+                                        <i class="bi bi-search fs-3"></i>
+                                        <p class="mt-2 mb-0">No se ha investigado todavía.</p>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <button type="button" class="btn btn-sm btn-outline-info" id="btnResearch" onclick="doResearch({{ $item->id }})">
+                                <i class="bi bi-search"></i>
+                                {{ !empty($researchResults) ? 'Re-investigar' : 'Investigar' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {{-- Rewritten Content (derecha) --}}
             <div class="col-md-6">
-                <div class="card border-0 shadow-sm h-100">
+                <div class="card border-0 shadow-sm">
                     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="bi bi-robot"></i> Texto generado</h5>
                         @if(!empty($item->rewritten_title))
@@ -383,4 +493,202 @@
     height: auto;
 }
 </style>
+
+<script>
+/**
+ * Extraer contexto de la fuente original
+ */
+function extractContext(itemId) {
+    const btn = document.getElementById('btnExtractContext');
+    const container = document.getElementById('sourceContextContent');
+    const origHtml = btn.innerHTML;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Extrayendo...';
+
+    fetch('{{ admin_url("/plugins/news-aggregator/items") }}/' + itemId + '/extract-context', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: '_token={{ csrf_token() }}'
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        if (data.success) {
+            container.innerHTML = '<div class="border rounded p-3 bg-light mb-3" style="max-height: 300px; overflow-y: auto; white-space: pre-wrap; font-size: 0.85rem;">'
+                + escapeHtml(data.context) + '</div>';
+            btn.innerHTML = '<i class="bi bi-download"></i> Re-extraer contexto';
+
+            // Mostrar el switch de inclusión si no existía
+            if (!document.getElementById('sourceContextIncluded')) {
+                const switchHtml = '<div class="form-check form-switch">'
+                    + '<input class="form-check-input" type="checkbox" id="sourceContextIncluded" onchange="toggleSourceContext(' + itemId + ', this.checked)">'
+                    + '<label class="form-check-label" for="sourceContextIncluded"><strong>Incluir en reescritura IA</strong></label>'
+                    + '</div>';
+                btn.parentElement.insertAdjacentHTML('beforeend', switchHtml);
+            }
+
+            if (data.cached) {
+                showToast('Contexto cargado desde caché', 'info');
+            } else {
+                showToast('Contexto extraído correctamente', 'success');
+            }
+        } else {
+            btn.innerHTML = origHtml;
+            showToast(data.error || 'Error al extraer contexto', 'danger');
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+        showToast('Error de conexión', 'danger');
+    });
+}
+
+/**
+ * Toggle inclusión de contexto de fuente
+ */
+function toggleSourceContext(itemId, included) {
+    fetch('{{ admin_url("/plugins/news-aggregator/items") }}/' + itemId + '/toggle-source-context', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: '_token={{ csrf_token() }}&included=' + (included ? 'true' : 'false')
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast(included ? 'Contexto incluido en reescritura IA' : 'Contexto excluido de reescritura IA', 'success');
+        } else {
+            showToast(data.error || 'Error', 'danger');
+        }
+    })
+    .catch(() => showToast('Error de conexión', 'danger'));
+}
+
+/**
+ * Investigar noticias relacionadas
+ */
+function doResearch(itemId) {
+    const btn = document.getElementById('btnResearch');
+    const container = document.getElementById('researchResults');
+    const origHtml = btn.innerHTML;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Investigando...';
+
+    fetch('{{ admin_url("/plugins/news-aggregator/items") }}/' + itemId + '/research', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: '_token={{ csrf_token() }}'
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        if (data.success && data.results && data.results.length > 0) {
+            let html = '<div class="list-group mb-3">';
+            data.results.forEach(function(rr) {
+                const pubDate = rr.published_at ? ' — ' + new Date(rr.published_at).toLocaleDateString('es-ES') : '';
+                html += '<div class="list-group-item">'
+                    + '<div class="d-flex align-items-start">'
+                    + '<div class="form-check me-2 mt-1">'
+                    + '<input class="form-check-input research-check" type="checkbox" value="' + escapeHtml(rr.id) + '" onchange="updateResearchInclusion(' + itemId + ')">'
+                    + '</div>'
+                    + '<div class="flex-grow-1">'
+                    + '<div class="d-flex justify-content-between">'
+                    + '<strong class="small">' + escapeHtml(rr.title) + '</strong>';
+                if (rr.url) {
+                    html += '<a href="' + escapeHtml(rr.url) + '" target="_blank" class="btn btn-sm btn-link p-0"><i class="bi bi-box-arrow-up-right"></i></a>';
+                }
+                html += '</div>'
+                    + '<small class="text-muted d-block">' + escapeHtml(rr.source || '') + pubDate + '</small>';
+                if (rr.excerpt) {
+                    html += '<small class="text-muted d-block mt-1" style="max-height: 60px; overflow: hidden;">' + escapeHtml(rr.excerpt) + '</small>';
+                }
+                html += '</div></div></div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+            btn.innerHTML = '<i class="bi bi-search"></i> Re-investigar';
+
+            const provMsg = data.cached ? 'Resultados cargados desde caché' : 'Encontrados ' + data.results.length + ' resultados vía ' + (data.provider || 'API');
+            showToast(provMsg, 'success');
+        } else {
+            btn.innerHTML = origHtml;
+            showToast(data.error || 'No se encontraron resultados', 'warning');
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+        showToast('Error de conexión', 'danger');
+    });
+}
+
+/**
+ * Actualizar IDs de resultados de investigación incluidos
+ */
+function updateResearchInclusion(itemId) {
+    const checks = document.querySelectorAll('.research-check:checked');
+    const ids = Array.from(checks).map(c => c.value);
+
+    fetch('{{ admin_url("/plugins/news-aggregator/items") }}/' + itemId + '/toggle-research-context', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: '_token={{ csrf_token() }}&included_ids=' + encodeURIComponent(JSON.stringify(ids))
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast(ids.length + ' fragmento(s) seleccionado(s) para incluir en IA', 'success');
+        }
+    })
+    .catch(() => {});
+}
+
+/**
+ * Escapar HTML
+ */
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+}
+
+/**
+ * Toast de notificaciones con SweetAlert2
+ */
+function showToast(message, type) {
+    const iconMap = { success: 'success', danger: 'error', warning: 'warning', info: 'info' };
+    const timerMap = { success: 3000, danger: 5000, warning: 4000, info: 3500 };
+    const icon = iconMap[type] || type;
+    const timer = timerMap[type] || 3000;
+
+    Swal.fire({
+        icon: icon,
+        title: message,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: timer,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+    });
+}
+</script>
 @endsection

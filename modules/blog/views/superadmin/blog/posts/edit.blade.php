@@ -6,15 +6,35 @@
 <div class="app-content">
   <div class="container-fluid">
 	    {{-- Navegación y botón añadir post --}}
+	    @php
+	        $backUrl = !empty($editingTenant)
+	            ? route('blog.posts.index') . '?scope=tenant:' . $editingTenant->id
+	            : route('blog.posts.index');
+	        $backLabel = !empty($editingTenant)
+	            ? ($editingTenant->domain ?? $editingTenant->name)
+	            : __('blog.posts');
+	        $createUrl = !empty($editingTenant)
+	            ? route('blog.posts.create') . '?tenant_id=' . $editingTenant->id
+	            : route('blog.posts.create');
+	    @endphp
 	    <div class="d-flex justify-content-between align-items-center mb-3">
 	      <div class="breadcrumb">
-	        <a href="{{ route('blog.posts.index') }}">Posts</a> <span class="mx-2">/</span> <span>{{ e($post->title ?? 'Editando...') }}</span>
+	        <a href="{{ route('blog.posts.index') }}">{{ __('blog.posts') }}</a>
+	        @if(!empty($editingTenant))
+	            <span class="mx-2">/</span>
+	            <a href="{{ $backUrl }}">{{ $backLabel }}</a>
+	        @endif
+	        <span class="mx-2">/</span>
+	        <span>{{ e($post->title ?? 'Editando...') }}</span>
 	      </div>
 	      <div class="d-flex align-items-center gap-2">
+	        <a href="{{ $backUrl }}" class="btn btn-sm btn-outline-secondary">
+	            <i class="fas fa-arrow-left me-1"></i> {{ $backLabel }}
+	        </a>
 	        <a href="{{ route('blog.posts.revisions', ['id' => $post->id]) }}" class="btn btn-sm btn-outline-secondary" title="{{ __('pages.view_revisions') }}">
 	          <i class="bi bi-clock-history me-1"></i> {{ __('pages.revisions') }}@if(($post->revision_count ?? 0) > 0) ({{ $post->revision_count }})@endif
 	        </a>
-	        <a href="{{ route('blog.posts.create') }}" class="btn btn-sm btn-primary">
+	        <a href="{{ $createUrl }}" class="btn btn-sm btn-primary">
 	          <i class="fas fa-plus me-1"></i> {{ __('blog.post.add_post') }}
 	        </a>
 	      </div>
@@ -60,9 +80,21 @@
       </script>
     @endif
 
+    {{-- Alerta de post de tenant --}}
+    @if(!empty($editingTenant))
+      <div class="alert alert-info d-flex align-items-center mb-3">
+        <i class="bi bi-globe me-2 fs-5"></i>
+        <div>
+          <strong>Editando post de:</strong> <a href="https://{{ $editingTenant->domain }}" target="_blank">{{ $editingTenant->domain }}</a>
+          <small class="text-muted d-block">Las categorías y etiquetas corresponden a este sitio.</small>
+        </div>
+      </div>
+    @endif
+
     <form method="POST" action="{{ route('blog.posts.update', ['id' => $post->id]) }}" id="postForm" enctype="multipart/form-data">
       @method('PUT')
       @csrf
+      <input type="hidden" id="post-tenant-id" value="{{ $post->tenant_id ?? '' }}">
 
       <div class="row">
         {{-- Columna izquierda (Principal) --}}
@@ -90,8 +122,17 @@
                     <div class="invalid-feedback">{{ $message }}</div>
                   @enderror
                 </div>
+                @php
+                  if (!empty($editingTenant)) {
+                      $slugDomain = 'https://' . $editingTenant->domain;
+                      $slugPrefix = $editingTenantPrefix ?? '';
+                      $slugUrl = $slugDomain . ($slugPrefix ? '/' . $slugPrefix : '') . '/' . $post->slug;
+                  } else {
+                      $slugUrl = config('app.url') . '/blog/' . $post->slug;
+                  }
+                @endphp
                 <small class="text-muted mt-1 d-inline-block">
-                  URL: <a href="{{ config('app.url') }}/blog/{{ $post->slug }}" target="_blank">{{ config('app.url') }}/blog/{{ $post->slug }}</a>
+                  URL: <a href="{{ $slugUrl }}" target="_blank">{{ $slugUrl }}</a>
                 </small>
                 <span id="slug-check-result" class="ms-3 fw-bold"></span>
               </div>
@@ -232,6 +273,11 @@
                   <button type="button" class="btn btn-outline-primary" id="select-featured-image-btn">
                     <i class="bi bi-image"></i> {{ __('blog.post.select_image') }}
                   </button>
+                  @if(function_exists('aiimage_is_active') && aiimage_is_active())
+                  <button type="button" class="btn btn-outline-success ai-image-trigger" data-target="featured_image" data-preview="featured-image-preview" title="Generar imagen con IA">
+                    <i class="bi bi-stars"></i>
+                  </button>
+                  @endif
                   @error('featured_image')
                     <div class="invalid-feedback">{{ $message }}</div>
                   @enderror
@@ -298,14 +344,25 @@
             </div>
           </div>
 
-          {{-- Card Categorías --}}
+          {{-- Card Categorías y Tags con IA --}}
           <div class="card mb-4">
-            <div class="card-header"><strong>{{ __('blog.post.categories') }}</strong></div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <strong>{{ __('blog.post.categories') }} & {{ __('blog.post.tags') }}</strong>
+              <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-secondary" id="btn-paste-taxonomy" title="Pegar categorías y tags manualmente">
+                  <i class="bi bi-clipboard-plus"></i> Pegar
+                </button>
+                <button type="button" class="btn btn-outline-primary" id="btn-ai-taxonomy" title="Sugerir categorías y tags con IA">
+                  <i class="bi bi-magic"></i> Auto IA
+                </button>
+              </div>
+            </div>
             <div class="card-body">
+              {{-- Categorías --}}
+              <label class="form-label fw-semibold">{{ __('blog.post.categories') }}</label>
               <div class="mb-3">
                 <select class="form-select @error('categories') is-invalid @enderror" name="categories[]" id="categories" multiple size="5">
                   @php
-                    // Usar IDs precargados por el controlador (evita depender de propiedades inexistentes)
                     $selectedCategoryIds = $postCategoryIds ?? [];
                     $selectedCategories = old('categories', $selectedCategoryIds);
                   @endphp
@@ -320,18 +377,15 @@
                 @enderror
                 <small class="text-muted">{{ __('blog.post.select_multiple') }}</small>
               </div>
-              <a href="{{ route('blog.categories.create') }}" class="btn btn-sm btn-outline-primary" target="_blank">+ {{ __('blog.category.new_category') }}</a>
-            </div>
-          </div>
+              <a href="{{ route('blog.categories.create') }}" class="btn btn-sm btn-outline-primary mb-3" target="_blank">+ {{ __('blog.category.new_category') }}</a>
 
-          {{-- Card Etiquetas --}}
-          <div class="card mb-4">
-            <div class="card-header"><strong>{{ __('blog.post.tags') }}</strong></div>
-            <div class="card-body">
+              <hr>
+
+              {{-- Tags --}}
+              <label class="form-label fw-semibold">{{ __('blog.post.tags') }}</label>
               <div class="mb-3">
                 <select class="form-select @error('tags') is-invalid @enderror" name="tags[]" id="tags" multiple size="5">
                   @php
-                    // Usar IDs precargados por el controlador (evita depender de propiedades inexistentes)
                     $selectedTagIds = $postTagIds ?? [];
                     $selectedTags = old('tags', $selectedTagIds);
                   @endphp
@@ -345,6 +399,9 @@
                 <small class="text-muted">{{ __('blog.post.select_multiple') }}</small>
               </div>
               <a href="{{ route('blog.tags.create') }}" class="btn btn-sm btn-outline-primary" target="_blank">+ {{ __('blog.tag.new_tag') }}</a>
+
+              {{-- AI results area --}}
+              <div id="ai-taxonomy-results" class="mt-3" style="display:none;"></div>
             </div>
           </div>
 
@@ -515,6 +572,9 @@
           });
         }
         // ================================
+
+        // --- AI Auto-Taxonomy ---
+        @include('Blog::partials._ai_taxonomy_script')
       });
 
       // Función para confirmar eliminación
@@ -557,4 +617,7 @@
 
 @include('Blog::partials._slug_scripts')
 
+@if(function_exists('aiimage_is_active') && aiimage_is_active())
+<script src="/assets/modules/aiimage/js/ai-image-generator.js"></script>
+@endif
 @endsection

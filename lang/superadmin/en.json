@@ -463,7 +463,10 @@
     "by": "by",
     "comments": "Comments",
     "no_comments": "No comments yet.",
-    "leave_comment": "Leave a Comment"
+    "leave_comment": "Leave a Comment",
+    "popular_tags": "Popular Tags",
+    "popular_categories": "Categories",
+    "views": "Views"
   },
   "users": {
     "title": "Users",

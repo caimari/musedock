@@ -83,7 +83,7 @@ class InputValidator
         if (is_string($value)) {
             if ($allowHtml) {
                 // Permitir HTML pero limpiar scripts y atributos peligrosos
-                $value = strip_tags($value, '<p><a><strong><em><ul><ol><li><br><h1><h2><h3><h4><h5><h6><img><blockquote><code><pre>');
+                $value = strip_tags($value, '<p><a><strong><em><ul><ol><li><br><h1><h2><h3><h4><h5><h6><img><blockquote><code><pre><iframe><video><source><embed><figure><figcaption><div><span><table><thead><tbody><tr><td><th><hr>');
             } else {
                 // Escapar todo el HTML
                 $value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');

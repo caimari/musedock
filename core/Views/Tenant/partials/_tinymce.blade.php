@@ -124,11 +124,11 @@ $aiWriterPluginPath = '/modules/aiwriter/js/tiny-ai-plugin.js';
 try {
     $tenantId = function_exists('tenant_id') ? tenant_id() : null;
     if ($tenantId !== null) {
-        $query = "SELECT m.active, tm.enabled FROM modules m LEFT JOIN tenant_modules tm ON tm.module_id = m.id AND tm.tenant_id = :tenant_id WHERE m.slug = 'aiwriter'";
+        $query = "SELECT m.active, tm.enabled FROM modules m LEFT JOIN tenant_modules tm ON tm.module_id = m.id AND tm.tenant_id = :tenant_id WHERE m.slug = 'ai-writer'";
         $module = \Screenart\Musedock\Database::query($query, ['tenant_id' => $tenantId])->fetch();
         $aiWriterActive = $module && $module['active'] && ($module['enabled'] ?? false);
     } else {
-        $query = "SELECT active, cms_enabled FROM modules WHERE slug = 'aiwriter'";
+        $query = "SELECT active, cms_enabled FROM modules WHERE slug = 'ai-writer'";
         $module = \Screenart\Musedock\Database::query($query)->fetch();
         $aiWriterActive = $module && $module['active'] && $module['cms_enabled'];
     }
@@ -276,6 +276,10 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
 
         entity_encoding: 'raw',
         convert_urls: false,
+
+        // Soporte para embeds de video (YouTube, Vimeo, etc.)
+        media_live_embeds: true,
+        extended_valid_elements: 'iframe[src|width|height|name|align|frameborder|scrolling|allowfullscreen|allow|style|class|loading|title|referrerpolicy],video[src|width|height|controls|autoplay|loop|muted|poster|preload|class|style],source[src|type],embed[src|type|width|height|class|style]',
         // Context menu nativo de TinyMCE: impedir nativo del navegador
         contextmenu_never_use_native: true,
 

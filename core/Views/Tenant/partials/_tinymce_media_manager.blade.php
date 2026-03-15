@@ -109,6 +109,9 @@ if (!document.getElementById('md-media-manager-tinymce')) {
                             <button type="button" class="md-button" id="md-browse-button-tinymce">Seleccionar archivos</button>
                             <input type="file" id="md-file-input-tinymce" multiple accept="image/*" style="display: none;">
                             <p class="md-small">JPG, PNG, GIF, WebP. Máx 10MB.</p>
+                            <label class="md-compress-label" style="display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; color: #666; cursor: pointer;">
+                                <input type="checkbox" id="md-compress-tinymce" checked> Comprimir imágenes (recomendado)
+                            </label>
                         </div>
                     </div>
                     <div class="md-upload-progress-tinymce" style="display: none;">
@@ -715,6 +718,10 @@ body .swal2-container.swal2-tinymce-top-layer {
             formData.append('_csrf', window.MediaManagerConfig.csrfToken);
             if (currentFolderId) formData.append('folder_id', currentFolderId);
             if (currentDisk) formData.append('disk', currentDisk);
+            const compressCheckbox = document.getElementById('md-compress-tinymce');
+            if (compressCheckbox && compressCheckbox.checked) {
+                formData.append('compress', '1');
+            }
 
             const xhr = new XMLHttpRequest();
             xhr.open('POST', window.MediaManagerConfig.uploadUrl, true);

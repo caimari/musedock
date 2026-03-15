@@ -333,6 +333,14 @@
     margin-bottom: 40px;
 }
 
+.ziph-page_content_body hr {
+    margin: 2rem 0 !important;
+    border: 0 !important;
+    border-top: 5px solid #bbb !important;
+    height: 0 !important;
+    opacity: 1 !important;
+}
+
 .ziph-page_content_body h1,
 .ziph-page_content_body h2,
 .ziph-page_content_body h3,

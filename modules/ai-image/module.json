@@ -1,0 +1,16 @@
+{
+    "name": "AI Image Generator",
+    "slug": "ai-image",
+    "description": "Generación de imágenes con IA para posts y páginas. Soporta OpenAI DALL-E, MiniMax, Picalias y FAL.",
+    "version": "1.0.0",
+    "author": "MuseDock",
+    "active": true,
+    "public": true,
+    "cms_enabled": true,
+    "tenant_enabled_default": true,
+    "autoload": {
+        "psr-4": {
+            "AIImage\\": "controllers/"
+        }
+    }
+}

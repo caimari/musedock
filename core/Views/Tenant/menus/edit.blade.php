@@ -20,7 +20,8 @@
                     </button>
                 </div>
 
-                <!-- Selector de idioma para el menú -->
+                <!-- Selector de idioma para el menú (solo si hay más de uno) -->
+                @if(count($languages) > 1)
                 <div class="input-group" style="max-width: 180px;">
                     <select id="menu-locale" class="form-select" disabled>
                         @foreach ($languages as $language)
@@ -33,6 +34,7 @@
                         <i class="bi bi-lock"></i>
                     </button>
                 </div>
+                @endif
             </div>
             <a href="{{ '/' . admin_path() . '/menus' }}" class="btn btn-secondary">
                 <i class="bi bi-arrow-left me-1"></i> Volver al listado

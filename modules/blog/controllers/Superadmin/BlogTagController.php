@@ -11,6 +11,7 @@ use Screenart\Musedock\Traits\RequiresPermission;
 class BlogTagController
 {
     use RequiresPermission;
+    use \Blog\Traits\CrossPublisherScope;
 
     private function updateAllTagCounts(): void
     {
@@ -58,6 +59,10 @@ class BlogTagController
     {
         $this->checkPermission('blog.view');
         $this->updateAllTagCounts();
+
+        // Resolver scope del cross-publisher
+        $scope = $this->resolveTenantScope();
+
         // Capturamos parámetros de búsqueda y paginación
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
@@ -65,10 +70,16 @@ class BlogTagController
         $perPage = isset($_GET['perPage']) ? intval($_GET['perPage']) : 10;
         $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 
-        // Consulta de las etiquetas
+        // Consulta de las etiquetas según el scope
         $query = BlogTag::query()
-            ->whereRaw('(tenant_id IS NULL OR tenant_id = 0)')
             ->orderBy('name', 'ASC');
+
+        if ($scope['mode'] === 'mine') {
+            $query->whereRaw('(tenant_id IS NULL OR tenant_id = 0)');
+        } else {
+            $placeholders = implode(',', array_fill(0, count($scope['tenantIds']), '?'));
+            $query->whereRaw("tenant_id IN ({$placeholders})", $scope['tenantIds']);
+        }
 
         // Aplicar búsqueda si existe
         if (!empty($search)) {
@@ -99,22 +110,44 @@ class BlogTagController
         // Procesamos los objetos BlogTag
         $processedTags = array_map(fn($row) => ($row instanceof BlogTag) ? $row : new BlogTag((array) $row), $tags);
 
+        // Mapa de tenants para mostrar dominio
+        $tenantMap = ($scope['mode'] !== 'mine') ? $this->buildTenantMap($scope['tenantIds']) : [];
+
         // Renderizamos la vista
-        return View::renderSuperadmin('blog.tags.index', [
+        return View::renderSuperadmin('blog.tags.index', array_merge([
             'title'      => 'Listado de etiquetas',
             'tags'       => $processedTags,
             'search'     => $search,
             'pagination' => $pagination,
-        ]);
+            'scope'      => $scope,
+            'tenantMap'  => $tenantMap,
+        ], $this->getCrossPublisherFilterData()));
     }
 
     public function create()
     {
         $this->checkPermission('blog.create');
+
+        // Detectar si se crea tag para un tenant específico
+        $targetTenantId = null;
+        $targetTenant = null;
+        if (!empty($_GET['tenant_id']) && is_cross_publisher_active()) {
+            $tenantId = (int) $_GET['tenant_id'];
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("SELECT id, name, domain FROM tenants WHERE id = ? AND group_id IS NOT NULL");
+            $stmt->execute([$tenantId]);
+            $targetTenant = $stmt->fetch(\PDO::FETCH_OBJ);
+            if ($targetTenant) {
+                $targetTenantId = $targetTenant->id;
+            }
+        }
+
         return View::renderSuperadmin('blog.tags.create', [
             'title' => 'Crear Etiqueta',
             'tag' => new BlogTag(),
             'isNew' => true,
+            'targetTenantId' => $targetTenantId,
+            'targetTenant' => $targetTenant,
         ]);
     }
 
@@ -124,8 +157,12 @@ class BlogTagController
         $data = $_POST;
         unset($data['_token'], $data['_csrf']);
 
-        // Eliminamos tenant_id del conjunto de datos inicial
-        unset($data['tenant_id']);
+        // Detectar si se crea tag para un tenant específico
+        $targetTenantId = null;
+        if (!empty($data['target_tenant_id']) && is_cross_publisher_active()) {
+            $targetTenantId = (int) $data['target_tenant_id'];
+        }
+        unset($data['target_tenant_id'], $data['tenant_id']);
 
         $data = self::processFormData($data);
 
@@ -149,11 +186,16 @@ class BlogTagController
             throw $e;
         }
 
-        // Actualizamos específicamente el tenant_id a NULL después de crear
+        // Establecer tenant_id correcto
         try {
             $pdo = Database::connect();
-            $stmt = $pdo->prepare("UPDATE blog_tags SET tenant_id = NULL WHERE id = ?");
-            $stmt->execute([$tag->id]);
+            if ($targetTenantId) {
+                $stmt = $pdo->prepare("UPDATE blog_tags SET tenant_id = ? WHERE id = ?");
+                $stmt->execute([$targetTenantId, $tag->id]);
+            } else {
+                $stmt = $pdo->prepare("UPDATE blog_tags SET tenant_id = NULL WHERE id = ?");
+                $stmt->execute([$tag->id]);
+            }
         } catch (\Exception $e) {
             error_log("ERROR AL ACTUALIZAR TENANT_ID EN STORE: " . $e->getMessage());
         }
@@ -176,6 +218,15 @@ class BlogTagController
             flash('error', __('blog.tag.error_not_found'));
             header('Location: /musedock/blog/tags');
             exit;
+        }
+
+        // Detectar si el tag pertenece a un tenant
+        $editingTenant = null;
+        if ($tag->tenant_id && is_cross_publisher_active()) {
+            $pdo2 = Database::connect();
+            $stmt2 = $pdo2->prepare("SELECT id, name, domain FROM tenants WHERE id = ?");
+            $stmt2->execute([$tag->tenant_id]);
+            $editingTenant = $stmt2->fetch(\PDO::FETCH_OBJ);
         }
 
         // Obtener y formatear fechas
@@ -210,6 +261,7 @@ class BlogTagController
         return View::renderSuperadmin('blog.tags.edit', [
             'title' => 'Editar etiqueta: ' . e($tag->name),
             'tag'   => $tag,
+            'editingTenant' => $editingTenant,
         ]);
     }
 
@@ -241,7 +293,8 @@ class BlogTagController
         }
         unset($_SESSION['_old_input']);
 
-        // Procesar datos
+        // Preservar tenant_id original
+        $originalTenantId = $tag->tenant_id;
         $data = $validationData;
         unset($data['tenant_id']);
 
@@ -252,9 +305,14 @@ class BlogTagController
             // Actualizar datos principales
             $tag->update($data);
 
-            // Actualizar tenant_id
-            $updateStmt = $pdo->prepare("UPDATE blog_tags SET tenant_id = NULL WHERE id = ?");
-            $updateStmt->execute([$id]);
+            // Preservar tenant_id original
+            if ($originalTenantId) {
+                $updateStmt = $pdo->prepare("UPDATE blog_tags SET tenant_id = ? WHERE id = ?");
+                $updateStmt->execute([$originalTenantId, $id]);
+            } else {
+                $updateStmt = $pdo->prepare("UPDATE blog_tags SET tenant_id = NULL WHERE id = ?");
+                $updateStmt->execute([$id]);
+            }
 
             $pdo->commit();
 

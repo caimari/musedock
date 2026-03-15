@@ -14,7 +14,7 @@
         @endphp
         @if($slug && $name)
         <li class="mb-2">
-          <a href="/blog/category/{{ $slug }}">{{ $name }}</a>
+          <a href="{{ blog_url($slug, 'category') }}">{{ $name }}</a>
         </li>
         @endif
       @endforeach

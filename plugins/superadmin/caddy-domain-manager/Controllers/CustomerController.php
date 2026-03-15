@@ -1065,4 +1065,358 @@ class CustomerController
             $this->jsonResponse(['success' => false, 'error' => 'Error al eliminar la cuenta'], 500);
         }
     }
+
+    // ============================================
+    // DOMAIN ALIAS MANAGEMENT
+    // ============================================
+
+    /**
+     * Lista los aliases de un tenant del customer (AJAX)
+     *
+     * GET /customer/tenant/{id}/aliases
+     */
+    public function getAliases(int $tenantId): void
+    {
+        SessionSecurity::startSession();
+
+        if (!isset($_SESSION['customer'])) {
+            $this->jsonResponse(['success' => false, 'error' => 'No autenticado'], 401);
+            return;
+        }
+
+        $customerId = $_SESSION['customer']['id'];
+        $pdo = Database::connect();
+
+        // Verificar que el tenant pertenece al customer
+        $stmt = $pdo->prepare("SELECT * FROM tenants WHERE id = ? AND customer_id = ?");
+        $stmt->execute([$tenantId, $customerId]);
+        $tenant = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$tenant) {
+            $this->jsonResponse(['success' => false, 'error' => 'Sitio no encontrado'], 404);
+            return;
+        }
+
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM domain_aliases WHERE tenant_id = ? ORDER BY created_at");
+            $stmt->execute([$tenantId]);
+            $aliases = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $this->jsonResponse(['success' => true, 'aliases' => $aliases]);
+        } catch (\Exception $e) {
+            $this->jsonResponse(['success' => true, 'aliases' => []]);
+        }
+    }
+
+    /**
+     * Añade un alias de dominio a un tenant del customer (AJAX)
+     *
+     * POST /customer/tenant/{id}/aliases/add
+     */
+    public function addAlias(int $tenantId): void
+    {
+        SessionSecurity::startSession();
+
+        if (!isset($_SESSION['customer'])) {
+            $this->jsonResponse(['success' => false, 'error' => 'No autenticado'], 401);
+            return;
+        }
+
+        // Validar CSRF
+        $csrfToken = $_POST['_csrf_token'] ?? '';
+        if (!verify_csrf_token($csrfToken)) {
+            $this->jsonResponse(['success' => false, 'error' => 'Token de seguridad inválido'], 403);
+            return;
+        }
+
+        $customerId = $_SESSION['customer']['id'];
+        $pdo = Database::connect();
+
+        // Verificar que el tenant pertenece al customer
+        $stmt = $pdo->prepare("SELECT * FROM tenants WHERE id = ? AND customer_id = ?");
+        $stmt->execute([$tenantId, $customerId]);
+        $tenant = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$tenant) {
+            $this->jsonResponse(['success' => false, 'error' => 'Sitio no encontrado'], 404);
+            return;
+        }
+
+        // Verificar que el tenant está activo
+        if ($tenant['status'] !== 'active') {
+            $this->jsonResponse(['success' => false, 'error' => 'El sitio debe estar activo para añadir aliases'], 400);
+            return;
+        }
+
+        // Limitar número de aliases por tenant (seguridad)
+        $maxAliases = 5;
+        try {
+            $countStmt = $pdo->prepare("SELECT COUNT(*) FROM domain_aliases WHERE tenant_id = ?");
+            $countStmt->execute([$tenantId]);
+            if ((int) $countStmt->fetchColumn() >= $maxAliases) {
+                $this->jsonResponse(['success' => false, 'error' => "Máximo {$maxAliases} aliases por sitio."], 400);
+                return;
+            }
+        } catch (\Exception $e) {
+            // Table may not exist
+        }
+
+        $aliasDomain = trim(strtolower($_POST['domain'] ?? ''));
+        $includeWww = !empty($_POST['include_www']);
+        $skipCloudflare = !empty($_POST['skip_cloudflare']);
+
+        if (empty($aliasDomain)) {
+            $this->jsonResponse(['success' => false, 'error' => 'Dominio requerido'], 400);
+            return;
+        }
+
+        // Quitar www si lo tiene
+        $aliasDomain = preg_replace('/^www\./', '', $aliasDomain);
+
+        // Validar formato
+        if (!preg_match('/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/', $aliasDomain)) {
+            $this->jsonResponse(['success' => false, 'error' => 'Formato de dominio inválido'], 400);
+            return;
+        }
+
+        // Verificar que no sea el mismo dominio principal
+        if ($aliasDomain === $tenant['domain']) {
+            $this->jsonResponse(['success' => false, 'error' => 'El alias no puede ser igual al dominio principal'], 400);
+            return;
+        }
+
+        // Verificar unicidad en tenants
+        $stmt = $pdo->prepare("SELECT id FROM tenants WHERE domain = ? OR domain = ?");
+        $stmt->execute([$aliasDomain, 'www.' . $aliasDomain]);
+        if ($stmt->fetch()) {
+            $this->jsonResponse(['success' => false, 'error' => 'Este dominio ya está registrado en el sistema'], 400);
+            return;
+        }
+
+        // Verificar unicidad en aliases (incluir variante www)
+        $stmt = $pdo->prepare("SELECT id FROM domain_aliases WHERE domain = ? OR domain = ?");
+        $stmt->execute([$aliasDomain, 'www.' . $aliasDomain]);
+        if ($stmt->fetch()) {
+            $this->jsonResponse(['success' => false, 'error' => 'Este dominio ya está registrado como alias'], 400);
+            return;
+        }
+
+        // Verificar unicidad en domain_orders (pedidos pendientes/activos)
+        try {
+            $stmt = $pdo->prepare("SELECT id FROM domain_orders WHERE (domain = ? OR domain = ?) AND status NOT IN ('cancelled','failed')");
+            $stmt->execute([$aliasDomain, 'www.' . $aliasDomain]);
+            if ($stmt->fetch()) {
+                $this->jsonResponse(['success' => false, 'error' => 'Este dominio tiene un pedido en proceso'], 400);
+                return;
+            }
+        } catch (\Exception $e) {
+            // domain_orders table may not exist
+        }
+
+        // Determinar si es subdominio de la plataforma
+        $baseDomain = \Screenart\Musedock\Env::get('TENANT_BASE_DOMAIN', 'musedock.com');
+        $isSubdomain = str_ends_with($aliasDomain, '.' . $baseDomain);
+
+        // Clientes no pueden crear subdominios de musedock.com como alias
+        if ($isSubdomain) {
+            $this->jsonResponse(['success' => false, 'error' => 'No puedes usar subdominios de ' . $baseDomain . ' como alias. Solicita un subdominio FREE en su lugar.'], 400);
+            return;
+        }
+
+        try {
+            $pdo->beginTransaction();
+
+            // Insertar alias
+            $stmt = $pdo->prepare("
+                INSERT INTO domain_aliases (tenant_id, domain, include_www, is_subdomain, status, created_at)
+                VALUES (?, ?, ?, 0, 'pending', NOW())
+            ");
+            $stmt->execute([$tenantId, $aliasDomain, $includeWww ? 1 : 0]);
+            $aliasId = $pdo->lastInsertId();
+
+            // Configurar Cloudflare (zona nueva) si no se omite
+            $cloudflareInfo = [];
+            $nameservers = null;
+            if (!$skipCloudflare) {
+                try {
+                    $cloudflareZoneService = new \CaddyDomainManager\Services\CloudflareZoneService();
+                    $zoneResult = $cloudflareZoneService->addFullZone($aliasDomain);
+                    $zoneId = $zoneResult['zone_id'];
+
+                    $cloudflareZoneService->createProxiedCNAME($zoneId, '@', 'mortadelo.musedock.com', true);
+                    if ($includeWww) {
+                        $cloudflareZoneService->createProxiedCNAME($zoneId, 'www', 'mortadelo.musedock.com', true);
+                    }
+
+                    $nameservers = $zoneResult['nameservers'] ?? [];
+
+                    $stmt = $pdo->prepare("
+                        UPDATE domain_aliases
+                        SET cloudflare_zone_id = ?, cloudflare_nameservers = ?
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([$zoneId, json_encode($nameservers), $aliasId]);
+
+                    Logger::info("[CustomerController] Cloudflare zone created for alias {$aliasDomain}");
+                } catch (\Exception $e) {
+                    Logger::error("[CustomerController] Cloudflare error for alias {$aliasDomain}: " . $e->getMessage());
+                    // Continuar sin Cloudflare
+                }
+            }
+
+            // Reconstruir ruta Caddy con TODOS los aliases
+            try {
+                $caddyService = new \CaddyDomainManager\Services\CaddyService();
+
+                $aliasStmt = $pdo->prepare("SELECT domain, include_www FROM domain_aliases WHERE tenant_id = ? AND status IN ('pending','active')");
+                $aliasStmt->execute([$tenantId]);
+                $allAliases = $aliasStmt->fetchAll(\PDO::FETCH_OBJ);
+
+                $caddyResult = $caddyService->upsertDomainWithAliases(
+                    $tenant['domain'],
+                    (bool) ($tenant['include_www'] ?? true),
+                    $allAliases
+                );
+
+                if ($caddyResult['success']) {
+                    $stmt = $pdo->prepare("UPDATE domain_aliases SET caddy_configured = 1, status = 'active' WHERE id = ?");
+                    $stmt->execute([$aliasId]);
+                } else {
+                    $stmt = $pdo->prepare("UPDATE domain_aliases SET error_log = ?, status = 'error' WHERE id = ?");
+                    $stmt->execute([$caddyResult['error'] ?? 'Caddy error', $aliasId]);
+                }
+            } catch (\Exception $e) {
+                Logger::error("[CustomerController] Caddy error for alias {$aliasDomain}: " . $e->getMessage());
+                $stmt = $pdo->prepare("UPDATE domain_aliases SET error_log = ?, status = 'error' WHERE id = ?");
+                $stmt->execute([$e->getMessage(), $aliasId]);
+            }
+
+            $pdo->commit();
+
+            Logger::info("[CustomerController] Alias added: {$aliasDomain} → {$tenant['domain']} by customer {$customerId}");
+
+            $responseData = [
+                'success' => true,
+                'message' => "Alias {$aliasDomain} añadido correctamente.",
+                'alias_id' => $aliasId,
+            ];
+
+            if ($skipCloudflare) {
+                $responseData['dns_info'] = 'Cloudflare omitido. Asegúrate de que el dominio apunte a este servidor.';
+            } elseif (!empty($nameservers)) {
+                $responseData['nameservers'] = $nameservers;
+                $responseData['dns_info'] = 'Zona creada en Cloudflare. Configura estos nameservers en tu registrador.';
+            }
+
+            $this->jsonResponse($responseData);
+
+        } catch (\Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            Logger::error("[CustomerController] Error adding alias: " . $e->getMessage());
+            $this->jsonResponse(['success' => false, 'error' => 'Error al añadir alias: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Elimina un alias de dominio de un tenant del customer (AJAX)
+     *
+     * POST /customer/tenant/{id}/aliases/remove
+     */
+    public function removeAlias(int $tenantId): void
+    {
+        SessionSecurity::startSession();
+
+        if (!isset($_SESSION['customer'])) {
+            $this->jsonResponse(['success' => false, 'error' => 'No autenticado'], 401);
+            return;
+        }
+
+        // Validar CSRF
+        $csrfToken = $_POST['_csrf_token'] ?? '';
+        if (!verify_csrf_token($csrfToken)) {
+            $this->jsonResponse(['success' => false, 'error' => 'Token de seguridad inválido'], 403);
+            return;
+        }
+
+        $customerId = $_SESSION['customer']['id'];
+        $aliasId = (int) ($_POST['alias_id'] ?? 0);
+
+        if (!$aliasId) {
+            $this->jsonResponse(['success' => false, 'error' => 'ID de alias requerido'], 400);
+            return;
+        }
+
+        $pdo = Database::connect();
+
+        // Verificar que el tenant pertenece al customer
+        $stmt = $pdo->prepare("SELECT * FROM tenants WHERE id = ? AND customer_id = ?");
+        $stmt->execute([$tenantId, $customerId]);
+        $tenant = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$tenant) {
+            $this->jsonResponse(['success' => false, 'error' => 'Sitio no encontrado'], 404);
+            return;
+        }
+
+        // Verificar que el alias pertenece a este tenant
+        $stmt = $pdo->prepare("SELECT * FROM domain_aliases WHERE id = ? AND tenant_id = ?");
+        $stmt->execute([$aliasId, $tenantId]);
+        $alias = $stmt->fetch(\PDO::FETCH_OBJ);
+
+        if (!$alias) {
+            $this->jsonResponse(['success' => false, 'error' => 'Alias no encontrado'], 404);
+            return;
+        }
+
+        try {
+            // 1. Limpiar Cloudflare
+            if ($alias->cloudflare_zone_id) {
+                try {
+                    $cloudflareZoneService = new \CaddyDomainManager\Services\CloudflareZoneService();
+                    $cloudflareZoneService->deleteZone($alias->cloudflare_zone_id);
+                    Logger::info("[CustomerController] Cloudflare zone deleted for alias {$alias->domain}");
+                } catch (\Exception $e) {
+                    Logger::warning("[CustomerController] Warning deleting Cloudflare zone for alias {$alias->domain}: " . $e->getMessage());
+                }
+            } elseif ($alias->cloudflare_record_id) {
+                try {
+                    $cloudflareService = new \CaddyDomainManager\Services\CloudflareService();
+                    $cloudflareService->deleteRecord($alias->cloudflare_record_id);
+                } catch (\Exception $e) {
+                    Logger::warning("[CustomerController] Warning deleting Cloudflare record for alias {$alias->domain}: " . $e->getMessage());
+                }
+            }
+
+            // 2. Eliminar alias de DB
+            $stmt = $pdo->prepare("DELETE FROM domain_aliases WHERE id = ?");
+            $stmt->execute([$aliasId]);
+
+            // 3. Reconstruir ruta Caddy sin el alias eliminado
+            try {
+                $caddyService = new \CaddyDomainManager\Services\CaddyService();
+
+                $remainingStmt = $pdo->prepare("SELECT domain, include_www FROM domain_aliases WHERE tenant_id = ? AND status IN ('pending','active')");
+                $remainingStmt->execute([$tenantId]);
+                $remainingAliases = $remainingStmt->fetchAll(\PDO::FETCH_OBJ);
+
+                $caddyService->upsertDomainWithAliases(
+                    $tenant['domain'],
+                    (bool) ($tenant['include_www'] ?? true),
+                    $remainingAliases
+                );
+            } catch (\Exception $e) {
+                Logger::warning("[CustomerController] Caddy rebuild warning after alias removal: " . $e->getMessage());
+            }
+
+            Logger::info("[CustomerController] Alias removed: {$alias->domain} from {$tenant['domain']} by customer {$customerId}");
+
+            $this->jsonResponse(['success' => true, 'message' => "Alias {$alias->domain} eliminado correctamente."]);
+
+        } catch (\Exception $e) {
+            Logger::error("[CustomerController] Error removing alias: " . $e->getMessage());
+            $this->jsonResponse(['success' => false, 'error' => 'Error al eliminar alias'], 500);
+        }
+    }
 }

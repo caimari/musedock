@@ -184,6 +184,34 @@
 	          display: inline-block;
 	      }
 
+	      /* Breadcrumb Bootstrap (no incluido en AdminKit CSS) */
+	      .breadcrumb {
+	          display: flex;
+	          flex-wrap: wrap;
+	          padding: 0;
+	          margin-bottom: 0;
+	          list-style: none;
+	          font-size: 0.85rem;
+	      }
+	      .breadcrumb-item + .breadcrumb-item::before {
+	          display: inline-block;
+	          padding-right: 0.5rem;
+	          padding-left: 0.5rem;
+	          color: #6c757d;
+	          content: "/";
+	      }
+	      .breadcrumb-item.active {
+	          color: #6c757d;
+	      }
+	      .breadcrumb-item a {
+	          color: #3b7ddd;
+	          text-decoration: none;
+	      }
+	      .breadcrumb-item a:hover {
+	          color: #2f64b1;
+	          text-decoration: underline;
+	      }
+
 	      /* Evitar que iconos queden ocultos por reglas de `opacity/visibility` */
 	      .btn .bi,
 	      .btn i[class*="bi-"],

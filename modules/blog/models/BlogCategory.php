@@ -88,7 +88,8 @@ class BlogCategory extends Model
     public function getPublicUrl(): string
     {
         $host = $_SERVER['HTTP_HOST'] ?? env('APP_URL', 'localhost');
-        return "https://{$host}/blog/category/{$this->slug}";
+        $path = function_exists('blog_url') ? blog_url($this->slug, 'category') : "/blog/category/{$this->slug}";
+        return "https://{$host}{$path}";
     }
 
     /**

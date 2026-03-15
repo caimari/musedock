@@ -34,7 +34,7 @@
     @if(isset($post) && !empty($translation->featured_image))
         @php
             // Si la URL ya empieza con /media/ o es absoluta (http), usarla directamente
-            $ogImageUrl = (str_starts_with($translation->featured_image, '/media/') || str_starts_with($translation->featured_image, 'http'))
+            $ogImageUrl = (str_starts_with($translation->featured_image, '/') || str_starts_with($translation->featured_image, 'http'))
                 ? $translation->featured_image
                 : asset($translation->featured_image);
         @endphp
@@ -74,7 +74,7 @@
                 $sliderPath = $defaultHeroImages[array_rand($defaultHeroImages)];
             }
 
-            $sliderUrl = (str_starts_with($sliderPath, '/media/') || str_starts_with($sliderPath, 'http')) ? $sliderPath : asset($sliderPath);
+            $sliderUrl = (str_starts_with($sliderPath, '/') || str_starts_with($sliderPath, 'http')) ? $sliderPath : asset($sliderPath);
         @endphp
         <div class="slider-area">
             <div class="single-slider slider-height2 d-flex align-items-center" data-background="{{ $sliderUrl }}">
@@ -126,7 +126,7 @@
             $heroPath = $defaultHeroImages[array_rand($defaultHeroImages)];
         }
 
-        $heroUrl = (str_starts_with($heroPath, '/media/') || str_starts_with($heroPath, 'http')) ? $heroPath : asset($heroPath);
+        $heroUrl = (str_starts_with($heroPath, '/') || str_starts_with($heroPath, 'http')) ? $heroPath : asset($heroPath);
         $heroTitle = $post->hero_title ?: ($translation->title ?? $post->title);
     @endphp
     <div class="slider-area">
@@ -166,7 +166,7 @@
                     <div class="featured-image mb-4">
                         @php
                             // Si la URL ya empieza con /media/ o es absoluta (http), usarla directamente
-                            $imageUrl = (str_starts_with($translation->featured_image, '/media/') || str_starts_with($translation->featured_image, 'http'))
+                            $imageUrl = (str_starts_with($translation->featured_image, '/') || str_starts_with($translation->featured_image, 'http'))
                                 ? $translation->featured_image
                                 : asset($translation->featured_image);
                         @endphp

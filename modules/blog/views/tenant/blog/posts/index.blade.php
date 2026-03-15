@@ -161,6 +161,11 @@
                 </th>
                 <th>{{ __('blog.post.language') }}</th>
                 <th>
+                  <a href="{{ $sortUrl('view_count') }}" class="sortable-link {{ $isActiveSort('view_count') }}">
+                    {{ __('blog.views') }} {!! $sortIcon('view_count') !!}
+                  </a>
+                </th>
+                <th>
                   <a href="{{ $sortUrl('published_at') }}" class="sortable-link {{ $isActiveSort('published_at') }}">
                     {{ __('blog.post.published_at') }} {!! $sortIcon('published_at') !!}
                   </a>
@@ -207,7 +212,7 @@
                     <a href="{{ admin_url('blog/posts/' . $post->id . '/edit') }}">{{ __('common.edit') }}</a>
                     @if ($post->status === 'published')
                        |
-                      <a href="/blog/{{ $post->slug }}" target="_blank" rel="noopener noreferrer">{{ __('blog.post.view_post') }}</a>
+                      <a href="{{ blog_url($post->slug) }}" target="_blank" rel="noopener noreferrer">{{ __('blog.post.view_post') }}</a>
                     @endif
                      |
                     <a href="#" class="delete-post-link" data-post-id="{{ $post->id }}" data-post-title="{{ htmlspecialchars($post->title, ENT_QUOTES, 'UTF-8') }}" style="color: #dc3545; text-decoration: none;">{{ __('common.delete') }}</a>
@@ -231,6 +236,9 @@
                   @endif
                 </td>
                 <td>{{ strtoupper($baseLang) }}</td>
+                <td class="text-center">
+                  <span class="badge bg-light text-dark"><i class="bi bi-eye"></i> {{ number_format($post->view_count ?? 0) }}</span>
+                </td>
                 <td data-date="{{ $post->published_at ? $post->published_at->format('Y-m-d H:i:s') : ($post->created_at ? $post->created_at->format('Y-m-d H:i:s') : '') }}">
                   {{ $post->published_at ? $post->published_at->format($dateTimeFormat) : ($post->created_at ? $post->created_at->format($dateTimeFormat) : '—') }}
                 </td>

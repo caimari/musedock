@@ -443,6 +443,9 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
         $theme = $settings['theme'] ?? 'gallery-light';
         $navigation = !empty($settings['navigation']);
         $pagination = !empty($settings['pagination']);
+        $autoplay = !empty($settings['autoplay']);
+        $autoplayDelay = intval($settings['autoplay_delay'] ?? 3000);
+        $loop = !empty($settings['loop']);
         $arrowStyleClass = !empty($settings['arrows_style']) ? $settings['arrows_style'] : '';
         $arrowColor = $settings['arrows_color'] ?? '#ffffff';
         $arrowBgColor = $settings['arrows_bg_color'] ?? 'rgba(255,255,255,0.9)';
@@ -559,6 +562,8 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
 
             new Swiper(".slider-' . $sliderId . '-main", {
                 spaceBetween: 10,
+                loop: ' . ($loop ? 'true' : 'false') . ',
+                autoplay: ' . ($autoplay ? '{ delay: ' . $autoplayDelay . ', disableOnInteraction: false }' : 'false') . ',
                 ' . ($pagination ? 'pagination: { el: ".slider-' . $sliderId . '-main .swiper-pagination", clickable: true },' : '') . '
                 ' . ($navigation ? 'navigation: { nextEl: ".slider-' . $sliderId . '-main .swiper-button-next", prevEl: ".slider-' . $sliderId . '-main .swiper-button-prev" },' : '') . '
                 thumbs: { swiper: thumbs },

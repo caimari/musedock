@@ -17,6 +17,7 @@ use Screenart\Musedock\Helpers\FileUploadValidator;
 
 class BlogPostController
 {
+    use \Blog\Traits\CrossPublisherScope;
     /**
      * Verificar si el usuario actual tiene un permiso específico
      * Si no lo tiene, redirige con mensaje de error
@@ -40,21 +41,31 @@ class BlogPostController
         $perPage = isset($_GET['perPage']) ? intval($_GET['perPage']) : 10;
         $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 
-        // Capturar parámetros de ordenamiento (por defecto: título ASC como WordPress)
-        $orderBy = isset($_GET['orderby']) ? $_GET['orderby'] : 'title';
-        $order = isset($_GET['order']) && strtoupper($_GET['order']) === 'DESC' ? 'DESC' : 'ASC';
+        // Capturar parámetros de ordenamiento (por defecto: fecha de publicación DESC)
+        $orderBy = isset($_GET['orderby']) ? $_GET['orderby'] : 'published_at';
+        $order = isset($_GET['order']) ? (strtoupper($_GET['order']) === 'ASC' ? 'ASC' : 'DESC') : 'DESC';
 
         // Validar columnas permitidas para ordenamiento
-        $allowedColumns = ['title', 'status', 'published_at', 'created_at', 'updated_at'];
+        $allowedColumns = ['title', 'status', 'published_at', 'created_at', 'updated_at', 'view_count'];
         if (!in_array($orderBy, $allowedColumns)) {
             $orderBy = 'title';
         }
 
+        // Resolver scope: mine, group:{id}, tenant:{id}
+        $scope = $this->resolveTenantScope();
+
         // Consulta de los posts
-        $query = BlogPost::query()
-            ->whereNull('tenant_id') // Posts del superadmin no tienen tenant
-            ->whereRaw("(status != ? OR status IS NULL)", ['trash'])
-            ->orderBy($orderBy, $order);
+        if ($scope['mode'] === 'mine') {
+            $query = BlogPost::query()
+                ->whereNull('tenant_id')
+                ->whereRaw("(status != ? OR status IS NULL)", ['trash'])
+                ->orderBy($orderBy, $order);
+        } else {
+            $query = BlogPost::query()
+                ->whereIn('tenant_id', $scope['tenantIds'])
+                ->whereRaw("(status != ? OR status IS NULL)", ['trash'])
+                ->orderBy($orderBy, $order);
+        }
 
         // Aplicar búsqueda si existe
         if (!empty($search)) {
@@ -130,8 +141,11 @@ class BlogPostController
             }
         }
 
+        // Mapa de tenants para mostrar dominio en la columna "Sitio"
+        $tenantMap = ($scope['mode'] !== 'mine') ? $this->buildTenantMap($scope['tenantIds']) : [];
+
         // Renderizamos la vista
-        return View::renderSuperadmin('blog.posts.index', [
+        return View::renderSuperadmin('blog.posts.index', array_merge([
             'title'       => 'Listado de posts del blog',
             'posts'       => $processedPosts,
             'authors'     => $authors,
@@ -139,17 +153,39 @@ class BlogPostController
             'pagination'  => $pagination,
             'orderBy'     => $orderBy,
             'order'       => $order,
-        ]);
+            'scope'       => $scope,
+            'tenantMap'   => $tenantMap,
+        ], $this->getCrossPublisherFilterData()));
     }
 
     public function create()
     {
         $this->checkPermission('blog.create');
-        // Obtener todas las categorías disponibles
-        $categories = BlogCategory::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')->orderBy('name', 'ASC')->get();
 
-        // Obtener todas las etiquetas disponibles
-        $tags = BlogTag::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')->orderBy('name', 'ASC')->get();
+        // Detectar si se crea post para un tenant específico
+        $targetTenantId = null;
+        $targetTenant = null;
+        $targetTenantPrefix = null;
+        if (!empty($_GET['tenant_id']) && is_cross_publisher_active()) {
+            $tenantId = (int) $_GET['tenant_id'];
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("SELECT id, name, domain FROM tenants WHERE id = ? AND group_id IS NOT NULL");
+            $stmt->execute([$tenantId]);
+            $targetTenant = $stmt->fetch(\PDO::FETCH_OBJ);
+            if ($targetTenant) {
+                $targetTenantId = $targetTenant->id;
+                $targetTenantPrefix = $this->getTenantBlogPrefixForScope($targetTenantId);
+            }
+        }
+
+        // Cargar categorías/tags del tenant o globales
+        if ($targetTenantId) {
+            $categories = BlogCategory::where('tenant_id', $targetTenantId)->orderBy('name', 'ASC')->get();
+            $tags = BlogTag::where('tenant_id', $targetTenantId)->orderBy('name', 'ASC')->get();
+        } else {
+            $categories = BlogCategory::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')->orderBy('name', 'ASC')->get();
+            $tags = BlogTag::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')->orderBy('name', 'ASC')->get();
+        }
 
         // Obtener plantillas disponibles
         $availableTemplates = get_blog_templates();
@@ -164,6 +200,9 @@ class BlogPostController
             'baseUrl' => $_SERVER['HTTP_HOST'],
             'availableTemplates' => $availableTemplates,
             'currentTemplate' => $currentTemplate,
+            'targetTenantId' => $targetTenantId,
+            'targetTenant' => $targetTenant,
+            'targetTenantPrefix' => $targetTenantPrefix,
         ]);
     }
 
@@ -173,8 +212,12 @@ class BlogPostController
         $data = $_POST;
         unset($data['_token'], $data['_csrf']);
 
-        // Eliminamos tenant_id del conjunto de datos inicial
-        unset($data['tenant_id']);
+        // Detectar si se crea post para un tenant específico
+        $targetTenantId = null;
+        if (!empty($data['target_tenant_id']) && is_cross_publisher_active()) {
+            $targetTenantId = (int) $data['target_tenant_id'];
+        }
+        unset($data['target_tenant_id'], $data['tenant_id']);
 
         // Seteamos otros valores automáticos
         $data['user_id'] = $_SESSION['super_admin']['id'] ?? null;
@@ -231,6 +274,13 @@ class BlogPostController
         $selectedTags = $data['tags'] ?? [];
         unset($data['categories'], $data['tags']);
 
+        // Sanitize URL image fields: reject non-URL values (e.g. email from Chrome autocomplete)
+        foreach (['seo_image', 'twitter_image'] as $imgField) {
+            if (!empty($data[$imgField]) && !preg_match('#^(https?://|/)#i', $data[$imgField])) {
+                $data[$imgField] = null;
+            }
+        }
+
         $data = self::processFormData($data);
 
         $errors = BlogPostRequest::validate($data);
@@ -244,29 +294,37 @@ class BlogPostController
         // Creamos el post con los datos normales
         $post = BlogPost::create($data);
 
-        // Actualizamos específicamente el tenant_id a NULL después de crear
+        // Establecer tenant_id correcto
         try {
             $pdo = Database::connect();
-            $stmt = $pdo->prepare("UPDATE blog_posts SET tenant_id = NULL WHERE id = ?");
-            $stmt->execute([$post->id]);
+            if ($targetTenantId) {
+                $stmt = $pdo->prepare("UPDATE blog_posts SET tenant_id = ? WHERE id = ?");
+                $stmt->execute([$targetTenantId, $post->id]);
+            } else {
+                $stmt = $pdo->prepare("UPDATE blog_posts SET tenant_id = NULL WHERE id = ?");
+                $stmt->execute([$post->id]);
+            }
         } catch (\Exception $e) {
             error_log("ERROR AL ACTUALIZAR TENANT_ID EN STORE: " . $e->getMessage());
         }
 
-        // Usamos SQL directo para crear el slug con tenant_id NULL
+        // Crear slug con el tenant_id y prefijo correctos
         try {
-            // Primero eliminamos cualquier slug existente por si acaso
             $pdo = Database::connect();
             $deleteStmt = $pdo->prepare("DELETE FROM slugs WHERE module = 'blog' AND reference_id = ?");
             $deleteStmt->execute([$post->id]);
 
-            // Creamos el nuevo slug directamente con SQL para garantizar tenant_id NULL
-            $prefix = $data['prefix'] ?? 'blog';
-            $insertStmt = $pdo->prepare("INSERT INTO slugs (module, reference_id, slug, tenant_id, prefix) VALUES (?, ?, ?, NULL, ?)");
-            $insertStmt->execute(['blog', $post->id, $data['slug'], $prefix]);
+            // Determinar prefijo: para posts de tenants, usar su blog_url_prefix
+            if ($targetTenantId) {
+                $prefix = $this->getTenantBlogPrefixForScope($targetTenantId);
+            } else {
+                $prefix = 'blog';
+            }
+            $insertStmt = $pdo->prepare("INSERT INTO slugs (module, reference_id, slug, tenant_id, prefix) VALUES (?, ?, ?, ?, ?)");
+            $insertStmt->execute(['blog', $post->id, $data['slug'], $targetTenantId, $prefix]);
 
         } catch (\Exception $e) {
-            error_log("ERROR AL CREAR SLUG CON TENANT_ID NULL: " . $e->getMessage());
+            error_log("ERROR AL CREAR SLUG: " . $e->getMessage());
         }
 
         // Sincronizar categorías
@@ -375,15 +433,29 @@ class BlogPostController
             $translatedLocales[$t->locale] = true;
         }
 
-        // Obtener todas las categorías disponibles
-        $allCategories = BlogCategory::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')->orderBy('name', 'ASC')->get();
+        // Detectar si el post pertenece a un tenant (cross-publisher)
+        $editingTenant = null;
+        $editingTenantPrefix = null;
+        if ($post->tenant_id && is_cross_publisher_active()) {
+            $pdo2 = Database::connect();
+            $stmt2 = $pdo2->prepare("SELECT id, name, domain FROM tenants WHERE id = ?");
+            $stmt2->execute([$post->tenant_id]);
+            $editingTenant = $stmt2->fetch(\PDO::FETCH_OBJ);
+            $editingTenantPrefix = $this->getTenantBlogPrefixForScope((int) $post->tenant_id);
+        }
+
+        // Obtener categorías/tags: del tenant si es post de tenant, o globales
+        if ($editingTenant) {
+            $allCategories = BlogCategory::where('tenant_id', $post->tenant_id)->orderBy('name', 'ASC')->get();
+            $allTags = BlogTag::where('tenant_id', $post->tenant_id)->orderBy('name', 'ASC')->get();
+        } else {
+            $allCategories = BlogCategory::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')->orderBy('name', 'ASC')->get();
+            $allTags = BlogTag::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')->orderBy('name', 'ASC')->get();
+        }
 
         // Obtener categorías del post
         $postCategories = $post->categories();
         $postCategoryIds = array_map(fn($cat) => $cat->id, $postCategories);
-
-        // Obtener todas las etiquetas disponibles
-        $allTags = BlogTag::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')->orderBy('name', 'ASC')->get();
 
         // Obtener etiquetas del post
         $postTags = $post->tags();
@@ -400,14 +472,16 @@ class BlogPostController
             'locales'             => $locales,
             'translatedLocales'   => $translatedLocales,
             'baseUrl'             => $_SERVER['HTTP_HOST'] ?? 'localhost',
-            'categories'          => $allCategories,  // Cambio: la vista espera 'categories'
+            'categories'          => $allCategories,
             'allCategories'       => $allCategories,
             'postCategoryIds'     => $postCategoryIds,
             'availableTemplates'  => $availableTemplates,
             'currentTemplate'     => $currentTemplate,
-            'tags'                => $allTags,         // Cambio: la vista espera 'tags'
+            'tags'                => $allTags,
             'allTags'             => $allTags,
             'postTagIds'          => $postTagIds,
+            'editingTenant'       => $editingTenant,
+            'editingTenantPrefix' => $editingTenantPrefix,
         ]);
     }
 
@@ -506,15 +580,31 @@ class BlogPostController
         }
         unset($_SESSION['_old_input']);
 
+        // Sanitize URL image fields: reject non-URL values (e.g. email from Chrome autocomplete)
+        foreach (['seo_image', 'twitter_image'] as $imgField) {
+            if (!empty($data[$imgField]) && !preg_match('#^(https?://|/)#i', $data[$imgField])) {
+                $data[$imgField] = null;
+            }
+        }
+
         // Procesar datos
         $data = self::processFormData($data);
         if (!isset($data['content']) || $data['content'] === null) {
             $data['content'] = '';
         }
+
+        // Preservar tenant_id del post original (no resetear a NULL para posts de tenants)
+        $originalTenantId = $post->tenant_id;
         unset($data['tenant_id']);
 
         $newSlug = $data['slug'];
-        $prefix = $rawData['prefix'] ?? 'blog';
+
+        // Determinar el prefijo correcto: para posts de tenants, usar su blog_url_prefix
+        if ($originalTenantId && is_cross_publisher_active()) {
+            $prefix = $this->getTenantBlogPrefixForScope((int) $originalTenantId);
+        } else {
+            $prefix = $rawData['prefix'] ?? 'blog';
+        }
 
         $pdo = null;
 
@@ -526,20 +616,29 @@ class BlogPostController
             unset($data['prefix']);
             $post->update($data);
 
-            // 2. Actualizar tenant_id
-            $updateCurrentStmt = $pdo->prepare(
-                "UPDATE blog_posts SET tenant_id = NULL WHERE id = ?"
-            );
-            $updateCurrentStmt->execute([$id]);
+            // 2. Preservar tenant_id original (no resetear a NULL si es post de tenant)
+            if ($originalTenantId) {
+                $updateCurrentStmt = $pdo->prepare(
+                    "UPDATE blog_posts SET tenant_id = ? WHERE id = ?"
+                );
+                $updateCurrentStmt->execute([$originalTenantId, $id]);
+            } else {
+                $updateCurrentStmt = $pdo->prepare(
+                    "UPDATE blog_posts SET tenant_id = NULL WHERE id = ?"
+                );
+                $updateCurrentStmt->execute([$id]);
+            }
 
             // 3. Actualizar slug
-            $deleteSlugStmt = $pdo->prepare("DELETE FROM slugs WHERE module = 'blog' AND reference_id = ?");
-            $deleteSlugStmt->execute([$id]);
+            $deleteSlugStmt = $pdo->prepare("DELETE FROM slugs WHERE module = 'blog' AND reference_id = ? AND tenant_id " . ($originalTenantId ? "= ?" : "IS NULL"));
+            $deleteParams = [$id];
+            if ($originalTenantId) $deleteParams[] = $originalTenantId;
+            $deleteSlugStmt->execute($deleteParams);
 
             $insertSlugStmt = $pdo->prepare(
-                "INSERT INTO slugs (module, reference_id, slug, tenant_id, prefix) VALUES (?, ?, ?, NULL, ?)"
+                "INSERT INTO slugs (module, reference_id, slug, tenant_id, prefix) VALUES (?, ?, ?, ?, ?)"
             );
-            $insertSlugStmt->execute(['blog', $id, $newSlug, $prefix]);
+            $insertSlugStmt->execute(['blog', $id, $newSlug, $originalTenantId, $prefix]);
 
             // 4. Sincronizar categorías
             $post->syncCategories($selectedCategories);
@@ -593,6 +692,31 @@ class BlogPostController
 
         flash('success', __('blog.post.success_updated'));
         header("Location: /musedock/blog/posts/{$id}/edit");
+        exit;
+    }
+
+    /**
+     * AJAX: Retorna categorías y tags de un tenant específico.
+     */
+    public function getTenantTaxonomies()
+    {
+        $this->checkPermission('blog.edit');
+
+        $tenantId = (int) ($_GET['tenant_id'] ?? 0);
+        if (!$tenantId || !is_cross_publisher_active()) {
+            header('Content-Type: application/json');
+            echo json_encode(['categories' => [], 'tags' => []]);
+            exit;
+        }
+
+        $categories = BlogCategory::where('tenant_id', $tenantId)->orderBy('name', 'ASC')->get();
+        $tags = BlogTag::where('tenant_id', $tenantId)->orderBy('name', 'ASC')->get();
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'categories' => array_map(fn($c) => ['id' => $c->id, 'name' => $c->name, 'depth' => $c->depth ?? 0], $categories),
+            'tags' => array_map(fn($t) => ['id' => $t->id, 'name' => $t->name], $tags),
+        ]);
         exit;
     }
 
