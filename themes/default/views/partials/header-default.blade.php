@@ -15,6 +15,7 @@
             <div class="header-logo">
                 @php
                     $taglineEnabled = themeOption('header.header_tagline_enabled', true);
+                    $showSubtitle = site_setting('show_subtitle', '1') === '1';
                     $siteTagline = site_setting('site_subtitle', '');
                 @endphp
                 <a href="{{ url('/') }}" class="header-brand-link">
@@ -46,7 +47,7 @@
                             @endif
                         </div>
 
-                        @if($taglineEnabled && !empty($siteTagline))
+                        @if($taglineEnabled && $showSubtitle && !empty($siteTagline))
                             <div class="header-site-tagline">{{ $siteTagline }}</div>
                         @endif
                     </div>

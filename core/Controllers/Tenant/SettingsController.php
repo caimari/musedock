@@ -81,6 +81,7 @@ class SettingsController
                 // Visualización
                 'show_logo',
                 'show_title',
+                'show_subtitle',
 
                 // Footer
                 'footer_copyright',
@@ -98,7 +99,7 @@ class SettingsController
                 $value = $_POST[$key] ?? null;
 
                 // Manejar checkboxes
-                if (in_array($key, ['show_logo', 'show_title'])) {
+                if (in_array($key, ['show_logo', 'show_title', 'show_subtitle'])) {
                     $value = isset($_POST[$key]) ? '1' : '0';
                 }
 

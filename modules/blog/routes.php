@@ -292,9 +292,15 @@ Route::post("/{$adminPath}/blog/posts/{id}/autosave", 'Blog\Controllers\Tenant\B
 
 // ========== FRONTEND PUBLIC BLOG ROUTES ==========
 
-// Feed RSS del blog
+// Feed RSS del blog (múltiples rutas para compatibilidad)
 Route::get('/feed', 'Blog\Controllers\Frontend\FeedController@index')
     ->name('blog.feed');
+
+Route::get('/feed.xml', 'Blog\Controllers\Frontend\FeedController@index')
+    ->name('blog.feed.xml');
+
+Route::get('/rss', 'Blog\Controllers\Frontend\FeedController@index')
+    ->name('blog.rss');
 
 // Listado de posts del blog
 Route::get('/blog', 'Blog\Controllers\Frontend\BlogController@index')

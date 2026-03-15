@@ -348,6 +348,20 @@ class AIController
             $providers = Database::query(
                 "SELECT * FROM ai_providers WHERE active = 1 ORDER BY name ASC"
             )->fetchAll();
+
+            // Obtener tenants activos con sus cuotas de IA
+            $tenants = Database::query(
+                "SELECT id, name, domain FROM tenants WHERE status = 'active' ORDER BY name ASC"
+            )->fetchAll();
+
+            $tenantQuotas = [];
+            foreach ($tenants as $t) {
+                $quota = Database::query(
+                    "SELECT setting_value FROM ai_settings WHERE setting_key = 'ai_daily_token_limit' AND tenant_id = :tid",
+                    ['tid' => $t['id']]
+                )->fetchColumn();
+                $tenantQuotas[$t['id']] = $quota !== false ? $quota : null;
+            }
         } catch (\Exception $e) {
             $settings = [
                 'ai_daily_token_limit' => '0',
@@ -355,12 +369,16 @@ class AIController
                 'ai_default_provider' => '1'
             ];
             $providers = [];
+            $tenants = [];
+            $tenantQuotas = [];
         }
-        
+
         return View::renderSuperadmin('ai.settings', [
             'title' => 'Configuración de IA',
             'settings' => $settings,
-            'providers' => $providers
+            'providers' => $providers,
+            'tenants' => $tenants,
+            'tenantQuotas' => $tenantQuotas
         ]);
     }
     
@@ -410,6 +428,58 @@ class AIController
             flash('error', 'Error al actualizar la configuración: ' . $e->getMessage());
         }
         
+        return redirect('/musedock/ai/settings');
+    }
+
+    /**
+     * Actualizar cuota diaria de tokens para un tenant específico
+     */
+    public function updateTenantQuota()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('advanced.ai');
+
+        try {
+            $tenantId = (int) ($_POST['tenant_id'] ?? 0);
+            $limit = (int) ($_POST['token_limit'] ?? 0);
+
+            if ($tenantId <= 0) {
+                throw new \Exception('Tenant no válido');
+            }
+
+            $key = 'ai_daily_token_limit';
+            $exists = Database::query(
+                "SELECT COUNT(*) FROM ai_settings WHERE setting_key = :key AND tenant_id = :tid",
+                ['key' => $key, 'tid' => $tenantId]
+            )->fetchColumn();
+
+            if ($limit <= 0) {
+                // Si ponen 0 o vacío, eliminar la config específica (usará la global)
+                if ($exists) {
+                    Database::query(
+                        "DELETE FROM ai_settings WHERE setting_key = :key AND tenant_id = :tid",
+                        ['key' => $key, 'tid' => $tenantId]
+                    );
+                }
+            } elseif ($exists) {
+                Database::query(
+                    "UPDATE ai_settings SET setting_value = :value, updated_at = NOW()
+                     WHERE setting_key = :key AND tenant_id = :tid",
+                    ['key' => $key, 'value' => $limit, 'tid' => $tenantId]
+                );
+            } else {
+                Database::query(
+                    "INSERT INTO ai_settings (setting_key, setting_value, tenant_id, created_at, updated_at)
+                     VALUES (:key, :value, :tid, NOW(), NOW())",
+                    ['key' => $key, 'value' => $limit, 'tid' => $tenantId]
+                );
+            }
+
+            flash('success', 'Cuota del tenant actualizada correctamente');
+        } catch (\Exception $e) {
+            flash('error', 'Error al actualizar cuota: ' . $e->getMessage());
+        }
+
         return redirect('/musedock/ai/settings');
     }
 }

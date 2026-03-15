@@ -170,6 +170,375 @@
                         </form>
                     </div>
                 </div>
+
+                {{-- ============================================ --}}
+                {{-- SITE SETTINGS (Collapsible) --}}
+                {{-- ============================================ --}}
+                <div class="card mt-3">
+                    <div class="card-header p-0">
+                        <button class="btn btn-link text-decoration-none w-100 text-start p-3 d-flex justify-content-between align-items-center collapsed"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#siteSettingsCollapse"
+                                aria-expanded="false"
+                                aria-controls="siteSettingsCollapse">
+                            <h5 class="mb-0"><i class="bi bi-gear"></i> Ajustes del Sitio</h5>
+                            <i class="bi bi-chevron-down transition-transform" id="siteSettingsChevron" style="transition: transform 0.3s;"></i>
+                        </button>
+                    </div>
+                    <div class="collapse" id="siteSettingsCollapse">
+                        <div class="card-body">
+                            <p class="text-muted small mb-3">
+                                Configura la informacion del sitio <strong>{{ $tenant->domain }}</strong> sin necesidad de entrar en su panel de administracion.
+                            </p>
+
+                            <form id="siteSettingsForm" enctype="multipart/form-data">
+                                <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
+
+                                {{-- Informacion del sitio --}}
+                                <h6 class="text-primary mb-3"><i class="bi bi-building"></i> Informacion del sitio</h6>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Titulo del sitio <span class="text-danger">*</span></label>
+                                    <input type="text" name="site_name" class="form-control"
+                                           value="{{ $tenantSettings['site_name'] ?? '' }}">
+                                    <small class="text-muted">Nombre principal del sitio web</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Subtitulo del sitio</label>
+                                    <input type="text" name="site_subtitle" class="form-control"
+                                           value="{{ $tenantSettings['site_subtitle'] ?? '' }}"
+                                           placeholder="Ej: Tu lema o eslogan">
+                                    <div class="form-check mt-2">
+                                        <input type="checkbox" class="form-check-input" id="sa_show_subtitle"
+                                               name="show_subtitle" {{ ($tenantSettings['show_subtitle'] ?? '1') == '1' ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="sa_show_subtitle">Mostrar subtitulo en la cabecera</label>
+                                    </div>
+                                    <small class="text-muted">Texto que se muestra debajo del logo en la cabecera</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Descripcion del sitio (SEO)</label>
+                                    <textarea name="site_description" class="form-control" rows="2"
+                                              placeholder="Descripcion breve para buscadores y redes sociales">{{ $tenantSettings['site_description'] ?? '' }}</textarea>
+                                    <small class="text-muted">Solo para SEO y al compartir en redes sociales</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Correo del administrador</label>
+                                    <input type="email" name="admin_email" class="form-control"
+                                           value="{{ $tenantSettings['admin_email'] ?? '' }}">
+                                    <small class="text-muted">Correo para notificaciones y correspondencia</small>
+                                </div>
+
+                                <hr>
+
+                                {{-- Informacion de contacto --}}
+                                <h6 class="text-primary mb-3"><i class="bi bi-telephone"></i> Informacion de contacto</h6>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Telefono de contacto</label>
+                                        <input type="text" name="contact_phone" class="form-control"
+                                               value="{{ $tenantSettings['contact_phone'] ?? '' }}"
+                                               placeholder="+34 600 000 000">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Email de contacto</label>
+                                        <input type="email" name="contact_email" class="form-control"
+                                               value="{{ $tenantSettings['contact_email'] ?? '' }}"
+                                               placeholder="info@tudominio.com">
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">WhatsApp</label>
+                                        <input type="text" name="contact_whatsapp" class="form-control"
+                                               value="{{ $tenantSettings['contact_whatsapp'] ?? '' }}"
+                                               placeholder="+34 600 000 000">
+                                        <small class="text-muted">Numero de WhatsApp con prefijo internacional</small>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Direccion</label>
+                                        <textarea name="contact_address" class="form-control" rows="2"
+                                                  placeholder="Calle, numero, ciudad, pais">{{ $tenantSettings['contact_address'] ?? '' }}</textarea>
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                                {{-- Footer --}}
+                                <h6 class="text-primary mb-3"><i class="bi bi-layout-text-window-reverse"></i> Footer</h6>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Descripcion corta del footer</label>
+                                    <small class="text-muted d-block mb-2">Texto que se mostrara en la primera columna del footer (traducible por idioma)</small>
+
+                                    @if(count($activeLanguages) > 1)
+                                        <ul class="nav nav-tabs" id="saFooterDescTabs" role="tablist">
+                                            @foreach($activeLanguages as $index => $lang)
+                                                <li class="nav-item" role="presentation">
+                                                    <button class="nav-link {{ $index === 0 ? 'active' : '' }}"
+                                                            id="sa-footer-desc-{{ $lang->code }}-tab"
+                                                            data-bs-toggle="tab"
+                                                            data-bs-target="#sa-footer-desc-{{ $lang->code }}"
+                                                            type="button" role="tab">
+                                                        {{ strtoupper($lang->code) }} - {{ $lang->name }}
+                                                    </button>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                        <div class="tab-content border border-top-0 p-3 rounded-bottom" id="saFooterDescTabsContent">
+                                            @foreach($activeLanguages as $index => $lang)
+                                                <div class="tab-pane fade {{ $index === 0 ? 'show active' : '' }}"
+                                                     id="sa-footer-desc-{{ $lang->code }}" role="tabpanel">
+                                                    <textarea name="footer_short_description_{{ $lang->code }}"
+                                                              class="form-control" rows="3"
+                                                              placeholder="Descripcion en {{ $lang->name }}">{{ $tenantSettings['footer_short_description_' . $lang->code] ?? '' }}</textarea>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @elseif(count($activeLanguages) === 1)
+                                        <textarea name="footer_short_description_{{ $activeLanguages[0]->code }}"
+                                                  class="form-control" rows="3"
+                                                  placeholder="Breve descripcion de tu empresa o sitio web">{{ $tenantSettings['footer_short_description_' . $activeLanguages[0]->code] ?? '' }}</textarea>
+                                    @else
+                                        <textarea name="footer_short_description_es"
+                                                  class="form-control" rows="3"
+                                                  placeholder="Breve descripcion de tu empresa o sitio web">{{ $tenantSettings['footer_short_description_es'] ?? '' }}</textarea>
+                                    @endif
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Texto de copyright</label>
+                                    <input type="text" name="footer_copyright" class="form-control"
+                                           value="{{ $tenantSettings['footer_copyright'] ?? '' }}"
+                                           placeholder='&copy; Copyright <a href="https://tudominio.com">Tu Empresa</a> {{ date("Y") }}.'>
+                                </div>
+
+                                <hr>
+
+                                {{-- Identidad visual --}}
+                                <h6 class="text-primary mb-3"><i class="bi bi-image"></i> Identidad visual</h6>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Logotipo del sitio</label>
+                                        <input type="file" name="site_logo" class="form-control" accept="image/*">
+                                        @php $saLogoVal = $tenantSettings['site_logo'] ?? ''; @endphp
+                                        @if(!empty($saLogoVal))
+                                            <div class="mt-2 text-center" id="currentLogoPreview">
+                                                <img src="{{ $saLogoVal }}" alt="Logo actual"
+                                                     style="max-height: 60px; max-width: 100%; border: 1px solid #ddd; padding: 3px;"
+                                                     onerror="this.style.display='none'">
+                                                <br>
+                                                <button type="button" class="btn btn-outline-danger btn-sm mt-1" onclick="deleteTenantLogo()">
+                                                    <i class="bi bi-trash"></i> Eliminar logo
+                                                </button>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Favicon del sitio</label>
+                                        <input type="file" name="site_favicon" class="form-control" accept="image/x-icon,image/png,image/svg+xml">
+                                        @php $saFaviconVal = $tenantSettings['site_favicon'] ?? ''; @endphp
+                                        @if(!empty($saFaviconVal))
+                                            <div class="mt-2 text-center" id="currentFaviconPreview">
+                                                <img src="{{ $saFaviconVal }}" alt="Favicon actual"
+                                                     style="max-height: 40px; max-width: 40px; border: 1px solid #ddd; padding: 3px;"
+                                                     onerror="this.style.display='none'">
+                                                <br>
+                                                <button type="button" class="btn btn-outline-danger btn-sm mt-1" onclick="deleteTenantFavicon()">
+                                                    <i class="bi bi-trash"></i> Eliminar favicon
+                                                </button>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Opciones de visualizacion</label>
+                                    <div class="form-check form-check-inline">
+                                        <input type="checkbox" class="form-check-input" id="sa_show_logo"
+                                               name="show_logo" {{ ($tenantSettings['show_logo'] ?? '1') == '1' ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="sa_show_logo">Mostrar logotipo</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input type="checkbox" class="form-check-input" id="sa_show_title"
+                                               name="show_title" {{ ($tenantSettings['show_title'] ?? '0') == '1' ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="sa_show_title">Mostrar titulo del sitio</label>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-success" id="btnSaveSiteSettings">
+                                        <span class="btn-text"><i class="bi bi-check-lg"></i> Guardar Ajustes del Sitio</span>
+                                        <span class="btn-loading d-none">
+                                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                            Guardando...
+                                        </span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ============================================ --}}
+                {{-- SEO & SOCIAL SETTINGS (Collapsible) --}}
+                {{-- ============================================ --}}
+                <div class="card mt-3">
+                    <div class="card-header p-0">
+                        <button class="btn btn-link text-decoration-none w-100 text-start p-3 d-flex justify-content-between align-items-center collapsed"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#seoSettingsCollapse"
+                                aria-expanded="false"
+                                aria-controls="seoSettingsCollapse">
+                            <h5 class="mb-0"><i class="bi bi-search"></i> SEO y Redes Sociales</h5>
+                            <i class="bi bi-chevron-down" id="seoSettingsChevron" style="transition: transform 0.3s;"></i>
+                        </button>
+                    </div>
+                    <div class="collapse" id="seoSettingsCollapse">
+                        <div class="card-body">
+                            <p class="text-muted small mb-3">
+                                Configura el SEO y redes sociales de <strong>{{ $tenant->domain }}</strong> sin entrar en su panel de administracion.
+                            </p>
+
+                            <form id="seoSettingsForm" enctype="multipart/form-data">
+                                <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
+
+                                {{-- Configuracion SEO --}}
+                                <h6 class="text-primary mb-3"><i class="bi bi-search"></i> Configuracion SEO</h6>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Palabras clave (keywords)</label>
+                                    <input type="text" name="site_keywords" class="form-control"
+                                           value="{{ $tenantSettings['site_keywords'] ?? '' }}">
+                                    <small class="text-muted">Palabras clave separadas por comas (ej: cms, web, contenido)</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Autor del sitio</label>
+                                    <input type="text" name="site_author" class="form-control"
+                                           value="{{ $tenantSettings['site_author'] ?? '' }}">
+                                    <small class="text-muted">Nombre del autor o empresa propietaria del sitio</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Imagen para compartir en redes (Open Graph)</label>
+                                    <input type="file" name="og_image" class="form-control" accept="image/*">
+                                    <small class="text-muted">Tamano recomendado: 1200x630 pixeles</small>
+
+                                    @php $saOgImage = $tenantSettings['og_image'] ?? ''; @endphp
+                                    @if(!empty($saOgImage))
+                                        <div class="mt-2" id="currentOgImagePreview">
+                                            <img src="/public/{{ $saOgImage }}" alt="Imagen OG actual"
+                                                 style="max-height: 120px; max-width: 100%;" class="border p-2 rounded"
+                                                 onerror="this.style.display='none'">
+                                            <p class="text-muted mt-1"><small>{{ $saOgImage }}</small></p>
+                                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteTenantOgImage()">
+                                                <i class="bi bi-trash"></i> Eliminar imagen OG
+                                            </button>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Usuario de X (Twitter)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">@</span>
+                                        <input type="text" name="twitter_site" class="form-control"
+                                               value="{{ $tenantSettings['twitter_site'] ?? '' }}"
+                                               placeholder="usuario">
+                                    </div>
+                                    <small class="text-muted">Sin incluir el @ (ej: musedock). Se usa para las Twitter/X Cards.</small>
+                                </div>
+
+                                <hr>
+
+                                {{-- Redes Sociales --}}
+                                <h6 class="text-primary mb-3"><i class="bi bi-share"></i> Redes Sociales</h6>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Facebook</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-facebook"></i></span>
+                                            <input type="url" name="social_facebook" class="form-control"
+                                                   value="{{ $tenantSettings['social_facebook'] ?? '' }}"
+                                                   placeholder="https://facebook.com/tuempresa">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">X (Twitter)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-twitter-x"></i></span>
+                                            <input type="url" name="social_twitter" class="form-control"
+                                                   value="{{ $tenantSettings['social_twitter'] ?? '' }}"
+                                                   placeholder="https://x.com/tuempresa">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Instagram</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-instagram"></i></span>
+                                            <input type="url" name="social_instagram" class="form-control"
+                                                   value="{{ $tenantSettings['social_instagram'] ?? '' }}"
+                                                   placeholder="https://instagram.com/tuempresa">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">LinkedIn</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-linkedin"></i></span>
+                                            <input type="url" name="social_linkedin" class="form-control"
+                                                   value="{{ $tenantSettings['social_linkedin'] ?? '' }}"
+                                                   placeholder="https://linkedin.com/company/tuempresa">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">YouTube</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-youtube"></i></span>
+                                            <input type="url" name="social_youtube" class="form-control"
+                                                   value="{{ $tenantSettings['social_youtube'] ?? '' }}"
+                                                   placeholder="https://youtube.com/c/tuempresa">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Pinterest</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-pinterest"></i></span>
+                                            <input type="url" name="social_pinterest" class="form-control"
+                                                   value="{{ $tenantSettings['social_pinterest'] ?? '' }}"
+                                                   placeholder="https://pinterest.com/tuempresa">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-success" id="btnSaveSeoSettings">
+                                        <span class="btn-text"><i class="bi bi-check-lg"></i> Guardar Ajustes SEO</span>
+                                        <span class="btn-loading d-none">
+                                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                            Guardando...
+                                        </span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Panel de estado -->
@@ -390,8 +759,8 @@ function toggleBtnSpinner(btn, loading) {
     }
 }
 
-// Spinner en el formulario de guardar
-document.querySelector('form').addEventListener('submit', function(e) {
+// Spinner en el formulario principal de guardar
+document.querySelector('form[action*="domain-manager"]').addEventListener('submit', function(e) {
     const btn = document.getElementById('btnSubmit');
     toggleBtnSpinner(btn, true);
 });
@@ -1029,6 +1398,254 @@ if (btnLinkCloudflare) {
     });
 }
 @endif
+
+// ============================================
+// Site Settings (AJAX form submission)
+// ============================================
+
+// Chevron rotation on collapse toggle
+const siteSettingsCollapse = document.getElementById('siteSettingsCollapse');
+if (siteSettingsCollapse) {
+    siteSettingsCollapse.addEventListener('show.bs.collapse', function() {
+        document.getElementById('siteSettingsChevron').style.transform = 'rotate(180deg)';
+    });
+    siteSettingsCollapse.addEventListener('hide.bs.collapse', function() {
+        document.getElementById('siteSettingsChevron').style.transform = 'rotate(0deg)';
+    });
+}
+
+// Submit site settings via AJAX with FormData
+const siteSettingsForm = document.getElementById('siteSettingsForm');
+if (siteSettingsForm) {
+    siteSettingsForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const btn = document.getElementById('btnSaveSiteSettings');
+        toggleBtnSpinner(btn, true);
+
+        const formData = new FormData(this);
+
+        try {
+            const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/site-settings', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Ajustes Guardados',
+                    text: data.message,
+                    confirmButtonColor: '#0d6efd'
+                }).then(() => window.location.reload());
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message || 'No se pudieron guardar los ajustes.',
+                    confirmButtonColor: '#0d6efd'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexion',
+                text: 'No se pudo conectar con el servidor.',
+                confirmButtonColor: '#0d6efd'
+            });
+        } finally {
+            toggleBtnSpinner(btn, false);
+        }
+    });
+}
+
+async function deleteTenantLogo() {
+    const result = await Swal.fire({
+        title: 'Eliminar Logo',
+        text: '¿Estas seguro de eliminar el logo de este tenant?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Si, eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/delete-logo', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ _csrf: csrfToken })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Logo Eliminado',
+                text: data.message,
+                confirmButtonColor: '#0d6efd'
+            }).then(() => window.location.reload());
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.message, confirmButtonColor: '#0d6efd' });
+        }
+    } catch (error) {
+        Swal.fire({ icon: 'error', title: 'Error de conexion', text: 'No se pudo conectar con el servidor.', confirmButtonColor: '#0d6efd' });
+    }
+}
+
+async function deleteTenantFavicon() {
+    const result = await Swal.fire({
+        title: 'Eliminar Favicon',
+        text: '¿Estas seguro de eliminar el favicon de este tenant?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Si, eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/delete-favicon', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ _csrf: csrfToken })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Favicon Eliminado',
+                text: data.message,
+                confirmButtonColor: '#0d6efd'
+            }).then(() => window.location.reload());
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.message, confirmButtonColor: '#0d6efd' });
+        }
+    } catch (error) {
+        Swal.fire({ icon: 'error', title: 'Error de conexion', text: 'No se pudo conectar con el servidor.', confirmButtonColor: '#0d6efd' });
+    }
+}
+
+// ============================================
+// SEO & Social Settings (AJAX form submission)
+// ============================================
+
+// Chevron rotation on SEO collapse toggle
+const seoSettingsCollapse = document.getElementById('seoSettingsCollapse');
+if (seoSettingsCollapse) {
+    seoSettingsCollapse.addEventListener('show.bs.collapse', function() {
+        document.getElementById('seoSettingsChevron').style.transform = 'rotate(180deg)';
+    });
+    seoSettingsCollapse.addEventListener('hide.bs.collapse', function() {
+        document.getElementById('seoSettingsChevron').style.transform = 'rotate(0deg)';
+    });
+}
+
+// Submit SEO settings via AJAX with FormData
+const seoSettingsForm = document.getElementById('seoSettingsForm');
+if (seoSettingsForm) {
+    seoSettingsForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const btn = document.getElementById('btnSaveSeoSettings');
+        toggleBtnSpinner(btn, true);
+
+        const formData = new FormData(this);
+
+        try {
+            const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/seo-settings', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Ajustes SEO Guardados',
+                    text: data.message,
+                    confirmButtonColor: '#0d6efd'
+                }).then(() => window.location.reload());
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message || 'No se pudieron guardar los ajustes SEO.',
+                    confirmButtonColor: '#0d6efd'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexion',
+                text: 'No se pudo conectar con el servidor.',
+                confirmButtonColor: '#0d6efd'
+            });
+        } finally {
+            toggleBtnSpinner(btn, false);
+        }
+    });
+}
+
+async function deleteTenantOgImage() {
+    const result = await Swal.fire({
+        title: 'Eliminar Imagen OG',
+        text: '¿Estas seguro de eliminar la imagen Open Graph de este tenant?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Si, eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/delete-og-image', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ _csrf: csrfToken })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Imagen OG Eliminada',
+                text: data.message,
+                confirmButtonColor: '#0d6efd'
+            }).then(() => window.location.reload());
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.message, confirmButtonColor: '#0d6efd' });
+        }
+    } catch (error) {
+        Swal.fire({ icon: 'error', title: 'Error de conexion', text: 'No se pudo conectar con el servidor.', confirmButtonColor: '#0d6efd' });
+    }
+}
 </script>
 @endpush
 

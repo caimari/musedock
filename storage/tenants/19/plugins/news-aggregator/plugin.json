@@ -1,0 +1,33 @@
+{
+    "name": "News Aggregator",
+    "slug": "news-aggregator",
+    "description": "Captura noticias de fuentes RSS y APIs, reescríbelas con IA para crear contenido original.",
+    "version": "1.0.0",
+    "author": "MuseDock Team",
+    "active": false,
+    "requires_modules": ["blog"],
+    "autoload": {
+        "psr-4": {
+            "NewsAggregator\\Controllers\\": "controllers/",
+            "NewsAggregator\\Models\\": "models/",
+            "NewsAggregator\\Services\\": "services/"
+        }
+    },
+    "settings": {
+        "auto_rewrite": true,
+        "default_category_id": null,
+        "fetch_interval": 3600,
+        "duplicate_check_days": 7
+    },
+    "permissions": [
+        "database.read",
+        "database.write",
+        "api.call"
+    ],
+    "admin_menu": {
+        "title": "News Aggregator",
+        "icon": "fa-newspaper",
+        "route": "news-aggregator.dashboard",
+        "order": 101
+    }
+}

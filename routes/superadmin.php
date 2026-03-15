@@ -437,6 +437,9 @@ Route::get('/musedock/ai/settings', 'superadmin.AIController@settings')
 Route::post('/musedock/ai/settings/update', 'superadmin.AIController@updateSettings')
     ->middleware('superadmin');
 
+Route::post('/musedock/ai/settings/tenant-quota', 'superadmin.AIController@updateTenantQuota')
+    ->middleware('superadmin');
+
 
 // AIWriter - Panel de administración (kebab-case en rutas, PascalCase en namespace)
 Route::get('/musedock/ai-writer/settings', 'AIWriter\\AdminController@settings')

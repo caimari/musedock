@@ -251,6 +251,44 @@ class Usage
    }
    
    /**
+    * Verifica si un TENANT ha excedido su límite diario de tokens (total, no por usuario)
+    * Cuenta TODAS las llamadas del tenant: cron, editor, API, plugins...
+    *
+    * @param int $tenantId ID del tenant
+    * @return array ['exceeded' => bool, 'used' => int, 'limit' => int]
+    */
+   public static function hasTenantExceededDailyLimit(int $tenantId): array
+   {
+       $dailyLimit = (int) self::getSetting('ai_daily_token_limit', 0, $tenantId);
+
+       // Si no hay límite (0), nunca excede
+       if ($dailyLimit <= 0) {
+           return ['exceeded' => false, 'used' => 0, 'limit' => 0];
+       }
+
+       $todayStart = date('Y-m-d 00:00:00');
+       $todayEnd = date('Y-m-d 23:59:59');
+
+       $tokensUsed = (int) Database::query("
+           SELECT COALESCE(SUM(tokens_used), 0)
+           FROM ai_usage_logs
+           WHERE tenant_id = :tenant_id
+           AND status = 'success'
+           AND created_at BETWEEN :date_from AND :date_to
+       ", [
+           'tenant_id' => $tenantId,
+           'date_from' => $todayStart,
+           'date_to' => $todayEnd
+       ])->fetchColumn();
+
+       return [
+           'exceeded' => $tokensUsed >= $dailyLimit,
+           'used' => $tokensUsed,
+           'limit' => $dailyLimit
+       ];
+   }
+
+   /**
     * Obtiene un valor de configuración
     * 
     * @param string $key Clave de configuración

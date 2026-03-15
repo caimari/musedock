@@ -1,0 +1,34 @@
+{
+    "name": "Cross-Publisher",
+    "slug": "cross-publisher",
+    "description": "Publica artículos en múltiples tenants de tu red editorial con traducción y adaptación automática por IA.",
+    "version": "1.0.0",
+    "author": "MuseDock Team",
+    "active": false,
+    "requires_modules": ["blog"],
+    "autoload": {
+        "psr-4": {
+            "CrossPublisher\\Controllers\\": "controllers/",
+            "CrossPublisher\\Models\\": "models/",
+            "CrossPublisher\\Services\\": "services/",
+            "CrossPublisher\\Jobs\\": "jobs/"
+        }
+    },
+    "settings": {
+        "network_key": "",
+        "default_status": "draft",
+        "auto_translate": true,
+        "auto_canonical": true
+    },
+    "permissions": [
+        "database.read",
+        "database.write",
+        "api.call"
+    ],
+    "admin_menu": {
+        "title": "Cross-Publisher",
+        "icon": "fa-share-alt",
+        "route": "cross-publisher.dashboard",
+        "order": 100
+    }
+}

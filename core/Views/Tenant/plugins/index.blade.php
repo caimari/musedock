@@ -69,7 +69,19 @@
                             </div>
                         </div>
                         <div class="card-footer bg-transparent d-flex gap-2">
-                            <form action="{{ admin_url('/plugins/' . $plugin['slug'] . '/toggle') }}" method="POST" class="flex-fill plugin-toggle-form" data-plugin-name="{{ $plugin['name'] }}" data-plugin-active="{{ $plugin['active'] ? '1' : '0' }}">
+                            @php
+                                $pluginJsonPath = APP_ROOT . '/storage/tenants/' . tenant_id() . '/plugins/' . $plugin['slug'] . '/plugin.json';
+                                $pluginMeta = file_exists($pluginJsonPath) ? json_decode(file_get_contents($pluginJsonPath), true) : [];
+                                $hasAdminPanel = !empty($pluginMeta['admin_menu']);
+                            @endphp
+
+                            @if($plugin['active'] && $hasAdminPanel)
+                                <a href="{{ admin_url('/plugins/' . $plugin['slug']) }}" class="btn btn-sm btn-primary flex-fill">
+                                    <i class="bi bi-box-arrow-up-right"></i> Abrir
+                                </a>
+                            @endif
+
+                            <form action="{{ admin_url('/plugins/' . $plugin['slug'] . '/toggle') }}" method="POST" class="{{ ($plugin['active'] && $hasAdminPanel) ? '' : 'flex-fill' }} plugin-toggle-form" data-plugin-name="{{ $plugin['name'] }}" data-plugin-active="{{ $plugin['active'] ? '1' : '0' }}">
                                 @csrf
                                 <button type="button" class="btn btn-sm {{ $plugin['active'] ? 'btn-warning' : 'btn-success' }} w-100 btn-toggle-plugin">
                                     @if($plugin['active'])

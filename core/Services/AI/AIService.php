@@ -14,6 +14,8 @@ use Screenart\Musedock\Services\AI\Exceptions\NoActiveProviderException;
 use Screenart\Musedock\Services\AI\Exceptions\ProviderNotActiveException;
 use Screenart\Musedock\Services\AI\Exceptions\MissingApiKeyException;
 use Screenart\Musedock\Services\AI\Exceptions\AIConfigurationException;
+use Screenart\Musedock\Services\AI\Models\Usage;
+use Screenart\Musedock\Services\AI\Models\TenantProvider;
 // Importar cliente de OpenAI instalado
 use OpenAI; // Facade principal de la librería openai-php/client
 
@@ -42,26 +44,69 @@ class AIService // Nombre de clase Correcto
             throw new \InvalidArgumentException("El prompt no puede estar vacío.");
         }
 
-        // 2. Obtener datos del proveedor y validar estado usando Database::query()
-        $sqlProvider = "SELECT * FROM ai_providers WHERE id = :id LIMIT 1";
-        $provider = Database::query($sqlProvider, ['id' => $providerId])->fetch();
+        // 2. Detectar si el tenant tiene API key propia
+        $tenantId = $metadata['tenant_id'] ?? null;
+        $usingTenantKey = false;
+        $tenantProvider = null;
 
-        if (!$provider) {
-            self::logUsage($providerId, $prompt, 0, 'error: provider_not_found', $metadata);
-            throw new ProviderNotActiveException("Proveedor con ID {$providerId} no encontrado.");
-        }
-        if (empty($provider['active'])) {
-            self::logUsage($providerId, $prompt, 0, 'error: provider_not_active', $metadata);
-            throw new ProviderNotActiveException("Proveedor '{$provider['name']}' (ID: {$providerId}) no está activo.");
+        if ($tenantId !== null) {
+            $tenantProvider = TenantProvider::getForTenant((int) $tenantId);
         }
 
-        // 3. Validar y obtener API Key (requerida para la mayoría de los proveedores)
-        $apiKey = $provider['api_key'] ?? null; // Desencriptar si es necesario
-        if (empty($apiKey)) {
-            self::logUsage($providerId, $prompt, 0, 'error: missing_api_key', $metadata);
-            throw new MissingApiKeyException("Proveedor '{$provider['name']}' (ID: {$providerId}) no tiene API key configurada en la base de datos.");
+        if ($tenantProvider) {
+            // Tenant tiene key propia → usar esa, sin cuota del sistema
+            $usingTenantKey = true;
+            $apiKey = $tenantProvider['api_key'];
+            $providerType = $tenantProvider['provider_type'] ?? 'openai';
+            $provider = [
+                'id' => $tenantProvider['id'],
+                'name' => 'Tenant #' . $tenantId . ' (' . $providerType . ')',
+                'provider_type' => $providerType,
+                'api_key' => $apiKey,
+                'model' => $tenantProvider['model'] ?? 'gpt-4',
+                'max_tokens' => $tenantProvider['max_tokens'] ?? 1500,
+                'temperature' => $tenantProvider['temperature'] ?? 0.7,
+                'endpoint' => $tenantProvider['endpoint'] ?? null,
+                'active' => true
+            ];
+            $metadata['source'] = 'tenant_key';
+            Logger::info("Usando API key propia del tenant", ['tenant_id' => $tenantId, 'provider_type' => $providerType]);
+        } else {
+            // Sin key propia → usar proveedor global del sistema
+            $metadata['source'] = 'system_key';
+
+            $sqlProvider = "SELECT * FROM ai_providers WHERE id = :id LIMIT 1";
+            $provider = Database::query($sqlProvider, ['id' => $providerId])->fetch();
+
+            if (!$provider) {
+                self::logUsage($providerId, $prompt, 0, 'error: provider_not_found', $metadata);
+                throw new ProviderNotActiveException("Proveedor con ID {$providerId} no encontrado.");
+            }
+            if (empty($provider['active'])) {
+                self::logUsage($providerId, $prompt, 0, 'error: provider_not_active', $metadata);
+                throw new ProviderNotActiveException("Proveedor '{$provider['name']}' (ID: {$providerId}) no está activo.");
+            }
+
+            // Validar API Key del sistema
+            $apiKey = $provider['api_key'] ?? null;
+            if (empty($apiKey)) {
+                self::logUsage($providerId, $prompt, 0, 'error: missing_api_key', $metadata);
+                throw new MissingApiKeyException("Proveedor '{$provider['name']}' (ID: {$providerId}) no tiene API key configurada.");
+            }
+
+            // Verificar cuota diaria (solo cuando usa key del sistema)
+            if ($tenantId !== null) {
+                $quota = Usage::hasTenantExceededDailyLimit((int) $tenantId);
+                if ($quota['exceeded']) {
+                    $msg = "Límite diario de tokens excedido para tenant {$tenantId}: {$quota['used']}/{$quota['limit']} tokens usados.";
+                    Logger::warning($msg);
+                    self::logUsage($providerId, $prompt, 0, 'error: daily_limit_exceeded', $metadata);
+                    throw new AIConfigurationException($msg);
+                }
+            }
+
+            Logger::debug("Proveedor del sistema validado", ['id' => $providerId, 'name' => $provider['name'], 'type' => $provider['provider_type']]);
         }
-        Logger::debug("Proveedor activo encontrado y validado", ['id' => $providerId, 'name' => $provider['name'], 'type' => $provider['provider_type']]);
 
         // 4. Determinar el tipo de proveedor y ejecutar la lógica correspondiente
         $providerType = $provider['provider_type'] ?? 'unknown';
@@ -143,14 +188,219 @@ class AIService // Nombre de clase Correcto
                     break; // Fin del case 'openai'
 
                 case 'claude':
-                    Logger::warning("Implementación para Claude aún no disponible en AIService", ['providerId' => $providerId]);
-                    throw new AIConfigurationException("La implementación para el proveedor 'claude' aún no está disponible.");
-                    // break;
+                    Logger::info("Ejecutando lógica para proveedor Claude (Anthropic)", ['providerId' => $providerId]);
+
+                    $model = $options['model'] ?? $provider['model'] ?? 'claude-sonnet-4-20250514';
+                    if (empty($model)) $model = 'claude-sonnet-4-20250514';
+
+                    $temperature = $options['temperature'] ?? $provider['temperature'] ?? 0.7;
+                    $temperature = max(0.0, min(1.0, (float)$temperature));
+
+                    $maxTokens = self::resolveMaxTokens($provider, $options, 1500);
+
+                    $endpoint = $provider['endpoint'] ?? 'https://api.anthropic.com/v1/messages';
+
+                    // Construir payload — Claude usa 'system' como campo separado
+                    $claudeData = [
+                        'model' => $model,
+                        'messages' => [
+                            ['role' => 'user', 'content' => $prompt]
+                        ],
+                        'temperature' => $temperature,
+                        'max_tokens' => $maxTokens,
+                    ];
+                    if (!empty($options['system_message'])) {
+                        $claudeData['system'] = trim($options['system_message']);
+                    }
+
+                    Logger::debug("Parámetros FINALES para Claude API", $claudeData);
+
+                    $claudeResponse = self::curlPost($endpoint, $claudeData, [
+                        'Content-Type: application/json',
+                        'X-API-Key: ' . $apiKey,
+                        'Anthropic-Version: 2023-06-01',
+                    ]);
+
+                    $claudeContent = $claudeResponse['content'][0]['text'] ?? '';
+                    $claudeInputTokens = (int)($claudeResponse['usage']['input_tokens'] ?? 0);
+                    $claudeOutputTokens = (int)($claudeResponse['usage']['output_tokens'] ?? 0);
+
+                    $apiResult = [
+                        'content' => trim($claudeContent),
+                        'tokens' => $claudeInputTokens + $claudeOutputTokens,
+                        'model' => $model,
+                    ];
+                    break;
 
                 case 'gemini':
-                    Logger::warning("Implementación para Gemini aún no disponible en AIService", ['providerId' => $providerId]);
-                    throw new AIConfigurationException("La implementación para el proveedor 'gemini' aún no está disponible.");
-                    // break;
+                    Logger::info("Ejecutando lógica para proveedor Gemini (Google)", ['providerId' => $providerId]);
+
+                    $model = $options['model'] ?? $provider['model'] ?? 'gemini-2.0-flash';
+                    if (empty($model)) $model = 'gemini-2.0-flash';
+
+                    $temperature = $options['temperature'] ?? $provider['temperature'] ?? 0.7;
+                    $temperature = max(0.0, min(2.0, (float)$temperature));
+
+                    $maxTokens = self::resolveMaxTokens($provider, $options, 1500);
+
+                    $geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+
+                    // Construir payload Gemini
+                    $geminiContents = [];
+                    if (!empty($options['system_message'])) {
+                        $geminiContents[] = [
+                            'role' => 'user',
+                            'parts' => [['text' => trim($options['system_message'])]]
+                        ];
+                        $geminiContents[] = [
+                            'role' => 'model',
+                            'parts' => [['text' => 'Entendido.']]
+                        ];
+                    }
+                    $geminiContents[] = [
+                        'role' => 'user',
+                        'parts' => [['text' => $prompt]]
+                    ];
+
+                    $geminiData = [
+                        'contents' => $geminiContents,
+                        'generationConfig' => [
+                            'temperature' => $temperature,
+                            'maxOutputTokens' => $maxTokens,
+                            'topP' => 0.95,
+                            'topK' => 40,
+                        ],
+                    ];
+
+                    Logger::debug("Parámetros FINALES para Gemini API", ['model' => $model, 'temperature' => $temperature, 'maxOutputTokens' => $maxTokens]);
+
+                    $geminiResponse = self::curlPost($geminiEndpoint, $geminiData, [
+                        'Content-Type: application/json',
+                    ]);
+
+                    // Extraer contenido de la respuesta Gemini
+                    $geminiContent = '';
+                    if (!empty($geminiResponse['candidates'][0]['content']['parts'])) {
+                        foreach ($geminiResponse['candidates'][0]['content']['parts'] as $part) {
+                            if (isset($part['text'])) {
+                                $geminiContent .= $part['text'];
+                            }
+                        }
+                    }
+
+                    // Gemini v1beta reporta tokens en usageMetadata
+                    $geminiTokens = 0;
+                    if (!empty($geminiResponse['usageMetadata'])) {
+                        $geminiTokens = (int)($geminiResponse['usageMetadata']['promptTokenCount'] ?? 0)
+                                      + (int)($geminiResponse['usageMetadata']['candidatesTokenCount'] ?? 0);
+                    }
+                    if ($geminiTokens === 0) {
+                        $geminiTokens = (int)(strlen($prompt) / 4) + (int)(strlen($geminiContent) / 4);
+                    }
+
+                    $apiResult = [
+                        'content' => trim($geminiContent),
+                        'tokens' => $geminiTokens,
+                        'model' => $model,
+                    ];
+                    break;
+
+                case 'ollama':
+                    Logger::info("Ejecutando lógica para proveedor Ollama (local)", ['providerId' => $providerId]);
+
+                    $model = $options['model'] ?? $provider['model'] ?? 'llama3';
+                    if (empty($model)) $model = 'llama3';
+
+                    $temperature = $options['temperature'] ?? $provider['temperature'] ?? 0.7;
+                    $temperature = max(0.0, min(2.0, (float)$temperature));
+
+                    $maxTokens = self::resolveMaxTokens($provider, $options, 1500);
+
+                    // Ollama usa API compatible con OpenAI en /v1/chat/completions
+                    $ollamaEndpoint = rtrim($provider['endpoint'] ?? 'http://localhost:11434', '/') . '/v1/chat/completions';
+
+                    $ollamaMessages = [];
+                    if (!empty($options['system_message'])) {
+                        $ollamaMessages[] = ['role' => 'system', 'content' => trim($options['system_message'])];
+                    }
+                    $ollamaMessages[] = ['role' => 'user', 'content' => $prompt];
+
+                    $ollamaData = [
+                        'model' => $model,
+                        'messages' => $ollamaMessages,
+                        'temperature' => $temperature,
+                        'max_tokens' => $maxTokens,
+                        'stream' => false,
+                    ];
+
+                    Logger::debug("Parámetros FINALES para Ollama API", $ollamaData);
+
+                    $ollamaHeaders = ['Content-Type: application/json'];
+                    if (!empty($apiKey) && $apiKey !== 'none') {
+                        $ollamaHeaders[] = 'Authorization: Bearer ' . $apiKey;
+                    }
+
+                    $ollamaResponse = self::curlPost($ollamaEndpoint, $ollamaData, $ollamaHeaders, 120);
+
+                    $ollamaContent = $ollamaResponse['choices'][0]['message']['content'] ?? '';
+                    $ollamaTokens = (int)($ollamaResponse['usage']['total_tokens'] ?? 0);
+                    if ($ollamaTokens === 0) {
+                        $ollamaTokens = (int)(strlen($prompt) / 4) + (int)(strlen($ollamaContent) / 4);
+                    }
+
+                    $apiResult = [
+                        'content' => trim($ollamaContent),
+                        'tokens' => $ollamaTokens,
+                        'model' => $ollamaResponse['model'] ?? $model,
+                    ];
+                    break;
+
+                case 'minimax':
+                    Logger::info("Ejecutando lógica para proveedor MiniMax", ['providerId' => $providerId]);
+
+                    $model = $options['model'] ?? $provider['model'] ?? 'MiniMax-Text-01';
+                    if (empty($model)) $model = 'MiniMax-Text-01';
+
+                    $temperature = $options['temperature'] ?? $provider['temperature'] ?? 0.7;
+                    $temperature = max(0.01, min(2.0, (float)$temperature));
+
+                    $maxTokens = self::resolveMaxTokens($provider, $options, 1500);
+
+                    // MiniMax usa API compatible con OpenAI
+                    $minimaxEndpoint = $provider['endpoint'] ?? 'https://api.minimaxi.chat/v1/text/chatcompletion_v2';
+
+                    $minimaxMessages = [];
+                    if (!empty($options['system_message'])) {
+                        $minimaxMessages[] = ['role' => 'system', 'content' => trim($options['system_message'])];
+                    }
+                    $minimaxMessages[] = ['role' => 'user', 'content' => $prompt];
+
+                    $minimaxData = [
+                        'model' => $model,
+                        'messages' => $minimaxMessages,
+                        'temperature' => $temperature,
+                        'max_tokens' => $maxTokens,
+                    ];
+
+                    Logger::debug("Parámetros FINALES para MiniMax API", $minimaxData);
+
+                    $minimaxResponse = self::curlPost($minimaxEndpoint, $minimaxData, [
+                        'Content-Type: application/json',
+                        'Authorization: Bearer ' . $apiKey,
+                    ]);
+
+                    $minimaxContent = $minimaxResponse['choices'][0]['message']['content'] ?? '';
+                    $minimaxTokens = (int)($minimaxResponse['usage']['total_tokens'] ?? 0);
+                    if ($minimaxTokens === 0) {
+                        $minimaxTokens = (int)(strlen($prompt) / 4) + (int)(strlen($minimaxContent) / 4);
+                    }
+
+                    $apiResult = [
+                        'content' => trim($minimaxContent),
+                        'tokens' => $minimaxTokens,
+                        'model' => $minimaxResponse['model'] ?? $model,
+                    ];
+                    break;
 
                 default:
                     self::logUsage($providerId, $prompt, 0, 'error: unknown_provider_type', $metadata);
@@ -208,8 +458,60 @@ class AIService // Nombre de clase Correcto
     }
 
     /**
+     * Resuelve el valor final de max_tokens según prioridad: options > provider > default.
+     */
+    private static function resolveMaxTokens(array $provider, array $options, int $default = 1500): int
+    {
+        $maxTokens = $default;
+        $providerVal = $provider['max_tokens'] ?? null;
+        if (isset($providerVal) && (int)$providerVal > 0) {
+            $maxTokens = (int)$providerVal;
+        }
+        $optionVal = $options['max_tokens'] ?? null;
+        if (isset($optionVal) && (int)$optionVal > 0) {
+            $maxTokens = (int)$optionVal;
+        }
+        return max(50, $maxTokens);
+    }
+
+    /**
+     * Realiza una petición POST con cURL y devuelve la respuesta decodificada.
+     *
+     * @throws \Exception En caso de error de red o respuesta HTTP no exitosa.
+     */
+    private static function curlPost(string $url, array $data, array $headers = [], int $timeout = 60): array
+    {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_TIMEOUT => $timeout,
+            CURLOPT_CONNECTTIMEOUT => 10,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlError) {
+            throw new \Exception("Error de red (cURL): {$curlError}");
+        }
+
+        $decoded = json_decode($response, true);
+
+        if ($httpCode < 200 || $httpCode >= 300) {
+            $errMsg = $decoded['error']['message'] ?? $decoded['base_resp']['status_msg'] ?? "HTTP {$httpCode}";
+            throw new \Exception("Error en API ({$httpCode}): {$errMsg}");
+        }
+
+        return $decoded ?? [];
+    }
+
+    /**
      * Registra el uso de la IA en la base de datos.
-     * (Sin cambios)
      */
     private static function logUsage(?int $providerId, string $prompt, int $tokensUsed, string $status, array $metadata): void
     {
@@ -219,11 +521,10 @@ class AIService // Nombre de clase Correcto
 
         try {
             $sql = "INSERT INTO ai_usage_logs
-                        (provider_id, prompt, tokens_used, status, user_id, user_type, module, action, tenant_id, created_at)
+                        (provider_id, prompt, tokens_used, status, user_id, user_type, module, action, tenant_id, source, created_at)
                     VALUES
-                        (:provider_id, :prompt, :tokens_used, :status, :user_id, :user_type, :module, :action, :tenant_id, NOW())";
+                        (:provider_id, :prompt, :tokens_used, :status, :user_id, :user_type, :module, :action, :tenant_id, :source, NOW())";
 
-            $params = [ /* ... parámetros ... */ ];
              $params = [
                 'provider_id' => $providerId,
                 'prompt'      => $promptToLog,
@@ -234,6 +535,7 @@ class AIService // Nombre de clase Correcto
                 'module'      => $metadata['module'] ?? 'unknown',
                 'action'      => $metadata['action'] ?? 'unknown',
                 'tenant_id'   => $metadata['tenant_id'] ?? null,
+                'source'      => $metadata['source'] ?? 'system_key',
             ];
             Database::query($sql, $params);
             Logger::debug("Uso de IA registrado", $params);

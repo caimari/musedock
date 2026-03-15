@@ -320,6 +320,11 @@ class BlogPostController
             error_log("Error al crear revisión inicial: " . $e->getMessage());
         }
 
+        // Invalidar caché del feed RSS si el post está publicado
+        if ($data['status'] === 'published') {
+            \Blog\Controllers\Frontend\FeedController::invalidateCache($tenantId);
+        }
+
         flash('success', __('blog.post.success_created'));
         header("Location: /" . admin_path() . "/blog/posts/{$post->id}/edit");
         exit;
@@ -648,6 +653,9 @@ class BlogPostController
                 'status' => $data['status'] ?? '',
                 'tenant_id' => $tenantId
             ]);
+
+            // Invalidar caché del feed RSS (el post podría haber cambiado de status)
+            \Blog\Controllers\Frontend\FeedController::invalidateCache($tenantId);
 
         } catch (\Throwable $e) {
             if ($pdo && $pdo->inTransaction()) { $pdo->rollBack(); }

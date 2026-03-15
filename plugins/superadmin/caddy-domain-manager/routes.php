@@ -113,6 +113,31 @@ Route::post('/musedock/domain-manager/{id}/link-cloudflare', 'CaddyDomainManager
     ->middleware('superadmin')
     ->name('superadmin.domain-manager.link-cloudflare');
 
+// Site Settings del tenant (AJAX)
+Route::post('/musedock/domain-manager/{id}/site-settings', 'CaddyDomainManager\Controllers\DomainManagerController@updateSiteSettings')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.site-settings');
+
+// Eliminar logo del tenant (AJAX)
+Route::post('/musedock/domain-manager/{id}/delete-logo', 'CaddyDomainManager\Controllers\DomainManagerController@deleteTenantLogo')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.delete-logo');
+
+// Eliminar favicon del tenant (AJAX)
+Route::post('/musedock/domain-manager/{id}/delete-favicon', 'CaddyDomainManager\Controllers\DomainManagerController@deleteTenantFavicon')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.delete-favicon');
+
+// SEO & Social Settings del tenant (AJAX)
+Route::post('/musedock/domain-manager/{id}/seo-settings', 'CaddyDomainManager\Controllers\DomainManagerController@updateSeoSettings')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.seo-settings');
+
+// Eliminar imagen OG del tenant (AJAX)
+Route::post('/musedock/domain-manager/{id}/delete-og-image', 'CaddyDomainManager\Controllers\DomainManagerController@deleteTenantOgImage')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.delete-og-image');
+
 // Crear subdominio FREE manual (superadmin)
 Route::post('/musedock/domain-manager/create-free', 'CaddyDomainManager\Controllers\DomainManagerController@createFreeSubdomain')
     ->middleware('superadmin')

@@ -52,7 +52,12 @@ textarea::placeholder {
                                 <input type="text" name="site_subtitle" class="form-control"
                                        value="{{ $settings['site_subtitle'] ?? '' }}"
                                        placeholder="Ej: Tu lema o eslogan">
-                                <small class="text-muted">Texto que se muestra debajo del logo en la cabecera (si esta activado en Apariencia)</small>
+                                <div class="form-check mt-2">
+                                    <input type="checkbox" class="form-check-input" id="show_subtitle"
+                                           name="show_subtitle" {{ ($settings['show_subtitle'] ?? '1') == '1' ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="show_subtitle">Mostrar subtitulo en la cabecera</label>
+                                </div>
+                                <small class="text-muted">Texto que se muestra debajo del logo en la cabecera</small>
                             </div>
 
                             <div class="mb-3">

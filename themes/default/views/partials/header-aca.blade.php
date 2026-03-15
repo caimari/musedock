@@ -13,6 +13,7 @@
     $siteName = site_setting('site_name', '');
     $siteDescription = site_setting('site_subtitle', '');
     $taglineEnabled = themeOption('header.header_tagline_enabled', true);
+    $showSubtitle = site_setting('show_subtitle', '1') === '1';
     $logoPath = site_setting('site_logo', '');
     $defaultLogo = asset('img/musedock_logo.png');
 @endphp
@@ -37,7 +38,7 @@
                         @endif
                     </div>
 
-                    @if($taglineEnabled && $siteDescription)
+                    @if($taglineEnabled && $showSubtitle && $siteDescription)
                         <div class="header-aca-tagline header-site-tagline">{{ $siteDescription }}</div>
                     @endif
                 </a>

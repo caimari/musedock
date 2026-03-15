@@ -61,6 +61,14 @@ Route::get('/storage/private/images/{filename}', 'StorageController@serve')->nam
 Route::get('/storage/{type}/{filename}', 'StorageController@serve')->name('storage.generic');
 // ============================================================================
 
+// ============================================================================
+// RUTAS DE FEED RSS (deben estar antes de las rutas genéricas de slugs)
+// ============================================================================
+Route::get('/feed', 'Blog\Controllers\Frontend\FeedController@index')->name('blog.feed.main');
+Route::get('/feed.xml', 'Blog\Controllers\Frontend\FeedController@index')->name('blog.feed.xml.main');
+Route::get('/rss', 'Blog\Controllers\Frontend\FeedController@index')->name('blog.rss.main');
+// ============================================================================
+
 // Ruta específica para /p (sin barra final)
 Route::get('/p', function () {
     return \Screenart\Musedock\Services\SlugRouter::resolve('p', '');

@@ -22,6 +22,8 @@
                             <option value="openai" {{ old('provider_type') == 'openai' ? 'selected' : '' }}>OpenAI</option>
                             <option value="claude" {{ old('provider_type') == 'claude' ? 'selected' : '' }}>Claude (Anthropic)</option>
                             <option value="gemini" {{ old('provider_type') == 'gemini' ? 'selected' : '' }}>Gemini (Google)</option>
+                            <option value="ollama" {{ old('provider_type') == 'ollama' ? 'selected' : '' }}>Ollama (Local)</option>
+                            <option value="minimax" {{ old('provider_type') == 'minimax' ? 'selected' : '' }}>MiniMax</option>
                             <option value="other" {{ old('provider_type') == 'other' ? 'selected' : '' }}>Otro</option>
                         </select>
                     </div>

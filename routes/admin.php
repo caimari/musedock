@@ -192,6 +192,17 @@ Route::post("$adminPath/settings/cookies", 'tenant.SettingsController@updateCook
      ->middleware(['auth', 'permission:settings.edit'])
      ->name('tenant.settings.cookies.update');
 
+// AI Settings (Configuración de IA del Tenant)
+Route::get("$adminPath/ai/settings", 'tenant.AISettingsController@settings')
+     ->middleware(['auth', 'permission:settings.view'])
+     ->name('tenant.ai.settings');
+Route::post("$adminPath/ai/settings", 'tenant.AISettingsController@update')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.ai.settings.update');
+Route::get("$adminPath/ai/settings/delete-key", 'tenant.AISettingsController@deleteKey')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.ai.settings.delete');
+
 // Languages (Idiomas del Tenant)
 Route::get("$adminPath/languages", 'tenant.LanguagesController@index')
      ->middleware(['auth', 'permission:settings.view'])

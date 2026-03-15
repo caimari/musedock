@@ -16,6 +16,7 @@ use Screenart\Musedock\Traits\RequiresPermission;
 use Screenart\Musedock\Mail\Mailer;
 use Screenart\Musedock\Services\TenantCreationService;
 use CaddyDomainManager\Services\CaddyService;
+use Screenart\Musedock\Models\Language;
 use PDO;
 
 class DomainManagerController
@@ -409,11 +410,22 @@ class DomainManagerController
             $caddyRouteInfo = $this->caddyService->getRoute($tenant->caddy_route_id);
         }
 
+        // Fetch tenant site settings and active languages
+        $tenantSettings = $this->getTenantSiteSettings($tenant->id);
+        $activeLanguages = [];
+        try {
+            $activeLanguages = Language::getActiveLanguages($tenant->id);
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error loading languages for tenant {$tenant->id}: " . $e->getMessage(), 'ERROR');
+        }
+
         return View::renderSuperadmin('plugins.caddy-domain-manager.edit', [
             'title' => 'Editar Dominio: ' . $tenant->domain,
             'tenant' => $tenant,
             'caddyApiAvailable' => $caddyApiAvailable,
-            'caddyRouteInfo' => $caddyRouteInfo
+            'caddyRouteInfo' => $caddyRouteInfo,
+            'tenantSettings' => $tenantSettings,
+            'activeLanguages' => $activeLanguages,
         ]);
     }
 
@@ -1116,6 +1128,431 @@ class DomainManagerController
             ]);
         }
 
+        exit;
+    }
+
+    // ============================================
+    // SITE SETTINGS MANAGEMENT
+    // ============================================
+
+    private const BRANDING_DIR = 'branding';
+
+    /**
+     * Guarda los ajustes del sitio de un tenant (AJAX)
+     */
+    public function updateSiteSettings($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        // Validar CSRF
+        $csrfToken = $_POST['_csrf'] ?? '';
+        if (!validate_csrf($csrfToken)) {
+            echo json_encode(['success' => false, 'message' => 'Token de seguridad inválido.']);
+            exit;
+        }
+
+        $tenant = $this->getTenant($id);
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado.']);
+            exit;
+        }
+
+        try {
+            $pdo = Database::connect();
+            $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            $pdo->beginTransaction();
+
+            $settingsKeys = [
+                'site_name', 'site_subtitle', 'site_description', 'admin_email',
+                'contact_phone', 'contact_email', 'contact_address', 'contact_whatsapp',
+                'social_facebook', 'social_twitter', 'social_instagram',
+                'social_linkedin', 'social_youtube', 'social_tiktok',
+                'footer_copyright',
+            ];
+
+            // Campos traducibles del footer
+            $activeLanguages = Language::getActiveLanguages($tenant->id);
+            foreach ($activeLanguages as $lang) {
+                $settingsKeys[] = 'footer_short_description_' . $lang->code;
+            }
+
+            foreach ($settingsKeys as $key) {
+                $value = $_POST[$key] ?? null;
+                if ($value !== null) {
+                    $this->saveTenantSiteSetting($pdo, $tenant->id, $key, $value, $driver);
+                }
+            }
+
+            // Checkboxes
+            $this->saveTenantSiteSetting($pdo, $tenant->id, 'show_logo', isset($_POST['show_logo']) ? '1' : '0', $driver);
+            $this->saveTenantSiteSetting($pdo, $tenant->id, 'show_title', isset($_POST['show_title']) ? '1' : '0', $driver);
+            $this->saveTenantSiteSetting($pdo, $tenant->id, 'show_subtitle', isset($_POST['show_subtitle']) ? '1' : '0', $driver);
+
+            // Logo upload
+            if (isset($_FILES['site_logo']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
+                $url = $this->storeBrandingUploadFile($_FILES['site_logo'], "tenant-{$tenant->id}", 'logo');
+                if ($url) {
+                    $currentSettings = $this->getTenantSiteSettings($tenant->id);
+                    $this->deleteBrandingFileFromPath($currentSettings['site_logo'] ?? '');
+                    $this->saveTenantSiteSetting($pdo, $tenant->id, 'site_logo', $url, $driver);
+                }
+            }
+
+            // Favicon upload
+            if (isset($_FILES['site_favicon']) && $_FILES['site_favicon']['error'] === UPLOAD_ERR_OK) {
+                $url = $this->storeBrandingUploadFile($_FILES['site_favicon'], "tenant-{$tenant->id}", 'favicon');
+                if ($url) {
+                    $currentSettings = $this->getTenantSiteSettings($tenant->id);
+                    $this->deleteBrandingFileFromPath($currentSettings['site_favicon'] ?? '');
+                    $this->saveTenantSiteSetting($pdo, $tenant->id, 'site_favicon', $url, $driver);
+                }
+            }
+
+            $pdo->commit();
+
+            Logger::log("[DomainManager] Site settings updated for tenant {$tenant->id} ({$tenant->domain})", 'INFO');
+            echo json_encode(['success' => true, 'message' => 'Ajustes del sitio guardados correctamente.']);
+        } catch (\Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            Logger::log("[DomainManager] Error saving site settings for tenant {$tenant->id}: " . $e->getMessage(), 'ERROR');
+            echo json_encode(['success' => false, 'message' => 'Error al guardar los ajustes: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /**
+     * Elimina el logo de un tenant (AJAX)
+     */
+    public function deleteTenantLogo($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        $csrfToken = $input['_csrf'] ?? '';
+        if (!validate_csrf($csrfToken)) {
+            echo json_encode(['success' => false, 'message' => 'Token de seguridad inválido.']);
+            exit;
+        }
+
+        $tenant = $this->getTenant($id);
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado.']);
+            exit;
+        }
+
+        try {
+            $settings = $this->getTenantSiteSettings($tenant->id);
+            $this->deleteBrandingFileFromPath($settings['site_logo'] ?? '');
+
+            $pdo = Database::connect();
+            $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            $this->saveTenantSiteSetting($pdo, $tenant->id, 'site_logo', '', $driver);
+
+            Logger::log("[DomainManager] Logo deleted for tenant {$tenant->id}", 'INFO');
+            echo json_encode(['success' => true, 'message' => 'Logo eliminado correctamente.']);
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error deleting logo for tenant {$tenant->id}: " . $e->getMessage(), 'ERROR');
+            echo json_encode(['success' => false, 'message' => 'Error al eliminar el logo.']);
+        }
+        exit;
+    }
+
+    /**
+     * Elimina el favicon de un tenant (AJAX)
+     */
+    public function deleteTenantFavicon($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        $csrfToken = $input['_csrf'] ?? '';
+        if (!validate_csrf($csrfToken)) {
+            echo json_encode(['success' => false, 'message' => 'Token de seguridad inválido.']);
+            exit;
+        }
+
+        $tenant = $this->getTenant($id);
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado.']);
+            exit;
+        }
+
+        try {
+            $settings = $this->getTenantSiteSettings($tenant->id);
+            $this->deleteBrandingFileFromPath($settings['site_favicon'] ?? '');
+
+            $pdo = Database::connect();
+            $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            $this->saveTenantSiteSetting($pdo, $tenant->id, 'site_favicon', '', $driver);
+
+            Logger::log("[DomainManager] Favicon deleted for tenant {$tenant->id}", 'INFO');
+            echo json_encode(['success' => true, 'message' => 'Favicon eliminado correctamente.']);
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error deleting favicon for tenant {$tenant->id}: " . $e->getMessage(), 'ERROR');
+            echo json_encode(['success' => false, 'message' => 'Error al eliminar el favicon.']);
+        }
+        exit;
+    }
+
+    /**
+     * Obtiene todos los settings de un tenant
+     */
+    private function getTenantSiteSettings(int $tenantId): array
+    {
+        try {
+            $pdo = Database::connect();
+            $keyCol = Database::qi('key');
+            $stmt = $pdo->prepare("SELECT {$keyCol}, value FROM tenant_settings WHERE tenant_id = ?");
+            $stmt->execute([$tenantId]);
+            return $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error loading tenant settings for tenant {$tenantId}: " . $e->getMessage(), 'ERROR');
+            return [];
+        }
+    }
+
+    /**
+     * Guarda un setting del tenant (upsert)
+     */
+    private function saveTenantSiteSetting(PDO $pdo, int $tenantId, string $key, $value, string $driver): bool
+    {
+        $keyCol = Database::qi('key');
+
+        if ($driver === 'mysql') {
+            $stmt = $pdo->prepare("
+                INSERT INTO tenant_settings (tenant_id, {$keyCol}, value)
+                VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE value = VALUES(value)
+            ");
+        } else {
+            $stmt = $pdo->prepare("
+                INSERT INTO tenant_settings (tenant_id, {$keyCol}, value)
+                VALUES (?, ?, ?)
+                ON CONFLICT (tenant_id, {$keyCol}) DO UPDATE SET value = EXCLUDED.value
+            ");
+        }
+
+        return $stmt->execute([$tenantId, $key, $value]);
+    }
+
+    /**
+     * Almacena un archivo de branding (logo/favicon)
+     */
+    private function storeBrandingUploadFile(array $file, string $scope, string $kind): ?string
+    {
+        $allowedTypes = $kind === 'favicon'
+            ? ['image/x-icon', 'image/png', 'image/svg+xml', 'image/vnd.microsoft.icon']
+            : ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+
+        if (empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+            return null;
+        }
+
+        if (!in_array(($file['type'] ?? ''), $allowedTypes, true)) {
+            return null;
+        }
+
+        $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
+        if ($ext === '') {
+            $ext = $kind === 'favicon' ? 'ico' : 'png';
+        }
+
+        $safeExt = preg_replace('/[^a-z0-9]+/', '', $ext);
+        if ($safeExt === '') {
+            $safeExt = $kind === 'favicon' ? 'ico' : 'png';
+        }
+
+        $filename = "{$kind}-" . time() . '-' . bin2hex(random_bytes(4)) . ".{$safeExt}";
+        $relative = self::BRANDING_DIR . '/' . $scope . '/' . $filename;
+
+        $destDir = APP_ROOT . '/storage/app/media/' . self::BRANDING_DIR . '/' . $scope;
+        if (!is_dir($destDir)) {
+            mkdir($destDir, 0775, true);
+        }
+
+        $destPath = APP_ROOT . '/storage/app/media/' . $relative;
+        if (!move_uploaded_file($file['tmp_name'], $destPath)) {
+            return null;
+        }
+
+        return '/media/file/' . $relative;
+    }
+
+    /**
+     * Elimina un archivo de branding del disco
+     */
+    private function deleteBrandingFileFromPath(?string $storedPath): void
+    {
+        $storedPath = trim((string)$storedPath);
+        if ($storedPath === '' || $storedPath === '0') {
+            return;
+        }
+
+        if (str_starts_with($storedPath, '/media/file/')) {
+            $relative = ltrim(substr($storedPath, strlen('/media/file/')), '/');
+            $fullPath = APP_ROOT . '/storage/app/media/' . $relative;
+
+            $real = realpath($fullPath);
+            $root = realpath(APP_ROOT . '/storage/app/media');
+            if ($real && $root && str_starts_with($real, $root) && is_file($real)) {
+                @unlink($real);
+            }
+            return;
+        }
+
+        if (str_starts_with($storedPath, 'uploads/') || str_starts_with($storedPath, '/uploads/')) {
+            $legacyPath = public_path(ltrim($storedPath, '/'));
+            if (is_file($legacyPath)) {
+                @unlink($legacyPath);
+            }
+            return;
+        }
+
+        if (str_starts_with($storedPath, 'assets/') || str_starts_with($storedPath, '/assets/')) {
+            $legacyPath = public_path(ltrim($storedPath, '/'));
+            if (is_file($legacyPath)) {
+                @unlink($legacyPath);
+            }
+        }
+    }
+
+    /**
+     * Guarda los ajustes SEO y Social de un tenant (AJAX)
+     */
+    public function updateSeoSettings($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $csrfToken = $_POST['_csrf'] ?? '';
+        if (!validate_csrf($csrfToken)) {
+            echo json_encode(['success' => false, 'message' => 'Token de seguridad inválido.']);
+            exit;
+        }
+
+        $tenant = $this->getTenant($id);
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado.']);
+            exit;
+        }
+
+        try {
+            $pdo = Database::connect();
+            $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            $pdo->beginTransaction();
+
+            $seoKeys = [
+                'site_keywords', 'site_author', 'twitter_site',
+                'social_facebook', 'social_twitter', 'social_instagram',
+                'social_linkedin', 'social_youtube', 'social_pinterest',
+            ];
+
+            foreach ($seoKeys as $key) {
+                $value = $_POST[$key] ?? '';
+                $this->saveTenantSiteSetting($pdo, $tenant->id, $key, $value, $driver);
+            }
+
+            // OG image upload
+            if (isset($_FILES['og_image']) && $_FILES['og_image']['error'] === UPLOAD_ERR_OK) {
+                $file = $_FILES['og_image'];
+                $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+                if (!in_array($file['type'], $allowedTypes)) {
+                    throw new \Exception('Tipo de archivo no permitido para la imagen OG.');
+                }
+
+                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                $filename = 'tenant_' . $tenant->id . '_og_' . time() . '.' . $ext;
+                $uploadDir = APP_ROOT . '/public/uploads/tenants/';
+
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+
+                if (move_uploaded_file($file['tmp_name'], $uploadDir . $filename)) {
+                    // Eliminar imagen OG anterior
+                    $currentSettings = $this->getTenantSiteSettings($tenant->id);
+                    $currentOg = $currentSettings['og_image'] ?? '';
+                    if ($currentOg && is_file(APP_ROOT . '/public/' . $currentOg)) {
+                        @unlink(APP_ROOT . '/public/' . $currentOg);
+                    }
+
+                    $this->saveTenantSiteSetting($pdo, $tenant->id, 'og_image', 'uploads/tenants/' . $filename, $driver);
+                }
+            }
+
+            $pdo->commit();
+
+            Logger::log("[DomainManager] SEO settings updated for tenant {$tenant->id} ({$tenant->domain})", 'INFO');
+            echo json_encode(['success' => true, 'message' => 'Ajustes SEO guardados correctamente.']);
+        } catch (\Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            Logger::log("[DomainManager] Error saving SEO settings for tenant {$tenant->id}: " . $e->getMessage(), 'ERROR');
+            echo json_encode(['success' => false, 'message' => 'Error al guardar los ajustes SEO: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /**
+     * Elimina la imagen OG de un tenant (AJAX)
+     */
+    public function deleteTenantOgImage($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        $csrfToken = $input['_csrf'] ?? '';
+        if (!validate_csrf($csrfToken)) {
+            echo json_encode(['success' => false, 'message' => 'Token de seguridad inválido.']);
+            exit;
+        }
+
+        $tenant = $this->getTenant($id);
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado.']);
+            exit;
+        }
+
+        try {
+            $settings = $this->getTenantSiteSettings($tenant->id);
+            $currentOg = $settings['og_image'] ?? '';
+            if ($currentOg && is_file(APP_ROOT . '/public/' . $currentOg)) {
+                @unlink(APP_ROOT . '/public/' . $currentOg);
+            }
+
+            $pdo = Database::connect();
+            $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            $this->saveTenantSiteSetting($pdo, $tenant->id, 'og_image', '', $driver);
+
+            Logger::log("[DomainManager] OG image deleted for tenant {$tenant->id}", 'INFO');
+            echo json_encode(['success' => true, 'message' => 'Imagen OG eliminada correctamente.']);
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error deleting OG image for tenant {$tenant->id}: " . $e->getMessage(), 'ERROR');
+            echo json_encode(['success' => false, 'message' => 'Error al eliminar la imagen OG.']);
+        }
         exit;
     }
 
