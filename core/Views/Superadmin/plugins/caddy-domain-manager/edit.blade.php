@@ -1452,6 +1452,25 @@
                 </div>
                 @endif
 
+                <!-- WordPress Importer -->
+                @if(function_exists('is_module_active') && is_module_active('wp-importer'))
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-wordpress" style="color:#21759b;"></i> WordPress Importer</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted mb-2">
+                            Importa contenido desde un sitio WordPress directamente a este tenant: posts, páginas, categorías, tags, media y estilos visuales.
+                        </p>
+                        <div class="d-grid">
+                            <a href="/musedock/tenant/{{ $tenant->id }}/wp-importer" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-cloud-download me-1"></i> Importar desde WordPress
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 <!-- Acciones rápidas -->
                 <div class="card">
                     <div class="card-header">

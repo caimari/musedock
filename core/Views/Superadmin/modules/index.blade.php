@@ -77,12 +77,25 @@
                                     $moduleSettingsMap = [
                                         'ai-writer' => '/musedock/aiwriter/settings',
                                         'ai-image' => '/musedock/ai-image/settings',
+                                        'wp-importer' => '/musedock/wp-importer',
                                     ];
+                                    // Auto-detectar settings URL desde module.json si existe
+                                    if (!isset($moduleSettingsMap[$module['slug']])) {
+                                        $moduleJsonPath = APP_ROOT . '/modules/' . $module['slug'] . '/module.json';
+                                        if (file_exists($moduleJsonPath)) {
+                                            $moduleMeta = json_decode(file_get_contents($moduleJsonPath), true);
+                                            if (!empty($moduleMeta['settings_url'])) {
+                                                $moduleSettingsMap[$module['slug']] = $moduleMeta['settings_url'];
+                                            } elseif (!empty($moduleMeta['admin_url'])) {
+                                                $moduleSettingsMap[$module['slug']] = $moduleMeta['admin_url'];
+                                            }
+                                        }
+                                    }
                                     $settingsUrl = $moduleSettingsMap[$module['slug']] ?? null;
                                 @endphp
                                 <div class="d-inline-flex align-items-center gap-2">
                                 @if($settingsUrl && ($module['active'] ?? false))
-                                <a href="{{ $settingsUrl }}" class="text-secondary" title="Configuracion" style="font-size: 1.1rem; text-decoration: none;">
+                                <a href="{{ $settingsUrl }}" class="text-secondary" title="Abrir módulo" style="font-size: 1.1rem; text-decoration: none;">
                                     <i class="bi bi-gear"></i>
                                 </a>
                                 @endif

@@ -210,6 +210,7 @@
                         'react-sliders' => 'bi-sliders2',
                         'instagram-gallery' => 'bi-instagram',
                         'tickets' => 'bi-ticket-detailed',
+                        'wp-importer' => 'bi-wordpress',
                     ];
                     $icon = $iconMap[$module['slug'] ?? ''] ?? 'bi-puzzle';
                 @endphp
@@ -235,7 +236,29 @@
                         </div>
                     </div>
 
-                    <div class="module-actions">
+                    <div class="module-actions d-flex align-items-center gap-2">
+                        @php
+                            $tenantModuleUrlMap = [
+                                'wp-importer' => admin_url('/wp-importer'),
+                                'ai-writer' => admin_url('/aiwriter/settings'),
+                            ];
+                            // Auto-detectar desde module.json
+                            if (!isset($tenantModuleUrlMap[$module['slug']])) {
+                                $mjPath = defined('APP_ROOT') ? APP_ROOT . '/modules/' . $module['slug'] . '/module.json' : null;
+                                if ($mjPath && file_exists($mjPath)) {
+                                    $mjData = json_decode(file_get_contents($mjPath), true);
+                                    if (!empty($mjData['admin_url'])) {
+                                        $tenantModuleUrlMap[$module['slug']] = admin_url($mjData['admin_url']);
+                                    }
+                                }
+                            }
+                            $tenantModuleUrl = $tenantModuleUrlMap[$module['slug']] ?? null;
+                        @endphp
+                        @if($tenantModuleUrl && $isEnabled)
+                        <a href="{{ $tenantModuleUrl }}" class="btn btn-sm btn-outline-secondary" title="Abrir módulo">
+                            <i class="bi bi-gear"></i>
+                        </a>
+                        @endif
                         <form method="POST" action="{{ admin_url('/modules/' . $module['id'] . '/toggle') }}"
                               class="module-toggle-form"
                               data-module-name="{{ $module['name'] }}"
