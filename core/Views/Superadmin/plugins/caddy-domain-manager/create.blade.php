@@ -107,7 +107,7 @@
 
                             <div class="mb-3" id="skip-cloudflare-option">
                                 <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="skip_cloudflare" name="skip_cloudflare">
+                                    <input type="checkbox" class="form-check-input" id="skip_cloudflare" name="skip_cloudflare" checked>
                                     <label class="form-check-label" for="skip_cloudflare">
                                         <strong>No crear zona en Cloudflare</strong>
                                     </label>

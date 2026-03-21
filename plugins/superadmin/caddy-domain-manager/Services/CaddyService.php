@@ -869,6 +869,110 @@ class CaddyService
     }
 
     /**
+     * Configura una redirección en Caddy (301/302).
+     *
+     * Crea una ruta que redirige el dominio de origen al destino.
+     */
+    public function configureRedirect(string $domain, string $redirectTo, bool $includeWww, int $redirectType = 301, bool $preservePath = true): array
+    {
+        $domain = $this->sanitizeDomain($domain);
+        $routeId = 'redirect-' . str_replace('.', '-', $domain);
+
+        $hosts = [$domain];
+        if ($includeWww) {
+            $hosts[] = 'www.' . $domain;
+        }
+
+        // Build redirect URI
+        $redirectTo = rtrim($redirectTo, '/');
+        if ($preservePath) {
+            $redirectUri = $redirectTo . '{http.request.uri}';
+        } else {
+            $redirectUri = $redirectTo . '/';
+        }
+
+        $config = [
+            '@id' => $routeId,
+            'match' => [
+                [
+                    'host' => $hosts
+                ]
+            ],
+            'terminal' => true,
+            'handle' => [
+                [
+                    'handler' => 'static_response',
+                    'status_code' => (string) $redirectType,
+                    'headers' => [
+                        'Location' => [$redirectUri]
+                    ]
+                ]
+            ]
+        ];
+
+        // Check if route already exists
+        $indices = $this->findRouteIndicesById($routeId);
+
+        if (!empty($indices)) {
+            $primaryIndex = min($indices);
+            $update = $this->apiRequest('PUT', "/config/apps/http/servers/srv0/routes/{$primaryIndex}", $config);
+
+            if (!$update['success']) {
+                Logger::log("[CaddyService] Error actualizando redirect {$domain}: " . $update['error'], 'ERROR');
+                return ['success' => false, 'route_id' => $routeId, 'error' => $update['error']];
+            }
+
+            // Remove duplicates
+            $duplicates = array_values(array_filter($indices, static fn(int $i): bool => $i !== $primaryIndex));
+            rsort($duplicates);
+            foreach ($duplicates as $duplicateIndex) {
+                $this->apiRequest('DELETE', "/config/apps/http/servers/srv0/routes/{$duplicateIndex}");
+            }
+
+            Logger::log("[CaddyService] Redirect actualizado: {$domain} → {$redirectTo}", 'INFO');
+            return ['success' => true, 'route_id' => $routeId, 'error' => null];
+        }
+
+        $create = $this->apiRequest('POST', '/config/apps/http/servers/srv0/routes', $config);
+
+        if ($create['success']) {
+            Logger::log("[CaddyService] Redirect creado: {$domain} → {$redirectTo}", 'INFO');
+            return ['success' => true, 'route_id' => $routeId, 'error' => null];
+        }
+
+        Logger::log("[CaddyService] Error creando redirect {$domain}: " . $create['error'], 'ERROR');
+        return ['success' => false, 'route_id' => null, 'error' => $create['error']];
+    }
+
+    /**
+     * Elimina una redirección de Caddy.
+     */
+    public function removeRedirect(string $domain): array
+    {
+        $domain = $this->sanitizeDomain($domain);
+        $routeId = 'redirect-' . str_replace('.', '-', $domain);
+
+        $indices = $this->findRouteIndicesById($routeId);
+
+        if (empty($indices)) {
+            Logger::log("[CaddyService] No se encontró ruta de redirect para {$domain}", 'WARNING');
+            return ['success' => true, 'error' => null]; // Not an error — already gone
+        }
+
+        rsort($indices);
+        foreach ($indices as $index) {
+            $result = $this->apiRequest('DELETE', "/config/apps/http/servers/srv0/routes/{$index}");
+            if (!$result['success']) {
+                Logger::log("[CaddyService] Error eliminando redirect route {$domain} index {$index}: " . $result['error'], 'ERROR');
+                return ['success' => false, 'error' => $result['error']];
+            }
+        }
+
+        Logger::log("[CaddyService] Redirect eliminado: {$domain}", 'INFO');
+        return ['success' => true, 'error' => null];
+    }
+
+    /**
      * Verifica si Caddy API está disponible
      */
     public function isApiAvailable(): bool

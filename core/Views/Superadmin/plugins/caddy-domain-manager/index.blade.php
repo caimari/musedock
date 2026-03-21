@@ -23,9 +23,19 @@
                 <button type="button" class="btn btn-success" onclick="showCreateFreeSubdomainModal()">
                     <i class="bi bi-gift"></i> Crear Subdominio FREE
                 </button>
-                <a href="/musedock/domain-manager/create" class="btn btn-primary">
-                    <i class="bi bi-plus-lg"></i> Nuevo Dominio
-                </a>
+                <div class="btn-group">
+                    <a href="/musedock/domain-manager/create" class="btn btn-primary">
+                        <i class="bi bi-plus-lg"></i> Nuevo Dominio
+                    </a>
+                    <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="visually-hidden">Opciones</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/musedock/domain-manager/create"><i class="bi bi-globe2 me-2"></i> Dominio (Tenant)</a></li>
+                        <li><a class="dropdown-item" href="/musedock/domain-manager/create-alias"><i class="bi bi-link-45deg me-2"></i> Alias de Dominio</a></li>
+                        <li><a class="dropdown-item" href="/musedock/domain-manager/create-redirect"><i class="bi bi-arrow-right-circle me-2"></i> Redirección</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
 
@@ -358,6 +368,228 @@
             </div>
         </div>
 
+        <!-- Alias de Dominio -->
+        <div class="card mt-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0"><i class="bi bi-link-45deg"></i> Alias de Dominio</h5>
+                    <small class="text-muted">Dominios adicionales que apuntan a un tenant existente</small>
+                </div>
+                <a href="/musedock/domain-manager/create-alias" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-plus-lg"></i> Nuevo Alias
+                </a>
+            </div>
+            <div class="card-body table-responsive p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Dominio Alias</th>
+                            <th>Tenant</th>
+                            <th>WWW</th>
+                            <th>Estado</th>
+                            <th>Caddy</th>
+                            <th>Cloudflare</th>
+                            <th>Creado</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($allAliases ?? [] as $alias)
+                            <tr>
+                                <td>
+                                    <a href="https://{{ $alias->domain }}" target="_blank" class="text-decoration-none fw-semibold">
+                                        {{ $alias->domain }}
+                                        <i class="bi bi-box-arrow-up-right small"></i>
+                                    </a>
+                                </td>
+                                <td>
+                                    @if(!empty($alias->tenant_name))
+                                        <a href="/musedock/domain-manager/{{ $alias->tenant_id }}/edit" class="text-decoration-none">
+                                            {{ $alias->tenant_name }}
+                                        </a>
+                                        <br><small class="text-muted">{{ $alias->tenant_domain ?? '' }}</small>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($alias->include_www ?? false)
+                                        <span class="badge bg-info">Sí</span>
+                                    @else
+                                        <span class="text-muted">No</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @php
+                                        $aliasStatusClass = match($alias->status ?? 'pending') {
+                                            'active' => 'success',
+                                            'pending' => 'warning',
+                                            'error' => 'danger',
+                                            'suspended' => 'secondary',
+                                            default => 'dark'
+                                        };
+                                    @endphp
+                                    <span class="badge bg-{{ $aliasStatusClass }}">{{ ucfirst($alias->status ?? 'pending') }}</span>
+                                </td>
+                                <td>
+                                    @if($alias->caddy_configured ?? false)
+                                        <span class="text-success"><i class="bi bi-check-circle"></i></span>
+                                    @else
+                                        <span class="text-muted"><i class="bi bi-x-circle"></i></span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if(!empty($alias->cloudflare_zone_id))
+                                        <span class="badge bg-warning text-dark"><i class="bi bi-shield-fill-check"></i></span>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td class="small text-muted">
+                                    @if(!empty($alias->created_at))
+                                        {{ date('d/m/Y', strtotime($alias->created_at)) }}
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="/musedock/domain-manager/alias/{{ $alias->id }}/edit" class="btn btn-outline-warning" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger" onclick="confirmDeleteAlias({{ $alias->id }}, '{{ $alias->domain }}')" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                                    No hay alias de dominio configurados.
+                                    <br><a href="/musedock/domain-manager/create-alias">Crear el primero</a>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Redirecciones de Dominio -->
+        <div class="card mt-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0"><i class="bi bi-arrow-right-circle"></i> Redirecciones de Dominio</h5>
+                    <small class="text-muted">Dominios que redirigen (301/302) a otra URL</small>
+                </div>
+                <a href="/musedock/domain-manager/create-redirect" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-plus-lg"></i> Nueva Redirección
+                </a>
+            </div>
+            <div class="card-body table-responsive p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Dominio Origen</th>
+                            <th>Destino</th>
+                            <th>Tipo</th>
+                            <th>WWW</th>
+                            <th>Path</th>
+                            <th>Estado</th>
+                            <th>Caddy</th>
+                            <th>Creado</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($domainRedirects ?? [] as $redir)
+                            <tr>
+                                <td>
+                                    <a href="https://{{ $redir->domain }}" target="_blank" class="text-decoration-none fw-semibold">
+                                        {{ $redir->domain }}
+                                        <i class="bi bi-box-arrow-up-right small"></i>
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="{{ $redir->redirect_to }}" target="_blank" class="text-decoration-none">
+                                        {{ $redir->redirect_to }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge {{ $redir->redirect_type == 301 ? 'bg-primary' : 'bg-secondary' }}">
+                                        {{ $redir->redirect_type }}
+                                    </span>
+                                </td>
+                                <td>
+                                    @if($redir->include_www ?? false)
+                                        <span class="badge bg-info">Sí</span>
+                                    @else
+                                        <span class="text-muted">No</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($redir->preserve_path ?? false)
+                                        <span class="text-success"><i class="bi bi-check-circle"></i></span>
+                                    @else
+                                        <span class="text-muted"><i class="bi bi-x-circle"></i></span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @php
+                                        $redirStatusClass = match($redir->status ?? 'pending') {
+                                            'active' => 'success',
+                                            'pending' => 'warning',
+                                            'error' => 'danger',
+                                            'suspended' => 'secondary',
+                                            default => 'dark'
+                                        };
+                                    @endphp
+                                    <span class="badge bg-{{ $redirStatusClass }}">{{ ucfirst($redir->status ?? 'pending') }}</span>
+                                    @if($redir->error_log ?? false)
+                                        <br><small class="text-danger" title="{{ $redir->error_log }}"><i class="bi bi-exclamation-triangle"></i></small>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($redir->caddy_configured ?? false)
+                                        <span class="text-success"><i class="bi bi-check-circle"></i></span>
+                                    @else
+                                        <span class="text-muted"><i class="bi bi-x-circle"></i></span>
+                                    @endif
+                                </td>
+                                <td class="small text-muted">
+                                    @if(!empty($redir->created_at))
+                                        {{ date('d/m/Y', strtotime($redir->created_at)) }}
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="/musedock/domain-manager/redirect/{{ $redir->id }}/edit" class="btn btn-outline-warning" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger" onclick="confirmDeleteRedirect({{ $redir->id }}, '{{ $redir->domain }}')" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                                    No hay redirecciones configuradas.
+                                    <br><a href="/musedock/domain-manager/create-redirect">Crear la primera</a>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -639,6 +871,96 @@ function confirmDeleteDomainOrder(id, domain, hasCloudflare) {
                     text: 'Error de conexión. Intenta de nuevo.',
                     confirmButtonColor: '#0d6efd'
                 });
+            });
+        }
+    });
+}
+
+// ========== ELIMINAR ALIAS con SweetAlert2 ==========
+function confirmDeleteAlias(id, domain) {
+    Swal.fire({
+        title: '<i class="bi bi-exclamation-triangle text-danger"></i> Eliminar Alias',
+        html: `<p>¿Estás seguro de eliminar el alias <strong>${domain}</strong>?</p>
+               <p class="text-muted small">Se eliminará de Caddy y Cloudflare (si aplica).</p>`,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-trash me-1"></i> Eliminar Alias',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Eliminando alias...',
+                html: '<p class="mb-0">Por favor espera...</p>',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            fetch(`/musedock/domain-manager/alias/${id}/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ _csrf: csrfToken })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({ icon: 'success', title: 'Alias Eliminado', text: data.message, confirmButtonColor: '#0d6efd' })
+                        .then(() => location.reload());
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message, confirmButtonColor: '#0d6efd' });
+                }
+            })
+            .catch(() => {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Error de conexión.', confirmButtonColor: '#0d6efd' });
+            });
+        }
+    });
+}
+
+// ========== ELIMINAR REDIRECT con SweetAlert2 ==========
+function confirmDeleteRedirect(id, domain) {
+    Swal.fire({
+        title: '<i class="bi bi-exclamation-triangle text-danger"></i> Eliminar Redirección',
+        html: `<p>¿Estás seguro de eliminar la redirección de <strong>${domain}</strong>?</p>
+               <p class="text-muted small">Se eliminará de Caddy y Cloudflare (si aplica).</p>`,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-trash me-1"></i> Eliminar Redirección',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Eliminando redirección...',
+                html: '<p class="mb-0">Por favor espera...</p>',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            fetch(`/musedock/domain-manager/redirect/${id}/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ _csrf: csrfToken })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({ icon: 'success', title: 'Redirección Eliminada', text: data.message, confirmButtonColor: '#0d6efd' })
+                        .then(() => location.reload());
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message, confirmButtonColor: '#0d6efd' });
+                }
+            })
+            .catch(() => {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Error de conexión.', confirmButtonColor: '#0d6efd' });
             });
         }
     });

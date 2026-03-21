@@ -181,6 +181,52 @@ Route::post('/musedock/domain-manager/create-free', 'CaddyDomainManager\Controll
     ->middleware('superadmin')
     ->name('superadmin.domain-manager.create-free');
 
+// ============================================
+// STANDALONE ALIAS MANAGEMENT ROUTES
+// ============================================
+Route::get('/musedock/domain-manager/create-alias', 'CaddyDomainManager\Controllers\DomainManagerController@createAlias')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.create-alias');
+
+Route::post('/musedock/domain-manager/store-alias', 'CaddyDomainManager\Controllers\DomainManagerController@storeAlias')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.store-alias');
+
+Route::get('/musedock/domain-manager/alias/{id}/edit', 'CaddyDomainManager\Controllers\DomainManagerController@editAlias')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.edit-alias');
+
+Route::post('/musedock/domain-manager/alias/{id}/update', 'CaddyDomainManager\Controllers\DomainManagerController@updateAlias')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.update-alias');
+
+Route::post('/musedock/domain-manager/alias/{id}/delete', 'CaddyDomainManager\Controllers\DomainManagerController@deleteAlias')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.delete-alias');
+
+// ============================================
+// STANDALONE REDIRECT MANAGEMENT ROUTES
+// ============================================
+Route::get('/musedock/domain-manager/create-redirect', 'CaddyDomainManager\Controllers\DomainManagerController@createRedirect')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.create-redirect');
+
+Route::post('/musedock/domain-manager/store-redirect', 'CaddyDomainManager\Controllers\DomainManagerController@storeRedirect')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.store-redirect');
+
+Route::get('/musedock/domain-manager/redirect/{id}/edit', 'CaddyDomainManager\Controllers\DomainManagerController@editRedirect')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.edit-redirect');
+
+Route::post('/musedock/domain-manager/redirect/{id}/update', 'CaddyDomainManager\Controllers\DomainManagerController@updateRedirect')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.update-redirect');
+
+Route::post('/musedock/domain-manager/redirect/{id}/delete', 'CaddyDomainManager\Controllers\DomainManagerController@deleteRedirect')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.delete-redirect');
+
 // Listado de clientes (customers)
 Route::get('/musedock/domain-manager/customers', 'CaddyDomainManager\Controllers\AdminCustomerController@index')
     ->middleware('superadmin')

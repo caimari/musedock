@@ -174,12 +174,37 @@ class DomainManagerController
         // Verificar disponibilidad de Caddy API
         $caddyApiAvailable = $this->caddyService->isApiAvailable();
 
+        // Cargar todos los alias (standalone listing)
+        $allAliases = [];
+        try {
+            $stmt = $pdo->query("
+                SELECT da.*, t.name AS tenant_name, t.domain AS tenant_domain
+                FROM domain_aliases da
+                LEFT JOIN tenants t ON t.id = da.tenant_id
+                ORDER BY da.created_at DESC
+            ");
+            $allAliases = $stmt->fetchAll(PDO::FETCH_OBJ) ?: [];
+        } catch (\Exception $e) {
+            // Table may not exist
+        }
+
+        // Cargar redirects
+        $domainRedirects = [];
+        try {
+            $stmt = $pdo->query("SELECT * FROM domain_redirects ORDER BY created_at DESC");
+            $domainRedirects = $stmt->fetchAll(PDO::FETCH_OBJ) ?: [];
+        } catch (\Exception $e) {
+            // Table may not exist
+        }
+
         return View::renderSuperadmin('plugins.caddy-domain-manager.index', [
             'title' => 'Domain Manager',
             'tenants' => $tenants,
             'domainOrders' => $domainOrders,
             'caddyApiAvailable' => $caddyApiAvailable,
             'aliasCounts' => $aliasCounts,
+            'allAliases' => $allAliases,
+            'domainRedirects' => $domainRedirects,
             'baseDomain' => $baseDomain,
             'filters' => [
                 'caddy_status' => $caddyStatusFilter,
@@ -3544,6 +3569,522 @@ TEXT;
             $result = \Screenart\Musedock\Services\AI\BlogAutoTagger::analyze((int) $tenant->id, $postIds, $dryRun);
             echo json_encode($result);
         } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    // ====================================================================
+    // STANDALONE ALIAS MANAGEMENT (form-based, not AJAX)
+    // ====================================================================
+
+    public function createAlias()
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        $pdo = Database::connect();
+        $tenants = $pdo->query("SELECT id, name, domain FROM tenants ORDER BY name ASC")->fetchAll(PDO::FETCH_OBJ);
+        $caddyApiAvailable = $this->caddyService->isApiAvailable();
+
+        return View::renderSuperadmin('plugins.caddy-domain-manager.create-alias', [
+            'title' => 'Nuevo Alias de Dominio',
+            'tenants' => $tenants,
+            'caddyApiAvailable' => $caddyApiAvailable,
+        ]);
+    }
+
+    public function storeAlias()
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        if (!validate_csrf($_POST['_csrf'] ?? '')) {
+            flash('error', 'Token de seguridad inválido.');
+            header('Location: /musedock/domain-manager/create-alias');
+            exit;
+        }
+
+        $tenantId = (int) ($_POST['tenant_id'] ?? 0);
+        $aliasDomain = strtolower(trim($_POST['domain'] ?? ''));
+        $includeWww = isset($_POST['include_www']);
+        $skipCloudflare = isset($_POST['skip_cloudflare']);
+        $configureCloudflare = isset($_POST['configure_cloudflare']);
+
+        // Strip www
+        $aliasDomain = preg_replace('/^www\./', '', $aliasDomain);
+        // Strip protocol
+        $aliasDomain = preg_replace('#^https?://#', '', $aliasDomain);
+        $aliasDomain = rtrim($aliasDomain, '/');
+
+        if (empty($aliasDomain) || $tenantId <= 0) {
+            flash('error', 'Dominio y tenant son obligatorios.');
+            header('Location: /musedock/domain-manager/create-alias');
+            exit;
+        }
+
+        $tenant = $this->getTenant($tenantId);
+        if (!$tenant) {
+            flash('error', 'Tenant no encontrado.');
+            header('Location: /musedock/domain-manager/create-alias');
+            exit;
+        }
+
+        $pdo = Database::connect();
+
+        // Check uniqueness
+        $stmt = $pdo->prepare("SELECT id FROM tenants WHERE domain = ?");
+        $stmt->execute([$aliasDomain]);
+        if ($stmt->fetch()) {
+            flash('error', 'Este dominio ya es un dominio principal de un tenant.');
+            header('Location: /musedock/domain-manager/create-alias');
+            exit;
+        }
+
+        $stmt = $pdo->prepare("SELECT id FROM domain_aliases WHERE domain = ?");
+        $stmt->execute([$aliasDomain]);
+        if ($stmt->fetch()) {
+            flash('error', 'Este dominio ya está registrado como alias.');
+            header('Location: /musedock/domain-manager/create-alias');
+            exit;
+        }
+
+        try {
+            $stmt = $pdo->prepare("SELECT id FROM domain_redirects WHERE domain = ?");
+            $stmt->execute([$aliasDomain]);
+            if ($stmt->fetch()) {
+                flash('error', 'Este dominio ya está registrado como redirección.');
+                header('Location: /musedock/domain-manager/create-alias');
+                exit;
+            }
+        } catch (\Exception $e) {}
+
+        $baseDomain = \Screenart\Musedock\Env::get('TENANT_BASE_DOMAIN', 'musedock.com');
+        $isSubdomain = str_ends_with($aliasDomain, '.' . $baseDomain);
+
+        try {
+            $pdo->beginTransaction();
+
+            $stmt = $pdo->prepare("
+                INSERT INTO domain_aliases (tenant_id, domain, include_www, is_subdomain, status, created_at)
+                VALUES (?, ?, ?, ?, 'pending', NOW())
+            ");
+            $stmt->execute([$tenantId, $aliasDomain, $includeWww ? 1 : 0, $isSubdomain ? 1 : 0]);
+            $aliasId = $pdo->lastInsertId();
+
+            // Cloudflare
+            if (!$skipCloudflare && $configureCloudflare) {
+                $cloudflareInfo = $this->configureAliasCloudflare($aliasDomain, $isSubdomain, $includeWww);
+                if (!empty($cloudflareInfo)) {
+                    $stmt = $pdo->prepare("UPDATE domain_aliases SET cloudflare_zone_id = ?, cloudflare_record_id = ?, cloudflare_nameservers = ? WHERE id = ?");
+                    $stmt->execute([
+                        $cloudflareInfo['zone_id'] ?? null,
+                        $cloudflareInfo['record_id'] ?? null,
+                        isset($cloudflareInfo['nameservers']) ? json_encode($cloudflareInfo['nameservers']) : null,
+                        $aliasId
+                    ]);
+                }
+            }
+
+            // Caddy - rebuild with all aliases
+            $aliasStmt = $pdo->prepare("SELECT domain, include_www FROM domain_aliases WHERE tenant_id = ? AND status IN ('pending','active')");
+            $aliasStmt->execute([$tenantId]);
+            $allAliases = $aliasStmt->fetchAll(PDO::FETCH_OBJ);
+
+            $caddyResult = $this->caddyService->upsertDomainWithAliases(
+                $tenant->domain,
+                (bool) ($tenant->include_www ?? true),
+                $allAliases
+            );
+
+            if ($caddyResult['success']) {
+                $stmt = $pdo->prepare("UPDATE domain_aliases SET caddy_configured = 1, status = 'active' WHERE id = ?");
+                $stmt->execute([$aliasId]);
+            } else {
+                $stmt = $pdo->prepare("UPDATE domain_aliases SET error_log = ?, status = 'error' WHERE id = ?");
+                $stmt->execute([$caddyResult['error'] ?? 'Caddy error', $aliasId]);
+            }
+
+            $pdo->commit();
+
+            Logger::log("[DomainManager] Alias creado: {$aliasDomain} → tenant {$tenant->domain}", 'INFO');
+            flash('success', "Alias {$aliasDomain} creado correctamente para {$tenant->domain}.");
+
+        } catch (\Exception $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            Logger::log("[DomainManager] Error creando alias: " . $e->getMessage(), 'ERROR');
+            flash('error', 'Error al crear alias: ' . $e->getMessage());
+        }
+
+        header('Location: /musedock/domain-manager');
+        exit;
+    }
+
+    public function editAlias($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("SELECT da.*, t.name AS tenant_name, t.domain AS tenant_domain FROM domain_aliases da LEFT JOIN tenants t ON t.id = da.tenant_id WHERE da.id = ?");
+        $stmt->execute([$id]);
+        $alias = $stmt->fetch(PDO::FETCH_OBJ);
+
+        if (!$alias) {
+            flash('error', 'Alias no encontrado.');
+            header('Location: /musedock/domain-manager');
+            exit;
+        }
+
+        $tenants = $pdo->query("SELECT id, name, domain FROM tenants ORDER BY name ASC")->fetchAll(PDO::FETCH_OBJ);
+        $caddyApiAvailable = $this->caddyService->isApiAvailable();
+
+        return View::renderSuperadmin('plugins.caddy-domain-manager.edit-alias', [
+            'title' => 'Editar Alias: ' . $alias->domain,
+            'alias' => $alias,
+            'tenants' => $tenants,
+            'caddyApiAvailable' => $caddyApiAvailable,
+        ]);
+    }
+
+    public function updateAlias($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        if (!validate_csrf($_POST['_csrf'] ?? '')) {
+            flash('error', 'Token de seguridad inválido.');
+            header("Location: /musedock/domain-manager/alias/{$id}/edit");
+            exit;
+        }
+
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("SELECT * FROM domain_aliases WHERE id = ?");
+        $stmt->execute([$id]);
+        $alias = $stmt->fetch(PDO::FETCH_OBJ);
+
+        if (!$alias) {
+            flash('error', 'Alias no encontrado.');
+            header('Location: /musedock/domain-manager');
+            exit;
+        }
+
+        $tenantId = (int) ($_POST['tenant_id'] ?? $alias->tenant_id);
+        $includeWww = isset($_POST['include_www']) ? 1 : 0;
+
+        $stmt = $pdo->prepare("UPDATE domain_aliases SET tenant_id = ?, include_www = ?, updated_at = NOW() WHERE id = ?");
+        $stmt->execute([$tenantId, $includeWww, $id]);
+
+        // Rebuild Caddy for the tenant
+        $tenant = $this->getTenant($tenantId);
+        if ($tenant) {
+            $aliasStmt = $pdo->prepare("SELECT domain, include_www FROM domain_aliases WHERE tenant_id = ? AND status IN ('pending','active')");
+            $aliasStmt->execute([$tenantId]);
+            $allAliases = $aliasStmt->fetchAll(PDO::FETCH_OBJ);
+            $this->caddyService->upsertDomainWithAliases($tenant->domain, (bool) ($tenant->include_www ?? true), $allAliases);
+        }
+
+        flash('success', "Alias {$alias->domain} actualizado correctamente.");
+        header('Location: /musedock/domain-manager');
+        exit;
+    }
+
+    public function deleteAlias($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        if (!validate_csrf($input['_csrf'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido.']);
+            exit;
+        }
+
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("SELECT * FROM domain_aliases WHERE id = ?");
+        $stmt->execute([$id]);
+        $alias = $stmt->fetch(PDO::FETCH_OBJ);
+
+        if (!$alias) {
+            echo json_encode(['success' => false, 'message' => 'Alias no encontrado.']);
+            exit;
+        }
+
+        try {
+            // Remove Cloudflare if configured
+            $this->removeAliasCloudflare($alias);
+
+            // Delete from DB
+            $stmt = $pdo->prepare("DELETE FROM domain_aliases WHERE id = ?");
+            $stmt->execute([$id]);
+
+            // Rebuild Caddy for the tenant
+            $tenant = $this->getTenant($alias->tenant_id);
+            if ($tenant) {
+                $aliasStmt = $pdo->prepare("SELECT domain, include_www FROM domain_aliases WHERE tenant_id = ? AND status IN ('pending','active')");
+                $aliasStmt->execute([$alias->tenant_id]);
+                $allAliases = $aliasStmt->fetchAll(PDO::FETCH_OBJ);
+                $this->caddyService->upsertDomainWithAliases($tenant->domain, (bool) ($tenant->include_www ?? true), $allAliases);
+            }
+
+            Logger::log("[DomainManager] Alias eliminado: {$alias->domain}", 'INFO');
+            echo json_encode(['success' => true, 'message' => "Alias {$alias->domain} eliminado."]);
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error eliminando alias: " . $e->getMessage(), 'ERROR');
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    // ====================================================================
+    // STANDALONE REDIRECT MANAGEMENT
+    // ====================================================================
+
+    public function createRedirect()
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        $caddyApiAvailable = $this->caddyService->isApiAvailable();
+
+        return View::renderSuperadmin('plugins.caddy-domain-manager.create-redirect', [
+            'title' => 'Nueva Redirección de Dominio',
+            'caddyApiAvailable' => $caddyApiAvailable,
+        ]);
+    }
+
+    public function storeRedirect()
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        if (!validate_csrf($_POST['_csrf'] ?? '')) {
+            flash('error', 'Token de seguridad inválido.');
+            header('Location: /musedock/domain-manager/create-redirect');
+            exit;
+        }
+
+        $domain = strtolower(trim($_POST['domain'] ?? ''));
+        $redirectTo = trim($_POST['redirect_to'] ?? '');
+        $redirectType = (int) ($_POST['redirect_type'] ?? 301);
+        $includeWww = isset($_POST['include_www']);
+        $preservePath = isset($_POST['preserve_path']);
+        $skipCloudflare = isset($_POST['skip_cloudflare']);
+        $configureCloudflare = isset($_POST['configure_cloudflare']);
+
+        $domain = preg_replace('#^https?://#', '', $domain);
+        $domain = preg_replace('/^www\./', '', $domain);
+        $domain = rtrim($domain, '/');
+
+        if (!preg_match('#^https?://#', $redirectTo)) {
+            $redirectTo = 'https://' . $redirectTo;
+        }
+
+        if (empty($domain) || empty($redirectTo)) {
+            flash('error', 'Dominio y destino son obligatorios.');
+            header('Location: /musedock/domain-manager/create-redirect');
+            exit;
+        }
+
+        $pdo = Database::connect();
+
+        // Check uniqueness across all tables
+        $stmt = $pdo->prepare("SELECT id FROM tenants WHERE domain = ?");
+        $stmt->execute([$domain]);
+        if ($stmt->fetch()) {
+            flash('error', 'Este dominio ya es un dominio principal de un tenant.');
+            header('Location: /musedock/domain-manager/create-redirect');
+            exit;
+        }
+
+        try {
+            $stmt = $pdo->prepare("SELECT id FROM domain_aliases WHERE domain = ?");
+            $stmt->execute([$domain]);
+            if ($stmt->fetch()) {
+                flash('error', 'Este dominio ya está registrado como alias.');
+                header('Location: /musedock/domain-manager/create-redirect');
+                exit;
+            }
+        } catch (\Exception $e) {}
+
+        $stmt = $pdo->prepare("SELECT id FROM domain_redirects WHERE domain = ?");
+        $stmt->execute([$domain]);
+        if ($stmt->fetch()) {
+            flash('error', 'Este dominio ya tiene una redirección configurada.');
+            header('Location: /musedock/domain-manager/create-redirect');
+            exit;
+        }
+
+        $baseDomain = \Screenart\Musedock\Env::get('TENANT_BASE_DOMAIN', 'musedock.com');
+        $isSubdomain = str_ends_with($domain, '.' . $baseDomain);
+
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO domain_redirects (domain, redirect_to, redirect_type, include_www, is_subdomain, preserve_path, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())
+            ");
+            $stmt->execute([$domain, $redirectTo, $redirectType, $includeWww ? 1 : 0, $isSubdomain ? 1 : 0, $preservePath ? 1 : 0]);
+            $redirectId = $pdo->lastInsertId();
+
+            // Cloudflare
+            if (!$skipCloudflare && $configureCloudflare) {
+                $cloudflareInfo = $this->configureAliasCloudflare($domain, $isSubdomain, $includeWww);
+                if (!empty($cloudflareInfo)) {
+                    $stmt = $pdo->prepare("UPDATE domain_redirects SET cloudflare_zone_id = ?, cloudflare_record_id = ?, cloudflare_nameservers = ? WHERE id = ?");
+                    $stmt->execute([
+                        $cloudflareInfo['zone_id'] ?? null,
+                        $cloudflareInfo['record_id'] ?? null,
+                        isset($cloudflareInfo['nameservers']) ? json_encode($cloudflareInfo['nameservers']) : null,
+                        $redirectId
+                    ]);
+                }
+            }
+
+            // Caddy redirect configuration
+            $caddyResult = $this->caddyService->configureRedirect($domain, $redirectTo, $includeWww, $redirectType, $preservePath);
+
+            if ($caddyResult['success'] ?? false) {
+                $stmt = $pdo->prepare("UPDATE domain_redirects SET caddy_configured = 1, status = 'active' WHERE id = ?");
+                $stmt->execute([$redirectId]);
+            } else {
+                $stmt = $pdo->prepare("UPDATE domain_redirects SET error_log = ?, status = 'error' WHERE id = ?");
+                $stmt->execute([$caddyResult['error'] ?? 'Caddy error', $redirectId]);
+            }
+
+            Logger::log("[DomainManager] Redirect creado: {$domain} → {$redirectTo}", 'INFO');
+            flash('success', "Redirección {$domain} → {$redirectTo} creada correctamente.");
+
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error creando redirect: " . $e->getMessage(), 'ERROR');
+            flash('error', 'Error al crear redirección: ' . $e->getMessage());
+        }
+
+        header('Location: /musedock/domain-manager');
+        exit;
+    }
+
+    public function editRedirect($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("SELECT * FROM domain_redirects WHERE id = ?");
+        $stmt->execute([$id]);
+        $redirect = $stmt->fetch(PDO::FETCH_OBJ);
+
+        if (!$redirect) {
+            flash('error', 'Redirección no encontrada.');
+            header('Location: /musedock/domain-manager');
+            exit;
+        }
+
+        $caddyApiAvailable = $this->caddyService->isApiAvailable();
+
+        return View::renderSuperadmin('plugins.caddy-domain-manager.edit-redirect', [
+            'title' => 'Editar Redirección: ' . $redirect->domain,
+            'redirect' => $redirect,
+            'caddyApiAvailable' => $caddyApiAvailable,
+        ]);
+    }
+
+    public function updateRedirect($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        if (!validate_csrf($_POST['_csrf'] ?? '')) {
+            flash('error', 'Token de seguridad inválido.');
+            header("Location: /musedock/domain-manager/redirect/{$id}/edit");
+            exit;
+        }
+
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("SELECT * FROM domain_redirects WHERE id = ?");
+        $stmt->execute([$id]);
+        $redirect = $stmt->fetch(PDO::FETCH_OBJ);
+
+        if (!$redirect) {
+            flash('error', 'Redirección no encontrada.');
+            header('Location: /musedock/domain-manager');
+            exit;
+        }
+
+        $redirectTo = trim($_POST['redirect_to'] ?? $redirect->redirect_to);
+        $redirectType = (int) ($_POST['redirect_type'] ?? $redirect->redirect_type);
+        $includeWww = isset($_POST['include_www']) ? 1 : 0;
+        $preservePath = isset($_POST['preserve_path']) ? 1 : 0;
+
+        if (!preg_match('#^https?://#', $redirectTo)) {
+            $redirectTo = 'https://' . $redirectTo;
+        }
+
+        $stmt = $pdo->prepare("UPDATE domain_redirects SET redirect_to = ?, redirect_type = ?, include_www = ?, preserve_path = ?, updated_at = NOW() WHERE id = ?");
+        $stmt->execute([$redirectTo, $redirectType, $includeWww, $preservePath, $id]);
+
+        // Re-configure Caddy
+        $caddyResult = $this->caddyService->configureRedirect($redirect->domain, $redirectTo, (bool) $includeWww, $redirectType, (bool) $preservePath);
+        if ($caddyResult['success'] ?? false) {
+            $stmt = $pdo->prepare("UPDATE domain_redirects SET caddy_configured = 1, status = 'active', error_log = NULL WHERE id = ?");
+            $stmt->execute([$id]);
+        }
+
+        flash('success', "Redirección {$redirect->domain} actualizada correctamente.");
+        header('Location: /musedock/domain-manager');
+        exit;
+    }
+
+    public function deleteRedirect($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        if (!validate_csrf($input['_csrf'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido.']);
+            exit;
+        }
+
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("SELECT * FROM domain_redirects WHERE id = ?");
+        $stmt->execute([$id]);
+        $redirect = $stmt->fetch(PDO::FETCH_OBJ);
+
+        if (!$redirect) {
+            echo json_encode(['success' => false, 'message' => 'Redirección no encontrada.']);
+            exit;
+        }
+
+        try {
+            // Remove from Caddy
+            $this->caddyService->removeRedirect($redirect->domain);
+
+            // Remove Cloudflare if any
+            if (!empty($redirect->cloudflare_zone_id)) {
+                $this->removeAliasCloudflare($redirect);
+            }
+
+            $stmt = $pdo->prepare("DELETE FROM domain_redirects WHERE id = ?");
+            $stmt->execute([$id]);
+
+            Logger::log("[DomainManager] Redirect eliminado: {$redirect->domain}", 'INFO');
+            echo json_encode(['success' => true, 'message' => "Redirección {$redirect->domain} eliminada."]);
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error eliminando redirect: " . $e->getMessage(), 'ERROR');
             echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
         }
         exit;
