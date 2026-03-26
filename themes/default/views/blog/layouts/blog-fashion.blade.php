@@ -123,6 +123,7 @@
         @php $post = is_object($post) ? $post : (object)$post; @endphp
         <div class="col-md-6 col-lg-4 mb-5">
             <article class="fashion-card text-center">
+                @if(($post->post_type ?? 'post') !== 'brief')
                 <a href="{{ blog_url($post->slug) }}" class="fashion-circle-link mb-3">
                     @php
                         if ($post->featured_image && !($post->hide_featured_image ?? false)) {
@@ -138,6 +139,7 @@
                         <img src="{{ $imageUrl }}" alt="{{ $post->title }}" loading="lazy">
                     </div>
                 </a>
+                @endif
 
                 <div class="post-meta mb-0 text-muted small">
                     @php

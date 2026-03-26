@@ -1918,17 +1918,57 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
         return Array.from(document.querySelectorAll('.media-item-checkbox:checked')).map(cb => cb.dataset.id);
     }
 
+    // Seleccionar/deseleccionar todos los archivos visibles
+    function toggleSelectAll() {
+        const checkboxes = document.querySelectorAll('.media-item-checkbox');
+        if (checkboxes.length === 0) return;
+
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+
+        checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+            const item = cb.closest('.media-item');
+            if (item) {
+                if (!allChecked) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            }
+        });
+
+        updateActionButtons();
+    }
+
+    // Botón "Seleccionar todo"
+    const btnSelectAll = document.getElementById('btn-select-all');
+    if (btnSelectAll) {
+        btnSelectAll.addEventListener('click', toggleSelectAll);
+    }
+
     function updateActionButtons() {
         const selectedCount = getSelectedMediaIds().length;
+        const totalCount = document.querySelectorAll('.media-item-checkbox').length;
         const fileCountSpan = document.getElementById('files-count');
 
         if (fileCountSpan) {
             if (selectedCount > 0) {
-                fileCountSpan.textContent = `${selectedCount} archivo(s) seleccionado(s)`;
+                fileCountSpan.textContent = `${selectedCount} de ${totalCount} seleccionado(s)`;
             } else {
-                const totalCount = document.querySelectorAll('.media-item-checkbox').length;
                 fileCountSpan.textContent = `${totalCount} archivo(s)`;
             }
+        }
+
+        // Actualizar estado del botón "Seleccionar todo"
+        if (btnSelectAll) {
+            if (selectedCount > 0 && selectedCount === totalCount) {
+                btnSelectAll.innerHTML = '<i class="bi bi-x-square"></i>';
+                btnSelectAll.title = 'Deseleccionar todo';
+            } else {
+                btnSelectAll.innerHTML = '<i class="bi bi-check2-square"></i>';
+                btnSelectAll.title = 'Seleccionar todo';
+            }
+            btnSelectAll.style.display = totalCount > 0 ? '' : 'none';
         }
 
         // Mostrar/ocultar botones de acciones según selección
@@ -2247,6 +2287,36 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
     // --- Carga Inicial de la biblioteca principal ---
     if (gridContainer) {
         loadMedia(currentPage);
+    }
+
+    // ========================================================
+    // SECTION 14: VIEW TOGGLE (GRID / LIST)
+    // ========================================================
+    const btnViewGrid = document.getElementById('btn-view-grid');
+    const btnViewList = document.getElementById('btn-view-list');
+
+    if (btnViewGrid && btnViewList && gridContainer) {
+        btnViewGrid.addEventListener('click', function() {
+            gridContainer.setAttribute('data-view', 'grid');
+            btnViewGrid.classList.add('active');
+            btnViewList.classList.remove('active');
+            localStorage.setItem('media-view', 'grid');
+        });
+
+        btnViewList.addEventListener('click', function() {
+            gridContainer.setAttribute('data-view', 'list');
+            btnViewList.classList.add('active');
+            btnViewGrid.classList.remove('active');
+            localStorage.setItem('media-view', 'list');
+        });
+
+        // Restaurar preferencia guardada
+        const savedView = localStorage.getItem('media-view');
+        if (savedView === 'list') {
+            gridContainer.setAttribute('data-view', 'list');
+            btnViewList.classList.add('active');
+            btnViewGrid.classList.remove('active');
+        }
     }
 
     // ========================================================

@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let targetInputElement = null;
     let targetPreviewElement = null;
     let currentEditMediaId = null;
+    let loadMediaRequestId = 0;
     
     // ========================================================
     // SECTION 5: CONFIGURATION
@@ -64,6 +65,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadMedia(page = 1) {
         if (!gridContainer || !loadingIndicator || !paginationContainer) return;
 
+        const requestId = ++loadMediaRequestId;
+
         loadingIndicator.style.display = 'block'; // Mostrar cargando
         gridContainer.innerHTML = ''; // Limpiar rejilla (excepto cargando)
         gridContainer.appendChild(loadingIndicator); // Re-añadir por si acaso
@@ -72,6 +75,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Construir URL con parámetros
         const url = new URL(dataUrl, window.location.origin);
         url.searchParams.append('page', page);
+        const currentFolderId = window.FolderManager?.currentFolderId || window.currentFolderId;
+        if (currentFolderId) {
+            url.searchParams.append('folder_id', currentFolderId);
+        }
         // TODO: Añadir per_page, search, type, tenant_id si se implementan filtros
 
         fetch(url)
@@ -80,6 +87,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
+                // Evitar render duplicado si hay varias cargas concurrentes
+                if (requestId !== loadMediaRequestId) {
+                    return;
+                }
                 loadingIndicator.style.display = 'none'; // Ocultar cargando
                 if (data.success && data.media && data.media.length > 0) {
                     data.media.forEach(item => gridContainer.appendChild(createMediaItemElement(item)));
@@ -534,7 +545,19 @@ function handleFilesUpload() {
                         console.error('Folder ID:', currentFolderId);
                         console.error('Respuesta completa:', response);
                         console.error('Mensaje de error:', response.message || 'Sin mensaje específico');
-                        console.error('Detalles adicionales:', response.error || response.errors || 'No disponible');
+                        // Mostrar errores detallados
+                        const errorsArray = response.error || response.errors || [];
+                        if (Array.isArray(errorsArray) && errorsArray.length > 0) {
+                            console.error('Errores detallados:');
+                            errorsArray.forEach((err, idx) => {
+                                console.error(`  ${idx + 1}. ${err}`);
+                            });
+                            // También mostrar al usuario
+                            showError(errorsArray.join('\n'));
+                        } else if (typeof errorsArray === 'string') {
+                            console.error('Error:', errorsArray);
+                            showError(errorsArray);
+                        }
                         console.error('═══════════════════════════════════════════');
                     }
                 } catch (e) {
@@ -557,6 +580,27 @@ function handleFilesUpload() {
                 console.error('Respuesta del servidor:', xhr.responseText);
                 console.error('Headers:', xhr.getAllResponseHeaders());
                 console.error('═══════════════════════════════════════════');
+
+                // Mostrar mensaje amigable según el código de error
+                let errorMsg = '';
+                if (xhr.status === 429) {
+                    // Intentar parsear el mensaje del servidor
+                    try {
+                        const resp = JSON.parse(xhr.responseText);
+                        errorMsg = resp.message || 'Demasiadas subidas. Espera unos segundos e inténtalo de nuevo.';
+                    } catch(e) {
+                        errorMsg = 'Demasiadas subidas. Espera unos segundos e inténtalo de nuevo.';
+                    }
+                } else if (xhr.status === 413) {
+                    errorMsg = 'El archivo es demasiado grande para el servidor.';
+                } else if (xhr.status === 403) {
+                    errorMsg = 'No tienes permiso para subir archivos.';
+                } else if (xhr.status >= 500) {
+                    errorMsg = 'Error del servidor. Inténtalo de nuevo más tarde.';
+                } else {
+                    errorMsg = `Error de subida: ${xhr.status}`;
+                }
+                showError(errorMsg);
             }
 
             uploadOne(index + 1);
@@ -604,9 +648,15 @@ function addMediaToGrid(media) {
     // ========================================================
     
     // --- Manejo de Borrado ---
-    function handleDeleteMedia(event) {
-        event.stopPropagation(); // Evitar que se seleccione el item al borrar
-        const button = event.currentTarget;
+    let isDeleting = false; // Flag para prevenir doble-clic
+
+    function handleDeleteMedia(button) {
+        // Prevenir doble clic
+        if (isDeleting) {
+            console.log('[Delete] Already deleting, ignoring click');
+            return;
+        }
+
         const mediaId = button.dataset.id;
         const itemElement = button.closest('.media-item');
 
@@ -637,21 +687,23 @@ function addMediaToGrid(media) {
             }
         }).then((result) => {
             if (result.isConfirmed) {
+                isDeleting = true; // Marcar que estamos eliminando
                 const deleteUrl = deleteUrlBase.replace(':id', mediaId);
                 const csrfToken = document.querySelector('input[name="_token"]')?.value;
 
                 console.log('[Delete] Confirmed. URL:', deleteUrl, 'CSRF:', csrfToken);
 
+                // Deshabilitar el botón visualmente
+                button.disabled = true;
+                button.style.opacity = '0.5';
+
                 fetch(deleteUrl, {
-                    method: 'POST', // O 'DELETE' si tu router y servidor lo soportan
+                    method: 'POST',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
-                        // Incluir CSRF en headers es más estándar para AJAX DELETE/POST
                         'X-CSRF-TOKEN': csrfToken,
-                        // Si usas POST con _method:
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    // Route is POST, no _method needed
                     body: new URLSearchParams({'_token': csrfToken})
                 })
                 .then(response => response.json().then(data => ({ ok: response.ok, status: response.status, data })))
@@ -667,33 +719,28 @@ function addMediaToGrid(media) {
                         // Mostrar mensaje de éxito
                         showSuccess(data.message || 'Medio eliminado.');
 
-                        // Recargar la librería completa para actualizar la vista
-                        console.log('[Delete] Reloading media library...');
+                        // Recargar la página para refrescar completamente
+                        console.log('[Delete] Reloading page...');
                         setTimeout(() => {
-                            if (typeof window.loadMedia === 'function') {
-                                const currentPageNum = window.currentPage || 1;
-                                console.log('[Delete] Calling loadMedia with page:', currentPageNum);
-                                window.loadMedia(currentPageNum);
-                            } else {
-                                console.warn('[Delete] loadMedia function not available in window scope');
-                            }
-                        }, 500);
+                            window.location.reload();
+                        }, 800);
 
-                        // También refrescar el modal si está abierto
-                        const mediaModal = document.getElementById('mediaManagerModal');
-                        if (mediaModal && mediaModal.classList.contains('show')) {
-                            if (typeof loadMediaModal === 'function') {
-                                loadMediaModal(1);
-                            }
-                        }
                     } else {
                         console.error('[Delete] Failed:', data.message);
                         showError(data.message || `Error ${status}`);
+                        // Rehabilitar botón en caso de error
+                        button.disabled = false;
+                        button.style.opacity = '1';
+                        isDeleting = false;
                     }
                 })
                 .catch(error => {
                     console.error("[Delete] Network error:", error);
                     showError('Error de red al eliminar.');
+                    // Rehabilitar botón en caso de error
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                    isDeleting = false;
                 });
             }
         });
@@ -703,7 +750,8 @@ function addMediaToGrid(media) {
     document.body.addEventListener('click', function(e) {
         const deleteButton = e.target.closest('.btn-delete-media');
         if (deleteButton) {
-            handleDeleteMedia(e);
+            e.stopPropagation(); // Evitar que se seleccione el item al borrar
+            handleDeleteMedia(deleteButton); // Pasar el botón directamente, no el evento
         }
     });
 
@@ -1777,7 +1825,37 @@ function showSuccess(message) {
 }
 function showError(message) {
     console.error("showError:", message);
-    if (typeof Swal !== 'undefined') { Swal.fire({ icon: 'error', title: 'Error', text: message }); }
+    if (typeof Swal !== 'undefined') {
+        // Verificar si hay un modal abierto
+        const isModalOpen = document.getElementById('wpCustomModalOverlay') ||
+                           document.querySelector('.modal.show') ||
+                           document.getElementById('mediaManagerModal');
+
+        if (isModalOpen) {
+            // Si hay un modal abierto, asegurar z-index alto
+            if (!document.getElementById('swal-modal-top-right-style')) {
+                const swalStyle = document.createElement('style');
+                swalStyle.id = 'swal-modal-top-right-style';
+                swalStyle.textContent = `.swal-modal-top-right { z-index: 999999 !important; position: fixed !important; }`;
+                document.head.appendChild(swalStyle);
+            }
+
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: message,
+                customClass: { container: 'swal-modal-top-right' },
+                didOpen: () => {
+                    const swalContainer = document.querySelector('.swal2-container');
+                    if (swalContainer) {
+                        swalContainer.style.zIndex = '999999';
+                    }
+                }
+            });
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: message });
+        }
+    }
     else { alert("Error: " + message); }
 }
 
@@ -1840,17 +1918,57 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
         return Array.from(document.querySelectorAll('.media-item-checkbox:checked')).map(cb => cb.dataset.id);
     }
 
+    // Seleccionar/deseleccionar todos los archivos visibles
+    function toggleSelectAll() {
+        const checkboxes = document.querySelectorAll('.media-item-checkbox');
+        if (checkboxes.length === 0) return;
+
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+
+        checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+            const item = cb.closest('.media-item');
+            if (item) {
+                if (!allChecked) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            }
+        });
+
+        updateActionButtons();
+    }
+
+    // Botón "Seleccionar todo"
+    const btnSelectAll = document.getElementById('btn-select-all');
+    if (btnSelectAll) {
+        btnSelectAll.addEventListener('click', toggleSelectAll);
+    }
+
     function updateActionButtons() {
         const selectedCount = getSelectedMediaIds().length;
+        const totalCount = document.querySelectorAll('.media-item-checkbox').length;
         const fileCountSpan = document.getElementById('files-count');
 
         if (fileCountSpan) {
             if (selectedCount > 0) {
-                fileCountSpan.textContent = `${selectedCount} archivo(s) seleccionado(s)`;
+                fileCountSpan.textContent = `${selectedCount} de ${totalCount} seleccionado(s)`;
             } else {
-                const totalCount = document.querySelectorAll('.media-item-checkbox').length;
                 fileCountSpan.textContent = `${totalCount} archivo(s)`;
             }
+        }
+
+        // Actualizar estado del botón "Seleccionar todo"
+        if (btnSelectAll) {
+            if (selectedCount > 0 && selectedCount === totalCount) {
+                btnSelectAll.innerHTML = '<i class="bi bi-x-square"></i>';
+                btnSelectAll.title = 'Deseleccionar todo';
+            } else {
+                btnSelectAll.innerHTML = '<i class="bi bi-check2-square"></i>';
+                btnSelectAll.title = 'Seleccionar todo';
+            }
+            btnSelectAll.style.display = totalCount > 0 ? '' : 'none';
         }
 
         // Mostrar/ocultar botones de acciones según selección
@@ -1950,27 +2068,47 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
             }
         }).then(result => {
             if (result.isConfirmed) {
-                // Eliminar cada archivo
+                // Eliminar cada archivo secuencialmente con Promise
                 let deleted = 0;
-                ids.forEach(id => {
-                    fetch(buildUrl(deleteUrlTemplate, id), {
+                let errors = 0;
+                const csrfToken = document.querySelector('input[name="_token"]')?.value;
+
+                const deletePromises = ids.map(id => {
+                    return fetch(buildUrl(deleteUrlBase, id), {
                         method: 'POST',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-Token': getCsrfToken(),
-                        }
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({'_token': csrfToken})
                     })
                     .then(r => r.json())
                     .then(data => {
                         if (data.success) {
                             deleted++;
-                            if (deleted === ids.length) {
-                                showNotification('Archivos eliminados correctamente');
-                                loadMedia(1);
-                            }
+                        } else {
+                            errors++;
                         }
                     })
-                    .catch(err => showError('Error al eliminar: ' + err.message));
+                    .catch(err => {
+                        errors++;
+                        console.error('Error al eliminar:', err);
+                    });
+                });
+
+                // Esperar a que todas las eliminaciones terminen
+                Promise.all(deletePromises).then(() => {
+                    if (deleted > 0) {
+                        showSuccess(`${deleted} archivo(s) eliminado(s) correctamente`);
+                    }
+                    if (errors > 0) {
+                        showError(`${errors} archivo(s) no se pudieron eliminar`);
+                    }
+                    // Recargar página para refrescar
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 800);
                 });
             }
         });
@@ -2149,6 +2287,36 @@ console.log("SECTION 11 (Modal con AJAX Nav v2) cargada.");
     // --- Carga Inicial de la biblioteca principal ---
     if (gridContainer) {
         loadMedia(currentPage);
+    }
+
+    // ========================================================
+    // SECTION 14: VIEW TOGGLE (GRID / LIST)
+    // ========================================================
+    const btnViewGrid = document.getElementById('btn-view-grid');
+    const btnViewList = document.getElementById('btn-view-list');
+
+    if (btnViewGrid && btnViewList && gridContainer) {
+        btnViewGrid.addEventListener('click', function() {
+            gridContainer.setAttribute('data-view', 'grid');
+            btnViewGrid.classList.add('active');
+            btnViewList.classList.remove('active');
+            localStorage.setItem('media-view', 'grid');
+        });
+
+        btnViewList.addEventListener('click', function() {
+            gridContainer.setAttribute('data-view', 'list');
+            btnViewList.classList.add('active');
+            btnViewGrid.classList.remove('active');
+            localStorage.setItem('media-view', 'list');
+        });
+
+        // Restaurar preferencia guardada
+        const savedView = localStorage.getItem('media-view');
+        if (savedView === 'list') {
+            gridContainer.setAttribute('data-view', 'list');
+            btnViewList.classList.add('active');
+            btnViewGrid.classList.remove('active');
+        }
     }
 
     // ========================================================

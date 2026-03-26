@@ -255,7 +255,7 @@
             "tags": "Etiquetas",
             "featured_image": "Imagen destacada",
             "image_url": "URL de la imagen",
-            "image_placeholder": "https:\/\/ejemplo.com\/imagen.jpg",
+            "image_placeholder": "https://ejemplo.com/imagen.jpg",
             "image_help": "Pega la URL de una imagen o sube una desde el gestor de medios.",
             "image_load_error": "Error al cargar la imagen",
             "hero_image": "Imagen hero",
@@ -365,9 +365,9 @@
             "confirm_yes_continue": "Sí, continuar"
         },
         "delete": {
-            "confirm_delete_post": "Esta acción eliminará permanentemente el post <strong>\":title\"<\/strong> y no se puede deshacer.",
-            "confirm_delete_category": "Esta acción eliminará permanentemente la categoría <strong>\":name\"<\/strong> y no se puede deshacer.",
-            "confirm_delete_tag": "Esta acción eliminará permanentemente la etiqueta <strong>\":name\"<\/strong> y no se puede deshacer.",
+            "confirm_delete_post": "Esta acción eliminará permanentemente el post <strong>\":title\"</strong> y no se puede deshacer.",
+            "confirm_delete_category": "Esta acción eliminará permanentemente la categoría <strong>\":name\"</strong> y no se puede deshacer.",
+            "confirm_delete_tag": "Esta acción eliminará permanentemente la etiqueta <strong>\":name\"</strong> y no se puede deshacer.",
             "form_not_found": "No se encontró el formulario de eliminación. Recarga la página."
         },
         "category": {
@@ -387,7 +387,7 @@
             "description": "Descripción",
             "image": "Imagen",
             "image_url": "URL de imagen",
-            "image_placeholder": "https:\/\/ejemplo.com\/imagen.jpg",
+            "image_placeholder": "https://ejemplo.com/imagen.jpg",
             "parent": "Categoría padre",
             "no_parent": "Sin categoría padre",
             "none": "Ninguna (categoría raíz)",
@@ -715,7 +715,7 @@
         "configured_in_env": "Configurado en .env",
         "recommend_env": "Recomendado: configurar en .env para mayor seguridad",
         "main_domain": "Dominio principal",
-        "main_domain_help": "Este dominio mostrará el panel \/musedock y el sitio principal",
+        "main_domain_help": "Este dominio mostrará el panel /musedock y el sitio principal",
         "site_language": "Idioma del sitio",
         "manage_languages_link": "Gestiona idiomas disponibles en",
         "auto_detect_language": "Detección automática (según navegador del usuario)",
@@ -809,7 +809,7 @@
         "site_url": "URL del sitio WordPress",
         "username": "Usuario de WordPress",
         "app_password": "Application Password",
-        "auth_info": "Para importar borradores y contenido privado, necesitas Application Passwords (WordPress 5.6+).",
+        "auth_info": "Para importar menús, borradores y contenido privado, necesitas Application Passwords (WordPress 5.6+).",
         "select_content": "Seleccionar contenido",
         "categories": "Categorías",
         "tags": "Etiquetas",
@@ -840,8 +840,8 @@
         "styles_applied": "Aplicados correctamente",
         "google_fonts_detected": "Google Fonts detectadas",
         "session_expired": "Sesión expirada. Vuelve a conectar.",
-        "credentials_optional": "Credenciales opcionales (para drafts y contenido privado)",
-        "site_url_help": "Ejemplo: https:\/\/miweb.com (sin \/wp-admin ni trailing slash)",
+        "credentials_optional": "Credenciales (opcional, necesario para menús)",
+        "site_url_help": "Ejemplo: https://miweb.com (sin /wp-admin ni trailing slash)",
         "updated": "actualizados",
         "duplicate_policy": "Política de duplicados",
         "duplicate_policy_desc": "Elige qué hacer con el contenido duplicado:",
@@ -851,6 +851,8 @@
         "policy_overwrite_desc": "Actualizar contenido existente con el de WordPress",
         "policy_rename": "Renombrar",
         "policy_rename_desc": "Crear nuevo con slug modificado (-1, -2...)",
-        "importing_for_tenant": "Importando para el tenant"
+        "importing_for_tenant": "Importando para el tenant",
+        "test_auth": "Test conexión",
+        "testing_auth": "Verificando..."
     }
 }

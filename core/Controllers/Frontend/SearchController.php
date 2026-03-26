@@ -101,7 +101,7 @@ class SearchController
 
         // Agregar URL y excerpt a cada página
         foreach ($pages as &$page) {
-            $page['url'] = url('/p/' . $page['slug']);
+            $page['url'] = function_exists('page_url') ? url(page_url($page['slug'])) : url('/p/' . $page['slug']);
             $page['excerpt'] = $this->createExcerpt($page['content'] ?? '', $query, 200);
             $page['type'] = 'page';
         }

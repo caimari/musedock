@@ -33,11 +33,11 @@ nav[aria-label="breadcrumb"] .breadcrumb-item + .breadcrumb-item::before {
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div class="d-flex align-items-center gap-3">
                 <nav aria-label="breadcrumb" class="mb-0">
-                    <ol class="breadcrumb mb-0 align-items-center">
+                    <ol class="breadcrumb mb-0 align-items-center" style="flex-wrap: nowrap; white-space: nowrap;">
                         <li class="breadcrumb-item">
-                            <a href="/{{ admin_path() }}/themes"><i class="fas fa-palette me-1"></i>Temas</a>
+                            <a href="/{{ admin_path() }}/themes"><i class="fas fa-palette me-1"></i>{{ __('themes.title') ?? 'Temas' }}</a>
                         </li>
-                        <li class="breadcrumb-item active">Personalizar: {{ $theme['name'] ?? $slug }}</li>
+                        <li class="breadcrumb-item active">{{ __('themes.customize') ?? 'Personalizar' }}: {{ $theme['name'] ?? $slug }}</li>
                     </ol>
                 </nav>
             </div>
@@ -174,6 +174,15 @@ nav[aria-label="breadcrumb"] .breadcrumb-item + .breadcrumb-item::before {
                                                     <small class="text-muted">
                                                         <i class="fas fa-code me-1"></i>{{ strtoupper($option['language'] ?? 'Código') }}
                                                     </small>
+                                                    @break
+
+                                                @case('link')
+                                                    @php
+                                                        $linkUrl = str_replace('{admin_path}', admin_path(), $option['url'] ?? '#');
+                                                    @endphp
+                                                    <a href="{{ $linkUrl }}" class="btn btn-outline-primary btn-sm">
+                                                        <i class="fas fa-external-link-alt me-1"></i>{{ $option['link_text'] ?? 'Ir a configuración' }}
+                                                    </a>
                                                     @break
 
                                                 @case('image')

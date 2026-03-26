@@ -211,7 +211,7 @@
                     <a href="{{ admin_url('pages/' . $Page->id . '/edit') }}">{{ __('common.edit') }}</a>
                     @if ($Page->status === 'published')
                        |
-                      <a href="/p/{{ $Page->slug }}" target="_blank" rel="noopener noreferrer">{{ __('pages.view_page') }}</a>
+                      <a href="{{ page_url($Page->slug) }}" target="_blank" rel="noopener noreferrer">{{ __('pages.view_page') }}</a>
                     @endif
                      |
                     <a href="#" class="delete-page-link" data-page-id="{{ $Page->id }}" data-page-title="{{ htmlspecialchars($Page->title, ENT_QUOTES, 'UTF-8') }}" style="color: #dc3545; text-decoration: none;">{{ __('common.delete') }}</a>

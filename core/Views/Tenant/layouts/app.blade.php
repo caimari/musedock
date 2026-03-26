@@ -812,7 +812,7 @@ function generate_id($prefix = 'menu-') {
                             <a class="text-muted" href="https://musedock.org" target="_blank">
                                 <strong>{{ cms_version('name') }}</strong>
                             </a>
-                            <span class="text-muted">v{{ cms_version('version') }}</span>
+                            <a class="text-muted text-decoration-none" href="{{ admin_url('/changelog') }}" title="Ver changelog">v{{ cms_version('version') }}</a>
                             {{ cms_copyright() }}
                         </p>
                     </div>

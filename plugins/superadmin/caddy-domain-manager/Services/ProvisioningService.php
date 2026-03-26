@@ -46,9 +46,10 @@ class ProvisioningService
      * @param string $subdomain Subdominio sin .musedock.com
      * @param bool $sendWelcomeEmail Si enviar email de bienvenida (default: true)
      * @param string $language Idioma del email ('es' o 'en', default: 'es')
+     * @param array|null $adminCredentials Credenciales personalizadas del admin ['email' => ..., 'password' => ...]
      * @return array ['success', 'customer_id', 'tenant_id', 'admin_id', 'domain', 'cloudflare_configured', 'caddy_configured', 'error']
      */
-    public function provisionFreeTenant(array $customerData, string $subdomain, bool $sendWelcomeEmail = true, string $language = 'es'): array
+    public function provisionFreeTenant(array $customerData, string $subdomain, bool $sendWelcomeEmail = true, string $language = 'es', ?array $adminCredentials = null, bool $cfProxy = true): array
     {
         $fullDomain = "{$subdomain}." . \Screenart\Musedock\Env::get('TENANT_BASE_DOMAIN', 'musedock.com');
 
@@ -82,22 +83,20 @@ class ProvisioningService
             $tenantId = $this->createTenant($customerId, $fullDomain, $subdomain);
             Logger::info("[ProvisioningService] Tenant created: ID {$tenantId}");
 
-            // Crear admin del tenant con credenciales únicas
-            $adminId = $this->createTenantAdmin($tenantId, $customerData, $customerId, $fullDomain);
+            // Crear admin del tenant (con credenciales personalizadas si se proporcionan)
+            $adminId = $this->createTenantAdmin($tenantId, $customerData, $customerId, $fullDomain, $adminCredentials);
             Logger::info("[ProvisioningService] Tenant admin created: ID {$adminId}");
 
             // Generar slug único
             $this->generateUniqueSlug($tenantId, $subdomain);
 
-            // Aplicar configuración por defecto (permisos, roles, menús)
-            $this->applyTenantDefaults($tenantId);
-            Logger::info("[ProvisioningService] Tenant defaults applied: permissions, roles, menus");
-
             $this->pdo->commit();
             Logger::info("[ProvisioningService] ✓ Database transaction committed");
 
         } catch (\Exception $e) {
-            $this->pdo->rollBack();
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             Logger::error("[ProvisioningService] Database transaction failed: " . $e->getMessage());
             return [
                 'success' => false,
@@ -105,8 +104,17 @@ class ProvisioningService
             ];
         }
 
+        // Paso 2b: Aplicar configuración por defecto (permisos, roles, menús)
+        // Se ejecuta fuera de la transacción principal porque usa su propia transacción
+        try {
+            $this->applyTenantDefaults($tenantId, $adminId);
+            Logger::info("[ProvisioningService] Tenant defaults applied: permissions, roles, menus");
+        } catch (\Exception $e) {
+            Logger::warning("[ProvisioningService] Failed to apply tenant defaults (non-blocking): " . $e->getMessage());
+        }
+
         // Paso 3: Configurar Cloudflare (no bloquea si falla)
-        $cloudflareConfigured = $this->configureCloudflare($tenantId, $subdomain);
+        $cloudflareConfigured = $this->configureCloudflare($tenantId, $subdomain, $cfProxy);
 
         // Paso 4: Configurar Caddy (no bloquea si falla)
         $caddyConfigured = $this->configureCaddy($tenantId, $fullDomain);
@@ -483,22 +491,38 @@ class ProvisioningService
         int $adminId,
         string $adminEmail,
         string $passwordHash,
-        string $initialPassword
+        ?string $initialPassword
     ): void {
         try {
             $this->ensureCustomerTenantCredentialsTable();
 
-            $stmt = $this->pdo->prepare("
-                INSERT INTO customer_tenant_credentials
-                (customer_id, tenant_id, admin_id, admin_email, admin_password_hash, initial_password, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, NOW())
-                ON DUPLICATE KEY UPDATE
-                    admin_id = VALUES(admin_id),
-                    admin_email = VALUES(admin_email),
-                    admin_password_hash = VALUES(admin_password_hash),
-                    initial_password = VALUES(initial_password),
-                    updated_at = NOW()
-            ");
+            $driver = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+            if ($driver === 'mysql') {
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO customer_tenant_credentials
+                    (customer_id, tenant_id, admin_id, admin_email, admin_password_hash, initial_password, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, NOW())
+                    ON DUPLICATE KEY UPDATE
+                        admin_id = VALUES(admin_id),
+                        admin_email = VALUES(admin_email),
+                        admin_password_hash = VALUES(admin_password_hash),
+                        initial_password = VALUES(initial_password),
+                        updated_at = NOW()
+                ");
+            } else {
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO customer_tenant_credentials
+                    (customer_id, tenant_id, admin_id, admin_email, admin_password_hash, initial_password, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, NOW())
+                    ON CONFLICT (customer_id, tenant_id) DO UPDATE SET
+                        admin_id = EXCLUDED.admin_id,
+                        admin_email = EXCLUDED.admin_email,
+                        admin_password_hash = EXCLUDED.admin_password_hash,
+                        initial_password = EXCLUDED.initial_password,
+                        updated_at = NOW()
+                ");
+            }
 
             $stmt->execute([
                 $customerId,
@@ -763,13 +787,11 @@ class ProvisioningService
      * @param string $subdomain
      * @return bool Success
      */
-    private function configureCloudflare(int $tenantId, string $subdomain): bool
+    private function configureCloudflare(int $tenantId, string $subdomain, bool $cfProxy = true): bool
     {
         try {
-            // Usar configuración de .env (por defecto proxy naranja)
-            // Con DNS-01 challenge, el proxy naranja funciona correctamente
-            $proxiedEnv = \Screenart\Musedock\Env::get('TENANT_CLOUDFLARE_PROXY_ENABLED', true);
-            $proxied = filter_var($proxiedEnv, FILTER_VALIDATE_BOOLEAN);
+            // Usar el parámetro cfProxy si se proporciona, sino leer de .env
+            $proxied = $cfProxy;
 
             $result = $this->cloudflareService->createSubdomainRecord($subdomain, $proxied);
 
@@ -1062,17 +1084,14 @@ https://{$fullDomain}
      * @param int $tenantId
      * @throws \Exception
      */
-    private function applyTenantDefaults(int $tenantId): void
+    private function applyTenantDefaults(int $tenantId, int $adminId): void
     {
-        try {
-            // Usar TenantCreationService para aplicar defaults
-            TenantCreationService::applyDefaultsToTenant($tenantId, $this->pdo);
-            Logger::info("[ProvisioningService] Successfully applied tenant defaults for tenant ID: {$tenantId}");
+        // Usar TenantCreationService::setupExistingTenant que maneja su propia transacción
+        $tenantService = new TenantCreationService($this->pdo);
+        $result = $tenantService->setupExistingTenant($tenantId, $adminId);
 
-        } catch (\Exception $e) {
-            Logger::error("[ProvisioningService] Failed to apply tenant defaults: " . $e->getMessage());
-            // Re-lanzar la excepción para que la transacción haga rollback
-            throw new \Exception("Error aplicando configuración por defecto del tenant: " . $e->getMessage());
+        if (!$result['success']) {
+            throw new \Exception("Error aplicando configuración por defecto del tenant: " . ($result['error'] ?? 'Unknown error'));
         }
     }
 

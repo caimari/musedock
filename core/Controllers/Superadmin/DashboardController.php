@@ -235,4 +235,16 @@ class DashboardController {
 
         exit;
     }
+
+    /**
+     * Changelog page
+     */
+    public function changelog()
+    {
+        SessionSecurity::startSession();
+
+        return View::renderSuperadmin('changelog', [
+            'title' => 'Changelog',
+        ]);
+    }
 }

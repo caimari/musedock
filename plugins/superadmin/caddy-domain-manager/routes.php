@@ -163,6 +163,15 @@ Route::post('/musedock/domain-manager/{id}/toggle-plugin', 'CaddyDomainManager\C
     ->middleware('superadmin')
     ->name('superadmin.domain-manager.toggle-plugin');
 
+// Cloudflare Settings (AJAX)
+Route::post('/musedock/domain-manager/cloudflare/verify-token', 'CaddyDomainManager\Controllers\DomainManagerController@verifyCloudflareToken')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.cf-verify');
+
+Route::post('/musedock/domain-manager/cloudflare/save-token', 'CaddyDomainManager\Controllers\DomainManagerController@saveCloudflareToken')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.cf-save');
+
 // Domain Aliases (AJAX)
 Route::get('/musedock/domain-manager/{id}/aliases', 'CaddyDomainManager\Controllers\DomainManagerController@getAliases')
     ->middleware('superadmin')
@@ -175,6 +184,35 @@ Route::post('/musedock/domain-manager/{id}/add-alias', 'CaddyDomainManager\Contr
 Route::post('/musedock/domain-manager/{id}/remove-alias', 'CaddyDomainManager\Controllers\DomainManagerController@removeAlias')
     ->middleware('superadmin')
     ->name('superadmin.domain-manager.remove-alias');
+
+// Toggle Cloudflare Proxy (AJAX)
+Route::post('/musedock/domain-manager/{id}/toggle-proxy', 'CaddyDomainManager\Controllers\DomainManagerController@toggleCloudflareProxy')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.toggle-proxy');
+
+// Check real Cloudflare proxy status (AJAX)
+Route::get('/musedock/domain-manager/{id}/check-proxy', 'CaddyDomainManager\Controllers\DomainManagerController@checkProxyStatus')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.check-proxy');
+
+// Toggle Cloudflare proxy for any domain (AJAX)
+Route::post('/musedock/domain-manager/toggle-domain-proxy', 'CaddyDomainManager\Controllers\DomainManagerController@toggleDomainProxy')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.toggle-domain-proxy');
+
+// Cambiar password del admin del tenant (AJAX)
+Route::post('/musedock/domain-manager/{id}/change-admin-password', 'CaddyDomainManager\Controllers\DomainManagerController@changeAdminPassword')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.change-admin-password');
+
+// Actualizar email/nombre del admin del tenant (AJAX)
+Route::post('/musedock/domain-manager/{id}/update-admin', 'CaddyDomainManager\Controllers\DomainManagerController@updateAdminField')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.update-admin');
+
+Route::post('/musedock/domain-manager/{id}/save-admin', 'CaddyDomainManager\Controllers\DomainManagerController@saveAdmin')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.save-admin');
 
 // Crear subdominio FREE manual (superadmin)
 Route::post('/musedock/domain-manager/create-free', 'CaddyDomainManager\Controllers\DomainManagerController@createFreeSubdomain')
@@ -199,6 +237,10 @@ Route::get('/musedock/domain-manager/alias/{id}/edit', 'CaddyDomainManager\Contr
 Route::post('/musedock/domain-manager/alias/{id}/update', 'CaddyDomainManager\Controllers\DomainManagerController@updateAlias')
     ->middleware('superadmin')
     ->name('superadmin.domain-manager.update-alias');
+
+Route::post('/musedock/domain-manager/alias/{id}/recreate-route', 'CaddyDomainManager\Controllers\DomainManagerController@recreateAliasRoute')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.recreate-alias-route');
 
 Route::post('/musedock/domain-manager/alias/{id}/delete', 'CaddyDomainManager\Controllers\DomainManagerController@deleteAlias')
     ->middleware('superadmin')

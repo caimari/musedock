@@ -116,4 +116,13 @@ class DashboardController
             'stats' => $stats,
         ]);
     }
+
+    public function changelog()
+    {
+        SessionSecurity::startSession();
+
+        return View::renderTenantAdmin('changelog', [
+            'title' => 'Changelog',
+        ]);
+    }
 }

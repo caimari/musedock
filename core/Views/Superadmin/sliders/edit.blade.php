@@ -684,6 +684,10 @@
 	                <option value="modern-gradient" @if(($settings['theme'] ?? '') == 'modern-gradient') selected @endif>🌈 Modern Gradient (Vibrante)</option>
 	                <option value="rounded-shadow" @if(($settings['theme'] ?? '') == 'rounded-shadow') selected @endif>🧾 Rounded Shadow (Tarjeta)</option>
 	            </optgroup>
+            <optgroup label="Temas Carousel">
+                <option value="dual-view" @if(($settings['theme'] ?? '') == 'dual-view') selected @endif>🖼️ Dual View (2 slides visibles)</option>
+                <option value="portrait-carousel" @if(($settings['theme'] ?? '') == 'portrait-carousel') selected @endif>👤 Portrait Carousel (Retratos/Posters)</option>
+            </optgroup>
             <optgroup label="Temas Gallery">
                 <option value="gallery-light" @if(($settings['theme'] ?? '') == 'gallery-light') selected @endif>📸 Gallery Light (Claro)</option>
                 <option value="gallery-dark" @if(($settings['theme'] ?? '') == 'gallery-dark') selected @endif>🎞️ Gallery Dark (Oscuro)</option>
@@ -761,6 +765,25 @@
                         <input type="checkbox" class="form-check-input" name="settings[full_width]" value="1" @if(($settings['full_width'] ?? '') == 1) checked @endif>
                         <label class="form-check-label">Ancho completo (a sangre)</label>
                         <small class="form-text text-muted d-block">El slider ocupará todo el ancho de la pantalla sin márgenes del container</small>
+                    </div>
+
+                    {{-- Lightbox (solo portrait-carousel) --}}
+                    <div class="form-check mb-2" id="lightbox-option" style="display:none;">
+                        <input type="hidden" name="settings[lightbox_enabled]" value="0">
+                        <input type="checkbox" class="form-check-input" name="settings[lightbox_enabled]" value="1" @if(($settings['lightbox_enabled'] ?? '1') == 1) checked @endif>
+                        <label class="form-check-label">Activar lightbox (lupa al pasar el ratón)</label>
+                        <small class="form-text text-muted d-block">Desactiva para galerías con imágenes pequeñas donde la lupa no queda bien</small>
+                    </div>
+
+                    {{-- Tamaño de imagen (solo portrait-carousel) --}}
+                    <div class="mb-2" id="slide-size-option" style="display:none;">
+                        <label class="form-label">Tamaño de imágenes</label>
+                        <select name="settings[slide_size]" class="form-select">
+                            <option value="normal" @if(($settings['slide_size'] ?? 'normal') == 'normal') selected @endif>Normal</option>
+                            <option value="small" @if(($settings['slide_size'] ?? 'normal') == 'small') selected @endif>Pequeño (caben más imágenes)</option>
+                            <option value="tiny" @if(($settings['slide_size'] ?? 'normal') == 'tiny') selected @endif>Mini (máximo de imágenes visibles)</option>
+                        </select>
+                        <small class="form-text text-muted d-block">Reduce el tamaño de cada imagen para mostrar más en pantalla</small>
                     </div>
 
                   {{-- Estilo de Flechas (actualizado con más opciones) --}}
@@ -1056,6 +1079,8 @@ const themeNames = {
     'elegant-gold': '👑 Elegant Gold',
     'modern-gradient': '🌈 Modern Gradient',
     'rounded-shadow': '🧾 Rounded Shadow',
+    'dual-view': '🖼️ Dual View',
+    'portrait-carousel': '👤 Portrait Carousel',
     'gallery-light': '📸 Gallery Light',
     'gallery-dark': '🎞️ Gallery Dark'
 };
@@ -1243,6 +1268,18 @@ function confirmDeleteSlide(slideId) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Mostrar/ocultar opciones exclusivas de portrait-carousel según tema
+    var themeSelect = document.querySelector('select[name="settings[theme]"]');
+    var lightboxOption = document.getElementById('lightbox-option');
+    var slideSizeOption = document.getElementById('slide-size-option');
+    function togglePortraitOptions() {
+        var isPortrait = themeSelect && themeSelect.value === 'portrait-carousel';
+        if (lightboxOption) lightboxOption.style.display = isPortrait ? 'block' : 'none';
+        if (slideSizeOption) slideSizeOption.style.display = isPortrait ? 'block' : 'none';
+    }
+    togglePortraitOptions();
+    if (themeSelect) themeSelect.addEventListener('change', togglePortraitOptions);
+
     // Aplicar estilos de flechas ANTES de inicializar Swiper para evitar parpadeo
     applyArrowStylesImmediately();
 
@@ -1655,6 +1692,33 @@ function initPreviewSwiper() {
     } else if (swiperEffect === 'flip') {
         swiperConfig.flipEffect = {
             slideShadows: true
+        };
+    }
+
+    // Si es tema dual-view, configurar 2 slides visibles
+    const themeSelect = document.querySelector('select[name="settings[theme]"]');
+    const currentTheme = themeSelect?.value || '';
+    if (currentTheme === 'dual-view') {
+        swiperConfig.slidesPerView = 2;
+        swiperConfig.spaceBetween = 16;
+        swiperConfig.effect = 'slide';
+        swiperConfig.breakpoints = {
+            0: { slidesPerView: 1, spaceBetween: 8 },
+            768: { slidesPerView: 2, spaceBetween: 16 }
+        };
+    }
+
+    // Si es tema portrait-carousel, configurar múltiples slides visibles
+    if (currentTheme === 'portrait-carousel') {
+        swiperConfig.slidesPerView = 3;
+        swiperConfig.spaceBetween = 16;
+        swiperConfig.effect = 'slide';
+        swiperConfig.breakpoints = {
+            0: { slidesPerView: 1, spaceBetween: 8 },
+            480: { slidesPerView: 2, spaceBetween: 12 },
+            768: { slidesPerView: 3, spaceBetween: 16 },
+            1024: { slidesPerView: 4, spaceBetween: 16 },
+            1280: { slidesPerView: 5, spaceBetween: 20 }
         };
     }
 

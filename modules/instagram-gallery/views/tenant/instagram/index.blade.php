@@ -6,6 +6,10 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 @endpush
 
+@php
+    $adminBase = '/' . admin_path();
+@endphp
+
 @section('content')
 <div class="app-content">
     <div class="container-fluid">
@@ -18,11 +22,11 @@
                 <p class="text-muted"><?php echo __instagram('module.description'); ?></p>
             </div>
             <div class="col-md-4 text-end">
-                <a href="/admin/instagram/settings" class="btn btn-outline-secondary me-2">
+                <a href="{{ $adminBase }}/instagram/settings" class="btn btn-outline-secondary me-2">
                     <i class="bi bi-gear"></i> <?php echo __instagram('settings.settings'); ?>
                 </a>
                 <?php if ($apiConfigured): ?>
-                    <a href="/admin/instagram/connect" class="btn btn-danger">
+                    <a href="{{ $adminBase }}/instagram/connect" class="btn btn-danger">
                         <i class="bi bi-instagram"></i> <?php echo __instagram('connection.connect_new'); ?>
                     </a>
                 <?php else: ?>
@@ -37,20 +41,22 @@
             <div class="alert alert-warning">
                 <i class="bi bi-exclamation-triangle"></i>
                 <?php echo __instagram('connection.api_not_configured'); ?>
-                <a href="/admin/instagram/settings" class="alert-link"><?php echo __instagram('connection.configure_api'); ?></a>
+                <a href="{{ $adminBase }}/instagram/settings" class="alert-link"><?php echo __instagram('connection.configure_api'); ?></a>
             </div>
         <?php endif; ?>
 
         <?php if (empty($connections)): ?>
-            <div class="text-center py-5">
-                <i class="bi bi-instagram" style="font-size: 4rem; color: #ddd;"></i>
-                <h4 class="mt-3"><?php echo __instagram('connection.no_connections'); ?></h4>
-                <p class="text-muted"><?php echo __instagram('connection.connect_first'); ?></p>
-                <?php if ($apiConfigured): ?>
-                    <a href="/admin/instagram/connect" class="btn btn-danger mt-3">
-                        <i class="bi bi-instagram"></i> <?php echo __instagram('connection.connect'); ?>
-                    </a>
-                <?php endif; ?>
+            <div class="card mb-4">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-instagram" style="font-size: 4rem; color: #E1306C;"></i>
+                    <h4 class="mt-3"><?php echo __instagram('connection.no_connections'); ?></h4>
+                    <p class="text-muted"><?php echo __instagram('connection.connect_first'); ?></p>
+                    <?php if ($apiConfigured): ?>
+                        <a href="{{ $adminBase }}/instagram/connect" class="btn btn-danger mt-2">
+                            <i class="bi bi-instagram"></i> <?php echo __instagram('connection.connect'); ?>
+                        </a>
+                    <?php endif; ?>
+                </div>
             </div>
         <?php else: ?>
             <div class="row">
@@ -65,9 +71,9 @@
                                              class="rounded-circle me-3"
                                              style="width: 50px; height: 50px; object-fit: cover;">
                                     <?php else: ?>
-                                        <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center me-3"
-                                             style="width: 50px; height: 50px;">
-                                            <i class="bi bi-instagram"></i>
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                                             style="width: 50px; height: 50px; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">
+                                            <i class="bi bi-instagram text-white" style="font-size: 1.4rem;"></i>
                                         </div>
                                     <?php endif; ?>
                                     <div class="flex-grow-1">
@@ -103,7 +109,7 @@
                                         <i class="bi bi-calendar-event text-muted"></i>
                                         <strong><?php echo __instagram('connection.token_expires_at'); ?>:</strong>
                                         <?php echo date('d/m/Y H:i', strtotime($connection->token_expires_at)); ?>
-                                        <span class="text-muted">(<?php echo $connection->getDaysUntilExpiration(); ?> días)</span>
+                                        <span class="text-muted">(<?php echo $connection->getDaysUntilExpiration(); ?> dias)</span>
                                     </li>
                                     <?php if ($connection->last_synced_at): ?>
                                         <li class="mb-1">
@@ -125,8 +131,11 @@
                                     <button type="button" class="btn btn-sm btn-primary" onclick="syncConnection(<?php echo $connection->id; ?>)">
                                         <i class="bi bi-arrow-repeat"></i> <?php echo __instagram('connection.sync_now'); ?>
                                     </button>
-                                    <a href="/admin/instagram/<?php echo $connection->id; ?>/posts" class="btn btn-sm btn-outline-primary">
+                                    <a href="{{ $adminBase }}/instagram/<?php echo $connection->id; ?>/posts" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-grid-3x3"></i> <?php echo __instagram('post.posts'); ?>
+                                    </a>
+                                    <a href="{{ $adminBase }}/instagram/<?php echo $connection->id; ?>/gallery" class="btn btn-sm btn-outline-success" title="Shortcode">
+                                        <i class="bi bi-code-square"></i>
                                     </a>
                                     <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDisconnect(<?php echo $connection->id; ?>, '<?php echo addslashes($connection->username); ?>')">
                                         <i class="bi bi-trash"></i>
@@ -138,6 +147,58 @@
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
+
+        <!-- Instrucciones -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-book me-2"></i>Como usar Instagram Gallery</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary"><i class="bi bi-1-circle me-1"></i> Configurar la API</h6>
+                        <p class="small text-muted mb-3">
+                            Ve a <a href="{{ $adminBase }}/instagram/settings"><i class="bi bi-gear"></i> Configuracion</a> e introduce las credenciales de tu app de Instagram (App ID y App Secret). Necesitas crear una app en <a href="https://developers.facebook.com/" target="_blank">Facebook Developers</a> con el producto "Instagram Basic Display".
+                        </p>
+
+                        <h6 class="text-primary"><i class="bi bi-2-circle me-1"></i> Conectar tu cuenta</h6>
+                        <p class="small text-muted mb-3">
+                            Pulsa <strong>"Conectar Nueva Cuenta"</strong> y autoriza la app en Instagram. Se obtendra un token de acceso valido por 60 dias que se renueva automaticamente.
+                        </p>
+
+                        <h6 class="text-primary"><i class="bi bi-3-circle me-1"></i> Sincronizar posts</h6>
+                        <p class="small text-muted mb-3">
+                            Pulsa <strong>"Sincronizar Ahora"</strong> en la tarjeta de tu cuenta para descargar los posts mas recientes. Los posts se cachean en la base de datos para cargar rapido.
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary"><i class="bi bi-4-circle me-1"></i> Insertar en tu sitio</h6>
+                        <p class="small text-muted mb-2">
+                            Usa el shortcode en cualquier pagina o post para mostrar la galeria:
+                        </p>
+                        <div class="bg-light rounded p-3 mb-3">
+                            <code class="d-block mb-1">[instagram connection=1]</code>
+                            <code class="d-block mb-1">[instagram connection=1 layout="grid" columns=4]</code>
+                            <code class="d-block mb-1">[instagram connection=1 layout="masonry" limit=12]</code>
+                            <code class="d-block">[instagram connection=1 layout="carousel"]</code>
+                        </div>
+
+                        <h6>Parametros disponibles</h6>
+                        <table class="table table-sm small mb-0">
+                            <tbody>
+                                <tr><td><code>connection</code></td><td>ID de la conexion (obligatorio)</td></tr>
+                                <tr><td><code>layout</code></td><td>grid, masonry, carousel, lightbox, justified</td></tr>
+                                <tr><td><code>columns</code></td><td>1-6 (por defecto: 3)</td></tr>
+                                <tr><td><code>limit</code></td><td>1-50 posts a mostrar</td></tr>
+                                <tr><td><code>gap</code></td><td>Espacio entre imagenes en px</td></tr>
+                                <tr><td><code>show_caption</code></td><td>true/false</td></tr>
+                                <tr><td><code>hover_effect</code></td><td>zoom, fade, none</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 @endsection
@@ -145,7 +206,8 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // Show success/error messages
+    const adminBase = '{{ $adminBase }}';
+
     <?php if (isset($_SESSION['success'])): ?>
         Swal.fire({
             icon: 'success',
@@ -179,7 +241,7 @@
             cancelButtonText: '<?php echo __instagram('common.cancel'); ?>'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.location.href = '/admin/instagram/settings';
+                window.location.href = adminBase + '/instagram/settings';
             }
         });
     }
@@ -194,7 +256,7 @@
             }
         });
 
-        fetch(`/admin/instagram/${id}/sync`, {
+        fetch(`${adminBase}/instagram/${id}/sync`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -244,7 +306,7 @@
             if (result.isConfirmed) {
                 const form = document.createElement('form');
                 form.method = 'POST';
-                form.action = `/admin/instagram/${id}/disconnect`;
+                form.action = `${adminBase}/instagram/${id}/disconnect`;
                 document.body.appendChild(form);
                 form.submit();
             }

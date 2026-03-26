@@ -26,34 +26,38 @@
 
 /* Banner tema activo */
 .active-theme-card {
-    background: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
-    border-radius: 16px;
-    padding: 1.5rem;
-    color: white;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-left: 4px solid #10b981;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    color: #1e293b;
     margin-bottom: 2rem;
 }
 .active-theme-card .icon-circle {
-    width: 56px;
-    height: 56px;
-    background: rgba(255,255,255,0.2);
+    width: 44px;
+    height: 44px;
+    background: rgba(16, 185, 129, 0.1);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 1.25rem;
+    color: #10b981;
 }
 .active-theme-card .theme-label {
-    font-size: 0.85rem;
-    opacity: 0.85;
+    font-size: 0.8rem;
+    color: #64748b;
 }
 .active-theme-card .theme-name {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 600;
     margin: 0;
+    color: #1e293b;
 }
 .active-theme-card .badge {
-    background: rgba(255,255,255,0.25);
-    color: white;
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
     font-weight: 500;
 }
 
@@ -113,8 +117,8 @@
     transform: translateY(-2px);
 }
 .theme-card.is-active {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.15);
 }
 
 /* Active badge ribbon */
@@ -122,7 +126,7 @@
     position: absolute;
     top: 12px;
     right: -32px;
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
     font-size: 0.65rem;
     font-weight: 700;
@@ -202,7 +206,7 @@
     border-radius: 8px;
 }
 .theme-actions .btn-active {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    background: #10b981;
     border: none;
     color: white;
 }
@@ -390,7 +394,7 @@
                                 <a href="/{{ admin_path() }}/themes/appearance/{{ $theme['slug'] }}" class="btn btn-icon" title="{{ __('themes.customize') ?? 'Personalizar' }}">
                                     <i class="bi bi-brush"></i>
                                 </a>
-                                <a href="/{{ admin_path() }}/widgets" class="btn btn-icon" title="{{ __('themes.widgets') ?? 'Widgets' }}">
+                                <a href="/{{ admin_path() }}/widgets/{{ $theme['slug'] }}" class="btn btn-icon" title="{{ __('themes.widgets') ?? 'Widgets' }}">
                                     <i class="bi bi-grid-3x3"></i>
                                 </a>
                             @else
@@ -481,7 +485,7 @@
                                 <button class="btn btn-active flex-grow-1" disabled>
                                     <i class="bi bi-check2 me-1"></i>{{ __('themes.active') ?? 'Activo' }}
                                 </button>
-                                <a href="/{{ admin_path() }}/widgets" class="btn btn-icon" title="{{ __('themes.widgets') ?? 'Widgets' }}">
+                                <a href="/{{ admin_path() }}/widgets/{{ $theme['slug'] }}" class="btn btn-icon" title="{{ __('themes.widgets') ?? 'Widgets' }}">
                                     <i class="bi bi-sliders"></i>
                                 </a>
                             @elseif($theme['validated'])

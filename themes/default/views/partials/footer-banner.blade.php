@@ -271,7 +271,7 @@
                             <li><a href="{{ url('/p/privacy') }}" style="color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75;">{{ $__bl === 'en' ? 'Privacy Policy' : 'Política de Privacidad' }}</a></li>
                             <li><a href="{{ url('/p/cookie-policy') }}" style="color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75;">{{ $__bl === 'en' ? 'Cookie Policy' : 'Política de Cookies' }}</a></li>
                             <li><a href="{{ url('/p/terms-and-conditions') }}" style="color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75;">{{ $__bl === 'en' ? 'Terms & Conditions' : 'Términos y Condiciones' }}</a></li>
-                            @if(site_setting('cookies_enabled', '1') == '1')
+                            @if(site_setting('cookies_enabled', '1') == '1' && site_setting('cookies_show_icon', '1') == '1')
                             <li><a href="javascript:void(0);" id="open-cookie-settings" style="color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75;">🍪 {{ $__bl === 'en' ? 'Cookie Settings' : 'Configuración de Cookies' }}</a></li>
                             @endif
                         </ul>

@@ -85,6 +85,8 @@ class TenantCreationService
                 'custom_forms.submissions.view', 'custom_forms.submissions.export', 'custom_forms.submissions.delete',
                 // Galería de imágenes
                 'image_gallery.view', 'image_gallery.create', 'image_gallery.edit', 'image_gallery.delete',
+                // Instagram
+                'instagram.view', 'instagram.create', 'instagram.edit', 'instagram.delete', 'instagram.settings',
                 // Sliders React
                 'react_sliders.view', 'react_sliders.create', 'react_sliders.edit', 'react_sliders.delete',
                 // Avanzado

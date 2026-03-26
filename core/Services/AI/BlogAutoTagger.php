@@ -46,55 +46,73 @@ class BlogAutoTagger
         // 3. Obtener relaciones actuales
         $currentRelations = self::getCurrentRelations($pdo, $tenantId);
 
-        // 4. Preparar contexto para la IA
-        $postsContext = [];
+        // 4. Preparar contexto para la IA — en batches para no exceder context window
+        $catNames = array_column($existingCategories, 'name');
+        $tagNames = array_column($existingTags, 'name');
+
+        $allPostsContext = [];
         foreach ($posts as $post) {
-            $contentPreview = mb_substr(strip_tags($post['content']), 0, 600);
+            $contentPreview = mb_substr(strip_tags($post['content']), 0, 400);
             $postCats = $currentRelations['categories'][$post['id']] ?? [];
             $postTags = $currentRelations['tags'][$post['id']] ?? [];
 
-            $postsContext[] = [
+            $allPostsContext[] = [
                 'id' => $post['id'],
                 'title' => $post['title'],
-                'excerpt' => mb_substr($post['excerpt'], 0, 200),
+                'excerpt' => mb_substr($post['excerpt'], 0, 150),
                 'content_preview' => $contentPreview,
                 'current_categories' => $postCats,
                 'current_tags' => $postTags,
             ];
         }
 
-        $catNames = array_column($existingCategories, 'name');
-        $tagNames = array_column($existingTags, 'name');
+        // Procesar en batches de 25 posts para no exceder context window
+        $batchSize = 25;
+        $batches = array_chunk($allPostsContext, $batchSize);
+        $suggestions = [];
+        $totalTokens = 0;
+        $modelUsed = '';
+        $errors = [];
 
-        $prompt = self::buildPrompt($postsContext, $catNames, $tagNames);
+        Logger::info("BlogAutoTagger: Procesando " . count($allPostsContext) . " posts en " . count($batches) . " batches de {$batchSize}");
 
-        // 5. Llamar a la IA
-        try {
-            $result = AIService::generateWithDefault($prompt, [
-                'temperature' => 0.3,
-                'max_tokens' => 4000,
-                'system_message' => 'Eres un experto en SEO y taxonomía de contenidos. Responde SOLO con JSON válido, sin markdown ni explicaciones.',
-            ], [
-                'tenant_id' => $tenantId,
-                'user_type' => 'system',
-                'module' => 'blog-auto-tagger',
-                'action' => $dryRun ? 'analyze' : 'apply',
-            ]);
-        } catch (\Exception $e) {
-            Logger::error("BlogAutoTagger: Error al llamar a IA", ['tenant_id' => $tenantId, 'error' => $e->getMessage()]);
-            return ['success' => false, 'message' => 'Error al conectar con el proveedor de IA: ' . $e->getMessage()];
+        foreach ($batches as $batchIndex => $batchPosts) {
+            $prompt = self::buildPrompt($batchPosts, $catNames, $tagNames);
+
+            try {
+                $result = AIService::generateWithDefault($prompt, [
+                    'temperature' => 0.3,
+                    'max_tokens' => 4000,
+                    'system_message' => 'Eres un experto en SEO y taxonomía de contenidos. Responde SOLO con JSON válido, sin markdown ni explicaciones.',
+                ], [
+                    'tenant_id' => $tenantId,
+                    'user_type' => 'system',
+                    'module' => 'blog-auto-tagger',
+                    'action' => $dryRun ? 'analyze' : 'apply',
+                ]);
+
+                $totalTokens += $result['tokens'] ?? 0;
+                $modelUsed = $result['model'] ?? $modelUsed;
+
+                $batchSuggestions = self::parseAIResponse($result['content']);
+                if ($batchSuggestions !== null) {
+                    $suggestions = array_merge($suggestions, $batchSuggestions);
+                } else {
+                    $errors[] = "Batch " . ($batchIndex + 1) . ": respuesta no válida";
+                    Logger::error("BlogAutoTagger: Batch {$batchIndex} respuesta no parseable", ['response' => mb_substr($result['content'], 0, 500)]);
+                }
+            } catch (\Exception $e) {
+                $errors[] = "Batch " . ($batchIndex + 1) . ": " . $e->getMessage();
+                Logger::error("BlogAutoTagger: Error en batch {$batchIndex}", ['error' => $e->getMessage()]);
+            }
         }
 
-        // 6. Parsear respuesta JSON
-        $suggestions = self::parseAIResponse($result['content']);
-        if ($suggestions === null) {
-            Logger::error("BlogAutoTagger: Respuesta de IA no es JSON válido", ['response' => mb_substr($result['content'], 0, 1000)]);
+        if (empty($suggestions)) {
             return [
                 'success' => false,
-                'message' => 'La IA no devolvió un formato válido. Inténtalo de nuevo.',
-                'raw' => mb_substr($result['content'], 0, 2000),
-                'tokens_used' => $result['tokens'],
-                'model' => $result['model'],
+                'message' => 'No se obtuvieron sugerencias válidas de la IA.' . (!empty($errors) ? ' Errores: ' . implode('; ', $errors) : ''),
+                'tokens_used' => $totalTokens,
+                'model' => $modelUsed,
             ];
         }
 
@@ -118,8 +136,10 @@ class BlogAutoTagger
                 'success' => true,
                 'dry_run' => true,
                 'suggestions' => $suggestions,
-                'tokens_used' => $result['tokens'],
-                'model' => $result['model'],
+                'tokens_used' => $totalTokens,
+                'model' => $modelUsed,
+                'batches' => count($batches),
+                'batch_errors' => $errors,
             ];
         }
 
@@ -130,8 +150,10 @@ class BlogAutoTagger
             'success' => true,
             'dry_run' => false,
             'applied' => $applied,
-            'tokens_used' => $result['tokens'],
-            'model' => $result['model'],
+            'tokens_used' => $totalTokens,
+            'model' => $modelUsed,
+            'batches' => count($batches),
+            'batch_errors' => $errors,
         ];
     }
 

@@ -31,7 +31,10 @@ class WpMediaImporter
      */
     public function importAll(array $mediaItems, ?callable $onProgress = null): array
     {
-        $this->createImportFolder();
+        // Solo crear carpeta si hay items para importar
+        if (!empty($mediaItems)) {
+            $this->createImportFolder();
+        }
 
         $total = count($mediaItems);
         $processed = 0;
@@ -105,6 +108,26 @@ class WpMediaImporter
             return null;
         }
 
+        // Verificar si ya existe un media con el mismo filename en la BD (skip re-download)
+        $existingMedia = $this->findExistingMediaByFilename($sourceUrl);
+        if ($existingMedia) {
+            $this->urlMap[$sourceUrl] = $existingMedia['url'];
+            $wpId = $wpMedia['id'] ?? null;
+            if ($wpId) {
+                $this->idMap[$wpId] = $existingMedia['id'];
+            }
+            // Mapear variantes de tamaño también
+            if (isset($wpMedia['media_details']['sizes'])) {
+                foreach ($wpMedia['media_details']['sizes'] as $size => $sizeData) {
+                    if (isset($sizeData['source_url'])) {
+                        $this->urlMap[$sizeData['source_url']] = $existingMedia['url'];
+                    }
+                }
+            }
+            Logger::debug("WpMediaImporter: Ya existe, skip: {$originalName} => {$existingMedia['url']}");
+            return ['id' => $existingMedia['id'], 'url' => $existingMedia['url']];
+        }
+
         // Descargar a temporal
         $extension = pathinfo(parse_url($sourceUrl, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
         $tmpFile = sys_get_temp_dir() . '/wp_import_' . uniqid() . '.' . $extension;
@@ -125,7 +148,7 @@ class WpMediaImporter
                     'original_name' => $this->sanitizeFilename($originalName, $extension),
                     'folder_id' => $this->importFolderId,
                     'disk' => $this->getPreferredDisk(),
-                    'compress' => true,
+                    'compress' => empty($wpMedia['no_compress']),
                     'alt_text' => $altText,
                     'caption' => $caption,
                 ]
@@ -185,6 +208,23 @@ class WpMediaImporter
             $content = str_replace($wpUrl, $musedockUrl, $content);
         }
 
+        // Segundo paso: reemplazar variantes de tamaño WP no mapeadas explícitamente
+        // Las URLs tipo imagen-300x200.jpg son variantes de imagen.jpg
+        // Si tenemos imagen.jpg en el map, reemplazar todas sus variantes
+        foreach ($sortedMap as $wpUrl => $musedockUrl) {
+            // Extraer base del filename sin extensión
+            $parsed = parse_url($wpUrl, PHP_URL_PATH);
+            if (!$parsed) continue;
+            $ext = pathinfo($parsed, PATHINFO_EXTENSION);
+            $base = pathinfo($parsed, PATHINFO_FILENAME);
+            if (!$ext || !$base) continue;
+
+            // Buscar en el contenido variantes tipo base-NNNxNNN.ext del mismo directorio
+            $dir = dirname($wpUrl);
+            $pattern = preg_quote($dir . '/' . $base, '/') . '-\d+x\d+\.' . preg_quote($ext, '/');
+            $content = preg_replace('/' . $pattern . '/', $musedockUrl, $content);
+        }
+
         return $content;
     }
 
@@ -217,7 +257,7 @@ class WpMediaImporter
     // ====================================================================
 
     /**
-     * Crear carpeta "WordPress Import" en el Media Manager
+     * Crear carpeta "Import" en el Media Manager
      */
     private function createImportFolder(): void
     {
@@ -226,37 +266,34 @@ class WpMediaImporter
         }
 
         try {
-            $folderModel = new \MediaManager\Models\Folder();
             $disk = $this->getPreferredDisk();
 
-            // Buscar si ya existe
-            $existing = \MediaManager\Models\Folder::query()
-                ->where('name', 'WordPress Import')
-                ->where('disk', $disk);
+            // Buscar si ya existe (por nombre "Import" o legacy "WordPress Import")
+            foreach (['Import', 'WordPress Import'] as $folderName) {
+                $existing = \MediaManager\Models\Folder::query()
+                    ->where('name', $folderName)
+                    ->where('disk', $disk);
 
-            if ($this->tenantId !== null) {
-                $existing->where('tenant_id', $this->tenantId);
-            } else {
-                $existing->whereNull('tenant_id');
+                if ($this->tenantId !== null) {
+                    $existing->where('tenant_id', $this->tenantId);
+                } else {
+                    $existing->whereNull('tenant_id');
+                }
+
+                $folder = $existing->first();
+                if ($folder) {
+                    $this->importFolderId = $folder['id'];
+                    return;
+                }
             }
 
-            $folder = $existing->first();
-
-            if ($folder) {
-                $this->importFolderId = $folder['id'];
-                return;
-            }
-
-            // Obtener root folder
+            // Obtener root folder (global, path='/')
             $rootQuery = \MediaManager\Models\Folder::query()
                 ->where('disk', $disk)
-                ->whereNull('parent_id');
+                ->where('path', '/');
 
-            if ($this->tenantId !== null) {
-                $rootQuery->where('tenant_id', $this->tenantId);
-            } else {
-                $rootQuery->whereNull('tenant_id');
-            }
+            // Root folders son siempre globales (tenant_id NULL)
+            $rootQuery->whereNull('tenant_id');
 
             $root = $rootQuery->first();
             $parentId = $root ? $root['id'] : null;
@@ -265,15 +302,15 @@ class WpMediaImporter
             $folderId = \MediaManager\Models\Folder::create([
                 'tenant_id' => $this->tenantId,
                 'parent_id' => $parentId,
-                'name' => 'WordPress Import',
-                'slug' => 'wordpress-import',
-                'path' => '/wordpress-import/',
+                'name' => 'Import',
+                'slug' => 'import',
+                'path' => '/import/',
                 'disk' => $disk,
-                'description' => 'Media importado desde WordPress',
+                'description' => 'Media importado',
             ]);
 
             $this->importFolderId = $folderId;
-            Logger::info("WpMediaImporter: Carpeta 'WordPress Import' creada con ID {$folderId}");
+            Logger::info("WpMediaImporter: Carpeta 'Import' creada con ID {$folderId}");
         } catch (\Throwable $e) {
             Logger::error("WpMediaImporter: Error creando carpeta: " . $e->getMessage());
             // Continuar sin carpeta (se subirán a la raíz)
@@ -303,6 +340,40 @@ class WpMediaImporter
 
         // Fallback a media (local seguro)
         return 'media';
+    }
+
+    /**
+     * Buscar media existente por filename derivado de la URL de WordPress
+     */
+    private function findExistingMediaByFilename(string $sourceUrl): ?array
+    {
+        try {
+            $path = parse_url($sourceUrl, PHP_URL_PATH);
+            if (!$path) return null;
+            $filename = basename($path);
+            if (empty($filename)) return null;
+
+            // Buscar por filename en la tabla media
+            $tenantCondition = $this->tenantId !== null
+                ? "tenant_id = :tenant_id"
+                : "tenant_id IS NULL";
+            $params = ['filename' => '%' . $filename];
+            if ($this->tenantId !== null) {
+                $params['tenant_id'] = $this->tenantId;
+            }
+
+            $row = \Screenart\Musedock\Database::query(
+                "SELECT id, url FROM media WHERE url LIKE :filename AND {$tenantCondition} LIMIT 1",
+                $params
+            )->fetch();
+
+            if ($row && !empty($row['url'])) {
+                return ['id' => $row['id'], 'url' => $row['url']];
+            }
+        } catch (\Throwable $e) {
+            Logger::debug("WpMediaImporter: Error buscando media existente: " . $e->getMessage());
+        }
+        return null;
     }
 
     /**

@@ -83,6 +83,28 @@ class SettingsController
             $pdo = Database::connect();
             $pdo->beginTransaction();
 
+            // Blog URL prefix
+            $blogUrlMode = $_POST['blog_url_mode'] ?? 'prefix';
+            if ($blogUrlMode === 'none') {
+                $blogUrlPrefix = '';
+            } else {
+                $blogUrlPrefix = preg_replace('/[^a-z0-9\-]/', '', strtolower(trim($_POST['blog_url_prefix'] ?? 'blog')));
+                if ($blogUrlPrefix === '') {
+                    $blogUrlPrefix = 'blog';
+                }
+            }
+
+            // Page URL prefix
+            $pageUrlMode = $_POST['page_url_mode'] ?? 'prefix';
+            if ($pageUrlMode === 'none') {
+                $pageUrlPrefix = '';
+            } else {
+                $pageUrlPrefix = preg_replace('/[^a-z0-9\-]/', '', strtolower(trim($_POST['page_url_prefix'] ?? 'p')));
+                if ($pageUrlPrefix === '') {
+                    $pageUrlPrefix = 'p';
+                }
+            }
+
             // Actualizar solo los settings de lectura
             $readingSettings = [
                 'show_on_front' => $_POST['show_on_front'] ?? 'posts',
@@ -90,7 +112,9 @@ class SettingsController
                 'post_on_front' => $_POST['post_on_front'] ?? '',
                 'posts_per_page' => $_POST['posts_per_page'] ?? '10',
                 'posts_per_rss' => $_POST['posts_per_rss'] ?? '10',
-                'blog_public' => isset($_POST['blog_public']) ? '0' : '1', // 0 = no indexar, 1 = indexar (default)
+                'blog_public' => isset($_POST['blog_public']) ? '0' : '1',
+                'blog_url_prefix' => $blogUrlPrefix,
+                'page_url_prefix' => $pageUrlPrefix,
             ];
 
             $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
@@ -105,16 +129,42 @@ class SettingsController
             }
 
             // === SINCRONIZACIÓN: Actualizar is_homepage en la tabla pages ===
-            // Primero, desmarcar todas las páginas como homepage
             $stmt = $pdo->prepare("UPDATE pages SET is_homepage = 0");
             $stmt->execute();
 
-            // Si se seleccionó una página estática como homepage, marcarla
             if ($readingSettings['show_on_front'] === 'page' && !empty($readingSettings['page_on_front'])) {
                 $stmt = $pdo->prepare("UPDATE pages SET is_homepage = 1 WHERE id = ?");
                 $stmt->execute([$readingSettings['page_on_front']]);
                 error_log("SettingsController: Página ID {$readingSettings['page_on_front']} marcada como homepage");
             }
+
+            // Actualizar slugs de blog
+            $newBlogPrefix = $blogUrlPrefix ?: null;
+            $stmt = $pdo->prepare("UPDATE slugs SET prefix = ? WHERE tenant_id IS NULL AND module = 'blog'");
+            $stmt->execute([$newBlogPrefix]);
+
+            // Verificar conflictos cross-module si ambos prefijos son vacíos
+            $newPagePrefix = $pageUrlPrefix ?: null;
+            if ($newPagePrefix === null && $newBlogPrefix === null) {
+                $stmt = $pdo->prepare("
+                    SELECT s1.slug FROM slugs s1
+                    INNER JOIN slugs s2 ON s1.slug = s2.slug AND s1.tenant_id IS NULL AND s2.tenant_id IS NULL
+                    WHERE s1.module = 'pages' AND s2.module = 'blog'
+                    LIMIT 5
+                ");
+                $stmt->execute();
+                $conflicts = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+                if (!empty($conflicts)) {
+                    $pdo->rollBack();
+                    flash('error', 'No se pueden quitar ambos prefijos: hay slugs duplicados entre páginas y posts (' . implode(', ', $conflicts) . '). Cambia los slugs duplicados o mantén al menos un prefijo.');
+                    header('Location: /musedock/settings/reading');
+                    exit;
+                }
+            }
+
+            // Actualizar slugs de páginas
+            $stmt = $pdo->prepare("UPDATE slugs SET prefix = ? WHERE tenant_id IS NULL AND module = 'pages'");
+            $stmt->execute([$newPagePrefix]);
 
             $pdo->commit();
 
@@ -588,7 +638,10 @@ public function deleteFavicon()
         $this->saveSettings([
             'cookies_enabled', 'cookies_text', 'cookies_accept_basic',
             'cookies_accept_all', 'cookies_more_info', 'cookies_policy_url',
-            'cookies_terms_text', 'cookies_terms_url'
+            'cookies_terms_text', 'cookies_terms_url',
+            'cookies_show_icon', 'cookies_banner_layout',
+            'cookies_bg_color', 'cookies_text_color',
+            'cookies_btn_accept_bg', 'cookies_btn_reject_bg'
         ]);
 
         // Limpiar caché de helper
@@ -665,7 +718,7 @@ public function deleteFavicon()
             $value = $_POST[$key] ?? '';
             
             // Checkbox se envía como "on" o no se envía
-            if ($key === 'show_logo' || $key === 'show_title' || $key === 'cookies_enabled') {
+            if ($key === 'show_logo' || $key === 'show_title' || $key === 'cookies_enabled' || $key === 'cookies_show_icon') {
                 $value = isset($_POST[$key]) ? '1' : '0';
             }
             

@@ -151,7 +151,9 @@
     <hr style="border-top: 1px solid #ddd; margin: 1.5rem 0;">
     @foreach($rest as $post)
     @php $post = is_object($post) ? $post : (object)$post; @endphp
+    @php $isBrief = (($post->post_type ?? 'post') === 'brief'); @endphp
     <article class="row mb-4 pb-4 {{ !$loop->last ? 'border-bottom' : '' }}">
+        @if(!$isBrief)
         <div class="col-md-4 mb-3 mb-md-0">
             <a href="{{ blog_url($post->slug) }}" class="d-block overflow-hidden rounded" style="height: 200px; background-color: #f0f2f5;">
                 @php
@@ -167,7 +169,8 @@
                 <img src="{{ $imageUrl }}" alt="{{ $post->title }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
             </a>
         </div>
-        <div class="col-md-8 d-flex flex-column">
+        @endif
+        <div class="{{ $isBrief ? 'col-12' : 'col-md-8' }} d-flex flex-column">
             <div class="post-meta mb-1 text-muted small">
                 @php
                     $dateVal = $post->published_at ?? $post->created_at;

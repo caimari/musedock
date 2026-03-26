@@ -105,6 +105,14 @@ if (!function_exists('process_element_shortcodes')) {
             );
         }
 
+        // Limpiar <p> que envuelven elementos block (section) tras expandir shortcodes
+        // El editor TinyMCE envuelve los shortcodes en <p>, pero el HTML resultante tiene <section>
+        // que no puede estar dentro de <p> — el browser lo auto-cierra causando DOM roto
+        $content = preg_replace('/<p>\s*((?:<!--.*?-->|<link[^>]*>|<script[^>]*>.*?<\/script>|\s)*)\s*(<section\b)/si', '$1$2', $content);
+        $content = preg_replace('/(<\/section>)\s*<\/p>/si', '$1', $content);
+        // Eliminar párrafos vacíos residuales
+        $content = preg_replace('/<p>\s*(&nbsp;|\xC2\xA0|\s)*<\/p>/i', '', $content);
+
         return $content;
     }
 }

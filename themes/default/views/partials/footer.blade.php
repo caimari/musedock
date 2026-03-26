@@ -21,20 +21,20 @@
             <div class="row">
 
                 <div class="col-xl-4 col-lg-4 col-md-6 col-sm-12">
-                   <div class="single-footer-caption mb-50">
-                     <div class="single-footer-caption mb-30">
+                   <div class="single-footer-caption">
+                     <div class="single-footer-caption">
                           <!-- logo (solo si show_logo está activo) -->
                          @if($showFooterBranding)
-                         <div class="footer-logo" style="display:flex; align-items:center; gap:12px;">
-                             <a href="{{ url('/') }}" style="display:flex; align-items:center; gap:12px; text-decoration:none;">
+                         <div class="footer-logo" style="margin-bottom:8px;">
+                             <a href="{{ url('/') }}" style="display:inline-flex; align-items:center; gap:14px; text-decoration:none;">
                                  @if($showFooterLogo)
                                     <img src="{{ $footerLogoPath ? public_file_url($footerLogoPath) : $footerDefaultLogo }}"
                                           alt="{{ $footerSiteName }}"
-                                         style="max-height: 44px; width: auto;"
+                                         style="max-height: 50px; width: auto;"
                                           onerror="this.onerror=null; this.src='{{ $footerDefaultLogo }}';">
                                  @endif
                                  @if($showFooterTitle)
-                                     <span style="font-size: 20px; font-weight: 700; color: var(--footer-heading-color, #333);">
+                                     <span style="font-size: 22px; font-weight: 700; color: var(--footer-heading-color, #333);">
                                          {{ $footerSiteName }}
                                      </span>
                                  @endif
@@ -124,33 +124,45 @@
                    </div>
                 </div>
 
-                <div class="col-xl-2 col-lg-2 col-md-4 col-sm-6">
+                @php
+                    // Verificar si existe un menú para el área footer1
+                    $pdo = \Screenart\Musedock\Database::connect();
+                    $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer1' LIMIT 1");
+                    $stmt->execute();
+                    $footer1Menu = $stmt->fetch(\PDO::FETCH_ASSOC);
+                    $hasFooter1Menu = !empty($footer1Menu);
+
+                    $footer1Title = '';
+                    $showFooter1Title = true;
+                    if ($hasFooter1Menu) {
+                        $showFooter1Title = (bool)($footer1Menu['show_title'] ?? 1);
+                        $stmt = $pdo->prepare("
+                            SELECT mt.title
+                            FROM site_menu_translations mt
+                            WHERE mt.menu_id = ? AND mt.locale = ?
+                            ORDER BY mt.id DESC LIMIT 1
+                        ");
+                        $stmt->execute([$footer1Menu['id'], $currentLang]);
+                        $footer1Title = $stmt->fetchColumn();
+                    }
+
+                    // Verificar si hay widgets para footer1
+                    $footer1WidgetContent = '';
+                    if (!$hasFooter1Menu) {
+                        $tenantId = \Screenart\Musedock\Services\TenantManager::currentTenantId();
+                        $themeSlug = setting('default_theme', 'default');
+                        \Screenart\Musedock\Widgets\WidgetManager::registerAvailableWidgets();
+                        $footer1WidgetContent = trim(\Screenart\Musedock\Widgets\WidgetManager::renderArea('footer1', $tenantId, $themeSlug));
+                    }
+                    // Considerar vacío si solo tiene divs y comentarios HTML
+                    $footer1TextContent = trim(strip_tags(preg_replace('/<!--.*?-->/s', '', $footer1WidgetContent)));
+                    $hasFooter1Content = $hasFooter1Menu || !empty($footer1TextContent);
+                @endphp
+
+                <div class="col-xl-2 col-lg-2 col-md-4 col-sm-6{{ $hasFooter1Content ? '' : ' footer-col-empty' }}">
+                    @if($hasFooter1Content)
                     <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterLogo ? '40px' : '0' }};">
-                        @php
-                            // Verificar si existe un menú para el área footer1
-                            $pdo = \Screenart\Musedock\Database::connect();
-                            $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer1' LIMIT 1");
-                            $stmt->execute();
-                            $footer1Menu = $stmt->fetch(\PDO::FETCH_ASSOC);
-                            $hasFooter1Menu = !empty($footer1Menu);
-
-                            $footer1Title = '';
-                            $showFooter1Title = true;
-                            if ($hasFooter1Menu) {
-                                $showFooter1Title = (bool)($footer1Menu['show_title'] ?? 1);
-                                $stmt = $pdo->prepare("
-                                    SELECT mt.title
-                                    FROM site_menu_translations mt
-                                    WHERE mt.menu_id = ? AND mt.locale = ?
-                                    ORDER BY mt.id DESC LIMIT 1
-                                ");
-                                $stmt->execute([$footer1Menu['id'], $currentLang]);
-                                $footer1Title = $stmt->fetchColumn();
-                            }
-                        @endphp
-
                         @if($hasFooter1Menu)
-                            {{-- Si tenemos un menú definido para footer1, mostrarlo --}}
                             <div class="footer-tittle">
                                 @if($footer1Title && $showFooter1Title)
                                     <h4 style="color: var(--footer-heading-color, #333);">{{ $footer1Title }}</h4>
@@ -163,39 +175,49 @@
                                 ])
                             </div>
                         @else
-                            {{-- Si no hay menú definido, intentar mostrar widgets --}}
-                            @include('partials.widget-renderer', ['areaSlug' => 'footer1'])
+                            {!! $footer1WidgetContent !!}
                         @endif
                     </div>
+                    @endif
                 </div>
 
-                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                @php
+                    // Verificar si existe un menú para el área footer2
+                    $pdo = \Screenart\Musedock\Database::connect();
+                    $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer2' LIMIT 1");
+                    $stmt->execute();
+                    $footer2Menu = $stmt->fetch(\PDO::FETCH_ASSOC);
+                    $hasFooter2Menu = !empty($footer2Menu);
+
+                    $footer2Title = '';
+                    $showFooter2Title = true;
+                    if ($hasFooter2Menu) {
+                        $showFooter2Title = (bool)($footer2Menu['show_title'] ?? 1);
+                        $stmt = $pdo->prepare("
+                            SELECT mt.title
+                            FROM site_menu_translations mt
+                            WHERE mt.menu_id = ? AND mt.locale = ?
+                            ORDER BY mt.id DESC LIMIT 1
+                        ");
+                        $stmt->execute([$footer2Menu['id'], $currentLang]);
+                        $footer2Title = $stmt->fetchColumn();
+                    }
+
+                    $footer2WidgetContent = '';
+                    if (!$hasFooter2Menu) {
+                        $tenantId = $tenantId ?? \Screenart\Musedock\Services\TenantManager::currentTenantId();
+                        $themeSlug = $themeSlug ?? setting('default_theme', 'default');
+                        \Screenart\Musedock\Widgets\WidgetManager::registerAvailableWidgets();
+                        $footer2WidgetContent = trim(\Screenart\Musedock\Widgets\WidgetManager::renderArea('footer2', $tenantId, $themeSlug));
+                    }
+                    $footer2TextContent = trim(strip_tags(preg_replace('/<!--.*?-->/s', '', $footer2WidgetContent)));
+                    $hasFooter2Content = $hasFooter2Menu || !empty($footer2TextContent);
+                @endphp
+
+                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6{{ $hasFooter2Content ? '' : ' footer-col-empty' }}">
+                    @if($hasFooter2Content)
                     <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterBranding ? '40px' : '0' }};">
-                        @php
-                            // Verificar si existe un menú para el área footer2
-                            $pdo = \Screenart\Musedock\Database::connect();
-                            $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer2' LIMIT 1");
-                            $stmt->execute();
-                            $footer2Menu = $stmt->fetch(\PDO::FETCH_ASSOC);
-                            $hasFooter2Menu = !empty($footer2Menu);
-
-                            $footer2Title = '';
-                            $showFooter2Title = true;
-                            if ($hasFooter2Menu) {
-                                $showFooter2Title = (bool)($footer2Menu['show_title'] ?? 1);
-                                $stmt = $pdo->prepare("
-                                    SELECT mt.title
-                                    FROM site_menu_translations mt
-                                    WHERE mt.menu_id = ? AND mt.locale = ?
-                                    ORDER BY mt.id DESC LIMIT 1
-                                ");
-                                $stmt->execute([$footer2Menu['id'], $currentLang]);
-                                $footer2Title = $stmt->fetchColumn();
-                            }
-                        @endphp
-
                         @if($hasFooter2Menu)
-                            {{-- Si tenemos un menú definido para footer2, mostrarlo --}}
                             <div class="footer-tittle">
                                 @if($footer2Title && $showFooter2Title)
                                     <h4 style="color: var(--footer-heading-color, #333);">{{ $footer2Title }}</h4>
@@ -208,43 +230,51 @@
                                 ])
                             </div>
                         @else
-                            {{-- Si no hay menú definido, intentar mostrar widgets --}}
-                            @include('partials.widget-renderer', ['areaSlug' => 'footer2'])
+                            {!! $footer2WidgetContent !!}
                         @endif
                     </div>
+                    @endif
                 </div>
 
-                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                @php
+                    // Verificar si existe un menú para el área footer3
+                    $pdo = \Screenart\Musedock\Database::connect();
+                    $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer3' LIMIT 1");
+                    $stmt->execute();
+                    $footer3Menu = $stmt->fetch(\PDO::FETCH_ASSOC);
+                    $hasFooter3Menu = !empty($footer3Menu);
+
+                    $footer3Title = '';
+                    $showFooter3Title = true;
+                    if ($hasFooter3Menu) {
+                        $showFooter3Title = (bool)($footer3Menu['show_title'] ?? 1);
+                        $stmt = $pdo->prepare("
+                            SELECT mt.title
+                            FROM site_menu_translations mt
+                            WHERE mt.menu_id = ? AND mt.locale = ?
+                            ORDER BY mt.id DESC LIMIT 1
+                        ");
+                        $stmt->execute([$footer3Menu['id'], $currentLang]);
+                        $footer3Title = $stmt->fetchColumn();
+                    }
+
+                    $hasContactData = site_setting('contact_phone') || site_setting('contact_email') || site_setting('contact_address') || site_setting('contact_whatsapp');
+
+                    $footer3WidgetContent = '';
+                    if (!$hasFooter3Menu && !$hasContactData) {
+                        $tenantId = $tenantId ?? \Screenart\Musedock\Services\TenantManager::currentTenantId();
+                        $themeSlug = $themeSlug ?? setting('default_theme', 'default');
+                        \Screenart\Musedock\Widgets\WidgetManager::registerAvailableWidgets();
+                        $footer3WidgetContent = trim(\Screenart\Musedock\Widgets\WidgetManager::renderArea('footer3', $tenantId, $themeSlug));
+                    }
+                    $footer3TextContent = trim(strip_tags(preg_replace('/<!--.*?-->/s', '', $footer3WidgetContent)));
+                    $hasFooter3Content = $hasFooter3Menu || $hasContactData || !empty($footer3TextContent);
+                @endphp
+
+                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6{{ $hasFooter3Content ? '' : ' footer-col-empty' }}">
+                    @if($hasFooter3Content)
                     <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterBranding ? '40px' : '0' }};">
-                        @php
-                            // Verificar si existe un menú para el área footer3
-                            $pdo = \Screenart\Musedock\Database::connect();
-                            $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer3' LIMIT 1");
-                            $stmt->execute();
-                            $footer3Menu = $stmt->fetch(\PDO::FETCH_ASSOC);
-                            $hasFooter3Menu = !empty($footer3Menu);
-
-                            $footer3Title = '';
-                            $showFooter3Title = true;
-                            if ($hasFooter3Menu) {
-                                $showFooter3Title = (bool)($footer3Menu['show_title'] ?? 1);
-                                $stmt = $pdo->prepare("
-                                    SELECT mt.title
-                                    FROM site_menu_translations mt
-                                    WHERE mt.menu_id = ? AND mt.locale = ?
-                                    ORDER BY mt.id DESC LIMIT 1
-                                ");
-                                $stmt->execute([$footer3Menu['id'], $currentLang]);
-                                $footer3Title = $stmt->fetchColumn();
-                            }
-                        @endphp
-
-                        @php
-                            $hasContactData = site_setting('contact_phone') || site_setting('contact_email') || site_setting('contact_address') || site_setting('contact_whatsapp');
-                        @endphp
-
                         @if($hasFooter3Menu)
-                            {{-- Prioridad 1: Si hay menú asignado a footer3, mostrarlo --}}
                             <div class="footer-tittle">
                                 @if($footer3Title && $showFooter3Title)
                                     <h4 style="color: var(--footer-heading-color, #333);">{{ $footer3Title }}</h4>
@@ -257,7 +287,6 @@
                                 ])
                             </div>
                         @elseif($hasContactData)
-                            {{-- Prioridad 2: Si no hay menú pero hay datos de contacto --}}
                             <div class="footer-tittle">
                                 <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--footer-heading-color, #333);">{{ site_setting('footer_col4_title', __('footer.contact')) }}</h4>
                                 <ul>
@@ -268,10 +297,10 @@
                                 </ul>
                             </div>
                         @else
-                            {{-- Prioridad 3: Si no hay menú ni contacto, mostrar widgets --}}
-                            @include('partials.widget-renderer', ['areaSlug' => 'footer3'])
+                            {!! $footer3WidgetContent !!}
                         @endif
                     </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -309,7 +338,6 @@
                                   AND s.slug IN ($placeholders)
                                   AND s.tenant_id = ?
                                   AND p.status = 'published'
-                                LIMIT 1
                             ");
                             $stmt->execute(array_merge($slugCandidates, [$tenantId]));
                         } else {
@@ -321,7 +349,6 @@
                                   AND s.slug IN ($placeholders)
                                   AND s.tenant_id IS NULL
                                   AND p.status = 'published'
-                                LIMIT 1
                             ");
                             $stmt->execute($slugCandidates);
                         }
@@ -335,14 +362,14 @@
                                 }
                             }
                         }
-                        return url('/p/' . $defaultSlug);
+                        return url(page_url($defaultSlug));
                     };
 
                     // Resolver URL de cada página legal (acepta varios slugs alternativos por si el tenant usa nombres propios)
                     $urlAvisoLegal   = $legalPageUrl(['aviso-legal', 'legal', 'aviso_legal'],                                                      'aviso-legal');
                     $urlPrivacidad   = $legalPageUrl(['privacy', 'privacidad', 'politica-de-privacidad', 'politica-privacidad'],                  'privacy');
                     $urlCookies      = $legalPageUrl(['cookie-policy', 'cookies', 'politica-de-cookies', 'politica-cookies'],                     'cookie-policy');
-                    $urlTerminos     = $legalPageUrl(['terms-and-conditions', 'terminos-y-condiciones', 'terminos', 'terms', 'condiciones-de-uso'], 'terms-and-conditions');
+                    $urlTerminos     = $legalPageUrl(['terms-and-conditions', 'terminos-y-condiciones', 'terminos-y-condiciones-de-uso', 'terminos', 'terms', 'condiciones-de-uso'], 'terms-and-conditions');
                 @endphp
 
                 <div class="row d-flex align-items-center">
@@ -385,10 +412,24 @@
                                             {{ $currentLang === 'en' ? 'Terms & Conditions' : 'Términos y Condiciones' }}
                                         </a>
                                     </li>
-                                    @if(site_setting('cookies_enabled', '1') == '1')
+                                    @php
+                                        $cookieIconEnabled = themeOption('footer.footer_cookie_icon_enabled', site_setting('cookies_show_icon', '1') == '1');
+                                    @endphp
+                                    @if(site_setting('cookies_enabled', '1') == '1' && $cookieIconEnabled)
+                                    @php
+                                        $cookieIconType = themeOption('footer.footer_cookie_icon', 'emoji');
+                                        switch ($cookieIconType) {
+                                            case 'fa-cookie':       $cookieIconHtml = '<i class="fas fa-cookie me-1"></i>'; break;
+                                            case 'fa-cookie-bite':  $cookieIconHtml = '<i class="fas fa-cookie-bite me-1"></i>'; break;
+                                            case 'fa-shield-alt':   $cookieIconHtml = '<i class="fas fa-shield-alt me-1"></i>'; break;
+                                            case 'fa-cog':          $cookieIconHtml = '<i class="fas fa-cog me-1"></i>'; break;
+                                            case 'none':            $cookieIconHtml = ''; break;
+                                            default:                $cookieIconHtml = '🍪 '; break;
+                                        }
+                                    @endphp
                                     <li class="footer-legal-item">
                                         <a href="javascript:void(0);" id="open-cookie-settings" style="color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75;">
-                                            🍪 {{ $currentLang === 'en' ? 'Cookie Settings' : 'Configuración de Cookies' }}
+                                            {!! $cookieIconHtml !!}{{ $currentLang === 'en' ? 'Cookie Settings' : 'Configuración de Cookies' }}
                                         </a>
                                     </li>
                                     @endif

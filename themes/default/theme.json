@@ -275,10 +275,22 @@
 	            "default": "Logo izquierda + menú derecha",
 	            "left": "Logo + menú alineados a la izquierda",
 	            "centered": "Logo centrado + menús a izquierda/derecha",
+	            "logo-above": "Logo centrado arriba + menú debajo",
+	            "logo-above-left": "Logo izquierda arriba + menú debajo",
 	            "tema1": "Tema 1 (Topbar negro + logo)",
 	            "aca": "Tema 2"
 	          },
 	          "description": "Selecciona la estructura del header"
+	        },
+	        "header_content_width": {
+	          "type": "select",
+	          "label": "Ancho del contenido",
+	          "default": "full",
+	          "options": {
+	            "full": "Ancho completo (fondo ocupa todo el viewport)",
+	            "boxed": "Contenido alineado (fondo limitado al ancho del contenido)"
+	          },
+	          "description": "Define si el header ocupa todo el ancho o se ajusta al contenido"
 	        },
         "header_bg_color": {
           "type": "color",
@@ -427,6 +439,16 @@
           },
           "description": "Selecciona la estructura del footer"
         },
+        "footer_content_width": {
+          "type": "select",
+          "label": "Ancho del contenido",
+          "default": "full",
+          "options": {
+            "full": "Ancho completo (fondo ocupa todo el viewport)",
+            "boxed": "Contenido alineado (fondo limitado al ancho del contenido)"
+          },
+          "description": "Define si el footer ocupa todo el ancho o se ajusta al contenido"
+        },
         "footer_bg_color": {
           "type": "color",
           "label": "Color de fondo del footer",
@@ -470,6 +492,45 @@
           "label": "Color del borde/línea del footer",
           "default": "#e5e5e5",
           "description": "Color de la línea divisoria del footer"
+        },
+        "footer_cookie_icon_enabled": {
+          "type": "toggle",
+          "label": "Mostrar icono de Configuración de Cookies",
+          "default": true,
+          "description": "Muestra/oculta el enlace 🍪 Configuración de Cookies en el footer"
+        },
+        "footer_cookie_icon": {
+          "type": "select",
+          "label": "Icono de cookies",
+          "default": "emoji",
+          "options": {
+            "emoji": "🍪 Emoji cookie",
+            "fa-cookie": "Cookie (Font Awesome)",
+            "fa-cookie-bite": "Cookie mordida (Font Awesome)",
+            "fa-shield-alt": "Escudo (privacidad)",
+            "fa-cog": "Engranaje (ajustes)",
+            "none": "Sin icono (solo texto)"
+          },
+          "depends_on": "footer.footer_cookie_icon_enabled",
+          "description": "Estilo del icono que acompaña al enlace de configuración de cookies"
+        },
+        "footer_cookie_banner_layout": {
+          "type": "select",
+          "label": "Diseño del banner de cookies",
+          "default": "card",
+          "options": {
+            "card": "Tarjeta flotante (esquina inferior derecha)",
+            "bar": "Barra inferior (ancho completo)",
+            "modal": "Modal centrado (con fondo oscuro)"
+          },
+          "description": "Estilo del banner de consentimiento de cookies"
+        },
+        "footer_cookie_settings_link": {
+          "type": "link",
+          "label": "Configuración avanzada de cookies",
+          "description": "Colores del banner, enlaces legales y más opciones",
+          "url": "/{admin_path}/settings/cookies",
+          "link_text": "Ir a Ajustes de Cookies →"
         }
       }
     },

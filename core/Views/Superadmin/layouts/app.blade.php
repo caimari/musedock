@@ -660,7 +660,13 @@
     $flashSuccess = function_exists('consume_flash') ? consume_flash('success') : (session()->pull('success') ?? '');
     $flashError   = function_exists('consume_flash') ? consume_flash('error')   : (session()->pull('error') ?? '');
     $flashWarning = function_exists('consume_flash') ? consume_flash('warning') : (session()->pull('warning') ?? '');
-     
+
+    // También consumir mensajes legacy de $_SESSION directa (usados por CsrfMiddleware y otros)
+    if (!empty($_SESSION['error']) && empty($flashError)) {
+        $flashError = $_SESSION['error'];
+    }
+    unset($_SESSION['error'], $_SESSION['success'], $_SESSION['warning']);
+
     // Normalizar los mensajes a arrays
     if (function_exists('consume_flash')) {
       $flashSuccess = (array) $flashSuccess; $flashError = (array) $flashError; $flashWarning = (array) $flashWarning;
@@ -691,7 +697,7 @@
 					<div class="col-6 text-start">
 						<p class="mb-0">
 							<a class="text-muted" href="https://musedock.org" target="_blank"><strong>{{ cms_version('name') }}</strong></a>
-							<span class="text-muted">v{{ cms_version('version') }}</span>
+							<a class="text-muted text-decoration-none" href="/musedock/changelog" title="Ver changelog">v{{ cms_version('version') }}</a>
 							{{ cms_copyright() }}
 						</p>
 					</div>

@@ -63,16 +63,17 @@ class SlugRouter
         if ($prefix !== null) {
             $query->where('prefix', '=', $prefix);
         } else {
-            $query->whereRaw('prefix IS NULL');
+            // Sin prefijo: buscar tanto NULL como vacío (ambos significan "sin prefijo")
+            $query->whereRaw("(prefix IS NULL OR prefix = '')");
         }
 
         $entry = $query->first();
-        
+
         // FallBack: Si el ORM no encuentra nada, intenta vía SQL directa
         if (!$entry) {
             $sql = "SELECT * FROM slugs WHERE slug = :slug AND module IN ('pages', 'blog')";
             $params = [':slug' => $slug];
-            
+
             if ($multiTenant) {
                 if ($tenantId !== null) {
                     $sql .= " AND tenant_id = :tenant_id";
@@ -81,12 +82,12 @@ class SlugRouter
                     $sql .= " AND tenant_id IS NULL";
                 }
             }
-            
+
             if ($prefix !== null) {
                 $sql .= " AND prefix = :prefix";
                 $params[':prefix'] = $prefix;
             } else {
-                $sql .= " AND prefix IS NULL";
+                $sql .= " AND (prefix IS NULL OR prefix = '')";
             }
             
             // También aplicamos locale en la consulta directa
@@ -197,8 +198,12 @@ class SlugRouter
         file_put_contents($logPath, date('Y-m-d H:i:s') . " - MOSTRANDO LISTADO POR PREFIJO: $prefix\n", FILE_APPEND);
         
         // Determinar qué controlador y método llamar según el prefijo
+        // Obtener prefijo de páginas configurable
+        $pagePrefix = function_exists('page_prefix') ? page_prefix() : 'p';
+
         switch ($prefix) {
-            case 'p':
+            case ($pagePrefix !== '' ? $pagePrefix : '___none___'):
+            case 'p': // Fallback para compatibilidad
                 $controller = new \Screenart\Musedock\Controllers\Frontend\PageController();
                 return $controller->listPages();
                 break;

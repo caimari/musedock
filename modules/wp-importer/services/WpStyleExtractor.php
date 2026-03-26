@@ -15,6 +15,7 @@ class WpStyleExtractor
     private WpMediaImporter $mediaImporter;
     private ?int $tenantId;
     private string $themeSlug;
+    private array $cssVariables = [];
 
     public function __construct(
         WpApiClient $client,
@@ -67,7 +68,41 @@ class WpStyleExtractor
         // 7. Importar logo y favicon al Media Manager si existen
         $result['site_settings'] = $this->importSiteAssets($result['site_settings']);
 
+        // 8. Detectar layout del header
+        $headerLayout = $this->detectHeaderLayout($html);
+        if ($headerLayout) {
+            $result['theme_options']['header']['header_layout'] = $headerLayout;
+        }
+
         return $result;
+    }
+
+    /**
+     * Detectar layout del header basado en la estructura HTML
+     * - logo-above: logo en bloque separado arriba, nav debajo (ej: ibestff.com)
+     * - centered: logo centrado entre menús izq/der
+     * - default: logo izquierda + menú derecha
+     */
+    private function detectHeaderLayout(string $html): ?string
+    {
+        // Patrón: logo en un div/section propio, seguido de nav en otro div/section
+        // Típico de temas WP con "main_logo" + "navigation" como bloques separados
+        $logoAbovePatterns = [
+            // news-viral theme: div.main_logo seguido de div.news_viral_navigation
+            '/class=["\'][^"\']*main_logo[^"\']*["\'].*?class=["\'][^"\']*navigation[^"\']*["\']/si',
+            // Genérico: header con logo-area/logo-section seguido de nav-bar/menu-bar
+            '/class=["\'][^"\']*logo[-_](?:area|section|row|wrap)[^"\']*["\'].*?class=["\'][^"\']*(?:nav|menu)[-_](?:bar|row|wrap|section)[^"\']*["\']/si',
+            // Logo en container propio antes del nav principal
+            '/class=["\'][^"\']*header[-_]logo[^"\']*["\'].*?<nav[^>]+class=["\'][^"\']*(?:main|primary)[-_](?:nav|menu)[^"\']*["\']/si',
+        ];
+
+        foreach ($logoAbovePatterns as $pattern) {
+            if (preg_match($pattern, $html)) {
+                return 'logo-above';
+            }
+        }
+
+        return null; // default — no cambiar
     }
 
     /**
@@ -125,32 +160,36 @@ class WpStyleExtractor
      */
     public function applySiteSettings(array $settings): void
     {
+        $driver = Database::connect()->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
         foreach ($settings as $key => $value) {
             if ($value === null || $value === '') continue;
 
             try {
                 if ($this->tenantId !== null) {
-                    // Para tenant: actualizar en tabla settings con tenant_id
+                    // Para tenant: usar tabla tenant_settings (tiene tenant_id)
                     $existing = Database::query(
-                        "SELECT id FROM settings WHERE key = :key AND tenant_id = :tenant_id",
+                        'SELECT id FROM tenant_settings WHERE "key" = :key AND tenant_id = :tenant_id',
                         ['key' => $key, 'tenant_id' => $this->tenantId]
                     )->fetch();
 
                     if ($existing) {
                         Database::query(
-                            "UPDATE settings SET value = :value WHERE id = :id",
+                            "UPDATE tenant_settings SET value = :value WHERE id = :id",
                             ['value' => $value, 'id' => $existing['id']]
                         );
                     } else {
                         Database::query(
-                            "INSERT INTO settings (tenant_id, key, value) VALUES (:tenant_id, :key, :value)",
+                            'INSERT INTO tenant_settings (tenant_id, "key", value) VALUES (:tenant_id, :key, :value)',
                             ['tenant_id' => $this->tenantId, 'key' => $key, 'value' => $value]
                         );
                     }
                 } else {
-                    // Para superadmin: settings globales
+                    // Para superadmin: settings globales (tabla settings, sin tenant_id)
+                    $keyCol = $driver === 'pgsql' ? '"key"' : '`key`';
+
                     $existing = Database::query(
-                        "SELECT id FROM settings WHERE key = :key AND tenant_id IS NULL",
+                        "SELECT id FROM settings WHERE {$keyCol} = :key",
                         ['key' => $key]
                     )->fetch();
 
@@ -161,7 +200,7 @@ class WpStyleExtractor
                         );
                     } else {
                         Database::query(
-                            "INSERT INTO settings (key, value) VALUES (:key, :value)",
+                            "INSERT INTO settings ({$keyCol}, value) VALUES (:key, :value)",
                             ['key' => $key, 'value' => $value]
                         );
                     }
@@ -226,6 +265,9 @@ class WpStyleExtractor
     private function extractStylesFromCss(string $css, string $html): array
     {
         $options = [];
+
+        // Pre-extraer CSS variables para poder resolver var() en valores
+        $this->cssVariables = $this->extractCssVariables($css);
 
         // ============ COLORES ============
 
@@ -311,6 +353,10 @@ class WpStyleExtractor
         $footerText = $this->findCssProperty($css, [
             'footer', '.site-footer', '.footer-area', '.footer-wrapper',
         ], 'color');
+        // Sanity: if text color is too similar to bg color, skip it (likely a detection error)
+        if ($footerText && $footerBg && $this->colorsTooSimilar($footerText, $footerBg)) {
+            $footerText = null;
+        }
         if ($footerText) $options['footer']['footer_text_color'] = $footerText;
 
         // Footer heading color
@@ -318,6 +364,10 @@ class WpStyleExtractor
             'footer h1', 'footer h2', 'footer h3', 'footer h4',
             '.site-footer h3', '.footer-area h4', '.widget-title',
         ], 'color');
+        // Sanity: heading color too similar to bg = skip
+        if ($footerHeading && $footerBg && $this->colorsTooSimilar($footerHeading, $footerBg)) {
+            $footerHeading = null;
+        }
         if ($footerHeading) $options['footer']['footer_heading_color'] = $footerHeading;
 
         // Footer link color
@@ -349,6 +399,10 @@ class WpStyleExtractor
             '.announcement-bar', '.top-header',
         ]);
         $options['topbar']['topbar_enabled'] = $topbarDetected;
+
+        // Por defecto, importaciones de WordPress usan layout boxed (contenido alineado)
+        $options['header']['header_content_width'] = 'boxed';
+        $options['footer']['footer_content_width'] = 'boxed';
 
         if ($topbarDetected) {
             $topbarBg = $this->findCssProperty($css, [
@@ -392,8 +446,11 @@ class WpStyleExtractor
         }
 
         // ============ CSS VARIABLES (temas modernos) ============
-        $cssVars = $this->extractCssVariables($css);
-        $options = $this->mapCssVariablesToOptions($options, $cssVars);
+        $options = $this->mapCssVariablesToOptions($options, $this->cssVariables);
+
+        // ============ INLINE STYLES del HTML ============
+        // Muchos temas WP aplican colores directamente en style="" del HTML
+        $options = $this->extractInlineColors($html, $options);
 
         return $options;
     }
@@ -451,17 +508,29 @@ class WpStyleExtractor
             // Footer specific
             '--footer-bg' => ['footer', 'footer_bg_color'],
             '--footer-color' => ['footer', 'footer_text_color'],
+            '--footer-background' => ['footer', 'footer_bg_color'],
+            '--footer-bg-color' => ['footer', 'footer_bg_color'],
+
+            // WordPress block theme global styles
+            '--wp--preset--color--contrast' => ['header', 'header_link_color'],
+            '--wp--preset--color--base' => ['header', 'header_bg_color'],
+            '--wp--custom--color--primary' => ['header', 'header_link_hover_color'],
+
+            // Common theme frameworks (Flavor, flavor, flavor)
+            '--global-color-primary' => ['header', 'header_link_hover_color'],
+            '--global-color-secondary' => ['footer', 'footer_bg_color'],
+            '--theme-color' => ['header', 'header_link_hover_color'],
+            '--theme-bg' => ['header', 'header_bg_color'],
+            '--site-bg' => ['header', 'header_bg_color'],
         ];
 
         foreach ($varMapping as $cssVar => [$section, $option]) {
             if (isset($cssVars[$cssVar])) {
                 $value = $cssVars[$cssVar];
-                // Resolver si la variable referencia otra variable
-                if (strpos($value, 'var(') === false) {
-                    $color = $this->normalizeColor($value);
-                    if ($color && !isset($options[$section][$option])) {
-                        $options[$section][$option] = $color;
-                    }
+                // normalizeColor ahora resuelve var() automáticamente
+                $color = $this->normalizeColor($value);
+                if ($color && !isset($options[$section][$option])) {
+                    $options[$section][$option] = $color;
                 }
             }
         }
@@ -542,12 +611,16 @@ class WpStyleExtractor
             $info['site_description'] = trim(html_entity_decode($match[1], ENT_QUOTES, 'UTF-8'));
         }
 
-        // Logo URL
+        // Logo URL (múltiples patrones de temas WP)
         if (preg_match('/class=["\'][^"\']*custom-logo[^"\']*["\'][^>]*src=["\']([^"\']+)["\']/', $html, $match)) {
             $info['logo_url'] = $match[1];
         } elseif (preg_match('/class=["\'][^"\']*site-logo[^"\']*["\'].*?<img[^>]*src=["\']([^"\']+)["\']/', $html, $match)) {
             $info['logo_url'] = $match[1];
         } elseif (preg_match('/class=["\'][^"\']*navbar-brand[^"\']*["\'].*?<img[^>]*src=["\']([^"\']+)["\']/', $html, $match)) {
+            $info['logo_url'] = $match[1];
+        } elseif (preg_match('/<div[^>]+class=["\'][^"\']*\blogo\b[^"\']*["\'][^>]*>.*?<img[^>]*src=["\']([^"\']+)["\']/si', $html, $match)) {
+            $info['logo_url'] = $match[1];
+        } elseif (preg_match('/class=["\'][^"\']*logoimga[^"\']*["\'][^>]*>\s*<img[^>]*src=["\']([^"\']+)["\']/', $html, $match)) {
             $info['logo_url'] = $match[1];
         }
 
@@ -592,6 +665,7 @@ class WpStyleExtractor
                 'alt_text' => $settings['site_name'] ?? 'Logo',
                 'caption' => ['rendered' => ''],
                 'id' => null,
+                'no_compress' => true,
             ]);
 
             if ($logoMedia) {
@@ -610,10 +684,11 @@ class WpStyleExtractor
                 'alt_text' => 'Favicon',
                 'caption' => ['rendered' => ''],
                 'id' => null,
+                'no_compress' => true,
             ]);
 
             if ($faviconMedia) {
-                $settings['favicon'] = $faviconMedia['url'];
+                $settings['site_favicon'] = $faviconMedia['url'];
             }
             unset($settings['favicon_url']);
         }
@@ -626,10 +701,139 @@ class WpStyleExtractor
     // ====================================================================
 
     /**
+     * Check if two hex colors are too similar (likely a detection error)
+     */
+    /**
+     * Extraer colores de estilos inline en elementos HTML (header, footer, nav, etc.)
+     * Solo se aplican si no se detectaron colores desde el CSS
+     */
+    private function extractInlineColors(string $html, array $options): array
+    {
+        // Header inline background-color o background
+        if (!isset($options['header']['header_bg_color'])) {
+            $headerPatterns = [
+                '/<header[^>]+style=["\']([^"\']*)["\'][^>]*>/si',
+                '/<(?:div|section)[^>]*class=["\'][^"\']*(?:site-header|main-header|header-area|masthead)[^"\']*["\'][^>]*style=["\']([^"\']*)["\'][^>]*>/si',
+                '/<nav[^>]+class=["\'][^"\']*(?:navbar|main-nav|primary-nav)[^"\']*["\'][^>]*style=["\']([^"\']*)["\'][^>]*>/si',
+            ];
+            foreach ($headerPatterns as $pattern) {
+                if (preg_match($pattern, $html, $match)) {
+                    $style = $match[1] ?? ($match[2] ?? '');
+                    $color = $this->extractColorFromInlineStyle($style);
+                    if ($color) {
+                        $options['header']['header_bg_color'] = $color;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Footer inline background-color o background
+        if (!isset($options['footer']['footer_bg_color'])) {
+            $footerPatterns = [
+                '/<footer[^>]+style=["\']([^"\']*)["\'][^>]*>/si',
+                '/<(?:div|section)[^>]*class=["\'][^"\']*(?:site-footer|footer-area|footer-wrapper)[^"\']*["\'][^>]*style=["\']([^"\']*)["\'][^>]*>/si',
+            ];
+            foreach ($footerPatterns as $pattern) {
+                if (preg_match($pattern, $html, $match)) {
+                    $style = $match[1] ?? ($match[2] ?? '');
+                    $color = $this->extractColorFromInlineStyle($style);
+                    if ($color) {
+                        $options['footer']['footer_bg_color'] = $color;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Buscar colores en wp-block-group con has-background (WordPress block editor)
+        if (!isset($options['header']['header_bg_color'])) {
+            // WordPress block themes: <header ... class="has-xxx-background-color has-background">
+            if (preg_match('/<header[^>]*class=["\'][^"\']*has-([\w-]+)-background-color[^"\']*["\']/si', $html, $match)) {
+                $colorSlug = $match[1];
+                $color = $this->resolveWpPresetColor($colorSlug);
+                if ($color) {
+                    $options['header']['header_bg_color'] = $color;
+                }
+            }
+        }
+
+        if (!isset($options['footer']['footer_bg_color'])) {
+            if (preg_match('/<footer[^>]*class=["\'][^"\']*has-([\w-]+)-background-color[^"\']*["\']/si', $html, $match)) {
+                $colorSlug = $match[1];
+                $color = $this->resolveWpPresetColor($colorSlug);
+                if ($color) {
+                    $options['footer']['footer_bg_color'] = $color;
+                }
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * Extraer un color de background de un atributo style inline
+     */
+    private function extractColorFromInlineStyle(string $style): ?string
+    {
+        // Buscar background-color primero
+        if (preg_match('/background-color\s*:\s*([^;!]+)/i', $style, $match)) {
+            $color = $this->normalizeColor(trim($match[1]));
+            if ($color) return $color;
+        }
+        // Luego background shorthand
+        if (preg_match('/(?<![a-z-])background\s*:\s*([^;!]+)/i', $style, $match)) {
+            $bgValue = trim($match[1]);
+            if (stripos($bgValue, 'url(') === 0 || strtolower($bgValue) === 'none') {
+                return null;
+            }
+            $color = $this->normalizeColor($bgValue);
+            if ($color) return $color;
+            // Buscar color dentro del shorthand
+            if (preg_match('/(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|var\([^)]+\))/', $bgValue, $colorPart)) {
+                return $this->normalizeColor($colorPart[1]);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Resolver colores de preset de WordPress (has-xxx-background-color)
+     * Busca en las CSS variables --wp--preset--color--{slug}
+     */
+    private function resolveWpPresetColor(string $slug): ?string
+    {
+        $varName = '--wp--preset--color--' . $slug;
+        if (isset($this->cssVariables[$varName])) {
+            return $this->normalizeColor($this->cssVariables[$varName]);
+        }
+        return null;
+    }
+
+    private function colorsTooSimilar(string $color1, string $color2): bool
+    {
+        $hex1 = ltrim($color1, '#');
+        $hex2 = ltrim($color2, '#');
+        if (strlen($hex1) === 3) $hex1 = $hex1[0].$hex1[0].$hex1[1].$hex1[1].$hex1[2].$hex1[2];
+        if (strlen($hex2) === 3) $hex2 = $hex2[0].$hex2[0].$hex2[1].$hex2[1].$hex2[2].$hex2[2];
+        if (!ctype_xdigit($hex1) || !ctype_xdigit($hex2)) return false;
+        $r1 = hexdec(substr($hex1, 0, 2)); $g1 = hexdec(substr($hex1, 2, 2)); $b1 = hexdec(substr($hex1, 4, 2));
+        $r2 = hexdec(substr($hex2, 0, 2)); $g2 = hexdec(substr($hex2, 2, 2)); $b2 = hexdec(substr($hex2, 4, 2));
+        $distance = sqrt(pow($r1 - $r2, 2) + pow($g1 - $g2, 2) + pow($b1 - $b2, 2));
+        return $distance < 50; // threshold: colors within ~50 units are "too similar"
+    }
+
+    /**
      * Buscar una propiedad CSS en múltiples selectores
      */
     private function findCssProperty(string $css, array $selectors, string $property): ?string
     {
+        // Propiedades a buscar: la específica y, si es background-color, también background shorthand
+        $properties = [$property];
+        if ($property === 'background-color') {
+            $properties[] = 'background';
+        }
+
         foreach ($selectors as $selector) {
             // Escapar selector para regex
             $escaped = preg_quote($selector, '/');
@@ -638,12 +842,35 @@ class WpStyleExtractor
 
             if (preg_match_all($pattern, $css, $matches)) {
                 foreach ($matches[1] as $block) {
-                    $escapedProp = preg_quote($property, '/');
-                    if (preg_match('/' . $escapedProp . '\s*:\s*([^;!]+)/i', $block, $propMatch)) {
-                        $value = trim($propMatch[1]);
-                        $color = $this->normalizeColor($value);
-                        if ($color) {
-                            return $color;
+                    foreach ($properties as $prop) {
+                        if ($prop === 'background') {
+                            // Para background shorthand, buscar específicamente colores (no urls de imagen)
+                            // Patrón: "background:" seguido de un valor que NO empiece con url(
+                            if (preg_match('/(?<![a-z-])background\s*:\s*([^;!]+)/i', $block, $propMatch)) {
+                                $bgValue = trim($propMatch[1]);
+                                // Ignorar si es solo una imagen o none
+                                if (stripos($bgValue, 'url(') === 0 || strtolower($bgValue) === 'none') {
+                                    continue;
+                                }
+                                // Extraer el color del shorthand (puede tener url, position, etc.)
+                                // Intentar normalizar el valor completo primero
+                                $color = $this->normalizeColor($bgValue);
+                                if ($color) return $color;
+                                // Si el shorthand tiene múltiples partes, buscar un hex o rgb dentro
+                                if (preg_match('/(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|var\([^)]+\))/', $bgValue, $colorPart)) {
+                                    $color = $this->normalizeColor($colorPart[1]);
+                                    if ($color) return $color;
+                                }
+                            }
+                        } else {
+                            $escapedProp = preg_quote($prop, '/');
+                            if (preg_match('/' . $escapedProp . '\s*:\s*([^;!]+)/i', $block, $propMatch)) {
+                                $value = trim($propMatch[1]);
+                                $color = $this->normalizeColor($value);
+                                if ($color) {
+                                    return $color;
+                                }
+                            }
                         }
                     }
                 }
@@ -697,15 +924,39 @@ class WpStyleExtractor
     /**
      * Normalizar un valor de color a formato hex
      */
-    private function normalizeColor(string $value): ?string
+    private function normalizeColor(string $value, int $depth = 0): ?string
     {
         $value = trim($value);
+
+        // Evitar recursión infinita al resolver var()
+        if ($depth > 5) return null;
+
+        // Resolver var(--nombre) usando las CSS variables pre-extraídas
+        if (preg_match('/var\(\s*(--[\w-]+)\s*(?:,\s*([^)]+))?\)/', $value, $varMatch)) {
+            $varName = $varMatch[1];
+            $fallback = isset($varMatch[2]) ? trim($varMatch[2]) : null;
+
+            if (isset($this->cssVariables[$varName])) {
+                $resolved = $this->normalizeColor($this->cssVariables[$varName], $depth + 1);
+                if ($resolved) return $resolved;
+            }
+            // Intentar con el fallback
+            if ($fallback) {
+                $resolved = $this->normalizeColor($fallback, $depth + 1);
+                if ($resolved) return $resolved;
+            }
+            return null;
+        }
 
         // Ya es hex
         if (preg_match('/^#[0-9a-fA-F]{3,8}$/', $value)) {
             // Expandir shorthand #abc → #aabbcc
             if (strlen($value) === 4) {
                 $value = '#' . $value[1] . $value[1] . $value[2] . $value[2] . $value[3] . $value[3];
+            }
+            // Descartar hex con alpha (#rrggbbaa) que sea totalmente transparente
+            if (strlen($value) === 9) {
+                $value = substr($value, 0, 7);
             }
             return strtolower($value);
         }
@@ -715,11 +966,34 @@ class WpStyleExtractor
             return sprintf('#%02x%02x%02x', (int)$match[1], (int)$match[2], (int)$match[3]);
         }
 
-        // Colores con nombre
+        // Colores con nombre (CSS named colors más comunes en temas WP)
         $namedColors = [
             'white' => '#ffffff', 'black' => '#000000', 'red' => '#ff0000',
             'blue' => '#0000ff', 'green' => '#008000', 'transparent' => null,
-            'inherit' => null, 'initial' => null,
+            'inherit' => null, 'initial' => null, 'unset' => null,
+            'currentcolor' => null, 'currentColor' => null,
+            // Grises
+            'gray' => '#808080', 'grey' => '#808080',
+            'darkgray' => '#a9a9a9', 'darkgrey' => '#a9a9a9',
+            'dimgray' => '#696969', 'dimgrey' => '#696969',
+            'lightgray' => '#d3d3d3', 'lightgrey' => '#d3d3d3',
+            'silver' => '#c0c0c0', 'gainsboro' => '#dcdcdc',
+            'whitesmoke' => '#f5f5f5',
+            // Tonos oscuros comunes
+            'navy' => '#000080', 'darkblue' => '#00008b', 'midnightblue' => '#191970',
+            'darkslategray' => '#2f4f4f', 'darkslategrey' => '#2f4f4f',
+            'charcoal' => '#333333',
+            // Tonos comunes en webs
+            'orange' => '#ffa500', 'darkorange' => '#ff8c00',
+            'tomato' => '#ff6347', 'coral' => '#ff7f50',
+            'crimson' => '#dc143c', 'darkred' => '#8b0000', 'maroon' => '#800000',
+            'purple' => '#800080', 'indigo' => '#4b0082',
+            'teal' => '#008080', 'darkcyan' => '#008b8b',
+            'steelblue' => '#4682b4', 'dodgerblue' => '#1e90ff', 'royalblue' => '#4169e1',
+            'goldenrod' => '#daa520', 'darkgoldenrod' => '#b8860b',
+            'ivory' => '#fffff0', 'beige' => '#f5f5dc', 'linen' => '#faf0e6',
+            'snow' => '#fffafa', 'ghostwhite' => '#f8f8ff', 'aliceblue' => '#f0f8ff',
+            'floralwhite' => '#fffaf0', 'seashell' => '#fff5ee',
         ];
 
         $lower = strtolower($value);

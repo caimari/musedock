@@ -107,6 +107,20 @@
         color: #0d6efd;
     }
 
+    .folder-item.folder-root {
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .folder-item.folder-root .folder-icon {
+        color: #6c757d;
+    }
+
+    .folder-item.folder-root.active .folder-icon {
+        color: #0d6efd;
+    }
+
     .folder-children {
         list-style: none;
         padding-left: 1rem;
@@ -137,6 +151,40 @@
         display: flex;
         gap: 0.5rem;
         align-items: center;
+    }
+
+    /* Breadcrumb de carpetas */
+    .folder-breadcrumb {
+        display: inline-flex;
+        align-items: center;
+        gap: 0;
+        font-size: 0.85rem;
+    }
+
+    .folder-breadcrumb .breadcrumb-segment {
+        color: #495057;
+        font-weight: 500;
+    }
+
+    .folder-breadcrumb .breadcrumb-segment a {
+        color: #0d6efd;
+        text-decoration: none;
+        font-weight: 400;
+    }
+
+    .folder-breadcrumb .breadcrumb-segment a:hover {
+        text-decoration: underline;
+    }
+
+    .folder-breadcrumb .breadcrumb-separator {
+        margin: 0 0.4rem;
+        color: #adb5bd;
+    }
+
+    #btn-folder-back {
+        padding: 0.2rem 0.45rem;
+        line-height: 1;
+        font-size: 0.8rem;
     }
 
     /* Estilos básicos para la biblioteca */
@@ -221,6 +269,86 @@
         cursor: pointer;
         font-size: 0.9em;
         color: #dc3545;
+    }
+
+    /* === Vista Lista === */
+    .media-library-grid[data-view="list"] {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .media-library-grid[data-view="list"] .media-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        text-align: left;
+        border-radius: 0;
+        border-bottom: 1px solid #e9ecef;
+        border-left: none;
+        border-right: none;
+        border-top: none;
+        padding: 0.4rem 0.6rem;
+    }
+
+    .media-library-grid[data-view="list"] .media-item:first-child {
+        border-top: 1px solid #e9ecef;
+    }
+
+    .media-library-grid[data-view="list"] .media-item-thumbnail {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        margin-bottom: 0;
+        border-radius: 3px;
+    }
+
+    .media-library-grid[data-view="list"] .media-item-thumbnail .file-icon {
+        font-size: 1.2rem;
+    }
+
+    .media-library-grid[data-view="list"] .media-item-filename {
+        flex: 1;
+        font-size: 0.85rem;
+        margin-top: 0;
+    }
+
+    .media-library-grid[data-view="list"] .media-item-actions {
+        position: static;
+        opacity: 0;
+        background: none;
+    }
+
+    .media-library-grid[data-view="list"] .media-item:hover .media-item-actions {
+        opacity: 1;
+    }
+
+    .media-library-grid[data-view="list"] .media-item .media-item-checkbox {
+        position: static;
+    }
+
+    /* Switch de vista activo */
+    .btn-group .btn.active {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        color: #fff;
+    }
+
+    /* Paginación - página activa */
+    .pagination .page-item.active .page-link {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        color: #fff;
+    }
+
+    .pagination .page-item .page-link {
+        color: #0d6efd;
+        border: 1px solid #dee2e6;
+        padding: 0.25rem 0.6rem;
+    }
+
+    .pagination .page-item.disabled .page-link {
+        color: #adb5bd;
     }
 
     /* Estilos para el uploader */
@@ -327,12 +455,26 @@
                 {{-- Toolbar de Acciones --}}
                 <div class="files-toolbar">
                     <div class="toolbar-left">
-                        <span id="current-folder-path" class="me-3">
-                            <i class="bi bi-folder-fill text-warning me-1"></i> <strong>Raíz</strong> <small class="text-muted">(/)</small>
-                        </span>
-                        <span class="text-muted small" id="files-count">0 archivos</span>
+                        <button id="btn-folder-back" class="btn btn-sm btn-outline-secondary me-1" title="Volver" style="display: none;">
+                            <i class="bi bi-arrow-left"></i>
+                        </button>
+                        <div class="folder-breadcrumb" id="folder-breadcrumb">
+                            <span class="breadcrumb-segment active"><i class="bi bi-folder-fill text-warning me-1"></i>Raíz</span>
+                        </div>
+                        <button id="btn-select-all" class="btn btn-sm btn-outline-secondary ms-2" title="Seleccionar todo" style="display: none;">
+                            <i class="bi bi-check2-square"></i>
+                        </button>
+                        <span class="text-muted small ms-2" id="files-count">0 archivos</span>
                     </div>
                     <div class="toolbar-right">
+                        <div class="btn-group btn-group-sm me-2" role="group" aria-label="Vista">
+                            <button id="btn-view-grid" class="btn btn-outline-secondary active" title="Vista cuadrícula">
+                                <i class="bi bi-grid-3x3-gap-fill"></i>
+                            </button>
+                            <button id="btn-view-list" class="btn btn-outline-secondary" title="Vista lista">
+                                <i class="bi bi-list-ul"></i>
+                            </button>
+                        </div>
                         <button id="btn-create-folder-new" class="btn btn-sm btn-outline-primary" title="Nueva Carpeta">
                             <i class="bi bi-folder-plus"></i> Nueva Carpeta
                         </button>
@@ -340,7 +482,7 @@
                 </div>
 
                 {{-- Contenedor para la Rejilla de Medios --}}
-                <div id="media-library-grid" class="media-library-grid">
+                <div id="media-library-grid" class="media-library-grid" data-view="grid">
                     <div class="text-center p-5 text-muted" id="media-loading">
                          <div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Cargando...</span></div>
                          Cargando medios...
@@ -417,6 +559,7 @@ window.MediaManagerConfig = {
     createFolderUrl: "{{ route('superadmin.media.folders.create') }}",
     renameFolderUrl: "{{ route('superadmin.media.folders.rename', ['id' => ':id']) }}",
     deleteFolderUrl: "{{ route('superadmin.media.folders.delete', ['id' => ':id']) }}",
+    emptyFolderUrl: "{{ route('superadmin.media.folders.empty', ['id' => ':id']) }}",
     moveUrl: "{{ route('superadmin.media.move') }}",
     copyUrl: "{{ route('superadmin.media.copy') }}",
     currentDisk: "{{ $defaultDisk ?? 'media' }}",

@@ -263,6 +263,8 @@
             "no_posts_in_category": "No hay posts en esta categoría.",
             "no_posts_with_tag": "No hay posts con esta etiqueta."
         },
+        "briefs_title": "Noticias Breves",
+        "briefs_view_all": "Ver todas",
         "posts_by": "Posts de",
         "author_bio": "Sobre el autor",
         "post": {
@@ -365,11 +367,11 @@
             "featured_this_post": "Destacar este post",
             "allow_comments": "Permitir comentarios",
             "image_url": "URL de imagen",
-            "image_placeholder": "https:\/\/ejemplo.com\/imagen.jpg",
+            "image_placeholder": "https://ejemplo.com/imagen.jpg",
             "image_help": "URL completa de la imagen destacada",
             "image_load_error": "Error al cargar la imagen",
             "categories": "Categorías",
-            "select_multiple": "Mantén Ctrl\/Cmd para seleccionar múltiples opciones",
+            "select_multiple": "Mantén Ctrl/Cmd para seleccionar múltiples opciones",
             "back_to_posts": "Volver a Posts",
             "publish": "Publicar"
         },
@@ -404,9 +406,9 @@
             "confirm_yes_continue": "Sí, continuar"
         },
         "delete": {
-            "confirm_delete_post": "Esta acción eliminará permanentemente el post <strong>\":title\"<\/strong> y no se puede deshacer.",
-            "confirm_delete_category": "Esta acción eliminará permanentemente la categoría <strong>\":name\"<\/strong> y no se puede deshacer.",
-            "confirm_delete_tag": "Esta acción eliminará permanentemente la etiqueta <strong>\":name\"<\/strong> y no se puede deshacer.",
+            "confirm_delete_post": "Esta acción eliminará permanentemente el post <strong>\":title\"</strong> y no se puede deshacer.",
+            "confirm_delete_category": "Esta acción eliminará permanentemente la categoría <strong>\":name\"</strong> y no se puede deshacer.",
+            "confirm_delete_tag": "Esta acción eliminará permanentemente la etiqueta <strong>\":name\"</strong> y no se puede deshacer.",
             "form_not_found": "No se encontró el formulario de eliminación. Recarga la página."
         },
         "category": {
@@ -426,7 +428,7 @@
             "description": "Descripción",
             "image": "Imagen",
             "image_url": "URL de imagen",
-            "image_placeholder": "https:\/\/ejemplo.com\/imagen.jpg",
+            "image_placeholder": "https://ejemplo.com/imagen.jpg",
             "parent": "Categoría padre",
             "no_parent": "Sin categoría padre",
             "none": "Ninguna (categoría raíz)",
@@ -1018,7 +1020,7 @@
         "site_url": "URL del sitio WordPress",
         "username": "Usuario de WordPress",
         "app_password": "Application Password",
-        "auth_info": "Para importar borradores y contenido privado, necesitas Application Passwords (WordPress 5.6+).",
+        "auth_info": "Para importar menús, borradores y contenido privado, necesitas Application Passwords (WordPress 5.6+).",
         "select_content": "Seleccionar contenido",
         "categories": "Categorías",
         "tags": "Etiquetas",
@@ -1049,8 +1051,8 @@
         "styles_applied": "Aplicados correctamente",
         "google_fonts_detected": "Google Fonts detectadas",
         "session_expired": "Sesión expirada. Vuelve a conectar.",
-        "credentials_optional": "Credenciales opcionales (para drafts y contenido privado)",
-        "site_url_help": "Ejemplo: https:\/\/miweb.com (sin \/wp-admin ni trailing slash)",
+        "credentials_optional": "Credenciales (opcional, necesario para menús)",
+        "site_url_help": "Ejemplo: https://miweb.com (sin /wp-admin ni trailing slash)",
         "updated": "actualizados",
         "duplicate_policy": "Política de duplicados",
         "duplicate_policy_desc": "Elige qué hacer con el contenido duplicado:",
@@ -1059,6 +1061,8 @@
         "policy_overwrite": "Sobrescribir",
         "policy_overwrite_desc": "Actualizar contenido existente con el de WordPress",
         "policy_rename": "Renombrar",
-        "policy_rename_desc": "Crear nuevo con slug modificado (-1, -2...)"
+        "policy_rename_desc": "Crear nuevo con slug modificado (-1, -2...)",
+        "test_auth": "Test conexión",
+        "testing_auth": "Verificando..."
     }
 }

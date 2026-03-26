@@ -118,6 +118,15 @@
                                                     value="{{ $currentValue ?? '#ffffff' }}">
                                              @break
 
+                                          @case('link')
+                                            @php
+                                                $linkUrl = str_replace('{admin_path}', admin_path(), $option['url'] ?? '#');
+                                            @endphp
+                                            <a href="{{ $linkUrl }}" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-external-link-alt me-1"></i>{{ $option['link_text'] ?? 'Ir a configuración' }}
+                                            </a>
+                                            @break
+
                                           @case('image')
                                              {{-- Integración básica con gestor de medios (pendiente) --}}
                                              <div class="input-group">

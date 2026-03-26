@@ -39,7 +39,38 @@ class SlugService
             $query->whereNull('tenant_id');
         }
 
-        return $query->exists();
+        if ($query->exists()) {
+            return true;
+        }
+
+        // Cross-module check: si el prefix es null/vacío, comprobar que no exista
+        // en otro módulo (pages vs blog) para evitar conflictos en URLs sin prefijo
+        if ($prefix === null || $prefix === '') {
+            $crossModule = ($module === 'pages') ? 'blog' : (($module === 'blog') ? 'pages' : null);
+            if ($crossModule) {
+                $crossQuery = \Screenart\Musedock\Database::table('slugs')
+                    ->where('slug', $slug)
+                    ->where('module', $crossModule);
+
+                if ($prefix !== null) {
+                    $crossQuery->where('prefix', $prefix);
+                } else {
+                    $crossQuery->whereNull('prefix');
+                }
+
+                if ($tenantId !== null) {
+                    $crossQuery->where('tenant_id', $tenantId);
+                } else {
+                    $crossQuery->whereNull('tenant_id');
+                }
+
+                if ($crossQuery->exists()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

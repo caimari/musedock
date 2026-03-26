@@ -61,7 +61,7 @@
                   <option value="">— Elegir —</option>
                   @foreach($pages as $page)
                     <option value="{{ $page['id'] }}" @if(($settings['page_on_front'] ?? '') == $page['id']) selected @endif>
-                      {{ $page['title'] ?? $page['slug'] }}
+                      {{ !empty(trim($page['title'] ?? '')) ? $page['title'] : ($page['slug'] ?? '(Sin título)') }}
                     </option>
                   @endforeach
                 </select>
@@ -175,6 +175,58 @@
         </div>
       </div>
 
+      <!-- Estructura de URLs de Páginas -->
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">Estructura de URLs de Páginas</h5>
+        </div>
+        <div class="card-body">
+          @php
+            $currentPagePrefix = $settings['page_url_prefix'] ?? 'p';
+            $hasPagePrefix = ($currentPagePrefix !== '');
+          @endphp
+
+          <div class="mb-3">
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="page_url_mode" id="page_url_with_prefix" value="prefix"
+                @if($hasPagePrefix) checked @endif>
+              <label class="form-check-label" for="page_url_with_prefix">
+                <strong>Con prefijo</strong>
+                <small class="d-block text-muted">Las páginas se acceden con un prefijo en la URL (ej: /p/nosotros)</small>
+              </label>
+            </div>
+
+            <div id="page-prefix-input" class="ms-4 mb-3" style="display: {{ $hasPagePrefix ? 'block' : 'none' }};">
+              <label class="form-label">Nombre del prefijo</label>
+              <div class="input-group" style="max-width: 400px;">
+                <span class="input-group-text">/</span>
+                <input type="text" name="page_url_prefix" id="page_url_prefix_input" class="form-control"
+                  value="{{ $currentPagePrefix }}" placeholder="p"
+                  pattern="[a-z0-9\-]+" title="Solo letras minúsculas, números y guiones">
+                <span class="input-group-text">/mi-pagina</span>
+              </div>
+              <small class="text-muted">Solo letras minúsculas, números y guiones. Ejemplos: p, paginas, pages</small>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="page_url_mode" id="page_url_no_prefix" value="none"
+                @if(!$hasPagePrefix) checked @endif>
+              <label class="form-check-label" for="page_url_no_prefix">
+                <strong>Sin prefijo</strong>
+                <small class="d-block text-muted">Las páginas se acceden directamente desde la raíz (ej: /nosotros)</small>
+              </label>
+            </div>
+          </div>
+
+          <div class="alert alert-info mb-0 mt-3">
+            <i class="bi bi-eye"></i> <strong>Vista previa:</strong>
+            <span id="page-url-preview">{{ $_SERVER['HTTP_HOST'] ?? 'dominio.com' }}/<span id="page-prefix-preview">{{ $hasPagePrefix ? $currentPagePrefix . '/' : '' }}</span>nosotros</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Opciones de visualización -->
       <div class="card mb-4">
         <div class="card-header bg-light">
@@ -248,6 +300,33 @@ if (prefixField) {
     const val = this.value.replace(/[^a-z0-9\-]/g, '').trim();
     this.value = val;
     document.getElementById('prefix-preview').textContent = val ? val + '/' : '';
+  });
+}
+
+// ─── Page URL prefix ───
+document.querySelectorAll('input[name="page_url_mode"]').forEach(radio => {
+  radio.addEventListener('change', function() {
+    const prefixInput = document.getElementById('page-prefix-input');
+    const prefixPreview = document.getElementById('page-prefix-preview');
+    const inputField = document.getElementById('page_url_prefix_input');
+
+    if (this.value === 'prefix') {
+      prefixInput.style.display = 'block';
+      const val = inputField.value.trim() || 'p';
+      prefixPreview.textContent = val + '/';
+    } else {
+      prefixInput.style.display = 'none';
+      prefixPreview.textContent = '';
+    }
+  });
+});
+
+const pagePrefixField = document.getElementById('page_url_prefix_input');
+if (pagePrefixField) {
+  pagePrefixField.addEventListener('input', function() {
+    const val = this.value.replace(/[^a-z0-9\-]/g, '').trim();
+    this.value = val;
+    document.getElementById('page-prefix-preview').textContent = val ? val + '/' : '';
   });
 }
 

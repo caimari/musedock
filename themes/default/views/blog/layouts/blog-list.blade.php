@@ -3,7 +3,9 @@
     @include('blog.layouts._blog-header-ticker', ['tickerPosition' => 'top'])
 
     @foreach($posts as $post)
+    @php $isBrief = (($post->post_type ?? 'post') === 'brief'); @endphp
     <article class="row mb-4 pb-4 {{ !$loop->last ? 'border-bottom' : '' }}">
+        @if(!$isBrief)
         <div class="col-md-4 mb-3 mb-md-0">
             <a href="{{ blog_url($post->slug) }}" class="d-block overflow-hidden rounded" style="height: 200px; background-color: #f0f2f5;">
                 @php
@@ -19,7 +21,8 @@
                 <img src="{{ $imageUrl }}" alt="{{ $post->title }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
             </a>
         </div>
-        <div class="col-md-8 d-flex flex-column">
+        @endif
+        <div class="{{ $isBrief ? 'col-12' : 'col-md-8' }} d-flex flex-column">
             <h2 class="h5 mb-2" style="line-height: 1.3;">
                 <a href="{{ blog_url($post->slug) }}" class="text-decoration-none text-dark">{{ $post->title }}</a>
             </h2>

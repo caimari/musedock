@@ -68,11 +68,15 @@
 
 
 
-<div class="page-content container mt-5">
+<div class="page-content container mt-3 mt-md-5">
       <!--  <h1 class="display-4">{{ $page->title }}</h1> -->
     <div class="content">
         @php
             $content = apply_filters('the_content', $translation->content ?? $page->content ?? '<p class="text-muted">Contenido no disponible.</p>');
+            // Limpiar <p> que envuelven sliders/divs (HTML inválido de importación WP)
+            $content = preg_replace('/<p>\s*((<link[^>]*>\s*)*)\s*(<div\s)/s', '$1$3', $content);
+            $content = preg_replace('/(<\/script>)\s*<\/p>/s', '$1', $content);
+            $content = preg_replace('/<p>\s*(&nbsp;|\xC2\xA0|\s)*<\/p>/i', '', $content);
         @endphp
         {!! $content !!}
     </div>

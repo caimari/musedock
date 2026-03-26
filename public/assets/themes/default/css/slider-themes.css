@@ -32,6 +32,7 @@
 .swiper-wrapper {
     display: flex;
     transition-property: transform;
+    height: 100%;
 }
 
 .swiper-slide {
@@ -1066,6 +1067,11 @@
         width: 60px !important;
         height: 45px;
     }
+    /* Gallery: limitar altura en móvil para evitar espacio excesivo */
+    .swiper.gallery-top {
+        height: 55vw !important;
+        max-height: 350px !important;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1081,5 +1087,317 @@
     .gallery-thumbs .swiper-slide {
         width: 50px !important;
         height: 38px;
+    }
+    .swiper.gallery-top {
+        height: 60vw !important;
+        max-height: 280px !important;
+    }
+    .swiper.gallery-thumbs {
+        height: 55px !important;
+    }
+}
+
+/* =============================================
+   THEME: DUAL VIEW - 2 slides visibles
+   Paginacion en footer-left, flechas en header-right
+   ============================================= */
+.swiper.theme-dual-view {
+    overflow: hidden !important;
+    padding-bottom: 0;
+}
+
+/* Slides con bordes redondeados */
+.swiper.theme-dual-view .swiper-slide {
+    border-radius: 0;
+    overflow: hidden;
+}
+
+.swiper.theme-dual-view .swiper-slide img {
+    border-radius: 0;
+}
+
+/* Paginacion: posicion bottom-left dentro del primer slide visible */
+.swiper.theme-dual-view .swiper-pagination {
+    position: absolute;
+    bottom: 32px !important;
+    left: 16px !important;
+    right: auto !important;
+    width: auto !important;
+    text-align: left !important;
+    z-index: 20;
+}
+
+/* Bullets de paginacion - rectangulos horizontales */
+.swiper.theme-dual-view .swiper-pagination-bullet {
+    width: 24px !important;
+    height: 5px !important;
+    border-radius: 3px !important;
+    background: rgba(255, 255, 255, 0.5) !important;
+    opacity: 1 !important;
+    margin: 0 3px !important;
+    transition: all 0.3s ease;
+}
+
+.swiper.theme-dual-view .swiper-pagination-bullet-active {
+    background: #ffffff !important;
+    width: 32px !important;
+}
+
+/* Flechas de navegacion: posicion top-right, forma cuadrada con esquinas redondeadas */
+/* Los colores (fondo y flecha) se heredan del editor via inline styles de SliderHelper */
+.swiper.theme-dual-view .swiper-button-prev,
+.swiper.theme-dual-view .swiper-button-next {
+    position: absolute;
+    top: 24px !important;
+    bottom: auto !important;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 4px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    margin-top: 0 !important;
+}
+
+.swiper.theme-dual-view .swiper-button-prev {
+    left: auto !important;
+    right: 56px !important;
+}
+
+.swiper.theme-dual-view .swiper-button-next {
+    right: 8px !important;
+}
+
+.swiper.theme-dual-view .swiper-button-prev:hover,
+.swiper.theme-dual-view .swiper-button-next:hover {
+    filter: brightness(0.9);
+    transform: scale(1.05);
+}
+
+/* Iconos de las flechas - tamaño adaptado al tema */
+.swiper.theme-dual-view .swiper-button-prev::after,
+.swiper.theme-dual-view .swiper-button-next::after {
+    font-size: 16px !important;
+    font-weight: 700;
+}
+
+/* Responsive: 1 slide en movil */
+@media (max-width: 767px) {
+    .swiper.theme-dual-view .swiper-button-prev {
+        right: 52px !important;
+    }
+    .swiper.theme-dual-view .swiper-button-next {
+        right: 6px !important;
+    }
+    .swiper.theme-dual-view .swiper-button-prev,
+    .swiper.theme-dual-view .swiper-button-next {
+        width: 36px !important;
+        height: 36px !important;
+        top: 24px !important;
+    }
+    .swiper.theme-dual-view .swiper-button-prev::after,
+    .swiper.theme-dual-view .swiper-button-next::after {
+        font-size: 14px !important;
+    }
+}
+
+/* =============================================
+   THEME: PORTRAIT CAROUSEL - Multiple slides visibles
+   Ideal para fotos de personas, posters, invitados
+   Caption debajo de cada imagen con nombre
+   ============================================= */
+.swiper.theme-portrait-carousel {
+    overflow: hidden !important;
+    padding-bottom: 0;
+}
+
+.swiper.theme-portrait-carousel .swiper-slide {
+    border-radius: 0;
+    overflow: hidden;
+}
+
+.swiper.theme-portrait-carousel .swiper-slide a,
+.swiper.theme-portrait-carousel .swiper-slide > img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+}
+
+.swiper.theme-portrait-carousel .swiper-slide img {
+    border-radius: 0;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover;
+    display: block;
+}
+
+/* Caption debajo de la imagen */
+.swiper.theme-portrait-carousel .swiper-caption {
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    width: 100% !important;
+    background: transparent !important;
+    padding: 10px 4px 4px !important;
+    text-align: center;
+}
+
+.swiper.theme-portrait-carousel .swiper-caption .caption-title {
+    font-size: 14px !important;
+    font-weight: 500;
+    color: #333 !important;
+    margin: 0;
+    line-height: 1.3;
+}
+
+.swiper.theme-portrait-carousel .swiper-caption .caption-description {
+    font-size: 12px !important;
+    color: #777 !important;
+    margin: 2px 0 0;
+}
+
+/* Lightbox: hover con zoom icon */
+.swiper.theme-portrait-carousel .portrait-lightbox {
+    display: block;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    line-height: 0;
+    font-size: 0;
+}
+.swiper.theme-portrait-carousel .portrait-lightbox::after {
+    content: '\f00e'; /* fa-search-plus */
+    font-family: 'Font Awesome 5 Free', 'FontAwesome', sans-serif;
+    font-weight: 900;
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #fff;
+    background: rgba(0,0,0,0.35);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+.swiper.theme-portrait-carousel .portrait-lightbox:hover::after {
+    opacity: 1;
+}
+
+/* Lightbox desactivado: sin lupa ni enlace */
+.swiper.theme-portrait-carousel.no-lightbox .portrait-lightbox {
+    pointer-events: none;
+    cursor: default;
+}
+.swiper.theme-portrait-carousel.no-lightbox .portrait-lightbox::after {
+    display: none !important;
+}
+
+/* Navegacion: flechas a los lados, fuera de las imagenes */
+.swiper.theme-portrait-carousel .swiper-button-prev,
+.swiper.theme-portrait-carousel .swiper-button-next {
+    top: 40% !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.swiper.theme-portrait-carousel .swiper-button-prev::after,
+.swiper.theme-portrait-carousel .swiper-button-next::after {
+    font-size: 14px !important;
+    font-weight: 700;
+}
+
+.swiper.theme-portrait-carousel .swiper-button-prev:hover,
+.swiper.theme-portrait-carousel .swiper-button-next:hover {
+    filter: brightness(0.9);
+    transform: scale(1.05);
+}
+
+/* Paginacion: dots debajo de todo */
+.swiper.theme-portrait-carousel .swiper-pagination {
+    position: relative !important;
+    bottom: auto !important;
+    margin-top: 12px;
+}
+
+.swiper.theme-portrait-carousel .swiper-pagination-bullet {
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    opacity: 0.4 !important;
+    transition: all 0.3s ease;
+}
+
+.swiper.theme-portrait-carousel .swiper-pagination-bullet-active {
+    opacity: 1 !important;
+    transform: scale(1.2);
+}
+
+/* Tamaño pequeño: imágenes más compactas */
+.swiper.theme-portrait-carousel.size-small .swiper-caption {
+    padding: 6px 3px 3px !important;
+}
+.swiper.theme-portrait-carousel.size-small .swiper-caption .caption-title {
+    font-size: 12px !important;
+}
+.swiper.theme-portrait-carousel.size-small .portrait-lightbox::after {
+    font-size: 18px;
+}
+
+/* Tamaño mini: imágenes muy compactas */
+.swiper.theme-portrait-carousel.size-tiny .swiper-caption {
+    padding: 4px 2px 2px !important;
+}
+.swiper.theme-portrait-carousel.size-tiny .swiper-caption .caption-title {
+    font-size: 10px !important;
+}
+.swiper.theme-portrait-carousel.size-tiny .portrait-lightbox::after {
+    font-size: 14px;
+}
+.swiper.theme-portrait-carousel.size-tiny .swiper-button-prev,
+.swiper.theme-portrait-carousel.size-tiny .swiper-button-next {
+    width: 26px !important;
+    height: 26px !important;
+}
+.swiper.theme-portrait-carousel.size-tiny .swiper-button-prev::after,
+.swiper.theme-portrait-carousel.size-tiny .swiper-button-next::after {
+    font-size: 10px !important;
+}
+
+/* Responsive */
+@media (max-width: 767px) {
+    .swiper.theme-portrait-carousel .swiper-button-prev,
+    .swiper.theme-portrait-carousel .swiper-button-next {
+        width: 28px !important;
+        height: 28px !important;
+    }
+    .swiper.theme-portrait-carousel .swiper-button-prev::after,
+    .swiper.theme-portrait-carousel .swiper-button-next::after {
+        font-size: 11px !important;
+    }
+    .swiper.theme-portrait-carousel .swiper-caption {
+        padding: 4px 2px 2px !important;
+    }
+    .swiper.theme-portrait-carousel .swiper-caption .caption-title {
+        font-size: 11px !important;
+    }
+    .swiper.theme-portrait-carousel .swiper-caption .caption-description {
+        font-size: 10px !important;
+    }
+    .swiper.theme-portrait-carousel .swiper-pagination {
+        margin-top: 4px;
+    }
+    .swiper.theme-portrait-carousel.size-tiny .swiper-button-prev,
+    .swiper.theme-portrait-carousel.size-tiny .swiper-button-next {
+        width: 22px !important;
+        height: 22px !important;
+    }
+    .swiper.theme-portrait-carousel.size-tiny .swiper-caption .caption-title {
+        font-size: 9px !important;
     }
 }

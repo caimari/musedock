@@ -77,11 +77,11 @@ class RolesAndPermissionsSeeder
             ['slug' => 'blog.tags.delete', 'name' => 'Eliminar etiquetas de blog', 'description' => 'Eliminar etiquetas del blog', 'category' => 'Blog', 'scope' => 'global'],
 
             // Instagram Feed
-            ['slug' => 'instagram.view', 'name' => 'Ver Instagram Feed', 'description' => 'Ver configuración del feed de Instagram', 'category' => 'Instagram', 'scope' => 'global'],
-            ['slug' => 'instagram.create', 'name' => 'Crear Instagram Feed', 'description' => 'Configurar un nuevo feed de Instagram', 'category' => 'Instagram', 'scope' => 'global'],
-            ['slug' => 'instagram.edit', 'name' => 'Editar Instagram Feed', 'description' => 'Editar configuración del feed de Instagram', 'category' => 'Instagram', 'scope' => 'global'],
-            ['slug' => 'instagram.delete', 'name' => 'Eliminar Instagram Feed', 'description' => 'Eliminar configuración del feed de Instagram', 'category' => 'Instagram', 'scope' => 'global'],
-            ['slug' => 'instagram.settings', 'name' => 'Ajustes de Instagram', 'description' => 'Configurar ajustes avanzados del módulo Instagram', 'category' => 'Instagram', 'scope' => 'global'],
+            ['slug' => 'instagram.view', 'name' => 'Ver Instagram Feed', 'description' => 'Ver configuración del feed de Instagram', 'category' => 'Instagram', 'scope' => 'tenant'],
+            ['slug' => 'instagram.create', 'name' => 'Crear Instagram Feed', 'description' => 'Configurar un nuevo feed de Instagram', 'category' => 'Instagram', 'scope' => 'tenant'],
+            ['slug' => 'instagram.edit', 'name' => 'Editar Instagram Feed', 'description' => 'Editar configuración del feed de Instagram', 'category' => 'Instagram', 'scope' => 'tenant'],
+            ['slug' => 'instagram.delete', 'name' => 'Eliminar Instagram Feed', 'description' => 'Eliminar configuración del feed de Instagram', 'category' => 'Instagram', 'scope' => 'tenant'],
+            ['slug' => 'instagram.settings', 'name' => 'Ajustes de Instagram', 'description' => 'Configurar ajustes avanzados del módulo Instagram', 'category' => 'Instagram', 'scope' => 'tenant'],
 
             // Custom Forms
             ['slug' => 'custom_forms.view', 'name' => 'Ver formularios', 'description' => 'Ver y listar formularios personalizados', 'category' => 'Formularios', 'scope' => 'global'],

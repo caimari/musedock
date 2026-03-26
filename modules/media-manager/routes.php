@@ -36,6 +36,7 @@ Route::get('musedock/media/folders/structure', 'MediaManager\Controllers\MediaCo
 Route::post('musedock/media/folders/create', 'MediaManager\Controllers\MediaController@createFolder')->name('superadmin.media.folders.create')->middleware('superadmin');
 Route::post('musedock/media/folders/{id}/rename', 'MediaManager\Controllers\MediaController@renameFolder')->name('superadmin.media.folders.rename')->middleware('superadmin');
 Route::post('musedock/media/folders/{id}/delete', 'MediaManager\Controllers\MediaController@deleteFolder')->name('superadmin.media.folders.delete')->middleware('superadmin');
+Route::post('musedock/media/folders/{id}/empty', 'MediaManager\Controllers\MediaController@deleteFolderContents')->name('superadmin.media.folders.empty')->middleware('superadmin');
 
 // ========== MEDIA OPERATIONS ROUTES ==========
 Route::post('musedock/media/move', 'MediaManager\Controllers\MediaController@moveItems')->name('superadmin.media.move')->middleware('superadmin');
@@ -57,6 +58,7 @@ Route::get('admin/media/folders/structure', 'MediaManager\Controllers\MediaContr
 Route::post('admin/media/folders/create', 'MediaManager\Controllers\MediaController@createFolder')->name('tenant.media.folders.create')->middleware(['auth']);
 Route::post('admin/media/folders/{id}/rename', 'MediaManager\Controllers\MediaController@renameFolder')->name('tenant.media.folders.rename')->middleware(['auth']);
 Route::post('admin/media/folders/{id}/delete', 'MediaManager\Controllers\MediaController@deleteFolder')->name('tenant.media.folders.delete')->middleware(['auth']);
+Route::post('admin/media/folders/{id}/empty', 'MediaManager\Controllers\MediaController@deleteFolderContents')->name('tenant.media.folders.empty')->middleware(['auth']);
 
 // ========== TENANT MEDIA OPERATIONS ROUTES ==========
 Route::post('admin/media/move', 'MediaManager\Controllers\MediaController@moveItems')->name('tenant.media.move')->middleware(['auth']);

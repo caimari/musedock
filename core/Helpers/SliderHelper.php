@@ -181,7 +181,12 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
     }
 
     $themeClass = 'theme-' . \e($theme);
-    $sliderStyle = 'width:100%;height:' . intval($height) . 'px;';
+    $isPortraitCarousel = ($theme === 'portrait-carousel');
+    $lightboxEnabled = $isPortraitCarousel ? (($settings['lightbox_enabled'] ?? '1') == '1') : false;
+    $slideSize = $isPortraitCarousel ? ($settings['slide_size'] ?? 'normal') : 'normal';
+    $sliderStyle = $isPortraitCarousel
+        ? 'width:100%;height:auto;'
+        : 'width:100%;height:' . intval($height) . 'px;';
 
     // Preset robusto (inline) para garantizar que rounded-shadow se vea incluso si existe algún override externo.
     if ($theme === 'rounded-shadow') {
@@ -198,7 +203,9 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
         }
     }
 
-    $output .= '<div class="swiper slider-' . $sliderId . ' ' . $themeClass . '" style="' . $sliderStyle . '">';
+    $noLightboxClass = ($isPortraitCarousel && !$lightboxEnabled) ? ' no-lightbox' : '';
+    $slideSizeClass = ($isPortraitCarousel && $slideSize !== 'normal') ? ' size-' . \e($slideSize) : '';
+    $output .= '<div class="swiper slider-' . $sliderId . ' ' . $themeClass . $noLightboxClass . $slideSizeClass . '" style="' . $sliderStyle . '">';
     $output .= '<div class="swiper-wrapper">';
 
     foreach ($slides as $slide) {
@@ -209,6 +216,25 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
             $imgStyle .= 'border-radius:22px !important;';
         }
         $output .= '<div class="swiper-slide" style="' . $slideStyle . '">';
+
+        // Portrait-carousel: imagen con lightbox + caption debajo
+        if ($isPortraitCarousel) {
+            $imgUrl = \e($slide->image_url);
+            $slideTitle = \e($slide->title ?? '');
+            if ($lightboxEnabled) {
+                $output .= '<a href="' . $imgUrl . '" class="portrait-lightbox" data-title="' . $slideTitle . '">';
+                $output .= '<img src="' . $imgUrl . '" alt="' . $slideTitle . '" style="' . $imgStyle . '">';
+                $output .= '</a>';
+            } else {
+                $output .= '<img src="' . $imgUrl . '" alt="' . $slideTitle . '" style="' . $imgStyle . '">';
+            }
+            if (!empty($slide->title)) {
+                $output .= '<div class="swiper-caption"><div class="caption-title">' . $slideTitle . '</div></div>';
+            }
+            $output .= '</div>'; // Fin swiper-slide
+            continue;
+        }
+
         $output .= '<img src="' . \e($slide->image_url) . '" style="' . $imgStyle . '">';
 
         // Verificar si hay botones configurados
@@ -413,19 +439,61 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
     $swiperJsPath = $appRoot . '/public/assets/js/swiper-bundle.min.js';
     $swiperJsVersion = is_file($swiperJsPath) ? filemtime($swiperJsPath) : time();
     $output .= '<script src="/assets/js/swiper-bundle.min.js?v=' . $swiperJsVersion . '"></script>';
+    // Dual-view: 2 slides visibles con gap
+    $isDualView = ($theme === 'dual-view');
+    $isPortraitCarousel = ($theme === 'portrait-carousel');
+    $isMultiSlide = ($isDualView || $isPortraitCarousel);
+
+    if ($isDualView) {
+        $slidesPerViewConfig = 'slidesPerView: 2, spaceBetween: 16,';
+        $multiSlideResponsive = 'breakpoints: { 0: { slidesPerView: 1, spaceBetween: 8 }, 768: { slidesPerView: 2, spaceBetween: 16 } },';
+    } elseif ($isPortraitCarousel) {
+        if ($slideSize === 'tiny') {
+            $slidesPerViewConfig = 'slidesPerView: 8, spaceBetween: 8,';
+            $multiSlideResponsive = 'breakpoints: { 0: { slidesPerView: 4, spaceBetween: 3 }, 480: { slidesPerView: 5, spaceBetween: 3 }, 768: { slidesPerView: 6, spaceBetween: 4 }, 1024: { slidesPerView: 7, spaceBetween: 6 }, 1280: { slidesPerView: 8, spaceBetween: 8 } },';
+        } elseif ($slideSize === 'small') {
+            $slidesPerViewConfig = 'slidesPerView: 6, spaceBetween: 12,';
+            $multiSlideResponsive = 'breakpoints: { 0: { slidesPerView: 3, spaceBetween: 3 }, 480: { slidesPerView: 3, spaceBetween: 4 }, 768: { slidesPerView: 4, spaceBetween: 6 }, 1024: { slidesPerView: 5, spaceBetween: 8 }, 1280: { slidesPerView: 6, spaceBetween: 12 } },';
+        } else {
+            $slidesPerViewConfig = 'slidesPerView: 5, spaceBetween: 20,';
+            $multiSlideResponsive = 'breakpoints: { 0: { slidesPerView: 2, spaceBetween: 4 }, 480: { slidesPerView: 2, spaceBetween: 4 }, 768: { slidesPerView: 3, spaceBetween: 8 }, 1024: { slidesPerView: 4, spaceBetween: 12 }, 1280: { slidesPerView: 5, spaceBetween: 16 } },';
+        }
+    } else {
+        $slidesPerViewConfig = '';
+        $multiSlideResponsive = '';
+    }
+
     $output .= '<script>
     document.addEventListener("DOMContentLoaded", function () {
         new Swiper(".slider-' . $sliderId . '", {
             loop: ' . ($loop ? 'true' : 'false') . ',
             speed: 600,
+            ' . $slidesPerViewConfig . '
             autoplay: ' . ($autoplay ? '{ delay: ' . $autoplayDelay . ', disableOnInteraction: false }' : 'false') . ',
             pagination: ' . ($pagination ? '{ el: ".slider-' . $sliderId . ' .swiper-pagination", clickable: true }' : 'false') . ',
             navigation: ' . ($navigation ? '{ nextEl: ".slider-' . $sliderId . ' .swiper-button-next", prevEl: ".slider-' . $sliderId . ' .swiper-button-prev" }' : 'false') . ',
-            effect: "' . \e($transitionEffect) . '",
-            ' . $effectConfig . '
+            effect: "' . ($isMultiSlide ? 'slide' : \e($transitionEffect)) . '",
+            ' . ($isMultiSlide ? '' : $effectConfig) . '
+            ' . $multiSlideResponsive . '
         });
     });
     </script>';
+
+    // Portrait-carousel: inicializar Magnific Popup lightbox (solo si está activado)
+    if ($isPortraitCarousel && $lightboxEnabled) {
+        $output .= '<script>
+        document.addEventListener("DOMContentLoaded", function () {
+            if (typeof jQuery !== "undefined" && jQuery.fn.magnificPopup) {
+                jQuery(".slider-' . $sliderId . ' .portrait-lightbox").magnificPopup({
+                    type: "image",
+                    gallery: { enabled: true, tCounter: "%curr% / %total%" },
+                    zoom: { enabled: true, duration: 300, easing: "ease-in-out" },
+                    image: { titleSrc: function(item) { return item.el.attr("data-title") || ""; } }
+                });
+            }
+        });
+        </script>';
+    }
 
     // Cerrar wrapper full-width si está activado
     if ($fullWidth) {
@@ -611,6 +679,14 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
         foreach ($sliders as $slider) {
             $content = str_replace($slider['marker'], $slider['html'], $content);
         }
+
+        // PASO 4: Limpiar <p>...</p> residuales que envolvían shortcodes
+        // Al insertar el HTML del slider (con <div>, <script>, <link>),
+        // queda HTML inválido: <p><link..><div class="swiper">...</div></script></p>
+        // El navegador auto-cierra <p> antes de <div>, dejando </p> huérfanos
+        $content = preg_replace('/<p>\s*((<link[^>]*>\s*)*(<div[\s>]))/s', '$1', $content);
+        $content = preg_replace('/(<\/script>)\s*<\/p>/s', '$1', $content);
+        $content = preg_replace('/<p>\s*(&nbsp;|\xC2\xA0|\s)*<\/p>/i', '', $content);
 
         return $content;
     }

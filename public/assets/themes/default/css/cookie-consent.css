@@ -1,21 +1,87 @@
 /* --- Cookie Consent Styling --- */
-    /* Popup Card */
+
+    /* ===== Base popup (card layout - default) ===== */
     .cookie-consent-popup {
         position: fixed;
         bottom: 20px;
-        right: 20px; /* O left: 20px; */
-        background-color: #ffffff;
-        color: #333333;
+        right: 20px;
+        background-color: var(--cookie-bg, #ffffff);
+        color: var(--cookie-text, #333333);
         padding: 25px;
         border-radius: 8px;
         box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
         z-index: 10000;
         max-width: 420px;
-        /* font-size: 0.9rem;  <-- Removido, se controlará con inherit o base */
         line-height: 1.5;
         border: 1px solid #eee;
     }
 
+    /* ===== Bar layout ===== */
+    .cookie-consent-popup.cookie-layout-bar {
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-width: 100%;
+        border-radius: 0;
+        padding: 14px 30px;
+        border: none;
+        border-top: 1px solid rgba(0,0,0,.1);
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+    }
+    .cookie-layout-bar .cookie-popup-content {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+        flex-wrap: wrap;
+    }
+    .cookie-layout-bar .cookie-popup-content h4 {
+        display: none;
+    }
+    .cookie-layout-bar .cookie-popup-content p {
+        margin: 0;
+        flex: 1;
+        min-width: 200px;
+        font-size: .875rem;
+    }
+    .cookie-layout-bar .cookie-popup-actions {
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+    .cookie-layout-bar .cookie-popup-links {
+        width: 100%;
+        text-align: center;
+        margin-top: 4px;
+    }
+
+    /* ===== Modal layout ===== */
+    .cookie-consent-popup.cookie-layout-modal {
+        inset: 0;
+        max-width: 100%;
+        border-radius: 0;
+        padding: 0;
+        border: none;
+        background: rgba(0, 0, 0, 0.5);
+        box-shadow: none;
+        align-items: center;
+        justify-content: center;
+    }
+    .cookie-layout-modal .cookie-popup-content {
+        background: var(--cookie-bg, #ffffff);
+        color: var(--cookie-text, #333333);
+        padding: 30px 35px;
+        border-radius: 12px;
+        max-width: 520px;
+        width: 90%;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+        text-align: center;
+    }
+    .cookie-layout-modal .cookie-popup-actions {
+        justify-content: center;
+    }
+
+    /* ===== Popup content ===== */
     .cookie-popup-content h4 {
         margin-top: 0;
         margin-bottom: 10px;
@@ -29,7 +95,7 @@
 
     .cookie-popup-actions {
         display: flex;
-        flex-wrap: wrap; /* Para pantallas pequeñas */
+        flex-wrap: wrap;
         gap: 10px;
         margin-bottom: 15px;
     }
@@ -39,28 +105,23 @@
         border: none;
         border-radius: 5px;
         cursor: pointer;
-        font-size: 0.875rem; /* Tamaño base para botones */
+        font-size: 0.875rem;
         font-weight: 500;
-        transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        transition: background-color 0.2s ease, color 0.2s ease, opacity .2s;
         text-decoration: none;
         display: inline-block;
         text-align: center;
     }
+    .cookie-btn:hover { opacity: .88; }
 
     .cookie-btn-accept {
-        background-color: #4CAF50; /* Verde */
+        background-color: var(--cookie-btn-accept, #4CAF50);
         color: white;
-    }
-    .cookie-btn-accept:hover {
-        background-color: #45a049;
     }
 
     .cookie-btn-reject {
-        background-color: #f44336; /* Rojo */
+        background-color: var(--cookie-btn-reject, #f44336);
         color: white;
-    }
-    .cookie-btn-reject:hover {
-        background-color: #da190b;
     }
 
     .cookie-btn-manage {
@@ -73,18 +134,19 @@
     }
 
     .cookie-popup-links {
-        font-size: 0.8rem; /* Enlaces pequeños pueden mantener tamaño específico */
+        font-size: 0.8rem;
     }
     .cookie-popup-links a {
-        color: #555;
+        color: var(--cookie-text, #555);
         text-decoration: underline;
         margin-right: 15px;
+        opacity: .7;
     }
     .cookie-popup-links a:hover {
-        color: #000;
+        opacity: 1;
     }
 
-    /* Preferences Modal */
+    /* ===== Preferences Modal ===== */
     .cookie-preferences-modal {
         position: fixed;
         top: 0;
@@ -148,9 +210,9 @@
         overflow-y: auto;
         flex-grow: 1;
     }
-    .cookie-preferences-modal .modal-body > p { /* Párrafo introductorio */
+    .cookie-preferences-modal .modal-body > p {
         margin-bottom: 25px;
-        font-size: 0.95rem; /* Tamaño específico para el intro */
+        font-size: 0.95rem;
     }
 
     .cookie-category {
@@ -175,7 +237,6 @@
     }
 
     .cookie-category p {
-       /* font-size: 0.85rem; <-- Controlado por herencia o ajuste abajo */
         color: #555;
         margin-bottom: 0;
     }
@@ -206,21 +267,19 @@
         border-top: 1px dashed #ddd;
     }
     .cookie-details h5 {
-        /* font-size: 0.9rem; <-- Controlado por herencia o ajuste abajo */
         margin-bottom: 8px;
         color: #666;
-        font-weight: 500; /* Un poco más de peso para el título */
+        font-weight: 500;
     }
     .cookie-details table {
         width: 100%;
-       /* font-size: 0.8rem; <-- Controlado por herencia o ajuste abajo */
         border-collapse: collapse;
     }
     .cookie-details th, .cookie-details td {
         border: 1px solid #eee;
-        padding: 6px 10px; /* Un poco más de padding */
+        padding: 6px 10px;
         text-align: left;
-        vertical-align: top; /* Mejor alineación si hay texto largo */
+        vertical-align: top;
     }
     .cookie-details th {
         background-color: #f5f5f5;
@@ -238,61 +297,78 @@
         flex-shrink: 0;
     }
 
-
-    /* ===== INICIO: CORRECCIÓN DE FUENTE Y TAMAÑO ===== */
-
-    /* 1. Forzar Herencia de Fuente */
+    /* ===== Font inheritance ===== */
     .cookie-consent-popup,
     .cookie-preferences-modal {
-        font-family: inherit; /* Hereda la fuente del elemento padre (body) */
-        font-size: 0.9rem; /* Tamaño base para el texto normal dentro del popup/modal */
+        font-family: inherit;
+        font-size: 0.9rem;
     }
 
-    /* Asegurarse que elementos específicos dentro también heredan */
     .cookie-consent-popup *,
     .cookie-preferences-modal *,
-    .cookie-consent-popup button,       /* Hereda fuente para botones */
-    .cookie-preferences-modal button,   /* Hereda fuente para botones */
+    .cookie-consent-popup button,
+    .cookie-preferences-modal button,
     .cookie-preferences-modal input,
     .cookie-preferences-modal label,
     .cookie-preferences-modal th,
     .cookie-preferences-modal td {
         font-family: inherit;
-        box-sizing: border-box; /* Buena práctica incluir esto */
+        box-sizing: border-box;
     }
 
-    /* 2. Ajuste Tamaño Fuente Pequeña (Opcional pero recomendado) */
     .cookie-category p {
-        font-size: 0.875rem; /* Ligeramente más grande y legible que 0.85rem */
+        font-size: 0.875rem;
     }
 
     .cookie-details h5 {
-         font-size: 0.9rem; /* Tamaño del subtítulo de la tabla */
+         font-size: 0.9rem;
     }
 
     .cookie-details table,
     .cookie-details th,
     .cookie-details td {
-        font-size: 0.85rem; /* Ligeramente más grande y legible que 0.8rem */
+        font-size: 0.85rem;
     }
 
-    /* ===== FIN: CORRECCIÓN DE FUENTE Y TAMAÑO ===== */
-
-
-    /* Responsive adjustments */
+    /* ===== Responsive ===== */
     @media (max-width: 768px) {
-        .cookie-consent-popup {
+        /* Card layout mobile */
+        .cookie-consent-popup.cookie-layout-card {
             max-width: 90%;
             right: 5%;
-            left: 5%; /* Centrar mejor en móvil si es ancho */
+            left: 5%;
             bottom: 10px;
-            font-size: 0.85rem; /* Reducir tamaño base en móvil */
+            font-size: 0.85rem;
         }
+
+        /* Bar layout mobile */
+        .cookie-consent-popup.cookie-layout-bar {
+            padding: 12px 16px;
+        }
+        .cookie-layout-bar .cookie-popup-content {
+            flex-direction: column;
+            text-align: center;
+            gap: 10px;
+        }
+        .cookie-layout-bar .cookie-popup-actions {
+            flex-direction: column;
+            align-items: stretch;
+            width: 100%;
+        }
+
+        /* Modal layout mobile */
+        .cookie-layout-modal .cookie-popup-content {
+            padding: 24px 20px;
+            width: 95%;
+        }
+
         .cookie-consent-popup .cookie-btn {
-            font-size: 0.8rem; /* Reducir tamaño botones */
+            font-size: 0.8rem;
             padding: 8px 15px;
         }
-        .cookie-popup-actions {
+
+        /* Card default: stack buttons */
+        .cookie-layout-card .cookie-popup-actions {
             flex-direction: column;
             align-items: stretch;
         }
@@ -302,24 +378,24 @@
             padding: 20px;
         }
          .cookie-preferences-modal .modal-header h3 {
-            font-size: 1.2rem; /* Reducir título modal */
+            font-size: 1.2rem;
          }
          .cookie-preferences-modal .modal-body > p {
-            font-size: 0.9rem; /* Reducir intro modal */
+            font-size: 0.9rem;
          }
          .cookie-category h4 {
-            font-size: 1rem; /* Reducir título categoría */
+            font-size: 1rem;
          }
          .cookie-category p {
-            font-size: 0.825rem; /* Reducir descripción categoría */
+            font-size: 0.825rem;
          }
          .cookie-details h5 {
-             font-size: 0.85rem; /* Reducir subtítulo tabla */
+             font-size: 0.85rem;
          }
          .cookie-details table,
          .cookie-details th,
          .cookie-details td {
-             font-size: 0.8rem; /* Reducir texto tabla */
+             font-size: 0.8rem;
              padding: 5px 8px;
          }
 
@@ -328,8 +404,8 @@
         }
          .cookie-preferences-modal .modal-footer .cookie-btn {
             flex-grow: 1;
-            min-width: 100px; /* Ajustar ancho mínimo si es necesario */
-            font-size: 0.8rem; /* Reducir tamaño botones */
+            min-width: 100px;
+            font-size: 0.8rem;
             padding: 8px 10px;
          }
     }

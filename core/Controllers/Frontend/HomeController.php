@@ -237,22 +237,22 @@ class HomeController
         try {
             $pdo = Database::connect();
 
-            // Contar total de posts
+            // Contar total de posts (excluir briefs)
             if ($tenantId !== null) {
-                $countStmt = $pdo->prepare("SELECT COUNT(*) FROM blog_posts WHERE status = 'published' AND tenant_id = ?");
+                $countStmt = $pdo->prepare("SELECT COUNT(*) FROM blog_posts WHERE status = 'published' AND tenant_id = ? AND COALESCE(post_type, 'post') != 'brief'");
                 $countStmt->execute([$tenantId]);
             } else {
-                $countStmt = $pdo->prepare("SELECT COUNT(*) FROM blog_posts WHERE status = 'published' AND tenant_id IS NULL");
+                $countStmt = $pdo->prepare("SELECT COUNT(*) FROM blog_posts WHERE status = 'published' AND tenant_id IS NULL AND COALESCE(post_type, 'post') != 'brief'");
                 $countStmt->execute([]);
             }
             $totalPosts = $countStmt->fetchColumn();
             $totalPages = ceil($totalPosts / $postsPerPage);
 
-            // Query para obtener posts publicados con paginación
+            // Query para obtener posts publicados con paginación (excluir briefs)
             if ($tenantId !== null) {
                 $stmt = $pdo->prepare("
                     SELECT * FROM blog_posts
-                    WHERE status = 'published' AND tenant_id = ?
+                    WHERE status = 'published' AND tenant_id = ? AND COALESCE(post_type, 'post') != 'brief'
                     ORDER BY published_at DESC
                     LIMIT {$postsPerPage} OFFSET {$offset}
                 ");
@@ -260,7 +260,7 @@ class HomeController
             } else {
                 $stmt = $pdo->prepare("
                     SELECT * FROM blog_posts
-                    WHERE status = 'published' AND tenant_id IS NULL
+                    WHERE status = 'published' AND tenant_id IS NULL AND COALESCE(post_type, 'post') != 'brief'
                     ORDER BY published_at DESC
                     LIMIT {$postsPerPage} OFFSET {$offset}
                 ");
@@ -281,11 +281,28 @@ class HomeController
                 'per_page' => $postsPerPage,
             ];
 
+            // Cargar briefs si está activado
+            $briefs = [];
+            $showBriefs = themeOption('blog.blog_show_briefs', false);
+            if ($showBriefs && $showBriefs !== '0') {
+                $briefsCount = (int) themeOption('blog.blog_briefs_count', 10);
+                if ($tenantId !== null) {
+                    $bStmt = $pdo->prepare("SELECT * FROM blog_posts WHERE status = 'published' AND post_type = 'brief' AND tenant_id = ? ORDER BY published_at DESC LIMIT " . (int)$briefsCount);
+                    $bStmt->execute([$tenantId]);
+                } else {
+                    $bStmt = $pdo->prepare("SELECT * FROM blog_posts WHERE status = 'published' AND post_type = 'brief' AND tenant_id IS NULL ORDER BY published_at DESC LIMIT " . (int)$briefsCount);
+                    $bStmt->execute([]);
+                }
+                $briefs = $bStmt->fetchAll(\PDO::FETCH_OBJ);
+            }
+
             return View::renderTheme('blog.index', [
                 'posts' => $posts,
                 'categories' => $categories,
                 'pagination' => $pagination,
                 'is_home' => true,
+                'briefs' => $briefs,
+                'showBriefs' => $showBriefs && $showBriefs !== '0',
             ]);
 
         } catch (\Exception $e) {

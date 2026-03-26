@@ -39,6 +39,8 @@ Route::get($adminPath, 'tenant.AdminController@index')
      ->middleware(['auth']);
 Route::get("$adminPath/dashboard", 'tenant.DashboardController@index')
      ->middleware(['auth']);
+Route::get("$adminPath/changelog", 'tenant.DashboardController@changelog')
+     ->middleware(['auth']);
 
 // Login/logout/Password Reset
 Route::get("$adminPath/login", 'tenant.AuthController@loginForm');

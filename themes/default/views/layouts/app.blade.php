@@ -670,6 +670,40 @@ html.mobile-menu-open {
     z-index: 999; /* Asegura que esté sobre otro contenido */
 }
 
+/* Cuando no hay topbar, el header es mas alto para compensar */
+.no-topbar .musedock-header {
+    padding: 20px 0;
+    min-height: 90px;
+    display: flex;
+    align-items: center;
+}
+.no-topbar .musedock-header.header-layout-logo-above,
+.no-topbar .musedock-header.header-layout-logo-above-left {
+    display: block;
+    padding: 0;
+    min-height: auto;
+}
+
+/* === LAYOUT BOXED: header/footer contenido alineado al contenido de pagina === */
+/* En boxed, tanto header, footer como contenido comparten el mismo max-width */
+.header-boxed .musedock-header > .container,
+.header-boxed .header-top > .container,
+.header-boxed .header-top > .container-fluid {
+    max-width: var(--content-max-width, 1140px);
+    margin: 0 auto;
+}
+.footer-boxed .footer-area > .container,
+.footer-boxed .footer-bottom-area > .container {
+    max-width: var(--content-max-width, 1140px);
+    margin: 0 auto;
+}
+/* El contenido de pagina tambien se limita al mismo ancho en modo boxed */
+.header-boxed ~ main > .container,
+.header-boxed ~ main > .container-fluid {
+    max-width: var(--content-max-width, 1140px);
+    margin: 0 auto;
+}
+
 /* Contenedor principal dentro del header */
 /* Usa 1320px y padding 2rem para alinear con Hero y Highlight */
 .container-fluid { /* O tu clase de contenedor principal (.container) */
@@ -1134,7 +1168,7 @@ body.mobile-menu-open {
     {!! $_customHeadCode !!}
     @endif
 </head>
-<body>
+<body class="{{ themeOption('topbar.topbar_enabled', true) ? '' : 'no-topbar' }} {{ themeOption('header.header_content_width', 'full') === 'boxed' ? 'header-boxed' : '' }} {{ themeOption('footer.footer_content_width', 'full') === 'boxed' ? 'footer-boxed' : '' }}">
 {{-- Codigo personalizado del tenant despues de <body> --}}
 @php $_customBodyStartCode = site_setting('custom_body_start_code', ''); @endphp
 @if(!empty($_customBodyStartCode))
@@ -1546,7 +1580,36 @@ if (header && header.classList.contains('enable-sticky')) {
 
     applySticky();
     window.addEventListener('resize', applySticky);
+    window.addEventListener('load', applySticky);
 }
+
+// Limpiar párrafos y nodos residuales en page-body (importación WP)
+document.querySelectorAll('.page-body').forEach(function(pageBody) {
+    // 1. Eliminar párrafos sin contenido visible
+    pageBody.querySelectorAll('p').forEach(function(p) {
+        var text = p.textContent.replace(/\u00A0/g, '').trim();
+        if (text === '' && !p.querySelector('img, video, iframe, embed, object, svg, canvas, table')) {
+            p.remove();
+        }
+    });
+    // 2. Limpiar nodos de texto whitespace entre elementos block
+    Array.from(pageBody.childNodes).forEach(function(node) {
+        if (node.nodeType === 3 && node.textContent.trim() === '') {
+            node.remove();
+        }
+    });
+    // 3. Colapsar margen del primer y último hijo directo
+    var firstChild = pageBody.firstElementChild;
+    if (firstChild) firstChild.style.marginTop = '0';
+});
+
+// Ocultar columnas del footer que solo tienen áreas de widgets vacías
+document.querySelectorAll('.footer-area .widget-area').forEach(function(wa) {
+    if (wa.children.length === 0) {
+        var col = wa.closest('[class*="col-"]');
+        if (col) col.style.display = 'none';
+    }
+});
 
 }); // Fin de DOMContentLoaded
 </script>
@@ -1564,8 +1627,74 @@ if (header && header.classList.contains('enable-sticky')) {
     
     {{-- COOKIES  --}}
     @if(site_setting('cookies_enabled', '1') == '1')
-        <!-- ===== Cookie Consent Popup (Card Style) ===== -->
-        <div id="cookie-consent-popup" class="cookie-consent-popup" style="display: none;">
+        @php
+            $cookieLayout = themeOption('footer.footer_cookie_banner_layout', site_setting('cookies_banner_layout', 'card'));
+            $cookieBg     = site_setting('cookies_bg_color', '#ffffff');
+            $cookieText   = site_setting('cookies_text_color', '#333333');
+            $cookieBtnAccept = site_setting('cookies_btn_accept_bg', '#4CAF50');
+            $cookieBtnReject = site_setting('cookies_btn_reject_bg', '#f44336');
+
+            // Resolver URLs legales inteligentemente (buscar páginas reales del tenant)
+            $cookiePdo = \Screenart\Musedock\Database::connect();
+            $cookieTenantId = tenant_id();
+            $cookieLegalPageUrl = function(array $slugCandidates, string $defaultSlug, string $settingKey, string $settingDefault) use ($cookiePdo, $cookieTenantId) {
+                // 1. Si el usuario configuró una URL custom en settings, respetar eso
+                $customUrl = site_setting($settingKey, '');
+                if (!empty($customUrl) && $customUrl !== $settingDefault) {
+                    return url($customUrl);
+                }
+                // 2. Buscar página publicada por slugs candidatos
+                $placeholders = implode(',', array_fill(0, count($slugCandidates), '?'));
+                if ($cookieTenantId) {
+                    $stmt = $cookiePdo->prepare("
+                        SELECT s.slug, s.prefix
+                        FROM slugs s
+                        JOIN pages p ON p.id = s.reference_id
+                        WHERE s.module = 'pages'
+                          AND s.slug IN ($placeholders)
+                          AND s.tenant_id = ?
+                          AND p.status = 'published'
+                    ");
+                    $stmt->execute(array_merge($slugCandidates, [$cookieTenantId]));
+                } else {
+                    $stmt = $cookiePdo->prepare("
+                        SELECT s.slug, s.prefix
+                        FROM slugs s
+                        JOIN pages p ON p.id = s.reference_id
+                        WHERE s.module = 'pages'
+                          AND s.slug IN ($placeholders)
+                          AND s.tenant_id IS NULL
+                          AND p.status = 'published'
+                    ");
+                    $stmt->execute($slugCandidates);
+                }
+                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                foreach ($slugCandidates as $candidate) {
+                    foreach ($rows as $row) {
+                        if ($row['slug'] === $candidate) {
+                            $prefix = $row['prefix'] ? '/' . $row['prefix'] . '/' : '/';
+                            return url($prefix . $row['slug']);
+                        }
+                    }
+                }
+                return url(page_url($defaultSlug));
+            };
+
+            $bannerCookiesUrl  = $cookieLegalPageUrl(
+                ['cookie-policy', 'cookies', 'politica-de-cookies', 'politica-cookies'],
+                'cookie-policy',
+                'cookies_policy_url',
+                '/p/cookie-policy'
+            );
+            $bannerTermsUrl = $cookieLegalPageUrl(
+                ['terms-and-conditions', 'terminos-y-condiciones', 'terminos-y-condiciones-de-uso', 'terminos', 'terms', 'condiciones-de-uso'],
+                'terms-and-conditions',
+                'cookies_terms_url',
+                '/p/terms-and-conditions'
+            );
+        @endphp
+        <!-- ===== Cookie Consent Popup ===== -->
+        <div id="cookie-consent-popup" class="cookie-consent-popup cookie-layout-{{ $cookieLayout }}" style="display: none; --cookie-bg: {{ $cookieBg }}; --cookie-text: {{ $cookieText }}; --cookie-btn-accept: {{ $cookieBtnAccept }}; --cookie-btn-reject: {{ $cookieBtnReject }};">
         <div class="cookie-popup-content">
             <h4>{{ __('cookies.title') }}</h4>
             <p>{{ __('cookies.text') }}</p>
@@ -1575,8 +1704,8 @@ if (header && header.classList.contains('enable-sticky')) {
                 <button id="cookie-accept-all" class="cookie-btn cookie-btn-accept">{{ __('cookies.accept_all') }}</button>
             </div>
             <div class="cookie-popup-links">
-                <a href="{{ url(site_setting('cookies_policy_url', '/p/cookie-policy')) }}">{{ __('cookies.policy_link') }}</a>
-                <a href="{{ url(site_setting('cookies_terms_url', '/p/terms-and-conditions')) }}">{{ __('cookies.terms_link') }}</a>
+                <a href="{{ $bannerCookiesUrl }}">{{ __('cookies.policy_link') }}</a>
+                <a href="{{ $bannerTermsUrl }}">{{ __('cookies.terms_link') }}</a>
             </div>
         </div>
     </div>
@@ -1713,7 +1842,6 @@ if (header && header.classList.contains('enable-sticky')) {
 <script>
 // Forzar lightbox en enlaces con data-lightbox o clase .lightbox aunque no haya galería previa
 document.addEventListener('DOMContentLoaded', function() {
-    // Si ya existe lightbox.js (galleries) no aplicar Magnific para evitar duplicados
     if (typeof jQuery === 'undefined' || !jQuery.fn.magnificPopup || window.lightbox || window.musedockGalleryLightbox) {
         return;
     }
@@ -1722,12 +1850,64 @@ document.addEventListener('DOMContentLoaded', function() {
     if ($links.length) {
         $links.magnificPopup({
             type: 'image',
-            gallery: {
-                enabled: true
-            }
+            gallery: { enabled: true }
         });
         $links.addClass('md-mfp-bound');
     }
+
+    // Lightbox automático para imágenes en el contenido de la página
+    // 1. Convertir enlaces a imágenes (target="_blank") en lightbox
+    $('.page-body a[href]').each(function() {
+        var $a = $(this);
+        // Solo enlaces que contienen una imagen y apuntan a un archivo de imagen
+        var href = $a.attr('href') || '';
+        if (!$a.find('img').length) return;
+        if (!href.match(/\.(jpg|jpeg|png|gif|webp|svg)(\/[a-z]*)?(\?.*)?$/i) && !href.match(/\/media\//)) return;
+        // Saltar si está dentro de slider, gallery, hero, nav
+        if ($a.closest('.swiper, .gallery-container, .portrait-lightbox, .element-hero, header, footer, nav').length) return;
+        // Saltar si ya es lightbox
+        if ($a.hasClass('md-mfp-bound') || $a.hasClass('page-content-lightbox')) return;
+        // Convertir: quitar target="_blank" y marcar como lightbox
+        $a.removeAttr('target').removeAttr('rel');
+        $a.addClass('page-content-lightbox');
+        $a.css('cursor', 'zoom-in');
+    });
+
+    // 2. Imágenes sueltas sin enlace: envolverlas en <a>
+    $('.page-body img').each(function() {
+        var $img = $(this);
+        if ($img.closest('a, .swiper, .gallery-container, .portrait-lightbox, .element-hero, header, footer, nav').length) return;
+        var w = $img.attr('width') || $img.prop('naturalWidth') || 999;
+        var h = $img.attr('height') || $img.prop('naturalHeight') || 999;
+        if (parseInt(w) < 80 || parseInt(h) < 80) return;
+        var src = $img.attr('src');
+        if (!src) return;
+        var $link = $('<a>', {
+            href: src,
+            'class': 'page-content-lightbox',
+            css: { display: 'inline-block', lineHeight: 0, cursor: 'zoom-in' }
+        });
+        $img.wrap($link);
+    });
+
+    // 3. Inicializar Magnific Popup en todos los lightbox del contenido
+    var $contentLinks = $('.page-body .page-content-lightbox');
+    if ($contentLinks.length) {
+        $contentLinks.magnificPopup({
+            type: 'image',
+            gallery: { enabled: true, tCounter: '%curr% / %total%' },
+            zoom: { enabled: true, duration: 300, easing: 'ease-in-out' },
+            image: { titleSrc: function(item) { return item.el.find('img').attr('alt') || ''; } },
+            callbacks: {
+                open: function() { $('html, body').addClass('mfp-helper'); },
+                close: function() { $('html, body').removeClass('mfp-helper'); }
+            }
+        });
+    }
+
+    // Aplicar mfp-helper a TODOS los magnificPopup del sitio
+    $(document).on('mfpOpen', function() { $('html, body').addClass('mfp-helper'); });
+    $(document).on('mfpClose', function() { $('html, body').removeClass('mfp-helper'); });
 });
 </script>
 

@@ -103,15 +103,17 @@ Route::get('/sitemap.xml', 'Blog\Controllers\Frontend\SitemapController@index')-
 Route::get('/robots.txt', 'Blog\Controllers\Frontend\RobotsController@index')->name('robots.txt.main');
 // ============================================================================
 
-// Ruta específica para /p (sin barra final)
-Route::get('/p', function () {
-    return \Screenart\Musedock\Services\SlugRouter::resolve('p', '');
-})->name('pages.list');
+// Ruta para listado de páginas (prefijo configurable, por defecto 'p')
+$pagePrefix = function_exists('page_prefix') ? page_prefix() : 'p';
+if ($pagePrefix !== '') {
+    Route::get('/' . $pagePrefix, function () use ($pagePrefix) {
+        return \Screenart\Musedock\Services\SlugRouter::resolve($pagePrefix, '');
+    })->name('pages.list');
 
-// También mantener la versión con barra final
-Route::get('/p/', function () {
-    return \Screenart\Musedock\Services\SlugRouter::resolve('p', '');
-})->name('pages.list.slash');
+    Route::get('/' . $pagePrefix . '/', function () use ($pagePrefix) {
+        return \Screenart\Musedock\Services\SlugRouter::resolve($pagePrefix, '');
+    })->name('pages.list.slash');
+}
 
 // Ruta genérica para prefijos sin slug (ej: /b/, /s/)
 Route::get('/{prefix}/', function ($prefix) {

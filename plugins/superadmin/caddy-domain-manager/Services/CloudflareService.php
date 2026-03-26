@@ -237,6 +237,18 @@ class CloudflareService
     }
 
     /**
+     * Get a DNS record by ID
+     */
+    public function getRecord(string $recordId): array
+    {
+        $response = $this->apiRequest('GET', "/zones/{$this->zoneId}/dns_records/{$recordId}");
+        if (isset($response['result'])) {
+            return $response['result'];
+        }
+        throw new \RuntimeException('Record not found: ' . $recordId);
+    }
+
+    /**
      * Actualiza estado de proxy (naranja ↔ gris)
      *
      * @param string $recordId ID del registro en Cloudflare

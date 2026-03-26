@@ -103,8 +103,19 @@
                                         @if(!empty($alias->cloudflare_zone_id))
                                             <span class="text-success"><i class="bi bi-shield-fill-check"></i> Zona: {{ $alias->cloudflare_zone_id }}</span>
                                         @else
-                                            <span class="text-muted">No configurado</span>
+                                            <span class="text-muted">No gestionado por el panel</span>
                                         @endif
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>CF Proxy</th>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span id="alias-proxy-status"><small class="text-muted"><span class="spinner-border spinner-border-sm"></span> Consultando...</small></span>
+                                            <div class="form-check form-switch mb-0 d-none" id="alias-proxy-toggle-wrap">
+                                                <input class="form-check-input" type="checkbox" id="aliasProxyToggle" disabled>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                                 @if($alias->error_log ?? false)
@@ -122,11 +133,16 @@
                     </div>
 
                     <hr>
-                    <div class="d-flex justify-content-end gap-2">
-                        <a href="/musedock/domain-manager" class="btn btn-outline-secondary">Cancelar</a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-lg"></i> Guardar Cambios
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-warning" onclick="recreateCaddyRoute({{ $alias->id }}, '{{ $alias->domain }}')">
+                            <i class="bi bi-arrow-repeat"></i> Recrear ruta Caddy
                         </button>
+                        <div class="d-flex gap-2">
+                            <a href="/musedock/domain-manager" class="btn btn-outline-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg"></i> Guardar Cambios
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -135,3 +151,153 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+async function recreateCaddyRoute(aliasId, domain) {
+    const { isConfirmed } = await Swal.fire({
+        title: '<i class="bi bi-arrow-repeat text-warning"></i> Recrear ruta Caddy',
+        html: `<p>Se va a recrear la ruta de Caddy para <strong>${domain}</strong>.</p>
+               <p class="text-muted small mb-0">Esto es util si la ruta se perdio tras un reinicio de Caddy o si el certificado SSL no se genero correctamente.</p>`,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-arrow-repeat me-1"></i> Recrear',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#e67e22',
+    });
+
+    if (!isConfirmed) return;
+
+    Swal.fire({ title: 'Recreando ruta...', html: 'Configurando Caddy...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const res = await fetch(`/musedock/domain-manager/alias/${aliasId}/recreate-route`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ _csrf: '<?= csrf_token() ?>' })
+        });
+        const data = await res.json();
+
+        await Swal.fire({
+            icon: data.success ? 'success' : 'error',
+            title: data.success ? 'Ruta recreada' : 'Error',
+            html: data.message + (data.route_id ? `<br><small class="text-muted">Route ID: <code>${data.route_id}</code></small>` : ''),
+            confirmButtonColor: '#0d6efd'
+        });
+
+        if (data.success) location.reload();
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Error de conexion', text: e.message, confirmButtonColor: '#0d6efd' });
+    }
+}
+
+// Auto-check CF proxy status for this alias
+const csrfToken = '<?= csrf_token() ?>';
+let aliasProxyData = {};
+
+(async function() {
+    const statusEl = document.getElementById('alias-proxy-status');
+    const toggleWrap = document.getElementById('alias-proxy-toggle-wrap');
+    const toggle = document.getElementById('aliasProxyToggle');
+
+    try {
+        const cfToken = '{{ \Screenart\Musedock\Env::get("CLOUDFLARE_API_TOKEN", "") }}';
+        if (!cfToken) {
+            statusEl.innerHTML = '<small class="text-muted">No hay token CF configurado</small>';
+            return;
+        }
+
+        // Use the tenant's check-proxy endpoint which checks all aliases
+        const res = await fetch('/musedock/domain-manager/{{ $alias->tenant_id }}/check-proxy', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await res.json();
+        if (!data.success) {
+            statusEl.innerHTML = `<small class="text-danger">${data.message}</small>`;
+            return;
+        }
+
+        // Find this alias in the results
+        const aliasDomain = '{{ $alias->domain }}';
+        const found = (data.domains || []).find(d => d.domain === aliasDomain);
+
+        if (!found || found.proxied === null) {
+            statusEl.innerHTML = '<small class="text-muted"><i class="bi bi-question-circle me-1"></i> No encontrado en Cloudflare</small>';
+            return;
+        }
+
+        aliasProxyData = found;
+
+        if (found.proxied) {
+            statusEl.innerHTML = '<small class="text-warning"><i class="bi bi-cloud-fill me-1"></i> Proxy activo (nube naranja)</small>';
+        } else {
+            statusEl.innerHTML = '<small class="text-secondary"><i class="bi bi-cloud me-1"></i> Solo DNS (nube gris)</small>';
+        }
+
+        // Show toggle if we have zone_id + record_id
+        if (found.zone_id && found.record_id) {
+            toggle.checked = found.proxied;
+            toggle.disabled = false;
+            toggleWrap.classList.remove('d-none');
+
+            toggle.addEventListener('change', async function() {
+                const newState = this.checked;
+                const action = newState ? 'activar el proxy (nube naranja)' : 'desactivar el proxy (nube gris)';
+                const warning = newState
+                    ? 'El trafico pasara por Cloudflare. Necesitaras certificado SSL via DNS-01.'
+                    : 'La conexion sera directa al servidor. Cloudflare no filtrara ni cacheara el trafico.';
+
+                const confirm = await Swal.fire({
+                    title: `<i class="bi bi-cloud${newState ? '-fill text-warning' : ' text-secondary'}"></i> Cambiar proxy`,
+                    html: `<p>¿${action} para <strong>${aliasDomain}</strong>?</p>
+                           <div class="alert alert-light border small py-2 text-start mb-0">
+                               <i class="bi bi-info-circle text-primary me-1"></i> ${warning}
+                           </div>`,
+                    showCancelButton: true,
+                    confirmButtonText: newState ? '<i class="bi bi-cloud-fill me-1"></i> Activar' : '<i class="bi bi-cloud me-1"></i> Desactivar',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: newState ? '#e67e22' : '#6c757d',
+                });
+
+                if (!confirm.isConfirmed) {
+                    this.checked = !newState;
+                    return;
+                }
+
+                this.disabled = true;
+                try {
+                    const res = await fetch('/musedock/domain-manager/toggle-domain-proxy', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        body: JSON.stringify({
+                            _csrf: csrfToken,
+                            zone_id: aliasProxyData.zone_id,
+                            record_id: aliasProxyData.record_id,
+                            proxied: newState,
+                            domain: aliasDomain
+                        })
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        if (result.proxied) {
+                            statusEl.innerHTML = '<small class="text-warning"><i class="bi bi-cloud-fill me-1"></i> Proxy activo (nube naranja)</small>';
+                        } else {
+                            statusEl.innerHTML = '<small class="text-secondary"><i class="bi bi-cloud me-1"></i> Solo DNS (nube gris)</small>';
+                        }
+                    } else {
+                        this.checked = !newState;
+                        Swal.fire({ icon: 'error', title: 'Error', text: result.message, confirmButtonColor: '#0d6efd' });
+                    }
+                } catch (e) {
+                    this.checked = !newState;
+                    Swal.fire({ icon: 'error', title: 'Error', text: e.message, confirmButtonColor: '#0d6efd' });
+                } finally {
+                    this.disabled = false;
+                }
+            });
+        }
+    } catch (e) {
+        statusEl.innerHTML = '<small class="text-danger">Error consultando CF</small>';
+    }
+})();
+</script>
+@endpush

@@ -128,4 +128,14 @@ class Env
 
         return isset(self::$vars[$key]) || isset($_ENV[$key]) || getenv($key) !== false;
     }
+
+    /**
+     * Recarga el archivo .env (fuerza releer)
+     */
+    public static function reload()
+    {
+        self::$loaded = false;
+        self::$vars = [];
+        self::load();
+    }
 }

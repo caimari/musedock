@@ -713,6 +713,119 @@ body:has(.header-layout-tema1) main {
 }
 
 /* ===============================================
+   HEADER LAYOUT: LOGO-ABOVE (logo centrado + menú debajo)
+   Estilo tipo festival de cine: logo grande centrado,
+   barra de navegación horizontal separada debajo
+   =============================================== */
+.musedock-header.header-layout-logo-above {
+  padding: 0 !important;
+  border-bottom: none !important;
+}
+
+.header-layout-logo-above .header-logo-above-brand {
+  padding: 24px 0 16px;
+  text-align: center !important;
+  background: var(--header-bg-color, #ffffff);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.header-layout-logo-above .header-logo-above-brand .container {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+.header-layout-logo-above .header-brand-link {
+  text-decoration: none;
+  color: inherit;
+  display: inline-block;
+}
+.header-layout-logo-above .header-brand-block {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+}
+.header-layout-logo-above .header-brand-logo {
+  max-height: 120px;
+  width: auto;
+  display: block;
+  margin: 0 auto;
+}
+.header-logo-above-brand .header-site-tagline {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--header-tagline-color, #666);
+}
+
+.header-logo-above-nav {
+  background: var(--header-bg-color, #ffffff);
+  border-top: 1px solid rgba(0,0,0,0.06);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  padding: 0;
+}
+.header-logo-above-nav:empty,
+.header-logo-above-nav:has(.main-navigation:empty) {
+  display: none;
+}
+.header-logo-above-nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 44px;
+}
+.header-logo-above-nav .main-navigation ul {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  flex-wrap: wrap;
+}
+.header-logo-above-nav .main-navigation ul li a {
+  padding: 10px 14px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--header-link-color, #333);
+  text-decoration: none;
+  transition: color 0.2s;
+  display: block;
+  white-space: nowrap;
+}
+.header-logo-above-nav .main-navigation ul li a:hover {
+  color: var(--header-link-hover-color, #007bff);
+}
+.header-logo-above-nav .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.header-logo-above-nav .menu-toggle {
+  display: none;
+}
+
+@media (max-width: 991px) {
+  .header-logo-above-brand {
+    padding: 16px 0 12px;
+  }
+  .header-logo-above-brand .header-brand-logo {
+    max-height: 80px;
+  }
+  .header-logo-above-nav .main-navigation {
+    display: none;
+  }
+  .header-logo-above-nav .menu-toggle {
+    display: flex;
+  }
+  .header-logo-above-nav-inner {
+    justify-content: flex-end;
+    min-height: 40px;
+  }
+}
+
+/* ===============================================
    FIX CONTENIDO - DELIMITACIÓN Y CENTRADO
    =============================================== */
 
@@ -832,6 +945,22 @@ body {
   overflow-x: hidden !important;
 }
 
+/* Bloquear scroll cuando magnific-popup está abierto */
+html.mfp-helper,
+body.mfp-helper {
+  overflow: hidden !important;
+}
+.mfp-wrap {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* Imágenes del contenido no deben desbordar su contenedor */
+.page-body img {
+  max-width: 100%;
+  height: auto;
+}
+
 body main,
 body .page-container,
 body .has-slider-content,
@@ -866,12 +995,29 @@ body.has-sticky-header {
 /* Reducir espacio entre logo y widgets del footer */
 .footer-area .footer-logo,
 .single-footer-caption .footer-logo {
-  margin-bottom: 15px !important;
+  margin-bottom: 8px !important;
 }
 
 .footer-area .footer-pera,
 .single-footer-caption .footer-pera {
-  margin-bottom: 20px !important;
+  margin-bottom: 0 !important;
+}
+
+.footer-area .footer-pera p {
+  margin-bottom: 8px !important;
+  padding-right: 0 !important;
+}
+
+.footer-area .footer-pera p:empty {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 0 !important;
+  font-size: 0 !important;
+  display: none !important;
+}
+
+.footer-area .single-footer-caption.mb-50 {
+  margin-bottom: 10px !important;
 }
 
 /* ===============================================
@@ -908,13 +1054,155 @@ body.has-sticky-header {
     padding-right: 10px !important;
   }
 
-  .footer-area {
-    padding-top: 40px !important;
+  .footer-area,
+  .footer-area.footer-padding {
+    padding-top: 15px !important;
+    padding-bottom: 10px !important;
   }
 
   .footer-area .footer-top,
   .footer-padding {
-    padding-top: 20px !important;
-    padding-bottom: 20px !important;
+    padding-top: 15px !important;
+    padding-bottom: 10px !important;
   }
+
+  .footer-area .single-footer-caption.mb-50 {
+    margin-bottom: 5px !important;
+  }
+
+  .footer-area .footer-logo {
+    margin-bottom: 5px !important;
+  }
+
+  .footer-area .footer-pera {
+    margin-bottom: 0 !important;
+  }
+
+  /* Ocultar columnas vacías del footer en móvil */
+  .footer-area .footer-col-empty {
+    display: none !important;
+  }
+}
+
+/* Reducir espacios entre sliders y contenido en página */
+.page-body .swiper {
+  margin-bottom: 8px;
+}
+
+.page-body .swiper + .swiper,
+.page-body script + .swiper,
+.page-body link + .swiper {
+  margin-top: 0;
+}
+
+/* Párrafos vacíos residuales de importación WP — agresivo */
+.page-body p:empty {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 0 !important;
+}
+
+/* En contenido con sliders: colapsar párrafos sin texto visible (solo si hay swipers reales) */
+.page-body > p:empty,
+.page-body:has(.swiper) > p:has(link):not(:has(img)):not(:has(video)):not(:has(iframe)) {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 0 !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+
+/* Reducir margenes entre cualquier elemento adyacente a swipers */
+.page-body .swiper + *,
+.page-body script + *,
+.page-body * + .swiper {
+  margin-top: 0 !important;
+}
+
+.page-body .swiper + p,
+.page-body script + p {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+@media (max-width: 767px) {
+  .container.py-4 {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
+  /* Contenedor con sliders: sin padding arriba */
+  .has-slider-content.py-4 {
+    padding-top: 0 !important;
+    padding-bottom: 4px !important;
+  }
+
+  .page-body .swiper {
+    margin-bottom: 4px;
+  }
+
+  /* Hero slider: altura adaptativa en móvil */
+  .page-body .swiper.theme-default {
+    height: 250px !important;
+    max-height: 60vw;
+  }
+
+  /* Portrait carousel: gap mínimo */
+  .page-body .swiper.theme-portrait-carousel {
+    margin-bottom: 4px;
+  }
+}
+
+/* Briefs sidebar */
+.briefs-sidebar .brief-item a:hover .brief-title {
+    color: #dc3545 !important;
+}
+.briefs-sidebar .brief-item {
+    transition: background-color 0.15s;
+    padding: 6px 8px;
+    margin-left: -8px;
+    margin-right: -8px;
+    border-radius: 4px;
+}
+.briefs-sidebar .brief-item:hover {
+    background-color: #f8f9fa;
+}
+@media (max-width: 991px) {
+    .briefs-sidebar {
+        position: static !important;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #dee2e6;
+    }
+}
+
+/* Slider responsive en móvil */
+@media (max-width: 767px) {
+    .swiper:not(.theme-portrait-carousel):not(.gallery-top):not(.gallery-thumbs) {
+        height: 220px !important;
+    }
+    /* Reducir espacio entre header y contenido en móvil */
+    main > .container.py-4 {
+        padding-top: 1rem !important;
+    }
+}
+@media (min-width: 768px) and (max-width: 991px) {
+    .swiper:not(.theme-portrait-carousel):not(.gallery-top):not(.gallery-thumbs) {
+        height: 280px !important;
+    }
+}
+
+/* Reducir espacio entre slider embebido y texto que le sigue */
+.page-body .swiper {
+    margin-bottom: 16px;
+}
+.page-body > p:first-child {
+    margin-top: 0;
+}
+/* Asegurar espacio mínimo entre header y slider embebido en página */
+.page-body > .swiper:first-child,
+.page-body > link:first-child + .swiper {
+    margin-top: 8px;
 }

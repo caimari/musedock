@@ -504,6 +504,12 @@ class MediaController
             return null;
         }
 
+        // Detectar si la imagen tiene transparencia (PNG, WebP, GIF)
+        $hasTransparency = false;
+        if ($mimeType === 'image/png' || $mimeType === 'image/webp' || $mimeType === 'image/gif') {
+            $hasTransparency = $this->imageHasTransparency($sourcePath, $mimeType);
+        }
+
         $img = match ($mimeType) {
             'image/jpeg' => @imagecreatefromjpeg($sourcePath),
             'image/png'  => @imagecreatefrompng($sourcePath),
@@ -524,16 +530,35 @@ class MediaController
 
         if ($ratio < 1) {
             $resized = imagecreatetruecolor($dstW, $dstH);
-            $white = imagecolorallocate($resized, 255, 255, 255);
-            imagefilledrectangle($resized, 0, 0, $dstW, $dstH, $white);
+            if ($hasTransparency) {
+                imagealphablending($resized, false);
+                imagesavealpha($resized, true);
+                $transparent = imagecolorallocatealpha($resized, 0, 0, 0, 127);
+                imagefilledrectangle($resized, 0, 0, $dstW, $dstH, $transparent);
+            } else {
+                $white = imagecolorallocate($resized, 255, 255, 255);
+                imagefilledrectangle($resized, 0, 0, $dstW, $dstH, $white);
+            }
             imagecopyresampled($resized, $img, 0, 0, 0, 0, $dstW, $dstH, $srcW, $srcH);
             imagedestroy($img);
             $img = $resized;
         }
 
-        // Save as JPEG
-        $tmp = tempnam(sys_get_temp_dir(), 'md_compress_') . '.jpg';
-        $ok = imagejpeg($img, $tmp, $quality);
+        // Save: preserve format for transparent images, JPEG for opaque
+        if ($hasTransparency) {
+            if (function_exists('imagewebp')) {
+                $tmp = tempnam(sys_get_temp_dir(), 'md_compress_') . '.webp';
+                imagesavealpha($img, true);
+                $ok = imagewebp($img, $tmp, $quality);
+            } else {
+                $tmp = tempnam(sys_get_temp_dir(), 'md_compress_') . '.png';
+                imagesavealpha($img, true);
+                $ok = imagepng($img, $tmp, 6);
+            }
+        } else {
+            $tmp = tempnam(sys_get_temp_dir(), 'md_compress_') . '.jpg';
+            $ok = imagejpeg($img, $tmp, $quality);
+        }
         imagedestroy($img);
 
         if (!$ok || !file_exists($tmp)) {
@@ -548,6 +573,43 @@ class MediaController
         }
 
         return $tmp;
+    }
+
+    /**
+     * Detectar si una imagen tiene píxeles transparentes
+     */
+    private function imageHasTransparency(string $path, string $mimeType): bool
+    {
+        // PNG: comprobar si tiene canal alpha en el header
+        if ($mimeType === 'image/png') {
+            $data = @file_get_contents($path, false, null, 0, 29);
+            if ($data && strlen($data) >= 26) {
+                // Byte 25 is color type: 4 = greyscale+alpha, 6 = RGBA
+                $colorType = ord($data[25]);
+                if ($colorType === 4 || $colorType === 6) {
+                    return true;
+                }
+                // Also check for tRNS chunk (palette transparency)
+                $fullData = @file_get_contents($path);
+                if ($fullData && strpos($fullData, 'tRNS') !== false) {
+                    return true;
+                }
+            }
+        }
+        // GIF: check for transparency
+        if ($mimeType === 'image/gif') {
+            $img = @imagecreatefromgif($path);
+            if ($img) {
+                $transparentIndex = imagecolortransparent($img);
+                imagedestroy($img);
+                return $transparentIndex >= 0;
+            }
+        }
+        // WebP: assume transparency possible
+        if ($mimeType === 'image/webp') {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -746,10 +808,18 @@ class MediaController
                 }
             }
 
+            // Normalizar claves de paginación para el frontend
+            $paginationData = [
+                'current_page' => $pagination['current'] ?? $pagination['current_page'] ?? 1,
+                'last_page'    => $pagination['last_page'] ?? 1,
+                'per_page'     => $pagination['per_page'] ?? $perPage,
+                'total'        => $pagination['total'] ?? 0,
+            ];
+
             return $this->jsonResponse([
                 'success' => true,
                 'media' => $mediaItems,
-                'pagination' => $pagination,
+                'pagination' => $paginationData,
                 'current_folder' => $currentFolder,
                 'folder_path' => $folderPath
             ]);
@@ -1720,7 +1790,8 @@ private function getUploadErrorMessage($errorCode)
 
             // Filtrar por tenant si existe
             if ($tenantId) {
-                $query->where('tenant_id', $tenantId);
+                // Incluir carpetas del tenant + root global (para jerarquía)
+                $query->whereRaw('(tenant_id = ? OR (tenant_id IS NULL AND path = ?))', [$tenantId, '/']);
             } else {
                 $query->whereNull('tenant_id');
             }
@@ -1923,6 +1994,69 @@ private function getUploadErrorMessage($errorCode)
     /**
      * Elimina una carpeta
      */
+    /**
+     * Eliminar todos los archivos de una carpeta (vaciado masivo)
+     */
+    public function deleteFolderContents($id)
+    {
+        SessionSecurity::startSession();
+
+        try {
+            $folder = $this->findScopedFolder((int)$id);
+            if (!$folder) {
+                return $this->jsonResponse(['success' => false, 'message' => 'Carpeta no encontrada.'], 404);
+            }
+
+            // Obtener todos los media de esta carpeta
+            $query = Media::query()->where('folder_id', (int)$id);
+            $this->applyMediaTenantScope($query);
+            $mediaItems = $query->get();
+
+            $deleted = 0;
+            $errors = 0;
+
+            foreach ($mediaItems as $media) {
+                try {
+                    $fileSize = $media->size ?? 0;
+                    $meta = is_array($media->metadata) ? $media->metadata : (is_string($media->metadata) ? json_decode($media->metadata, true) : []);
+                    $thumbSize = isset($meta['thumbnail']['size']) && is_numeric($meta['thumbnail']['size']) ? (int)$meta['thumbnail']['size'] : 0;
+                    $thumbPath = $meta['thumbnail']['path'] ?? null;
+                    $mediumSize = isset($meta['medium']['size']) && is_numeric($meta['medium']['size']) ? (int)$meta['medium']['size'] : 0;
+                    $mediumPath = $meta['medium']['path'] ?? null;
+
+                    [$filesystem] = $this->createFilesystemForDisk($media->disk ?: 'media');
+                    try { $filesystem->delete($media->path); } catch (\Throwable $e) {}
+                    if ($thumbPath) { try { $filesystem->delete((string)$thumbPath); } catch (\Throwable $e) {} }
+                    if ($mediumPath) { try { $filesystem->delete((string)$mediumPath); } catch (\Throwable $e) {} }
+
+                    if ($media->delete()) {
+                        $bytes = (int)$fileSize + (int)$thumbSize + (int)$mediumSize;
+                        if ($bytes > 0) {
+                            $this->updateTenantStorageUsed(-$bytes);
+                        }
+                        $deleted++;
+                    } else {
+                        $errors++;
+                    }
+                } catch (\Throwable $e) {
+                    $errors++;
+                    Logger::error("deleteFolderContents: Error eliminando media {$media->id}: " . $e->getMessage());
+                }
+            }
+
+            return $this->jsonResponse([
+                'success' => true,
+                'message' => "Se eliminaron {$deleted} archivo(s)." . ($errors > 0 ? " {$errors} error(es)." : ''),
+                'deleted' => $deleted,
+                'errors' => $errors,
+            ]);
+
+        } catch (\Exception $e) {
+            Logger::exception($e, 'ERROR', ['source' => 'deleteFolderContents']);
+            return $this->jsonResponse(['success' => false, 'message' => 'Error al vaciar la carpeta.'], 500);
+        }
+    }
+
     public function deleteFolder($id)
     {
         SessionSecurity::startSession();
@@ -1935,7 +2069,6 @@ private function getUploadErrorMessage($errorCode)
             }
 
             // Verificar si es la carpeta raíz (no puede ser eliminada)
-            // La raíz tiene id === 1 y path === '/'
             if ($folder->path === '/') {
                 return $this->jsonResponse(['success' => false, 'message' => 'No se puede eliminar la carpeta raíz.'], 403);
             }
@@ -1953,7 +2086,6 @@ private function getUploadErrorMessage($errorCode)
 
             // Eliminar carpeta
             if ($folder->delete()) {
-                // Carpetas son virtuales (DB). No eliminar storage físico aquí.
                 return $this->jsonResponse(['success' => true, 'message' => 'Carpeta eliminada correctamente.']);
             }
 

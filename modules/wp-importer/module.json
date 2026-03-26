@@ -1,8 +1,8 @@
 {
     "name": "WP Importer",
     "slug": "wp-importer",
-    "description": "Importador de sitios WordPress: posts, páginas, categorías, tags, media y estilos visuales.",
-    "version": "1.0.0",
+    "description": "Importador de sitios WordPress: posts, páginas, categorías, tags, media, menus y estilos visuales.",
+    "version": "1.1.0",
     "author": "MuseDock Team",
     "active": true,
     "cms_enabled": true,

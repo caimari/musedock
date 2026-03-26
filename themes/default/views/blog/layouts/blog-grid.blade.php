@@ -6,6 +6,7 @@
     @foreach($posts as $post)
     <div class="col-lg-4 col-md-6 mb-4">
         <article class="card h-100 shadow-sm border-0">
+            @if(($post->post_type ?? 'post') !== 'brief')
             <a href="{{ blog_url($post->slug) }}" class="d-block card-img-wrapper">
                 @php
                     if ($post->featured_image && !($post->hide_featured_image ?? false)) {
@@ -19,6 +20,7 @@
                 @endphp
                 <img src="{{ $imageUrl }}" alt="{{ $post->title }}" class="card-img-top" loading="lazy" style="width: 100%; height: 220px; object-fit: cover;">
             </a>
+            @endif
 
             <div class="card-body d-flex flex-column" style="padding: 8px 16px 14px !important;">
                 <h2 class="card-title h5 mb-2 card-title-clamp" style="margin-top: 0;">

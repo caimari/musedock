@@ -2392,6 +2392,42 @@ if (!function_exists('blog_url')) {
     }
 }
 
+if (!function_exists('page_prefix')) {
+    /**
+     * Retorna el prefijo de URL de páginas para el tenant actual.
+     * Vacío = sin prefijo (páginas directamente en /slug).
+     */
+    function page_prefix(): string
+    {
+        $prefix = tenant_setting('page_url_prefix', 'p');
+        return ($prefix === null || $prefix === false) ? 'p' : $prefix;
+    }
+}
+
+if (!function_exists('page_url')) {
+    /**
+     * Genera una URL de página con el prefijo correcto.
+     *
+     * @param string $slug  Slug de la página
+     * @return string       URL relativa (e.g. /p/nosotros, /paginas/nosotros, /nosotros)
+     */
+    function page_url(string $slug = ''): string
+    {
+        $prefix = page_prefix();
+        $path = '';
+
+        if ($prefix !== '') {
+            $path .= '/' . $prefix;
+        }
+
+        if ($slug !== '') {
+            $path .= '/' . $slug;
+        }
+
+        return $path ?: '/';
+    }
+}
+
 if (!function_exists('is_cross_publisher_active')) {
     /**
      * Verifica si el plugin cross-publisher esta activo e instalado.

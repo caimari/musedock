@@ -152,7 +152,8 @@ class Page extends Model
     public function getPrefix(): string
     {
         $slug = $this->getSlug();
-        return $slug ? ($slug->prefix ?? 'p') : 'p';
+        $default = function_exists('page_prefix') ? page_prefix() : 'p';
+        return $slug ? ($slug->prefix ?? $default) : $default;
     }
     
     /**
@@ -164,8 +165,12 @@ class Page extends Model
         if (!$slug) return '#';
         
         $host = $_SERVER['HTTP_HOST'] ?? env('APP_URL', 'localhost');
-        $prefix = $slug->prefix ?? 'p';
-        
+        $default = function_exists('page_prefix') ? page_prefix() : 'p';
+        $prefix = $slug->prefix ?? $default;
+
+        if ($prefix === '' || $prefix === null) {
+            return "https://{$host}/{$slug->slug}";
+        }
         return "https://{$host}/{$prefix}/{$slug->slug}";
     }
     
@@ -282,20 +287,37 @@ class Page extends Model
     {
         try {
             $pdo = \Screenart\Musedock\Database::connect();
-            
+            $tenantId = $this->tenant_id ?? null;
+
+            // Determinar prefijo: null = sin prefijo, string = con prefijo
+            $default = function_exists('page_prefix') ? page_prefix() : 'p';
+            $finalPrefix = $prefix ?? $default;
+            // Si el prefijo es vacío, guardar como NULL (sin prefijo)
+            if ($finalPrefix === '') {
+                $finalPrefix = null;
+            }
+
             // Primero verificamos si ya existe un slug para esta página
-            $checkStmt = $pdo->prepare("SELECT id FROM slugs WHERE module = 'pages' AND reference_id = ?");
-            $checkStmt->execute([$this->id]);
+            $checkSql = "SELECT id FROM slugs WHERE module = 'pages' AND reference_id = ?";
+            $checkParams = [$this->id];
+            if ($tenantId !== null) {
+                $checkSql .= " AND tenant_id = ?";
+                $checkParams[] = $tenantId;
+            } else {
+                $checkSql .= " AND tenant_id IS NULL";
+            }
+            $checkStmt = $pdo->prepare($checkSql);
+            $checkStmt->execute($checkParams);
             $existing = $checkStmt->fetch(\PDO::FETCH_ASSOC);
-            
+
             if ($existing) {
                 // Actualizar el slug existente
-                $updateStmt = $pdo->prepare("UPDATE slugs SET slug = ?, prefix = ? WHERE module = 'pages' AND reference_id = ?");
-                return $updateStmt->execute([$slug, $prefix ?? 'p', $this->id]);
+                $updateStmt = $pdo->prepare("UPDATE slugs SET slug = ?, prefix = ? WHERE id = ?");
+                return $updateStmt->execute([$slug, $finalPrefix, $existing['id']]);
             } else {
                 // Crear un nuevo registro de slug
-                $insertStmt = $pdo->prepare("INSERT INTO slugs (module, reference_id, slug, tenant_id, prefix) VALUES (?, ?, ?, NULL, ?)");
-                return $insertStmt->execute(['pages', $this->id, $slug, $prefix ?? 'p']);
+                $insertStmt = $pdo->prepare("INSERT INTO slugs (module, reference_id, slug, tenant_id, prefix) VALUES (?, ?, ?, ?, ?)");
+                return $insertStmt->execute(['pages', $this->id, $slug, $tenantId, $finalPrefix]);
             }
         } catch (\Exception $e) {
             error_log("Error al actualizar slug para page ID {$this->id}: " . $e->getMessage());

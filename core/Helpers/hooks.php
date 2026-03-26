@@ -75,3 +75,4 @@ if (!function_exists('has_action')) {
 add_filter('the_content', function ($content) {
     return \Screenart\Musedock\Helpers\SliderHelper::processShortcodes($content);
 }, 10);
+

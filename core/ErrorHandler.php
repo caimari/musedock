@@ -34,6 +34,30 @@ class ErrorHandler
             'method' => $_SERVER['REQUEST_METHOD'] ?? 'unknown',
         ]);
 
+        // Para peticiones AJAX devolver JSON en vez de HTML
+        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                  strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') ||
+                  (!empty($_SERVER['HTTP_ACCEPT']) &&
+                  strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            $response = [
+                'success' => false,
+                'error' => $title,
+                'message' => $debug ? $exception->getMessage() : 'Error interno del servidor',
+            ];
+            if ($debug) {
+                $response['debug'] = [
+                    'exception' => get_class($exception),
+                    'file' => $exception->getFile(),
+                    'line' => $exception->getLine(),
+                ];
+            }
+            echo json_encode($response, JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
         // Renderizar según modo
         if ($debug) {
             self::renderDebug($exception, $httpCode, $title);

@@ -199,7 +199,9 @@
                        |
                       @php
                         $viewTenant = !empty($Page->tenant_id) && isset($tenantMap[$Page->tenant_id]) ? $tenantMap[$Page->tenant_id] : null;
-                        $viewUrl = $viewTenant ? 'https://' . $viewTenant->domain . '/p/' . $Page->slug : '/p/' . $Page->slug;
+                        $pageP = function_exists('page_prefix') ? page_prefix() : 'p';
+                        $pagePath = $pageP !== '' ? '/' . $pageP . '/' . $Page->slug : '/' . $Page->slug;
+                        $viewUrl = $viewTenant ? 'https://' . $viewTenant->domain . $pagePath : $pagePath;
                       @endphp
                       <a href="{{ $viewUrl }}" target="_blank" rel="noopener noreferrer">{{ __('pages.view_page') }}</a>
                     @endif

@@ -58,6 +58,8 @@ class BlogPost extends Model
         'hero_image',
         'hero_title',
         'hero_content',
+        // --- Tipo de post ---
+        'post_type',
     ];
 
     /**

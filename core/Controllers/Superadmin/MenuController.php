@@ -866,7 +866,8 @@ public function addPages()
             $page = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if ($page) {
-                $link = '/' . ($page['prefix'] ?? '') . '/' . $page['slug'];
+                $prefix = trim($page['prefix'] ?? '');
+                $link = $prefix !== '' ? '/' . $prefix . '/' . $page['slug'] : '/' . $page['slug'];
                 
                 $stmt = $pdo->prepare("
                     INSERT INTO site_menu_items 

@@ -82,8 +82,9 @@ class BlogController
         $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $offset = ($currentPage - 1) * $postsPerPage;
 
-        // Contar total de posts
-        $countQuery = BlogPost::where('status', 'published');
+        // Contar total de posts (excluir briefs del listado principal)
+        $countQuery = BlogPost::where('status', 'published')
+            ->where('post_type', '!=', 'brief');
         if ($tenantId !== null) {
             $countQuery->where('tenant_id', $tenantId);
         } else {
@@ -92,8 +93,9 @@ class BlogController
         $totalPosts = $countQuery->count();
         $totalPages = ceil($totalPosts / $postsPerPage);
 
-        // Obtener posts publicados con paginación
+        // Obtener posts publicados con paginación (excluir briefs)
         $query = BlogPost::where('status', 'published')
+            ->where('post_type', '!=', 'brief')
             ->orderBy('published_at', 'DESC');
 
         if ($tenantId !== null) {
@@ -125,10 +127,28 @@ class BlogController
             'per_page' => $postsPerPage,
         ];
 
+        // Cargar briefs si está activado
+        $briefs = [];
+        $showBriefs = themeOption('blog.blog_show_briefs', false);
+        if ($showBriefs && $showBriefs !== '0') {
+            $briefsCount = (int) themeOption('blog.blog_briefs_count', 10);
+            $briefsQuery = BlogPost::where('status', 'published')
+                ->where('post_type', 'brief')
+                ->orderBy('published_at', 'DESC');
+            if ($tenantId !== null) {
+                $briefsQuery->where('tenant_id', $tenantId);
+            } else {
+                $briefsQuery->whereRaw('(tenant_id IS NULL OR tenant_id = 0)');
+            }
+            $briefs = $briefsQuery->limit($briefsCount)->get();
+        }
+
         return View::renderTheme('blog/index', [
             'posts' => $posts,
             'categories' => $categories,
-            'pagination' => $pagination
+            'pagination' => $pagination,
+            'briefs' => $briefs,
+            'showBriefs' => $showBriefs && $showBriefs !== '0',
         ]);
     }
 

@@ -12,7 +12,7 @@
     <div class="container-fluid py-4">
         <div class="row mb-4">
             <div class="col-md-8">
-                <a href="/admin/instagram" class="btn btn-sm btn-outline-secondary mb-2">
+                <a href="/<?php echo admin_path(); ?>/instagram" class="btn btn-sm btn-outline-secondary mb-2">
                     <i class="bi bi-arrow-left"></i> <?php echo __instagram('common.back'); ?>
                 </a>
                 <h1 class="h3 mb-1">

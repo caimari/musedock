@@ -17,6 +17,9 @@
                 @else
                     <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Caddy API No Disponible</span>
                 @endif
+                <button type="button" class="btn btn-outline-secondary" onclick="openCloudflareSettings()">
+                    <i class="bi bi-gear"></i> Cloudflare
+                </button>
                 <a href="/musedock/domain-manager/customers" class="btn btn-outline-primary">
                     <i class="bi bi-people"></i> Clientes
                 </a>
@@ -102,10 +105,10 @@
                         <tr>
                             <th>Tenant</th>
                             <th>Dominio</th>
+                            <th>Admin</th>
                             <th>Tipo</th>
                             <th>Estado Caddy</th>
                             <th>SSL</th>
-                            <th>Route ID</th>
                             <th>Configurado</th>
                             <th class="text-end">Acciones</th>
                         </tr>
@@ -127,6 +130,13 @@
                                     @endif
                                     @if(($aliasCounts[$tenant->id] ?? 0) > 0)
                                         <br><small class="text-info"><i class="bi bi-link-45deg"></i> {{ $aliasCounts[$tenant->id] }} alias</small>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if(!empty($tenantAdminEmails[$tenant->id]))
+                                        <small>{{ $tenantAdminEmails[$tenant->id]->email }}</small>
+                                    @else
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td>
@@ -165,13 +175,6 @@
                                 <td>
                                     @if(($tenant->caddy_status ?? '') === 'active')
                                         <span class="text-success"><i class="bi bi-shield-check"></i> SSL</span>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    @if($tenant->caddy_route_id ?? false)
-                                        <code class="small">{{ $tenant->caddy_route_id }}</code>
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
@@ -457,7 +460,7 @@
                                         <a href="/musedock/domain-manager/alias/{{ $alias->id }}/edit" class="btn btn-outline-warning" title="Editar">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-                                        <button type="button" class="btn btn-outline-danger" onclick="confirmDeleteAlias({{ $alias->id }}, '{{ $alias->domain }}')" title="Eliminar">
+                                        <button type="button" class="btn btn-outline-danger" onclick="confirmDeleteAlias({{ $alias->id }}, '{{ $alias->domain }}', {{ $alias->is_subdomain ? 'true' : 'false' }}, {{ !empty($alias->cloudflare_zone_id) ? 'true' : 'false' }}, {{ !empty($alias->cloudflare_record_id) ? 'true' : 'false' }})" title="Eliminar">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </div>
@@ -593,9 +596,200 @@
     </div>
 </div>
 
+{{-- Cloudflare token data for JS --}}
+@php $currentCfToken = \Screenart\Musedock\Env::get('CLOUDFLARE_API_TOKEN', ''); @endphp
+<script>const CF_CURRENT_TOKEN = '{{ $currentCfToken }}'; const CF_MASKED = '{{ $currentCfToken ? substr($currentCfToken, 0, 8) . "..." . substr($currentCfToken, -4) : "No configurado" }}';</script>
+
 @push('scripts')
 <script>
 const csrfToken = '<?= csrf_token() ?>';
+
+// ── Cloudflare Token Management (SweetAlert2) ──
+
+async function openCloudflareSettings() {
+    const { value: action } = await Swal.fire({
+        title: '<i class="bi bi-cloud-fill" style="color:#f48120"></i> Cloudflare API Token',
+        html: `
+            <div class="text-start">
+                <div class="alert alert-light border small py-2 mb-3">
+                    <i class="bi bi-shield-check text-primary me-1"></i>
+                    Este token permite a <strong>Caddy</strong> generar certificados SSL via <strong>DNS-01</strong> para dominios alias.
+                    Es imprescindible cuando el dominio usa proxy Cloudflare <span class="badge bg-warning text-dark" style="font-size:.65rem">naranja</span>.
+                    <br><small class="text-muted">Haz clic en <strong>Guia</strong> para mas detalles.</small>
+                </div>
+                <div class="mb-3 p-2 bg-light rounded border">
+                    <small class="text-muted d-block mb-1"><i class="bi bi-key me-1"></i>Token actual</small>
+                    <code>${CF_MASKED}</code>
+                </div>
+                <label class="form-label fw-semibold small">Nuevo token (dejar vacio para solo verificar el actual)</label>
+                <input type="password" id="swal-cf-token" class="form-control" placeholder="Pega aqui el nuevo API Token">
+            </div>`,
+        showCancelButton: true,
+        showDenyButton: true,
+        confirmButtonText: '<i class="bi bi-search me-1"></i> Verificar',
+        denyButtonText: '<i class="bi bi-question-circle me-1"></i> Guia',
+        cancelButtonText: 'Cerrar',
+        confirmButtonColor: '#0d6efd',
+        denyButtonColor: '#6c757d',
+        focusConfirm: false,
+        preConfirm: () => {
+            const token = document.getElementById('swal-cf-token').value.trim();
+            return { action: 'verify', token: token || CF_CURRENT_TOKEN };
+        },
+        preDeny: () => { return { action: 'guide' }; }
+    });
+
+    if (!action) return;
+
+    if (action.action === 'guide') {
+        await showCfGuide();
+        return openCloudflareSettings();
+    }
+
+    if (action.action === 'verify') {
+        await verifyCfTokenSwal(action.token);
+    }
+}
+
+async function showCfGuide() {
+    await Swal.fire({
+        title: '<i class="bi bi-book me-1"></i> Guia de Cloudflare API Token',
+        html: `<div class="text-start small">
+
+            <div class="alert alert-info py-2 mb-3">
+                <i class="bi bi-shield-lock me-1"></i>
+                <strong>&iquest;Por que es necesario este token?</strong>
+                <ul class="mb-0 mt-1 ps-3">
+                    <li>Permite generar <strong>certificados SSL automaticos</strong> (via DNS-01) para dominios alias y custom.</li>
+                    <li>Es <strong>imprescindible</strong> cuando un dominio usa el <strong>proxy de Cloudflare</strong> <span class="badge bg-warning text-dark" style="font-size:.7rem">nube naranja</span>, ya que el metodo HTTP-01 falla al no poder llegar directamente al servidor.</li>
+                    <li>Permite a Caddy crear registros TXT temporales para verificar la propiedad del dominio ante la CA.</li>
+                </ul>
+            </div>
+
+            <div class="alert alert-secondary py-2 mb-3">
+                <i class="bi bi-diagram-2 me-1"></i>
+                <strong>Tokens en el sistema</strong>
+                <table class="table table-sm table-bordered mt-1 mb-0 bg-white" style="font-size:.78rem">
+                    <tr>
+                        <th style="width:40%">CLOUDFLARE_API_TOKEN</th>
+                        <td>Token principal. Lo usa <strong>Caddy</strong> para certificados SSL de <code>*.musedock.com</code> y dominios alias. <strong>Es el que se gestiona aqui.</strong></td>
+                    </tr>
+                    <tr>
+                        <th>CLOUDFLARE_CUSTOM_DOMAINS_*</th>
+                        <td>Token secundario (otra cuenta CF). Lo usa el modulo de <strong>dominios personalizados de clientes</strong>. Se configura en <code>.env</code>.</td>
+                    </tr>
+                </table>
+            </div>
+
+            <h6 class="fw-bold mb-2"><i class="bi bi-gear me-1"></i> Crear / actualizar el token principal</h6>
+            <ol>
+                <li class="mb-2">Ve a <strong>dash.cloudflare.com</strong> &rarr; <strong>My Profile</strong> &rarr; <strong>API Tokens</strong></li>
+                <li class="mb-2">Haz clic en <strong>Create Token</strong> &rarr; <strong>Custom Token</strong></li>
+                <li class="mb-2">Configura los permisos:
+                    <table class="table table-sm table-bordered mt-1 mb-0" style="font-size:.78rem">
+                        <tr><th>Permiso</th><th>Acceso</th><th>Motivo</th></tr>
+                        <tr><td>Zone : Zone : Read</td><td><strong>All zones</strong></td><td>Listar dominios</td></tr>
+                        <tr><td>Zone : DNS : Edit</td><td><strong>All zones</strong></td><td>Crear TXT para SSL</td></tr>
+                    </table>
+                    <div class="text-danger mt-1" style="font-size:.75rem"><i class="bi bi-exclamation-triangle me-1"></i>Debe ser <strong>All zones</strong>, no una zona especifica, para que funcione con cualquier dominio alias.</div>
+                </li>
+                <li class="mb-2">Guarda y copia el token</li>
+                <li>Pegalo en el campo y haz clic en <strong>Verificar</strong></li>
+            </ol>
+
+            <div class="alert alert-light border py-2 mb-0" style="font-size:.78rem">
+                <i class="bi bi-hdd-rack me-1"></i>
+                <strong>Al guardar</strong>, el token se actualiza en <code>.env</code> y en <code>/etc/default/caddy</code>, y se reinicia Caddy automaticamente para aplicarlo.
+            </div>
+        </div>`,
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#0d6efd',
+        width: 580
+    });
+}
+
+async function verifyCfTokenSwal(token) {
+    if (!token) return;
+
+    Swal.fire({ title: 'Verificando token...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const res = await fetch('/musedock/domain-manager/cloudflare/verify-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ _csrf: csrfToken, token: token })
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+            await Swal.fire({ icon: 'error', title: 'Token invalido', text: data.message, confirmButtonColor: '#0d6efd' });
+            return openCloudflareSettings();
+        }
+
+        let zonesHtml = '';
+        if (data.zones && data.zones.length > 0) {
+            zonesHtml = data.zones.map(z =>
+                `<span class="badge bg-${z.status === 'active' ? 'success' : 'secondary'} me-1 mb-1">${z.name}</span>`
+            ).join('');
+        }
+
+        const isNew = token !== CF_CURRENT_TOKEN;
+        const allOk = data.zones_count > 1;
+
+        const { isConfirmed } = await Swal.fire({
+            icon: allOk ? 'success' : 'warning',
+            title: allOk ? 'Token valido' : 'Token con acceso limitado',
+            html: `<div class="text-start">
+                <table class="table table-sm mb-2" style="font-size:.85rem">
+                    <tr><td class="text-muted">Estado</td><td><strong>${data.status}</strong></td></tr>
+                    <tr><td class="text-muted">Cuenta</td><td><strong>${data.account}</strong></td></tr>
+                    <tr><td class="text-muted">Zonas</td><td><strong>${data.zones_count}</strong> ${allOk ? '&#10004;' : '&#9888; puede faltar "All zones"'}</td></tr>
+                </table>
+                ${zonesHtml ? '<div class="mb-2">' + zonesHtml + '</div>' : ''}
+                ${!allOk ? '<div class="alert alert-warning small py-1 mb-0"><i class="bi bi-exclamation-triangle me-1"></i>El token solo ve ' + data.zones_count + ' zona(s). Para gestionar todos los dominios necesita acceso a All zones.</div>' : ''}
+            </div>`,
+            showCancelButton: isNew,
+            confirmButtonText: isNew ? '<i class="bi bi-save me-1"></i> Guardar y aplicar' : 'Cerrar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: isNew ? '#198754' : '#0d6efd',
+        });
+
+        if (isConfirmed && isNew) {
+            await saveCfTokenSwal(token);
+        }
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Error de conexion: ' + e.message, confirmButtonColor: '#0d6efd' });
+    }
+}
+
+async function saveCfTokenSwal(token) {
+    Swal.fire({ title: 'Guardando token...', html: 'Actualizando .env + Caddy...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const res = await fetch('/musedock/domain-manager/cloudflare/save-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ _csrf: csrfToken, token: token })
+        });
+        const data = await res.json();
+
+        let details = '';
+        if (data.updated && data.updated.length) details += '<div class="mt-2"><strong>Actualizado:</strong> ' + data.updated.map(u => '<span class="badge bg-success me-1">' + u + '</span>').join('') + '</div>';
+        if (data.errors && data.errors.length) details += '<div class="mt-2"><strong>Errores:</strong> ' + data.errors.map(e => '<span class="badge bg-danger me-1">' + e + '</span>').join('') + '</div>';
+
+        await Swal.fire({
+            icon: data.errors && data.errors.length ? 'warning' : 'success',
+            title: data.success ? 'Token actualizado' : 'Error',
+            html: data.message + details,
+            confirmButtonColor: '#0d6efd'
+        });
+
+        if (data.success) location.reload();
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Error de conexion: ' + e.message, confirmButtonColor: '#0d6efd' });
+    }
+}
+
 function applyOrderFilter(key, value) {
     const url = new URL(window.location.href);
     if (!value) url.searchParams.delete(key);
@@ -877,47 +1071,89 @@ function confirmDeleteDomainOrder(id, domain, hasCloudflare) {
 }
 
 // ========== ELIMINAR ALIAS con SweetAlert2 ==========
-function confirmDeleteAlias(id, domain) {
+function confirmDeleteAlias(id, domain, isSubdomain, hasCfZone, hasCfRecord) {
+    const hasCf = hasCfZone || hasCfRecord;
+
+    let cfSection = '';
+    if (hasCf) {
+        if (isSubdomain) {
+            cfSection = `
+                <div class="form-check text-start mt-3">
+                    <input class="form-check-input" type="checkbox" id="cfDeleteAliasCheck" checked>
+                    <label class="form-check-label" for="cfDeleteAliasCheck">
+                        <i class="bi bi-cloud me-1"></i> Eliminar registro CNAME de Cloudflare
+                        <br><small class="text-muted">Solo el registro del subdominio.</small>
+                    </label>
+                </div>`;
+        } else {
+            cfSection = `
+                <div class="form-check text-start mt-3">
+                    <input class="form-check-input" type="checkbox" id="cfDeleteAliasCheck">
+                    <label class="form-check-label" for="cfDeleteAliasCheck">
+                        <i class="bi bi-cloud me-1 text-danger"></i> Eliminar ZONA COMPLETA de Cloudflare
+                    </label>
+                </div>
+                <div class="alert alert-danger small py-2 mt-2 text-start">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    <strong>Peligro:</strong> Eliminara TODA la zona <strong>${domain}</strong> incluyendo
+                    subdominios, MX, TXT, DKIM, SPF y cualquier otra configuracion.
+                    <strong>Desmarcar si el dominio tiene otros servicios.</strong>
+                </div>`;
+        }
+    }
+
     Swal.fire({
         title: '<i class="bi bi-exclamation-triangle text-danger"></i> Eliminar Alias',
-        html: `<p>¿Estás seguro de eliminar el alias <strong>${domain}</strong>?</p>
-               <p class="text-muted small">Se eliminará de Caddy y Cloudflare (si aplica).</p>`,
+        html: `
+            <p>¿Eliminar el alias <strong>${domain}</strong>?</p>
+            <div class="alert alert-light border small py-2 text-start mb-0">
+                <i class="bi bi-info-circle text-primary me-1"></i>
+                <strong>Se eliminara:</strong>
+                <ul class="mb-0 mt-1">
+                    <li>Ruta de Caddy (SSL y enrutamiento)</li>
+                    <li>Registro en base de datos</li>
+                </ul>
+            </div>
+            ${cfSection}`,
         showCancelButton: true,
-        confirmButtonText: '<i class="bi bi-trash me-1"></i> Eliminar Alias',
+        confirmButtonText: '<i class="bi bi-trash me-1"></i> Eliminar',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Eliminando alias...',
-                html: '<p class="mb-0">Por favor espera...</p>',
-                allowOutsideClick: false,
-                showConfirmButton: false,
-                didOpen: () => Swal.showLoading()
-            });
-
-            fetch(`/musedock/domain-manager/alias/${id}/delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({ _csrf: csrfToken })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({ icon: 'success', title: 'Alias Eliminado', text: data.message, confirmButtonColor: '#0d6efd' })
-                        .then(() => location.reload());
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: data.message, confirmButtonColor: '#0d6efd' });
-                }
-            })
-            .catch(() => {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Error de conexión.', confirmButtonColor: '#0d6efd' });
-            });
+        cancelButtonColor: '#6c757d',
+        preConfirm: () => {
+            const cfCheck = document.getElementById('cfDeleteAliasCheck');
+            return { deleteFromCloudflare: cfCheck ? cfCheck.checked : false };
         }
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+
+        Swal.fire({
+            title: 'Eliminando alias...',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        fetch(`/musedock/domain-manager/alias/${id}/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ _csrf: csrfToken, deleteFromCloudflare: result.value.deleteFromCloudflare })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success', title: 'Alias Eliminado',
+                    html: `${data.message}<br><small class="text-muted">Cloudflare: ${data.cloudflare || 'n/a'}</small>`,
+                    confirmButtonColor: '#0d6efd'
+                }).then(() => location.reload());
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: data.message, confirmButtonColor: '#0d6efd' });
+            }
+        })
+        .catch(() => {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Error de conexión.', confirmButtonColor: '#0d6efd' });
+        });
     });
 }
 
@@ -1029,13 +1265,15 @@ async function reconfigure(id) {
 @push('scripts')
 <script>
 function showCreateFreeSubdomainModal() {
+    let subdomainCheckTimeout = null;
+
     Swal.fire({
         title: '<i class="bi bi-gift"></i> Crear Subdominio FREE',
         html: `
             <div class="text-start">
                 <div class="alert alert-info mb-3">
                     <i class="bi bi-info-circle"></i>
-                    <strong>Subdominio FREE:</strong> Se creará un nuevo customer y tenant con subdominio .musedock.com gratuito.
+                    <strong>Subdominio FREE:</strong> Se creará un nuevo tenant con subdominio .musedock.com gratuito.
                 </div>
 
                 <div class="mb-3">
@@ -1046,27 +1284,29 @@ function showCreateFreeSubdomainModal() {
                                title="Solo letras minúsculas, números y guiones">
                         <span class="input-group-text">.musedock.com</span>
                     </div>
-                    <div class="form-text">Mínimo 3 caracteres. Solo letras minúsculas, números y guiones.</div>
+                    <div id="subdomain-status" class="form-text">Mínimo 3 caracteres. Solo letras minúsculas, números y guiones.</div>
                 </div>
 
                 <div class="mb-3">
-                    <label for="swal-customer-name" class="form-label fw-semibold">Nombre del Customer <span class="text-danger">*</span></label>
+                    <label for="swal-customer-name" class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="swal-customer-name" required
                            placeholder="Juan Pérez">
                 </div>
 
                 <div class="mb-3">
-                    <label for="swal-customer-email" class="form-label fw-semibold">Email del Customer <span class="text-danger">*</span></label>
+                    <label for="swal-customer-email" class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
                     <input type="email" class="form-control" id="swal-customer-email" required
                            placeholder="juan@example.com">
+                    <div class="form-text">Se usará para acceder al panel de administración.</div>
                 </div>
 
                 <div class="mb-3">
                     <label for="swal-customer-password" class="form-label fw-semibold">Contraseña <span class="text-danger">*</span></label>
                     <input type="password" class="form-control" id="swal-customer-password" required
                            minlength="8" placeholder="Mínimo 8 caracteres">
-                    <div class="form-text">El customer usará esta contraseña para acceder a su panel.</div>
                 </div>
+
+                <hr class="my-3">
 
                 <div class="mb-3">
                     <div class="form-check">
@@ -1074,7 +1314,30 @@ function showCreateFreeSubdomainModal() {
                         <label class="form-check-label" for="swal-send-welcome-email">
                             <strong>Enviar email de bienvenida</strong>
                         </label>
-                        <div class="form-text">El customer recibirá un email con sus credenciales de acceso al panel admin.</div>
+                        <div class="form-text">Recibirá un email con sus credenciales de acceso al panel admin.</div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="swal-cf-proxy" checked>
+                        <label class="form-check-label" for="swal-cf-proxy">
+                            <strong>Proxy Cloudflare</strong> <span class="badge bg-warning text-dark">naranja</span>
+                        </label>
+                        <div class="form-text">Activar proxy (CDN + protección). Desmarcar para DNS-only (gris).</div>
+                    </div>
+                </div>
+
+                <div id="free-subdomain-progress" class="d-none">
+                    <div class="alert alert-warning mb-0">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+                            <strong id="progress-title">Creando subdominio...</strong>
+                        </div>
+                        <div class="progress mb-2" style="height: 6px;">
+                            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-warning" style="width: 0%"></div>
+                        </div>
+                        <small id="progress-step" class="text-muted">Iniciando...</small>
                     </div>
                 </div>
             </div>
@@ -1085,10 +1348,50 @@ function showCreateFreeSubdomainModal() {
         confirmButtonColor: '#198754',
         width: '600px',
         didOpen: () => {
-            // Auto-convertir subdomain a minúsculas
             const subdomainInput = document.getElementById('swal-subdomain');
+            const statusEl = document.getElementById('subdomain-status');
+
             subdomainInput.addEventListener('input', function(e) {
                 e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9\-]/g, '');
+
+                // Verificar disponibilidad con debounce
+                clearTimeout(subdomainCheckTimeout);
+                const val = e.target.value;
+
+                if (val.length < 3) {
+                    statusEl.innerHTML = 'Mínimo 3 caracteres. Solo letras minúsculas, números y guiones.';
+                    statusEl.className = 'form-text text-muted';
+                    subdomainInput.classList.remove('is-valid', 'is-invalid');
+                    return;
+                }
+
+                statusEl.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:12px;height:12px"></span> Verificando disponibilidad...';
+                statusEl.className = 'form-text text-muted';
+
+                subdomainCheckTimeout = setTimeout(() => {
+                    fetch(`/customer/check-subdomain?subdomain=${encodeURIComponent(val)}`, {
+                        headers: { 'Accept': 'application/json' }
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (subdomainInput.value !== val) return; // Input changed
+                        if (data.available) {
+                            statusEl.innerHTML = '<i class="bi bi-check-circle-fill"></i> <strong>' + val + '.musedock.com</strong> está disponible';
+                            statusEl.className = 'form-text text-success';
+                            subdomainInput.classList.add('is-valid');
+                            subdomainInput.classList.remove('is-invalid');
+                        } else {
+                            statusEl.innerHTML = '<i class="bi bi-x-circle-fill"></i> ' + (data.error || 'Subdominio no disponible');
+                            statusEl.className = 'form-text text-danger';
+                            subdomainInput.classList.add('is-invalid');
+                            subdomainInput.classList.remove('is-valid');
+                        }
+                    })
+                    .catch(() => {
+                        statusEl.innerHTML = 'Mínimo 3 caracteres. Solo letras minúsculas, números y guiones.';
+                        statusEl.className = 'form-text text-muted';
+                    });
+                }, 500);
             });
         },
         preConfirm: () => {
@@ -1097,6 +1400,7 @@ function showCreateFreeSubdomainModal() {
             const customerEmail = document.getElementById('swal-customer-email').value;
             const customerPassword = document.getElementById('swal-customer-password').value;
             const sendWelcomeEmail = document.getElementById('swal-send-welcome-email').checked;
+            const cfProxy = document.getElementById('swal-cf-proxy').checked;
 
             // Validaciones
             if (!subdomain || subdomain.length < 3) {
@@ -1107,8 +1411,12 @@ function showCreateFreeSubdomainModal() {
                 Swal.showValidationMessage('El subdominio solo puede contener letras minúsculas, números y guiones');
                 return false;
             }
+            if (document.getElementById('swal-subdomain').classList.contains('is-invalid')) {
+                Swal.showValidationMessage('El subdominio no está disponible. Elige otro.');
+                return false;
+            }
             if (!customerName) {
-                Swal.showValidationMessage('El nombre del customer es requerido');
+                Swal.showValidationMessage('El nombre es requerido');
                 return false;
             }
             if (!customerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
@@ -1120,7 +1428,38 @@ function showCreateFreeSubdomainModal() {
                 return false;
             }
 
-            // Crear FormData
+            // Mostrar barra de progreso y ocultar formulario
+            const progressEl = document.getElementById('free-subdomain-progress');
+            const progressBar = document.getElementById('progress-bar');
+            const progressStep = document.getElementById('progress-step');
+            const progressTitle = document.getElementById('progress-title');
+            progressEl.classList.remove('d-none');
+
+            // Ocultar campos del formulario durante el proceso
+            progressEl.parentElement.querySelectorAll('.mb-3, .alert-info').forEach(el => {
+                if (el !== progressEl) el.style.display = 'none';
+            });
+
+            // Simular progreso por pasos
+            const steps = [
+                { pct: 10, text: 'Validando datos...' },
+                { pct: 25, text: 'Creando customer...' },
+                { pct: 40, text: 'Creando tenant y admin...' },
+                { pct: 55, text: 'Aplicando permisos y roles...' },
+                { pct: 70, text: 'Configurando Cloudflare DNS...' },
+                { pct: 80, text: 'Configurando Caddy SSL...' },
+                { pct: 90, text: 'Ejecutando health check...' },
+            ];
+            let stepIdx = 0;
+            const stepInterval = setInterval(() => {
+                if (stepIdx < steps.length) {
+                    progressBar.style.width = steps[stepIdx].pct + '%';
+                    progressStep.textContent = steps[stepIdx].text;
+                    stepIdx++;
+                }
+            }, 2000);
+
+            // Crear FormData — el mismo email/password se usa para customer y admin
             const formData = new FormData();
             formData.append('_csrf_token', '<?= csrf_token() ?>');
             formData.append('subdomain', subdomain);
@@ -1128,6 +1467,9 @@ function showCreateFreeSubdomainModal() {
             formData.append('customer_email', customerEmail);
             formData.append('customer_password', customerPassword);
             formData.append('send_welcome_email', sendWelcomeEmail ? '1' : '0');
+            formData.append('cf_proxy', cfProxy ? '1' : '0');
+            formData.append('admin_email', customerEmail);
+            formData.append('admin_password', customerPassword);
 
             // Enviar petición
             return fetch('/musedock/domain-manager/create-free', {
@@ -1140,12 +1482,28 @@ function showCreateFreeSubdomainModal() {
             })
             .then(response => response.json())
             .then(data => {
+                clearInterval(stepInterval);
                 if (!data.success) {
+                    // Restaurar formulario si hay error
+                    progressEl.classList.add('d-none');
+                    progressEl.parentElement.querySelectorAll('.mb-3, .alert-info').forEach(el => {
+                        el.style.display = '';
+                    });
                     throw new Error(data.error || 'No se pudo crear el subdominio');
                 }
+                progressBar.style.width = '100%';
+                progressBar.classList.replace('bg-warning', 'bg-success');
+                progressStep.textContent = '¡Completado!';
+                progressTitle.textContent = '¡Subdominio creado!';
                 return data;
             })
             .catch(error => {
+                clearInterval(stepInterval);
+                // Restaurar formulario si hay error
+                progressEl.classList.add('d-none');
+                progressEl.parentElement.querySelectorAll('.mb-3, .alert-info').forEach(el => {
+                    el.style.display = '';
+                });
                 Swal.showValidationMessage(`Error: ${error.message}`);
             });
         },

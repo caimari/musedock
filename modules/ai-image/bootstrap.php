@@ -42,7 +42,7 @@ if (aiimage_is_active()) {
         $GLOBALS['ADMIN_MENU']['aiimage_settings'] = [
             'title' => 'Configuración AI Image',
             'icon' => 'fas fa-image',
-            'url' => '/musedock/aiimage/settings',
+            'url' => '/musedock/ai-image/settings',
             'parent' => 'settings'
         ];
     }

@@ -107,6 +107,22 @@ class DomainManagerController
         $stmt->execute($params);
         $tenants = $stmt->fetchAll(PDO::FETCH_OBJ);
 
+        // Cargar email del admin root de cada tenant
+        $tenantAdminEmails = [];
+        try {
+            $adminStmt = $pdo->query("
+                SELECT DISTINCT ON (tenant_id) tenant_id, email, name
+                FROM admins
+                WHERE tenant_id IS NOT NULL
+                ORDER BY tenant_id, id ASC
+            ");
+            foreach ($adminStmt->fetchAll(PDO::FETCH_OBJ) as $row) {
+                $tenantAdminEmails[$row->tenant_id] = $row;
+            }
+        } catch (\Exception $e) {
+            // Table may not exist
+        }
+
         // Cargar conteo de aliases por tenant
         $aliasCounts = [];
         try {
@@ -203,6 +219,7 @@ class DomainManagerController
             'domainOrders' => $domainOrders,
             'caddyApiAvailable' => $caddyApiAvailable,
             'aliasCounts' => $aliasCounts,
+            'tenantAdminEmails' => $tenantAdminEmails,
             'allAliases' => $allAliases,
             'domainRedirects' => $domainRedirects,
             'baseDomain' => $baseDomain,
@@ -610,6 +627,8 @@ class DomainManagerController
             $tenantBlogSidebarRelatedPostsCount = $themeOpts['blog']['blog_sidebar_related_posts_count'] ?? '4';
             $tenantBlogSidebarTags = $themeOpts['blog']['blog_sidebar_tags'] ?? '1';
             $tenantBlogSidebarCategories = $themeOpts['blog']['blog_sidebar_categories'] ?? '1';
+            $tenantBlogShowBriefs = $themeOpts['blog']['blog_show_briefs'] ?? '0';
+            $tenantBlogBriefsCount = $themeOpts['blog']['blog_briefs_count'] ?? '10';
             $tenantScrollToTopEnabled = $themeOpts['scroll_to_top']['scroll_to_top_enabled'] ?? '1';
         } catch (\Exception $e) {
             // Fallback silencioso
@@ -1669,6 +1688,8 @@ class DomainManagerController
         }
 
         $aliasId = (int) ($input['alias_id'] ?? 0);
+        $deleteFromCloudflare = (bool) ($input['deleteFromCloudflare'] ?? false);
+
         if (!$aliasId) {
             echo json_encode(['success' => false, 'message' => 'ID de alias no válido.']);
             exit;
@@ -1693,8 +1714,12 @@ class DomainManagerController
         }
 
         try {
-            // 1. Limpiar Cloudflare
-            $this->removeAliasCloudflare($alias);
+            // 1. Limpiar Cloudflare solo si el usuario lo pidió
+            $cfAction = 'omitido';
+            if ($deleteFromCloudflare) {
+                $this->removeAliasCloudflare($alias);
+                $cfAction = $alias->is_subdomain ? 'registro CNAME eliminado' : 'zona eliminada';
+            }
 
             // 2. Eliminar alias de DB
             $stmt = $pdo->prepare("DELETE FROM domain_aliases WHERE id = ?");
@@ -1711,11 +1736,12 @@ class DomainManagerController
                 $remainingAliases
             );
 
-            Logger::log("[DomainManager] Alias eliminado: {$alias->domain} de tenant {$tenant->domain}", 'INFO');
+            Logger::log("[DomainManager] Alias eliminado: {$alias->domain} de tenant {$tenant->domain} (CF: {$cfAction})", 'INFO');
 
             echo json_encode([
                 'success' => true,
-                'message' => "Alias {$alias->domain} eliminado correctamente."
+                'message' => "Alias {$alias->domain} eliminado correctamente.",
+                'cloudflare' => $cfAction,
             ]);
             exit;
 
@@ -2308,6 +2334,8 @@ class DomainManagerController
             $currentOpts['blog']['blog_sidebar_related_posts_count'] = $_POST['blog_sidebar_related_posts_count'] ?? '4';
             $currentOpts['blog']['blog_sidebar_tags'] = isset($_POST['blog_sidebar_tags']) ? '1' : '0';
             $currentOpts['blog']['blog_sidebar_categories'] = isset($_POST['blog_sidebar_categories']) ? '1' : '0';
+            $currentOpts['blog']['blog_show_briefs'] = isset($_POST['blog_show_briefs']) ? '1' : '0';
+            $currentOpts['blog']['blog_briefs_count'] = $_POST['blog_briefs_count'] ?? '10';
 
             // Scroll to top
             if (!isset($currentOpts['scroll_to_top'])) {
@@ -3018,11 +3046,8 @@ TEXT;
             return;
         }
 
-        // Verificar permisos
-        if (!$this->checkPermission('tenants.manage')) {
-            $this->jsonResponse(['success' => false, 'error' => 'Sin permisos'], 403);
-            return;
-        }
+        // Verificar permisos (checkPermission lanza excepción si no tiene permisos)
+        $this->checkPermission('tenants.manage');
 
         try {
             // Recoger datos
@@ -3031,11 +3056,33 @@ TEXT;
             $customerName = trim($_POST['customer_name'] ?? '');
             $customerPassword = $_POST['customer_password'] ?? '';
             $sendWelcomeEmail = isset($_POST['send_welcome_email']) && $_POST['send_welcome_email'] === '1';
+            $cfProxy = !isset($_POST['cf_proxy']) || $_POST['cf_proxy'] === '1'; // default: true (proxy naranja)
+
+            // Credenciales del admin (las mismas que customer por defecto)
+            $adminEmail = trim($_POST['admin_email'] ?? '');
+            $adminPassword = $_POST['admin_password'] ?? '';
 
             // Validaciones
             if (empty($subdomain) || empty($customerEmail) || empty($customerName) || empty($customerPassword)) {
                 $this->jsonResponse(['success' => false, 'error' => 'Todos los campos son obligatorios'], 400);
                 return;
+            }
+
+            // Preparar credenciales personalizadas del admin si se proporcionaron
+            $adminCredentials = null;
+            if (!empty($adminEmail) && !empty($adminPassword)) {
+                if (!filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+                    $this->jsonResponse(['success' => false, 'error' => 'El email del admin no es válido'], 400);
+                    return;
+                }
+                if (strlen($adminPassword) < 8) {
+                    $this->jsonResponse(['success' => false, 'error' => 'La contraseña del admin debe tener al menos 8 caracteres'], 400);
+                    return;
+                }
+                $adminCredentials = [
+                    'email' => $adminEmail,
+                    'password' => $adminPassword
+                ];
             }
 
             // Preparar datos de customer
@@ -3048,7 +3095,7 @@ TEXT;
             // Usar ProvisioningService para crear tenant FREE
             $provisioningService = new \CaddyDomainManager\Services\ProvisioningService();
             // Superadmin creando manualmente: usar español por defecto
-            $result = $provisioningService->provisionFreeTenant($customerData, $subdomain, $sendWelcomeEmail, 'es');
+            $result = $provisioningService->provisionFreeTenant($customerData, $subdomain, $sendWelcomeEmail, 'es', $adminCredentials, $cfProxy);
 
             if ($result['success']) {
                 Logger::info("[DomainManagerController] FREE subdomain created by superadmin: {$result['domain']}");
@@ -3793,6 +3840,59 @@ TEXT;
         exit;
     }
 
+    /**
+     * Recreate Caddy route for an alias (repair)
+     */
+    public function recreateAliasRoute($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        if (!validate_csrf($input['_csrf'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido.']);
+            exit;
+        }
+
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("SELECT da.*, t.domain AS tenant_domain, t.include_www AS tenant_include_www FROM domain_aliases da LEFT JOIN tenants t ON t.id = da.tenant_id WHERE da.id = ?");
+        $stmt->execute([$id]);
+        $alias = $stmt->fetch(\PDO::FETCH_OBJ);
+
+        if (!$alias) {
+            echo json_encode(['success' => false, 'message' => 'Alias no encontrado.']);
+            exit;
+        }
+
+        // Gather all aliases for this tenant
+        $aliasStmt = $pdo->prepare("SELECT domain, include_www FROM domain_aliases WHERE tenant_id = ? AND status IN ('pending','active')");
+        $aliasStmt->execute([$alias->tenant_id]);
+        $allAliases = $aliasStmt->fetchAll(\PDO::FETCH_OBJ);
+
+        $result = $this->caddyService->upsertDomainWithAliases(
+            $alias->tenant_domain,
+            (bool) ($alias->tenant_include_www ?? true),
+            $allAliases
+        );
+
+        if ($result['success']) {
+            $stmt = $pdo->prepare("UPDATE domain_aliases SET caddy_configured = 1, status = 'active', error_log = NULL, updated_at = NOW() WHERE id = ?");
+            $stmt->execute([$id]);
+
+            Logger::log("[DomainManager] Ruta Caddy recreada para alias: {$alias->domain}", 'INFO');
+            echo json_encode(['success' => true, 'message' => "Ruta Caddy recreada correctamente para {$alias->domain}.", 'route_id' => $result['route_id']]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE domain_aliases SET caddy_configured = 0, error_log = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->execute([$result['error'], $id]);
+
+            echo json_encode(['success' => false, 'message' => 'Error al recrear la ruta: ' . $result['error']]);
+        }
+        exit;
+    }
+
     public function deleteAlias($id)
     {
         SessionSecurity::startSession();
@@ -3817,9 +3917,15 @@ TEXT;
             exit;
         }
 
+        $deleteFromCloudflare = (bool) ($input['deleteFromCloudflare'] ?? false);
+
         try {
-            // Remove Cloudflare if configured
-            $this->removeAliasCloudflare($alias);
+            // Remove Cloudflare only if user confirmed
+            $cfAction = 'omitido';
+            if ($deleteFromCloudflare) {
+                $this->removeAliasCloudflare($alias);
+                $cfAction = $alias->is_subdomain ? 'registro CNAME eliminado' : 'zona eliminada';
+            }
 
             // Delete from DB
             $stmt = $pdo->prepare("DELETE FROM domain_aliases WHERE id = ?");
@@ -3834,8 +3940,8 @@ TEXT;
                 $this->caddyService->upsertDomainWithAliases($tenant->domain, (bool) ($tenant->include_www ?? true), $allAliases);
             }
 
-            Logger::log("[DomainManager] Alias eliminado: {$alias->domain}", 'INFO');
-            echo json_encode(['success' => true, 'message' => "Alias {$alias->domain} eliminado."]);
+            Logger::log("[DomainManager] Alias eliminado: {$alias->domain} (CF: {$cfAction})", 'INFO');
+            echo json_encode(['success' => true, 'message' => "Alias {$alias->domain} eliminado.", 'cloudflare' => $cfAction]);
         } catch (\Exception $e) {
             Logger::log("[DomainManager] Error eliminando alias: " . $e->getMessage(), 'ERROR');
             echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
@@ -4088,5 +4194,654 @@ TEXT;
             echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
         }
         exit;
+    }
+
+    /**
+     * Toggle Cloudflare Proxy (nube naranja ↔ gris) via AJAX
+     */
+    public function toggleCloudflareProxy($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json; charset=UTF-8');
+
+        $tenant = $this->getTenant((int)$id);
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado.']);
+            exit;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+
+        if (!validate_csrf($input['_csrf'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Token de seguridad inválido.']);
+            exit;
+        }
+
+        $proxied = (bool)($input['proxied'] ?? false);
+
+        try {
+            $pdo = Database::connect();
+
+            if ($tenant->is_subdomain && !empty($tenant->cloudflare_record_id)) {
+                // Subdomain: use CloudflareService (parent zone musedock.com)
+                $cloudflareService = new \CaddyDomainManager\Services\CloudflareService();
+                $result = $cloudflareService->updateProxyStatus($tenant->cloudflare_record_id, $proxied);
+
+                if (!$result['success']) {
+                    echo json_encode(['success' => false, 'message' => 'Error Cloudflare: ' . ($result['error'] ?? 'Unknown')]);
+                    exit;
+                }
+            } elseif (!empty($tenant->cloudflare_zone_id)) {
+                // Custom domain with own zone: find main A/CNAME record and update
+                $zoneService = new \CaddyDomainManager\Services\CloudflareZoneService();
+                $records = $zoneService->listDNSRecords($tenant->cloudflare_zone_id);
+
+                $mainRecord = null;
+                $domain = $tenant->domain;
+                foreach ($records as $record) {
+                    if (in_array($record['type'], ['A', 'AAAA', 'CNAME']) && ($record['name'] === $domain || $record['name'] === $domain . '.')) {
+                        $mainRecord = $record;
+                        break;
+                    }
+                }
+
+                if (!$mainRecord) {
+                    echo json_encode(['success' => false, 'message' => "No se encontró registro DNS principal para {$domain}"]);
+                    exit;
+                }
+
+                $zoneService->updateDNSRecord($tenant->cloudflare_zone_id, $mainRecord['id'], [
+                    'type' => $mainRecord['type'],
+                    'name' => $mainRecord['name'],
+                    'content' => $mainRecord['content'],
+                    'ttl' => $mainRecord['ttl'] ?? 1,
+                    'proxied' => $proxied,
+                ]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Este tenant no tiene configuración de Cloudflare.']);
+                exit;
+            }
+
+            // Update DB
+            $stmt = $pdo->prepare("UPDATE tenants SET cloudflare_proxied = ? WHERE id = ?");
+            $stmt->execute([$proxied ? 1 : 0, $id]);
+
+            $statusLabel = $proxied ? 'Proxy activado (nube naranja)' : 'Solo DNS (nube gris)';
+            Logger::log("[DomainManager] Cloudflare proxy toggle: {$tenant->domain} → {$statusLabel}", 'INFO');
+
+            echo json_encode([
+                'success' => true,
+                'proxied' => $proxied,
+                'message' => $statusLabel,
+            ]);
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error toggling Cloudflare proxy: " . $e->getMessage(), 'ERROR');
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /**
+     * Toggle Cloudflare proxy for any domain by zone_id + record_id (AJAX)
+     */
+    public function toggleDomainProxy()
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json; charset=UTF-8');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        if (!validate_csrf($input['_csrf'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido.']);
+            exit;
+        }
+
+        $zoneId = $input['zone_id'] ?? '';
+        $recordId = $input['record_id'] ?? '';
+        $proxied = (bool)($input['proxied'] ?? false);
+        $domain = $input['domain'] ?? '';
+
+        if (!$zoneId || !$recordId) {
+            echo json_encode(['success' => false, 'message' => 'Faltan zone_id o record_id.']);
+            exit;
+        }
+
+        try {
+            $cfToken = \Screenart\Musedock\Env::get('CLOUDFLARE_API_TOKEN', '');
+
+            // Get current record
+            $getResp = $this->cfApiRequest($cfToken, 'GET', "/zones/{$zoneId}/dns_records/{$recordId}");
+            if (empty($getResp['result'])) {
+                echo json_encode(['success' => false, 'message' => 'Registro DNS no encontrado en Cloudflare.']);
+                exit;
+            }
+
+            $record = $getResp['result'];
+
+            // Update proxy status
+            $updateResp = $this->cfApiRequest($cfToken, 'PUT', "/zones/{$zoneId}/dns_records/{$recordId}", [
+                'type' => $record['type'],
+                'name' => $record['name'],
+                'content' => $record['content'],
+                'ttl' => $record['ttl'] ?? 1,
+                'proxied' => $proxied,
+            ]);
+
+            if (!empty($updateResp['success'])) {
+                $statusLabel = $proxied ? 'Proxy activado (nube naranja)' : 'Solo DNS (nube gris)';
+                Logger::log("[DomainManager] CF proxy toggle: {$domain} → {$statusLabel}", 'INFO');
+                echo json_encode(['success' => true, 'proxied' => $proxied, 'message' => $statusLabel]);
+            } else {
+                $err = $updateResp['errors'][0]['message'] ?? 'Error desconocido';
+                echo json_encode(['success' => false, 'message' => "Error CF: {$err}"]);
+            }
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /**
+     * Check real Cloudflare proxy status via API for tenant + aliases (AJAX)
+     */
+    public function checkProxyStatus($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json; charset=UTF-8');
+
+        $tenant = $this->getTenant((int)$id);
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant no encontrado.']);
+            exit;
+        }
+
+        $domains = [];
+        $cfToken = \Screenart\Musedock\Env::get('CLOUDFLARE_API_TOKEN', '');
+
+        try {
+            // 1. Check main subdomain
+            $mainProxied = null;
+            if ($tenant->is_subdomain && !empty($tenant->cloudflare_record_id)) {
+                $cloudflareService = new \CaddyDomainManager\Services\CloudflareService();
+                $record = $cloudflareService->getRecord($tenant->cloudflare_record_id);
+                $mainProxied = $record['proxied'] ?? null;
+
+                // Sync DB
+                $dbProxied = (bool)($tenant->cloudflare_proxied ?? false);
+                if ($mainProxied !== null && $mainProxied !== $dbProxied) {
+                    $pdo = Database::connect();
+                    $stmt = $pdo->prepare("UPDATE tenants SET cloudflare_proxied = ? WHERE id = ?");
+                    $stmt->execute([$mainProxied ? 1 : 0, $id]);
+                }
+            } elseif (!empty($tenant->cloudflare_zone_id)) {
+                $zoneService = new \CaddyDomainManager\Services\CloudflareZoneService();
+                $records = $zoneService->listDNSRecords($tenant->cloudflare_zone_id);
+                foreach ($records as $record) {
+                    if (in_array($record['type'], ['A', 'AAAA', 'CNAME']) && ($record['name'] === $tenant->domain || $record['name'] === $tenant->domain . '.')) {
+                        $mainProxied = $record['proxied'] ?? null;
+                        break;
+                    }
+                }
+            }
+
+            // Determine zone_id for principal domain
+            $mainZoneId = $tenant->cloudflare_zone_id ?: null;
+            $mainRecordId = $tenant->cloudflare_record_id ?: null;
+            if (!$mainZoneId && $tenant->is_subdomain) {
+                // Subdomain uses parent zone (musedock.com)
+                $mainZoneId = \Screenart\Musedock\Env::get('CLOUDFLARE_ZONE_ID', '');
+            }
+
+            $domains[] = [
+                'domain' => $tenant->domain,
+                'type' => 'principal',
+                'proxied' => $mainProxied,
+                'zone_id' => $mainZoneId,
+                'record_id' => $mainRecordId,
+                'source' => 'db',
+            ];
+
+            // 2. Check aliases — query CF API directly by domain
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("SELECT id, domain, cloudflare_zone_id, cloudflare_record_id, is_subdomain FROM domain_aliases WHERE tenant_id = ? AND status IN ('pending','active')");
+            $stmt->execute([$id]);
+            $aliases = $stmt->fetchAll(\PDO::FETCH_OBJ);
+
+            foreach ($aliases as $alias) {
+                $aliasProxied = null;
+
+                if ($alias->is_subdomain && !empty($alias->cloudflare_record_id)) {
+                    try {
+                        $cloudflareService = $cloudflareService ?? new \CaddyDomainManager\Services\CloudflareService();
+                        $rec = $cloudflareService->getRecord($alias->cloudflare_record_id);
+                        $aliasProxied = $rec['proxied'] ?? null;
+                    } catch (\Exception $e) { /* skip */ }
+                } elseif (!empty($alias->cloudflare_zone_id)) {
+                    try {
+                        $zoneService = $zoneService ?? new \CaddyDomainManager\Services\CloudflareZoneService();
+                        $records = $zoneService->listDNSRecords($alias->cloudflare_zone_id);
+                        foreach ($records as $rec) {
+                            if (in_array($rec['type'], ['A', 'AAAA', 'CNAME']) && ($rec['name'] === $alias->domain || $rec['name'] === $alias->domain . '.')) {
+                                $aliasProxied = $rec['proxied'] ?? null;
+                                break;
+                            }
+                        }
+                    } catch (\Exception $e) { /* skip */ }
+                } else {
+                    // No CF data in DB — try to find the zone via API by domain name
+                    if ($cfToken) {
+                        try {
+                            $resp = $this->cfApiRequest($cfToken, 'GET', '/zones?name=' . urlencode($alias->domain));
+                            if (!empty($resp['result'])) {
+                                $zone = $resp['result'][0];
+                                $aliasZoneId = $zone['id'];
+                                $dnsResp = $this->cfApiRequest($cfToken, 'GET', "/zones/{$aliasZoneId}/dns_records?name=" . urlencode($alias->domain));
+                                foreach ($dnsResp['result'] ?? [] as $rec) {
+                                    if (in_array($rec['type'], ['A', 'AAAA', 'CNAME'])) {
+                                        $aliasProxied = $rec['proxied'] ?? null;
+                                        $aliasRecordId = $rec['id'];
+                                        break;
+                                    }
+                                }
+                            }
+                        } catch (\Exception $e) { /* skip */ }
+                    }
+                }
+
+                $domains[] = [
+                    'domain' => $alias->domain,
+                    'type' => 'alias',
+                    'proxied' => $aliasProxied,
+                    'alias_id' => $alias->id,
+                    'zone_id' => $alias->cloudflare_zone_id ?: ($aliasZoneId ?? null),
+                    'record_id' => $alias->cloudflare_record_id ?: ($aliasRecordId ?? null),
+                    'source' => (!empty($alias->cloudflare_zone_id) || !empty($alias->cloudflare_record_id)) ? 'db' : 'api',
+                ];
+                // Reset for next iteration
+                $aliasZoneId = null;
+                $aliasRecordId = null;
+            }
+
+            echo json_encode(['success' => true, 'domains' => $domains, 'proxied' => $mainProxied]);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Error CF: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /**
+     * Cambiar contraseña del admin root del tenant (AJAX)
+     */
+    public function changeAdminPassword($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json; charset=UTF-8');
+
+        $input = json_decode(file_get_contents('php://input'), true);
+
+        if (!validate_csrf($input['_csrf'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Token de seguridad inválido.']);
+            exit;
+        }
+
+        $newPassword = trim($input['password'] ?? '');
+        if (strlen($newPassword) < 6) {
+            echo json_encode(['success' => false, 'message' => 'La contraseña debe tener al menos 6 caracteres.']);
+            exit;
+        }
+
+        try {
+            $pdo = Database::connect();
+            $hashedPassword = password_hash($newPassword, PASSWORD_BCRYPT);
+
+            $stmt = $pdo->prepare("UPDATE admins SET password = ?, updated_at = NOW() WHERE tenant_id = ? AND is_root_admin = 1");
+            $stmt->execute([$hashedPassword, $id]);
+
+            if ($stmt->rowCount() === 0) {
+                echo json_encode(['success' => false, 'message' => 'No se encontró admin root para este tenant.']);
+                exit;
+            }
+
+            Logger::log("[DomainManager] Password cambiado para admin root del tenant #{$id}", 'INFO');
+            echo json_encode(['success' => true, 'message' => 'Contraseña actualizada correctamente.']);
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error cambiando password admin: " . $e->getMessage(), 'ERROR');
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /**
+     * Actualizar email o nombre del admin root del tenant (AJAX)
+     */
+    public function updateAdminField($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json; charset=UTF-8');
+
+        $input = json_decode(file_get_contents('php://input'), true);
+
+        if (!validate_csrf($input['_csrf'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Token de seguridad inválido.']);
+            exit;
+        }
+
+        $field = $input['field'] ?? '';
+        $value = trim($input['value'] ?? '');
+
+        if (!in_array($field, ['email', 'name'])) {
+            echo json_encode(['success' => false, 'message' => 'Campo no permitido.']);
+            exit;
+        }
+
+        if ($field === 'email') {
+            if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                echo json_encode(['success' => false, 'message' => 'Email no válido.']);
+                exit;
+            }
+            // Verificar que no esté en uso por otro admin
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("SELECT id FROM admins WHERE email = ? AND tenant_id != ?");
+            $stmt->execute([$value, $id]);
+            if ($stmt->fetch()) {
+                echo json_encode(['success' => false, 'message' => 'Este email ya está en uso por otro admin.']);
+                exit;
+            }
+        }
+
+        if ($field === 'name' && empty($value)) {
+            echo json_encode(['success' => false, 'message' => 'El nombre es obligatorio.']);
+            exit;
+        }
+
+        try {
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("UPDATE admins SET {$field} = ?, updated_at = NOW() WHERE tenant_id = ? AND is_root_admin = 1");
+            $stmt->execute([$value, $id]);
+
+            if ($stmt->rowCount() === 0) {
+                echo json_encode(['success' => false, 'message' => 'No se encontró admin root para este tenant.']);
+                exit;
+            }
+
+            $fieldLabel = $field === 'email' ? 'Email' : 'Nombre';
+            Logger::log("[DomainManager] {$fieldLabel} actualizado para admin root del tenant #{$id}: {$value}", 'INFO');
+            echo json_encode(['success' => true, 'message' => "{$fieldLabel} actualizado correctamente."]);
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error actualizando {$field} admin: " . $e->getMessage(), 'ERROR');
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /**
+     * Guardar todos los campos del admin root del tenant (AJAX)
+     */
+    public function saveAdmin($id)
+    {
+        SessionSecurity::startSession();
+        $this->checkMultitenancyEnabled();
+        $this->checkPermission('tenants.manage');
+
+        header('Content-Type: application/json; charset=UTF-8');
+
+        $input = json_decode(file_get_contents('php://input'), true);
+
+        if (!validate_csrf($input['_csrf'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Token de seguridad inválido.']);
+            exit;
+        }
+
+        $email = trim($input['email'] ?? '');
+        $name = trim($input['name'] ?? '');
+        $password = $input['password'] ?? null;
+
+        // Validaciones
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['success' => false, 'message' => 'Email no válido.']);
+            exit;
+        }
+        if (empty($name)) {
+            echo json_encode(['success' => false, 'message' => 'El nombre es obligatorio.']);
+            exit;
+        }
+        if ($password && strlen($password) < 6) {
+            echo json_encode(['success' => false, 'message' => 'La contraseña debe tener al menos 6 caracteres.']);
+            exit;
+        }
+
+        try {
+            $pdo = Database::connect();
+
+            // Verificar email único
+            $stmt = $pdo->prepare("SELECT id FROM admins WHERE email = ? AND tenant_id != ?");
+            $stmt->execute([$email, $id]);
+            if ($stmt->fetch()) {
+                echo json_encode(['success' => false, 'message' => 'Este email ya está en uso por otro admin.']);
+                exit;
+            }
+
+            // Actualizar email y nombre
+            $stmt = $pdo->prepare("UPDATE admins SET email = ?, name = ?, updated_at = NOW() WHERE tenant_id = ? AND is_root_admin = 1");
+            $stmt->execute([$email, $name, $id]);
+
+            if ($stmt->rowCount() === 0) {
+                echo json_encode(['success' => false, 'message' => 'No se encontró admin root para este tenant.']);
+                exit;
+            }
+
+            // Actualizar contraseña si se proporcionó
+            $changes = ['email', 'nombre'];
+            if ($password) {
+                $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+                $stmt = $pdo->prepare("UPDATE admins SET password = ?, updated_at = NOW() WHERE tenant_id = ? AND is_root_admin = 1");
+                $stmt->execute([$hashedPassword, $id]);
+                $changes[] = 'contraseña';
+            }
+
+            Logger::log("[DomainManager] Admin root del tenant #{$id} actualizado: " . implode(', ', $changes), 'INFO');
+            echo json_encode(['success' => true, 'message' => 'Admin actualizado correctamente.']);
+        } catch (\Exception $e) {
+            Logger::log("[DomainManager] Error guardando admin: " . $e->getMessage(), 'ERROR');
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    // ============================================
+    // CLOUDFLARE TOKEN MANAGEMENT
+    // ============================================
+
+    /**
+     * Verifica un token de Cloudflare y devuelve sus permisos/zonas.
+     */
+    public function verifyCloudflareToken()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('tenants.manage');
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        if (!validate_csrf($input['_csrf'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido.']);
+            exit;
+        }
+
+        $token = trim($input['token'] ?? '');
+        if (empty($token)) {
+            echo json_encode(['success' => false, 'message' => 'Token requerido.']);
+            exit;
+        }
+
+        try {
+            // Verificar token
+            $verify = $this->cfApiRequest($token, 'GET', '/user/tokens/verify');
+            if (!($verify['success'] ?? false)) {
+                echo json_encode(['success' => false, 'message' => 'Token inválido o expirado.']);
+                exit;
+            }
+
+            // Obtener zonas accesibles
+            $zones = $this->cfApiRequest($token, 'GET', '/zones?per_page=50');
+            $zoneList = [];
+            foreach (($zones['result'] ?? []) as $z) {
+                $zoneList[] = ['name' => $z['name'], 'status' => $z['status'], 'id' => $z['id']];
+            }
+
+            // Obtener cuenta
+            $accounts = $this->cfApiRequest($token, 'GET', '/accounts');
+            $accountName = ($accounts['result'][0]['name'] ?? 'Desconocida');
+
+            echo json_encode([
+                'success' => true,
+                'status' => $verify['result']['status'] ?? 'unknown',
+                'account' => $accountName,
+                'zones_count' => count($zoneList),
+                'zones' => $zoneList,
+                'all_zones_access' => count($zoneList) > 1 || (count($zoneList) === 1 && $zoneList[0]['name'] !== 'musedock.com'),
+            ]);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /**
+     * Guarda el token de Cloudflare en .env, /etc/default/caddy y reinicia Caddy.
+     */
+    public function saveCloudflareToken()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('tenants.manage');
+        header('Content-Type: application/json');
+
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        if (!validate_csrf($input['_csrf'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido.']);
+            exit;
+        }
+
+        $token = trim($input['token'] ?? '');
+        if (empty($token)) {
+            echo json_encode(['success' => false, 'message' => 'Token requerido.']);
+            exit;
+        }
+
+        // Verificar que el token es válido antes de guardar
+        $verify = $this->cfApiRequest($token, 'GET', '/user/tokens/verify');
+        if (!($verify['success'] ?? false)) {
+            echo json_encode(['success' => false, 'message' => 'Token inválido. No se ha guardado.']);
+            exit;
+        }
+
+        $errors = [];
+        $updated = [];
+
+        // 1. Actualizar .env
+        $envPath = defined('APP_ROOT') ? APP_ROOT . '/.env' : '/var/www/vhosts/musedock.com/httpdocs/.env';
+        if (file_exists($envPath) && is_writable($envPath)) {
+            $envContent = file_get_contents($envPath);
+            $pattern = '/^CLOUDFLARE_API_TOKEN=.*/m';
+            $replacement = 'CLOUDFLARE_API_TOKEN=' . $token;
+            if (preg_match($pattern, $envContent)) {
+                $envContent = preg_replace($pattern, $replacement, $envContent);
+            } else {
+                $envContent .= "\n" . $replacement;
+            }
+            file_put_contents($envPath, $envContent);
+            $updated[] = '.env';
+        } else {
+            $errors[] = '.env no existe o no es escribible';
+        }
+
+        // 2. Actualizar /etc/default/caddy via script helper
+        $helperScript = '/usr/local/bin/update-caddy-token.sh';
+        if (file_exists($helperScript) && is_executable($helperScript)) {
+            $escapedToken = escapeshellarg($token);
+            $output = [];
+            $code = 0;
+            exec("sudo {$helperScript} {$escapedToken} 2>&1", $output, $code);
+            $outputStr = implode("\n", $output);
+            if ($code === 0) {
+                $updated[] = '/etc/default/caddy';
+                $updated[] = 'Caddy reiniciado';
+            } else {
+                $errors[] = 'Script helper: ' . $outputStr;
+            }
+        } else {
+            // Fallback: intentar escribir directamente
+            $caddyEnvPath = '/etc/default/caddy';
+            if (file_exists($caddyEnvPath) && is_writable($caddyEnvPath)) {
+                $caddyContent = file_get_contents($caddyEnvPath);
+                $pattern = '/^CLOUDFLARE_API_TOKEN=.*/m';
+                $replacement = 'CLOUDFLARE_API_TOKEN=' . $token;
+                if (preg_match($pattern, $caddyContent)) {
+                    $caddyContent = preg_replace($pattern, $replacement, $caddyContent);
+                } else {
+                    $caddyContent .= "\n" . $replacement;
+                }
+                file_put_contents($caddyEnvPath, $caddyContent);
+                $updated[] = '/etc/default/caddy';
+            } else {
+                $errors[] = 'No se pudo actualizar /etc/default/caddy (sin permisos). Ejecuta manualmente: sudo sed -i "s|^CLOUDFLARE_API_TOKEN=.*|CLOUDFLARE_API_TOKEN=' . $token . '|" /etc/default/caddy && sudo systemctl restart caddy';
+            }
+
+            // Intentar reiniciar Caddy via API reload
+            $ch = curl_init('http://localhost:2019/load');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            curl_exec($ch);
+            curl_close($ch);
+        }
+
+        // Limpiar cache de Env
+        \Screenart\Musedock\Env::reload();
+
+        Logger::log("[DomainManager] Cloudflare token actualizado. Updated: " . implode(', ', $updated) . ($errors ? " Errors: " . implode(', ', $errors) : ''), 'INFO');
+
+        echo json_encode([
+            'success' => empty($errors) || !empty($updated),
+            'message' => 'Token actualizado en: ' . implode(', ', $updated) . ($errors ? '. Errores: ' . implode(', ', $errors) : ''),
+            'updated' => $updated,
+            'errors' => $errors,
+        ]);
+        exit;
+    }
+
+    /**
+     * Helper para hacer requests a la API de Cloudflare con un token dado.
+     */
+    private function cfApiRequest(string $token, string $method, string $endpoint, ?array $body = null): array
+    {
+        $ch = curl_init();
+        $url = 'https://api.cloudflare.com/client/v4' . $endpoint;
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $token,
+            'Content-Type: application/json',
+        ]);
+        if ($method === 'POST') {
+            curl_setopt($ch, CURLOPT_POST, true);
+            if ($body) curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
+        }
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        return json_decode($response, true) ?: [];
     }
 }

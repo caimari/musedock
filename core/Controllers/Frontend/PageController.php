@@ -369,7 +369,7 @@ class PageController
                     
                     $output .= "
                         <li class='page-item'>
-                            <h3 class='page-title'><a href='/p/{$page->slug}'>{$page->title}</a> {$visibility}</h3>
+                            <h3 class='page-title'><a href='" . page_url($page->slug) . "'>{$page->title}</a> {$visibility}</h3>
                             <div class='page-date'>Actualizado: {$date}</div>
                         </li>";
                 }

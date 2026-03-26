@@ -30,15 +30,26 @@ $multiTenant = $config['multi_tenant_enabled'] ?? false;
 $tenantId = tenant_id();
 
 // Obtener módulos activos según el contexto
+// Detectar si la petición es al panel superadmin (rutas /musedock/)
+$requestUri = $_SERVER['REQUEST_URI'] ?? '';
+$isSuperadminRequest = strpos($requestUri, '/musedock/') === 0 || $requestUri === '/musedock';
+
 try {
-    if ($multiTenant && $tenantId !== null) {
+    if ($multiTenant && $tenantId !== null && !$isSuperadminRequest) {
         // Para tenant: módulos activos globalmente Y habilitados para el tenant
         $modules = Database::query("SELECT m.* FROM modules m
                          INNER JOIN tenant_modules tm ON tm.module_id = m.id
                          WHERE m.active = 1 AND tm.tenant_id = :tenant_id AND tm.enabled = 1",
                          ['tenant_id' => $tenantId])->fetchAll();
+    } elseif ($multiTenant && $tenantId !== null && $isSuperadminRequest) {
+        // Superadmin en contexto multi-tenant: cargar módulos del tenant + módulos cms_enabled
+        // Esto asegura que módulos como wp-importer (cms_enabled pero no en tenant_modules) funcionen
+        $modules = Database::query("SELECT DISTINCT m.* FROM modules m
+                         LEFT JOIN tenant_modules tm ON tm.module_id = m.id AND tm.tenant_id = :tenant_id AND tm.enabled = 1
+                         WHERE m.active = 1 AND (tm.tenant_id IS NOT NULL OR m.cms_enabled = 1)",
+                         ['tenant_id' => $tenantId])->fetchAll();
     } else {
-        // Para superadmin: módulos activos y habilitados para CMS
+        // Para superadmin sin multi-tenant: módulos activos y habilitados para CMS
         $modules = Database::query("SELECT * FROM modules WHERE active = 1 AND cms_enabled = 1")->fetchAll();
     }
 

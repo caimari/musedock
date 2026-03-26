@@ -494,6 +494,26 @@ private static function render404Page(): void
         ob_end_clean();
     }
 
+    // Para peticiones AJAX devolver JSON en vez de HTML
+    $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+              strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') ||
+              (!empty($_SERVER['HTTP_ACCEPT']) &&
+              strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+
+    if ($isAjax) {
+        if (!headers_sent()) {
+            http_response_code(404);
+            header('Content-Type: application/json; charset=UTF-8');
+            header('Cache-Control: no-cache, no-store, must-revalidate');
+        }
+        echo json_encode([
+            'success' => false,
+            'error' => 'Ruta no encontrada',
+            'message' => 'La ruta solicitada no existe: ' . ($_SERVER['REQUEST_URI'] ?? ''),
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     // Asegurar headers correctos
     if (!headers_sent()) {
         header('Content-Type: text/html; charset=UTF-8');

@@ -33,7 +33,7 @@ class ConnectionController
     {
         if (!userCan($permission)) {
             flash('error', __instagram('errors.permission_denied'));
-            header('Location: /admin/dashboard');
+            header('Location: /' . admin_path() . '/dashboard');
             exit;
         }
     }
@@ -72,7 +72,7 @@ class ConnectionController
 
         if (!$appId || !$appSecret) {
             $_SESSION['error'] = __instagram('connection.api_not_configured');
-            redirect('/admin/instagram');
+            redirect('/' . admin_path() . '/instagram');
             return;
         }
 
@@ -102,7 +102,7 @@ class ConnectionController
 
         if (!InstagramApiService::validateState($receivedState, $expectedState)) {
             $_SESSION['error'] = __instagram('connection.invalid_state');
-            redirect('/admin/instagram');
+            redirect('/' . admin_path() . '/instagram');
             return;
         }
 
@@ -118,7 +118,7 @@ class ConnectionController
         if (isset($_GET['error'])) {
             $errorDescription = $_GET['error_description'] ?? $_GET['error'];
             $_SESSION['error'] = __instagram('connection.oauth_error') . ': ' . $errorDescription;
-            redirect('/admin/instagram');
+            redirect('/' . admin_path() . '/instagram');
             return;
         }
 
@@ -126,7 +126,7 @@ class ConnectionController
         $code = $_GET['code'] ?? '';
         if (!$code) {
             $_SESSION['error'] = __instagram('connection.oauth_error');
-            redirect('/admin/instagram');
+            redirect('/' . admin_path() . '/instagram');
             return;
         }
 
@@ -183,7 +183,7 @@ class ConnectionController
             $_SESSION['error'] = __instagram('connection.connection_error') . ': ' . $e->getMessage();
         }
 
-        redirect('/admin/instagram');
+        redirect('/' . admin_path() . '/instagram');
     }
 
     /**
@@ -244,14 +244,14 @@ class ConnectionController
 
             if (!$connection) {
                 $_SESSION['error'] = __instagram('connection.not_found');
-                redirect('/admin/instagram');
+                redirect('/' . admin_path() . '/instagram');
                 return;
             }
 
             // Check if tenant owns this connection
             if ($connection->tenant_id !== $this->tenantId) {
                 $_SESSION['error'] = __instagram('errors.permission_denied');
-                redirect('/admin/instagram');
+                redirect('/' . admin_path() . '/instagram');
                 return;
             }
 
@@ -265,7 +265,7 @@ class ConnectionController
             $_SESSION['error'] = __instagram('errors.unknown_error') . ': ' . $e->getMessage();
         }
 
-        redirect('/admin/instagram');
+        redirect('/' . admin_path() . '/instagram');
     }
 
     /**
@@ -278,14 +278,14 @@ class ConnectionController
 
         if (!$connection) {
             $_SESSION['error'] = __instagram('connection.not_found');
-            redirect('/admin/instagram');
+            redirect('/' . admin_path() . '/instagram');
             return;
         }
 
         // Check if tenant can access this connection (own or global)
         if ($connection->tenant_id !== null && $connection->tenant_id !== $this->tenantId) {
             $_SESSION['error'] = __instagram('errors.permission_denied');
-            redirect('/admin/instagram');
+            redirect('/' . admin_path() . '/instagram');
             return;
         }
 

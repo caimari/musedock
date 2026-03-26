@@ -912,6 +912,29 @@
                                     </label>
                                 </div>
 
+                                <hr class="my-3">
+                                <h6 class="text-primary mb-3"><i class="bi bi-lightning"></i> Seccion de Briefs</h6>
+
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" name="blog_show_briefs" id="sa_blog_show_briefs" value="1"
+                                           {{ ($tenantBlogShowBriefs ?? false) ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="sa_blog_show_briefs">
+                                        <strong>Mostrar seccion de Briefs en el blog</strong>
+                                    </label>
+                                    <div class="form-text">Muestra una columna lateral con noticias breves (posts tipo "brief") junto al listado principal.</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Cantidad de briefs a mostrar</label>
+                                    @php $currentBriefsCount = $tenantBlogBriefsCount ?? '10'; @endphp
+                                    <select name="blog_briefs_count" class="form-select" style="max-width: 200px;">
+                                        <option value="5" {{ $currentBriefsCount == '5' ? 'selected' : '' }}>5 briefs</option>
+                                        <option value="10" {{ $currentBriefsCount == '10' ? 'selected' : '' }}>10 briefs</option>
+                                        <option value="15" {{ $currentBriefsCount == '15' ? 'selected' : '' }}>15 briefs</option>
+                                        <option value="20" {{ $currentBriefsCount == '20' ? 'selected' : '' }}>20 briefs</option>
+                                    </select>
+                                </div>
+
                                 <div class="d-flex justify-content-end">
                                     <button type="submit" class="btn btn-success" id="btnSaveBlogSettings">
                                         <span class="btn-text"><i class="bi bi-check-lg"></i> Guardar Configuracion del Blog</span>
@@ -1046,7 +1069,7 @@
                                         </select>
                                     </div>
 
-                                    <div class="d-flex gap-2">
+                                    <div class="d-flex gap-2 align-items-center">
                                         <button type="button" class="btn btn-outline-primary btn-sm" id="btnPreviewAutoTag" onclick="runAutoTag(true)">
                                             <span class="btn-text"><i class="bi bi-eye"></i> Previsualizar</span>
                                             <span class="btn-loading d-none">
@@ -1061,6 +1084,10 @@
                                                 Aplicando...
                                             </span>
                                         </button>
+                                        <button type="button" class="btn btn-danger btn-sm d-none" id="btnCancelAutoTag" onclick="cancelAutoTag()">
+                                            <i class="bi bi-x-circle"></i> Cancelar
+                                        </button>
+                                        <span id="autoTagTimer" class="text-muted small d-none ms-2"></span>
                                     </div>
 
                                     {{-- Contenedor para resultados --}}
@@ -1305,10 +1332,64 @@
                     </div>
                 @endif
 
+                <!-- Admin del Tenant -->
+                @if($tenantRootAdmin ?? null)
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-person-gear"></i> Admin del Tenant</h6>
+                    </div>
+                    <div class="card-body">
+                        <label class="form-label small fw-semibold">Email</label>
+                        <input type="email" class="form-control form-control-sm mb-2" id="adminEmail" value="{{ $tenantRootAdmin->email }}">
+
+                        <label class="form-label small fw-semibold">Nombre</label>
+                        <input type="text" class="form-control form-control-sm mb-2" id="adminName" value="{{ $tenantRootAdmin->name ?? '' }}">
+
+                        <label class="form-label small fw-semibold">Nueva contraseña</label>
+                        <input type="password" class="form-control form-control-sm" id="adminNewPassword" placeholder="Dejar vacío para no cambiar" minlength="6">
+                        <div class="form-text mb-2"><small>Min. 6 caracteres. Dejar vacío para no cambiar.</small></div>
+
+                        <div id="admin-save-result" class="mb-2"></div>
+
+                        <button class="btn btn-primary btn-sm w-100" type="button" onclick="saveTenantAdmin()">
+                            <i class="bi bi-floppy me-1"></i> Guardar
+                        </button>
+                    </div>
+                </div>
+                @endif
+
+                <!-- Cloudflare Proxy Status -->
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-shield-check"></i> Cloudflare Proxy</h6>
+                        @if(!empty($tenant->cloudflare_record_id) || !empty($tenant->cloudflare_zone_id))
+                        <div class="form-check form-switch mb-0" title="Toggle proxy del dominio principal">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                   id="cfProxyToggle"
+                                   {{ ($tenant->cloudflare_proxied ?? false) ? 'checked' : '' }}
+                                   onchange="toggleCloudflareProxy(this.checked)">
+                        </div>
+                        @endif
+                    </div>
+                    <div class="card-body py-2">
+                        <div id="cf-proxy-status">
+                            <small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span> Consultando Cloudflare...</small>
+                        </div>
+                        <div id="cf-proxy-loading" class="d-none">
+                            <small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span> Actualizando proxy...</small>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Alias de Dominio -->
                 <div class="card mb-3">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0"><i class="bi bi-link-45deg"></i> Alias de Dominio</h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <h6 class="mb-0"><i class="bi bi-link-45deg"></i> Alias de Dominio</h6>
+                            <button type="button" class="btn btn-link btn-sm p-0 text-muted" data-bs-toggle="modal" data-bs-target="#aliasHelpModal" title="Instrucciones">
+                                <i class="bi bi-question-circle"></i>
+                            </button>
+                        </div>
                         <span class="badge bg-secondary" id="alias-count">{{ count($domainAliases ?? []) }}</span>
                     </div>
                     <div class="card-body">
@@ -1342,7 +1423,7 @@
                                         <br><small class="text-info"><i class="bi bi-exclamation-circle"></i> NS: {{ $alias->cloudflare_nameservers }}</small>
                                     @endif
                                 </div>
-                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeAlias({{ $alias->id }}, '{{ $alias->domain }}')">
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeAlias({{ $alias->id }}, '{{ $alias->domain }}', {{ $alias->is_subdomain ? 'true' : 'false' }}, {{ !empty($alias->cloudflare_zone_id) ? 'true' : 'false' }}, {{ !empty($alias->cloudflare_record_id) ? 'true' : 'false' }})">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
@@ -1490,6 +1571,87 @@
             </div>
         </div>
 
+    </div>
+</div>
+
+{{-- Modal de ayuda para Alias de Dominio --}}
+<div class="modal fade" id="aliasHelpModal" tabindex="-1" aria-labelledby="aliasHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title" id="aliasHelpModalLabel"><i class="bi bi-book me-2"></i>Guia: Alias de Dominio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+
+                <h6 class="text-primary"><i class="bi bi-1-circle me-1"></i> Subdominio (*.musedock.com)</h6>
+                <p class="small">Se configura automaticamente. El CNAME se crea en la zona <code>musedock.com</code> de Cloudflare y el certificado SSL se genera via wildcard. No requiere accion adicional.</p>
+
+                <hr>
+
+                <h6 class="text-primary"><i class="bi bi-2-circle me-1"></i> Dominio custom ya gestionado en Cloudflare</h6>
+                <p class="small">Si el dominio <strong>ya esta en tu cuenta de Cloudflare</strong> con un CNAME apuntando a <code>mortadelo.musedock.com</code>:</p>
+                <ol class="small">
+                    <li>Marca <strong>"No crear zona en Cloudflare"</strong></li>
+                    <li>El sistema solo creara la ruta en Caddy</li>
+                    <li>El certificado SSL se obtendra automaticamente via DNS-01 (requiere token con acceso a la zona)</li>
+                </ol>
+                <div class="alert alert-warning small py-2">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Si el proxy de Cloudflare esta activo (nube naranja), el certificado <strong>solo</strong> puede obtenerse via DNS-01. Asegurate de que el API Token tenga permisos sobre todas las zonas.
+                </div>
+
+                <hr>
+
+                <h6 class="text-primary"><i class="bi bi-3-circle me-1"></i> Dominio custom nuevo (crear zona en Cloudflare)</h6>
+                <p class="small">Si el dominio <strong>no esta</strong> en Cloudflare, deja desmarcada la opcion "No crear zona". El sistema:</p>
+                <ol class="small">
+                    <li>Creara una nueva zona en Cloudflare</li>
+                    <li>Creara registros CNAME (<code>@</code> y <code>www</code>) apuntando a <code>mortadelo.musedock.com</code></li>
+                    <li>Te mostrara los <strong>nameservers</strong> que debes configurar en tu registrador de dominio</li>
+                    <li>El certificado se generara una vez los NS esten propagados</li>
+                </ol>
+
+                <hr>
+
+                <h6 class="text-danger"><i class="bi bi-shield-lock me-1"></i> Configuracion del API Token de Cloudflare</h6>
+                <p class="small">Para que el sistema pueda gestionar zonas y certificados de todos los dominios, el token necesita permisos ampliados:</p>
+                <div class="card bg-light mb-3">
+                    <div class="card-body py-2 small">
+                        <ol class="mb-0">
+                            <li>Ve a <strong>dash.cloudflare.com &rarr; My Profile &rarr; API Tokens</strong></li>
+                            <li>Edita el token existente o crea uno nuevo</li>
+                            <li>Configura los permisos:
+                                <table class="table table-sm table-bordered mt-1 mb-1" style="font-size: .8rem;">
+                                    <tr><th>Permiso</th><th>Acceso</th></tr>
+                                    <tr><td>Zone : Zone : Read</td><td>Include: <strong>All zones</strong></td></tr>
+                                    <tr><td>Zone : DNS : Edit</td><td>Include: <strong>All zones</strong></td></tr>
+                                </table>
+                            </li>
+                            <li>Guarda y copia el nuevo token</li>
+                            <li>Actualizalo en dos sitios:
+                                <ul>
+                                    <li><code>/etc/default/caddy</code> &rarr; <code>CLOUDFLARE_API_TOKEN=nuevo_token</code></li>
+                                    <li><code>.env</code> del CMS &rarr; <code>CLOUDFLARE_API_TOKEN=nuevo_token</code></li>
+                                </ul>
+                            </li>
+                            <li>Reinicia Caddy: <code>systemctl restart caddy</code></li>
+                        </ol>
+                    </div>
+                </div>
+
+                <h6 class="text-info"><i class="bi bi-info-circle me-1"></i> Diagnostico</h6>
+                <ul class="small mb-0">
+                    <li><strong>Error 522:</strong> Cloudflare no puede conectar con el servidor &rarr; verificar que Caddy tiene certificado SSL para el dominio</li>
+                    <li><strong>Error 521:</strong> Servidor no responde &rarr; verificar que la ruta existe en Caddy</li>
+                    <li><strong>Cert no se genera:</strong> Si el proxy (nube naranja) esta activo, HTTP-01 falla. Necesita DNS-01 con token que tenga acceso a la zona</li>
+                    <li><strong>NS diferentes:</strong> Si los nameservers mostrados no coinciden con los del registrador, el dominio apunta a otra zona de Cloudflare</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -2718,56 +2880,211 @@ async function addAlias() {
         return;
     }
 
-    // Validación básica de formato
     if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/.test(domain)) {
         Swal.fire({ icon: 'warning', title: 'Formato inválido', text: 'Introduce un dominio válido (ej: ejemplo.com o sub.musedock.com).', confirmButtonColor: '#0d6efd' });
         return;
     }
 
+    // Mostrar modal de progreso
+    const steps = [
+        { id: 'validate', label: 'Validando dominio', icon: 'bi-check-circle' },
+        { id: 'database', label: 'Registrando alias', icon: 'bi-database' },
+        { id: 'cloudflare', label: skipCloudflare ? 'Cloudflare (omitido)' : 'Configurando Cloudflare', icon: 'bi-cloud' },
+        { id: 'caddy', label: 'Configurando servidor web', icon: 'bi-hdd-rack' },
+        { id: 'done', label: 'Finalizado', icon: 'bi-check2-all' }
+    ];
+
+    let stepsHtml = `<div class="text-start" style="max-width:340px;margin:0 auto;">`;
+    steps.forEach((s, i) => {
+        stepsHtml += `<div id="alias-step-${s.id}" class="d-flex align-items-center gap-2 mb-2 py-1 px-2 rounded" style="color:#6c757d;">
+            <span class="alias-step-icon"><i class="bi ${s.icon}"></i></span>
+            <span class="flex-grow-1">${s.label}</span>
+            <span class="alias-step-status"></span>
+        </div>`;
+    });
+    stepsHtml += `</div>`;
+
+    Swal.fire({
+        title: `Añadiendo alias`,
+        html: `<p class="text-muted mb-3"><strong>${domain}</strong></p>${stepsHtml}`,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => { setAliasStep('validate', 'active'); }
+    });
+
+    function setAliasStep(stepId, state) {
+        const el = document.getElementById(`alias-step-${stepId}`);
+        if (!el) return;
+        const statusEl = el.querySelector('.alias-step-status');
+        if (state === 'active') {
+            el.style.color = '#0d6efd';
+            el.style.background = '#e7f1ff';
+            el.style.fontWeight = '600';
+            statusEl.innerHTML = '<span class="spinner-border spinner-border-sm text-primary"></span>';
+        } else if (state === 'done') {
+            el.style.color = '#198754';
+            el.style.background = '#d1e7dd';
+            el.style.fontWeight = '500';
+            statusEl.innerHTML = '<i class="bi bi-check-lg text-success"></i>';
+        } else if (state === 'skip') {
+            el.style.color = '#6c757d';
+            el.style.background = '#f8f9fa';
+            el.style.fontWeight = '400';
+            statusEl.innerHTML = '<i class="bi bi-dash text-muted"></i>';
+        } else if (state === 'error') {
+            el.style.color = '#dc3545';
+            el.style.background = '#f8d7da';
+            el.style.fontWeight = '500';
+            statusEl.innerHTML = '<i class="bi bi-x-lg text-danger"></i>';
+        }
+    }
+
+    async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
 
     try {
+        // Fase 1: Validación (visual, la real la hace el server)
+        await sleep(400);
+        setAliasStep('validate', 'done');
+
+        // Fase 2: Registrando
+        setAliasStep('database', 'active');
+        await sleep(200);
+
         const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/add-alias', {
             method: 'POST',
             headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/json' },
             body: JSON.stringify({ _csrf: csrfToken, domain: domain, include_www: includeWww, skip_cloudflare: skipCloudflare })
         });
-        const data = await response.json();
 
-        if (data.success) {
-            let msg = data.message || 'Alias añadido correctamente.';
-            if (data.nameservers) {
-                msg += '\n\nNameservers para configurar en tu registrador:\n' + data.nameservers;
-            }
-            await Swal.fire({
-                icon: 'success',
-                title: 'Alias Añadido',
-                html: msg.replace(/\n/g, '<br>'),
-                confirmButtonColor: '#0d6efd'
-            });
-            location.reload();
-        } else {
-            Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'No se pudo añadir el alias.', confirmButtonColor: '#0d6efd' });
+        let data;
+        const text = await response.text();
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            setAliasStep('database', 'error');
+            Swal.fire({ icon: 'error', title: 'Error del servidor', html: 'Respuesta inesperada del servidor.<br><small class="text-muted">' + text.substring(0, 200) + '</small>', confirmButtonColor: '#0d6efd' });
+            return;
         }
+
+        if (!data.success) {
+            setAliasStep('database', 'error');
+            await sleep(300);
+            Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'No se pudo añadir el alias.', confirmButtonColor: '#0d6efd' });
+            return;
+        }
+
+        // Server ya hizo todo - avanzar pasos visualmente
+        setAliasStep('database', 'done');
+        await sleep(300);
+
+        // Fase 3: Cloudflare
+        if (skipCloudflare) {
+            setAliasStep('cloudflare', 'skip');
+        } else {
+            setAliasStep('cloudflare', 'active');
+            await sleep(500);
+            setAliasStep('cloudflare', 'done');
+        }
+        await sleep(300);
+
+        // Fase 4: Caddy
+        setAliasStep('caddy', 'active');
+        await sleep(400);
+        setAliasStep('caddy', data.caddy_success ? 'done' : 'error');
+        await sleep(300);
+
+        // Fase 5: Finalizado
+        setAliasStep('done', 'done');
+        await sleep(400);
+
+        // Resultado final
+        let resultHtml = `<p class="text-success fw-semibold">${data.message || 'Alias añadido correctamente.'}</p>`;
+        if (data.nameservers) {
+            const ns = Array.isArray(data.nameservers) ? data.nameservers.join('<br>') : data.nameservers;
+            resultHtml += `<div class="alert alert-info text-start mt-2 mb-0"><strong>Nameservers:</strong><br>${ns}<br><small class="text-muted">Configúralos en tu registrador de dominio.</small></div>`;
+        }
+        if (data.dns_info) {
+            resultHtml += `<p class="text-muted small mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>${data.dns_info}</p>`;
+        }
+
+        await Swal.fire({
+            icon: 'success',
+            title: 'Alias Añadido',
+            html: resultHtml,
+            confirmButtonColor: '#0d6efd',
+            confirmButtonText: 'Aceptar'
+        });
+        location.reload();
+
     } catch (error) {
-        Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'No se pudo conectar con el servidor.', confirmButtonColor: '#0d6efd' });
+        Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'No se pudo conectar con el servidor: ' + error.message, confirmButtonColor: '#0d6efd' });
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-plus-lg"></i> Añadir';
     }
 }
 
-async function removeAlias(aliasId, domain) {
+async function removeAlias(aliasId, domain, isSubdomain, hasCfZone, hasCfRecord) {
+    const hasCf = hasCfZone || hasCfRecord;
+
+    let cfWarning = '';
+    let cfCheckbox = '';
+
+    if (hasCf) {
+        if (isSubdomain) {
+            // Subdominio: solo borra el registro CNAME — seguro
+            cfCheckbox = `
+                <div class="form-check text-start mt-3">
+                    <input class="form-check-input" type="checkbox" id="cfDeleteCheck" checked>
+                    <label class="form-check-label" for="cfDeleteCheck">
+                        <i class="bi bi-cloud me-1"></i> Eliminar registro CNAME de Cloudflare
+                        <br><small class="text-muted">Solo el registro del subdominio, no afecta a otros registros.</small>
+                    </label>
+                </div>`;
+        } else {
+            // Dominio custom con zona CF — peligroso
+            cfCheckbox = `
+                <div class="form-check text-start mt-3">
+                    <input class="form-check-input" type="checkbox" id="cfDeleteCheck">
+                    <label class="form-check-label" for="cfDeleteCheck">
+                        <i class="bi bi-cloud me-1 text-danger"></i> Eliminar ZONA COMPLETA de Cloudflare
+                    </label>
+                </div>
+                <div class="alert alert-danger small py-2 mt-2 text-start">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    <strong>Peligro:</strong> Esto eliminara TODA la zona <strong>${domain}</strong> de Cloudflare,
+                    incluyendo subdominios, registros MX, TXT, DKIM, SPF y cualquier otra configuracion.
+                    <strong>Desmarcar si el dominio tiene otros servicios configurados.</strong>
+                </div>`;
+        }
+    }
+
     const confirm = await Swal.fire({
         icon: 'warning',
         title: 'Eliminar Alias',
-        html: `¿Seguro que deseas eliminar el alias <strong>${domain}</strong>?<br><small class="text-muted">Se eliminará de Caddy y Cloudflare.</small>`,
+        html: `
+            <p>¿Seguro que deseas eliminar el alias <strong>${domain}</strong>?</p>
+            <div class="alert alert-light border small py-2 text-start mb-0">
+                <i class="bi bi-info-circle text-primary me-1"></i>
+                <strong>Se eliminara:</strong>
+                <ul class="mb-0 mt-1">
+                    <li>La ruta de Caddy (SSL y enrutamiento)</li>
+                    <li>El registro en la base de datos</li>
+                </ul>
+            </div>
+            ${cfCheckbox}`,
         showCancelButton: true,
         confirmButtonText: 'Sí, eliminar',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d'
+        cancelButtonColor: '#6c757d',
+        preConfirm: () => {
+            const cfCheck = document.getElementById('cfDeleteCheck');
+            return { deleteFromCloudflare: cfCheck ? cfCheck.checked : false };
+        }
     });
 
     if (!confirm.isConfirmed) return;
@@ -2776,7 +3093,11 @@ async function removeAlias(aliasId, domain) {
         const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/remove-alias', {
             method: 'POST',
             headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/json' },
-            body: JSON.stringify({ _csrf: csrfToken, alias_id: aliasId })
+            body: JSON.stringify({
+                _csrf: csrfToken,
+                alias_id: aliasId,
+                deleteFromCloudflare: confirm.value.deleteFromCloudflare
+            })
         });
         const data = await response.json();
 
@@ -2784,9 +3105,9 @@ async function removeAlias(aliasId, domain) {
             await Swal.fire({
                 icon: 'success',
                 title: 'Alias Eliminado',
-                text: data.message || 'Alias eliminado correctamente.',
+                html: `${data.message}<br><small class="text-muted">Cloudflare: ${data.cloudflare || 'n/a'}</small>`,
                 confirmButtonColor: '#0d6efd',
-                timer: 2000,
+                timer: 3000,
                 timerProgressBar: true
             });
             location.reload();
@@ -2816,10 +3137,33 @@ if (automationsCollapse && automationsChevron) {
 // Store last suggestions for selective apply
 let lastAutoTagSuggestions = null;
 
+let autoTagAbortController = null;
+let autoTagTimerInterval = null;
+
+function cancelAutoTag() {
+    if (autoTagAbortController) {
+        autoTagAbortController.abort();
+        autoTagAbortController = null;
+    }
+    if (autoTagTimerInterval) {
+        clearInterval(autoTagTimerInterval);
+        autoTagTimerInterval = null;
+    }
+    document.getElementById('btnCancelAutoTag').classList.add('d-none');
+    document.getElementById('autoTagTimer').classList.add('d-none');
+    toggleBtnSpinner(document.getElementById('btnPreviewAutoTag'), false);
+    toggleBtnSpinner(document.getElementById('btnApplyAutoTag'), false);
+    const rc = document.getElementById('autoTagResults');
+    rc.classList.remove('d-none');
+    rc.innerHTML = '<div class="alert alert-warning small"><i class="bi bi-x-circle"></i> Proceso cancelado por el usuario.</div>';
+}
+
 async function runAutoTag(dryRun) {
     const btn = dryRun ? document.getElementById('btnPreviewAutoTag') : document.getElementById('btnApplyAutoTag');
     const resultsContainer = document.getElementById('autoTagResults');
     const scope = document.getElementById('autoTagScope').value;
+    const cancelBtn = document.getElementById('btnCancelAutoTag');
+    const timerEl = document.getElementById('autoTagTimer');
 
     toggleBtnSpinner(btn, true);
 
@@ -2840,6 +3184,19 @@ async function runAutoTag(dryRun) {
         }
     }
 
+    // Show cancel button and timer
+    autoTagAbortController = new AbortController();
+    cancelBtn.classList.remove('d-none');
+    timerEl.classList.remove('d-none');
+    let elapsed = 0;
+    timerEl.textContent = '0s';
+    autoTagTimerInterval = setInterval(() => {
+        elapsed++;
+        const min = Math.floor(elapsed / 60);
+        const sec = elapsed % 60;
+        timerEl.textContent = min > 0 ? `${min}m ${sec}s` : `${sec}s`;
+    }, 1000);
+
     try {
         const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/auto-tag', {
             method: 'POST',
@@ -2851,7 +3208,8 @@ async function runAutoTag(dryRun) {
                 _csrf: csrfToken,
                 dry_run: dryRun,
                 scope: scope
-            })
+            }),
+            signal: autoTagAbortController.signal
         });
         const data = await response.json();
 
@@ -2873,9 +3231,14 @@ async function runAutoTag(dryRun) {
             resultsContainer.innerHTML = errHtml;
         }
     } catch (error) {
+        if (error.name === 'AbortError') return; // Already handled by cancelAutoTag
         resultsContainer.classList.remove('d-none');
         resultsContainer.innerHTML = '<div class="alert alert-danger small"><i class="bi bi-exclamation-triangle"></i> Error de conexion con el servidor.</div>';
     } finally {
+        if (autoTagTimerInterval) { clearInterval(autoTagTimerInterval); autoTagTimerInterval = null; }
+        cancelBtn.classList.add('d-none');
+        timerEl.classList.add('d-none');
+        autoTagAbortController = null;
         toggleBtnSpinner(btn, false);
     }
 }
@@ -3023,6 +3386,207 @@ function renderAppliedResults(data, container) {
     }
     html += '</div>';
     container.innerHTML = html;
+}
+
+// Cambiar email del admin del tenant
+async function saveTenantAdmin() {
+    const resultDiv = document.getElementById('admin-save-result');
+    const email = document.getElementById('adminEmail').value.trim();
+    const name = document.getElementById('adminName').value.trim();
+    const password = document.getElementById('adminNewPassword').value.trim();
+
+    if (!email || !email.includes('@')) {
+        resultDiv.innerHTML = '<small class="text-danger">Email no válido</small>';
+        return;
+    }
+    if (!name) {
+        resultDiv.innerHTML = '<small class="text-danger">El nombre es obligatorio</small>';
+        return;
+    }
+    if (password && password.length < 6) {
+        resultDiv.innerHTML = '<small class="text-danger">La contraseña debe tener al menos 6 caracteres</small>';
+        return;
+    }
+
+    resultDiv.innerHTML = '<small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span> Guardando...</small>';
+
+    try {
+        const resp = await fetch('/musedock/domain-manager/{{ $tenant->id }}/save-admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ email, name, password: password || null, _csrf: csrfToken })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            resultDiv.innerHTML = '<small class="text-success"><i class="bi bi-check-circle me-1"></i>' + data.message + '</small>';
+            if (password) document.getElementById('adminNewPassword').value = '';
+        } else {
+            resultDiv.innerHTML = '<small class="text-danger">' + data.message + '</small>';
+        }
+    } catch (err) {
+        resultDiv.innerHTML = '<small class="text-danger">Error: ' + err.message + '</small>';
+    }
+}
+
+// Auto-check real Cloudflare proxy status on load (all domains)
+(async function checkRealProxyStatus() {
+    const statusDiv = document.getElementById('cf-proxy-status');
+    if (!statusDiv) return;
+
+    try {
+        const res = await fetch('/musedock/domain-manager/{{ $tenant->id }}/check-proxy', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+            statusDiv.innerHTML = `<small class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i> ${data.message || 'Error consultando CF'}</small>`;
+            return;
+        }
+
+        // Update main toggle
+        const toggle = document.getElementById('cfProxyToggle');
+        if (toggle && data.proxied !== null) {
+            toggle.checked = data.proxied;
+        }
+
+        // Render all domains with individual toggles
+        let html = '<div class="d-flex flex-column gap-2">';
+        for (const d of data.domains || []) {
+            const label = d.type === 'principal' ? '<span class="badge bg-primary" style="font-size:.6rem">principal</span>' : `<span class="badge bg-secondary" style="font-size:.6rem">${d.type}</span>`;
+            const canToggle = d.zone_id && d.record_id;
+
+            if (d.proxied === true) {
+                html += `<div class="d-flex align-items-center justify-content-between">
+                    <div>${label} <small class="text-warning"><i class="bi bi-cloud-fill me-1"></i> <strong>${d.domain}</strong> — nube naranja</small></div>
+                    ${canToggle ? `<div class="form-check form-switch mb-0 ms-2"><input class="form-check-input" type="checkbox" checked onchange="toggleDomainProxy('${d.domain}','${d.zone_id}','${d.record_id}',this.checked,this)"></div>` : ''}
+                </div>`;
+            } else if (d.proxied === false) {
+                html += `<div class="d-flex align-items-center justify-content-between">
+                    <div>${label} <small class="text-secondary"><i class="bi bi-cloud me-1"></i> <strong>${d.domain}</strong> — nube gris</small></div>
+                    ${canToggle ? `<div class="form-check form-switch mb-0 ms-2"><input class="form-check-input" type="checkbox" onchange="toggleDomainProxy('${d.domain}','${d.zone_id}','${d.record_id}',this.checked,this)"></div>` : ''}
+                </div>`;
+            } else {
+                html += `<div>${label} <small class="text-muted"><i class="bi bi-question-circle me-1"></i> <strong>${d.domain}</strong> — No en Cloudflare</small></div>`;
+            }
+        }
+        html += '</div>';
+        statusDiv.innerHTML = html;
+
+    } catch (e) {
+        statusDiv.innerHTML = '<small class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i> Error de conexion</small>';
+    }
+})();
+
+// Toggle proxy for any domain (alias, redirect, etc.) with confirmation
+async function toggleDomainProxy(domain, zoneId, recordId, proxied, toggle) {
+    const action = proxied ? 'activar el proxy (nube naranja)' : 'desactivar el proxy (nube gris)';
+    const warning = proxied
+        ? 'El trafico pasara por Cloudflare. Necesitaras certificado SSL via DNS-01.'
+        : 'La conexion sera directa al servidor. Cloudflare no filtrara ni cacheara el trafico.';
+
+    const confirm = await Swal.fire({
+        title: `<i class="bi bi-cloud${proxied ? '-fill text-warning' : ' text-secondary'}"></i> Cambiar proxy`,
+        html: `<p>¿${action} para <strong>${domain}</strong>?</p>
+               <div class="alert alert-light border small py-2 text-start mb-0">
+                   <i class="bi bi-info-circle text-primary me-1"></i> ${warning}
+               </div>`,
+        showCancelButton: true,
+        confirmButtonText: proxied ? '<i class="bi bi-cloud-fill me-1"></i> Activar proxy' : '<i class="bi bi-cloud me-1"></i> Desactivar proxy',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: proxied ? '#e67e22' : '#6c757d',
+    });
+
+    if (!confirm.isConfirmed) {
+        toggle.checked = !proxied;
+        return;
+    }
+
+    toggle.disabled = true;
+    try {
+        const res = await fetch('/musedock/domain-manager/toggle-domain-proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ _csrf: csrfToken, zone_id: zoneId, record_id: recordId, proxied, domain })
+        });
+        const data = await res.json();
+        if (data.success) {
+            const row = toggle.closest('.d-flex');
+            const small = row.querySelector('small');
+            if (data.proxied) {
+                if (small) { small.className = 'text-warning'; small.innerHTML = `<i class="bi bi-cloud-fill me-1"></i> <strong>${domain}</strong> — nube naranja`; }
+            } else {
+                if (small) { small.className = 'text-secondary'; small.innerHTML = `<i class="bi bi-cloud me-1"></i> <strong>${domain}</strong> — nube gris`; }
+            }
+        } else {
+            toggle.checked = !proxied;
+            Swal.fire({ icon: 'error', title: 'Error', text: data.message, confirmButtonColor: '#0d6efd' });
+        }
+    } catch (e) {
+        toggle.checked = !proxied;
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Error de conexion: ' + e.message, confirmButtonColor: '#0d6efd' });
+    } finally {
+        toggle.disabled = false;
+    }
+}
+
+// Toggle Cloudflare Proxy (nube naranja ↔ gris) — legacy for main domain
+async function toggleCloudflareProxy(enabled) {
+    const toggle = document.getElementById('cfProxyToggle');
+    const statusDiv = document.getElementById('cf-proxy-status');
+    const loadingDiv = document.getElementById('cf-proxy-loading');
+    const domain = '{{ $tenant->domain }}';
+
+    const action = enabled ? 'activar el proxy (nube naranja)' : 'desactivar el proxy (nube gris)';
+    const warning = enabled
+        ? 'El trafico pasara por Cloudflare. Necesitaras certificado SSL via DNS-01.'
+        : 'La conexion sera directa al servidor. Cloudflare no filtrara ni cacheara el trafico.';
+
+    const confirm = await Swal.fire({
+        title: `<i class="bi bi-cloud${enabled ? '-fill text-warning' : ' text-secondary'}"></i> Cambiar proxy`,
+        html: `<p>¿${action} para <strong>${domain}</strong>?</p>
+               <div class="alert alert-light border small py-2 text-start mb-0">
+                   <i class="bi bi-info-circle text-primary me-1"></i> ${warning}
+               </div>`,
+        showCancelButton: true,
+        confirmButtonText: enabled ? '<i class="bi bi-cloud-fill me-1"></i> Activar proxy' : '<i class="bi bi-cloud me-1"></i> Desactivar proxy',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: enabled ? '#e67e22' : '#6c757d',
+    });
+
+    if (!confirm.isConfirmed) {
+        toggle.checked = !enabled;
+        return;
+    }
+
+    statusDiv.classList.add('d-none');
+    loadingDiv.classList.remove('d-none');
+    toggle.disabled = true;
+
+    try {
+        const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/toggle-proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ proxied: enabled, _csrf: csrfToken })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            toggle.checked = data.proxied;
+            // Reload proxy status to refresh all rows
+            location.reload();
+        } else {
+            toggle.checked = !enabled;
+            Swal.fire('Error', data.message || 'Error al cambiar proxy', 'error');
+        }
+    } catch (err) {
+        toggle.checked = !enabled;
+        Swal.fire('Error', 'Error de conexion: ' + err.message, 'error');
+    } finally {
+        loadingDiv.classList.add('d-none');
+        statusDiv.classList.remove('d-none');
+        toggle.disabled = false;
+    }
 }
 
 </script>

@@ -146,7 +146,18 @@ foreach ($tenants as $tenant) {
 $panelRepaired = 0;
 $panelDbFile = '/opt/musedock-panel/config/panel.php';
 if (file_exists($panelDbFile)) {
-    $panelConfig = require $panelDbFile;
+    // Load the panel's autoloader if available so its Env class is found
+    $panelAutoload = '/opt/musedock-panel/vendor/autoload.php';
+    if (file_exists($panelAutoload)) {
+        require_once $panelAutoload;
+    }
+    try {
+        $panelConfig = require $panelDbFile;
+    } catch (\Throwable $e) {
+        echo "  [WARN] Could not load panel config: {$e->getMessage()}\n";
+        $panelConfig = null;
+    }
+    if (!$panelConfig) { goto skipPanel; }
     try {
         $panelPdo = new PDO(
             "pgsql:host={$panelConfig['db']['host']};port={$panelConfig['db']['port']};dbname={$panelConfig['db']['database']}",
@@ -201,6 +212,7 @@ if (file_exists($panelDbFile)) {
         echo "  [WARN] No se pudo conectar a la BD del panel: {$e->getMessage()}\n";
     }
 }
+skipPanel:
 
 // Update autosave if anything was repaired
 if ($repaired > 0 || $panelRepaired > 0) {

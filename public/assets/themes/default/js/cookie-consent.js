@@ -73,7 +73,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showConsentPopup() {
-        if (consentPopup) consentPopup.style.display = 'block';
+        if (consentPopup) {
+            consentPopup.style.display = consentPopup.classList.contains('cookie-layout-modal') ? 'flex' : 'block';
+        }
     }
 
     function hideConsentPopup() {

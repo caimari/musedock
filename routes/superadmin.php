@@ -50,6 +50,7 @@ Route::post('/musedock/password/reset', 'superadmin.PasswordResetController@rese
 // Panel de control
 Route::get('/musedock', 'superadmin.MusedockController@index')->middleware('superadmin');
 Route::get('/musedock/dashboard', 'superadmin.DashboardController@index')->middleware('superadmin');
+Route::get('/musedock/changelog', 'superadmin.DashboardController@changelog')->middleware('superadmin')->name('superadmin.changelog');
 Route::post('/musedock/run-seeders', 'superadmin.DashboardController@runMissingSeeders')->middleware('superadmin')->name('dashboard.run-seeders');
 Route::get('/musedock/logout', 'superadmin.AuthController@logout')->middleware('superadmin');
 

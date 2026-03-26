@@ -432,6 +432,17 @@ class SettingsController
                 }
             }
 
+            // Page URL prefix
+            $pageUrlMode = $_POST['page_url_mode'] ?? 'prefix';
+            if ($pageUrlMode === 'none') {
+                $pageUrlPrefix = '';
+            } else {
+                $pageUrlPrefix = preg_replace('/[^a-z0-9\-]/', '', strtolower(trim($_POST['page_url_prefix'] ?? 'p')));
+                if ($pageUrlPrefix === '') {
+                    $pageUrlPrefix = 'p';
+                }
+            }
+
             // Settings de lectura
             $readingSettings = [
                 'show_on_front' => $_POST['show_on_front'] ?? 'posts',
@@ -442,6 +453,7 @@ class SettingsController
                 'blog_public' => isset($_POST['blog_public']) ? '0' : '1',
                 'blog_show_views' => isset($_POST['blog_show_views']) ? '1' : '0',
                 'blog_url_prefix' => $blogUrlPrefix,
+                'page_url_prefix' => $pageUrlPrefix,
             ];
 
             foreach ($readingSettings as $key => $value) {
@@ -464,6 +476,34 @@ class SettingsController
                 WHERE tenant_id = ? AND module = 'blog'
             ");
             $stmt->execute([$newPrefix, $tenantId]);
+
+            // Verificar conflictos cross-module si ambos prefijos son vacíos
+            $newPagePrefix = $pageUrlPrefix ?: null;
+            $newBlogPrefix = $blogUrlPrefix ?: null;
+            if ($newPagePrefix === null && $newBlogPrefix === null) {
+                $stmt = $pdo->prepare("
+                    SELECT s1.slug FROM slugs s1
+                    INNER JOIN slugs s2 ON s1.slug = s2.slug AND s1.tenant_id = s2.tenant_id
+                    WHERE s1.module = 'pages' AND s2.module = 'blog'
+                    AND s1.tenant_id = ?
+                    LIMIT 5
+                ");
+                $stmt->execute([$tenantId]);
+                $conflicts = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+                if (!empty($conflicts)) {
+                    $pdo->rollBack();
+                    $_SESSION['error'] = 'No se pueden quitar ambos prefijos: hay slugs duplicados entre páginas y posts (' . implode(', ', $conflicts) . '). Cambia los slugs duplicados o mantén al menos un prefijo.';
+                    header('Location: /' . admin_path() . '/settings/reading');
+                    exit;
+                }
+            }
+
+            // Actualizar el prefix de todos los slugs de páginas existentes
+            $stmt = $pdo->prepare("
+                UPDATE slugs SET prefix = ?
+                WHERE tenant_id = ? AND module = 'pages'
+            ");
+            $stmt->execute([$newPagePrefix, $tenantId]);
 
             $pdo->commit();
             clear_tenant_settings_cache();
@@ -623,14 +663,17 @@ class SettingsController
             $keys = [
                 'cookies_enabled', 'cookies_text', 'cookies_accept_basic',
                 'cookies_accept_all', 'cookies_more_info', 'cookies_policy_url',
-                'cookies_terms_text', 'cookies_terms_url'
+                'cookies_terms_text', 'cookies_terms_url',
+                'cookies_show_icon', 'cookies_banner_layout',
+                'cookies_bg_color', 'cookies_text_color',
+                'cookies_btn_accept_bg', 'cookies_btn_reject_bg'
             ];
 
             foreach ($keys as $key) {
                 $value = $_POST[$key] ?? '';
 
-                if ($key === 'cookies_enabled') {
-                    $value = isset($_POST['cookies_enabled']) ? '1' : '0';
+                if ($key === 'cookies_enabled' || $key === 'cookies_show_icon') {
+                    $value = isset($_POST[$key]) ? '1' : '0';
                 }
 
                 $this->saveTenantSetting($pdo, $tenantId, $key, $value, $driver);

@@ -182,6 +182,13 @@
     $rawContent = $translation->content ?? '';
     $processedContent = apply_filters('the_content', $rawContent);
 
+    // Limpiar <p> que envuelven sliders/divs (HTML inválido de importación WP o shortcodes)
+    $processedContent = preg_replace('/<p>\s*((<link[^>]*>\s*)*)\s*(<div\s)/s', '$1$3', $processedContent);
+    $processedContent = preg_replace('/(<\/div>)\s*<\/p>/s', '$1', $processedContent);
+    $processedContent = preg_replace('/<p>\s*(<script\b)/s', '$1', $processedContent);
+    $processedContent = preg_replace('/(<\/script>)\s*<\/p>/s', '$1', $processedContent);
+    $processedContent = preg_replace('/<p>\s*(&nbsp;|\xC2\xA0|\s)*<\/p>/i', '', $processedContent);
+
     // Detectar y extraer slider a sangre (full-width) del contenido
     $fullWidthSliderHtml = '';
     $pageHasFullWidthSlider = false;
@@ -202,6 +209,7 @@
         // Limpiar párrafos vacíos que puedan quedar al inicio
         $processedContent = preg_replace('/^(\s*<p>\s*<\/p>\s*)+/', '', $processedContent);
     }
+
 @endphp
 
 {{-- Slider a sangre FUERA del contenedor --}}

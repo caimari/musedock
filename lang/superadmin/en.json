@@ -255,7 +255,7 @@
             "tags": "Tags",
             "featured_image": "Featured image",
             "image_url": "Image URL",
-            "image_placeholder": "https:\/\/example.com\/image.jpg",
+            "image_placeholder": "https://example.com/image.jpg",
             "image_help": "Paste an image URL or upload one from the media manager.",
             "image_load_error": "Error loading image",
             "hero_image": "Hero image",
@@ -365,9 +365,9 @@
             "confirm_yes_continue": "Yes, continue"
         },
         "delete": {
-            "confirm_delete_post": "This action will permanently delete the post <strong>\":title\"<\/strong> and cannot be undone.",
-            "confirm_delete_category": "This action will permanently delete the category <strong>\":name\"<\/strong> and cannot be undone.",
-            "confirm_delete_tag": "This action will permanently delete the tag <strong>\":name\"<\/strong> and cannot be undone.",
+            "confirm_delete_post": "This action will permanently delete the post <strong>\":title\"</strong> and cannot be undone.",
+            "confirm_delete_category": "This action will permanently delete the category <strong>\":name\"</strong> and cannot be undone.",
+            "confirm_delete_tag": "This action will permanently delete the tag <strong>\":name\"</strong> and cannot be undone.",
             "form_not_found": "Delete form not found. Please reload the page."
         },
         "category": {
@@ -387,7 +387,7 @@
             "description": "Description",
             "image": "Image",
             "image_url": "Image URL",
-            "image_placeholder": "https:\/\/example.com\/image.jpg",
+            "image_placeholder": "https://example.com/image.jpg",
             "parent": "Parent category",
             "no_parent": "No parent category",
             "none": "None (root category)",
@@ -715,7 +715,7 @@
         "configured_in_env": "Configured in .env",
         "recommend_env": "Recommended: configure in .env for better security",
         "main_domain": "Main domain",
-        "main_domain_help": "This domain will show the \/musedock panel and main site",
+        "main_domain_help": "This domain will show the /musedock panel and main site",
         "site_language": "Site language",
         "manage_languages_link": "Manage available languages in",
         "auto_detect_language": "Auto-detect (based on user browser)",
@@ -809,7 +809,7 @@
         "site_url": "WordPress site URL",
         "username": "WordPress username",
         "app_password": "Application Password",
-        "auth_info": "To import drafts and private content, you need Application Passwords (WordPress 5.6+).",
+        "auth_info": "To import menus, drafts and private content, you need Application Passwords (WordPress 5.6+).",
         "select_content": "Select content",
         "categories": "Categories",
         "tags": "Tags",
@@ -840,8 +840,8 @@
         "styles_applied": "Applied successfully",
         "google_fonts_detected": "Google Fonts detected",
         "session_expired": "Session expired. Please reconnect.",
-        "credentials_optional": "Optional credentials (for drafts and private content)",
-        "site_url_help": "Example: https:\/\/mysite.com (without \/wp-admin or trailing slash)",
+        "credentials_optional": "Credentials (optional, required for menus)",
+        "site_url_help": "Example: https://mysite.com (without /wp-admin or trailing slash)",
         "updated": "updated",
         "duplicate_policy": "Duplicate policy",
         "duplicate_policy_desc": "Choose what to do with duplicate content:",
@@ -851,6 +851,8 @@
         "policy_overwrite_desc": "Update existing content with WordPress data",
         "policy_rename": "Rename",
         "policy_rename_desc": "Create new with modified slug (-1, -2...)",
-        "importing_for_tenant": "Importing for tenant"
+        "importing_for_tenant": "Importing for tenant",
+        "test_auth": "Test connection",
+        "testing_auth": "Verifying..."
     }
 }

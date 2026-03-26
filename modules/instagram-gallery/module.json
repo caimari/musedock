@@ -11,7 +11,7 @@
     "view",
     "create",
     "edit",
-    "manage",
+    "settings",
     "delete"
   ],
   "settings": {

@@ -73,6 +73,13 @@ Route::get('/admin/instagram/{id}/posts', 'Modules\InstagramGallery\Controllers\
 Route::get('/admin/instagram/{id}/gallery', 'Modules\InstagramGallery\Controllers\Tenant\GalleryController@show')
     ->name('tenant.instagram.gallery');
 
+// Configuración - Tenant
+Route::get('/admin/instagram/settings', 'Modules\InstagramGallery\Controllers\Tenant\SettingsController@index')
+    ->name('tenant.instagram.settings');
+
+Route::post('/admin/instagram/settings', 'Modules\InstagramGallery\Controllers\Tenant\SettingsController@update')
+    ->name('tenant.instagram.settings.update');
+
 // Selector de conexiones para editor (AJAX)
 Route::get('/admin/instagram/selector', 'Modules\InstagramGallery\Controllers\Tenant\ConnectionController@selector')
     ->name('tenant.instagram.selector');
