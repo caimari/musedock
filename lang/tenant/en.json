@@ -318,6 +318,9 @@
             "recommended_resolution": "Recommended resolution: 1200x630px. This image is used as the post header and in article listings.",
             "hide_featured_image": "Hide featured image on blog",
             "hide_featured_image_help": "If checked, the image will not be displayed in the listing or individual post",
+            "post_type": "Post type",
+            "type_post": "Article",
+            "type_brief": "News brief",
             "featured_this_post": "Feature this post"
         },
         "bulk": {
@@ -538,7 +541,15 @@
         "theme_details": "Theme Details",
         "author": "Author",
         "version": "Version",
-        "description": "Description"
+        "description": "Description",
+        "skins": "Skins",
+        "skins_desc": "Change the look of your theme with one click",
+        "apply": "Apply",
+        "upload_skin": "Upload Skin",
+        "available": "available",
+        "own": "Own",
+        "in_use": "In use",
+        "official": "Official"
     },
     "modules": {
         "title": "Modules",
@@ -913,5 +924,16 @@
         "policy_rename_desc": "Create new with modified slug (-1, -2...)",
         "test_auth": "Test connection",
         "testing_auth": "Verifying..."
+    },
+    "search": {
+        "search": "Search",
+        "search_placeholder": "Search...",
+        "results_for": "result(s) for",
+        "no_results": "No results found for",
+        "posts": "Posts",
+        "pages": "Pages",
+        "no_results_hint": "No results found. Try different keywords.",
+        "back_to_home": "Back to home",
+        "type_to_search": "Type something to search pages and posts."
     }
 }

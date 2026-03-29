@@ -2,450 +2,500 @@
 
 @section('content')
 @include('partials.alerts-sweetalert2')
-<div class="container">
 
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <h1 class="mb-0">Gestión de Temas</h1>
+@push('styles')
+<style>
+.themes-container { max-width: 1200px; margin: 0 auto; }
+.themes-header h2 { font-weight: 600; color: #1a1a2e; margin-bottom: 0.25rem; }
+.themes-header p { color: #6c757d; margin-bottom: 0; }
+
+/* Active theme banner */
+.active-theme-card {
+    background: #fff; border: 1px solid #e5e7eb; border-left: 4px solid #10b981;
+    border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 2rem;
+}
+.active-theme-card .icon-circle {
+    width: 44px; height: 44px; background: rgba(16,185,129,0.1); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: #10b981;
+}
+.active-theme-card .theme-label { font-size: 0.8rem; color: #64748b; }
+.active-theme-card .theme-name { font-size: 1.1rem; font-weight: 600; margin: 0; color: #1e293b; }
+.active-theme-card .badge { background: rgba(16,185,129,0.1); color: #059669; font-weight: 500; }
+
+/* Section header */
+.section-header {
+    display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+    padding-bottom: 1rem; border-bottom: 1px solid #e9ecef;
+}
+.section-header .icon-box {
+    width: 44px; height: 44px; border-radius: 12px; display: flex;
+    align-items: center; justify-content: center; font-size: 1.25rem; color: white;
+}
+.section-header .icon-box.official { background: linear-gradient(135deg, #10b981, #059669); }
+.section-header h4 { font-weight: 600; margin: 0; color: #1a1a2e; }
+.section-header small { color: #6c757d; }
+
+/* Theme grid */
+.theme-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;
+}
+.theme-card {
+    background: white; border-radius: 16px; border: 1px solid #e5e7eb;
+    overflow: hidden; transition: all 0.2s ease; position: relative;
+}
+.theme-card:hover { border-color: #c7d2fe; box-shadow: 0 8px 25px rgba(99,102,241,0.1); transform: translateY(-2px); }
+.theme-card.is-active { border-color: #93c5fd; box-shadow: 0 0 0 1px rgba(59,130,246,0.15); }
+.theme-card .active-badge {
+    position: absolute; top: 12px; right: -32px;
+    background: linear-gradient(135deg, #10b981, #059669); color: white;
+    font-size: 0.65rem; font-weight: 700; padding: 4px 40px; transform: rotate(45deg);
+    letter-spacing: 0.5px; z-index: 5;
+}
+.theme-preview {
+    height: 160px; background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+}
+.theme-preview img { width: 100%; height: 100%; object-fit: cover; }
+.theme-preview .placeholder-icon { font-size: 3rem; color: #94a3b8; margin-bottom: 0.5rem; }
+.theme-preview .placeholder-text { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+.theme-info { padding: 1.25rem; }
+.theme-info .theme-title { font-size: 1rem; font-weight: 600; color: #1e293b; margin-bottom: 0.25rem; }
+.theme-info .theme-desc { font-size: 0.85rem; color: #64748b; margin-bottom: 0.75rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.theme-info .theme-meta { display: flex; justify-content: space-between; font-size: 0.75rem; color: #94a3b8; }
+.theme-actions { padding: 0 1.25rem 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.theme-actions .btn { font-size: 0.8rem; padding: 0.4rem 0.75rem; border-radius: 8px; }
+.theme-actions .btn-active { background: #10b981; border: none; color: white; }
+.theme-actions .btn-activate { background: white; border: 1px solid #6366f1; color: #6366f1; }
+.theme-actions .btn-activate:hover { background: #6366f1; color: white; }
+.theme-actions .btn-icon { padding: 0.4rem 0.55rem; background: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; }
+.theme-actions .btn-icon:hover { background: #e2e8f0; color: #475569; }
+.badge-tenant-yes { background: rgba(16,185,129,0.1); color: #059669; font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 4px; }
+.badge-tenant-no { background: rgba(239,68,68,0.1); color: #ef4444; font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 4px; }
+
+/* Skins collapsible inside theme card */
+.theme-skins-toggle {
+    display: flex; align-items: center; gap: 6px; padding: 8px 1.25rem;
+    background: #f8fafc; border-top: 1px solid #f0f0f0; cursor: pointer;
+    font-size: 0.78rem; color: #7c3aed; font-weight: 500; transition: background 0.15s;
+    text-decoration: none;
+}
+.theme-skins-toggle:hover { background: #f0f0ff; color: #6d28d9; text-decoration: none; }
+.theme-skins-toggle .bi-chevron-down { transition: transform 0.2s; }
+.theme-skins-toggle.collapsed .bi-chevron-down { transform: rotate(-90deg); }
+.theme-skins-panel { padding: 1rem 1.25rem; background: #faf9ff; border-top: 1px solid #f0f0f0; }
+.skin-mini-card {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+    border-radius: 8px; border: 1px solid #e5e7eb; background: #fff;
+    margin-bottom: 6px; transition: all 0.15s;
+}
+.skin-mini-card:hover { border-color: #c4b5fd; }
+.skin-mini-card.skin-active { border-color: #22c55e; background: #f0fdf4; }
+.skin-color-dots { display: flex; gap: 3px; }
+.skin-color-dots span { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.08); }
+.skin-mini-name { font-size: 0.8rem; font-weight: 500; color: #1e293b; flex: 1; }
+.skin-mini-badge { font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; }
+.skin-mini-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+.skin-mini-card:hover .skin-mini-actions { opacity: 1; }
+.skin-mini-card.skin-disabled { opacity: 0.5; border-style: dashed; }
+
+@media (max-width: 576px) {
+    .theme-grid { grid-template-columns: 1fr; }
+}
+</style>
+@endpush
+
+<div class="themes-container">
+    {{-- Header --}}
+    <div class="themes-header d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h2><i class="bi bi-palette2 me-2"></i>Gestión de Temas</h2>
+            <p>Administra los temas del CMS y su disponibilidad para tenants</p>
+        </div>
         <div class="d-flex gap-2 flex-wrap">
-            <button class="btn btn-outline-secondary" id="btnUploadTheme">
+            <a href="/musedock/theme-extractor" class="btn btn-outline-info btn-sm text-decoration-none">
+                <i class="bi bi-cloud-download me-1"></i> Theme Extractor
+            </a>
+            <button class="btn btn-outline-secondary btn-sm" id="btnUploadTheme">
                 <i class="bi bi-upload me-1"></i> Subir tema
             </button>
-            <a href="{{ route('themes.create') }}" class="btn btn-primary text-decoration-none">
-                <i class="bi bi-plus-lg me-1"></i> Crear nuevo tema
+            <a href="{{ route('themes.create') }}" class="btn btn-primary btn-sm text-decoration-none">
+                <i class="bi bi-plus-lg me-1"></i> Crear tema
             </a>
         </div>
     </div>
 
-    <table class="table table-bordered table-hover align-middle">
-        <thead>
-            <tr>
-                <th>Nombre del tema</th>
-                <th>Estado</th>
-                <th>Disponible para Tenants</th>
-                <th>Personalizar</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($themes as $theme)
+    {{-- Active theme banner --}}
+    <div class="active-theme-card">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="icon-circle"><i class="bi bi-check-circle-fill"></i></div>
+                <div>
+                    <div class="theme-label">Tema activo del CMS principal</div>
+                    <h5 class="theme-name">{{ ucfirst($currentTheme) }} <span class="badge ms-2">Activo</span></h5>
+                </div>
+            </div>
+            @php
+                $__activeConfigPath = APP_ROOT . "/themes/{$currentTheme}/theme.json";
+                $__activeCustomizable = file_exists($__activeConfigPath) && !empty(json_decode(file_get_contents($__activeConfigPath), true)['customizable']);
+            @endphp
+            @if($__activeCustomizable)
+            <a href="{{ route('themes.appearance.global', ['slug' => $currentTheme]) }}" class="btn btn-light btn-sm text-decoration-none">
+                <i class="bi bi-brush me-1"></i> Personalizar
+            </a>
+            @endif
+        </div>
+    </div>
+
+    {{-- Themes Grid --}}
+    <div class="themes-section mb-5">
+        <div class="section-header">
+            <div class="icon-box official"><i class="bi bi-layers"></i></div>
+            <div class="flex-grow-1">
+                <h4>Temas instalados</h4>
+                <small>{{ count($themes) }} tema(s) en el sistema</small>
+            </div>
+        </div>
+
+        <div class="theme-grid">
+            @foreach($themes as $theme)
                 @php
-                    $isCustomizable = false;
+                    $isActive = $theme['slug'] === $currentTheme;
+                    $configPath = APP_ROOT . "/themes/{$theme['slug']}/theme.json";
+                    $themeConfig = file_exists($configPath) ? json_decode(file_get_contents($configPath), true) : [];
+                    $isCustomizable = !empty($themeConfig['customizable']);
+                    $screenshotFile = !empty($themeConfig['screenshot']) ? APP_ROOT . "/themes/{$theme['slug']}/{$themeConfig['screenshot']}" : null;
+                    $screenshotPath = ($screenshotFile && file_exists($screenshotFile)) ? "/themes/{$theme['slug']}/{$themeConfig['screenshot']}" : null;
+                    $isAvailable = !empty($theme['available_for_tenants']);
+                    $homeViewPath = APP_ROOT . "/themes/{$theme['slug']}/views/home.blade.php";
+                    $description = $themeConfig['description'] ?? '';
+                    $author = $themeConfig['author'] ?? 'MuseDock';
+                    $version = $themeConfig['version'] ?? '1.0';
 
-                    // Ruta absoluta a theme.json
-                    $configPath = APP_ROOT . "/themes/" . $theme['slug'] . "/theme.json";
+                    // Load skins for this theme
+                    $__pdo = \Screenart\Musedock\Database::connect();
+                    $__skStmt = $__pdo->prepare("SELECT slug, name, options, screenshot, description, author, is_active FROM theme_skins WHERE theme_slug = ? AND tenant_id IS NULL ORDER BY name");
+                    $__skStmt->execute([$theme['slug']]);
+                    $__themeSkins = $__skStmt->fetchAll(\PDO::FETCH_ASSOC);
 
-                    if (file_exists($configPath)) {
-                        $themeConfigJson = @file_get_contents($configPath);
-
-                        if ($themeConfigJson !== false) {
-                            $themeConfig = json_decode($themeConfigJson, true);
-
-                            if (json_last_error() !== JSON_ERROR_NONE) {
-                                error_log("Error en JSON para el tema {$theme['slug']}: " . json_last_error_msg());
-                            }
-
-                            if (json_last_error() === JSON_ERROR_NONE && !empty($themeConfig['customizable'])) {
-                                $isCustomizable = true;
-                            }
-                        } else {
-                            error_log("No se pudo leer el archivo theme.json de {$theme['slug']}");
-                        }
-                    }
-
-                    // Ruta para detectar si tiene home.blade.php
-                    $homeViewPath = APP_ROOT . "/themes/" . $theme['slug'] . "/views/home.blade.php";
+                    // Get active skin
+                    $__activeSkin = '';
+                    $__asStmt = $__pdo->prepare("SELECT value FROM settings WHERE key = 'active_skin_slug' LIMIT 1");
+                    $__asStmt->execute();
+                    $__asRow = $__asStmt->fetch(\PDO::FETCH_ASSOC);
+                    if ($__asRow) $__activeSkin = $__asRow['value'];
                 @endphp
+                <div class="theme-card {{ $isActive ? 'is-active' : '' }}">
+                    @if($isActive)
+                        <div class="active-badge">ACTIVO</div>
+                    @endif
 
-                <tr>
-                    {{-- Nombre --}}
-                    <td>
-                        {{ ucfirst($theme['name']) }}
-                        @if ($theme['status'] !== 'ok' && $theme['status'] !== 'activo')
-                            <span class="badge bg-warning text-dark">{{ $theme['status'] }}</span>
-                        @endif
-                    </td>
-
-                    {{-- Estado --}}
-                    <td>
-                        @if ($theme['slug'] === $currentTheme)
-                            <span class="badge bg-success">Activo</span>
+                    <div class="theme-preview">
+                        @if($screenshotPath)
+                            <img src="{{ $screenshotPath }}" alt="{{ $theme['name'] }}" loading="lazy">
                         @else
-                            <button type="button"
-                                    class="btn btn-sm btn-outline-primary btn-activate-theme"
+                            <i class="bi bi-palette placeholder-icon"></i>
+                            <span class="placeholder-text">{{ $theme['slug'] }}</span>
+                        @endif
+                    </div>
+
+                    <div class="theme-info">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <span class="theme-title">{{ ucfirst($theme['name']) }}</span>
+                            @if($isAvailable)
+                                <span class="badge-tenant-yes"><i class="bi bi-people-fill me-1"></i>Tenants</span>
+                            @else
+                                <span class="badge-tenant-no"><i class="bi bi-lock me-1"></i>Solo CMS</span>
+                            @endif
+                        </div>
+                        @if($description)
+                            <p class="theme-desc">{{ $description }}</p>
+                        @endif
+                        <div class="theme-meta">
+                            <span><i class="bi bi-person me-1"></i>{{ $author }}</span>
+                            <span><i class="bi bi-tag me-1"></i>v{{ $version }}</span>
+                        </div>
+                    </div>
+
+                    <div class="theme-actions">
+                        @if($isActive)
+                            <button class="btn btn-active flex-grow-1" disabled>
+                                <i class="bi bi-check2 me-1"></i>Activo
+                            </button>
+                        @else
+                            <button type="button" class="btn btn-activate flex-grow-1 btn-activate-theme"
                                     data-theme-slug="{{ $theme['slug'] }}"
                                     data-theme-name="{{ ucfirst($theme['name']) }}"
                                     data-activate-url="{{ route('themes.activate') }}">
-                                Activar
+                                <i class="bi bi-power me-1"></i>Activar
                             </button>
                         @endif
-                    </td>
 
-                    {{-- Disponible para Tenants --}}
-                    <td class="text-center">
-                        @php
-                            $isAvailableForTenants = !empty($theme['available_for_tenants']);
-                        @endphp
+                        @if($isCustomizable)
+                            <a href="{{ route('themes.appearance.global', ['slug' => $theme['slug']]) }}" class="btn btn-icon text-decoration-none" title="Personalizar">
+                                <i class="bi bi-brush"></i>
+                            </a>
+                        @endif
+
+                        @if(file_exists($homeViewPath))
+                            <a href="{{ route('themes.editor.customize', ['slug' => $theme['slug']]) }}" class="btn btn-icon text-decoration-none" title="Editor">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                        @endif
+
                         <form method="POST" action="{{ route('themes.toggle-tenant') }}" class="d-inline">
                             @csrf
                             <input type="hidden" name="theme" value="{{ $theme['slug'] }}">
-                            <button type="submit" class="btn btn-sm {{ $isAvailableForTenants ? 'btn-success' : 'btn-outline-secondary' }}" title="{{ $isAvailableForTenants ? 'Disponible para tenants - Click para deshabilitar' : 'No disponible - Click para habilitar' }}">
-                                @if ($isAvailableForTenants)
-                                    <i class="bi bi-check-circle-fill me-1"></i> Sí
-                                @else
-                                    <i class="bi bi-x-circle me-1"></i> No
-                                @endif
+                            <button type="submit" class="btn btn-icon" title="{{ $isAvailable ? 'Deshabilitar para tenants' : 'Habilitar para tenants' }}">
+                                <i class="bi {{ $isAvailable ? 'bi-people-fill text-success' : 'bi-people' }}"></i>
                             </button>
                         </form>
-                    </td>
 
-                    {{-- Personalizar --}}
-                    <td>
-                        @if ($isCustomizable)
-                            <a href="{{ route('themes.appearance.global', ['slug' => $theme['slug']]) }}" class="btn btn-sm btn-info text-white text-decoration-none" title="Personalizar Apariencia Global">
-                                <i class="bi bi-palette me-1 text-white"></i> Apariencia
-                            </a>
-                        @else
-                            <span class="text-muted small fst-italic">N/A</span>
-                        @endif
-                    </td>
+                        <a href="{{ route('themes.download', ['slug' => $theme['slug']]) }}" class="btn btn-icon text-decoration-none" title="Descargar">
+                            <i class="bi bi-download"></i>
+                        </a>
 
-                    {{-- Acciones --}}
-                    <td>
-                        <div class="d-flex flex-wrap gap-2">
-                            @if (file_exists($homeViewPath))
-                                <a href="{{ route('themes.editor.customize', ['slug' => $theme['slug']]) }}" class="btn btn-sm btn-outline-secondary text-decoration-none">
-                                    <i class="bi bi-pencil-square me-1"></i> Editor
-                                </a>
-                            @else
-                                <a href="{{ route('themes.editor.builder', ['slug' => $theme['slug'], 'file' => 'home.blade.php']) }}" class="btn btn-sm btn-danger text-white text-decoration-none">
-                                    <i class="bi bi-hammer me-1 text-white"></i> Construir
-                                </a>
-                            @endif
-
-                            <a href="{{ route('themes.download', ['slug' => $theme['slug']]) }}" class="btn btn-sm btn-outline-primary text-decoration-none">
-                                <i class="bi bi-download me-1"></i> Descargar
-                            </a>
-
-                            <button type="button"
-                                    class="btn btn-sm btn-outline-danger btn-delete-theme"
+                        @if(!$isActive)
+                            <button type="button" class="btn btn-icon btn-delete-theme"
                                     data-theme-slug="{{ $theme['slug'] }}"
                                     data-theme-name="{{ ucfirst($theme['name']) }}"
                                     data-delete-url="{{ route('themes.destroy', ['slug' => $theme['slug']]) }}"
-                                    {{ $theme['slug'] === $currentTheme ? 'disabled' : '' }}>
-                                <i class="bi bi-trash me-1"></i> Eliminar
+                                    title="Eliminar" style="color: #ef4444;">
+                                <i class="bi bi-trash3"></i>
                             </button>
+                        @endif
+                    </div>
+
+                    {{-- Skins collapsible --}}
+                    @if(!empty($__themeSkins))
+                    <a class="theme-skins-toggle collapsed" data-bs-toggle="collapse" href="#skins-{{ $theme['slug'] }}" role="button">
+                        <i class="bi bi-stars"></i>
+                        {{ count($__themeSkins) }} skin(s)
+                        <i class="bi bi-chevron-down ms-auto"></i>
+                    </a>
+                    <div class="collapse" id="skins-{{ $theme['slug'] }}">
+                        <div class="theme-skins-panel">
+                            @foreach($__themeSkins as $skin)
+                            @php
+                                $skinOpts = is_string($skin['options']) ? json_decode($skin['options'], true) : ($skin['options'] ?? []);
+                                $skinColors = [
+                                    $skinOpts['header']['header_bg_color'] ?? '#f8f9fa',
+                                    $skinOpts['topbar']['topbar_bg_color'] ?? '#1a2a40',
+                                    $skinOpts['header']['header_cta_bg_color'] ?? '#ff5e15',
+                                    $skinOpts['footer']['footer_bg_color'] ?? '#1a1a2e',
+                                ];
+                            @endphp
+                            <div class="skin-mini-card {{ $__activeSkin === $skin['slug'] ? 'skin-active' : '' }} {{ !($skin['is_active'] ?? true) ? 'skin-disabled' : '' }}" id="skin-card-{{ $skin['slug'] }}">
+                                <div class="skin-color-dots">
+                                    @foreach($skinColors as $c)
+                                        <span style="background:{{ $c }};"></span>
+                                    @endforeach
+                                </div>
+                                <span class="skin-mini-name">{{ $skin['name'] }}</span>
+                                @if($__activeSkin === $skin['slug'])
+                                    <span class="skin-mini-badge" style="background:#dcfce7;color:#16a34a;">En uso</span>
+                                @endif
+                                @if(!($skin['is_active'] ?? true))
+                                    <span class="skin-mini-badge" style="background:#fee2e2;color:#dc2626;">Oculto</span>
+                                @endif
+                                <div class="skin-mini-actions ms-1">
+                                    <button type="button" class="btn btn-sm p-0 border-0" style="font-size:0.7rem;color:{{ ($skin['is_active'] ?? true) ? '#f59e0b' : '#22c55e' }};" onclick="toggleSkin('{{ $skin['slug'] }}')" title="{{ ($skin['is_active'] ?? true) ? 'Ocultar para tenants' : 'Activar para tenants' }}">
+                                        <i class="bi {{ ($skin['is_active'] ?? true) ? 'bi-eye-slash' : 'bi-eye' }}"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm p-0 border-0" style="font-size:0.7rem;color:#ef4444;" onclick="deleteSkin('{{ $skin['slug'] }}', '{{ addslashes($skin['name']) }}')" title="Eliminar skin">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            @endforeach
                         </div>
-                    </td>
-                </tr>
+                    </div>
+                    @endif
 
+                    {{-- Layouts collapsible --}}
+                    @if($isCustomizable && !empty($themeConfig['customizable_options']['header']['options']['header_layout']['options']))
+                    @php
+                        $__allLayouts = $themeConfig['customizable_options']['header']['options']['header_layout']['options'] ?? [];
+                        // Load global layout defaults from settings
+                        $__pdo = $__pdo ?? \Screenart\Musedock\Database::connect();
+                        $__dlStmt = $__pdo->prepare("SELECT layout_value, is_allowed FROM tenant_layout_restrictions WHERE tenant_id IS NULL AND layout_type = 'header_layout'");
+                        $__dlStmt->execute();
+                        $__defaultRestrictions = [];
+                        foreach ($__dlStmt->fetchAll(\PDO::FETCH_ASSOC) as $__dr) {
+                            $__defaultRestrictions[$__dr['layout_value']] = (bool)$__dr['is_allowed'];
+                        }
+                        $__hasDefaults = !empty($__defaultRestrictions);
+                    @endphp
+                    <a class="theme-skins-toggle collapsed" data-bs-toggle="collapse" href="#layouts-{{ $theme['slug'] }}" role="button" style="border-top: 1px solid #f0f0f0;">
+                        <i class="bi bi-layout-split"></i>
+                        {{ count($__allLayouts) }} layout(s)
+                        <i class="bi bi-chevron-down ms-auto"></i>
+                    </a>
+                    <div class="collapse" id="layouts-{{ $theme['slug'] }}">
+                        <div class="theme-skins-panel">
+                            <p class="text-muted small mb-2">Layouts disponibles por defecto para todos los tenants:</p>
+                            @foreach($__allLayouts as $__lKey => $__lLabel)
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input layout-default-toggle" type="checkbox"
+                                           data-theme="{{ $theme['slug'] }}" data-layout="{{ $__lKey }}"
+                                           id="dl-{{ $theme['slug'] }}-{{ $__lKey }}"
+                                           {{ !$__hasDefaults || ($__defaultRestrictions[$__lKey] ?? true) ? 'checked' : '' }}>
+                                </div>
+                                <label for="dl-{{ $theme['slug'] }}-{{ $__lKey }}" class="small mb-0" style="cursor:pointer;">{{ $__lLabel }}</label>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+                </div>
             @endforeach
-        </tbody>
-    </table>
-
-    {{-- Formulario oculto para subir tema --}}
-    <form id="uploadThemeForm" method="POST" action="{{ route('themes.upload') }}" enctype="multipart/form-data" style="display: none;">
-        @csrf
-        <input type="file" id="themeZipInput" name="theme_zip" accept=".zip">
-    </form>
-
-    {{-- Formulario oculto para eliminar tema --}}
-    <form id="deleteThemeForm" method="POST" action="" style="display: none;">
-        @csrf
-        @method('DELETE')
-        <input type="hidden" name="password" id="deleteThemePassword">
-    </form>
-
-    {{-- Formulario oculto para activar tema --}}
-    <form id="activateThemeForm" method="POST" action="" style="display: none;">
-        @csrf
-        <input type="hidden" name="theme" id="activateThemeSlug">
-    </form>
-
+        </div>
+    </div>
 </div>
+
+{{-- Hidden forms --}}
+<form id="uploadThemeForm" method="POST" action="{{ route('themes.upload') }}" enctype="multipart/form-data" style="display:none;">
+    @csrf
+    <input type="file" id="themeZipInput" name="theme_zip" accept=".zip">
+</form>
+<form id="deleteThemeForm" method="POST" action="" style="display:none;">
+    @csrf
+    @method('DELETE')
+    <input type="hidden" name="password" id="deleteThemePassword">
+</form>
+<form id="activateThemeForm" method="POST" action="" style="display:none;">
+    @csrf
+    <input type="hidden" name="theme" id="activateThemeSlug">
+</form>
+
 @endsection
 
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // ========== SUBIR TEMA ZIP con SweetAlert2 ==========
+    // Toggle collapsed class for chevron rotation
+    document.querySelectorAll('.theme-skins-toggle').forEach(function(el) {
+        el.addEventListener('click', function() {
+            this.classList.toggle('collapsed');
+        });
+    });
+
+    // Layout default toggles
+    document.querySelectorAll('.layout-default-toggle').forEach(function(toggle) {
+        toggle.addEventListener('change', function() {
+            const layout = this.dataset.layout;
+            const isAllowed = this.checked ? 1 : 0;
+            fetch('/musedock/themes/toggle-layout-default', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: '_csrf={{ csrf_token() }}&layout=' + encodeURIComponent(layout) + '&is_allowed=' + isAllowed
+            }).then(r => r.json()).then(d => {
+                if (!d.success) { this.checked = !this.checked; }
+            }).catch(() => { this.checked = !this.checked; });
+        });
+    });
+
+    // Upload theme
     const btnUpload = document.getElementById('btnUploadTheme');
     const uploadForm = document.getElementById('uploadThemeForm');
     const fileInput = document.getElementById('themeZipInput');
-
     if (btnUpload) {
         btnUpload.addEventListener('click', function() {
             Swal.fire({
                 title: '<i class="bi bi-cloud-upload text-primary"></i> Subir Tema',
-                html: `
-                    <div class="text-start">
-                        <p class="text-muted mb-3">Selecciona un archivo ZIP con el tema a instalar.</p>
-                        <div class="upload-zone border border-2 border-dashed rounded-3 p-4 text-center" id="dropZone" style="cursor: pointer; transition: all 0.3s;">
-                            <i class="bi bi-file-earmark-zip display-4 text-muted"></i>
-                            <p class="mb-1 mt-2"><strong>Arrastra el archivo aquí</strong></p>
-                            <p class="text-muted small mb-2">o haz clic para seleccionar</p>
-                            <span class="badge bg-secondary">Máximo 50MB</span>
-                        </div>
-                        <div id="selectedFile" class="mt-3 d-none">
-                            <div class="alert alert-success py-2 mb-0">
-                                <i class="bi bi-file-earmark-check me-2"></i>
-                                <span id="fileName"></span>
-                                <button type="button" class="btn-close btn-sm float-end" id="clearFile"></button>
-                            </div>
-                        </div>
-                        <div class="alert alert-info mt-3 mb-0">
-                            <i class="bi bi-info-circle me-2"></i>
-                            El nombre de la carpeta dentro del ZIP se utilizará como slug del tema.
-                        </div>
-                    </div>
-                `,
-                showCancelButton: true,
-                confirmButtonText: '<i class="bi bi-upload me-1"></i> Subir Tema',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#0d6efd',
-                cancelButtonColor: '#6c757d',
-                width: '500px',
+                html: '<div class="text-start"><p class="text-muted mb-3">Selecciona un archivo ZIP con el tema.</p><div class="upload-zone border border-2 border-dashed rounded-3 p-4 text-center" id="dropZone" style="cursor:pointer;"><i class="bi bi-file-earmark-zip display-4 text-muted"></i><p class="mb-1 mt-2"><strong>Arrastra aquí o haz clic</strong></p><span class="badge bg-secondary">Máx 50MB</span></div><div id="selectedFile" class="mt-3 d-none"><div class="alert alert-success py-2 mb-0"><i class="bi bi-file-earmark-check me-2"></i><span id="fileName"></span><button type="button" class="btn-close btn-sm float-end" id="clearFile"></button></div></div></div>',
+                showCancelButton: true, confirmButtonText: '<i class="bi bi-upload me-1"></i> Subir', cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#0d6efd', width: '480px',
                 didOpen: () => {
-                    const dropZone = document.getElementById('dropZone');
-                    const selectedFileDiv = document.getElementById('selectedFile');
-                    const fileNameSpan = document.getElementById('fileName');
-                    const clearFileBtn = document.getElementById('clearFile');
-                    let selectedFile = null;
-
-                    // Click para seleccionar archivo
-                    dropZone.addEventListener('click', () => fileInput.click());
-
-                    // Drag & Drop
-                    dropZone.addEventListener('dragover', (e) => {
-                        e.preventDefault();
-                        dropZone.classList.add('border-primary', 'bg-light');
-                    });
-                    dropZone.addEventListener('dragleave', () => {
-                        dropZone.classList.remove('border-primary', 'bg-light');
-                    });
-                    dropZone.addEventListener('drop', (e) => {
-                        e.preventDefault();
-                        dropZone.classList.remove('border-primary', 'bg-light');
-                        const file = e.dataTransfer.files[0];
-                        if (file && file.name.endsWith('.zip')) {
-                            handleFileSelect(file);
-                        } else {
-                            Swal.showValidationMessage('Por favor selecciona un archivo .zip');
-                        }
-                    });
-
-                    // Cuando se selecciona archivo
-                    fileInput.addEventListener('change', function() {
-                        if (this.files[0]) {
-                            handleFileSelect(this.files[0]);
-                        }
-                    });
-
-                    // Limpiar archivo
-                    clearFileBtn.addEventListener('click', () => {
-                        fileInput.value = '';
-                        selectedFileDiv.classList.add('d-none');
-                        dropZone.classList.remove('d-none');
-                        selectedFile = null;
-                    });
-
-                    function handleFileSelect(file) {
-                        if (file.size > 50 * 1024 * 1024) {
-                            Swal.showValidationMessage('El archivo excede el límite de 50MB');
-                            return;
-                        }
-                        selectedFile = file;
-                        fileNameSpan.textContent = file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
-                        selectedFileDiv.classList.remove('d-none');
-                        dropZone.classList.add('d-none');
-
-                        // Crear nuevo FileList para el input
-                        const dt = new DataTransfer();
-                        dt.items.add(file);
-                        fileInput.files = dt.files;
-                    }
+                    const dz = document.getElementById('dropZone'), sf = document.getElementById('selectedFile'), fn = document.getElementById('fileName');
+                    dz.addEventListener('click', () => fileInput.click());
+                    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('border-primary','bg-light'); });
+                    dz.addEventListener('dragleave', () => dz.classList.remove('border-primary','bg-light'));
+                    dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('border-primary','bg-light'); if(e.dataTransfer.files[0]?.name.endsWith('.zip')) sel(e.dataTransfer.files[0]); });
+                    fileInput.addEventListener('change', function(){ if(this.files[0]) sel(this.files[0]); });
+                    document.getElementById('clearFile').addEventListener('click', () => { fileInput.value=''; sf.classList.add('d-none'); dz.classList.remove('d-none'); });
+                    function sel(f){ if(f.size>50*1024*1024){Swal.showValidationMessage('Máx 50MB');return;} fn.textContent=f.name+' ('+(f.size/1024/1024).toFixed(2)+' MB)'; sf.classList.remove('d-none'); dz.classList.add('d-none'); const dt=new DataTransfer(); dt.items.add(f); fileInput.files=dt.files; }
                 },
-                preConfirm: () => {
-                    if (!fileInput.files[0]) {
-                        Swal.showValidationMessage('Por favor selecciona un archivo ZIP');
-                        return false;
-                    }
-                    return true;
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Mostrar loading
-                    Swal.fire({
-                        title: 'Subiendo tema...',
-                        html: '<p class="mb-2">Por favor espera mientras se sube e instala el tema.</p><div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div></div>',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-                    uploadForm.submit();
-                }
-            });
+                preConfirm: () => { if(!fileInput.files[0]){Swal.showValidationMessage('Selecciona un ZIP');return false;} return true; }
+            }).then(r => { if(r.isConfirmed){ Swal.fire({title:'Subiendo...',allowOutsideClick:false,showConfirmButton:false,didOpen:()=>Swal.showLoading()}); uploadForm.submit(); }});
         });
     }
 
-    // ========== ELIMINAR TEMA con SweetAlert2 ==========
-    document.querySelectorAll('.btn-delete-theme').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-
-            const slug = this.dataset.themeSlug;
-            const name = this.dataset.themeName || slug;
-            const deleteUrl = this.dataset.deleteUrl;
-
+    // Delete theme
+    document.querySelectorAll('.btn-delete-theme').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const slug = this.dataset.themeSlug, name = this.dataset.themeName, url = this.dataset.deleteUrl;
             Swal.fire({
                 title: '<i class="bi bi-exclamation-triangle-fill text-danger"></i>',
-                html: `
-                    <div class="text-center mb-3">
-                        <h4 class="text-danger mb-2">Eliminar Tema</h4>
-                        <p class="text-muted mb-0">Estás a punto de eliminar el tema:</p>
-                        <h5 class="mt-2 mb-3"><span class="badge bg-dark fs-6">${name}</span></h5>
-                    </div>
-                    <div class="alert alert-danger py-2 mb-3">
-                        <i class="bi bi-exclamation-circle me-2"></i>
-                        <strong>¡Atención!</strong> Esta acción eliminará permanentemente todos los archivos del tema del servidor.
-                    </div>
-                    <div class="text-start">
-                        <label for="swal-password" class="form-label fw-semibold">
-                            <i class="bi bi-shield-lock me-1"></i> Confirma con tu contraseña
-                        </label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light"><i class="bi bi-key"></i></span>
-                            <input type="password" id="swal-password" class="form-control" placeholder="Ingresa tu contraseña" autocomplete="current-password">
-                        </div>
-                        <small class="text-muted mt-1 d-block">Por seguridad, necesitamos verificar tu identidad.</small>
-                    </div>
-                `,
-                icon: null,
-                showCancelButton: true,
-                confirmButtonText: '<i class="bi bi-trash me-1"></i> Eliminar Tema',
-                cancelButtonText: '<i class="bi bi-x-lg me-1"></i> Cancelar',
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                width: '480px',
-                customClass: {
-                    popup: 'swal-delete-theme',
-                    confirmButton: 'btn btn-danger px-4',
-                    cancelButton: 'btn btn-secondary px-4'
-                },
+                html: '<h5 class="text-danger mb-2">Eliminar tema</h5><p>¿Eliminar <strong>'+name+'</strong> permanentemente?</p><div class="text-start mt-3"><label class="form-label fw-semibold"><i class="bi bi-shield-lock me-1"></i>Contraseña</label><input type="password" id="swal-password" class="form-control" placeholder="Tu contraseña"></div>',
+                showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: '<i class="bi bi-trash me-1"></i> Eliminar', cancelButtonText: 'Cancelar',
                 focusConfirm: false,
-                didOpen: () => {
-                    const passwordInput = document.getElementById('swal-password');
-                    if (passwordInput) {
-                        passwordInput.focus();
-                        // Permitir enviar con Enter
-                        passwordInput.addEventListener('keypress', function(e) {
-                            if (e.key === 'Enter') {
-                                Swal.clickConfirm();
-                            }
-                        });
-                    }
-                },
-                preConfirm: () => {
-                    const password = document.getElementById('swal-password').value;
-                    if (!password || password.trim() === '') {
-                        Swal.showValidationMessage('<i class="bi bi-exclamation-circle me-1"></i> Debes ingresar tu contraseña');
-                        return false;
-                    }
-                    return password;
-                }
-            }).then((result) => {
-                if (result.isConfirmed && result.value) {
-                    // Mostrar loading mientras se procesa
-                    Swal.fire({
-                        title: '<i class="bi bi-hourglass-split text-danger"></i>',
-                        html: `
-                            <h5 class="mb-3">Eliminando tema...</h5>
-                            <p class="text-muted mb-0">Por favor espera mientras se eliminan los archivos.</p>
-                            <div class="progress mt-3" style="height: 6px;">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-danger" style="width: 100%"></div>
-                            </div>
-                        `,
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        showConfirmButton: false
-                    });
-
-                    // Configurar y enviar el formulario
-                    const form = document.getElementById('deleteThemeForm');
-                    const passwordField = document.getElementById('deleteThemePassword');
-
-                    form.setAttribute('action', deleteUrl);
-                    passwordField.value = result.value;
-                    form.submit();
-                }
-            });
+                didOpen: () => { const p=document.getElementById('swal-password'); p.focus(); p.addEventListener('keypress',e=>{if(e.key==='Enter')Swal.clickConfirm();}); },
+                preConfirm: () => { const p=document.getElementById('swal-password').value; if(!p){Swal.showValidationMessage('Contraseña requerida');return false;} return p; }
+            }).then(r => { if(r.isConfirmed){ Swal.fire({title:'Eliminando...',allowOutsideClick:false,showConfirmButton:false,didOpen:()=>Swal.showLoading()}); const f=document.getElementById('deleteThemeForm'); f.action=url; document.getElementById('deleteThemePassword').value=r.value; f.submit(); }});
         });
     });
 
-    // ========== ACTIVAR TEMA con SweetAlert2 ==========
-    document.querySelectorAll('.btn-activate-theme').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-
-            const slug = this.dataset.themeSlug;
-            const name = this.dataset.themeName || slug;
-            const activateUrl = this.dataset.activateUrl;
-
+    // Activate theme
+    document.querySelectorAll('.btn-activate-theme').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const slug = this.dataset.themeSlug, name = this.dataset.themeName, url = this.dataset.activateUrl;
             Swal.fire({
                 title: '<i class="bi bi-palette-fill text-primary"></i>',
-                html: `
-                    <div class="text-center mb-3">
-                        <h4 class="text-primary mb-2">Activar Tema</h4>
-                        <p class="text-muted mb-0">Estás a punto de activar el tema:</p>
-                        <h5 class="mt-2 mb-3"><span class="badge bg-primary fs-6">${name}</span></h5>
-                    </div>
-                    <div class="alert alert-info py-2 mb-0">
-                        <i class="bi bi-info-circle me-2"></i>
-                        Este tema se aplicará a todo el sitio web inmediatamente.
-                    </div>
-                `,
-                icon: null,
-                showCancelButton: true,
-                confirmButtonText: '<i class="bi bi-check-circle me-1"></i> Activar Tema',
-                cancelButtonText: '<i class="bi bi-x-lg me-1"></i> Cancelar',
-                confirmButtonColor: '#0d6efd',
-                cancelButtonColor: '#6c757d',
-                width: '450px',
-                customClass: {
-                    popup: 'swal-activate-theme',
-                    confirmButton: 'btn btn-primary px-4',
-                    cancelButton: 'btn btn-secondary px-4'
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Mostrar loading mientras se procesa
-                    Swal.fire({
-                        title: '<i class="bi bi-hourglass-split text-primary"></i>',
-                        html: `
-                            <h5 class="mb-3">Activando tema...</h5>
-                            <p class="text-muted mb-0">Por favor espera mientras se aplica el nuevo tema.</p>
-                            <div class="progress mt-3" style="height: 6px;">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
-                            </div>
-                        `,
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        showConfirmButton: false
-                    });
-
-                    // Configurar y enviar el formulario
-                    const form = document.getElementById('activateThemeForm');
-                    const themeSlugField = document.getElementById('activateThemeSlug');
-
-                    form.setAttribute('action', activateUrl);
-                    themeSlugField.value = slug;
-                    form.submit();
-                }
-            });
+                html: '<h5 class="mb-2">Activar tema</h5><p>¿Activar <strong>'+name+'</strong> en el CMS principal?</p>',
+                showCancelButton: true, confirmButtonColor: '#6366f1', confirmButtonText: '<i class="bi bi-check-lg me-1"></i> Activar', cancelButtonText: 'Cancelar'
+            }).then(r => { if(r.isConfirmed){ Swal.fire({title:'Activando...',allowOutsideClick:false,showConfirmButton:false,didOpen:()=>Swal.showLoading()}); const f=document.getElementById('activateThemeForm'); f.action=url; document.getElementById('activateThemeSlug').value=slug; f.submit(); }});
         });
     });
+    // ==================== SKIN MANAGEMENT ====================
+
+    // Toggle skin visibility
+    window.toggleSkin = function(slug) {
+        fetch('/musedock/themes/skins/' + slug + '/toggle', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: '_token={{ csrf_token() }}'
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                Swal.fire('Error', data.error || 'Error al cambiar estado', 'error');
+            }
+        });
+    };
+
+    // Delete skin
+    window.deleteSkin = function(slug, name) {
+        Swal.fire({
+            title: '<i class="bi bi-trash text-danger"></i>',
+            html: '<p>Eliminar el skin <strong>' + name + '</strong>?</p><small class="text-muted">Esta accion no se puede deshacer.</small>',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: '<i class="bi bi-trash me-1"></i> Eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then(r => {
+            if (r.isConfirmed) {
+                fetch('/musedock/themes/skins/' + slug + '/delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: '_token={{ csrf_token() }}'
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const card = document.getElementById('skin-card-' + slug);
+                        if (card) card.remove();
+                        Swal.fire({icon:'success', title:'Eliminado', text: data.message, timer: 1500, showConfirmButton: false});
+                    } else {
+                        Swal.fire('Error', data.error || 'Error al eliminar', 'error');
+                    }
+                });
+            }
+        });
+    };
 });
 </script>
 @endpush

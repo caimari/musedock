@@ -13,12 +13,21 @@
     $footerLogoPath = site_setting('site_logo', '');
     $footerDefaultLogo = asset('img/musedock_logo.png');
     $showFooterBranding = $showFooterLogo || $showFooterTitle;
+    // Logo alternativo (dark/inverso) para fondos oscuros
+    $footerLogoDark = themeOption('footer.footer_logo_dark', '');
+    $footerLogoSrc = $footerLogoDark ? public_file_url($footerLogoDark) : ($footerLogoPath ? public_file_url($footerLogoPath) : $footerDefaultLogo);
+    $footerLogoMaxHeight = themeOption('footer.footer_logo_max_height', '50');
 @endphp
 <footer>
     <!-- Footer Start -->
+    @php
+        // Calcular padding-top para columnas derecha: alinear con el centro del logo
+        $__logoH = (int)($footerLogoMaxHeight ?? 50);
+        $__colPadTop = $showFooterBranding ? max(0, round($__logoH / 2) - 10) : 0;
+    @endphp
     <div class="footer-area footer-padding" style="background-color: var(--footer-bg-color, #f8fafe);">
         <div class="container">
-            <div class="row">
+            <div class="row align-items-start">
 
                 <div class="col-xl-4 col-lg-4 col-md-6 col-sm-12">
                    <div class="single-footer-caption">
@@ -28,9 +37,9 @@
                          <div class="footer-logo" style="margin-bottom:8px;">
                              <a href="{{ url('/') }}" style="display:inline-flex; align-items:center; gap:14px; text-decoration:none;">
                                  @if($showFooterLogo)
-                                    <img src="{{ $footerLogoPath ? public_file_url($footerLogoPath) : $footerDefaultLogo }}"
+                                    <img src="{{ $footerLogoSrc }}"
                                           alt="{{ $footerSiteName }}"
-                                         style="max-height: 50px; width: auto;"
+                                         style="max-height: {{ $footerLogoMaxHeight }}px; width: auto;"
                                           onerror="this.onerror=null; this.src='{{ $footerDefaultLogo }}';">
                                  @endif
                                  @if($showFooterTitle)
@@ -97,7 +106,7 @@
                          </div>
                          
                          <!-- social -->
-                         <div class="footer-social" style="--icon-color: var(--footer-icon-color, #333);">
+                         <div class="footer-social mt-3" style="--icon-color: var(--footer-icon-color, #333);">
                             @if(site_setting('social_facebook', ''))
                                 <a href="{{ site_setting('social_facebook') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-facebook-square"></i></a>
                             @endif
@@ -115,6 +124,9 @@
                             @endif
                             @if(site_setting('social_youtube', ''))
                                 <a href="{{ site_setting('social_youtube') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-youtube"></i></a>
+                            @endif
+                            @if(site_setting('social_vimeo', ''))
+                                <a href="{{ site_setting('social_vimeo') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-vimeo-v"></i></a>
                             @endif
                             @if(site_setting('social_tiktok', ''))
                                 <a href="{{ site_setting('social_tiktok') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-tiktok"></i></a>
@@ -161,7 +173,7 @@
 
                 <div class="col-xl-2 col-lg-2 col-md-4 col-sm-6{{ $hasFooter1Content ? '' : ' footer-col-empty' }}">
                     @if($hasFooter1Content)
-                    <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterLogo ? '40px' : '0' }};">
+                    <div class="single-footer-caption mb-50" style="padding-top: {{ $__colPadTop }}px;">
                         @if($hasFooter1Menu)
                             <div class="footer-tittle">
                                 @if($footer1Title && $showFooter1Title)
@@ -216,7 +228,7 @@
 
                 <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6{{ $hasFooter2Content ? '' : ' footer-col-empty' }}">
                     @if($hasFooter2Content)
-                    <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterBranding ? '40px' : '0' }};">
+                    <div class="single-footer-caption mb-50" style="padding-top: {{ $__colPadTop }}px;">
                         @if($hasFooter2Menu)
                             <div class="footer-tittle">
                                 @if($footer2Title && $showFooter2Title)
@@ -273,7 +285,7 @@
 
                 <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6{{ $hasFooter3Content ? '' : ' footer-col-empty' }}">
                     @if($hasFooter3Content)
-                    <div class="single-footer-caption mb-50" style="margin-top: {{ $showFooterBranding ? '40px' : '0' }};">
+                    <div class="single-footer-caption mb-50" style="padding-top: {{ $__colPadTop }}px;">
                         @if($hasFooter3Menu)
                             <div class="footer-tittle">
                                 @if($footer3Title && $showFooter3Title)

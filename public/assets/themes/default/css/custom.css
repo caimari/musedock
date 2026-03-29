@@ -77,7 +77,16 @@
 }
 
 .musedock-header {
-  padding: 8px 0;
+  padding: 0;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+}
+/* Layout logo-above: debe ser block, no flex (tiene filas logo + menú) */
+.musedock-header.header-layout-logo-above,
+.musedock-header.header-layout-logo-above-left {
+  display: block !important;
+  min-height: auto !important;
 }
 
 /* ===============================================
@@ -231,7 +240,7 @@
 }
 
 .header-brand-logo {
-  max-height: 50px;
+  max-height: var(--header-logo-max-height, 45px);
   width: auto;
   display: block;
 }

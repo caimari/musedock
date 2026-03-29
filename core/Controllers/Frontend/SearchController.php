@@ -29,11 +29,17 @@ class SearchController
             $currentLang = $_SESSION['lang'] ?? setting('language', 'es');
 
             // Buscar en páginas
-            $results['pages'] = $this->searchPages($pdo, $query, $currentLang, $tenantId);
+            try {
+                $results['pages'] = $this->searchPages($pdo, $query, $currentLang, $tenantId);
+            } catch (\Throwable $e) {
+                $results['pages'] = [];
+            }
 
-            // Buscar en posts de blog (si el módulo está activo)
-            if (function_exists('blog_is_active') && blog_is_active()) {
+            // Buscar en posts de blog
+            try {
                 $results['posts'] = $this->searchBlogPosts($pdo, $query, $currentLang, $tenantId);
+            } catch (\Throwable $e) {
+                $results['posts'] = [];
             }
 
             $results['total'] = count($results['pages']) + count($results['posts']);
@@ -50,7 +56,29 @@ class SearchController
      */
     private function searchPages($pdo, $query, $locale, $tenantId)
     {
-        $searchTerm = "%{$query}%";
+        // Normalizar: quitar guiones y buscar tanto la frase completa como palabras sueltas
+        $normalizedQuery = str_replace(['-', '_'], ' ', $query);
+        $searchTerms = ["%{$query}%"];
+        if ($normalizedQuery !== $query) {
+            $searchTerms[] = "%{$normalizedQuery}%";
+        }
+        // Añadir palabras individuales (>2 chars)
+        $words = array_filter(preg_split('/[\s\-_]+/', $query), fn($w) => mb_strlen($w) >= 2);
+        foreach ($words as $word) {
+            $searchTerms[] = "%{$word}%";
+        }
+        $searchTerms = array_unique($searchTerms);
+
+        // Construir condiciones OR para cada término
+        $searchConditions = [];
+        $params = [':locale' => $locale];
+        $i = 0;
+        foreach ($searchTerms as $term) {
+            $p = ":s{$i}";
+            $searchConditions[] = "(pt.title ILIKE {$p} OR pt.content ILIKE {$p} OR pt.seo_description ILIKE {$p} OR p.title ILIKE {$p} OR p.content ILIKE {$p} OR p.seo_description ILIKE {$p} OR p.slug ILIKE {$p})";
+            $params[$p] = $term;
+            $i++;
+        }
 
         $sql = "
             SELECT DISTINCT
@@ -64,27 +92,8 @@ class SearchController
             FROM pages p
             LEFT JOIN page_translations pt ON p.id = pt.page_id AND pt.locale = :locale
             WHERE p.status = 'published'
-                AND (
-                    pt.title LIKE :search
-                    OR pt.content LIKE :search2
-                    OR pt.seo_description LIKE :search3
-                    OR p.title LIKE :search4
-                    OR p.content LIKE :search5
-                    OR p.seo_description LIKE :search6
-                    OR p.slug LIKE :search7
-                )
+                AND (" . implode(' OR ', $searchConditions) . ")
         ";
-
-        $params = [
-            ':locale' => $locale,
-            ':search' => $searchTerm,
-            ':search2' => $searchTerm,
-            ':search3' => $searchTerm,
-            ':search4' => $searchTerm,
-            ':search5' => $searchTerm,
-            ':search6' => $searchTerm,
-            ':search7' => $searchTerm
-        ];
 
         if ($tenantId) {
             $sql .= " AND p.tenant_id = :tenant_id";
@@ -114,7 +123,26 @@ class SearchController
      */
     private function searchBlogPosts($pdo, $query, $locale, $tenantId)
     {
-        $searchTerm = "%{$query}%";
+        $normalizedQuery = str_replace(['-', '_'], ' ', $query);
+        $searchTerms = ["%{$query}%"];
+        if ($normalizedQuery !== $query) {
+            $searchTerms[] = "%{$normalizedQuery}%";
+        }
+        $words = array_filter(preg_split('/[\s\-_]+/', $query), fn($w) => mb_strlen($w) >= 2);
+        foreach ($words as $word) {
+            $searchTerms[] = "%{$word}%";
+        }
+        $searchTerms = array_unique($searchTerms);
+
+        $searchConditions = [];
+        $params = [':locale' => $locale];
+        $i = 0;
+        foreach ($searchTerms as $term) {
+            $p = ":s{$i}";
+            $searchConditions[] = "(bpt.title ILIKE {$p} OR bpt.content ILIKE {$p} OR bpt.excerpt ILIKE {$p} OR bp.title ILIKE {$p} OR bp.content ILIKE {$p} OR bp.excerpt ILIKE {$p} OR bp.slug ILIKE {$p})";
+            $params[$p] = $term;
+            $i++;
+        }
 
         $sql = "
             SELECT DISTINCT
@@ -129,27 +157,8 @@ class SearchController
             FROM blog_posts bp
             LEFT JOIN blog_post_translations bpt ON bp.id = bpt.post_id AND bpt.locale = :locale
             WHERE bp.status = 'published'
-                AND (
-                    bpt.title LIKE :search
-                    OR bpt.content LIKE :search2
-                    OR bpt.excerpt LIKE :search3
-                    OR bp.title LIKE :search4
-                    OR bp.content LIKE :search5
-                    OR bp.excerpt LIKE :search6
-                    OR bp.slug LIKE :search7
-                )
+                AND (" . implode(' OR ', $searchConditions) . ")
         ";
-
-        $params = [
-            ':locale' => $locale,
-            ':search' => $searchTerm,
-            ':search2' => $searchTerm,
-            ':search3' => $searchTerm,
-            ':search4' => $searchTerm,
-            ':search5' => $searchTerm,
-            ':search6' => $searchTerm,
-            ':search7' => $searchTerm
-        ];
 
         if ($tenantId) {
             $sql .= " AND bp.tenant_id = :tenant_id";
@@ -166,7 +175,7 @@ class SearchController
 
         // Agregar URL y excerpt a cada post
         foreach ($posts as &$post) {
-            $post['url'] = url('/b/' . $post['slug']);
+            $post['url'] = function_exists('blog_url') ? blog_url($post['slug']) : url('/b/' . $post['slug']);
             if (empty($post['excerpt'])) {
                 $post['excerpt'] = $this->createExcerpt($post['content'] ?? '', $query, 200);
             }

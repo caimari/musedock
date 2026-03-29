@@ -474,6 +474,13 @@ if (!function_exists('admin_url')) {
     }
 }
 
+if (!function_exists('redirect')) {
+    function redirect(string $url): void {
+        header("Location: {$url}");
+        exit;
+    }
+}
+
 if (!function_exists('config')) {
     function config($key, $default = null) {
         static $config;
@@ -1562,23 +1569,27 @@ if (!function_exists('get_page_templates')) {
         $viewDir = 'views'; // Subdirectorio estándar para vistas dentro del tema
 
         // Plantillas excluidas (especiales, no para páginas normales)
-        $excludedTemplates = ['home.blade.php', 'search.blade.php', '403.blade.php', 'index.blade.php', 'category.blade.php', 'single.blade.php'];
+        $excludedTemplates = ['home.blade.php', 'search.blade.php', '403.blade.php', '404.blade.php', 'index.blade.php', 'category.blade.php', 'single.blade.php'];
 
-        // Lógica Multi-Tenant (adaptada de tu View::renderTheme)
-        $multiTenant = setting('multi_tenant_enabled', false);
-        $tenant = tenant(); // Obtiene el tenant actual (si existe)
+        // Resolver el directorio de vistas del tema
+        $tenant = tenant();
         $themeBasePath = null;
 
-        if ($multiTenant && $tenant && isset($tenant['id']) && isset($tenant['theme'])) {
+        if ($tenant && isset($tenant['id']) && isset($tenant['theme'])) {
             $tenantId = $tenant['id'];
-            $themeSlug = $tenant['theme']; // Usa el tema del tenant
-            // Ruta específica del tenant
+            $themeSlug = $tenant['theme'];
+            // Intentar ruta personalizada del tenant
             $themeBasePath = realpath(__DIR__ . "/../themes/tenant_{$tenantId}/{$themeSlug}/{$viewDir}");
         }
 
-        // Si no hay ruta de tenant o no existe, usar la ruta base del tema
+        // Si no hay ruta de tenant, usar el tema base
         if (!$themeBasePath || !is_dir($themeBasePath)) {
             $themeBasePath = realpath(__DIR__ . "/../themes/{$themeSlug}/{$viewDir}");
+        }
+
+        // Fallback: tema default
+        if (!$themeBasePath || !is_dir($themeBasePath)) {
+            $themeBasePath = realpath(__DIR__ . "/../themes/default/{$viewDir}");
         }
 
         // Si ni siquiera la ruta base existe, retornar al menos las plantillas básicas
@@ -1592,12 +1603,14 @@ if (!function_exists('get_page_templates')) {
         // Añadir siempre la plantilla predeterminada
         $templates['page.blade.php'] = 'Plantilla Predeterminada';
 
-        // Buscar tanto los archivos template-*.blade.php como los *.blade.php generales
+        // Buscar tanto los archivos template-*.blade.php como los page-*.blade.php generales
         $templateFiles = glob("{$themeBasePath}/template-*.blade.php");
+        $pageFiles = glob("{$themeBasePath}/page-*.blade.php");
         $regularFiles = glob("{$themeBasePath}/*.blade.php");
 
-        // Combinar ambos resultados
-        $files = array_merge($templateFiles ?: [], $regularFiles ?: []);
+        // Combinar todos los resultados
+        $files = array_merge($templateFiles ?: [], $pageFiles ?: [], $regularFiles ?: []);
+        $files = array_unique($files);
 
         if ($files) {
             foreach ($files as $file) {
@@ -1697,6 +1710,20 @@ if (!function_exists('array_check_dependency')) {
     {
         if (!$dependsOn) {
             return true; // No depende de nada => visible
+        }
+
+        // Soporte para depends_on con valor específico: "seccion.opcion=valor"
+        if (str_contains($dependsOn, '=')) {
+            [$key, $expectedValue] = explode('=', $dependsOn, 2);
+            $value = array_get_nested($options, $key);
+            // If value is null (not saved yet), check if the expected value is the default
+            // For page_structure, default is "classic", so sections depending on classic should show
+            if ($value === null) {
+                // Assume default values for common keys
+                $defaults = ['structure.page_structure' => 'classic'];
+                $value = $defaults[$key] ?? null;
+            }
+            return (string)$value === $expectedValue;
         }
 
         // Obtener el valor de la opción de la que depende
@@ -2308,40 +2335,41 @@ if (!function_exists('str_limit')) {
  * @return array Asociativo ['filename' => 'Display Name']
  */
 if (!function_exists('get_blog_templates')) {
+    /**
+     * Check if sidebar page structure forces full-width content.
+     */
+    function is_sidebar_structure(): bool
+    {
+        $ps = themeOption('structure.page_structure', 'classic');
+        $hl = themeOption('header.header_layout', 'default');
+        return ($ps === 'sidebar' || ($ps === 'classic' && $hl === 'sidebar'));
+    }
+}
+
+if (!function_exists('resolve_page_template')) {
+    /**
+     * Resolve page template name, forcing full-width if sidebar structure.
+     */
+    function resolve_page_template(string $template): string
+    {
+        if (is_sidebar_structure()) {
+            return 'page';
+        }
+        $template = str_replace('.blade.php', '', $template);
+        return $template ?: 'page';
+    }
+}
+
+if (!function_exists('get_blog_templates')) {
     function get_blog_templates(): array
     {
-        $templates = [];
-
-        $activeThemeSlug = function_exists('get_active_theme_slug')
-            ? get_active_theme_slug()
-            : setting('default_theme', 'default');
-
-        $candidateThemes = array_values(array_unique([
-            $activeThemeSlug,
-            'default',
-        ]));
-
-        $addIfExists = function (string $viewsPath, string $key, string $label) use (&$templates) {
-            if (isset($templates[$key])) {
-                return;
-            }
-            if (file_exists("{$viewsPath}/{$key}.blade.php")) {
-                $templates[$key] = $label;
-            }
-        };
-
-        foreach ($candidateThemes as $themeSlug) {
-            $viewsPath = realpath(__DIR__ . "/../themes/{$themeSlug}/views");
-            if (!$viewsPath) {
-                continue;
-            }
-
-            $addIfExists($viewsPath, 'page', 'Plantilla Predeterminada (Ancho Completo)');
-            $addIfExists($viewsPath, 'template-sidebar-left', 'Con Sidebar Izquierda');
-            $addIfExists($viewsPath, 'template-sidebar-right', 'Con Sidebar Derecha');
-        }
-
-        return $templates;
+        // Blog post templates are handled by single.blade.php which reads $post->template
+        // These are layout variants, not separate view files
+        return [
+            'template-sidebar-right' => 'Con Sidebar Derecha (predeterminada)',
+            'page' => 'Ancho Completo (sin sidebar)',
+            'template-sidebar-left' => 'Con Sidebar Izquierda',
+        ];
     }
 }
 

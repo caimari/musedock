@@ -115,8 +115,9 @@ class SlugRouter
 
         if (!$entry) {
             // === FALLBACK: Verificar si es una página legal por defecto ===
-            // Solo para prefijo 'p' (páginas)
-            if ($prefix === 'p' && DefaultLegalPagesService::isLegalPageSlug($slug)) {
+            // Funciona con prefijo 'p' (páginas) o sin prefijo (URLs directas como /cookie-policy)
+            $pagePrefix = function_exists('page_prefix') ? page_prefix() : 'p';
+            if (($prefix === $pagePrefix || $prefix === null) && DefaultLegalPagesService::isLegalPageSlug($slug)) {
                 file_put_contents($logPath, date('Y-m-d H:i:s') . " - FALLBACK: Página legal por defecto - $slug\n", FILE_APPEND);
                 $controller = new \Screenart\Musedock\Controllers\Frontend\PageController();
                 return $controller->showDefaultLegalPage($slug);

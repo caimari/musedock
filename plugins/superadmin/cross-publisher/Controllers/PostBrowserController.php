@@ -33,6 +33,7 @@ class PostBrowserController
             'groups' => $groups,
             'tenants' => $tenants,
             'autoTranslate' => !empty($settings['auto_translate']),
+            'defaultTargetStatus' => $settings['default_target_status'] ?? 'draft',
         ]);
     }
 

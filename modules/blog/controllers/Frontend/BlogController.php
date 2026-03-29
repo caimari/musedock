@@ -143,12 +143,29 @@ class BlogController
             $briefs = $briefsQuery->limit($briefsCount)->get();
         }
 
+        // Cargar posts destacados (featured) para layouts con hero/carousel
+        $featuredPosts = [];
+        $featuredQuery = BlogPost::where('status', 'published')
+            ->where('featured', 1)
+            ->where('post_type', '!=', 'brief')
+            ->orderBy('published_at', 'DESC');
+        if ($tenantId !== null) {
+            $featuredQuery->where('tenant_id', $tenantId);
+        } else {
+            $featuredQuery->whereRaw('(tenant_id IS NULL OR tenant_id = 0)');
+        }
+        $featuredPosts = $featuredQuery->limit(10)->get();
+        if (!empty($featuredPosts)) {
+            $this->loadPostTaxonomy($featuredPosts);
+        }
+
         return View::renderTheme('blog/index', [
             'posts' => $posts,
             'categories' => $categories,
             'pagination' => $pagination,
             'briefs' => $briefs,
             'showBriefs' => $showBriefs && $showBriefs !== '0',
+            'featuredPosts' => $featuredPosts,
         ]);
     }
 
@@ -240,14 +257,66 @@ class BlogController
         }
         $categories = $categoriesQuery->get();
 
-        // Para posts del blog, usar la plantilla del blog (evita renderizar page.blade.php sin $page)
-        // Si en el futuro se soportan variantes, mapear aquí.
+        // Navegación prev/next (misma categoría de post_type: brief↔brief, post↔post)
+        $prevPost = null;
+        $nextPost = null;
+        try {
+            $pdo = \Screenart\Musedock\Database::connect();
+            $postType = $post->post_type ?? 'post';
+            $tenantCondition = $tenantId !== null
+                ? "AND tenant_id = " . intval($tenantId)
+                : "AND (tenant_id IS NULL OR tenant_id = 0)";
+            if ($postType === 'post' || $postType === '' || $postType === null) {
+                $typeCondition = "AND (post_type = 'post' OR post_type IS NULL OR post_type = '')";
+            } else {
+                $typeCondition = "AND post_type = " . $pdo->quote($postType);
+            }
+
+            $pubAt = $post->published_at;
+            if ($pubAt instanceof \DateTime || $pubAt instanceof \DateTimeInterface) {
+                $pubAt = $pubAt->format('Y-m-d H:i:s');
+            }
+
+            // Previous: post más reciente anterior al actual
+            $stmt = $pdo->prepare("
+                SELECT id, title, slug, featured_image, post_type
+                FROM blog_posts
+                WHERE status = 'published'
+                  AND published_at < ?
+                  {$tenantCondition}
+                  {$typeCondition}
+                ORDER BY published_at DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$pubAt]);
+            $prevPost = $stmt->fetch(\PDO::FETCH_OBJ) ?: null;
+
+            // Next: post más antiguo posterior al actual
+            $stmt = $pdo->prepare("
+                SELECT id, title, slug, featured_image, post_type
+                FROM blog_posts
+                WHERE status = 'published'
+                  AND published_at > ?
+                  {$tenantCondition}
+                  {$typeCondition}
+                ORDER BY published_at ASC
+                LIMIT 1
+            ");
+            $stmt->execute([$pubAt]);
+            $nextPost = $stmt->fetch(\PDO::FETCH_OBJ) ?: null;
+        } catch (\Throwable $e) {
+            // Silently fail - navigation is non-critical
+        }
+
+        // Para posts del blog, usar la plantilla del blog
         $templatePath = 'blog/single';
 
         return View::renderTheme($templatePath, [
             'post' => $post,
             'translation' => $displayData,
-            'categories' => $categories
+            'categories' => $categories,
+            'prevPost' => $prevPost,
+            'nextPost' => $nextPost
         ]);
     }
 

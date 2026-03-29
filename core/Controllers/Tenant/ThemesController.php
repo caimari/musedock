@@ -10,6 +10,8 @@ use Screenart\Musedock\View;
 use Screenart\Musedock\Logger;
 use Screenart\Musedock\Traits\RequiresPermission;
 use Screenart\Musedock\Security\SessionSecurity;
+use Screenart\Musedock\Models\ThemeSkin;
+use Screenart\Musedock\Models\ThemeOption;
 
 class ThemesController
 {
@@ -39,11 +41,24 @@ class ThemesController
             ['id' => $tenantId]
         )->fetch(\PDO::FETCH_ASSOC);
 
+        // Skins disponibles para el tema activo
+        $activeThemeSlug = ($tenant['theme_type'] === 'custom' && $tenant['custom_theme_slug'])
+            ? $tenant['custom_theme_slug']
+            : ($tenant['theme'] ?? 'default');
+        $skins = ThemeSkin::getAvailableSkins($activeThemeSlug, $tenantId);
+
+        // Detect which skin is currently applied
+        $currentOptions = ThemeOption::getOptions($activeThemeSlug, $tenantId);
+        $activeSkinSlug = $currentOptions['_active_skin'] ?? null;
+
         return View::renderTenantAdmin('themes.index', [
             'globalThemes' => $globalThemes,
             'customThemes' => $customThemes,
+            'skins' => $skins,
             'tenant' => $tenant,
             'tenantId' => $tenantId,
+            'activeThemeSlug' => $activeThemeSlug,
+            'activeSkinSlug' => $activeSkinSlug,
             'title' => 'Gestión de Temas'
         ]);
     }
@@ -236,6 +251,198 @@ class ThemesController
         }
 
         return $themes;
+    }
+
+    // ========== SKINS ==========
+
+    /**
+     * Apply a skin (loads its options into the active theme).
+     */
+    public function applySkin($skinSlug) {
+        SessionSecurity::startSession();
+        $this->checkPermission('appearance.themes');
+
+        if (!validate_csrf($_POST['_csrf'] ?? '')) {
+            flash('error', 'Token de seguridad inválido.');
+            return redirect('/' . admin_path() . '/themes');
+        }
+
+        $tenantId = tenant_id();
+        $skin = ThemeSkin::getBySlug($skinSlug, $tenantId);
+
+        if (!$skin) {
+            flash('error', 'Skin no encontrado.');
+            return redirect('/' . admin_path() . '/themes');
+        }
+
+        $themeSlug = $skin['theme_slug'];
+        $options = is_string($skin['options']) ? json_decode($skin['options'], true) : $skin['options'];
+
+        if (empty($options)) {
+            flash('error', 'El skin no contiene opciones válidas.');
+            return redirect('/' . admin_path() . '/themes');
+        }
+
+        // Apply skin options to the theme (store which skin is active)
+        $options['_active_skin'] = $skinSlug;
+        $success = ThemeOption::saveOptions($themeSlug, $tenantId, $options);
+
+        if ($success) {
+            // Regenerate CSS/JS
+            $appearanceController = new ThemeAppearanceController();
+            try {
+                $reflection = new \ReflectionMethod($appearanceController, 'generateCustomCSS');
+                $reflection->setAccessible(true);
+                $reflection->invoke($appearanceController, $themeSlug, $options, $tenantId);
+
+                $reflection2 = new \ReflectionMethod($appearanceController, 'generateCustomJS');
+                $reflection2->setAccessible(true);
+                $reflection2->invoke($appearanceController, $themeSlug, $options, $tenantId);
+            } catch (\Exception $e) {
+                Logger::log("Error regenerating CSS/JS after skin apply: " . $e->getMessage(), 'WARNING');
+            }
+
+            ThemeSkin::incrementInstallCount((int)$skin['id']);
+
+            // Update cookie banner colors to match skin accent
+            try {
+                $pdo = \Screenart\Musedock\Database::connect();
+                $accent = $options['header']['header_link_hover_color']
+                       ?? $options['scroll_to_top']['scroll_to_top_bg_color']
+                       ?? '#ff5e15';
+                $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+                $keyCol = \Screenart\Musedock\Database::qi('key');
+                $upsertSetting = function($key, $value) use ($pdo, $tenantId, $driver, $keyCol) {
+                    if ($driver === 'pgsql') {
+                        $stmt = $pdo->prepare("INSERT INTO tenant_settings (tenant_id, {$keyCol}, value) VALUES (?, ?, ?) ON CONFLICT (tenant_id, {$keyCol}) DO UPDATE SET value = EXCLUDED.value");
+                    } else {
+                        $stmt = $pdo->prepare("INSERT INTO tenant_settings (tenant_id, {$keyCol}, value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)");
+                    }
+                    $stmt->execute([$tenantId, $key, $value]);
+                };
+                $upsertSetting('cookies_btn_accept_bg', $accent);
+                $upsertSetting('cookies_btn_reject_bg', '#6b7280');
+                $upsertSetting('cookies_bg_color', '#ffffff');
+                $upsertSetting('cookies_text_color', '#333333');
+            } catch (\Exception $e) {
+                // Non-fatal
+            }
+
+            if (class_exists('Screenart\Musedock\Security\AuditLogger')) {
+                AuditLogger::log('skin.applied', 'INFO', [
+                    'skin_slug' => $skinSlug,
+                    'skin_name' => $skin['name'],
+                    'theme_slug' => $themeSlug
+                ]);
+            }
+
+            flash('success', "Skin '{$skin['name']}' aplicado correctamente.");
+        } else {
+            flash('error', 'Error al aplicar el skin.');
+        }
+
+        return redirect('/' . admin_path() . '/themes');
+    }
+
+    /**
+     * Upload a skin (.skin.json file).
+     */
+    public function uploadSkin() {
+        SessionSecurity::startSession();
+        $this->checkPermission('appearance.themes');
+
+        $tenantId = tenant_id();
+
+        if (!validate_csrf($_POST['_csrf'] ?? '')) {
+            flash('error', 'Token de seguridad inválido.');
+            return redirect('/' . admin_path() . '/themes');
+        }
+
+        if (!isset($_FILES['skin_file']) || $_FILES['skin_file']['error'] !== UPLOAD_ERR_OK) {
+            flash('error', 'No se seleccionó ningún archivo.');
+            return redirect('/' . admin_path() . '/themes');
+        }
+
+        $file = $_FILES['skin_file'];
+        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+
+        if ($ext !== 'json') {
+            flash('error', 'Solo se permiten archivos .json');
+            return redirect('/' . admin_path() . '/themes');
+        }
+
+        if ($file['size'] > 2 * 1024 * 1024) {
+            flash('error', 'El archivo es demasiado grande (máximo 2MB).');
+            return redirect('/' . admin_path() . '/themes');
+        }
+
+        $content = file_get_contents($file['tmp_name']);
+        $data = json_decode($content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            flash('error', 'El archivo JSON no es válido.');
+            return redirect('/' . admin_path() . '/themes');
+        }
+
+        // Validate skin structure
+        $validation = ThemeSkin::validateSkinData($data);
+        if (!$validation['valid']) {
+            flash('error', 'Skin no válido: ' . implode(', ', $validation['errors']));
+            return redirect('/' . admin_path() . '/themes');
+        }
+
+        $slug = ThemeSkin::generateSlug($data['name']);
+
+        $skinData = [
+            'slug' => $slug,
+            'name' => $data['name'],
+            'description' => $data['description'] ?? '',
+            'author' => $data['author'] ?? 'Usuario',
+            'version' => $data['version'] ?? '1.0',
+            'theme_slug' => $data['theme_slug'] ?? 'default',
+            'screenshot' => $data['screenshot'] ?? null,
+            'options' => $data['options'],
+            'is_global' => 0,
+            'tenant_id' => $tenantId,
+            'is_active' => 1,
+        ];
+
+        if (ThemeSkin::saveSkin($skinData)) {
+            if (class_exists('Screenart\Musedock\Security\AuditLogger')) {
+                AuditLogger::log('skin.uploaded', 'INFO', [
+                    'skin_slug' => $slug,
+                    'skin_name' => $data['name']
+                ]);
+            }
+            flash('success', "Skin '{$data['name']}' subido correctamente.");
+        } else {
+            flash('error', 'Error al guardar el skin.');
+        }
+
+        return redirect('/' . admin_path() . '/themes');
+    }
+
+    /**
+     * Delete a tenant-owned skin.
+     */
+    public function deleteSkin($slug) {
+        SessionSecurity::startSession();
+        $this->checkPermission('appearance.themes');
+
+        if (!validate_csrf($_POST['_csrf'] ?? '')) {
+            flash('error', 'Token de seguridad inválido.');
+            return redirect('/' . admin_path() . '/themes');
+        }
+
+        $tenantId = tenant_id();
+
+        if (ThemeSkin::deleteSkin($slug, $tenantId)) {
+            flash('success', 'Skin eliminado correctamente.');
+        } else {
+            flash('error', 'Error al eliminar el skin. Solo puedes eliminar skins propios.');
+        }
+
+        return redirect('/' . admin_path() . '/themes');
     }
 
     // ========== MÉTODOS LEGACY (compatibilidad con ThemeController antiguo) ==========

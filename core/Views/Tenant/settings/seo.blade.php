@@ -125,6 +125,26 @@
               </div>
             </div>
           </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Vimeo</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-vimeo"></i></span>
+                  <input type="url" name="social_vimeo" class="form-control" value="{{ $settings['social_vimeo'] ?? '' }}" placeholder="https://vimeo.com/tuempresa">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">TikTok</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-tiktok"></i></span>
+                  <input type="url" name="social_tiktok" class="form-control" value="{{ $settings['social_tiktok'] ?? '' }}" placeholder="https://tiktok.com/@tuempresa">
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

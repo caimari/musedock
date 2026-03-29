@@ -65,6 +65,12 @@ class ThemeAppearanceController
 
         // --- Cargar valores guardados usando el Modelo ---
         $savedOptions = ThemeOption::getOptions($slug, $tenantId);
+
+        // Retrocompatibility: if header_layout is sidebar but no page_structure, set it
+        if (($savedOptions['header']['header_layout'] ?? '') === 'sidebar' && empty($savedOptions['structure']['page_structure'])) {
+            $savedOptions['structure']['page_structure'] = 'sidebar';
+        }
+
         // Determinar origen (si necesitamos saber si son específicas del tenant o globales heredadas)
         $optionSource = 'global'; // Asumir global por defecto
         if ($tenantId !== null) {
@@ -78,15 +84,21 @@ class ThemeAppearanceController
         }
         // ---------------------------------------------
 
+        // --- Cargar presets ---
+        $presets = $this->getPresets($slug, $tenantId);
+
         // --- Preparar datos para la vista ---
         $data = [
             'title'        => 'Personalizar: ' . ($config['name'] ?? $slug) . ($tenantId ? ' (Tenant #' . $tenantId . ')' : ' (Global)'),
-            'theme'        => $config, // Configuración completa de theme.json
+            'theme'        => $config,
             'slug'         => $slug,
             'tenantId'     => $tenantId,
-            'optionsSchema'=> $config['customizable_options'], // El esquema de opciones del JSON
-            'savedOptions' => $savedOptions, // Los valores guardados en BD (o [] si no hay)
-            'optionSource' => $optionSource  // 'global' o 'tenant'
+            'optionsSchema'=> $config['customizable_options'],
+            'savedOptions' => $savedOptions,
+            'optionSource' => $optionSource,
+            'presets'      => $presets,
+            'hasCustomOptions' => !empty($savedOptions),
+            'adminBasePath' => 'musedock'
         ];
 
         return View::renderSuperadmin('themes.appearance', $data);
@@ -154,9 +166,164 @@ class ThemeAppearanceController
     header("Location: {$redirectUrl}");
     exit;
 }
+    // ==================== PRESETS ====================
+
+    private function getPresets(string $slug, ?int $tenantId): array
+    {
+        $pdo = Database::connect();
+        if ($tenantId !== null) {
+            $stmt = $pdo->prepare("SELECT preset_slug, preset_name, created_at FROM theme_presets WHERE tenant_id = ? AND theme_slug = ? ORDER BY preset_name ASC");
+            $stmt->execute([$tenantId, $slug]);
+        } else {
+            $stmt = $pdo->prepare("SELECT preset_slug, preset_name, created_at FROM theme_presets WHERE tenant_id IS NULL AND theme_slug = ? ORDER BY preset_name ASC");
+            $stmt->execute([$slug]);
+        }
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    private function generatePresetSlug(string $name): string
+    {
+        $slug = strtolower(trim($name));
+        $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+        return trim($slug, '-') . '-' . substr(md5(microtime()), 0, 6);
+    }
+
+    public function presetSave($slug)
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('appearance.themes');
+
+        $presetName = trim($_POST['preset_name'] ?? '');
+        if (empty($presetName)) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'El nombre del preset es requerido']);
+            exit;
+        }
+
+        $currentOptions = ThemeOption::getOptions($slug, null);
+        if (empty($currentOptions)) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'No hay opciones guardadas para crear un preset.']);
+            exit;
+        }
+
+        $presetSlug = $this->generatePresetSlug($presetName);
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("INSERT INTO theme_presets (tenant_id, theme_slug, preset_slug, preset_name, options, created_at, updated_at) VALUES (NULL, ?, ?, ?, ?, NOW(), NOW())");
+        $success = $stmt->execute([$slug, $presetSlug, $presetName, json_encode($currentOptions, JSON_UNESCAPED_UNICODE)]);
+
+        header('Content-Type: application/json');
+        echo json_encode($success
+            ? ['success' => true, 'message' => "Preset '{$presetName}' guardado", 'preset' => ['slug' => $presetSlug, 'name' => $presetName]]
+            : ['success' => false, 'error' => 'Error al guardar']
+        );
+        exit;
+    }
+
+    public function presetLoad($slug, $presetSlug)
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('appearance.themes');
+
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("SELECT options FROM theme_presets WHERE tenant_id IS NULL AND theme_slug = ? AND preset_slug = ?");
+        $stmt->execute([$slug, $presetSlug]);
+        $preset = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$preset) {
+            flash('error', 'Preset no encontrado.');
+        } else {
+            $options = json_decode($preset['options'], true);
+            if (ThemeOption::saveOptions($slug, null, $options)) {
+                try {
+                    $this->generateCustomCSS($slug, $options, null);
+                    $this->generateCustomJS($slug, $options, null);
+                    flash('success', 'Preset aplicado correctamente.');
+                } catch (\Exception $e) {
+                    flash('warning', 'Preset aplicado, pero error al generar archivos.');
+                }
+            } else {
+                flash('error', 'Error al aplicar el preset.');
+            }
+        }
+
+        header('Location: /musedock/themes/appearance/' . $slug);
+        exit;
+    }
+
+    public function presetDelete($slug, $presetSlug)
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('appearance.themes');
+
+        $pdo = Database::connect();
+        $stmt = $pdo->prepare("DELETE FROM theme_presets WHERE tenant_id IS NULL AND theme_slug = ? AND preset_slug = ?");
+        $success = $stmt->execute([$slug, $presetSlug]);
+
+        header('Content-Type: application/json');
+        echo json_encode(['success' => $success, 'message' => $success ? 'Preset eliminado' : 'Error']);
+        exit;
+    }
+
+    public function export($slug)
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('appearance.themes');
+
+        $options = ThemeOption::getOptions($slug, null);
+        if (empty($options)) {
+            flash('error', 'No hay opciones para exportar.');
+            header('Location: /musedock/themes/appearance/' . $slug);
+            exit;
+        }
+
+        $exportData = ['theme_slug' => $slug, 'exported_at' => date('Y-m-d H:i:s'), 'version' => '1.0', 'options' => $options];
+        $json = json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+        header('Content-Type: application/json');
+        header('Content-Disposition: attachment; filename="theme-preset-' . $slug . '-' . date('Y-m-d-His') . '.json"');
+        echo $json;
+        exit;
+    }
+
+    public function import($slug)
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('appearance.themes');
+
+        if (!isset($_FILES['preset_file']) || $_FILES['preset_file']['error'] !== UPLOAD_ERR_OK) {
+            flash('error', 'Error al subir el archivo.');
+            header('Location: /musedock/themes/appearance/' . $slug);
+            exit;
+        }
+
+        $data = json_decode(file_get_contents($_FILES['preset_file']['tmp_name']), true);
+        if (json_last_error() !== JSON_ERROR_NONE || !isset($data['options'])) {
+            flash('error', 'Archivo JSON inválido.');
+            header('Location: /musedock/themes/appearance/' . $slug);
+            exit;
+        }
+
+        if (ThemeOption::saveOptions($slug, null, $data['options'])) {
+            try {
+                $this->generateCustomCSS($slug, $data['options'], null);
+                $this->generateCustomJS($slug, $data['options'], null);
+                flash('success', 'Preset importado y aplicado.');
+            } catch (\Exception $e) {
+                flash('warning', 'Importado, pero error al generar archivos.');
+            }
+        } else {
+            flash('error', 'Error al aplicar el preset importado.');
+        }
+
+        header('Location: /musedock/themes/appearance/' . $slug);
+        exit;
+    }
+
+    // ==================== CSS/JS GENERATION ====================
+
     /**
      * Genera un archivo CSS personalizado basado en las opciones guardadas.
-     * (Lógica similar a tu PDF, adaptada y simplificada)
      */
    protected function generateCustomCSS($slug, $options, $tenantId = null)
 {

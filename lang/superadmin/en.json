@@ -273,6 +273,9 @@
             "members": "Members",
             "base_language": "Base language",
             "options": "Options",
+            "post_type": "Post type",
+            "type_post": "Article",
+            "type_brief": "News brief",
             "featured_this_post": "Feature this post",
             "allow_comments": "Allow comments",
             "search_placeholder": "Search posts...",
@@ -854,5 +857,16 @@
         "importing_for_tenant": "Importing for tenant",
         "test_auth": "Test connection",
         "testing_auth": "Verifying..."
+    },
+    "search": {
+        "search": "Search",
+        "search_placeholder": "Search...",
+        "results_for": "result(s) for",
+        "no_results": "No results found for",
+        "posts": "Posts",
+        "pages": "Pages",
+        "no_results_hint": "No results found. Try different keywords.",
+        "back_to_home": "Back to home",
+        "type_to_search": "Type something to search pages and posts."
     }
 }

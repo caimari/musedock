@@ -190,6 +190,23 @@ class WpMediaImporter
     }
 
     /**
+     * Obtener la URL de un media de WordPress por su attachment ID.
+     * Usa la API REST de WordPress.
+     */
+    public function getWordPressMediaUrl(int $attachmentId): ?string
+    {
+        try {
+            $media = $this->client->fetchMedia($attachmentId);
+            if ($media && !empty($media['source_url'])) {
+                return $media['source_url'];
+            }
+        } catch (\Throwable $e) {
+            // Silent fail
+        }
+        return null;
+    }
+
+    /**
      * Reemplazar URLs de WordPress por URLs de MuseDock en el contenido HTML
      */
     public function replaceUrlsInContent(string $content): string
@@ -363,12 +380,12 @@ class WpMediaImporter
             }
 
             $row = \Screenart\Musedock\Database::query(
-                "SELECT id, url FROM media WHERE url LIKE :filename AND {$tenantCondition} LIMIT 1",
+                "SELECT id, path FROM media WHERE (filename LIKE :filename OR path LIKE :filename) AND {$tenantCondition} LIMIT 1",
                 $params
             )->fetch();
 
-            if ($row && !empty($row['url'])) {
-                return ['id' => $row['id'], 'url' => $row['url']];
+            if ($row && !empty($row['path'])) {
+                return ['id' => $row['id'], 'url' => $row['path']];
             }
         } catch (\Throwable $e) {
             Logger::debug("WpMediaImporter: Error buscando media existente: " . $e->getMessage());

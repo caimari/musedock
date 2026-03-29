@@ -8,6 +8,7 @@ use Screenart\Musedock\Database;
 use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Logger;
 use Screenart\Musedock\Models\ThemeOption;
+use Screenart\Musedock\Models\ThemeSkin;
 use PDO;
 
 /**
@@ -76,6 +77,17 @@ class ThemeAppearanceController
         // Cargar opciones guardadas del tenant
         $savedOptions = ThemeOption::getOptions($slug, $tenantId);
 
+        // Retrocompatibility: if header_layout is sidebar but no page_structure, set it
+        if (($savedOptions['header']['header_layout'] ?? '') === 'sidebar' && empty($savedOptions['structure']['page_structure'])) {
+            $savedOptions['structure']['page_structure'] = 'sidebar';
+        }
+
+        // Filtrar opciones de select según restricciones del tenant
+        $optionsSchema = $config['customizable_options'];
+        if ($tenantId) {
+            $optionsSchema = $this->filterOptionsByTenantRestrictions($optionsSchema, $tenantId);
+        }
+
         // Cargar presets disponibles
         $presets = $this->getPresets($slug, $tenantId);
 
@@ -84,7 +96,7 @@ class ThemeAppearanceController
             'theme' => $config,
             'slug' => $slug,
             'tenantId' => $tenantId,
-            'optionsSchema' => $config['customizable_options'],
+            'optionsSchema' => $optionsSchema,
             'savedOptions' => $savedOptions,
             'presets' => $presets,
             'hasCustomOptions' => !empty($savedOptions)
@@ -212,25 +224,23 @@ class ThemeAppearanceController
 
         // Guardar preset
         $pdo = Database::connect();
+        $optionsJson = json_encode($currentOptions, JSON_UNESCAPED_UNICODE);
+
         $stmt = $pdo->prepare("
             INSERT INTO theme_presets (tenant_id, theme_slug, preset_slug, preset_name, options, created_at, updated_at)
             VALUES (:tenant_id, :theme_slug, :preset_slug, :preset_name, :options, NOW(), NOW())
-            ON DUPLICATE KEY UPDATE
-                preset_name = :preset_name2,
-                options = :options2,
+            ON CONFLICT (tenant_id, theme_slug, preset_slug) DO UPDATE SET
+                preset_name = EXCLUDED.preset_name,
+                options = EXCLUDED.options,
                 updated_at = NOW()
         ");
-
-        $optionsJson = json_encode($currentOptions, JSON_UNESCAPED_UNICODE);
 
         $success = $stmt->execute([
             'tenant_id' => $tenantId,
             'theme_slug' => $slug,
             'preset_slug' => $presetSlug,
             'preset_name' => $presetName,
-            'options' => $optionsJson,
-            'preset_name2' => $presetName,
-            'options2' => $optionsJson
+            'options' => $optionsJson
         ]);
 
         if ($success) {
@@ -423,6 +433,103 @@ class ThemeAppearanceController
         exit;
     }
 
+    // ==================== EXPORT AS SKIN ====================
+
+    /**
+     * Export the current theme options as a skin file (.skin.json).
+     */
+    public function exportAsSkin($slug)
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('appearance.themes');
+
+        $tenantId = tenant_id();
+        $options = ThemeOption::getOptions($slug, $tenantId);
+
+        if (empty($options)) {
+            flash('error', 'No hay opciones para exportar como skin. Personaliza primero el tema.');
+            header('Location: /' . admin_path() . '/themes/appearance/' . $slug);
+            exit;
+        }
+
+        $skinName = trim($_GET['name'] ?? 'Mi Skin');
+
+        $exportData = [
+            'name' => $skinName,
+            'slug' => ThemeSkin::generateSlug($skinName),
+            'description' => 'Skin exportado desde personalización del tema',
+            'author' => $_SESSION['admin']['name'] ?? 'Usuario',
+            'version' => '1.0',
+            'theme_slug' => $slug,
+            'screenshot' => null,
+            'options' => $options
+        ];
+
+        $filename = "skin-" . ThemeSkin::generateSlug($skinName) . "-" . date('Y-m-d') . ".skin.json";
+
+        header('Content-Type: application/json');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+        echo json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    /**
+     * Save current customization as a skin in the catalog.
+     */
+    public function saveAsSkin($slug)
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('appearance.themes');
+
+        if (!validate_csrf($_POST['_csrf'] ?? '')) {
+            $this->jsonResponse(['success' => false, 'error' => 'Token inválido']);
+        }
+
+        $tenantId = tenant_id();
+        $skinName = trim($_POST['skin_name'] ?? '');
+
+        if (empty($skinName)) {
+            $this->jsonResponse(['success' => false, 'error' => 'El nombre del skin es requerido']);
+        }
+
+        $options = ThemeOption::getOptions($slug, $tenantId);
+
+        if (empty($options) && $tenantId !== null) {
+            $options = ThemeOption::getOptions($slug, null);
+        }
+
+        if (empty($options)) {
+            $this->jsonResponse(['success' => false, 'error' => 'No hay opciones guardadas para crear un skin.']);
+        }
+
+        $skinSlug = ThemeSkin::generateSlug($skinName);
+
+        $skinData = [
+            'slug' => $skinSlug,
+            'name' => $skinName,
+            'description' => trim($_POST['skin_description'] ?? ''),
+            'author' => $_SESSION['admin']['name'] ?? 'Usuario',
+            'version' => '1.0',
+            'theme_slug' => $slug,
+            'screenshot' => null,
+            'options' => $options,
+            'is_global' => 0,
+            'tenant_id' => $tenantId,
+            'is_active' => 1,
+        ];
+
+        if (ThemeSkin::saveSkin($skinData)) {
+            $this->jsonResponse([
+                'success' => true,
+                'message' => "Skin '{$skinName}' guardado en el catálogo",
+                'skin' => ['slug' => $skinSlug, 'name' => $skinName]
+            ]);
+        } else {
+            $this->jsonResponse(['success' => false, 'error' => 'Error al guardar el skin']);
+        }
+    }
+
     // ==================== HELPERS ====================
 
     /**
@@ -445,6 +552,75 @@ class ThemeAppearanceController
         }
 
         return null;
+    }
+
+    /**
+     * Filtra opciones de select según restricciones del tenant.
+     * Si un tenant tiene restricciones, solo muestra las opciones permitidas.
+     * Si no tiene restricciones, muestra todas las opciones.
+     */
+    private function filterOptionsByTenantRestrictions(array $schema, int $tenantId): array
+    {
+        try {
+            $pdo = Database::connect();
+
+            // 1. Load global defaults (tenant_id IS NULL)
+            $stmt = $pdo->prepare("SELECT layout_type, layout_value, is_allowed FROM tenant_layout_restrictions WHERE tenant_id IS NULL");
+            $stmt->execute();
+            $globalRestrictions = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // 2. Load tenant-specific overrides
+            $stmt = $pdo->prepare("SELECT layout_type, layout_value, is_allowed FROM tenant_layout_restrictions WHERE tenant_id = ?");
+            $stmt->execute([$tenantId]);
+            $tenantRestrictions = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Merge: tenant overrides global
+            $restrictions = array_merge($globalRestrictions, $tenantRestrictions);
+
+            if (empty($restrictions)) {
+                return $schema; // No restrictions = show everything
+            }
+
+            // Build restriction map: layout_type.layout_value => is_allowed
+            $restrictionMap = [];
+            foreach ($restrictions as $r) {
+                $restrictionMap[$r['layout_type'] . '.' . $r['layout_value']] = (bool)$r['is_allowed'];
+            }
+
+            // Filter select options in the schema
+            foreach ($schema as $sectionSlug => &$section) {
+                if (($section['type'] ?? '') !== 'section' || empty($section['options'])) continue;
+                foreach ($section['options'] as $optionSlug => &$option) {
+                    if (($option['type'] ?? '') !== 'select' || empty($option['options'])) continue;
+
+                    // Check if any restriction exists for this option type
+                    $hasRestrictions = false;
+                    foreach ($option['options'] as $value => $label) {
+                        $key = $optionSlug . '.' . $value;
+                        if (isset($restrictionMap[$key])) {
+                            $hasRestrictions = true;
+                            break;
+                        }
+                    }
+
+                    if ($hasRestrictions) {
+                        $filtered = [];
+                        foreach ($option['options'] as $value => $label) {
+                            $key = $optionSlug . '.' . $value;
+                            // Keep if: no restriction exists OR is_allowed = true
+                            if (!isset($restrictionMap[$key]) || $restrictionMap[$key]) {
+                                $filtered[$value] = $label;
+                            }
+                        }
+                        $option['options'] = $filtered;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Silent fallback — return unfiltered
+        }
+
+        return $schema;
     }
 
     /**
@@ -599,6 +775,7 @@ class ThemeAppearanceController
             'hero.hero_overlay_color' => '--hero-overlay-color',
             'hero.hero_overlay_opacity' => '--hero-overlay-opacity',
             // Header
+            'header.header_logo_max_height' => '--header-logo-max-height',
             'header.header_bg_color' => '--header-bg-color',
             'header.header_logo_text_color' => '--header-logo-text-color',
             'header.header_logo_font' => '--header-logo-font',
@@ -617,9 +794,15 @@ class ThemeAppearanceController
         ];
 
         $cssVars = [];
+        // Variables que necesitan sufijo 'px'
+        $pxVars = ['--header-logo-max-height'];
+
         foreach ($mappings as $optionPath => $cssVar) {
             $value = $this->getNestedValue($options, explode('.', $optionPath));
             if ($value !== null && $value !== '') {
+                if (in_array($cssVar, $pxVars) && is_numeric($value)) {
+                    $value = $value . 'px';
+                }
                 $cssVars[$cssVar] = $value;
             }
         }

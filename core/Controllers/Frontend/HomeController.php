@@ -107,8 +107,7 @@ class HomeController
 
             // === NUEVO: Obtener plantilla asignada ===
             $templateName = PageMeta::getMeta($homepage->id, 'page_template', 'page.blade.php');
-            $templateName = str_replace('.blade.php', '', $templateName);
-            error_log("HomeController: Usando plantilla '{$templateName}' para renderizar homepage.");
+            $templateName = resolve_page_template($templateName);
             // ========================================
 
             // === NUEVO: Cargar personalizaciones de página ===
@@ -341,13 +340,17 @@ class HomeController
             $displayData->twitter_description = $translation->twitter_description ?? $page->twitter_description;
             $displayData->twitter_image = $translation->twitter_image ?? $page->twitter_image;
 
-            // Si esta página es la homepage configurada, usar la plantilla "home" del tema
-            if ($isFrontPage) {
+            // Obtener plantilla asignada (si hay una personalizada, usarla incluso en homepage)
+            $assignedTemplate = resolve_page_template(PageMeta::getMeta($page->id, 'page_template', 'page.blade.php'));
+
+            if ($assignedTemplate !== 'page' && $assignedTemplate !== '') {
+                // Custom template assigned — use it
+                $templateName = $assignedTemplate;
+            } elseif ($isFrontPage) {
+                // Default template + front page — use "home" if it exists
                 $templateName = 'home';
             } else {
-                // Obtener plantilla asignada
-                $templateName = PageMeta::getMeta($page->id, 'page_template', 'page.blade.php');
-                $templateName = str_replace('.blade.php', '', $templateName);
+                $templateName = $assignedTemplate;
             }
 
             // Cargar personalizaciones de página

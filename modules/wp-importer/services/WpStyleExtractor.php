@@ -601,14 +601,41 @@ class WpStyleExtractor
     {
         $info = [];
 
-        // Site name desde <title> o .site-title
-        if (preg_match('/<title>([^<|–-]+)/i', $html, $match)) {
-            $info['site_name'] = trim(html_entity_decode($match[1], ENT_QUOTES, 'UTF-8'));
+        // Site name desde <title> — split by common separators (–, -, |, —)
+        if (preg_match('/<title>(.+?)<\/title>/i', $html, $match)) {
+            $titleFull = html_entity_decode($match[1], ENT_QUOTES, 'UTF-8');
+            // Split by common WP title separators: – | — -
+            $parts = preg_split('/\s*[\|–—]\s*/', $titleFull);
+            $info['site_name'] = trim($parts[0] ?? $titleFull);
+            // Second part is often the tagline
+            if (count($parts) > 1) {
+                $info['site_description'] = trim($parts[1]);
+            }
         }
 
-        // Tagline / description
+        // Tagline / description from meta (override if exists)
         if (preg_match('/<meta[^>]+name=["\']description["\'][^>]+content=["\']([^"\']+)["\']/', $html, $match)) {
-            $info['site_description'] = trim(html_entity_decode($match[1], ENT_QUOTES, 'UTF-8'));
+            $metaDesc = trim(html_entity_decode($match[1], ENT_QUOTES, 'UTF-8'));
+            if (!empty($metaDesc)) {
+                $info['site_description'] = $metaDesc;
+            }
+        }
+
+        // Also try to extract from WP site-description element
+        if (preg_match('/id=["\']site-description["\'][^>]*>([^<]+)</i', $html, $match)) {
+            $info['site_subtitle'] = trim(html_entity_decode($match[1], ENT_QUOTES, 'UTF-8'));
+        }
+
+        // Map site_description to site_subtitle (MuseDock uses site_subtitle)
+        if (!empty($info['site_description']) && empty($info['site_subtitle'])) {
+            $info['site_subtitle'] = $info['site_description'];
+        }
+        unset($info['site_description']); // Don't save as site_description
+
+        // Ensure show_title and show_subtitle are enabled
+        $info['show_title'] = '1';
+        if (!empty($info['site_subtitle'])) {
+            $info['show_subtitle'] = '1';
         }
 
         // Logo URL (múltiples patrones de temas WP)

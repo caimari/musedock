@@ -3,15 +3,21 @@
     @php
         $postsArray = is_array($posts) ? $posts : (method_exists($posts, 'toArray') ? $posts->toArray() : (array)$posts);
 
-        // Pick top 5 by view_count for carousel
-        $carouselCount = min(5, count($postsArray));
-        $sortedByViews = $postsArray;
-        usort($sortedByViews, function($a, $b) {
-            $aViews = is_object($a) ? ($a->view_count ?? 0) : ($a['view_count'] ?? 0);
-            $bViews = is_object($b) ? ($b->view_count ?? 0) : ($b['view_count'] ?? 0);
-            return $bViews - $aViews;
-        });
-        $carouselPosts = array_slice($sortedByViews, 0, $carouselCount);
+        // Si hay posts destacados, usarlos para el carousel; si no, top 5 por views
+        $__featuredArr = !empty($featuredPosts) ? (is_array($featuredPosts) ? $featuredPosts : (method_exists($featuredPosts, 'toArray') ? $featuredPosts->toArray() : (array)$featuredPosts)) : [];
+        if (!empty($__featuredArr)) {
+            shuffle($__featuredArr);
+            $carouselPosts = array_slice($__featuredArr, 0, 5);
+        } else {
+            $carouselCount = min(5, count($postsArray));
+            $sortedByViews = $postsArray;
+            usort($sortedByViews, function($a, $b) {
+                $aViews = is_object($a) ? ($a->view_count ?? 0) : ($a['view_count'] ?? 0);
+                $bViews = is_object($b) ? ($b->view_count ?? 0) : ($b['view_count'] ?? 0);
+                return $bViews - $aViews;
+            });
+            $carouselPosts = array_slice($sortedByViews, 0, $carouselCount);
+        }
         $carouselPostIds = array_map(function($p) {
             return is_object($p) ? $p->id : ($p['id'] ?? 0);
         }, $carouselPosts);

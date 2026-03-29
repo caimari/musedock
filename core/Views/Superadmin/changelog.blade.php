@@ -13,11 +13,63 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.5.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.5.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 29 de Marzo de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Arquitectura de temas</h6>
+                <ul class="mb-3">
+                    <li><strong>Estructura de pagina:</strong> Nueva jerarquia Tema > Estructura > Skin. Selector entre Clasica (cabecera + pie modulares) y Sidebar lateral (autocontenido)</li>
+                    <li><strong>Estructura Sidebar:</strong> Opciones propias (idioma, redes, buscador, CTA). Fuerza ancho completo en posts/paginas con nota informativa</li>
+                    <li><strong>Dependencias de seccion:</strong> Secciones completas se ocultan/muestran segun estructura elegida</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> AI Skin Generator (nuevo plugin)</h6>
+                <ul class="mb-3">
+                    <li><strong>Generacion con IA:</strong> Skins completos con descripcion de estilo. Conoce todos los layouts y sus combinaciones</li>
+                    <li><strong>Consultor de proyecto:</strong> La IA analiza tu proyecto y recomienda sector, publico y estilo visual</li>
+                    <li><strong>Skin aleatorio:</strong> 15 paletas mezclables + layouts al azar, sin consumir tokens</li>
+                    <li><strong>Fijar estructura:</strong> 10 plantillas base que fijan layouts y solo varian colores/tipografias</li>
+                    <li><strong>Vista previa dinamica:</strong> Refleja cada layout real de header, blog y footer</li>
+                    <li><strong>Validacion:</strong> Correccion automatica de contraste, valores invalidos y normalizacion</li>
+                    <li><strong>20 prompts de ejemplo</strong> y color pickers nativos</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Gestion de skins y presets</h6>
+                <ul class="mb-3">
+                    <li><strong>Domain Manager:</strong> Selector rapido de skin + gestion de presets por tenant</li>
+                    <li><strong>Temas:</strong> Activar/desactivar y eliminar skins desde el listado</li>
+                    <li><strong>Cookie banner:</strong> Colores se adaptan automaticamente al skin aplicado</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Header, Topbar y Blog</h6>
+                <ul class="mb-3">
+                    <li><strong>Header modular:</strong> Redes sociales, fecha/reloj y buscador como opciones independientes</li>
+                    <li><strong>Topbar:</strong> Ticker inline, toggle redes, opciones de reloj reubicadas</li>
+                    <li><strong>Ticker:</strong> 7 opciones de color personalizables</li>
+                    <li><strong>Newspaper overlay:</strong> Texto sobre imagen en posts destacados</li>
+                    <li><strong>Plantilla de post:</strong> Funcional: Sidebar Derecha, Ancho Completo, Sidebar Izquierda</li>
+                    <li><strong>Cards categorias:</strong> Nuevo diseno con imagen, contador y hover</li>
+                    <li><strong>Footer minimal:</strong> Nuevo layout copyright + enlaces legales</li>
+                </ul>
+
+                <h6 class="text-success"><i class="bi bi-bug me-1"></i> Correcciones</h6>
+                <ul class="mb-3">
+                    <li>Presets PostgreSQL (ON CONFLICT), select idiomas sin naranja hardcodeado, Cross-Publisher estado publicado, traducciones search, footer boxed minimal, depends_on con valor</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.4.2 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.4.2</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">26 Mar 2026</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 26 de Marzo de 2026</p>

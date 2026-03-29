@@ -38,6 +38,12 @@ body {
   padding-top: var(--header-padding-y, 15px) !important;
   padding-bottom: var(--header-padding-y, 15px) !important;
 }
+/* Layout logo-above: debe ser block, no flex */
+.musedock-header.header-layout-logo-above,
+.musedock-header.header-layout-logo-above-left {
+  display: block !important;
+  min-height: auto !important;
+}
 
 /* Footer más compacto */
 .footer-area.footer-padding {

@@ -6,6 +6,7 @@
   --hero-subtitle-color: #ffffff;
   --hero-overlay-color: #000000;
   --hero-overlay-opacity: 0.5;
+  --header-logo-max-height: 100px;
   --header-bg-color: #ffffff;
   --header-logo-text-color: #777777;
   --header-logo-font: 'Roboto', sans-serif;
@@ -33,10 +34,17 @@ body {
   background-color: var(--page-bg-color);
 }
 
-/* Header más compacto */
+/* Header spacing */
 .musedock-header {
-  padding-top: var(--header-padding-y) !important;
-  padding-bottom: var(--header-padding-y) !important;
+  min-height: 80px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+/* Layout logo-above: debe ser block, no flex (tiene filas logo + menú) */
+.musedock-header.header-layout-logo-above,
+.musedock-header.header-layout-logo-above-left {
+  display: block !important;
+  min-height: auto !important;
 }
 
 /* Footer más compacto */

@@ -182,7 +182,7 @@ class BlogPostController
 
         // Obtener plantillas disponibles
         $availableTemplates = get_blog_templates();
-        $currentTemplate = 'page';
+        $currentTemplate = 'template-sidebar-right';
 
         return View::renderTenantAdmin('blog.posts.create', [
             'title' => 'Crear Post',
@@ -220,6 +220,9 @@ class BlogPostController
         // Usuario actual del tenant (admin)
         $data['user_id'] = $_SESSION['admin']['id'] ?? null;
         $data['user_type'] = 'admin';
+
+        // Tipo de post (post o brief)
+        $data['post_type'] = in_array($data['post_type'] ?? 'post', ['post', 'brief']) ? $data['post_type'] : 'post';
 
         // Manejo de checkboxes
         $data['show_hero'] = isset($data['show_hero']) ? 1 : 0;
@@ -460,7 +463,7 @@ class BlogPostController
 
         // Obtener plantillas disponibles
         $availableTemplates = get_blog_templates();
-        $currentTemplate = $post->template ?? 'page';
+        $currentTemplate = $post->template ?: 'template-sidebar-right';
 
         return View::renderTenantAdmin('blog.posts.edit', [
             'title'               => 'Editar post: ' . e($post->title),
@@ -519,6 +522,9 @@ class BlogPostController
         $rawData = $_POST;
         $data = $rawData;
         unset($data['_token'], $data['_csrf'], $data['_method']);
+
+        // Tipo de post (post o brief)
+        $data['post_type'] = in_array($data['post_type'] ?? 'post', ['post', 'brief']) ? $data['post_type'] : 'post';
 
         // Manejo de checkboxes
         $data['show_hero'] = isset($data['show_hero']) ? 1 : 0;

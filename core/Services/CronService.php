@@ -240,7 +240,7 @@ class CronService
 
         $stmt = $pdo->prepare("
             UPDATE scheduled_tasks
-            SET locked_until = DATE_ADD(NOW(), INTERVAL {$lockDuration} SECOND)
+            SET locked_until = NOW() + INTERVAL '{$lockDuration} seconds'
             WHERE task_name = ?
             AND (locked_until IS NULL OR locked_until < NOW())
         ");
@@ -290,7 +290,7 @@ class CronService
             UPDATE scheduled_tasks
             SET status = 'idle',
                 last_run = NOW(),
-                next_run = DATE_ADD(NOW(), INTERVAL {$interval} SECOND),
+                next_run = NOW() + INTERVAL '{$interval} seconds',
                 last_error = NULL,
                 last_duration = ?,
                 run_count = run_count + 1,

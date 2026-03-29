@@ -3,6 +3,7 @@
     $ctaEnabled = $ctaEnabled ?? false;
     $ctaUrl = $ctaUrl ?? '#';
     $ctaText = $ctaText ?? '';
+    $headerSearchEnabled = $headerSearchEnabled ?? false;
     $langSelectorEnabled = $langSelectorEnabled ?? false;
     $showLangSelector = $showLangSelector ?? false;
     $currentLang = $currentLang ?? 'es';
@@ -68,11 +69,15 @@
                 </div>
 
                 <div class="header-actions">
+                    @include('partials._header-extras')
+
                     @if($ctaEnabled)
                         <a href="{{ $ctaUrl }}" class="header-btn">
                             {{ $ctaText }}
                         </a>
                     @endif
+
+                    @include('partials._header-search')
 
                     @if($langSelectorEnabled && $showLangSelector)
                         <div class="lang-select">

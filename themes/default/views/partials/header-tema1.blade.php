@@ -4,6 +4,7 @@
     $ctaUrl = $ctaUrl ?? '#';
     $ctaText = $ctaText ?? '';
     $langSelectorEnabled = $langSelectorEnabled ?? false;
+    $headerSearchEnabled = $headerSearchEnabled ?? false;
     $showLangSelector = $showLangSelector ?? false;
     $currentLang = $currentLang ?? 'es';
     $languages = $languages ?? [];
@@ -41,6 +42,8 @@
                                 'submenu_class' => 'submenu'
                             ])
                         </nav>
+
+                        @include('partials._header-search')
 
                         {{-- Menu toggle para movil --}}
                         <button type="button" class="menu-toggle header-tema1-menu-toggle" id="menu-toggle" aria-label="Abrir menu">

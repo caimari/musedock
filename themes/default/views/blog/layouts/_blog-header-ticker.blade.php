@@ -13,9 +13,9 @@
     $latestPostPos  = themeOption('blog.blog_ticker_latest_position', 'top');
 
     // Clock only shows in 'top' position
-    $showClock = ($tickerPosition === 'top') ? themeOption('blog.blog_ticker_clock', false) : false;
-    $clockLocale = themeOption('blog.blog_header_clock_locale', 'es');
-    $clockTimezone = themeOption('blog.blog_header_clock_timezone', 'Europe/Madrid');
+    $showClock = ($tickerPosition === 'top') ? themeOption('topbar.topbar_ticker_clock', false) : false;
+    $clockLocale = themeOption('topbar.topbar_clock_locale', 'es');
+    $clockTimezone = themeOption('topbar.topbar_clock_timezone', 'Europe/Madrid');
 
     // Determine what to render in THIS position
     $renderTags    = $showTopTags && ($topTagsPos === $tickerPosition);
@@ -86,7 +86,7 @@
 @endphp
 
 @if($showClock || !empty($tickerTags) || !empty($tickerPosts))
-<div class="blog-header-ticker {{ $tickerPosition === 'bottom' ? 'mt-3' : 'mb-2' }}">
+<div class="blog-header-ticker {{ $tickerPosition === 'bottom' ? 'mt-3' : 'mb-2' }}" style="--ticker-bg:{{ themeOption('blog.blog_ticker_bg_color', '#ffffff') }};--ticker-border:{{ themeOption('blog.blog_ticker_border_color', '#e5e5e5') }};--ticker-label-bg:{{ themeOption('blog.blog_ticker_label_bg', '#333333') }};--ticker-label-text:{{ themeOption('blog.blog_ticker_label_text', '#ffffff') }};--ticker-tag-bg:{{ themeOption('blog.blog_ticker_tag_bg', '#f0f0f0') }};--ticker-tag-text:{{ themeOption('blog.blog_ticker_tag_text', '#333333') }};--ticker-post-text:{{ themeOption('blog.blog_ticker_post_text', '#333333') }}">
     {{-- Live Clock (top only) --}}
     @if($showClock)
     <div class="ticker-clock-row">
@@ -196,22 +196,22 @@
 @if($tickerPosition === 'top')
 <style>
 .blog-header-ticker {
-    border: 1px solid #e5e5e5;
+    border: 1px solid var(--ticker-border, #e5e5e5);
     border-radius: 6px;
     overflow: hidden;
-    background: #fff;
+    background: var(--ticker-bg, #fff);
 }
 
 /* Clock row */
 .ticker-clock-row {
     display: flex;
     align-items: center;
-    border-bottom: 1px solid #e5e5e5;
-    background: #fafafa;
+    border-bottom: 1px solid var(--ticker-border, #e5e5e5);
+    background: var(--ticker-bg, #fafafa);
 }
 .ticker-label-clock {
-    background: #333;
-    color: #fff;
+    background: var(--ticker-label-bg, #333);
+    color: var(--ticker-label-text, #fff);
     font-weight: 700;
     font-size: 0.8rem;
     padding: 6px 14px;
@@ -221,7 +221,7 @@
     padding: 6px 14px;
     font-size: 0.85rem;
     font-weight: 600;
-    color: #333;
+    color: var(--ticker-post-text, #333);
     letter-spacing: 0.3px;
     white-space: nowrap;
 }
@@ -231,11 +231,11 @@
     display: flex;
     align-items: center;
     padding: 8px 0;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--ticker-border, #e5e5e5);
 }
 .ticker-label-tags {
-    background: #333;
-    color: #fff;
+    background: var(--ticker-label-bg, #333);
+    color: var(--ticker-label-text, #fff);
     font-weight: 700;
     font-size: 0.8rem;
     padding: 6px 14px;
@@ -251,20 +251,22 @@
 }
 .ticker-tag {
     display: inline-block;
-    background: #e74c3c;
-    color: #fff !important;
+    background: var(--ticker-tag-bg, #f0f0f0);
+    color: var(--ticker-tag-text, #333) !important;
     font-size: 0.75rem;
     font-weight: 600;
     padding: 3px 10px;
     border-radius: 3px;
     text-decoration: none !important;
     text-transform: lowercase;
-    transition: background 0.2s;
+    transition: background 0.2s, color 0.2s;
+    border: 1px solid var(--ticker-border, #ddd);
 }
 .ticker-tag:hover {
-    background: #c0392b;
+    background: var(--ticker-label-bg, #333);
     text-decoration: none !important;
-    color: #fff !important;
+    color: var(--ticker-label-text, #fff) !important;
+    border-color: var(--ticker-label-bg, #333);
 }
 
 /* Latest Post row */
@@ -274,8 +276,8 @@
     overflow: hidden;
 }
 .ticker-label-latest {
-    background: #e74c3c;
-    color: #fff;
+    background: var(--ticker-label-bg, #333);
+    color: var(--ticker-label-text, #fff);
     font-weight: 700;
     font-size: 0.8rem;
     padding: 8px 14px;
@@ -303,18 +305,19 @@
     padding: 8px 24px;
     font-size: 0.85rem;
     font-weight: 500;
-    color: #333 !important;
+    color: var(--ticker-post-text, #333) !important;
     text-decoration: none !important;
     white-space: nowrap;
     flex-shrink: 0;
 }
 .ticker-marquee-item:hover {
-    color: #e74c3c !important;
+    opacity: 0.7;
     text-decoration: none !important;
 }
 .ticker-marquee-item i {
-    color: #e74c3c;
-    font-size: 0.75rem;
+    color: var(--ticker-post-text, #333);
+    font-size: 0.4rem;
+    opacity: 0.3;
 }
 
 @keyframes tickerScroll {

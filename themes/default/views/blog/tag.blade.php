@@ -45,7 +45,6 @@
                 <li class="breadcrumb-item active" aria-current="page" style="color: #666;">{{ $tag->name }}</li>
             </ol>
         </nav>
-        <h1 class="mb-2" style="font-size: 1.75rem; margin-top: 0;">{{ $tag->name }}</h1>
         @if($tag->description)
         <p class="text-muted mb-0">{{ $tag->description }}</p>
         @endif

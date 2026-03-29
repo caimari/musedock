@@ -95,12 +95,35 @@
 
 @php
     $containerPaddingClass = $showHero ? 'pt-0 pb-5' : 'py-5';
+    // Determine post template
+    $postTemplate = $post->template ?: 'template-sidebar-right';
+    // Normalize old values: 'single', null, empty → sidebar-right (retrocompatibility)
+    if (in_array($postTemplate, ['single', ''])) {
+        $postTemplate = 'template-sidebar-right';
+    }
+    // Sidebar page structure → force full width (the sidebar nav IS the sidebar)
+    $__pageStructure = themeOption('structure.page_structure', 'classic');
+    $__isSidebarStructure = ($__pageStructure === 'sidebar' || themeOption('header.header_layout', '') === 'sidebar');
+    if ($__isSidebarStructure) {
+        $postTemplate = 'page';
+    }
+    $hasSidebar = !in_array($postTemplate, ['page', 'full-width']);
+    $sidebarLeft = ($postTemplate === 'template-sidebar-left');
+    $contentCol = $hasSidebar ? 'col-lg-8' : 'col-lg-12';
 @endphp
 
 <div class="container {{ $containerPaddingClass }}">
     <div class="row">
+        {{-- Sidebar left --}}
+        @if($hasSidebar && $sidebarLeft)
+        <div class="col-lg-4">
+            @include('blog.layouts._blog-sidebar-extras', ['post' => $post])
+            @include('partials.sidebar')
+        </div>
+        @endif
+
         {{-- Contenido principal --}}
-        <div class="col-lg-8">
+        <div class="{{ $contentCol }}">
             <article class="blog-post-single page-content-wrapper">
 
                 {{-- Título - Ocultar solo si hide_title está activado --}}
@@ -245,46 +268,67 @@
 
                 {{-- Navegación prev/next --}}
                 @if(!empty($prevPost) || !empty($nextPost))
-                <nav class="blog-post-nav mt-5 pt-4 border-top">
-                    <div class="row">
+                @php
+                    $isBriefNav = ($post->post_type ?? 'post') === 'brief';
+                    $navLabel = $isBriefNav ? 'brief' : '';
+                @endphp
+                <nav class="post-nav mt-5">
+                    <div class="post-nav-inner">
                         @if(!empty($prevPost))
-                        <div class="col-md-6 mb-3 mb-md-0">
-                            <a href="{{ blog_url($prevPost->slug) }}" class="text-decoration-none">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-arrow-left me-2"></i>
-                                    <div>
-                                        <small class="text-muted d-block">{{ __('blog.previous_post') }}</small>
-                                        <strong>{{ $prevPost->title }}</strong>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
+                        <a href="{{ blog_url($prevPost->slug) }}" class="post-nav-link post-nav-prev">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            <div class="post-nav-text">
+                                <span class="post-nav-label">{{ __('blog.previous_post') }}</span>
+                                <span class="post-nav-title">{{ $prevPost->title }}</span>
+                            </div>
+                        </a>
+                        @else
+                        <span class="post-nav-link post-nav-placeholder"></span>
                         @endif
 
                         @if(!empty($nextPost))
-                        <div class="col-md-6 text-md-end">
-                            <a href="{{ blog_url($nextPost->slug) }}" class="text-decoration-none">
-                                <div class="d-flex align-items-center justify-content-md-end">
-                                    <div>
-                                        <small class="text-muted d-block">{{ __('blog.next_post') }}</small>
-                                        <strong>{{ $nextPost->title }}</strong>
-                                    </div>
-                                    <i class="fas fa-arrow-right ms-2"></i>
-                                </div>
-                            </a>
-                        </div>
+                        <a href="{{ blog_url($nextPost->slug) }}" class="post-nav-link post-nav-next">
+                            <div class="post-nav-text">
+                                <span class="post-nav-label">{{ __('blog.next_post') }}</span>
+                                <span class="post-nav-title">{{ $nextPost->title }}</span>
+                            </div>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        </a>
+                        @else
+                        <span class="post-nav-link post-nav-placeholder"></span>
                         @endif
                     </div>
                 </nav>
+                <style>
+                .post-nav { border-top: 1px solid #eee; padding-top: 1.5rem; }
+                .post-nav-inner { display: flex; justify-content: space-between; gap: 1rem; }
+                .post-nav-link { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #333; padding: 12px 16px; border-radius: 8px; transition: all 0.2s; flex: 1; min-width: 0; }
+                .post-nav-link:hover { background: #f8f8f8; color: #333; }
+                .post-nav-link:hover svg { color: var(--header-link-hover-color, #ff5e15); }
+                .post-nav-link svg { flex-shrink: 0; color: #aaa; transition: color 0.2s; }
+                .post-nav-next { justify-content: flex-end; text-align: right; }
+                .post-nav-text { display: flex; flex-direction: column; min-width: 0; }
+                .post-nav-label { font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+                .post-nav-title { font-weight: 600; font-size: 14px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+                .post-nav-placeholder { flex: 1; }
+                @media (max-width: 575px) {
+                    .post-nav-inner { flex-direction: column; gap: 0; }
+                    .post-nav-next { text-align: left; justify-content: flex-start; flex-direction: row-reverse; }
+                    .post-nav-link { border-radius: 0; border-bottom: 1px solid #f0f0f0; }
+                    .post-nav-link:last-child { border-bottom: none; }
+                }
+                </style>
                 @endif
             </article>
         </div>
 
-        {{-- Sidebar --}}
+        {{-- Sidebar right --}}
+        @if($hasSidebar && !$sidebarLeft)
         <div class="col-lg-4">
             @include('blog.layouts._blog-sidebar-extras', ['post' => $post])
             @include('partials.sidebar')
         </div>
+        @endif
     </div>
 </div>
 

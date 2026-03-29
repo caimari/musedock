@@ -364,6 +364,9 @@
             "password": "Contraseña",
             "password_protected": "Protegido con contraseña",
             "options": "Opciones",
+            "post_type": "Tipo de publicación",
+            "type_post": "Artículo",
+            "type_brief": "Noticia breve",
             "featured_this_post": "Destacar este post",
             "allow_comments": "Permitir comentarios",
             "image_url": "URL de imagen",
@@ -687,7 +690,15 @@
         "theme_details": "Detalles del Tema",
         "author": "Autor",
         "version": "Versión",
-        "description": "Descripción"
+        "description": "Descripción",
+        "skins": "Skins",
+        "skins_desc": "Cambia la estética de tu tema con un solo click",
+        "apply": "Aplicar",
+        "upload_skin": "Subir Skin",
+        "available": "disponible(s)",
+        "own": "Propio",
+        "in_use": "En uso",
+        "official": "Oficial"
     },
     "modules": {
         "title": "Módulos",
@@ -1064,5 +1075,16 @@
         "policy_rename_desc": "Crear nuevo con slug modificado (-1, -2...)",
         "test_auth": "Test conexión",
         "testing_auth": "Verificando..."
+    },
+    "search": {
+        "search": "Buscar",
+        "search_placeholder": "Buscar...",
+        "results_for": "resultado(s) para",
+        "no_results": "Sin resultados para",
+        "posts": "Artículos",
+        "pages": "Páginas",
+        "no_results_hint": "No se encontraron resultados. Prueba con otros términos.",
+        "back_to_home": "Volver al inicio",
+        "type_to_search": "Escribe algo para buscar en páginas y artículos."
     }
 }

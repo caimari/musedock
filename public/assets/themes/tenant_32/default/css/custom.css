@@ -35,8 +35,13 @@ body {
 
 /* Header más compacto */
 .musedock-header {
-  padding-top: var(--header-padding-y) !important;
-  padding-bottom: var(--header-padding-y) !important;
+  min-height: 80px !important; display: flex !important; align-items: center !important;
+}
+/* Layout logo-above: debe ser block, no flex */
+.musedock-header.header-layout-logo-above,
+.musedock-header.header-layout-logo-above-left {
+  display: block !important;
+  min-height: auto !important;
 }
 
 /* Footer más compacto */

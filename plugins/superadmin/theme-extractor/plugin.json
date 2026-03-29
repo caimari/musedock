@@ -1,0 +1,15 @@
+{
+    "slug": "theme-extractor",
+    "name": "Theme Extractor",
+    "description": "Extrae colores, fuentes, imágenes y estilos de cualquier web para crear skins MuseDock. Analiza CSS, detecta paletas de colores y genera skins asignables a tenants.",
+    "version": "1.0.0",
+    "author": "MuseDock",
+    "author_url": "https://musedock.com",
+    "plugin_url": "https://musedock.com/plugins/theme-extractor",
+    "requires_php": "8.0",
+    "requires_musedock": "2.0.0",
+    "namespace": "ThemeExtractor",
+    "main_file": "theme-extractor.php",
+    "auto_activate": false,
+    "dependencies": {}
+}

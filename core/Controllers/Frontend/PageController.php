@@ -93,8 +93,7 @@ class PageController
         $pageCustomizations = $this->loadPageCustomizations($page->id);
         
         // === Obtener la plantilla asignada ===
-        $templateName = PageMeta::getMeta($page->id, 'page_template', 'page.blade.php');
-        $templateName = str_replace('.blade.php', '', $templateName);
+        $templateName = resolve_page_template(PageMeta::getMeta($page->id, 'page_template', 'page.blade.php'));
 
         // === NUEVO: Cargar áreas de widgets para este tema ===
         $themeWidgetAreas = $this->loadThemeWidgetAreas();
@@ -227,8 +226,7 @@ class PageController
         $pageCustomizations = $this->loadPageCustomizations($page->id);
         
         // === Obtener la plantilla asignada ===
-        $templateName = PageMeta::getMeta($page->id, 'page_template', 'page.blade.php');
-        $templateName = str_replace('.blade.php', '', $templateName);
+        $templateName = resolve_page_template(PageMeta::getMeta($page->id, 'page_template', 'page.blade.php'));
 
         // === NUEVO: Cargar áreas de widgets para este tema ===
         $themeWidgetAreas = $this->loadThemeWidgetAreas();

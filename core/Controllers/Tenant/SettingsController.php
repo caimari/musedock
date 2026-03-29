@@ -726,6 +726,8 @@ class SettingsController
                 'social_linkedin' => $_POST['social_linkedin'] ?? '',
                 'social_youtube' => $_POST['social_youtube'] ?? '',
                 'social_pinterest' => $_POST['social_pinterest'] ?? '',
+                'social_vimeo' => $_POST['social_vimeo'] ?? '',
+                'social_tiktok' => $_POST['social_tiktok'] ?? '',
             ];
 
             foreach ($seoSettings as $key => $value) {

@@ -308,6 +308,16 @@
           <div class="card mb-4">
             <div class="card-header"><strong>{{ __('blog.post.options') }}</strong></div>
             <div class="card-body">
+              {{-- Tipo de post --}}
+              <div class="mb-3">
+                @php $__postType = old('post_type', $post->post_type ?? 'post') ?: 'post'; @endphp
+                <label for="post_type" class="form-label">{{ __('blog.post.post_type') }}</label>
+                <select class="form-select" id="post_type" name="post_type">
+                  <option value="post" {{ $__postType === 'post' ? 'selected' : '' }}>{{ __('blog.post.type_post') }}</option>
+                  <option value="brief" {{ $__postType === 'brief' ? 'selected' : '' }}>{{ __('blog.post.type_brief') }}</option>
+                </select>
+              </div>
+
               {{-- Destacado --}}
               <div class="form-check form-switch mb-3">
                 <input class="form-check-input" type="checkbox" value="1" id="featured" name="featured" @checked(old('featured', $post->featured))>
@@ -332,14 +342,22 @@
             <div class="card-body">
               <div class="mb-3">
                 <label for="template_select" class="form-label">{{ __('blog.post.template') }}</label>
-                <select class="form-select" id="template_select" name="template">
+                @php $__isSidebarStruct = function_exists('is_sidebar_structure') && is_sidebar_structure(); @endphp
+                <select class="form-select" id="template_select" name="template" {{ $__isSidebarStruct ? 'disabled' : '' }}>
                   @foreach ($availableTemplates as $filename => $displayName)
                     <option value="{{ $filename }}" @if(old('template', $currentTemplate) === $filename) selected @endif>
                       {{ $displayName }}
                     </option>
                   @endforeach
                 </select>
+                @if($__isSidebarStruct)
+                <input type="hidden" name="template" value="page">
+                <div class="alert alert-info py-1 px-2 mt-2 mb-0" style="font-size:0.75rem;">
+                    <i class="bi bi-layout-sidebar me-1"></i> La estructura <strong>Sidebar</strong> fuerza ancho completo. La plantilla seleccionada no se aplica.
+                </div>
+                @else
                 <small class="text-muted">{{ __('blog.post.template_help') }}</small>
+                @endif
               </div>
             </div>
           </div>

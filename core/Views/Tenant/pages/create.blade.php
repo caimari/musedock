@@ -193,7 +193,8 @@
               <div class="card-body">
                   <div class="mb-3">
                       <label for="page_template_select" class="form-label">{{ __('pages.template') }}</label>
-                      <select class="form-select" id="page_template_select" name="page_template">
+                      @php $__isSidebarStruct = function_exists('is_sidebar_structure') && is_sidebar_structure(); @endphp
+                      <select class="form-select" id="page_template_select" name="page_template" {{ $__isSidebarStruct ? 'disabled' : '' }}>
                           @foreach($availableTemplates as $filename => $displayName)
                               <option value="{{ $filename }}"
                                       @selected(old('page_template', $currentPageTemplate ?? 'page.blade.php') === $filename)>
@@ -201,7 +202,14 @@
                               </option>
                           @endforeach
                       </select>
+                      @if($__isSidebarStruct)
+                      <input type="hidden" name="page_template" value="page.blade.php">
+                      <div class="alert alert-info py-1 px-2 mt-2 mb-0" style="font-size:0.75rem;">
+                          <i class="bi bi-layout-sidebar me-1"></i> La estructura <strong>Sidebar</strong> fuerza ancho completo. La plantilla seleccionada no se aplica.
+                      </div>
+                      @else
                       <small class="text-muted">{{ __('pages.template_help') }}</small>
+                      @endif
                   </div>
               </div>
           </div>

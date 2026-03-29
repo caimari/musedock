@@ -23,7 +23,6 @@
                 <li class="breadcrumb-item active" aria-current="page" style="color: #666;">{{ __('blog.tags') }}</li>
             </ol>
         </nav>
-        <h1 class="mb-2" style="font-size: 1.75rem; margin-top: 0;">{{ __('blog.tags') }}</h1>
     </div>
 
     @if(!empty($tags) && count($tags) > 0)

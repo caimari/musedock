@@ -19,43 +19,61 @@
       "id": "nav",
       "name": "Navegación principal",
       "description": "Menú de navegación en la cabecera del sitio",
-      "supports": ["menu"]
+      "supports": [
+        "menu"
+      ]
     },
     {
       "id": "nav_left",
       "name": "Navegación izquierda",
       "description": "Menú izquierdo para header centrado",
-      "supports": ["menu"]
+      "supports": [
+        "menu"
+      ]
     },
     {
       "id": "nav_right",
       "name": "Navegación derecha",
       "description": "Menú derecho para header centrado",
-      "supports": ["menu"]
+      "supports": [
+        "menu"
+      ]
     },
     {
       "id": "footer1",
       "name": "Footer Columna 1",
       "description": "Primera columna del pie de página",
-      "supports": ["menu", "widget"]
+      "supports": [
+        "menu",
+        "widget"
+      ]
     },
     {
       "id": "footer2",
       "name": "Footer Columna 2",
       "description": "Segunda columna del pie de página",
-      "supports": ["menu", "widget"]
+      "supports": [
+        "menu",
+        "widget"
+      ]
     },
     {
       "id": "footer3",
       "name": "Footer Columna 3",
       "description": "Tercera columna del pie de página",
-      "supports": ["menu", "widget"]
+      "supports": [
+        "menu",
+        "widget"
+      ]
     },
     {
       "id": "sidebar",
       "name": "Barra lateral",
       "description": "Menú en la barra lateral",
-      "supports": ["menu", "widget"]
+      "supports": [
+        "menu",
+        "widget"
+      ]
     }
   ],
   "menu_areas": [
@@ -96,9 +114,55 @@
     }
   ],
   "customizable_options": {
+    "structure": {
+      "type": "section",
+      "label": "Estructura de pagina",
+      "options": {
+        "page_structure": {
+          "type": "select",
+          "label": "Tipo de estructura",
+          "default": "classic",
+          "is_driver": true,
+          "options": {
+            "classic": "Clasica (cabecera arriba + pie abajo)",
+            "sidebar": "Sidebar lateral (portfolio / personal)"
+          },
+          "description": "Define la estructura general de la pagina. Clasica permite configurar cabecera, pie y topbar por separado. Sidebar es un layout autocontenido con menu lateral fijo."
+        },
+        "sidebar_lang_selector": {
+          "type": "toggle",
+          "label": "Selector de idioma en sidebar",
+          "default": false,
+          "depends_on": "structure.page_structure=sidebar",
+          "description": "Muestra un selector de idioma en la parte inferior del sidebar"
+        },
+        "sidebar_social": {
+          "type": "toggle",
+          "label": "Redes sociales en sidebar",
+          "default": true,
+          "depends_on": "structure.page_structure=sidebar",
+          "description": "Muestra iconos de redes sociales en el sidebar"
+        },
+        "sidebar_search": {
+          "type": "toggle",
+          "label": "Buscador en sidebar",
+          "default": false,
+          "depends_on": "structure.page_structure=sidebar",
+          "description": "Muestra un icono de busqueda en el sidebar"
+        },
+        "sidebar_cta": {
+          "type": "toggle",
+          "label": "Boton CTA en sidebar",
+          "default": false,
+          "depends_on": "structure.page_structure=sidebar",
+          "description": "Muestra un boton de llamada a la accion en el sidebar"
+        }
+      }
+    },
     "topbar": {
       "type": "section",
       "label": "Barra superior (Top Bar)",
+      "depends_on": "structure.page_structure=classic",
       "options": {
         "topbar_enabled": {
           "type": "toggle",
@@ -131,6 +195,12 @@
           },
           "description": "Icono a usar para el número de WhatsApp"
         },
+        "topbar_show_social": {
+          "type": "toggle",
+          "label": "Mostrar redes sociales",
+          "default": true,
+          "description": "Muestra los iconos de redes sociales en la barra superior"
+        },
         "topbar_bg_color": {
           "type": "color",
           "label": "Color de fondo",
@@ -140,158 +210,104 @@
           "type": "color",
           "label": "Color del texto",
           "default": "#ffffff"
-        }
-      }
-    },
-    "hero": {
-      "type": "section",
-      "label": "Hero / Cabecera de páginas",
-      "options": {
-        "hero_title_color": {
-          "type": "color",
-          "label": "Color del título del hero",
-          "default": "#ffffff",
-          "description": "Color del título en las cabeceras hero de páginas y blog"
         },
-        "hero_title_font": {
-          "type": "select",
-          "label": "Tipografía del título del hero",
-          "default": "inherit",
-          "options": {
-            "inherit": "Por defecto del tema",
-            "Arial, sans-serif": "Arial",
-            "Georgia, serif": "Georgia",
-            "Helvetica, sans-serif": "Helvetica",
-            "'Times New Roman', serif": "Times New Roman",
-            "'Playfair Display', serif": "Playfair Display",
-            "'Montserrat', sans-serif": "Montserrat",
-            "'Roboto', sans-serif": "Roboto",
-            "'Open Sans', sans-serif": "Open Sans",
-            "'Lato', sans-serif": "Lato",
-            "'Poppins', sans-serif": "Poppins",
-            "'Oswald', sans-serif": "Oswald",
-            "'Raleway', sans-serif": "Raleway",
-            "'Merriweather', serif": "Merriweather",
-            "'Nunito', sans-serif": "Nunito",
-            "'Quicksand', sans-serif": "Quicksand"
-          },
-          "description": "Tipografía para el título en las cabeceras hero"
-        },
-        "hero_subtitle_color": {
-          "type": "color",
-          "label": "Color del subtítulo del hero",
-          "default": "#ffffff",
-          "description": "Color del subtítulo/contenido en las cabeceras hero"
-        },
-        "hero_overlay_color": {
-          "type": "color",
-          "label": "Color de la capa de oscurecimiento",
-          "default": "#000000",
-          "description": "Color de la capa semitransparente sobre la imagen del hero"
-        },
-        "hero_overlay_opacity": {
-          "type": "select",
-          "label": "Opacidad de la capa de oscurecimiento",
-          "default": "0.5",
-          "options": {
-            "0": "Sin overlay (0%)",
-            "0.2": "Muy suave (20%)",
-            "0.3": "Suave (30%)",
-            "0.4": "Media-suave (40%)",
-            "0.5": "Media (50%)",
-            "0.6": "Media-oscura (60%)",
-            "0.7": "Oscura (70%)",
-            "0.8": "Muy oscura (80%)"
-          },
-          "description": "Opacidad de la capa sobre la imagen (0 = transparente, 1 = opaco)"
-        }
-      }
-    },
-    "blog": {
-      "type": "section",
-      "label": "Blog / Listado de entradas",
-      "options": {
-        "blog_layout": {
-          "type": "select",
-          "label": "Layout del listado de blog",
-          "default": "grid",
-          "options": {
-            "grid": "Cuadricula (3 columnas con tarjetas)",
-            "list": "Lista (imagen izquierda + contenido derecha)",
-            "magazine": "Revista (destacado grande + cuadricula)",
-            "minimal": "Minimalista (solo texto, sin imagenes)",
-            "newspaper": "Periodico (1 grande + 2 laterales + lista)",
-            "fashion": "Fashion (imagenes circulares, estilo elegante)"
-          },
-          "description": "Selecciona el diseno del listado de entradas del blog en la portada y paginas de archivo"
-        },
-        "blog_header_ticker": {
+        "topbar_clock": {
           "type": "toggle",
-          "label": "Mostrar barra de Top Tags + Latest Post",
+          "label": "Reloj en el topbar",
           "default": false,
-          "description": "Muestra una barra superior con las etiquetas mas populares y un ticker de ultimos posts"
+          "description": "Muestra un reloj en tiempo real en la barra superior (junto al email y redes sociales)"
         },
-        "blog_sidebar_related_posts": {
+        "topbar_ticker_clock": {
           "type": "toggle",
-          "label": "Mostrar posts relacionados en sidebar",
-          "default": true,
-          "description": "Muestra tarjetas de posts relacionados (por categoria/etiqueta) en la barra lateral del post individual"
+          "label": "Reloj en el ticker",
+          "default": false,
+          "description": "Muestra un reloj en la barra de ticker del blog (requiere ticker activado)"
         },
-        "blog_sidebar_related_posts_count": {
+        "topbar_clock_locale": {
           "type": "select",
-          "label": "Cantidad de posts relacionados",
-          "default": "4",
+          "label": "Formato del reloj",
+          "default": "es",
           "options": {
-            "2": "2 posts",
-            "3": "3 posts",
-            "4": "4 posts",
-            "6": "6 posts"
+            "es": "Español (Mié. 4 Mar. 2026 14:26:11)",
+            "en": "English (Wed. Mar 4th, 2026 2:26:11 p.m.)",
+            "fr": "Français (Mer. 4 Mars 2026 14:26:11)",
+            "de": "Deutsch (Mi. 4. März 2026 14:26:11)",
+            "pt": "Português (Qua. 4 Mar. 2026 14:26:11)"
           },
-          "description": "Numero de posts relacionados a mostrar en el sidebar"
+          "description": "Idioma y formato para la fecha y hora del reloj"
         },
-        "blog_sidebar_tags": {
-          "type": "toggle",
-          "label": "Mostrar etiquetas populares en sidebar",
-          "default": true,
-          "description": "Muestra las etiquetas mas usadas en la barra lateral del post individual"
-        },
-        "blog_sidebar_categories": {
-          "type": "toggle",
-          "label": "Mostrar categorias populares en sidebar",
-          "default": true,
-          "description": "Muestra las categorias con cantidad de posts en la barra lateral del post individual"
+        "topbar_clock_timezone": {
+          "type": "select",
+          "label": "Zona horaria del reloj",
+          "default": "Europe/Madrid",
+          "options": {
+            "UTC": "UTC",
+            "Europe/Madrid": "Europa / Madrid",
+            "Europe/London": "Europa / Londres",
+            "Europe/Paris": "Europa / Paris",
+            "America/New_York": "America / Nueva York",
+            "America/Los_Angeles": "America / Los Angeles",
+            "America/Mexico_City": "America / Ciudad de México",
+            "America/Bogota": "America / Bogotá",
+            "America/Argentina/Buenos_Aires": "America / Buenos Aires",
+            "America/Santiago": "America / Santiago",
+            "America/Lima": "America / Lima",
+            "America/Caracas": "America / Caracas",
+            "Asia/Tokyo": "Asia / Tokio",
+            "Asia/Shanghai": "Asia / Shanghai",
+            "Australia/Sydney": "Australia / Sídney"
+          },
+          "description": "La hora mostrada corresponderá a esta zona horaria"
         }
       }
     },
     "header": {
       "type": "section",
       "label": "Cabecera principal",
+      "depends_on": "structure.page_structure=classic",
       "options": {
-	        "header_layout": {
-	          "type": "select",
-	          "label": "Layout de cabecera",
-	          "default": "default",
-	          "options": {
-	            "default": "Logo izquierda + menú derecha",
-	            "left": "Logo + menú alineados a la izquierda",
-	            "centered": "Logo centrado + menús a izquierda/derecha",
-	            "logo-above": "Logo centrado arriba + menú debajo",
-	            "logo-above-left": "Logo izquierda arriba + menú debajo",
-	            "tema1": "Tema 1 (Topbar negro + logo)",
-	            "aca": "Tema 2"
-	          },
-	          "description": "Selecciona la estructura del header"
-	        },
-	        "header_content_width": {
-	          "type": "select",
-	          "label": "Ancho del contenido",
-	          "default": "full",
-	          "options": {
-	            "full": "Ancho completo (fondo ocupa todo el viewport)",
-	            "boxed": "Contenido alineado (fondo limitado al ancho del contenido)"
-	          },
-	          "description": "Define si el header ocupa todo el ancho o se ajusta al contenido"
-	        },
+        "header_layout": {
+          "type": "select",
+          "label": "Layout de cabecera",
+          "default": "default",
+          "options": {
+            "default": "Logo izquierda + menú derecha",
+            "left": "Logo + menú alineados a la izquierda",
+            "centered": "Logo centrado + menús a izquierda/derecha",
+            "logo-above": "Logo centrado arriba + menú debajo",
+            "logo-above-left": "Logo izquierda arriba + menú debajo",
+            "tema1": "Tema 1 (Topbar negro + logo)",
+            "aca": "Tema 2",
+            "banner": "Logo bandera + menú derecha"
+          },
+          "description": "Selecciona la estructura del header"
+        },
+        "header_content_width": {
+          "type": "select",
+          "label": "Ancho del contenido",
+          "default": "full",
+          "options": {
+            "full": "Ancho completo (fondo ocupa todo el viewport)",
+            "boxed": "Contenido alineado (fondo limitado al ancho del contenido)"
+          },
+          "description": "Define si el header ocupa todo el ancho o se ajusta al contenido"
+        },
+        "header_logo_max_height": {
+          "type": "select",
+          "label": "Tamaño del logo",
+          "default": "45",
+          "options": {
+            "30": "Pequeño (30px)",
+            "40": "Mediano-pequeño (40px)",
+            "45": "Mediano (45px)",
+            "55": "Grande (55px)",
+            "65": "Muy grande (65px)",
+            "80": "Extra grande (80px)",
+            "100": "XXL (100px)",
+            "120": "Máximo (120px)"
+          },
+          "description": "Altura máxima del logo en la cabecera (en píxeles)"
+        },
         "header_bg_color": {
           "type": "color",
           "label": "Color de fondo de la cabecera",
@@ -422,12 +438,253 @@
           "type": "toggle",
           "label": "Mostrar selector de idioma",
           "default": true
+        },
+        "header_search_enabled": {
+          "type": "toggle",
+          "label": "Mostrar buscador en el header",
+          "default": false
+        },
+        "header_social_enabled": {
+          "type": "toggle",
+          "label": "Mostrar iconos de redes sociales en el header",
+          "default": false,
+          "description": "Muestra los iconos de redes sociales junto al menu del header"
+        },
+        "header_clock_enabled": {
+          "type": "toggle",
+          "label": "Mostrar fecha/reloj en el header",
+          "default": false,
+          "description": "Muestra la fecha actual junto al menu del header"
+        }
+      }
+    },
+    "hero": {
+      "type": "section",
+      "label": "Hero / Cabecera de páginas",
+      "options": {
+        "hero_title_color": {
+          "type": "color",
+          "label": "Color del título del hero",
+          "default": "#ffffff",
+          "description": "Color del título en las cabeceras hero de páginas y blog"
+        },
+        "hero_title_font": {
+          "type": "select",
+          "label": "Tipografía del título del hero",
+          "default": "inherit",
+          "options": {
+            "inherit": "Por defecto del tema",
+            "Arial, sans-serif": "Arial",
+            "Georgia, serif": "Georgia",
+            "Helvetica, sans-serif": "Helvetica",
+            "'Times New Roman', serif": "Times New Roman",
+            "'Playfair Display', serif": "Playfair Display",
+            "'Montserrat', sans-serif": "Montserrat",
+            "'Roboto', sans-serif": "Roboto",
+            "'Open Sans', sans-serif": "Open Sans",
+            "'Lato', sans-serif": "Lato",
+            "'Poppins', sans-serif": "Poppins",
+            "'Oswald', sans-serif": "Oswald",
+            "'Raleway', sans-serif": "Raleway",
+            "'Merriweather', serif": "Merriweather",
+            "'Nunito', sans-serif": "Nunito",
+            "'Quicksand', sans-serif": "Quicksand"
+          },
+          "description": "Tipografía para el título en las cabeceras hero"
+        },
+        "hero_subtitle_color": {
+          "type": "color",
+          "label": "Color del subtítulo del hero",
+          "default": "#ffffff",
+          "description": "Color del subtítulo/contenido en las cabeceras hero"
+        },
+        "hero_overlay_color": {
+          "type": "color",
+          "label": "Color de la capa de oscurecimiento",
+          "default": "#000000",
+          "description": "Color de la capa semitransparente sobre la imagen del hero"
+        },
+        "hero_overlay_opacity": {
+          "type": "select",
+          "label": "Opacidad de la capa de oscurecimiento",
+          "default": "0.5",
+          "options": {
+            "0": "Sin overlay (0%)",
+            "0.2": "Muy suave (20%)",
+            "0.3": "Suave (30%)",
+            "0.4": "Media-suave (40%)",
+            "0.5": "Media (50%)",
+            "0.6": "Media-oscura (60%)",
+            "0.7": "Oscura (70%)",
+            "0.8": "Muy oscura (80%)"
+          },
+          "description": "Opacidad de la capa sobre la imagen (0 = transparente, 1 = opaco)"
+        }
+      }
+    },
+    "blog": {
+      "type": "section",
+      "label": "Blog / Listado de entradas",
+      "options": {
+        "blog_layout": {
+          "type": "select",
+          "label": "Layout del listado de blog",
+          "default": "grid",
+          "is_driver": true,
+          "options": {
+            "grid": "Cuadricula (3 columnas con tarjetas)",
+            "list": "Lista (imagen izquierda + contenido derecha)",
+            "magazine": "Revista (destacado grande + cuadricula)",
+            "minimal": "Minimalista (solo texto, sin imagenes)",
+            "newspaper": "Periodico (1 grande + 2 laterales + lista)",
+            "fashion": "Fashion (imagenes circulares, estilo elegante)"
+          },
+          "description": "Selecciona el diseno del listado de entradas del blog en la portada y paginas de archivo"
+        },
+        "newspaper_overlay": {
+          "type": "toggle",
+          "label": "Texto sobre imagen en posts destacados (overlay)",
+          "default": false,
+          "depends_on": "blog.blog_layout=newspaper",
+          "description": "Muestra el titulo, categorias, autor y fecha superpuestos sobre la imagen en los posts grandes de portada"
+        },
+        "blog_header_ticker": {
+          "type": "toggle",
+          "label": "Mostrar barra de Top Tags + Latest Post",
+          "default": false,
+          "is_driver": true,
+          "description": "Muestra una barra superior con las etiquetas mas populares y un ticker de ultimos posts"
+        },
+        "blog_topbar_ticker": {
+          "type": "toggle",
+          "label": "Mostrar Latest Post en el topbar del header",
+          "default": false,
+          "depends_on": "blog.blog_header_ticker",
+          "description": "Muestra el ticker de ultimos posts como barra encima del header principal (estilo limpio, fondo blanco)"
+        },
+        "blog_ticker_bg_color": {
+          "type": "color",
+          "label": "Color de fondo del ticker",
+          "default": "#ffffff",
+          "depends_on": "blog.blog_header_ticker",
+          "description": "Color de fondo de la barra de ticker"
+        },
+        "blog_ticker_border_color": {
+          "type": "color",
+          "label": "Color del borde del ticker",
+          "default": "#e5e5e5",
+          "depends_on": "blog.blog_header_ticker",
+          "description": "Color del borde de la barra de ticker"
+        },
+        "blog_ticker_label_bg": {
+          "type": "color",
+          "label": "Color de fondo de las etiquetas (Top Tags / Latest Post)",
+          "default": "#333333",
+          "depends_on": "blog.blog_header_ticker",
+          "description": "Color de fondo de los labels Top Tags y Latest Post"
+        },
+        "blog_ticker_label_text": {
+          "type": "color",
+          "label": "Color del texto de las etiquetas",
+          "default": "#ffffff",
+          "depends_on": "blog.blog_header_ticker",
+          "description": "Color del texto de los labels Top Tags y Latest Post"
+        },
+        "blog_ticker_tag_bg": {
+          "type": "color",
+          "label": "Color de fondo de los tags",
+          "default": "#f0f0f0",
+          "depends_on": "blog.blog_header_ticker",
+          "description": "Color de fondo de las pastillas de tags populares"
+        },
+        "blog_ticker_tag_text": {
+          "type": "color",
+          "label": "Color del texto de los tags",
+          "default": "#333333",
+          "depends_on": "blog.blog_header_ticker",
+          "description": "Color del texto de las pastillas de tags populares"
+        },
+        "blog_ticker_post_text": {
+          "type": "color",
+          "label": "Color del texto del marquee de posts",
+          "default": "#333333",
+          "depends_on": "blog.blog_header_ticker",
+          "description": "Color de los titulos de posts en el ticker"
+        },
+        "blog_sidebar_search": {
+          "type": "toggle",
+          "label": "Buscador en sidebar",
+          "default": false
+        },
+        "blog_sidebar_search_order": {
+          "type": "select",
+          "label": "Orden del buscador",
+          "default": "1",
+          "options": { "1": "1", "2": "2", "3": "3", "4": "4" }
+        },
+        "blog_sidebar_related_posts": {
+          "type": "toggle",
+          "label": "Posts relacionados en sidebar",
+          "default": true
+        },
+        "blog_sidebar_related_posts_count": {
+          "type": "select",
+          "label": "Cantidad de posts relacionados",
+          "default": "4",
+          "options": {
+            "2": "2 posts",
+            "3": "3 posts",
+            "4": "4 posts",
+            "6": "6 posts"
+          }
+        },
+        "blog_sidebar_related_posts_order": {
+          "type": "select",
+          "label": "Orden de posts relacionados",
+          "default": "2",
+          "options": { "1": "1", "2": "2", "3": "3", "4": "4" }
+        },
+        "blog_sidebar_tags": {
+          "type": "toggle",
+          "label": "Etiquetas populares en sidebar",
+          "default": true
+        },
+        "blog_sidebar_tags_order": {
+          "type": "select",
+          "label": "Orden de etiquetas",
+          "default": "3",
+          "options": { "1": "1", "2": "2", "3": "3", "4": "4" }
+        },
+        "blog_sidebar_categories": {
+          "type": "toggle",
+          "label": "Categorias populares en sidebar",
+          "default": true
+        },
+        "blog_sidebar_categories_order": {
+          "type": "select",
+          "label": "Orden de categorias",
+          "default": "4",
+          "options": { "1": "1", "2": "2", "3": "3", "4": "4" }
+        },
+        "blog_pagination_style": {
+          "type": "select",
+          "label": "Estilo del paginador",
+          "default": "minimal",
+          "options": {
+            "minimal": "Minimalista (números limpios, sin bordes)",
+            "rounded": "Redondeado (botones circulares)",
+            "pill": "Píldora (botones con bordes redondeados)",
+            "underline": "Subrayado (línea bajo el número activo)",
+            "dots": "Puntos (indicadores compactos)"
+          },
+          "description": "Estilo visual del paginador del blog"
         }
       }
     },
     "footer": {
       "type": "section",
       "label": "Pie de página",
+      "depends_on": "structure.page_structure=classic",
       "options": {
         "footer_layout": {
           "type": "select",
@@ -435,7 +692,8 @@
           "default": "default",
           "options": {
             "default": "Footer clásico",
-            "banner": "Footer banner + copyright en blanco"
+            "banner": "Footer banner + copyright en blanco",
+            "minimal": "Minimalista (solo copyright + enlaces legales)"
           },
           "description": "Selecciona la estructura del footer"
         },
@@ -448,6 +706,26 @@
             "boxed": "Contenido alineado (fondo limitado al ancho del contenido)"
           },
           "description": "Define si el footer ocupa todo el ancho o se ajusta al contenido"
+        },
+        "footer_logo_max_height": {
+          "type": "select",
+          "label": "Tamaño del logo en el footer",
+          "default": "50",
+          "options": {
+            "30": "Pequeño (30px)",
+            "40": "Mediano-pequeño (40px)",
+            "50": "Mediano (50px)",
+            "65": "Grande (65px)",
+            "80": "Muy grande (80px)",
+            "100": "Extra grande (100px)"
+          },
+          "description": "Altura máxima del logo en el pie de página (en píxeles)"
+        },
+        "footer_logo_dark": {
+          "type": "image",
+          "label": "Logo alternativo (modo oscuro)",
+          "default": "",
+          "description": "Logo en versión clara/blanca para fondos oscuros del footer. Si no se sube, se usa el logo principal."
         },
         "footer_bg_color": {
           "type": "color",

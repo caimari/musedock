@@ -225,6 +225,7 @@
         --hero-overlay-color: {{ themeOption('hero.hero_overlay_color', '#000000') }};
         --hero-overlay-opacity: {{ themeOption('hero.hero_overlay_opacity', '0.5') }};
         /* Header */
+        --header-logo-max-height: {{ themeOption('header.header_logo_max_height', '45') }}px;
         --header-bg-color: {{ themeOption('header.header_bg_color', '#f8f9fa') }};
         --header-logo-text-color: {{ themeOption('header.header_logo_text_color', '#1a2a40') }};
         --header-logo-font: {!! themeOption('header.header_logo_font', 'inherit') !!};
@@ -573,16 +574,88 @@ html.mobile-menu-open {
 /* ================================================ */
 
 .header-top {
-    background-color: var(--topbar-bg-color, #1a2a40); /* Color de fondo dinámico */
-    padding: 10px 0;        /* Espaciado vertical interno */
-    color: var(--topbar-text-color, white); /* Color de texto dinámico */
-    font-size: 14px;        /* Tamaño de fuente base para el topbar */
-    line-height: 1.5;       /* Altura de línea para mejor legibilidad */
-    /* Las clases d-none d-lg-block se encargan de mostrar/ocultar.
-       Si Bootstrap no funcionara correctamente, podrías añadir:
-       display: none;
-       @media (min-width: 992px) { display: block; }
-    */
+    background-color: var(--topbar-bg-color, #1a2a40);
+    padding: 10px 0;
+    color: var(--topbar-text-color, white);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Topbar flex layout: contact | ticker | social */
+.topbar-flex {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+.topbar-flex .header-info-left {
+    flex-shrink: 0;
+}
+.topbar-flex .header-info-right {
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+/* Topbar inline ticker */
+.topbar-ticker-zone {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    margin: 0 16px;
+    border-left: 1px solid rgba(255,255,255,0.15);
+    border-right: 1px solid rgba(255,255,255,0.15);
+}
+.topbar-ticker-label {
+    background: rgba(255,255,255,0.13);
+    color: var(--topbar-text-color, #fff);
+    font-weight: 700;
+    font-size: 0.68rem;
+    padding: 4px 12px;
+    white-space: nowrap;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+.topbar-ticker-marquee-wrap {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    mask-image: linear-gradient(to right, transparent 0%, black 3%, black 97%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 3%, black 97%, transparent 100%);
+}
+.topbar-ticker-marquee {
+    display: flex;
+    white-space: nowrap;
+    animation: topbarTickerScroll 35s linear infinite;
+}
+.topbar-ticker-marquee:hover {
+    animation-play-state: paused;
+}
+.topbar-ticker-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 20px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--topbar-text-color, #fff) !important;
+    text-decoration: none !important;
+    white-space: nowrap;
+    flex-shrink: 0;
+    opacity: 0.8;
+}
+.topbar-ticker-item:hover {
+    opacity: 1;
+}
+.topbar-ticker-item i {
+    color: var(--topbar-text-color, #fff);
+    font-size: 0.28rem;
+    opacity: 0.35;
+}
+@keyframes topbarTickerScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
 }
 
 /* Contenedor dentro del topbar (ya tiene estilos de Bootstrap) */
@@ -663,7 +736,10 @@ html.mobile-menu-open {
 
 /* Estilos base del header */
 .musedock-header {
-    padding: 15px 0;
+    padding: 0;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
     position: relative;
     background-color: var(--header-bg-color, #f8f9fa); /* Color de fondo dinámico */
     border-bottom: 1px solid #eee; /* Borde sutil */
@@ -672,28 +748,519 @@ html.mobile-menu-open {
 
 /* Cuando no hay topbar, el header es mas alto para compensar */
 .no-topbar .musedock-header {
-    padding: 20px 0;
     min-height: 90px;
-    display: flex;
-    align-items: center;
 }
 .no-topbar .musedock-header.header-layout-logo-above,
 .no-topbar .musedock-header.header-layout-logo-above-left {
-    display: block;
+    display: block !important;
     padding: 0;
-    min-height: auto;
+    min-height: auto !important;
+}
+/* Asegurar que las filas del layout logo-above ocupen todo el ancho */
+.musedock-header.header-layout-logo-above .header-logo-above-brand,
+.musedock-header.header-layout-logo-above-left .header-logo-above-brand,
+.musedock-header.header-layout-logo-above .header-logo-above-nav,
+.musedock-header.header-layout-logo-above-left .header-logo-above-nav {
+    width: 100%;
+}
+
+/* Logo-above brand row: 3-column layout for logo centered + social right */
+.logo-above-brand-row {
+    display: flex;
+    align-items: center;
+    min-height: 80px;
+}
+.logo-above-brand-side {
+    flex: 1;
+    min-width: 0;
+    align-self: center;
+}
+.logo-above-brand-center {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: center;
+    align-self: center;
+}
+.logo-above-brand-right {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    align-self: center;
+    gap: 10px;
+}
+.header-search-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    color: var(--header-link-color, #333);
+    font-size: 15px;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.header-search-icon:hover {
+    color: var(--header-link-hover-color, #ff5e15);
+}
+.logo-above-brand-left {
+    /* empty spacer for balance (centered layout) */
+}
+.logo-above-brand-left-logo {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Logo-above nav bar: menu left, actions right */
+.header-logo-above-nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.logo-above-nav-left {
+    flex: 1;
+    min-width: 0;
+}
+.header-layout-logo-above .logo-above-nav-left,
+.header-layout-logo-above-left .logo-above-nav-left {
+    text-align: left;
+}
+.header-layout-logo-above .logo-above-nav-left .main-navigation,
+.header-layout-logo-above-left .logo-above-nav-left .main-navigation {
+    display: flex;
+    justify-content: flex-start;
+}
+.header-layout-logo-above .logo-above-nav-left .main-navigation ul,
+.header-layout-logo-above-left .logo-above-nav-left .main-navigation ul {
+    justify-content: flex-start !important;
+}
+
+/* Header inline search input */
+.header-inline-search {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #fff;
+    height: 32px;
+}
+.header-inline-search input {
+    border: none;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    outline: none;
+    background: transparent;
+    font-family: inherit;
+    color: #333;
+    width: 140px;
+}
+.header-inline-search input::placeholder { color: #aaa; }
+.header-inline-search button {
+    border: none;
+    background: transparent;
+    color: #888;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+.header-inline-search button:hover { color: #333; }
+
+@media (max-width: 991px) {
+    .logo-above-brand-row { justify-content: center; }
+    .logo-above-brand-side { display: none; }
+    .header-inline-search { display: none; }
+}
+
+/* ============================================================
+   LAYOUT SIDEBAR: Portfolio/personal — fixed sidebar left
+   Uses CSS variables so any tenant can customize colors
+   ============================================================ */
+
+/* --- Fixed dark background column behind sidebar --- */
+body.layout-sidebar { background: var(--header-bg-color, #292929) !important; }
+body.layout-sidebar::before {
+    content: ""; position: fixed; top: 0; left: 0;
+    width: calc(15% + 280px); height: 100%;
+    background: var(--header-bg-color, #292929); z-index: 999;
+}
+body.layout-sidebar::after {
+    content: ""; position: fixed; top: 0; left: 0;
+    width: calc(15% + 280px); height: 100%;
+    background: #000; opacity: 0.3; z-index: 999;
+}
+
+/* --- Sidebar nav: fixed, positioned inside the dark column --- */
+.musedock-sidebar-nav {
+    position: fixed !important; top: 50px; left: 15%;
+    width: 280px !important; height: auto !important;
+    max-height: calc(100vh - 80px);
+    background: var(--header-bg-color, #292929) !important;
+    z-index: 1000 !important; overflow-y: auto; overflow-x: visible;
+}
+.sidebar-nav-inner {
+    width: 100%; display: flex; flex-direction: column;
+    position: relative; height: auto !important;
+}
+/* Yellow line on top */
+.sidebar-nav-inner::before {
+    content: ""; display: block; height: 4px;
+    background: var(--header-link-hover-color, #f1c311);
+    flex-shrink: 0;
+}
+
+/* --- Logo holder: dashed border, centered --- */
+.sidebar-nav-brand {
+    max-width: 200px; margin: 30px auto !important; padding: 20px !important;
+    border: 1px dashed rgba(255,255,255,0.35) !important;
+    background: rgba(255,255,255,0.03) !important; text-align: center;
+}
+.sidebar-nav-brand-link { text-decoration: none !important; display: block; }
+.sidebar-nav-logo { max-height: 80px; width: auto; display: block; margin: 0 auto 10px; }
+.sidebar-nav-title {
+    display: block; font-size: 1.4rem !important; font-weight: 300 !important;
+    text-align: center !important; line-height: 1.25 !important;
+    color: var(--header-link-hover-color, #f1c311) !important;
+    font-family: var(--header-logo-font, inherit) !important;
+}
+
+/* --- Navigation items --- */
+.sidebar-nav-menu { flex: 1; padding: 0 !important; }
+.sidebar-nav-list { list-style: none; padding: 0; margin: 0; width: 100%; }
+.sidebar-nav-item {
+    background: rgba(255,255,255,0.08) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.12) !important;
+    border-left: none !important; position: relative;
+}
+.sidebar-nav-item:first-child { border-top: 1px solid rgba(255,255,255,0.12) !important; }
+/* Active indicator bar */
+.sidebar-nav-item::before {
+    content: ""; position: absolute; top: 0; left: 0;
+    width: 4px; height: 0; background: var(--header-link-hover-color, #f1c311);
+    transition: height 0.2s ease; z-index: 2;
+}
+.sidebar-nav-item:hover::before, .sidebar-nav-item.active::before { height: 100%; }
+.sidebar-nav-link {
+    display: block !important; padding: 14px 10px 14px 40px !important;
+    color: var(--header-link-color, #fff) !important; text-decoration: none !important;
+    font-size: 12px !important; font-weight: 600 !important;
+    text-transform: uppercase !important; letter-spacing: 1px !important;
+    font-family: var(--header-menu-font, inherit) !important;
+    transition: color 0.1s linear !important;
+}
+.sidebar-nav-link:hover { color: rgba(255,255,255,0.6) !important; background: none !important; }
+
+/* --- Submenu popup --- */
+.sidebar-nav-item .sidebar-nav-submenu { display: none; }
+.sidebar-nav-item:hover > .sidebar-nav-submenu { display: block; }
+.sidebar-nav-submenu {
+    position: absolute !important; top: 0 !important; left: 100% !important;
+    width: 200px !important; background: rgba(51,51,51,0.91) !important;
+    padding: 20px 0 !important; margin: 0 !important;
+    border-right: 4px solid var(--header-link-hover-color, #f1c311) !important;
+    z-index: 1000 !important; list-style: none;
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+}
+.sidebar-nav-submenu .sidebar-nav-item {
+    background: none !important; border: none !important; padding: 8px 20px !important;
+}
+.sidebar-nav-submenu .sidebar-nav-item::before { display: none !important; }
+.sidebar-nav-submenu .sidebar-nav-link {
+    font-size: 11px !important; padding: 0 0 10px 0 !important;
+    text-transform: none !important; border-bottom: 1px dashed rgba(255,255,255,0.15) !important;
+    letter-spacing: 0 !important; font-weight: 400 !important;
+}
+
+/* --- Sidebar footer --- */
+.sidebar-nav-footer { padding: 15px 25px 20px; border-top: none !important; }
+.sidebar-nav-lang-select {
+    width: 100%; padding: 8px 10px;
+    border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05);
+    color: var(--header-link-color, #ccc); border-radius: 4px;
+    font-size: 0.85rem; margin-bottom: 10px;
+}
+.sidebar-nav-cta {
+    display: block; padding: 10px 15px;
+    background: var(--header-cta-bg-color, #f1c311);
+    color: var(--header-cta-text-color, #fff) !important;
+    text-align: center; text-decoration: none !important;
+    border-radius: 4px; font-weight: 600; font-size: 0.85rem;
+    transition: opacity 0.2s;
+}
+.sidebar-nav-cta:hover { opacity: 0.9; }
+
+/* --- Content area: 85% width, shifted right --- */
+.sidebar-layout-content {
+    float: right !important; margin-left: 0 !important;
+    width: 85% !important; padding-left: 280px !important;
+    position: relative; z-index: 1; min-height: 100vh;
+    box-sizing: border-box; display: flex; flex-direction: column;
+}
+.sidebar-layout-content main { flex: 1; background: #fff; }
+.sidebar-layout-content main .container { max-width: 980px; }
+.sidebar-layout-content .footer-sidebar-layout { margin-top: auto; }
+.sidebar-layout-content .footer-sidebar-layout .container { max-width: 980px; }
+
+/* Hide mobile header on desktop */
+.layout-sidebar .musedock-sidebar-mobile-header { display: none !important; }
+
+/* --- Footer sidebar layout --- */
+.footer-sidebar-layout {
+    background: var(--footer-bg-color, #292929) !important;
+    border-bottom: 5px solid var(--header-link-hover-color, #f1c311);
+}
+.footer-sidebar-main { padding: 70px 50px 20px !important; }
+.footer-sidebar-heading {
+    font-size: 12px !important; font-weight: 700 !important;
+    text-transform: uppercase !important; letter-spacing: 1px !important;
+    color: var(--footer-heading-color, #fff) !important;
+    margin-bottom: 45px !important; padding-bottom: 10px !important;
+    position: relative !important;
+}
+.footer-sidebar-heading::after {
+    content: ""; position: absolute; bottom: -10px; left: 0;
+    width: 100%; height: 1px; background: rgba(255,255,255,0.15);
+}
+.footer-sidebar-accent {
+    position: absolute !important; bottom: -9px !important; left: 0 !important;
+    width: 30px !important; height: 4px !important; margin-top: 0 !important; z-index: 1;
+}
+.footer-sidebar-text { color: var(--footer-text-color, #fff) !important; font-size: 12px; }
+.footer-sidebar-contact-list { list-style: none; padding: 0; margin: 0; }
+.footer-sidebar-contact-list li {
+    color: var(--footer-text-color, #aaa); padding: 6px 0; font-size: 0.85rem;
+}
+.footer-sidebar-menu {
+    list-style: none; padding: 0; margin: 0;
+    column-count: 2; column-gap: 20px;
+}
+.footer-sidebar-menu li {
+    margin-bottom: 8px; position: relative; padding-left: 10px;
+}
+.footer-sidebar-menu li::before {
+    content: ""; position: absolute; top: 50%; left: 0; margin-top: -1px;
+    width: 5px; height: 1px; background: var(--header-link-hover-color, #f1c311);
+}
+.footer-sidebar-menu a {
+    color: var(--footer-link-color, #eee) !important;
+    text-decoration: none !important; font-size: 12px; font-weight: 700;
+}
+.footer-sidebar-menu a::before { content: "" !important; }
+.footer-sidebar-menu a:hover { color: var(--footer-link-hover-color, #f1c311) !important; }
+.footer-sidebar-copyright {
+    background: rgba(255,255,255,0.05) !important; border-top: none !important; padding: 0;
+}
+.footer-sidebar-copyright p {
+    font-size: 10px !important; letter-spacing: 1px; font-weight: 600;
+    color: rgba(255,255,255,0.6) !important;
+}
+.footer-sidebar-social { display: flex; gap: 15px; }
+.footer-sidebar-social a {
+    color: var(--footer-icon-color, #fff) !important;
+    text-decoration: none !important; font-size: 12px; transition: color 0.2s;
+}
+.footer-sidebar-social a:hover { color: var(--footer-link-hover-color, #f1c311) !important; }
+
+/* Scroll-to-top */
+body.layout-sidebar #scrollUp { border-radius: 0 !important; }
+
+/* --- Responsive: hide sidebar, show mobile header --- */
+@media (max-width: 991px) {
+    body.layout-sidebar::before, body.layout-sidebar::after { display: none !important; }
+    .musedock-sidebar-nav { display: none !important; }
+    .musedock-sidebar-mobile-header { display: flex !important; }
+    .sidebar-layout-content {
+        margin-left: 0 !important; width: 100% !important;
+        float: none !important; padding-left: 0 !important;
+    }
+}
+body.layout-sidebar .header-top { display: none !important; }
+
+/* ============================================================
+   LAYOUT BANNER: Logo with accent flag + menu right
+   The logo text aligns with page content; the flag extends left
+   ============================================================ */
+.header-layout-banner {
+    display: block !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    background: var(--header-bg-color, #fff) !important;
+    position: relative;
+    overflow: visible;
+}
+.header-banner-wrap {
+    display: flex;
+    align-items: stretch;
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 0 12px;
+    position: relative;
+    z-index: 1;
+}
+/* Logo banner — sits on top of the accent bar */
+.header-banner-logo {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+    background: var(--header-cta-bg-color, #f3595b);
+}
+/* Flag extends LEFT from the logo to the edge of screen */
+.header-banner-logo::before {
+    content: "";
+    position: absolute;
+    top: 0; bottom: 0;
+    right: 100%;
+    width: 100vw;
+    background: var(--header-cta-bg-color, #f3595b);
+}
+.header-banner-logo-inner {
+    padding: 18px 50px 18px 0;
+    margin-left: -6px;
+    position: relative;
+    z-index: 1;
+}
+.header-banner-link {
+    text-decoration: none !important;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.header-banner-logo-img {
+    max-height: var(--header-logo-max-height, 50px);
+    width: auto;
+}
+.header-banner-text { }
+.header-banner-title {
+    font-size: 2.2rem;
+    font-weight: 300;
+    color: var(--header-cta-text-color, #fff) !important;
+    margin: 0;
+    line-height: 1.1;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.header-banner-subtitle {
+    font-size: 0.6rem;
+    color: var(--header-cta-text-color, #fff) !important;
+    opacity: 0.9;
+    margin: 6px 0 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 300;
+    line-height: 1.3;
+}
+/* Dropdown arrow for menu items with children */
+.header-layout-banner .main-navigation li:has(> .submenu) > a::after {
+    content: " \25BE";
+    font-size: 0.7em;
+    margin-left: 4px;
+    opacity: 0.6;
+}
+/* Right side: two rows — social icons float above, menu area matches banner height */
+.header-banner-right {
+    flex: 1;
+    position: relative;
+    background: var(--header-bg-color, #fff);
+}
+/* Social icons — absolutely positioned above the banner, flush to top */
+.header-banner-social {
+    position: absolute;
+    top: -44px;
+    right: 0;
+    display: flex;
+    gap: 0;
+    z-index: 5;
+}
+.header-banner-social a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    color: #bbb !important;
+    text-decoration: none !important;
+    border: 1px solid #ddd;
+    border-right: none;
+    border-top: none;
+    font-size: 18px;
+    transition: color 0.2s, background 0.2s;
+}
+.header-banner-social a:last-child { border-right: 1px solid #ddd; }
+.header-banner-social a:hover {
+    color: var(--header-link-hover-color, #f3595b) !important;
+    background: #f8f8f8;
+}
+/* Top line — extends full width above the banner */
+.header-layout-banner::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: #eee;
+    z-index: 4;
+}
+/* Menu row — fills the full height of the banner, bottom line */
+.header-banner-nav-row {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    border-bottom: 1px solid #eee;
+    padding: 0 0 0 25px;
+}
+.header-layout-banner .header-menu {
+    flex: 1;
+}
+.header-layout-banner .main-navigation ul {
+    justify-content: flex-start;
+    gap: 30px;
+}
+/* Space above header for the social icons — flush to browser top */
+.header-layout-banner {
+    margin-top: 44px;
+}
+/* Remove any body/html margin that creates gap at top */
+body:has(.header-layout-banner) { padding-top: 0 !important; margin-top: 0 !important; }
+body:has(.header-layout-banner) .header-top { display: none !important; }
+.header-layout-banner .main-navigation ul { gap: 30px; }
+.header-layout-banner .main-navigation a {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    color: var(--header-link-color, #666) !important;
+}
+.header-layout-banner .main-navigation a:hover {
+    color: var(--header-link-hover-color, #f3595b) !important;
+}
+
+/* Responsive */
+@media (max-width: 991px) {
+    .header-banner-wrap { flex-wrap: wrap; }
+    .header-banner-logo::before { display: none; }
+    .header-banner-right { padding: 10px 15px; width: 100%; }
+    .header-layout-banner .header-menu { display: none; }
+    .header-layout-banner .menu-toggle { display: block; }
+}
+@media (max-width: 575px) {
+    .header-banner-title { font-size: 1.4rem; }
+    .header-banner-logo-inner { padding: 12px 20px; }
+    .header-banner-subtitle { font-size: 0.55rem; }
 }
 
 /* === LAYOUT BOXED: header/footer contenido alineado al contenido de pagina === */
 /* En boxed, tanto header, footer como contenido comparten el mismo max-width */
 .header-boxed .musedock-header > .container,
+.header-boxed .musedock-header .container,
 .header-boxed .header-top > .container,
 .header-boxed .header-top > .container-fluid {
     max-width: var(--content-max-width, 1140px);
     margin: 0 auto;
 }
 .footer-boxed .footer-area > .container,
-.footer-boxed .footer-bottom-area > .container {
+.footer-boxed .footer-bottom-area > .container,
+.footer-boxed .footer-minimal-copyright > .container,
+.footer-boxed .footer-minimal-legal > .container {
     max-width: var(--content-max-width, 1140px);
     margin: 0 auto;
 }
@@ -727,7 +1294,7 @@ html.mobile-menu-open {
 }
 
 .header-logo img {
-    max-height: 45px; /* Ajusta la altura máxima de tu logo */
+    max-height: var(--header-logo-max-height, 45px); /* Controlable desde apariencia */
     display: block; /* Evita espacio extra debajo de la imagen */
 }
 
@@ -816,8 +1383,46 @@ html.mobile-menu-open {
 .header-actions {
     display: flex;
     align-items: center;
-    /* Espacio entre los elementos de acción (botón, idioma, toggle) */
     gap: 15px;
+}
+
+/* Header social icons */
+.header-social-icons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.header-social-icons a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    color: var(--header-link-color, #333);
+    font-size: 14px;
+    text-decoration: none;
+    border-radius: 50%;
+    transition: color 0.2s, background 0.2s;
+}
+.header-social-icons a:hover {
+    color: var(--header-link-hover-color, #ff5e15);
+    background: rgba(0,0,0,0.04);
+}
+
+/* Header clock/date */
+.header-clock {
+    white-space: nowrap;
+}
+.header-clock-display {
+    font-size: 0.82rem;
+    color: var(--header-link-color, #555);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+}
+
+@media (max-width: 991px) {
+    .header-social-icons,
+    .header-clock { display: none; }
 }
 
 /* Botón de acción principal (Ej: Inscríbete) */
@@ -903,7 +1508,7 @@ html.mobile-menu-open {
 .lang-option.active, /* Estilo para el idioma actual */
 .lang-option:hover {  /* Estilo al pasar el ratón */
     background-color: #f5f5f5;
-    color: #ff5e15; /* Tu color naranja */
+    color: var(--header-link-hover-color, #ff5e15);
 }
 
 /* Botón "Hamburguesa" para menú móvil */
@@ -1168,7 +1773,12 @@ body.mobile-menu-open {
     {!! $_customHeadCode !!}
     @endif
 </head>
-<body class="{{ themeOption('topbar.topbar_enabled', true) ? '' : 'no-topbar' }} {{ themeOption('header.header_content_width', 'full') === 'boxed' ? 'header-boxed' : '' }} {{ themeOption('footer.footer_content_width', 'full') === 'boxed' ? 'footer-boxed' : '' }}">
+@php
+    $__ps = themeOption('structure.page_structure', 'classic');
+    $__hl = themeOption('header.header_layout', 'default');
+    $__isSidebar = ($__ps === 'sidebar' || ($__ps === 'classic' && $__hl === 'sidebar'));
+@endphp
+<body class="{{ themeOption('topbar.topbar_enabled', true) && !$__isSidebar ? '' : 'no-topbar' }} {{ themeOption('header.header_content_width', 'full') === 'boxed' ? 'header-boxed' : '' }} {{ themeOption('footer.footer_content_width', 'full') === 'boxed' ? 'footer-boxed' : '' }} {{ $__isSidebar ? 'layout-sidebar' : '' }}">
 {{-- Codigo personalizado del tenant despues de <body> --}}
 @php $_customBodyStartCode = site_setting('custom_body_start_code', ''); @endphp
 @if(!empty($_customBodyStartCode))
@@ -1206,34 +1816,71 @@ body.mobile-menu-open {
     $whatsappIcon = themeOption('topbar.topbar_whatsapp_icon', 'whatsapp');
 @endphp
 
-@if($topbarEnabled)
+@php
+    $__topbarTickerOn = themeOption('blog.blog_topbar_ticker', false);
+    $__topbarPosts = [];
+    if ($__topbarTickerOn) {
+        try {
+            $__pdo = \Screenart\Musedock\Database::connect();
+            $__tid = tenant_id();
+            if ($__tid) {
+                $__st = $__pdo->prepare("SELECT title, slug FROM blog_posts WHERE tenant_id = ? AND status = 'published' ORDER BY published_at DESC LIMIT 8");
+                $__st->execute([$__tid]);
+            } else {
+                $__st = $__pdo->query("SELECT title, slug FROM blog_posts WHERE tenant_id IS NULL AND status = 'published' ORDER BY published_at DESC LIMIT 8");
+            }
+            $__topbarPosts = $__st->fetchAll(\PDO::FETCH_OBJ);
+        } catch (\Exception $e) {}
+    }
+    $__hasTopbarTicker = !empty($__topbarPosts);
+@endphp
+@if($topbarEnabled && $headerLayout !== 'sidebar')
     <div class="header-top top-bg d-none d-lg-block">
    <div class="container">
-       <div class="row d-flex justify-content-between align-items-center">
-           <div class="col-xl-6 col-lg-6">
-               <div class="header-info-left">
-                   <ul>
-                       @if($showAddress && site_setting('contact_address', ''))
-                           <li><i class="fas fa-map-marker-alt"></i>{{ site_setting('contact_address') }}</li>
-                       @endif
-                       @if($showEmail && site_setting('contact_email', ''))
-                           <li><i class="fas fa-envelope"></i>{{ site_setting('contact_email') }}</li>
-                       @endif
-                       @if($showWhatsapp && site_setting('contact_whatsapp', ''))
-                           <li><i class="fab fa-{{ $whatsappIcon == 'whatsapp' ? 'whatsapp' : 'phone' }}"></i>{{ site_setting('contact_whatsapp') }}</li>
-                       @endif
-                   </ul>
+       <div class="topbar-flex">
+           <div class="header-info-left">
+               <ul>
+                   @if($showAddress && site_setting('contact_address', ''))
+                       <li><i class="fas fa-map-marker-alt"></i>{{ site_setting('contact_address') }}</li>
+                   @endif
+                   @if($showEmail && site_setting('contact_email', ''))
+                       <li><i class="fas fa-envelope"></i>{{ site_setting('contact_email') }}</li>
+                   @endif
+                   @if($showWhatsapp && site_setting('contact_whatsapp', ''))
+                       <li><i class="fab fa-{{ $whatsappIcon == 'whatsapp' ? 'whatsapp' : 'phone' }}"></i>{{ site_setting('contact_whatsapp') }}</li>
+                   @endif
+               </ul>
+           </div>
+
+           @if($__hasTopbarTicker)
+           <div class="topbar-ticker-zone">
+               <span class="topbar-ticker-label">Latest Post</span>
+               <div class="topbar-ticker-marquee-wrap">
+                   <div class="topbar-ticker-marquee">
+                       @foreach($__topbarPosts as $__tp)
+                       <a href="{{ blog_url($__tp->slug) }}" class="topbar-ticker-item">
+                           <i class="fas fa-circle"></i> {{ $__tp->title }}
+                       </a>
+                       @endforeach
+                       @foreach($__topbarPosts as $__tp)
+                       <a href="{{ blog_url($__tp->slug) }}" class="topbar-ticker-item">
+                           <i class="fas fa-circle"></i> {{ $__tp->title }}
+                       </a>
+                       @endforeach
+                   </div>
                </div>
            </div>
-           <div class="col-xl-6 col-lg-6">
-               <div class="header-info-right text-right d-flex justify-content-end align-items-center">
+           @endif
+
+           <div class="header-info-right d-flex align-items-center">
                @php
-                   $topbarClock = themeOption('blog.blog_topbar_clock', false);
+                   $topbarClock = themeOption('topbar.topbar_clock', false);
                @endphp
                @if($topbarClock)
                <span class="topbar-clock-display" id="topbarLiveClock" style="margin-right: 15px; font-size: 13px; opacity: 0.9; white-space: nowrap;"><i class="fas fa-clock" style="margin-right: 5px; font-size: 11px;"></i></span>
                @endif
-               <ul class="header-social d-flex justify-content-end">
+               @if(themeOption('topbar.topbar_show_social', true))
+               <ul class="header-social d-flex">
                     @if(site_setting('social_linkedin', ''))
                         <li><a href="{{ site_setting('social_linkedin') }}" target="_blank"><i class="fab fa-linkedin-in"></i></a></li>
                     @endif
@@ -1256,19 +1903,31 @@ body.mobile-menu-open {
                         <li><a href="{{ site_setting('social_tiktok') }}" target="_blank"><i class="fab fa-tiktok"></i></a></li>
                     @endif
                 </ul>
-               </div>
+                @endif
            </div>
        </div>
    </div>
 </div>
-@endif 
-                
+@endif
+
 
 
 @php
+    // Page structure (retrocompatible: if page_structure not set but header_layout is sidebar, treat as sidebar)
+    $pageStructure = themeOption('structure.page_structure', 'classic');
+    $headerLayout = themeOption('header.header_layout', 'default');
+
+    // Retrocompatibility: old tenants with header_layout=sidebar but no page_structure
+    if ($pageStructure === 'classic' && $headerLayout === 'sidebar') {
+        $pageStructure = 'sidebar';
+    }
+    // If page_structure is sidebar, force headerLayout for the template system
+    if ($pageStructure === 'sidebar') {
+        $headerLayout = 'sidebar';
+    }
+
     // Opciones de header/footer
     $headerSticky = themeOption('header.header_sticky', false);
-    $headerLayout = themeOption('header.header_layout', 'default');
     $footerLayout = themeOption('footer.footer_layout', 'default');
 
     // CTA y selector de idioma
@@ -1278,6 +1937,7 @@ body.mobile-menu-open {
     $ctaTextEn = themeOption('header.header_cta_text_en', 'Login');
     $ctaText = ($currentLangCta === 'en') ? $ctaTextEn : $ctaTextEs;
     $ctaUrl = themeOption('header.header_cta_url', '#');
+    $headerSearchEnabled = themeOption('header.header_search_enabled', false);
     $langSelectorEnabled = themeOption('header.header_lang_selector_enabled', true);
     // Tenant puede desactivar selector de idioma desde /admin/settings
     if ($langSelectorEnabled && function_exists('tenant_setting')) {
@@ -1324,6 +1984,7 @@ body.mobile-menu-open {
     'ctaEnabled' => $ctaEnabled,
     'ctaUrl' => $ctaUrl,
     'ctaText' => $ctaText,
+    'headerSearchEnabled' => $headerSearchEnabled,
     'langSelectorEnabled' => $langSelectorEnabled,
     'showLangSelector' => $showLangSelector,
     'currentLang' => $currentLang,
@@ -1365,6 +2026,18 @@ body.mobile-menu-open {
     </div>
 
     <div class="mobile-menu-content">
+        @if($headerSearchEnabled ?? false)
+        <div class="mobile-menu-search" style="padding: 0 20px 16px;">
+            <form action="{{ url('/search') }}" method="GET">
+                <div style="display:flex; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+                    <input type="text" name="q" placeholder="{{ ($currentLang ?? 'es') === 'en' ? 'Search...' : 'Buscar...' }}" required minlength="2" style="flex:1; border:none; padding: 10px 14px; font-size: 15px; outline:none; background: #f8f8f8;">
+                    <button type="submit" style="border:none; background: var(--header-link-hover-color, #ff5e15); color:#fff; padding: 10px 14px; cursor:pointer;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+        @endif
         <nav>
              {{-- Renderiza tu menú móvil aquí. Asegúrate que @custommenu funciona correctamente --}}
              @if($headerLayout === 'centered')
@@ -1603,11 +2276,16 @@ document.querySelectorAll('.page-body').forEach(function(pageBody) {
     if (firstChild) firstChild.style.marginTop = '0';
 });
 
-// Ocultar columnas del footer que solo tienen áreas de widgets vacías
+// Marcar columnas del footer vacías (solo ocultar en móvil vía CSS)
 document.querySelectorAll('.footer-area .widget-area').forEach(function(wa) {
     if (wa.children.length === 0) {
         var col = wa.closest('[class*="col-"]');
-        if (col) col.style.display = 'none';
+        if (!col) return;
+        var hasOtherContent = false;
+        col.querySelectorAll('.footer-tittle, .footer-logo, .footer-social, .footer-pera, .language-selector').forEach(function(el) {
+            if (el.offsetHeight > 0 || el.textContent.trim()) hasOtherContent = true;
+        });
+        if (!hasOtherContent) col.classList.add('footer-col-empty');
     }
 });
 
@@ -1615,11 +2293,19 @@ document.querySelectorAll('.footer-area .widget-area').forEach(function(wa) {
 </script>
 
     {{-- Contenedor principal para el contenido yield --}}
+    @if($headerLayout === 'sidebar')
+    <div class="sidebar-layout-content">
+    @endif
     <main>
         @yield('content')
     </main>
 
-    @if($footerLayout === 'banner')
+    @if($headerLayout === 'sidebar')
+        @include('partials.footer-sidebar')
+    </div>
+    @elseif($footerLayout === 'minimal')
+        @include('partials.footer-minimal')
+    @elseif($footerLayout === 'banner')
         @include('partials.footer-banner')
     @else
         @include('partials.footer')
@@ -1936,13 +2622,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 {{-- Topbar live clock --}}
-@if(themeOption('blog.blog_topbar_clock', false) && themeOption('topbar.topbar_enabled', true))
+@if(themeOption('topbar.topbar_clock', false) && themeOption('topbar.topbar_enabled', true))
 <script>
 (function() {
     var el = document.getElementById('topbarLiveClock');
     if (!el) return;
-    var tz = @json(themeOption('blog.blog_header_clock_timezone', 'Europe/Madrid'));
-    var locale = @json(themeOption('blog.blog_header_clock_locale', 'es'));
+    var tz = @json(themeOption('topbar.topbar_clock_timezone', 'Europe/Madrid'));
+    var locale = @json(themeOption('topbar.topbar_clock_locale', 'es'));
     var localeMap = {'es':'es-ES','en':'en-US','fr':'fr-FR','de':'de-DE','pt':'pt-PT'};
     var fullLocale = localeMap[locale] || 'es-ES';
     var dateOpts = {weekday:'short',year:'numeric',month:'short',day:'numeric',timeZone:tz};
@@ -1959,6 +2645,9 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 </script>
 @endif
+
+{{-- Search Overlay --}}
+@include('partials._search-overlay')
 
 {{-- Codigo personalizado del tenant antes de </body> --}}
 @php $_customBodyEndCode = site_setting('custom_body_end_code', ''); @endphp

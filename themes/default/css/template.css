@@ -2,7 +2,6 @@
   /* Solo la variable que nos interesa */
   --header-bg-color: #ffffff;
   --page-bg-color: #f3f4f6;
-  --header-padding-y: 8px;
   --footer-padding-y: 40px;
 
   /* Variables del Hero */
@@ -23,10 +22,17 @@ body {
   background-color: var(--page-bg-color);
 }
 
-/* Header más compacto */
+/* Header spacing */
 .musedock-header {
-  padding-top: var(--header-padding-y) !important;
-  padding-bottom: var(--header-padding-y) !important;
+  min-height: 80px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+/* Layout logo-above: debe ser block, no flex (tiene filas logo + menú) */
+.musedock-header.header-layout-logo-above,
+.musedock-header.header-layout-logo-above-left {
+  display: block !important;
+  min-height: auto !important;
 }
 
 /* Footer más compacto */

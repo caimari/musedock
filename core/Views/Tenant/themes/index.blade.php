@@ -272,10 +272,212 @@
     margin-bottom: 1.5rem;
 }
 
+/* ==================== SKINS ==================== */
+.skins-section {
+    margin-top: 2.5rem;
+    margin-bottom: 2rem;
+}
+.section-header .icon-box.skins {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+}
+.skin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.25rem;
+    align-items: stretch;
+}
+.skin-card {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+.skin-card:hover {
+    border-color: #c4b5fd;
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.12);
+    transform: translateY(-2px);
+}
+.skin-card.skin-active {
+    border-color: #22c55e;
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+}
+.skin-card.skin-active:hover {
+    border-color: #22c55e;
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25), 0 6px 20px rgba(34, 197, 94, 0.12);
+}
+.skin-card .skin-preview {
+    height: 130px;
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+.skin-card .skin-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.skin-card .skin-preview .skin-placeholder {
+    text-align: center;
+}
+.skin-card .skin-preview .skin-placeholder i {
+    font-size: 2.5rem;
+    color: #a78bfa;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+.skin-card .skin-preview .skin-placeholder span {
+    font-size: 0.7rem;
+    color: #a78bfa;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.skin-card .skin-preview .skin-color-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    display: flex;
+}
+.skin-card .skin-preview .skin-color-bar span {
+    flex: 1;
+}
+.skin-card .skin-info {
+    padding: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.skin-card .skin-info .skin-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.15rem;
+}
+.skin-card .skin-info .skin-desc {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    margin-bottom: 0.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.3;
+}
+.skin-card .skin-info .skin-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: #94a3b8;
+    margin-top: auto;
+}
+.skin-card .skin-actions {
+    padding: 0 1rem 1rem;
+    display: flex;
+    gap: 0.4rem;
+}
+.skin-card .skin-actions .btn {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+}
+.skin-card .skin-actions .btn-apply-skin {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    border: none;
+    color: white;
+    flex-grow: 1;
+}
+.skin-card .skin-actions .btn-apply-skin:hover {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+.skin-card .skin-actions .btn-skin-active {
+    background: #22c55e;
+    border: none;
+    color: white;
+    flex-grow: 1;
+    cursor: default;
+    pointer-events: none;
+}
+.skin-active-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #22c55e;
+    color: white;
+    font-size: 0.6rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    z-index: 2;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.skin-badge-global {
+    background: rgba(139, 92, 246, 0.1);
+    color: #7c3aed;
+    font-weight: 500;
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+}
+.skin-badge-own {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    font-weight: 500;
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+}
+
+/* Upload skin card */
+.skin-card-upload {
+    background: #faf5ff;
+    border: 2px dashed #d8b4fe;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 240px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.skin-card-upload:hover {
+    border-color: #a78bfa;
+    background: #f3e8ff;
+}
+.skin-card-upload i {
+    font-size: 2rem;
+    color: #a78bfa;
+    margin-bottom: 0.5rem;
+}
+.skin-card-upload span {
+    font-size: 0.85rem;
+    color: #7c3aed;
+    font-weight: 500;
+}
+.skin-card-upload small {
+    font-size: 0.7rem;
+    color: #a78bfa;
+    margin-top: 0.25rem;
+}
+
 /* Responsive */
 @media (max-width: 576px) {
     .theme-grid {
         grid-template-columns: 1fr;
+    }
+    .skin-grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     }
     .active-theme-card {
         text-align: center;
@@ -296,9 +498,6 @@
             <h2><i class="bi bi-palette2 me-2"></i>{{ __('themes.title') ?? 'Gestión de Temas' }}</h2>
             <p>{{ __('themes.subtitle') ?? 'Personaliza el aspecto de tu sitio web' }}</p>
         </div>
-        <button class="btn btn-primary" id="btn-upload-theme">
-            <i class="bi bi-cloud-upload me-2"></i>{{ __('themes.upload') ?? 'Subir Tema' }}
-        </button>
     </div>
 
     <!-- Tema Activo Banner -->
@@ -414,133 +613,130 @@
         @endif
     </div>
 
-    <!-- Temas Personalizados -->
-    <div class="themes-section">
+    <!-- Skins del Tema Activo -->
+    <div class="skins-section">
         <div class="section-header">
-            <div class="icon-box custom">
-                <i class="bi bi-magic"></i>
+            <div class="icon-box skins">
+                <i class="bi bi-stars"></i>
             </div>
             <div class="flex-grow-1">
-                <h4>{{ __('themes.custom_themes') ?? 'Mis Temas Personalizados' }}</h4>
-                <small>{{ __('themes.custom_desc') ?? 'Temas exclusivos subidos por ti' }}</small>
+                <h4>{{ __('themes.skins') ?? 'Skins' }}</h4>
+                <small>{{ __('themes.skins_desc') ?? 'Cambia la estética de tu tema con un solo click' }}</small>
             </div>
-            <span class="badge bg-primary">{{ count($customThemes) }} {{ __('themes.themes_count') ?? 'tema(s)' }}</span>
+            <span class="badge" style="background: rgba(139, 92, 246, 0.1); color: #7c3aed;">
+                {{ count($skins ?? []) }} {{ __('themes.available') ?? 'disponible(s)' }}
+            </span>
         </div>
 
-        @if(empty($customThemes))
-            <div class="empty-state">
-                <div class="empty-icon">
-                    <i class="bi bi-cloud-upload"></i>
-                </div>
-                <h5>{{ __('themes.no_custom') ?? 'No tienes temas personalizados' }}</h5>
-                <p>{{ __('themes.no_custom_desc') ?? 'Sube tu propio tema para darle un toque único a tu sitio web' }}</p>
-                <button class="btn btn-primary" id="btn-upload-theme-empty">
-                    <i class="bi bi-upload me-2"></i>{{ __('themes.upload_first') ?? 'Subir mi primer tema' }}
-                </button>
-            </div>
-        @else
-            <div class="theme-grid">
-                @foreach($customThemes as $theme)
-                    @php
-                        $isActive = $tenant['theme_type'] === 'custom' && $tenant['custom_theme_slug'] === $theme['slug'];
-                        $screenshotFile = $theme['screenshot'] ? APP_ROOT . "/storage/tenants/{$tenantId}/themes/{$theme['slug']}/{$theme['screenshot']}" : null;
-                        $screenshotPath = ($screenshotFile && file_exists($screenshotFile)) ? "/storage/tenants/{$tenantId}/themes/{$theme['slug']}/{$theme['screenshot']}" : null;
-                    @endphp
-                    <div class="theme-card {{ $isActive ? 'is-active' : '' }}">
-                        @if($isActive)
-                            <div class="active-badge">{{ __('themes.active') ?? 'ACTIVO' }}</div>
+        <div class="skin-grid">
+            @forelse($skins ?? [] as $skin)
+                @php
+                    $skinOptions = is_string($skin['options']) ? json_decode($skin['options'], true) : $skin['options'];
+                    $isOwn = !empty($skin['tenant_id']) && $skin['tenant_id'] == $tenantId;
+                    // Extract colors for the preview bar
+                    $previewColors = [
+                        $skinOptions['header']['header_bg_color'] ?? '#f8f9fa',
+                        $skinOptions['topbar']['topbar_bg_color'] ?? '#1a2a40',
+                        $skinOptions['header']['header_cta_bg_color'] ?? '#ff5e15',
+                        $skinOptions['footer']['footer_bg_color'] ?? '#1a1a2e',
+                    ];
+                @endphp
+                <div class="skin-card{{ ($activeSkinSlug ?? '') === $skin['slug'] ? ' skin-active' : '' }}">
+                    @if(($activeSkinSlug ?? '') === $skin['slug'])
+                        <span class="skin-active-badge"><i class="bi bi-check-circle me-1"></i>En uso</span>
+                    @endif
+                    <div class="skin-preview">
+                        @if(!empty($skin['screenshot']) && !str_starts_with($skin['screenshot'], 'data:'))
+                            <img src="{{ $skin['screenshot'] }}" alt="{{ $skin['name'] }}" loading="lazy">
+                        @elseif(!empty($skin['screenshot']) && str_starts_with($skin['screenshot'], 'data:'))
+                            <img src="{{ $skin['screenshot'] }}" alt="{{ $skin['name'] }}" loading="lazy">
+                        @else
+                            <div class="skin-placeholder">
+                                <i class="bi bi-palette2"></i>
+                                <span>{{ $skin['name'] }}</span>
+                            </div>
                         @endif
-
-                        <div class="theme-preview">
-                            @if($screenshotPath)
-                                <img src="{{ $screenshotPath }}" alt="{{ $theme['name'] }}" loading="lazy">
-                            @else
-                                <i class="bi bi-palette placeholder-icon"></i>
-                                <span class="placeholder-text">{{ $theme['slug'] }}</span>
-                            @endif
-                        </div>
-
-                        <div class="theme-info">
-                            <div class="d-flex justify-content-between align-items-start mb-1">
-                                <span class="theme-title">{{ $theme['name'] }}</span>
-                                @if($theme['validated'])
-                                    <span class="badge-official" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">
-                                        <i class="bi bi-shield-check me-1"></i>{{ $theme['security_score'] }}%
-                                    </span>
-                                @else
-                                    <span class="badge bg-danger-subtle text-danger" style="font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 6px;">
-                                        <i class="bi bi-exclamation-circle me-1"></i>{{ __('themes.not_safe') ?? 'No seguro' }}
-                                    </span>
-                                @endif
-                            </div>
-                            <p class="theme-desc">{{ $theme['description'] ?? __('themes.no_desc') ?? 'Sin descripción' }}</p>
-                            <div class="theme-meta">
-                                <span><i class="bi bi-person"></i>{{ $theme['author'] ?? __('themes.unknown') ?? 'Desconocido' }}</span>
-                                <span><i class="bi bi-tag"></i>v{{ $theme['version'] }}</span>
-                            </div>
-                        </div>
-
-                        <div class="theme-actions">
-                            @if($isActive)
-                                <button class="btn btn-active flex-grow-1" disabled>
-                                    <i class="bi bi-check2 me-1"></i>{{ __('themes.active') ?? 'Activo' }}
-                                </button>
-                                <a href="/{{ admin_path() }}/widgets/{{ $theme['slug'] }}" class="btn btn-icon" title="{{ __('themes.widgets') ?? 'Widgets' }}">
-                                    <i class="bi bi-sliders"></i>
-                                </a>
-                            @elseif($theme['validated'])
-                                <button type="button" class="btn btn-activate flex-grow-1 btn-activate-custom"
-                                        data-slug="{{ $theme['slug'] }}"
-                                        data-name="{{ $theme['name'] }}">
-                                    <i class="bi bi-power me-1"></i>{{ __('themes.activate') ?? 'Activar' }}
-                                </button>
-                            @else
-                                <button class="btn btn-secondary flex-grow-1" disabled>
-                                    <i class="bi bi-lock me-1"></i>{{ __('themes.not_available') ?? 'No Disponible' }}
-                                </button>
-                            @endif
-
-                            <button type="button" class="btn btn-icon btn-revalidate" data-slug="{{ $theme['slug'] }}" title="{{ __('themes.revalidate') ?? 'Revalidar' }}">
-                                <i class="bi bi-arrow-clockwise"></i>
-                            </button>
-
-                            @if(!$isActive)
-                                <button type="button" class="btn btn-icon btn-uninstall" data-slug="{{ $theme['slug'] }}" data-name="{{ $theme['name'] }}" title="{{ __('themes.delete') ?? 'Eliminar' }}" style="color: #ef4444;">
-                                    <i class="bi bi-trash3"></i>
-                                </button>
-                            @endif
+                        <div class="skin-color-bar">
+                            @foreach($previewColors as $color)
+                                <span style="background-color: {{ $color }}"></span>
+                            @endforeach
                         </div>
                     </div>
-                @endforeach
+
+                    <div class="skin-info">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <span class="skin-name">{{ $skin['name'] }}</span>
+                            @if($isOwn)
+                                <span class="skin-badge-own">{{ __('themes.own') ?? 'Propio' }}</span>
+                            @else
+                                <span class="skin-badge-global"><i class="bi bi-globe2 me-1"></i>{{ __('themes.official') ?? 'Oficial' }}</span>
+                            @endif
+                        </div>
+                        @if(!empty($skin['description']))
+                            <p class="skin-desc">{{ $skin['description'] }}</p>
+                        @endif
+                        <div class="skin-meta">
+                            <span><i class="bi bi-person me-1"></i>{{ $skin['author'] ?? 'MuseDock' }}</span>
+                            <span><i class="bi bi-download me-1"></i>{{ $skin['install_count'] ?? 0 }}</span>
+                        </div>
+                    </div>
+
+                    <div class="skin-actions">
+                        @if(($activeSkinSlug ?? '') === $skin['slug'])
+                            <button type="button" class="btn btn-skin-active">
+                                <i class="bi bi-check-lg me-1"></i>{{ __('themes.in_use') ?? 'En uso' }}
+                            </button>
+                        @else
+                            <button type="button" class="btn btn-apply-skin"
+                                    data-slug="{{ $skin['slug'] }}"
+                                    data-name="{{ $skin['name'] }}">
+                                <i class="bi bi-magic me-1"></i>{{ __('themes.apply') ?? 'Aplicar' }}
+                            </button>
+                        @endif
+                        @if($isOwn)
+                            <button type="button" class="btn btn-icon btn-delete-skin"
+                                    data-slug="{{ $skin['slug'] }}"
+                                    data-name="{{ $skin['name'] }}"
+                                    title="{{ __('themes.delete') ?? 'Eliminar' }}"
+                                    style="color: #ef4444; padding: 0.4rem 0.55rem;">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        @endif
+                    </div>
+                </div>
+            @empty
+            @endforelse
+
+            <!-- Upload skin card -->
+            <div class="skin-card-upload" id="btn-upload-skin">
+                <i class="bi bi-cloud-upload"></i>
+                <span>{{ __('themes.upload_skin') ?? 'Subir Skin' }}</span>
+                <small>.skin.json</small>
             </div>
-        @endif
+        </div>
     </div>
+
 </div>
 
 <!-- Forms ocultos -->
 <form id="form-activate-global" action="" method="POST" style="display:none;">
     {!! csrf_field() !!}
 </form>
-<form id="form-activate-custom" action="" method="POST" style="display:none;">
+<form id="form-apply-skin" action="" method="POST" style="display:none;">
     {!! csrf_field() !!}
 </form>
-<form id="form-revalidate" action="" method="POST" style="display:none;">
+<form id="form-delete-skin" action="" method="POST" style="display:none;">
     {!! csrf_field() !!}
 </form>
-<form id="form-uninstall" action="" method="POST" style="display:none;">
+<form id="form-upload-skin" action="{{ admin_url('themes/skins/upload') }}" method="POST" enctype="multipart/form-data" style="display:none;">
     {!! csrf_field() !!}
-    @method('DELETE')
+    <input type="file" name="skin_file" id="skin_file_input" accept=".json">
 </form>
 @endsection
 
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Upload theme modal
-    document.querySelectorAll('#btn-upload-theme, #btn-upload-theme-empty').forEach(btn => {
-        btn.addEventListener('click', showUploadModal);
-    });
-
     // Activate global theme
     document.querySelectorAll('.btn-activate-global').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -568,54 +764,51 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Activate custom theme
-    document.querySelectorAll('.btn-activate-custom').forEach(btn => {
+});
+
+    // ==================== SKINS ====================
+
+    // Apply skin
+    document.querySelectorAll('.btn-apply-skin').forEach(btn => {
         btn.addEventListener('click', function() {
             const slug = this.dataset.slug;
             const name = this.dataset.name;
 
             Swal.fire({
-                title: '<i class="bi bi-magic text-primary"></i>',
+                title: '<i class="bi bi-stars text-purple"></i>',
                 html: `
-                    <h5 class="mb-2">{!! json_encode(__('themes.activate_custom') ?? 'Activar tema personalizado') !!}</h5>
-                    <p class="text-muted mb-0">{!! json_encode(__('themes.activate_confirm') ?? '¿Deseas activar el tema') !!} <strong>${name}</strong>?</p>
+                    <h5 class="mb-2">Aplicar Skin</h5>
+                    <p class="text-muted mb-2">Se aplicará el skin <strong>${name}</strong> a tu tema actual.</p>
+                    <div class="alert alert-info text-start small py-2 mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Esto cambiará los colores, fuentes y estilos de tu tema. Puedes revertirlo desde la personalización del tema.
+                    </div>
                 `,
                 showCancelButton: true,
-                confirmButtonColor: '#10b981',
+                confirmButtonColor: '#7c3aed',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="bi bi-check-lg me-1"></i> {!! json_encode(__('themes.yes_activate') ?? 'Sí, activar') !!}',
-                cancelButtonText: '{!! json_encode(__('cancel') ?? 'Cancelar') !!}'
+                confirmButtonText: '<i class="bi bi-magic me-1"></i> Aplicar Skin',
+                cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    const form = document.getElementById('form-activate-custom');
-                    form.action = '{{ admin_url("themes/activate-custom") }}/' + slug;
-                    form.submit();
+                    Swal.fire({
+                        title: 'Aplicando skin...',
+                        html: 'Configurando colores, fuentes y estilos...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                            const form = document.getElementById('form-apply-skin');
+                            form.action = '{{ admin_url("themes/skins/apply") }}/' + slug;
+                            form.submit();
+                        }
+                    });
                 }
             });
         });
     });
 
-    // Revalidate theme
-    document.querySelectorAll('.btn-revalidate').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const slug = this.dataset.slug;
-
-            Swal.fire({
-                title: '{!! json_encode(__('themes.revalidating') ?? 'Revalidando tema...') !!}',
-                html: '{!! json_encode(__('themes.revalidating_desc') ?? 'Por favor espera mientras verificamos la seguridad del tema.') !!}',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                    const form = document.getElementById('form-revalidate');
-                    form.action = '{{ admin_url("themes/revalidate") }}/' + slug;
-                    form.submit();
-                }
-            });
-        });
-    });
-
-    // Uninstall theme
-    document.querySelectorAll('.btn-uninstall').forEach(btn => {
+    // Delete skin
+    document.querySelectorAll('.btn-delete-skin').forEach(btn => {
         btn.addEventListener('click', function() {
             const slug = this.dataset.slug;
             const name = this.dataset.name;
@@ -623,69 +816,79 @@ document.addEventListener('DOMContentLoaded', function() {
             Swal.fire({
                 title: '<i class="bi bi-exclamation-triangle text-danger"></i>',
                 html: `
-                    <h5 class="mb-2 text-danger">{!! json_encode(__('themes.delete_title') ?? '¿Eliminar tema?') !!}</h5>
-                    <p class="mb-1">{!! json_encode(__('themes.delete_confirm') ?? 'Vas a eliminar el tema') !!} <strong>${name}</strong>.</p>
-                    <p class="text-danger small mb-0"><i class="bi bi-exclamation-circle me-1"></i>{!! json_encode(__('themes.delete_warning') ?? 'Esta acción no se puede deshacer.') !!}</p>
+                    <h5 class="mb-2 text-danger">¿Eliminar skin?</h5>
+                    <p class="mb-0">Se eliminará el skin <strong>${name}</strong> permanentemente.</p>
                 `,
                 showCancelButton: true,
                 confirmButtonColor: '#dc3545',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="bi bi-trash3 me-1"></i> {!! json_encode(__('themes.yes_delete') ?? 'Sí, eliminar') !!}',
-                cancelButtonText: '{!! json_encode(__('cancel') ?? 'Cancelar') !!}'
+                confirmButtonText: '<i class="bi bi-trash3 me-1"></i> Eliminar',
+                cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    const form = document.getElementById('form-uninstall');
-                    form.action = '{{ admin_url("themes/uninstall") }}/' + slug;
+                    const form = document.getElementById('form-delete-skin');
+                    form.action = '{{ admin_url("themes/skins/delete") }}/' + slug;
                     form.submit();
                 }
             });
         });
     });
-});
 
-function showUploadModal() {
-    Swal.fire({
-        title: '<i class="bi bi-cloud-upload text-primary me-2"></i>{!! json_encode(__('themes.upload') ?? 'Subir Tema') !!}',
-        html: `
-            <form id="upload-theme-form" action="{{ admin_url('themes/upload') }}" method="POST" enctype="multipart/form-data">
-                {!! csrf_field() !!}
-                <div class="alert alert-warning text-start small mb-3 py-2">
+    // Upload skin
+    document.getElementById('btn-upload-skin').addEventListener('click', function() {
+        Swal.fire({
+            title: '<i class="bi bi-cloud-upload text-purple me-2"></i>Subir Skin',
+            html: `
+                <div class="alert alert-info text-start small mb-3 py-2">
                     <i class="bi bi-shield-check me-1"></i>
-                    {!! json_encode(__('themes.security_notice') ?? 'Todos los temas se validan automáticamente por seguridad.') !!}
+                    Los skins son seguros: solo contienen colores, fuentes y estilos (sin código ejecutable).
                 </div>
                 <div class="mb-3 text-start">
-                    <label class="form-label fw-semibold">{!! json_encode(__('themes.zip_file') ?? 'Archivo ZIP del tema') !!}</label>
-                    <input type="file" class="form-control" id="theme_zip" name="theme_zip" accept=".zip" required>
-                    <small class="text-muted">{!! json_encode(__('themes.max_size') ?? 'Máximo 20MB') !!}</small>
+                    <label class="form-label fw-semibold">Archivo de Skin (.skin.json)</label>
+                    <input type="file" class="form-control" id="skin_file_modal" accept=".json" required>
+                    <small class="text-muted">Máximo 2MB. Formato .skin.json</small>
                 </div>
-            </form>
-        `,
-        showCancelButton: true,
-        confirmButtonColor: '#10b981',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="bi bi-upload me-1"></i> {!! json_encode(__('themes.install') ?? 'Instalar') !!}',
-        cancelButtonText: '{!! json_encode(__('cancel') ?? 'Cancelar') !!}',
-        preConfirm: () => {
-            const fileInput = document.getElementById('theme_zip');
-            if (!fileInput.files.length) {
-                Swal.showValidationMessage('{!! json_encode(__('themes.select_zip') ?? 'Selecciona un archivo ZIP') !!}');
-                return false;
-            }
-            return true;
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire({
-                title: '{!! json_encode(__('themes.installing') ?? 'Instalando tema...') !!}',
-                html: '{!! json_encode(__('themes.installing_desc') ?? 'Por favor espera mientras se valida e instala el tema.') !!}',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                    document.getElementById('upload-theme-form').submit();
+            `,
+            showCancelButton: true,
+            confirmButtonColor: '#7c3aed',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="bi bi-upload me-1"></i> Instalar Skin',
+            cancelButtonText: 'Cancelar',
+            preConfirm: () => {
+                const fileInput = document.getElementById('skin_file_modal');
+                if (!fileInput.files.length) {
+                    Swal.showValidationMessage('Selecciona un archivo .skin.json');
+                    return false;
                 }
-            });
-        }
+                const fileName = fileInput.files[0].name;
+                if (!fileName.endsWith('.json')) {
+                    Swal.showValidationMessage('Solo se aceptan archivos .json');
+                    return false;
+                }
+                return true;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const fileInput = document.getElementById('skin_file_modal');
+                const realInput = document.getElementById('skin_file_input');
+
+                // Transfer the file
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(fileInput.files[0]);
+                realInput.files = dataTransfer.files;
+
+                Swal.fire({
+                    title: 'Instalando skin...',
+                    html: 'Validando y guardando el skin...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                        document.getElementById('form-upload-skin').submit();
+                    }
+                });
+            }
+        });
     });
-}
+
 </script>
 @endpush

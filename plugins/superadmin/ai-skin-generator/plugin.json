@@ -1,0 +1,9 @@
+{
+    "name": "AI Skin Generator",
+    "slug": "ai-skin-generator",
+    "description": "Genera skins de tema con IA basándose en descripciones, paletas de colores y presets existentes",
+    "version": "1.0.0",
+    "author": "MuseDock",
+    "main_file": "ai-skin-generator.php",
+    "type": "superadmin"
+}

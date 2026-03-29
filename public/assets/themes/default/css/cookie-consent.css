@@ -51,8 +51,9 @@
     }
     .cookie-layout-bar .cookie-popup-links {
         width: 100%;
-        text-align: center;
+        text-align: left;
         margin-top: 4px;
+        align-self: flex-start;
     }
 
     /* ===== Modal layout ===== */
@@ -349,6 +350,9 @@
             flex-direction: column;
             text-align: center;
             gap: 10px;
+        }
+        .cookie-layout-bar .cookie-popup-links {
+            text-align: left;
         }
         .cookie-layout-bar .cookie-popup-actions {
             flex-direction: column;

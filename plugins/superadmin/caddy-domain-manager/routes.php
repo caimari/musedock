@@ -313,6 +313,35 @@ Route::post('/musedock/domain-manager/{id}/email-routing/catch-all', 'CaddyDomai
     ->middleware('superadmin')
     ->name('superadmin.email-routing.update-catch-all');
 
+// Apply skin to tenant (AJAX)
+Route::post('/musedock/domain-manager/skin/apply', 'CaddyDomainManager\Controllers\DomainManagerController@applySkinToTenant')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.apply-skin');
+
+// Tenant preset management (AJAX)
+Route::post('/musedock/domain-manager/{id}/preset/save', 'CaddyDomainManager\Controllers\DomainManagerController@savePresetForTenant')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.preset.save');
+
+Route::post('/musedock/domain-manager/{id}/preset/{presetSlug}/load', 'CaddyDomainManager\Controllers\DomainManagerController@loadPresetForTenant')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.preset.load');
+
+Route::post('/musedock/domain-manager/{id}/preset/{presetSlug}/delete', 'CaddyDomainManager\Controllers\DomainManagerController@deletePresetForTenant')
+    ->middleware('superadmin')
+    ->name('superadmin.domain-manager.preset.delete');
+
+// ============================================
+// SKIN MANAGEMENT (Superadmin)
+// ============================================
+Route::post('/musedock/themes/skins/{slug}/toggle', 'CaddyDomainManager\Controllers\DomainManagerController@toggleSkin')
+    ->middleware('superadmin')
+    ->name('superadmin.themes.skins.toggle');
+
+Route::post('/musedock/themes/skins/{slug}/delete', 'CaddyDomainManager\Controllers\DomainManagerController@deleteSkin')
+    ->middleware('superadmin')
+    ->name('superadmin.themes.skins.delete');
+
 // ============================================
 // CUSTOMER PUBLIC ROUTES (No auth required)
 // ============================================

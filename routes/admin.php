@@ -106,6 +106,22 @@ Route::post("$adminPath/themes/revalidate/{slug}", 'tenant.ThemesController@reva
      ->middleware(['auth'])
      ->name('tenant.themes.revalidate');
 
+// ==================== SKINS ====================
+// Aplicar un skin al tema activo
+Route::post("$adminPath/themes/skins/apply/{slug}", 'tenant.ThemesController@applySkin')
+     ->middleware(['auth'])
+     ->name('tenant.themes.skins.apply');
+
+// Subir un skin (.skin.json)
+Route::post("$adminPath/themes/skins/upload", 'tenant.ThemesController@uploadSkin')
+     ->middleware(['auth'])
+     ->name('tenant.themes.skins.upload');
+
+// Eliminar un skin propio
+Route::post("$adminPath/themes/skins/delete/{slug}", 'tenant.ThemesController@deleteSkin')
+     ->middleware(['auth'])
+     ->name('tenant.themes.skins.delete');
+
 // ==================== PERSONALIZACIÓN DE APARIENCIA ====================
 // Ver/editar opciones de apariencia del tema
 Route::get("$adminPath/themes/appearance/{slug?}", 'tenant.ThemeAppearanceController@index')
@@ -147,6 +163,16 @@ Route::get("$adminPath/themes/appearance/{slug}/export", 'tenant.ThemeAppearance
 Route::post("$adminPath/themes/appearance/{slug}/import", 'tenant.ThemeAppearanceController@importPreset')
      ->middleware(['auth'])
      ->name('tenant.themes.appearance.import');
+
+// Exportar configuración actual como skin (descarga .skin.json)
+Route::get("$adminPath/themes/appearance/{slug}/export-skin", 'tenant.ThemeAppearanceController@exportAsSkin')
+     ->middleware(['auth'])
+     ->name('tenant.themes.appearance.export-skin');
+
+// Guardar configuración actual como skin en el catálogo
+Route::post("$adminPath/themes/appearance/{slug}/save-skin", 'tenant.ThemeAppearanceController@saveAsSkin')
+     ->middleware(['auth'])
+     ->name('tenant.themes.appearance.save-skin');
 
 // Ruta legacy (compatibilidad con código antiguo)
 Route::post("$adminPath/themes/update", 'tenant.ThemeController@update')

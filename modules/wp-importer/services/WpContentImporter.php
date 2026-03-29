@@ -16,6 +16,7 @@ class WpContentImporter
 {
     private WpApiClient $client;
     private WpMediaImporter $mediaImporter;
+    private WpGalleryImporter $galleryImporter;
     private ?int $tenantId;
 
     private array $categoryMap = []; // wp_id => musedock_id
@@ -46,6 +47,8 @@ class WpContentImporter
         'menu_items_imported' => 0,
         'sliders_imported' => 0,
         'slides_imported' => 0,
+        'galleries_imported' => 0,
+        'gallery_images_imported' => 0,
     ];
     private array $errors = [];
     private array $conflicts = [];
@@ -55,6 +58,7 @@ class WpContentImporter
     {
         $this->client = $client;
         $this->mediaImporter = $mediaImporter;
+        $this->galleryImporter = new WpGalleryImporter($mediaImporter, $tenantId);
         $this->tenantId = $tenantId;
     }
 
@@ -326,6 +330,11 @@ class WpContentImporter
                 }
                 $content = $this->cleanWordPressContent($content);
 
+                // Detect and import galleries in post content
+                if (!$asBriefs) {
+                    $content = $this->galleryImporter->processContent($content, $title, $slug);
+                }
+
                 $excerpt = strip_tags($post['excerpt']['rendered'] ?? '');
                 $excerpt = trim($excerpt);
                 $status = $this->mapPostStatus($post['status'] ?? 'publish');
@@ -454,6 +463,10 @@ class WpContentImporter
                 $content = $page['content']['rendered'] ?? '';
                 $content = $this->mediaImporter->replaceUrlsInContent($content);
                 $content = $this->cleanWordPressContent($content);
+
+                // Detect and import galleries in page content
+                $content = $this->galleryImporter->processContent($content, $title, $slug);
+
                 $status = $this->mapPostStatus($page['status'] ?? 'publish');
                 $excerpt = strip_tags($page['excerpt']['rendered'] ?? '');
 
@@ -925,6 +938,10 @@ class WpContentImporter
 
     public function getStats(): array
     {
+        // Merge gallery stats
+        $galleryStats = $this->galleryImporter->getStats();
+        $this->stats['galleries_imported'] = $galleryStats['galleries_created'];
+        $this->stats['gallery_images_imported'] = $galleryStats['images_imported'];
         return $this->stats;
     }
 
@@ -1274,7 +1291,7 @@ class WpContentImporter
                             $newContent = $this->cleanCarouselHtmlResidual($newContent);
                             $stmt = $pdo->prepare("UPDATE pages SET content = ?, show_slider = 1, updated_at = NOW() WHERE id = ?");
                             $stmt->execute([$newContent, $homepageId]);
-                            Logger::info("WP Importer: " . count($homeSliderIds) . " sliders insertados en homepage #{$homepageId}");
+                            Logger::info("WP Importer: " . count($homeSliderIds ?? []) . " sliders insertados en homepage #{$homepageId}");
                         }
                     }
                 }
@@ -1689,7 +1706,9 @@ class WpContentImporter
      */
     private function getPagePrefix(): string
     {
-        return $this->getSettingDirect('page_url_prefix', 'p');
+        // WordPress does not use page prefixes, so default to empty
+        // when importing. If the tenant has explicitly set a prefix, use it.
+        return $this->getSettingDirect('page_url_prefix', '');
     }
 
     /**

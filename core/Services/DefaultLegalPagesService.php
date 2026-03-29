@@ -20,11 +20,43 @@ class DefaultLegalPagesService
     ];
 
     /**
-     * Check if a slug is a legal page slug
+     * Mapeo de variantes de slug a su slug canónico.
+     * Permite que URLs como /politica-de-cookies muestren la página legal por defecto.
+     */
+    private const SLUG_ALIASES = [
+        // Cookies
+        'cookies'              => 'cookie-policy',
+        'politica-de-cookies'  => 'cookie-policy',
+        'politica-cookies'     => 'cookie-policy',
+        // Privacy
+        'privacidad'                => 'privacy',
+        'politica-de-privacidad'    => 'privacy',
+        'politica-privacidad'       => 'privacy',
+        // Terms
+        'terminos-y-condiciones'         => 'terms-and-conditions',
+        'terminos-y-condiciones-de-uso'  => 'terms-and-conditions',
+        'terminos'                       => 'terms-and-conditions',
+        'terms'                          => 'terms-and-conditions',
+        'condiciones-de-uso'             => 'terms-and-conditions',
+        // Legal
+        'legal'       => 'aviso-legal',
+        'aviso_legal' => 'aviso-legal',
+    ];
+
+    /**
+     * Check if a slug is a legal page slug (including aliases)
      */
     public static function isLegalPageSlug(string $slug): bool
     {
-        return in_array($slug, self::LEGAL_SLUGS, true);
+        return in_array($slug, self::LEGAL_SLUGS, true) || isset(self::SLUG_ALIASES[$slug]);
+    }
+
+    /**
+     * Resolve a slug alias to its canonical slug
+     */
+    public static function resolveSlug(string $slug): string
+    {
+        return self::SLUG_ALIASES[$slug] ?? $slug;
     }
 
     /**
@@ -36,6 +68,9 @@ class DefaultLegalPagesService
      */
     public static function getDefaultPage(string $slug, string $locale = 'es'): ?array
     {
+        // Resolver alias (ej: 'politica-de-cookies' → 'cookie-policy')
+        $slug = self::resolveSlug($slug);
+
         $siteName = site_setting('site_name', 'Nuestro Sitio');
         $contactEmail = site_setting('contact_email', 'info@example.com');
         $contactAddress = site_setting('contact_address', '');

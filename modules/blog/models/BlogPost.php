@@ -351,6 +351,17 @@ class BlogPost extends Model
         try {
             $pdo = Database::connect();
 
+            // Resolve the actual prefix: use parameter if explicitly provided (even null),
+            // otherwise read from tenant settings to respect empty prefix configuration
+            $finalPrefix = $prefix;
+            if (func_num_args() < 2) {
+                // No prefix argument passed at all - read from settings
+                $finalPrefix = function_exists('blog_prefix') ? blog_prefix() : 'blog';
+                if ($finalPrefix === '') {
+                    $finalPrefix = null;
+                }
+            }
+
             // Verificar si ya existe un slug para este post
             $checkStmt = $pdo->prepare("SELECT id FROM slugs WHERE module = 'blog' AND reference_id = ?");
             $checkStmt->execute([$this->id]);
@@ -359,11 +370,11 @@ class BlogPost extends Model
             if ($existing) {
                 // Actualizar el slug existente
                 $updateStmt = $pdo->prepare("UPDATE slugs SET slug = ?, prefix = ? WHERE module = 'blog' AND reference_id = ?");
-                return $updateStmt->execute([$slug, $prefix ?? 'blog', $this->id]);
+                return $updateStmt->execute([$slug, $finalPrefix, $this->id]);
             } else {
                 // Crear un nuevo registro de slug
                 $insertStmt = $pdo->prepare("INSERT INTO slugs (module, reference_id, slug, tenant_id, prefix) VALUES (?, ?, ?, ?, ?)");
-                return $insertStmt->execute(['blog', $this->id, $slug, $this->tenant_id, $prefix ?? 'blog']);
+                return $insertStmt->execute(['blog', $this->id, $slug, $this->tenant_id, $finalPrefix]);
             }
         } catch (\Exception $e) {
             error_log("Error al actualizar slug para post ID {$this->id}: " . $e->getMessage());

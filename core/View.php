@@ -176,7 +176,7 @@ class View
         self::loadGlobals();
         $data = array_merge(self::$globalData, $data);
 
-        $views = __DIR__ . '/../core/Views/Superadmin';
+        $views = [__DIR__ . '/../core/Views/Superadmin', __DIR__ . '/../core/Views'];
         $cache = __DIR__ . '/../storage/cache/superadmin';
 
         if (!is_dir($cache)) mkdir($cache, 0775, true);
@@ -223,8 +223,9 @@ class View
         if (!is_dir($cache)) mkdir($cache, 0775, true);
 
         $viewPath = file_exists("{$basePath}/" . str_replace('.', '/', $template) . '.blade.php') ? $basePath : $fallback;
+        $sharedPath = __DIR__ . '/../core/Views';
 
-        $blade = new BladeExtended($viewPath, $cache, self::getBladeMode());
+        $blade = new BladeExtended([$viewPath, $sharedPath], $cache, self::getBladeMode());
         self::registerDirectives($blade);
         self::registerModuleNamespaces($blade);
 

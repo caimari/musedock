@@ -13,11 +13,95 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.5.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.5.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 29 de Marzo de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Arquitectura de temas</h6>
+                <ul class="mb-3">
+                    <li><strong>Estructura de pagina:</strong> Nueva jerarquia Tema > Estructura > Skin. La seccion "Estructura de pagina" permite elegir entre Clasica (cabecera + pie) o Sidebar lateral (portfolio/personal)</li>
+                    <li><strong>Estructura Sidebar:</strong> Opciones propias: selector de idioma, redes sociales, buscador y boton CTA, cada uno activable/desactivable independientemente</li>
+                    <li><strong>Estructura Sidebar:</strong> Fuerza automaticamente ancho completo en todos los posts y paginas. El selector de plantilla se desactiva con nota informativa</li>
+                    <li><strong>Dependencias de seccion:</strong> Las secciones completas (Topbar, Cabecera, Pie) se ocultan/muestran segun la estructura elegida</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> AI Skin Generator (nuevo plugin)</h6>
+                <ul class="mb-3">
+                    <li><strong>Generacion con IA:</strong> Genera skins completos describiendo el estilo deseado. La IA conoce todos los layouts, funcionalidades y sus combinaciones recomendadas</li>
+                    <li><strong>Consultor de proyecto:</strong> Paso opcional donde la IA analiza tu proyecto y recomienda sector, contenido, publico objetivo y genera la descripcion del skin</li>
+                    <li><strong>Skin aleatorio:</strong> Genera skins sin IA mezclando colores de 15 paletas predefinidas con layouts al azar</li>
+                    <li><strong>Mezclar layouts:</strong> Cambia headers, footers y blog layouts al azar sin tocar colores</li>
+                    <li><strong>Fijar estructura:</strong> 10 plantillas base (portfolio, periodico, revista, blog limpio, etc.) que fijan layouts y solo varian colores/tipografias</li>
+                    <li><strong>Refinamiento:</strong> Pide cambios a la IA sobre el skin generado con modales de loading</li>
+                    <li><strong>20 prompts de ejemplo:</strong> Boton de dado con descripciones completas para distintos tipos de medios</li>
+                    <li><strong>Vista previa dinamica:</strong> Preview que refleja cada layout de header (default, centered, logo-above, sidebar, banner...), blog (grid, newspaper, magazine, fashion...) y footer (clasico, banner, minimal)</li>
+                    <li><strong>Validacion automatica:</strong> Corrige contraste (fondo oscuro/texto claro), valores invalidos de select y normaliza toggles</li>
+                    <li><strong>Color pickers:</strong> 3 selectores de color nativos (primario, acento, fondo) para colores de marca</li>
+                    <li><strong>Deteccion de sobreescritura:</strong> Modal de confirmacion al guardar skin con nombre existente</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Gestion de skins</h6>
+                <ul class="mb-3">
+                    <li><strong>Domain Manager:</strong> Selector rapido de skin en el panel lateral de edicion de tenant</li>
+                    <li><strong>Domain Manager:</strong> Gestion de presets (guardar, cargar, eliminar) por tenant desde el superadmin</li>
+                    <li><strong>Temas (superadmin):</strong> Botones de activar/desactivar y eliminar skins al pasar el raton</li>
+                    <li><strong>Cookie banner:</strong> Al aplicar skin, los colores de los botones del banner de cookies se adaptan automaticamente al color de acento</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Header y Topbar</h6>
+                <ul class="mb-3">
+                    <li><strong>Header modular:</strong> Nuevas opciones: iconos de redes sociales, fecha/reloj y buscador en el header, independientes del topbar</li>
+                    <li><strong>Layout logo-above-left:</strong> Redes + lupa a la derecha del logo, fecha + reloj a la derecha del menu</li>
+                    <li><strong>Topbar ticker:</strong> Latest Post integrado en la misma linea del topbar (no como fila separada)</li>
+                    <li><strong>Topbar modular:</strong> Toggle para mostrar/ocultar redes sociales del topbar</li>
+                    <li><strong>Opciones reubicadas:</strong> Reloj, ticker clock, formato y zona horaria movidos de Blog a Barra superior</li>
+                    <li><strong>Ticker personalizable:</strong> 7 opciones de color para la barra de Top Tags + Latest Post</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Blog</h6>
+                <ul class="mb-3">
+                    <li><strong>Newspaper overlay:</strong> Opcion para superponer titulo, categorias, autor y fecha sobre la imagen en posts destacados</li>
+                    <li><strong>Plantilla de post:</strong> El selector ahora funciona realmente: Con Sidebar Derecha (default), Ancho Completo, Con Sidebar Izquierda</li>
+                    <li><strong>Cards de categorias:</strong> Nuevo diseno con imagen del ultimo post, contador circular, flecha animada y hover</li>
+                    <li><strong>Imagenes no repetidas:</strong> Las cards de categorias evitan repetir la misma imagen entre categorias distintas</li>
+                    <li><strong>Titulos redundantes:</strong> Eliminados h1 de paginas /category, /tag y /tags (la miga de pan es suficiente)</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Footer</h6>
+                <ul class="mb-3">
+                    <li><strong>Footer minimal:</strong> Nuevo layout minimalista con solo copyright (alineado izquierda) + enlaces legales en fondo blanco</li>
+                    <li><strong>Cookie banner links:</strong> Politica de Cookies y Terminos alineados a la izquierda en layout bar</li>
+                </ul>
+
+                <h6 class="text-success"><i class="bi bi-bug me-1"></i> Correcciones</h6>
+                <ul class="mb-3">
+                    <li><strong>Presets:</strong> Corregida query ON DUPLICATE KEY UPDATE a ON CONFLICT para PostgreSQL</li>
+                    <li><strong>Select de idiomas:</strong> Color naranja hardcodeado reemplazado por variable CSS del tema</li>
+                    <li><strong>Cross-Publisher:</strong> El estado "Publicado" en settings ahora se respeta al copiar posts entre tenants</li>
+                    <li><strong>Traducciones:</strong> Añadida seccion "search" en los archivos de traduccion (tenant y superadmin, ES/EN)</li>
+                    <li><strong>Footer boxed:</strong> Footer minimal respeta el ancho del contenido en modo boxed</li>
+                    <li><strong>Depends_on:</strong> Soporte para dependencias con valor especifico (seccion.opcion=valor) en opciones y secciones completas</li>
+                </ul>
+
+                <h6 class="text-info"><i class="bi bi-arrow-repeat me-1"></i> Mejoras</h6>
+                <ul class="mb-0">
+                    <li><strong>AI Prompts:</strong> Reglas de contraste obligatorias, guia de layouts y combinaciones recomendadas para la IA</li>
+                    <li><strong>Retrocompatibilidad:</strong> Tenants con header_layout=sidebar migran automaticamente a la nueva estructura sin romperse</li>
+                    <li><strong>UX:</strong> Modales SweetAlert2 para refinar, guardar y sobreescribir skins</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.4.2 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.4.2</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">26 Mar 2026</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 26 de Marzo de 2026</p>

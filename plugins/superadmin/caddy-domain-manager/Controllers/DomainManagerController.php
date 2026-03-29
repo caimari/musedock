@@ -2345,6 +2345,20 @@ class DomainManagerController
 
             ThemeOption::saveOptions($themeSlug, $tenant->id, $currentOpts);
 
+            // Save layout restrictions
+            $allowedLayouts = $_POST['allowed_layouts'] ?? [];
+            $allLayouts = ['default','left','centered','logo-above','logo-above-left','tema1','aca','sidebar'];
+
+            // Only save restrictions if not all are checked (= no restrictions)
+            $pdo->prepare("DELETE FROM tenant_layout_restrictions WHERE tenant_id = ? AND layout_type = 'header_layout'")->execute([$tenant->id]);
+            if (count($allowedLayouts) < count($allLayouts) && !empty($allowedLayouts)) {
+                $insertStmt = $pdo->prepare("INSERT INTO tenant_layout_restrictions (tenant_id, layout_type, layout_value, is_allowed) VALUES (?, 'header_layout', ?, ?)");
+                foreach ($allLayouts as $layout) {
+                    $isAllowed = in_array($layout, $allowedLayouts) ? 1 : 0;
+                    $insertStmt->execute([$tenant->id, $layout, $isAllowed]);
+                }
+            }
+
             Logger::log("[DomainManager] Blog settings updated for tenant {$tenant->id} ({$tenant->domain})", 'INFO');
             echo json_encode(['success' => true, 'message' => 'Configuracion del blog guardada correctamente.']);
         } catch (\Exception $e) {
@@ -4843,5 +4857,278 @@ TEXT;
         $response = curl_exec($ch);
         curl_close($ch);
         return json_decode($response, true) ?: [];
+    }
+
+    /**
+     * Quick helper to upsert a tenant setting
+     */
+    private function updateTenantSetting(\PDO $pdo, int $tenantId, string $key, string $value): void
+    {
+        $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        $this->saveTenantSiteSetting($pdo, $tenantId, $key, $value, $driver);
+    }
+
+    // ==================== PRESET MANAGEMENT ====================
+
+    /**
+     * Save current tenant theme options as a preset (AJAX)
+     */
+    public function savePresetForTenant($tenantId)
+    {
+        header('Content-Type: application/json');
+        try {
+            $tenantId = (int) $tenantId;
+            $presetName = trim($_POST['preset_name'] ?? '');
+            if (!$presetName) {
+                echo json_encode(['success' => false, 'error' => 'El nombre es requerido']);
+                return;
+            }
+
+            $pdo = Database::connect();
+
+            // Get current options
+            $stmt = $pdo->prepare("SELECT value FROM theme_options WHERE tenant_id = ? AND theme_slug = 'default' LIMIT 1");
+            $stmt->execute([$tenantId]);
+            $currentOptions = $stmt->fetchColumn();
+
+            if (!$currentOptions) {
+                echo json_encode(['success' => false, 'error' => 'Este tenant no tiene configuracion de tema guardada']);
+                return;
+            }
+
+            // Generate slug
+            $presetSlug = strtolower(trim($presetName));
+            $presetSlug = preg_replace('/[^a-z0-9]+/', '-', $presetSlug);
+            $presetSlug = trim($presetSlug, '-') ?: 'preset-' . uniqid();
+
+            // Upsert preset
+            $stmt = $pdo->prepare("
+                INSERT INTO theme_presets (tenant_id, theme_slug, preset_slug, preset_name, options, created_at, updated_at)
+                VALUES (?, 'default', ?, ?, ?, NOW(), NOW())
+                ON CONFLICT (tenant_id, theme_slug, preset_slug) DO UPDATE SET
+                    preset_name = EXCLUDED.preset_name,
+                    options = EXCLUDED.options,
+                    updated_at = NOW()
+            ");
+            $stmt->execute([$tenantId, $presetSlug, $presetName, $currentOptions]);
+
+            echo json_encode(['success' => true, 'message' => "Preset '{$presetName}' guardado", 'slug' => $presetSlug]);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Load a preset into tenant theme options (AJAX)
+     */
+    public function loadPresetForTenant($tenantId, $presetSlug)
+    {
+        header('Content-Type: application/json');
+        try {
+            $tenantId = (int) $tenantId;
+            $pdo = Database::connect();
+
+            // Get preset
+            $stmt = $pdo->prepare("SELECT options FROM theme_presets WHERE tenant_id = ? AND theme_slug = 'default' AND preset_slug = ?");
+            $stmt->execute([$tenantId, $presetSlug]);
+            $presetOptions = $stmt->fetchColumn();
+
+            if (!$presetOptions) {
+                echo json_encode(['success' => false, 'error' => 'Preset no encontrado']);
+                return;
+            }
+
+            // Apply to theme_options
+            $stmt = $pdo->prepare("SELECT id FROM theme_options WHERE tenant_id = ? AND theme_slug = 'default'");
+            $stmt->execute([$tenantId]);
+            $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($existing) {
+                $pdo->prepare("UPDATE theme_options SET value = ? WHERE id = ?")->execute([$presetOptions, $existing['id']]);
+            } else {
+                $pdo->prepare("INSERT INTO theme_options (theme_slug, tenant_id, value) VALUES ('default', ?, ?)")->execute([$tenantId, $presetOptions]);
+            }
+
+            // Regenerate CSS
+            try {
+                $options = json_decode($presetOptions, true);
+                \Screenart\Musedock\Models\ThemeOption::regenerateAssets('default', $tenantId, $options);
+
+                // Update cookie colors
+                $accent = $options['header']['header_link_hover_color'] ?? '#ff5e15';
+                $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+                $this->saveTenantSiteSetting($pdo, $tenantId, 'cookies_btn_accept_bg', $accent, $driver);
+                $this->saveTenantSiteSetting($pdo, $tenantId, 'cookies_btn_reject_bg', '#6b7280', $driver);
+            } catch (\Throwable $e) {
+                // Non-fatal
+            }
+
+            echo json_encode(['success' => true, 'message' => 'Preset aplicado correctamente']);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Delete a tenant preset (AJAX)
+     */
+    public function deletePresetForTenant($tenantId, $presetSlug)
+    {
+        header('Content-Type: application/json');
+        try {
+            $tenantId = (int) $tenantId;
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("DELETE FROM theme_presets WHERE tenant_id = ? AND theme_slug = 'default' AND preset_slug = ?");
+            $stmt->execute([$tenantId, $presetSlug]);
+
+            echo json_encode(['success' => true, 'message' => 'Preset eliminado']);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    // ==================== SKIN MANAGEMENT ====================
+
+    /**
+     * Apply a skin to a tenant from the domain manager (AJAX)
+     */
+    public function applySkinToTenant()
+    {
+        header('Content-Type: application/json');
+
+        try {
+            $tenantId = (int) ($_POST['tenant_id'] ?? 0);
+            $skinSlug = trim($_POST['skin_slug'] ?? '');
+
+            if (!$tenantId || !$skinSlug) {
+                echo json_encode(['success' => false, 'error' => 'Datos incompletos']);
+                return;
+            }
+
+            $pdo = \Screenart\Musedock\Database::connect();
+
+            // Get skin options
+            $stmt = $pdo->prepare("SELECT id, options FROM theme_skins WHERE slug = ? AND is_global = TRUE AND is_active = TRUE LIMIT 1");
+            $stmt->execute([$skinSlug]);
+            $skin = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$skin) {
+                echo json_encode(['success' => false, 'error' => 'Skin no encontrado']);
+                return;
+            }
+
+            $options = is_string($skin['options']) ? json_decode($skin['options'], true) : $skin['options'];
+            if (!$options) {
+                echo json_encode(['success' => false, 'error' => 'Opciones del skin invalidas']);
+                return;
+            }
+
+            // Mark active skin
+            $options['_active_skin'] = $skinSlug;
+
+            // Save to theme_options
+            $themeSlug = 'default';
+            $optionsJson = json_encode($options, JSON_UNESCAPED_UNICODE);
+
+            $stmt = $pdo->prepare("SELECT id FROM theme_options WHERE theme_slug = ? AND tenant_id = ?");
+            $stmt->execute([$themeSlug, $tenantId]);
+            $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($existing) {
+                $stmt = $pdo->prepare("UPDATE theme_options SET value = ? WHERE id = ?");
+                $stmt->execute([$optionsJson, $existing['id']]);
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO theme_options (theme_slug, tenant_id, value) VALUES (?, ?, ?)");
+                $stmt->execute([$themeSlug, $tenantId, $optionsJson]);
+            }
+
+            // Increment install count
+            $pdo->prepare("UPDATE theme_skins SET install_count = install_count + 1 WHERE id = ?")->execute([$skin['id']]);
+
+            // Update cookie banner colors to match skin accent
+            $accent = $options['header']['header_link_hover_color']
+                   ?? $options['scroll_to_top']['scroll_to_top_bg_color']
+                   ?? '#ff5e15';
+            $this->updateTenantSetting($pdo, $tenantId, 'cookies_btn_accept_bg', $accent);
+            // Reject = darker shade or muted gray
+            $rejectColor = '#6b7280';
+            $this->updateTenantSetting($pdo, $tenantId, 'cookies_btn_reject_bg', $rejectColor);
+            $this->updateTenantSetting($pdo, $tenantId, 'cookies_bg_color', '#ffffff');
+            $this->updateTenantSetting($pdo, $tenantId, 'cookies_text_color', '#333333');
+
+            // Clean internal _cookie_colors key before saving
+            unset($options['_cookie_colors']);
+
+            // Regenerate CSS
+            try {
+                \Screenart\Musedock\Models\ThemeOption::regenerateAssets($themeSlug, $tenantId, $options);
+            } catch (\Throwable $e) {
+                // Non-fatal
+            }
+
+            echo json_encode(['success' => true, 'message' => 'Skin aplicado correctamente']);
+
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Toggle skin active/inactive (AJAX)
+     */
+    public function toggleSkin($slug)
+    {
+        header('Content-Type: application/json');
+
+        try {
+            $pdo = \Screenart\Musedock\Database::connect();
+            $stmt = $pdo->prepare("SELECT id, is_active FROM theme_skins WHERE slug = ? AND tenant_id IS NULL LIMIT 1");
+            $stmt->execute([$slug]);
+            $skin = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$skin) {
+                echo json_encode(['success' => false, 'error' => 'Skin no encontrado']);
+                return;
+            }
+
+            $newState = $skin['is_active'] ? false : true;
+            $stmt = $pdo->prepare("UPDATE theme_skins SET is_active = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->execute([$newState, $skin['id']]);
+
+            echo json_encode(['success' => true, 'is_active' => $newState, 'message' => $newState ? 'Skin activado' : 'Skin desactivado para tenants']);
+
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Delete a global skin (AJAX)
+     */
+    public function deleteSkin($slug)
+    {
+        header('Content-Type: application/json');
+
+        try {
+            $pdo = \Screenart\Musedock\Database::connect();
+
+            // Check how many tenants use this skin
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM theme_options WHERE value::text LIKE ?");
+            $stmt->execute(['%"_active_skin":"' . $slug . '"%']);
+            $usageCount = (int) $stmt->fetchColumn();
+
+            $stmt = $pdo->prepare("DELETE FROM theme_skins WHERE slug = ? AND tenant_id IS NULL");
+            $success = $stmt->execute([$slug]);
+
+            $msg = 'Skin eliminado';
+            if ($usageCount > 0) {
+                $msg .= " ({$usageCount} tenant(s) lo tenian aplicado, seguiran con esos colores pero no podran re-aplicarlo)";
+            }
+
+            echo json_encode(['success' => $success, 'message' => $msg]);
+
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
     }
 }

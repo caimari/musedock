@@ -72,6 +72,7 @@ Route::get('/musedock/avatar/{filename}', 'superadmin.ProfileController@serveAva
 Route::get('/musedock/themes', 'superadmin.ThemeController@index')->name('themes.index')->middleware('superadmin');
 Route::post('/musedock/themes/activate', 'superadmin.ThemeController@activate')->name('themes.activate')->middleware('superadmin');
 Route::post('/musedock/themes/toggle-tenant-availability', 'superadmin.ThemeController@toggleTenantAvailability')->name('themes.toggle-tenant')->middleware('superadmin');
+Route::post('/musedock/themes/toggle-layout-default', 'superadmin.ThemeController@toggleLayoutDefault')->middleware('superadmin');
 Route::get('/musedock/themes/create', 'superadmin.ThemeController@create')->name('themes.create')->middleware('superadmin');
 Route::post('/musedock/themes/store', 'superadmin.ThemeController@store')->name('themes.store')->middleware('superadmin');
 Route::post('/musedock/themes/upload', 'superadmin.ThemeController@upload')->name('themes.upload')->middleware('superadmin');
@@ -97,6 +98,22 @@ Route::get('/musedock/themes/appearance/{slug}', 'superadmin.ThemeAppearanceCont
 
 Route::post('/musedock/themes/appearance/{slug}', 'superadmin.ThemeAppearanceController@save')
     ->name('themes.appearance.save.global')
+    ->middleware('superadmin');
+
+// Alias para compatibilidad con vista compartida
+Route::post('/musedock/themes/appearance/{slug}/save', 'superadmin.ThemeAppearanceController@save')
+    ->middleware('superadmin');
+
+// Presets del superadmin (stub - reutiliza misma lógica)
+Route::post('/musedock/themes/appearance/{slug}/preset/save', 'superadmin.ThemeAppearanceController@presetSave')
+    ->middleware('superadmin');
+Route::post('/musedock/themes/appearance/{slug}/preset/load/{presetSlug}', 'superadmin.ThemeAppearanceController@presetLoad')
+    ->middleware('superadmin');
+Route::post('/musedock/themes/appearance/{slug}/preset/delete/{presetSlug}', 'superadmin.ThemeAppearanceController@presetDelete')
+    ->middleware('superadmin');
+Route::get('/musedock/themes/appearance/{slug}/export', 'superadmin.ThemeAppearanceController@export')
+    ->middleware('superadmin');
+Route::post('/musedock/themes/appearance/{slug}/import', 'superadmin.ThemeAppearanceController@import')
     ->middleware('superadmin');
 
 // Reset de apariencia para tenant específico - DEBE IR ANTES de las rutas con {tenantId}

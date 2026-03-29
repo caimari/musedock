@@ -273,6 +273,9 @@
             "members": "Miembros",
             "base_language": "Idioma base",
             "options": "Opciones",
+            "post_type": "Tipo de publicación",
+            "type_post": "Artículo",
+            "type_brief": "Noticia breve",
             "featured_this_post": "Destacar este post",
             "allow_comments": "Permitir comentarios",
             "search_placeholder": "Buscar posts...",
@@ -854,5 +857,16 @@
         "importing_for_tenant": "Importando para el tenant",
         "test_auth": "Test conexión",
         "testing_auth": "Verificando..."
+    },
+    "search": {
+        "search": "Buscar",
+        "search_placeholder": "Buscar...",
+        "results_for": "resultado(s) para",
+        "no_results": "Sin resultados para",
+        "posts": "Artículos",
+        "pages": "Páginas",
+        "no_results_hint": "No se encontraron resultados. Prueba con otros términos.",
+        "back_to_home": "Volver al inicio",
+        "type_to_search": "Escribe algo para buscar en páginas y artículos."
     }
 }

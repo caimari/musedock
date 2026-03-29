@@ -69,7 +69,7 @@
                                                 value="{{ $page->id }}"
                                                 data-title="{{ $page->title }}"
                                                 data-page-id="{{ $page->id }}"
-                                                data-link="/{{ $page->prefix }}/{{ $page->slug }}">
+                                                data-link="/{{ !empty($page->prefix) ? $page->prefix . '/' : '' }}{{ $page->slug }}">
                                             <label class="form-check-label">{{ $page->title }}</label>
                                         </div>
                                     @endforeach
@@ -84,7 +84,7 @@
                                                 value="{{ $page->id }}"
                                                 data-title="{{ $page->title }}"
                                                 data-page-id="{{ $page->id }}"
-                                                data-link="/{{ $page->prefix }}/{{ $page->slug }}">
+                                                data-link="/{{ !empty($page->prefix) ? $page->prefix . '/' : '' }}{{ $page->slug }}">
                                             <label class="form-check-label">{{ $page->title }}</label>
                                         </div>
                                     @endforeach

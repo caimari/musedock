@@ -237,8 +237,8 @@ function openPublishModal(btn) {
             '<div class="row"><div class="col-md-6">' +
                 '<label class="form-label small">Estado en destino</label>' +
                 '<select class="form-select form-select-sm" id="swal-target-status">' +
-                    '<option value="draft">Borrador</option>' +
-                    '<option value="published">Publicado</option>' +
+                    '<option value="draft" {{ ($defaultTargetStatus ?? 'draft') === 'draft' ? 'selected' : '' }}>Borrador</option>' +
+                    '<option value="published" {{ ($defaultTargetStatus ?? 'draft') === 'published' ? 'selected' : '' }}>Publicado</option>' +
                 '</select>' +
             '</div></div>' +
         '</div>';

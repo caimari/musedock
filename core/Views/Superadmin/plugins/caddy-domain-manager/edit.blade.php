@@ -874,6 +874,49 @@
                                 </div>
 
                                 <hr class="my-3">
+                                <h6 class="text-primary mb-3"><i class="bi bi-sliders"></i> Layouts permitidos en Apariencia</h6>
+                                <p class="text-muted small mb-3">Controla qué layouts de header puede seleccionar este tenant en su editor de Apariencia. Si no marcas ninguno, verá todos.</p>
+                                @php
+                                    $allHeaderLayouts = [
+                                        'default' => 'Logo izquierda + menú derecha',
+                                        'left' => 'Logo + menú alineados a la izquierda',
+                                        'centered' => 'Logo centrado + menús izq/der',
+                                        'logo-above' => 'Logo centrado arriba + menú debajo',
+                                        'logo-above-left' => 'Logo izquierda arriba + menú debajo',
+                                        'tema1' => 'Tema 1',
+                                        'aca' => 'Tema 2',
+                                        'sidebar' => 'Sidebar lateral (portfolio/personal)',
+                                    ];
+                                    // Load current restrictions
+                                    $__layoutRestrictions = [];
+                                    try {
+                                        $__pdo = \Screenart\Musedock\Database::connect();
+                                        $__stmt = $__pdo->prepare("SELECT layout_value, is_allowed FROM tenant_layout_restrictions WHERE tenant_id = ? AND layout_type = 'header_layout'");
+                                        $__stmt->execute([$tenant->id]);
+                                        foreach ($__stmt->fetchAll(\PDO::FETCH_ASSOC) as $__r) {
+                                            $__layoutRestrictions[$__r['layout_value']] = (bool)$__r['is_allowed'];
+                                        }
+                                    } catch (\Throwable $e) {}
+                                    $hasRestrictions = !empty($__layoutRestrictions);
+                                @endphp
+                                <div class="row">
+                                    @foreach($allHeaderLayouts as $layoutKey => $layoutLabel)
+                                    <div class="col-md-6 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox"
+                                                   name="allowed_layouts[]" value="{{ $layoutKey }}"
+                                                   id="layout_{{ $layoutKey }}"
+                                                   {{ !$hasRestrictions || ($__layoutRestrictions[$layoutKey] ?? false) ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="layout_{{ $layoutKey }}">
+                                                {{ $layoutLabel }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                </div>
+                                <small class="text-muted">Si todos están marcados, no se aplican restricciones. Desmarca los que no quieras que este tenant pueda usar.</small>
+
+                                <hr class="my-3">
                                 <h6 class="text-primary mb-3"><i class="bi bi-layout-sidebar-inset"></i> Sidebar del post individual</h6>
 
                                 <div class="form-check form-switch mb-3">
@@ -1552,6 +1595,81 @@
                 </div>
                 @endif
 
+                <!-- Skin rápido -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-palette"></i> Skin del Tema</h6>
+                    </div>
+                    <div class="card-body">
+                        @php
+                            $__skinPdo = \Screenart\Musedock\Database::connect();
+                            $__skinStmt = $__skinPdo->query("SELECT id, slug, name FROM theme_skins WHERE is_global = TRUE AND is_active = TRUE AND theme_slug = 'default' ORDER BY name");
+                            $__availableSkins = $__skinStmt->fetchAll(\PDO::FETCH_ASSOC);
+                            // Get current skin for this tenant
+                            $__currentSkinStmt = $__skinPdo->prepare("SELECT value FROM theme_options WHERE tenant_id = ? AND theme_slug = 'default' LIMIT 1");
+                            $__currentSkinStmt->execute([$tenant->id]);
+                            $__currentThemeOpts = $__currentSkinStmt->fetchColumn();
+                            $__currentSkin = '';
+                            if ($__currentThemeOpts) {
+                                $__decoded = json_decode($__currentThemeOpts, true);
+                                $__currentSkin = $__decoded['_active_skin'] ?? '';
+                            }
+                        @endphp
+                        <select id="quickSkinSelect" class="form-select form-select-sm mb-2">
+                            <option value="">-- Sin skin --</option>
+                            @foreach($__availableSkins as $__sk)
+                                <option value="{{ $__sk['slug'] }}" {{ $__currentSkin === $__sk['slug'] ? 'selected' : '' }}>{{ $__sk['name'] }}</option>
+                            @endforeach
+                        </select>
+                        <button type="button" class="btn btn-sm btn-primary w-100" onclick="applyQuickSkin()">
+                            <i class="bi bi-check-lg me-1"></i> Aplicar Skin
+                        </button>
+                        <div id="quickSkinResult" class="mt-2"></div>
+                    </div>
+                </div>
+
+                <!-- Presets del tema -->
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-bookmark-star"></i> Presets</h6>
+                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" onclick="savePreset()" title="Guardar configuracion actual como preset">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        @php
+                            $__presetPdo = $__skinPdo ?? \Screenart\Musedock\Database::connect();
+                            $__presetStmt = $__presetPdo->prepare("SELECT preset_slug, preset_name, created_at FROM theme_presets WHERE tenant_id = ? AND theme_slug = 'default' ORDER BY preset_name");
+                            $__presetStmt->execute([$tenant->id]);
+                            $__tenantPresets = $__presetStmt->fetchAll(\PDO::FETCH_ASSOC);
+                        @endphp
+                        @if(!empty($__tenantPresets))
+                        <div class="list-group list-group-flush" style="max-height: 200px; overflow-y: auto;">
+                            @foreach($__tenantPresets as $__pr)
+                            <div class="list-group-item py-2 px-3 d-flex justify-content-between align-items-center" id="preset-{{ $__pr['preset_slug'] }}">
+                                <div style="min-width:0; flex:1;">
+                                    <div class="fw-semibold text-truncate" style="font-size:0.8rem;">{{ $__pr['preset_name'] }}</div>
+                                    <small class="text-muted" style="font-size:0.65rem;">{{ date('d/m/Y', strtotime($__pr['created_at'])) }}</small>
+                                </div>
+                                <div class="d-flex gap-1 ms-2">
+                                    <button type="button" class="btn btn-sm btn-outline-success py-0 px-1" onclick="loadPreset('{{ $__pr['preset_slug'] }}')" title="Aplicar preset" style="font-size:0.7rem;">
+                                        <i class="bi bi-play-fill"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deletePreset('{{ $__pr['preset_slug'] }}', '{{ addslashes($__pr['preset_name']) }}')" title="Eliminar" style="font-size:0.7rem;">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                        @else
+                        <div class="text-center text-muted py-3" style="font-size:0.75rem;" id="noPresetsMsg">
+                            <i class="bi bi-bookmark"></i> Sin presets guardados
+                        </div>
+                        @endif
+                    </div>
+                </div>
+
                 <!-- Acciones rápidas -->
                 <div class="card">
                     <div class="card-header">
@@ -1657,6 +1775,130 @@
 
 @push('scripts')
 <script>
+// Apply skin quickly from domain manager
+async function applyQuickSkin() {
+    const skinSlug = document.getElementById('quickSkinSelect').value;
+    const resultDiv = document.getElementById('quickSkinResult');
+    const tenantId = {{ $tenant->id }};
+
+    if (!skinSlug) {
+        resultDiv.innerHTML = '<small class="text-warning"><i class="bi bi-exclamation-triangle"></i> Selecciona un skin</small>';
+        return;
+    }
+
+    resultDiv.innerHTML = '<small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span> Aplicando...</small>';
+
+    try {
+        const formData = new FormData();
+        formData.append('_token', '{{ csrf_token() }}');
+        formData.append('tenant_id', tenantId);
+        formData.append('skin_slug', skinSlug);
+
+        const resp = await fetch('/musedock/domain-manager/skin/apply', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await resp.json();
+
+        if (data.success) {
+            resultDiv.innerHTML = '<small class="text-success"><i class="bi bi-check-circle"></i> ' + (data.message || 'Skin aplicado') + '</small>';
+        } else {
+            resultDiv.innerHTML = '<small class="text-danger"><i class="bi bi-x-circle"></i> ' + (data.error || 'Error') + '</small>';
+        }
+    } catch (err) {
+        resultDiv.innerHTML = '<small class="text-danger"><i class="bi bi-x-circle"></i> Error: ' + err.message + '</small>';
+    }
+}
+
+// ==================== PRESETS ====================
+async function savePreset() {
+    const { value: name } = await Swal.fire({
+        title: '<i class="bi bi-bookmark-plus text-primary"></i> Guardar preset',
+        input: 'text',
+        inputLabel: 'Nombre del preset',
+        inputPlaceholder: 'Ej: Mi config favorita',
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-floppy me-1"></i> Guardar',
+        cancelButtonText: 'Cancelar',
+        inputValidator: (value) => { if (!value?.trim()) return 'Escribe un nombre'; }
+    });
+    if (!name) return;
+
+    Swal.fire({ title: 'Guardando...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const formData = new FormData();
+        formData.append('_token', '{{ csrf_token() }}');
+        formData.append('preset_name', name.trim());
+        const resp = await fetch('/musedock/domain-manager/{{ $tenant->id }}/preset/save', { method: 'POST', body: formData });
+        const data = await resp.json();
+        if (data.success) {
+            Swal.fire({ icon: 'success', title: 'Preset guardado', text: data.message, timer: 1500, showConfirmButton: false });
+            setTimeout(() => location.reload(), 1600);
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.error });
+        }
+    } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+    }
+}
+
+async function loadPreset(slug) {
+    const result = await Swal.fire({
+        title: '<i class="bi bi-play-circle text-success"></i> Aplicar preset',
+        text: 'Se reemplazara la configuracion actual del tema con este preset. Continuar?',
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-check-lg me-1"></i> Aplicar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#22c55e'
+    });
+    if (!result.isConfirmed) return;
+
+    Swal.fire({ title: 'Aplicando...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const formData = new FormData();
+        formData.append('_token', '{{ csrf_token() }}');
+        const resp = await fetch('/musedock/domain-manager/{{ $tenant->id }}/preset/' + slug + '/load', { method: 'POST', body: formData });
+        const data = await resp.json();
+        if (data.success) {
+            Swal.fire({ icon: 'success', title: 'Preset aplicado', text: data.message, timer: 1500, showConfirmButton: false });
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.error });
+        }
+    } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+    }
+}
+
+async function deletePreset(slug, name) {
+    const result = await Swal.fire({
+        title: '<i class="bi bi-trash text-danger"></i>',
+        html: 'Eliminar el preset <strong>' + name + '</strong>?',
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-trash me-1"></i> Eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545'
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+        const formData = new FormData();
+        formData.append('_token', '{{ csrf_token() }}');
+        const resp = await fetch('/musedock/domain-manager/{{ $tenant->id }}/preset/' + slug + '/delete', { method: 'POST', body: formData });
+        const data = await resp.json();
+        if (data.success) {
+            const el = document.getElementById('preset-' + slug);
+            if (el) el.remove();
+            Swal.fire({ icon: 'success', title: 'Eliminado', timer: 1200, showConfirmButton: false });
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.error });
+        }
+    } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+    }
+}
+
 // Persistir estado de acordeones en localStorage
 (function() {
     const storageKey = 'dm-edit-{{ $tenant->id }}-accordions';

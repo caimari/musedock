@@ -125,7 +125,45 @@ public function toggleTenantAvailability()
 
 
 
-public function activate()
+/**
+     * Toggle layout default availability for tenants.
+     * tenant_id = NULL means global default.
+     */
+    public function toggleLayoutDefault()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('appearance.themes');
+
+        $layout = $_POST['layout'] ?? '';
+        $isAllowed = (int)($_POST['is_allowed'] ?? 1);
+
+        if (empty($layout)) {
+            echo json_encode(['success' => false, 'error' => 'Layout no especificado']);
+            exit;
+        }
+
+        try {
+            $pdo = Database::connect();
+
+            // Upsert: insert or update the global restriction (tenant_id IS NULL)
+            $stmt = $pdo->prepare("SELECT id FROM tenant_layout_restrictions WHERE tenant_id IS NULL AND layout_type = 'header_layout' AND layout_value = ?");
+            $stmt->execute([$layout]);
+            $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($existing) {
+                $pdo->prepare("UPDATE tenant_layout_restrictions SET is_allowed = ? WHERE id = ?")->execute([$isAllowed, $existing['id']]);
+            } else {
+                $pdo->prepare("INSERT INTO tenant_layout_restrictions (tenant_id, layout_type, layout_value, is_allowed) VALUES (NULL, 'header_layout', ?, ?)")->execute([$layout, $isAllowed]);
+            }
+
+            echo json_encode(['success' => true]);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+        exit;
+    }
+
+    public function activate()
 {
     SessionSecurity::startSession();
         $this->checkPermission('appearance.themes');

@@ -316,7 +316,10 @@ class MenuController
         // Áreas de menú predeterminadas en caso de que no se encuentren en el tema
         $defaultAreas = [
             ['id' => 'nav', 'name' => 'Navegación principal'],
-            ['id' => 'footer', 'name' => 'Footer'],
+            ['id' => 'footer1', 'name' => 'Footer — Columna 1'],
+            ['id' => 'footer2', 'name' => 'Footer — Columna 2'],
+            ['id' => 'footer3', 'name' => 'Footer — Columna 3'],
+            ['id' => 'footer-legal', 'name' => 'Footer — Legal'],
             ['id' => 'sidebar', 'name' => 'Sidebar']
         ];
 

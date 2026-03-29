@@ -4,6 +4,7 @@
     $ctaUrl = $ctaUrl ?? '#';
     $ctaText = $ctaText ?? '';
     $langSelectorEnabled = $langSelectorEnabled ?? false;
+    $headerSearchEnabled = $headerSearchEnabled ?? false;
     $showLangSelector = $showLangSelector ?? false;
     $currentLang = $currentLang ?? 'es';
     $languages = $languages ?? [];
@@ -61,6 +62,8 @@
                             {{ $ctaText }}
                         </a>
                     @endif
+
+                    @include('partials._header-search')
 
                     @if($langSelectorEnabled && $showLangSelector)
                         <div class="lang-select">

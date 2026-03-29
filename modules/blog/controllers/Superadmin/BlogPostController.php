@@ -189,7 +189,7 @@ class BlogPostController
 
         // Obtener plantillas disponibles
         $availableTemplates = get_blog_templates();
-        $currentTemplate = 'single'; // Plantilla por defecto
+        $currentTemplate = 'template-sidebar-right';
 
         return View::renderSuperadmin('blog.posts.create', [
             'title' => 'Crear Post',
@@ -223,12 +223,14 @@ class BlogPostController
         $data['user_id'] = $_SESSION['super_admin']['id'] ?? null;
         $data['user_type'] = 'superadmin';
 
+        // Tipo de post (post o brief)
+        $data['post_type'] = in_array($data['post_type'] ?? 'post', ['post', 'brief']) ? $data['post_type'] : 'post';
+
         // Manejo de checkboxes
         $data['show_hero'] = isset($data['show_hero']) ? 1 : 0;
         $data['allow_comments'] = isset($data['allow_comments']) ? 1 : 0;
         $data['featured'] = isset($data['featured']) ? 1 : 0;
         $data['hide_featured_image'] = isset($data['hide_featured_image']) ? 1 : 0;
-        $data['hide_title'] = isset($data['hide_title']) ? 1 : 0;
         $data['hide_title'] = isset($data['hide_title']) ? 1 : 0;
 
         // Manejo de visibilidad (con valor por defecto)
@@ -463,7 +465,7 @@ class BlogPostController
 
         // --- Obtener plantillas disponibles ---
         $availableTemplates = get_blog_templates();
-        $currentTemplate = $post->template ?? 'single';
+        $currentTemplate = $post->template ?: 'template-sidebar-right';
 
         // --- Renderizar vista ---
         return View::renderSuperadmin('blog.posts.edit', [
@@ -506,6 +508,9 @@ class BlogPostController
         $rawData = $_POST;
         $data = $rawData;
         unset($data['_token'], $data['_csrf'], $data['_method']);
+
+        // Tipo de post (post o brief)
+        $data['post_type'] = in_array($data['post_type'] ?? 'post', ['post', 'brief']) ? $data['post_type'] : 'post';
 
         // Manejo de checkboxes
         $data['show_hero'] = isset($data['show_hero']) ? 1 : 0;
