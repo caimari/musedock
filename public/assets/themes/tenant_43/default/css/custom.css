@@ -1,0 +1,36 @@
+:root {
+--topbar-bg-color: #4c0519;
+  --topbar-text-color: #ffffff;
+  --hero-title-color: #ffffff;
+  --hero-title-font: 'Playfair Display', serif;
+  --hero-subtitle-color: #e5e5e5;
+  --hero-overlay-color: #000000;
+  --hero-overlay-opacity: 0.6;
+  --header-logo-max-height: 30px;
+  --header-bg-color: #fff1f2;
+  --header-logo-text-color: #1e293b;
+  --header-logo-font: 'Roboto', sans-serif;
+  --header-link-color: #1e293b;
+  --header-link-hover-color: #be185d;
+  --header-cta-bg-color: #be185d;
+  --header-cta-text-color: #ffffff;
+  --footer-bg-color: #4c0519;
+  --footer-text-color: #d4d4d4;
+  --footer-heading-color: #ffffff;
+  --footer-link-color: #a3a3a3;
+  --footer-link-hover-color: #be185d;
+  --footer-icon-color: #be185d;
+  --footer-border-color: #a3a3a3;
+}
+
+
+/* --- CSS Personalizado --- */
+/* Ejemplos:
+.header-bottom {
+  background-color: #ff0000 !important;
+}
+
+.footer-area h4 {
+  color: #00ff00 !important;
+}
+*/

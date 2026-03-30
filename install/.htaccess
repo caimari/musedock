@@ -1,0 +1,19 @@
+# MuseDock CMS Installer
+# Allow direct access to installer
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /install/
+
+    # Redirect all requests to index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>

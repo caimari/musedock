@@ -1,0 +1,16 @@
+{
+    "name": "Media Manager",
+    "slug": "media-manager",
+    "description": "Gestor de archivos y biblioteca de medios para MuseDock CMS.",
+    "version": "1.0.0",
+    "author": "MuseDock Team (Adaptado)",
+    "active": true,
+    "cms_enabled": true,
+    "tenant_enabled_default": true,
+    "autoload": {
+        "psr-4": {
+            "MediaManager\\Controllers\\": "controllers/",
+            "MediaManager\\Models\\": "models/"
+        }
+    }
+}

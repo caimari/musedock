@@ -1,0 +1,92 @@
+#!/usr/bin/env php
+<?php
+
+// Obtener el comando
+$command = $argv[1] ?? null;
+
+if (!$command) {
+    echo "Uso: ./muse <comando> [opciones]\n";
+    echo "Comandos disponibles:\n";
+    echo "  make:crud <Modelo> [contexto]     Genera CRUD completo (modelo, controlador, vistas, rutas)\n";
+    echo "  make:model <Modelo>               Genera solo el modelo\n";
+    echo "  make:controller <Modelo> [contexto] Genera solo el controlador\n";
+    echo "  make:views <Modelo> [contexto]    Genera solo las vistas\n";
+    echo "  make:routes <Modelo> [contexto]   Genera solo las rutas\n";
+    exit(1);
+}
+
+// Incluir el archivo autoload.php
+require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/core/CLI/Scaffold.php';
+
+// Procesar el comando
+switch ($command) {
+    case 'make:crud':
+        $model = $argv[2] ?? null;
+        $context = $argv[3] ?? 'superadmin';
+        
+        if (!$model) {
+            echo "❌ Error: Debes especificar un modelo. Ejemplo: ./muse make:crud BlogPost\n";
+            exit(1);
+        }
+        
+        Screenart\Musedock\CLI\Scaffold::generateCrud($model, $context);
+        break;
+        
+    case 'make:model':
+        $model = $argv[2] ?? null;
+        
+        if (!$model) {
+            echo "❌ Error: Debes especificar un modelo. Ejemplo: ./muse make:model BlogPost\n";
+            exit(1);
+        }
+        
+        Screenart\Musedock\CLI\Scaffold::generateModel($model);
+        break;
+        
+    case 'make:controller':
+        $model = $argv[2] ?? null;
+        $context = $argv[3] ?? 'superadmin';
+        
+        if (!$model) {
+            echo "❌ Error: Debes especificar un modelo. Ejemplo: ./muse make:controller BlogPost admin\n";
+            exit(1);
+        }
+        
+        Screenart\Musedock\CLI\Scaffold::generateController($model, null, $context);
+        break;
+        
+    case 'make:views':
+        $model = $argv[2] ?? null;
+        $context = $argv[3] ?? 'superadmin';
+        
+        if (!$model) {
+            echo "❌ Error: Debes especificar un modelo. Ejemplo: ./muse make:views BlogPost admin\n";
+            exit(1);
+        }
+        
+        Screenart\Musedock\CLI\Scaffold::generateViews($model, null, $context);
+        break;
+        
+    case 'make:routes':
+        $model = $argv[2] ?? null;
+        $context = $argv[3] ?? 'superadmin';
+        
+        if (!$model) {
+            echo "❌ Error: Debes especificar un modelo. Ejemplo: ./muse make:routes BlogPost admin\n";
+            exit(1);
+        }
+        
+        Screenart\Musedock\CLI\Scaffold::generateRoutes($model, $context);
+        break;
+        
+    default:
+        echo "❌ Comando desconocido: $command\n";
+        echo "Comandos disponibles:\n";
+        echo "  make:crud <Modelo> [contexto]     Genera CRUD completo (modelo, controlador, vistas, rutas)\n";
+        echo "  make:model <Modelo>               Genera solo el modelo\n";
+        echo "  make:controller <Modelo> [contexto] Genera solo el controlador\n";
+        echo "  make:views <Modelo> [contexto]    Genera solo las vistas\n";
+        echo "  make:routes <Modelo> [contexto]   Genera solo las rutas\n";
+        exit(1);
+}

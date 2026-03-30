@@ -1,0 +1,35 @@
+<?php
+/**
+ * Theme Functions - Default Theme
+ *
+ * Este archivo es opcional. Si quieres personalizar el comportamiento del tema,
+ * renombra este archivo a functions.php
+ */
+
+// ============================================================================
+// ELEMENTS MODULE - STYLE PRESET
+// ============================================================================
+
+/**
+ * Define qué preset de estilos usar para el módulo Elements
+ *
+ * Opciones disponibles:
+ * - 'default'  : Diseño moderno con gradientes morados/azules
+ * - 'modern'   : Ultra-moderno con bordes redondeados y sombras
+ * - 'minimal'  : Minimalista con espacios amplios y colores neutros
+ * - 'creative' : Colores vibrantes y formas únicas
+ */
+define('THEME_ELEMENTS_PRESET', 'default');
+
+// O alternativamente, usar una función:
+/*
+function get_theme_elements_preset() {
+    return 'modern';
+}
+*/
+
+// ============================================================================
+// OTROS HOOKS Y FUNCIONALIDADES DEL TEMA
+// ============================================================================
+
+// Aquí puedes agregar otras personalizaciones del tema

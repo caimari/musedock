@@ -1,0 +1,448 @@
+/**
+ * Elements Module - Frontend Styles
+ * Estilos para Heroes, FAQs, CTAs y otros elementos
+ */
+
+/* ==========================================================================
+   HERO SECTIONS
+   ========================================================================== */
+
+.element-hero {
+    position: relative;
+    padding: 4rem 0;
+    overflow: hidden;
+}
+
+/* Hero con imagen a la derecha */
+.element-hero.layout-image-right {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+}
+
+.element-hero.layout-image-right .container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+.element-hero.layout-image-right .hero-content h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+}
+
+.element-hero.layout-image-right .hero-content .subheading {
+    font-size: 1.5rem;
+    opacity: 0.9;
+    margin-bottom: 1rem;
+}
+
+.element-hero.layout-image-right .hero-content p {
+    font-size: 1.125rem;
+    opacity: 0.85;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.element-hero.layout-image-right .hero-image img {
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Hero con imagen a la izquierda */
+.element-hero.layout-image-left .container {
+    grid-template-columns: 1fr 1fr;
+}
+
+.element-hero.layout-image-left .hero-content {
+    order: 2;
+}
+
+.element-hero.layout-image-left .hero-image {
+    order: 1;
+}
+
+/* Hero centrado */
+.element-hero.layout-centered {
+    text-align: center;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: #fff;
+}
+
+.element-hero.layout-centered .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+.element-hero.layout-centered h1 {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.element-hero.layout-centered .subheading {
+    font-size: 1.75rem;
+    opacity: 0.9;
+    margin-bottom: 1rem;
+}
+
+.element-hero.layout-centered p {
+    font-size: 1.25rem;
+    opacity: 0.85;
+    margin-bottom: 2rem;
+}
+
+/* Hero con fondo de imagen */
+.element-hero.layout-background {
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+    color: #fff;
+    position: relative;
+}
+
+.element-hero.layout-background::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.element-hero.layout-background .container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    text-align: center;
+}
+
+/* Botón Hero */
+.hero-btn {
+    display: inline-block;
+    padding: 1rem 2.5rem;
+    background: #fff;
+    color: #667eea;
+    text-decoration: none;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1.125rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.hero-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    text-decoration: none;
+}
+
+/* Responsive Hero */
+@media (max-width: 768px) {
+    .element-hero.layout-image-right .container,
+    .element-hero.layout-image-left .container {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .element-hero.layout-image-left .hero-content,
+    .element-hero.layout-image-left .hero-image {
+        order: initial;
+    }
+
+    .element-hero h1 {
+        font-size: 2rem !important;
+    }
+
+    .element-hero .subheading {
+        font-size: 1.25rem !important;
+    }
+}
+
+/* ==========================================================================
+   FAQ SECTIONS
+   ========================================================================== */
+
+.element-faq {
+    padding: 4rem 0;
+    background: #f8f9fa;
+}
+
+.element-faq .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+.element-faq h2 {
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 3rem;
+    color: #333;
+}
+
+/* FAQ Accordion Layout */
+.faq-accordion .faq-item {
+    background: #fff;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.faq-accordion .faq-question {
+    padding: 1.25rem 1.5rem;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: #333;
+    position: relative;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.faq-accordion .faq-question:hover {
+    background: #f8f9fa;
+}
+
+.faq-accordion .faq-question::after {
+    content: '+';
+    position: absolute;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.5rem;
+    font-weight: 300;
+    transition: transform 0.3s;
+}
+
+.faq-accordion .faq-item.active .faq-question::after {
+    content: '−';
+}
+
+.faq-accordion .faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.faq-accordion .faq-item.active .faq-answer {
+    max-height: 500px;
+}
+
+.faq-accordion .faq-answer-content {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    color: #666;
+    line-height: 1.6;
+}
+
+/* FAQ Simple Layout */
+.faq-simple .faq-item {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.faq-simple .faq-item:last-child {
+    border-bottom: none;
+}
+
+.faq-simple .faq-question {
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: #333;
+    margin-bottom: 0.75rem;
+}
+
+.faq-simple .faq-answer {
+    color: #666;
+    line-height: 1.6;
+}
+
+/* FAQ Two Columns */
+.faq-two-columns .faq-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+@media (max-width: 768px) {
+    .faq-two-columns .faq-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================================================
+   CTA SECTIONS
+   ========================================================================== */
+
+.element-cta {
+    padding: 4rem 0;
+}
+
+.element-cta .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+/* CTA Horizontal */
+.element-cta.layout-horizontal {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+}
+
+.element-cta.layout-horizontal .cta-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+}
+
+.element-cta.layout-horizontal h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.element-cta.layout-horizontal p {
+    font-size: 1.125rem;
+    opacity: 0.9;
+    margin: 0;
+}
+
+/* CTA Centered */
+.element-cta.layout-centered {
+    background: #f8f9fa;
+    text-align: center;
+}
+
+.element-cta.layout-centered h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.element-cta.layout-centered p {
+    font-size: 1.25rem;
+    color: #666;
+    margin-bottom: 2rem;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* CTA Box */
+.element-cta.layout-box {
+    background: transparent;
+}
+
+.element-cta.layout-box .cta-box {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: #fff;
+    padding: 3rem;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.element-cta.layout-box h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.element-cta.layout-box p {
+    font-size: 1.125rem;
+    opacity: 0.9;
+    margin-bottom: 2rem;
+}
+
+/* CTA Button */
+.cta-btn {
+    display: inline-block;
+    padding: 1rem 2.5rem;
+    background: #fff;
+    color: #667eea;
+    text-decoration: none;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1.125rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    text-decoration: none;
+    color: #667eea;
+}
+
+.element-cta.layout-centered .cta-btn {
+    background: #667eea;
+    color: #fff;
+}
+
+.element-cta.layout-centered .cta-btn:hover {
+    background: #5568d3;
+    color: #fff;
+}
+
+/* Responsive CTA */
+@media (max-width: 768px) {
+    .element-cta.layout-horizontal .cta-content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .element-cta h2 {
+        font-size: 1.75rem !important;
+    }
+
+    .element-cta.layout-box .cta-box {
+        padding: 2rem 1.5rem;
+    }
+}
+
+/* ==========================================================================
+   UTILITIES
+   ========================================================================== */
+
+.element-container {
+    margin: 2rem 0;
+}
+
+/* Animaciones */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.element-hero,
+.element-faq,
+.element-cta {
+    animation: fadeInUp 0.6s ease-out;
+}

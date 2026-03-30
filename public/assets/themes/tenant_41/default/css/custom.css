@@ -1,0 +1,31 @@
+:root {
+--topbar-bg-color: #000000;
+  --topbar-text-color: #ffffff;
+  --hero-title-color: #ffffff;
+  --hero-overlay-color: #000000;
+  --hero-overlay-opacity: 0.5;
+  --header-bg-color: #333333;
+  --header-logo-text-color: #f1c311;
+  --header-link-color: #cccccc;
+  --header-link-hover-color: #f1c311;
+  --header-cta-bg-color: #f1c311;
+  --header-cta-text-color: #ffffff;
+  --footer-bg-color: #333333;
+  --footer-text-color: #999999;
+  --footer-heading-color: #ffffff;
+  --footer-link-color: #999999;
+  --footer-link-hover-color: #f1c311;
+  --footer-icon-color: #cccccc;
+  --footer-border-color: #444444;
+}
+
+
+/* --- CSS Personalizado --- */
+@import url("https://fonts.googleapis.com/css?family=Questrial|Montserrat:400,700");
+body.layout-sidebar { font-family: "Questrial", sans-serif; }
+body.layout-sidebar h1, body.layout-sidebar h2 {
+    font-family: "Montserrat", sans-serif;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
+}
+body.layout-sidebar h2 { font-size: 24px; }
+body.layout-sidebar p { font-size: 15px; line-height: 24px; }

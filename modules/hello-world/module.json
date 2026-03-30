@@ -1,0 +1,9 @@
+{
+  "name": "Hello World",
+  "slug": "hello-world",
+  "version": "1.0.0",
+  "description": "Ejemplo de módulo básico",
+  "author": "MuseDock",
+  "active": true
+}
+

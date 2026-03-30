@@ -1,0 +1,364 @@
+/**
+ * Estilos para el Sistema de Tickets
+ * Incluye estilos para notificaciones y componentes del sistema
+ */
+
+/* ========== NOTIFICACIONES - BADGE INDICATOR ========== */
+.indicator {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    display: inline-block;
+    padding: 0.25em 0.4em;
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 50%;
+    background-color: #dc3545;
+    min-width: 18px;
+    height: 18px;
+}
+
+/* ========== DROPDOWN DE NOTIFICACIONES ========== */
+.dropdown-menu-lg {
+    min-width: 320px;
+}
+
+.dropdown-menu-header {
+    padding: 0.75rem 1rem;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+    color: #495057;
+}
+
+.dropdown-menu-footer {
+    padding: 0.5rem 1rem;
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    text-align: center;
+}
+
+.dropdown-menu-footer a {
+    font-size: 0.875rem;
+    text-decoration: none;
+}
+
+.dropdown-menu-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Items de notificación */
+.list-group-item {
+    transition: background-color 0.15s ease-in-out;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+.list-group-item .avatar {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+/* ========== BADGES DE ESTADO ========== */
+.badge {
+    font-weight: 600;
+    padding: 0.35em 0.65em;
+}
+
+/* Estados de tickets */
+.bg-warning { background-color: #ffc107 !important; }
+.bg-info { background-color: #17a2b8 !important; }
+.bg-success { background-color: #28a745 !important; }
+.bg-secondary { background-color: #6c757d !important; }
+.bg-danger { background-color: #dc3545 !important; }
+.bg-primary { background-color: #3b7ddd !important; }
+
+/* Prioridades */
+.badge.priority-urgent {
+    background-color: #dc3545;
+    color: white;
+}
+
+.badge.priority-high {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge.priority-normal {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.badge.priority-low {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* ========== TARJETAS DE TICKETS ========== */
+.card.border-start {
+    border-left-width: 3px !important;
+}
+
+.card.border-primary {
+    border-left-color: #3b7ddd !important;
+}
+
+.card.border-success {
+    border-left-color: #28a745 !important;
+}
+
+.card.border-warning {
+    border-left-color: #ffc107 !important;
+}
+
+.card.border-danger {
+    border-left-color: #dc3545 !important;
+}
+
+/* Notas internas */
+.card.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+/* ========== FORMULARIOS DE TICKETS ========== */
+.form-control:focus {
+    border-color: #3b7ddd;
+    box-shadow: 0 0 0 0.2rem rgba(59, 125, 221, 0.25);
+}
+
+.form-select:focus {
+    border-color: #3b7ddd;
+    box-shadow: 0 0 0 0.2rem rgba(59, 125, 221, 0.25);
+}
+
+/* ========== STATS CARDS ========== */
+.stats-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.stats-card .card-body {
+    padding: 1.25rem;
+}
+
+.stats-card h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.stats-card .text-muted {
+    font-size: 0.875rem;
+}
+
+/* ========== TABLA DE TICKETS ========== */
+.table-hover tbody tr:hover {
+    background-color: rgba(59, 125, 221, 0.05);
+}
+
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+}
+
+/* Links en tabla */
+.table a {
+    color: #3b7ddd;
+    text-decoration: none;
+}
+
+.table a:hover {
+    text-decoration: underline;
+}
+
+/* ========== MENSAJES DE TICKET ========== */
+.message-thread .card {
+    margin-bottom: 1rem;
+}
+
+.message-thread .avatar {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+}
+
+.message-thread .rounded-circle {
+    border-radius: 50% !important;
+}
+
+/* Usuario staff */
+.message-thread .border-primary {
+    border-left: 3px solid #3b7ddd !important;
+}
+
+/* ========== FILTROS ========== */
+.filter-form .form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.filter-form .btn-group {
+    gap: 0.5rem;
+}
+
+/* ========== BREADCRUMBS ========== */
+.breadcrumb {
+    background-color: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+    color: #6c757d;
+}
+
+.breadcrumb-item a {
+    color: #3b7ddd;
+    text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+    color: #6c757d;
+}
+
+/* ========== ZONA DE PELIGRO ========== */
+.card.border-danger {
+    border-color: #dc3545 !important;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+}
+
+.btn-outline-danger {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-outline-danger:hover {
+    color: #fff;
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+    .dropdown-menu-lg {
+        min-width: 280px;
+        max-width: 90vw;
+    }
+
+    .stats-card h3 {
+        font-size: 1.5rem;
+    }
+
+    .table {
+        font-size: 0.875rem;
+    }
+}
+
+/* ========== LOADING STATES ========== */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.2em;
+}
+
+/* Placeholder para carga de notificaciones */
+.notification-skeleton {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* ========== TOAST/ALERT ANIMATIONS ========== */
+.alert {
+    animation: slideInDown 0.3s ease-out;
+}
+
+@keyframes slideInDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ========== UTILITY CLASSES ========== */
+.text-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.text-truncate-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Espaciado consistente */
+.mb-section {
+    margin-bottom: 2rem;
+}
+
+.mt-section {
+    margin-top: 2rem;
+}
+
+/* ========== ACCESIBILIDAD ========== */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Focus visible para navegación con teclado */
+*:focus-visible {
+    outline: 2px solid #3b7ddd;
+    outline-offset: 2px;
+}

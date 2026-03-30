@@ -1,0 +1,32 @@
+:root {
+--topbar-bg-color: #ffffff;
+  --topbar-text-color: #999999;
+  --hero-title-color: #ffffff;
+  --hero-title-font: inherit;
+  --hero-subtitle-color: #ffffff;
+  --hero-overlay-color: #000000;
+  --hero-overlay-opacity: 0.5;
+  --header-logo-max-height: 45px;
+  --header-bg-color: #ffffff;
+  --header-logo-text-color: #1a2a40;
+  --header-logo-font: inherit;
+  --header-link-color: #666666;
+  --header-link-hover-color: #f3595b;
+  --header-cta-bg-color: #f3595b;
+  --header-cta-text-color: #ffffff;
+  --footer-bg-color: #dbd6e6;
+  --footer-text-color: #000000;
+  --footer-heading-color: #ffffff;
+  --footer-link-color: #464444;
+  --footer-link-hover-color: #f3ba58;
+  --footer-icon-color: #5b5757;
+  --footer-border-color: #949494;
+}
+
+
+/* --- CSS Personalizado --- */
+@import url("https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&display=swap");
+body { font-family: "Open Sans", sans-serif; }
+.header-banner-title { font-family: "Open Sans", sans-serif !important; font-weight: 800 !important; }
+.header-banner-subtitle { font-family: "Open Sans", sans-serif !important; }
+h1, h2, h3, h4, h5, h6, .title, .titlefont { font-family: "Open Sans", sans-serif; font-weight: 300; }

@@ -1,0 +1,17 @@
+{
+  "name": "Blog",
+  "slug": "blog",
+  "description": "Sistema de Blog completo con categorías, etiquetas y traducciones multiidioma para MuseDock CMS.",
+  "version": "1.0.0",
+  "author": "MuseDock Team",
+  "active": true,
+  "cms_enabled": true,
+  "tenant_enabled_default": true,
+  "autoload": {
+    "psr-4": {
+      "Blog\\Controllers\\": "controllers/",
+      "Blog\\Models\\": "models/",
+      "Blog\\Requests\\": "requests/"
+    }
+  }
+}

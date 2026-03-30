@@ -1,0 +1,460 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Musedock Asset Publisher
+ *
+ * Publica assets de módulos a la carpeta public/assets/modules/
+ * Similar a: php artisan vendor:publish en Laravel
+ *
+ * Uso:
+ *   php publish                    - Publica todos los módulos
+ *   php publish MediaManager       - Publica solo MediaManager
+ *   php publish --force            - Sobrescribe archivos existentes
+ *   php publish --list             - Lista módulos con assets
+ *   php publish --clean            - Limpia assets publicados
+ */
+
+// Define constantes
+define('APP_ROOT', __DIR__);
+define('MODULES_PATH', APP_ROOT . '/modules');
+define('PUBLIC_ASSETS_PATH', APP_ROOT . '/public/assets/modules');
+
+// Colores para terminal
+class TerminalColors {
+    const RESET = "\033[0m";
+    const BOLD = "\033[1m";
+    const GREEN = "\033[32m";
+    const YELLOW = "\033[33m";
+    const RED = "\033[31m";
+    const BLUE = "\033[34m";
+    const CYAN = "\033[36m";
+}
+
+/**
+ * Clase para publicar assets de módulos
+ */
+class AssetPublisher {
+
+    private $force = false;
+    private $stats = [
+        'published' => 0,
+        'skipped' => 0,
+        'errors' => 0
+    ];
+
+    public function __construct($force = false) {
+        $this->force = $force;
+    }
+
+    /**
+     * Publicar todos los módulos o uno específico
+     */
+    public function publish($moduleName = null) {
+        $this->printHeader();
+
+        if (!is_dir(MODULES_PATH)) {
+            $this->error("Directorio de módulos no encontrado: " . MODULES_PATH);
+            return false;
+        }
+
+        // Asegurar que existe el directorio de destino
+        if (!is_dir(PUBLIC_ASSETS_PATH)) {
+            mkdir(PUBLIC_ASSETS_PATH, 0755, true);
+            $this->success("Creado directorio: " . PUBLIC_ASSETS_PATH);
+        }
+
+        if ($moduleName) {
+            // Publicar un módulo específico
+            return $this->publishModule($moduleName);
+        } else {
+            // Publicar todos los módulos
+            return $this->publishAllModules();
+        }
+    }
+
+    /**
+     * Publicar todos los módulos
+     */
+    private function publishAllModules() {
+        echo TerminalColors::CYAN . "Escaneando módulos...\n" . TerminalColors::RESET;
+
+        $modules = $this->scanModules();
+
+        if (empty($modules)) {
+            echo TerminalColors::YELLOW . "No se encontraron módulos con assets.\n" . TerminalColors::RESET;
+            return true;
+        }
+
+        echo "Encontrados " . count($modules) . " módulo(s) con assets.\n\n";
+
+        foreach ($modules as $moduleName) {
+            $this->publishModule($moduleName);
+        }
+
+        $this->printSummary();
+        return true;
+    }
+
+    /**
+     * Publicar un módulo específico
+     */
+    private function publishModule($moduleName) {
+        $modulePath = MODULES_PATH . '/' . $moduleName;
+        $assetsPath = $modulePath . '/assets';
+
+        if (!is_dir($modulePath)) {
+            $this->error("Módulo no encontrado: $moduleName");
+            return false;
+        }
+
+        if (!is_dir($assetsPath)) {
+            $this->warning("El módulo $moduleName no tiene carpeta de assets");
+            return false;
+        }
+
+        echo TerminalColors::BOLD . "→ Publicando: $moduleName\n" . TerminalColors::RESET;
+
+        $destinationPath = PUBLIC_ASSETS_PATH . '/' . $moduleName;
+
+        // Copiar recursivamente
+        $this->copyDirectory($assetsPath, $destinationPath, $moduleName);
+
+        return true;
+    }
+
+    /**
+     * Copiar directorio recursivamente
+     */
+    private function copyDirectory($source, $destination, $moduleName) {
+        if (!is_dir($destination)) {
+            mkdir($destination, 0755, true);
+        }
+
+        $items = scandir($source);
+
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+
+            $sourcePath = $source . '/' . $item;
+            $destPath = $destination . '/' . $item;
+
+            if (is_dir($sourcePath)) {
+                // Copiar subdirectorio
+                $this->copyDirectory($sourcePath, $destPath, $moduleName);
+            } else {
+                // Copiar archivo
+                $this->copyFile($sourcePath, $destPath, $moduleName);
+            }
+        }
+    }
+
+    /**
+     * Copiar un archivo
+     */
+    private function copyFile($source, $destination, $moduleName) {
+        // Verificar si el archivo ya existe
+        if (file_exists($destination) && !$this->force) {
+            $this->stats['skipped']++;
+            echo "  " . TerminalColors::YELLOW . "○" . TerminalColors::RESET . " Omitido: " . $this->getRelativePath($destination) . "\n";
+            return;
+        }
+
+        // Copiar archivo
+        if (copy($source, $destination)) {
+            $this->stats['published']++;
+            echo "  " . TerminalColors::GREEN . "✓" . TerminalColors::RESET . " Publicado: " . $this->getRelativePath($destination) . "\n";
+        } else {
+            $this->stats['errors']++;
+            echo "  " . TerminalColors::RED . "✗" . TerminalColors::RESET . " Error: " . $this->getRelativePath($destination) . "\n";
+        }
+    }
+
+    /**
+     * Escanear módulos que tienen assets
+     */
+    private function scanModules() {
+        $modules = [];
+
+        if (!is_dir(MODULES_PATH)) {
+            return $modules;
+        }
+
+        $items = scandir(MODULES_PATH);
+
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+
+            $modulePath = MODULES_PATH . '/' . $item;
+            $assetsPath = $modulePath . '/assets';
+
+            if (is_dir($modulePath) && is_dir($assetsPath)) {
+                $modules[] = $item;
+            }
+        }
+
+        return $modules;
+    }
+
+    /**
+     * Listar módulos con assets
+     */
+    public function listModules() {
+        $this->printHeader();
+
+        echo TerminalColors::CYAN . "Módulos disponibles para publicar:\n" . TerminalColors::RESET;
+        echo str_repeat("─", 50) . "\n";
+
+        $modules = $this->scanModules();
+
+        if (empty($modules)) {
+            echo TerminalColors::YELLOW . "No se encontraron módulos con assets.\n" . TerminalColors::RESET;
+            return;
+        }
+
+        foreach ($modules as $moduleName) {
+            $assetsPath = MODULES_PATH . '/' . $moduleName . '/assets';
+            $fileCount = $this->countFiles($assetsPath);
+
+            echo TerminalColors::GREEN . "✓ " . TerminalColors::RESET;
+            echo TerminalColors::BOLD . $moduleName . TerminalColors::RESET;
+            echo " ($fileCount archivo(s))\n";
+
+            // Mostrar tipos de assets
+            $types = $this->getAssetTypes($assetsPath);
+            if (!empty($types)) {
+                echo "  Tipos: " . implode(', ', $types) . "\n";
+            }
+            echo "\n";
+        }
+    }
+
+    /**
+     * Limpiar assets publicados
+     */
+    public function clean($moduleName = null) {
+        $this->printHeader();
+
+        if ($moduleName) {
+            echo TerminalColors::CYAN . "Limpiando assets de: $moduleName\n" . TerminalColors::RESET;
+            $path = PUBLIC_ASSETS_PATH . '/' . $moduleName;
+
+            if (is_dir($path)) {
+                $this->removeDirectory($path);
+                $this->success("✓ Assets de $moduleName eliminados");
+            } else {
+                $this->warning("No se encontraron assets publicados de $moduleName");
+            }
+        } else {
+            echo TerminalColors::CYAN . "Limpiando todos los assets...\n" . TerminalColors::RESET;
+
+            if (is_dir(PUBLIC_ASSETS_PATH)) {
+                $items = scandir(PUBLIC_ASSETS_PATH);
+                foreach ($items as $item) {
+                    if ($item === '.' || $item === '..') continue;
+                    $path = PUBLIC_ASSETS_PATH . '/' . $item;
+                    if (is_dir($path)) {
+                        $this->removeDirectory($path);
+                        echo "  ✓ Eliminado: $item\n";
+                    }
+                }
+                $this->success("\n✓ Todos los assets han sido eliminados");
+            } else {
+                $this->warning("No hay assets publicados");
+            }
+        }
+    }
+
+    /**
+     * Eliminar directorio recursivamente
+     */
+    private function removeDirectory($dir) {
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        $items = scandir($dir);
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+
+            $path = $dir . '/' . $item;
+
+            if (is_dir($path)) {
+                $this->removeDirectory($path);
+            } else {
+                unlink($path);
+            }
+        }
+
+        rmdir($dir);
+    }
+
+    /**
+     * Contar archivos en un directorio
+     */
+    private function countFiles($dir) {
+        $count = 0;
+
+        if (!is_dir($dir)) {
+            return $count;
+        }
+
+        $items = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::LEAVES_ONLY
+        );
+
+        foreach ($items as $item) {
+            if ($item->isFile()) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Obtener tipos de assets en un directorio
+     */
+    private function getAssetTypes($dir) {
+        $types = [];
+
+        if (is_dir($dir . '/js')) $types[] = 'JS';
+        if (is_dir($dir . '/css')) $types[] = 'CSS';
+        if (is_dir($dir . '/images')) $types[] = 'Images';
+        if (is_dir($dir . '/fonts')) $types[] = 'Fonts';
+
+        return $types;
+    }
+
+    /**
+     * Obtener ruta relativa
+     */
+    private function getRelativePath($path) {
+        return str_replace(APP_ROOT . '/public/', '', $path);
+    }
+
+    /**
+     * Imprimir cabecera
+     */
+    private function printHeader() {
+        echo "\n";
+        echo TerminalColors::BOLD . TerminalColors::BLUE;
+        echo "╔═══════════════════════════════════════════════════╗\n";
+        echo "║   Musedock Asset Publisher                        ║\n";
+        echo "║   Publicación de Assets de Módulos                ║\n";
+        echo "╚═══════════════════════════════════════════════════╝\n";
+        echo TerminalColors::RESET . "\n";
+    }
+
+    /**
+     * Imprimir resumen
+     */
+    private function printSummary() {
+        echo "\n" . str_repeat("═", 50) . "\n";
+        echo TerminalColors::GREEN . "✓ Publicados: " . $this->stats['published'] . TerminalColors::RESET . "\n";
+
+        if ($this->stats['skipped'] > 0) {
+            echo TerminalColors::YELLOW . "○ Omitidos: " . $this->stats['skipped'] . TerminalColors::RESET . "\n";
+        }
+
+        if ($this->stats['errors'] > 0) {
+            echo TerminalColors::RED . "✗ Errores: " . $this->stats['errors'] . TerminalColors::RESET . "\n";
+        }
+
+        echo str_repeat("═", 50) . "\n\n";
+
+        if ($this->stats['skipped'] > 0 && !$this->force) {
+            echo TerminalColors::YELLOW . "Tip: Usa --force para sobrescribir archivos existentes\n" . TerminalColors::RESET;
+        }
+    }
+
+    /**
+     * Mensajes
+     */
+    private function success($message) {
+        echo TerminalColors::GREEN . $message . TerminalColors::RESET . "\n";
+    }
+
+    private function warning($message) {
+        echo TerminalColors::YELLOW . "⚠ " . $message . TerminalColors::RESET . "\n";
+    }
+
+    private function error($message) {
+        echo TerminalColors::RED . "✗ Error: " . $message . TerminalColors::RESET . "\n";
+    }
+}
+
+// ============================================================
+// MAIN
+// ============================================================
+
+// Parsear argumentos
+$command = $argv[1] ?? 'publish';
+$moduleName = null;
+$force = false;
+
+// Procesar argumentos
+for ($i = 1; $i < $argc; $i++) {
+    $arg = $argv[$i];
+
+    if ($arg === '--force' || $arg === '-f') {
+        $force = true;
+    } elseif ($arg === '--list' || $arg === '-l') {
+        $command = 'list';
+    } elseif ($arg === '--clean') {
+        $command = 'clean';
+    } elseif ($arg === 'help' || $arg === '--help' || $arg === '-h') {
+        $command = 'help';
+    } elseif (!str_starts_with($arg, '-')) {
+        $moduleName = $arg;
+    }
+}
+
+// Crear instancia del publisher
+$publisher = new AssetPublisher($force);
+
+// Ejecutar comando
+switch ($command) {
+    case 'list':
+        $publisher->listModules();
+        break;
+
+    case 'clean':
+        $publisher->clean($moduleName);
+        break;
+
+    case 'help':
+        echo "\n";
+        echo TerminalColors::BOLD . "Uso:\n" . TerminalColors::RESET;
+        echo "  php publish [módulo] [opciones]\n\n";
+        echo TerminalColors::BOLD . "Comandos:\n" . TerminalColors::RESET;
+        echo "  php publish                 Publicar todos los módulos\n";
+        echo "  php publish MediaManager    Publicar solo MediaManager\n";
+        echo "  php publish --list          Listar módulos disponibles\n";
+        echo "  php publish --clean         Limpiar todos los assets\n";
+        echo "  php publish MediaManager --clean  Limpiar assets de MediaManager\n\n";
+        echo TerminalColors::BOLD . "Opciones:\n" . TerminalColors::RESET;
+        echo "  --force, -f    Sobrescribir archivos existentes\n";
+        echo "  --list, -l     Listar módulos con assets\n";
+        echo "  --clean        Eliminar assets publicados\n";
+        echo "  --help, -h     Mostrar esta ayuda\n\n";
+        echo TerminalColors::BOLD . "Ejemplos:\n" . TerminalColors::RESET;
+        echo "  php publish                          # Publicar todos\n";
+        echo "  php publish MediaManager             # Publicar MediaManager\n";
+        echo "  php publish MediaManager --force     # Forzar publicación\n";
+        echo "  php publish --list                   # Ver módulos\n\n";
+        break;
+
+    case 'publish':
+    default:
+        $publisher->publish($moduleName);
+        break;
+}
+
+exit(0);

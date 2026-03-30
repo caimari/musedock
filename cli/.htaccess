@@ -1,0 +1,5 @@
+# Denegar acceso web al directorio CLI
+# Estos scripts solo deben ejecutarse desde línea de comandos
+
+Order Deny,Allow
+Deny from all

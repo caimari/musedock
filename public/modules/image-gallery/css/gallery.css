@@ -1,0 +1,300 @@
+/**
+ * Image Gallery - Frontend Styles
+ *
+ * Estilos base para las galerías en el frontend
+ */
+
+/* ============================================
+   GALLERY BASE
+   ============================================ */
+
+.musedock-gallery {
+    width: 100%;
+    margin: 20px 0;
+}
+
+.musedock-gallery .gallery-item {
+    position: relative;
+    overflow: hidden;
+    background: #f0f0f0;
+}
+
+.musedock-gallery .gallery-item img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.musedock-gallery .gallery-item a {
+    display: block;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+}
+
+/* ============================================
+   GRID LAYOUT
+   ============================================ */
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--gallery-columns, 3), 1fr);
+    gap: var(--gallery-gap, 10px);
+}
+
+.gallery-grid .gallery-item {
+    aspect-ratio: var(--gallery-aspect, 1 / 1);
+    border-radius: var(--gallery-radius, 8px);
+}
+
+.gallery-grid .gallery-item img {
+    object-fit: var(--gallery-fit, cover);
+}
+
+/* ============================================
+   MASONRY LAYOUT
+   ============================================ */
+
+.gallery-masonry {
+    column-count: var(--gallery-columns, 3);
+    column-gap: var(--gallery-gap, 10px);
+}
+
+.gallery-masonry .gallery-item {
+    break-inside: avoid;
+    margin-bottom: var(--gallery-gap, 10px);
+    border-radius: var(--gallery-radius, 8px);
+}
+
+.gallery-masonry .gallery-item img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+
+/* ============================================
+   CAROUSEL LAYOUT
+   ============================================ */
+
+.gallery-carousel {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: var(--gallery-gap, 10px);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 10px 0;
+}
+
+.gallery-carousel::-webkit-scrollbar {
+    display: none;
+}
+
+.gallery-carousel .gallery-item {
+    flex: 0 0 calc((100% - var(--gallery-gap, 10px) * (var(--gallery-columns, 3) - 1)) / var(--gallery-columns, 3));
+    scroll-snap-align: start;
+    border-radius: var(--gallery-radius, 8px);
+    aspect-ratio: var(--gallery-aspect, 1 / 1);
+}
+
+.gallery-carousel .gallery-item img {
+    object-fit: var(--gallery-fit, cover);
+}
+
+/* ============================================
+   JUSTIFIED LAYOUT
+   ============================================ */
+
+.gallery-justified {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gallery-gap, 10px);
+}
+
+.gallery-justified .gallery-item {
+    flex-grow: 1;
+    height: 200px;
+    min-width: 150px;
+    border-radius: var(--gallery-radius, 8px);
+}
+
+.gallery-justified .gallery-item img {
+    object-fit: cover;
+}
+
+/* ============================================
+   HOVER EFFECTS
+   ============================================ */
+
+/* Zoom */
+.musedock-gallery .gallery-item:hover img {
+    transform: scale(1.05);
+}
+
+/* Overlay on hover */
+.gallery-item::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0);
+    transition: background 0.3s ease;
+    pointer-events: none;
+}
+
+.gallery-item:hover::after {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================
+   CAPTIONS
+   ============================================ */
+
+.gallery-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 15px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    color: white;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.gallery-item:hover .gallery-caption {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.gallery-caption strong {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.gallery-caption p {
+    font-size: 12px;
+    opacity: 0.9;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* ============================================
+   LOADING STATES
+   ============================================ */
+
+.gallery-item img[loading="lazy"] {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.gallery-item img[loading="lazy"].loaded,
+.gallery-item img:not([loading="lazy"]) {
+    opacity: 1;
+}
+
+/* Placeholder while loading */
+.gallery-item {
+    background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 1200px) {
+    .gallery-grid,
+    .gallery-carousel {
+        --gallery-columns: 3;
+    }
+
+    .gallery-masonry {
+        column-count: 3;
+    }
+}
+
+@media (max-width: 992px) {
+    .gallery-grid,
+    .gallery-carousel {
+        --gallery-columns: 2;
+    }
+
+    .gallery-masonry {
+        column-count: 2;
+    }
+}
+
+@media (max-width: 576px) {
+    .gallery-grid {
+        --gallery-columns: 2;
+        --gallery-gap: 8px;
+    }
+
+    .gallery-carousel {
+        --gallery-columns: 1;
+    }
+
+    .gallery-masonry {
+        column-count: 2;
+        column-gap: 8px;
+    }
+
+    .gallery-justified .gallery-item {
+        height: 150px;
+        min-width: 120px;
+    }
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+.gallery-item a:focus {
+    outline: 3px solid #007bff;
+    outline-offset: 2px;
+}
+
+.gallery-item a:focus-visible {
+    outline: 3px solid #007bff;
+    outline-offset: 2px;
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+    .musedock-gallery {
+        display: block;
+    }
+
+    .gallery-grid,
+    .gallery-masonry {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+
+    .gallery-carousel {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        overflow: visible;
+    }
+
+    .gallery-item {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .gallery-caption {
+        position: static;
+        background: #f0f0f0;
+        color: black;
+        opacity: 1;
+        transform: none;
+        padding: 8px;
+    }
+}

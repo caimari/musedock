@@ -1,0 +1,84 @@
+@extends('layouts.app')
+
+@section('title')
+    {{ ($page->seo_title ?? $page->title) . ' | ' . site_setting('site_name', '') }}
+@endsection
+
+@section('keywords')
+    {{ $page->seo_keywords ?? site_setting('site_keywords', '') }}
+@endsection
+
+@section('og_title')
+    {{ $page->seo_title ?? $page->title }}
+@endsection
+
+@section('og_description')
+    {{ $page->seo_description ?? site_setting('site_description', '') }}
+@endsection
+
+@section('og_url')
+    {{ url($page->slug) }}
+@endsection
+
+@section('og_image')
+    @if(!empty($page->seo_image))
+        {{ asset($page->seo_image) }}
+    @endif
+@endsection
+
+@section('twitter_title')
+    {{ $page->twitter_title ?? $page->seo_title ?? $page->title }}
+@endsection
+
+@section('twitter_description')
+    {{ $page->twitter_description ?? $page->seo_description ?? site_setting('site_description', '') }}
+@endsection
+
+@section('twitter_image')
+    @if(!empty($page->twitter_image))
+        {{ asset($page->twitter_image) }}
+    @endif
+@endsection
+
+@section('canonical')
+    <link rel="canonical" href="{{ url($page->slug) }}">
+@endsection
+
+@section('robots')
+    {{ $page->robots_directive ?? 'index,follow' }}
+@endsection
+
+@section('content')
+    <!-- slider Area Start-->
+    <div class="slider-area ">
+        <!-- Mobile Menu -->
+        <div class="single-slider slider-height2 d-flex align-items-center" data-background="{{ asset('themes/default/img/hero/contact_hero.jpg') }}">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-12">
+                        <div class="hero-cap text-center">
+                            <h2>{{ $page->title }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- slider Area End-->
+
+
+
+<div class="page-content container mt-3 mt-md-5">
+      <!--  <h1 class="display-4">{{ $page->title }}</h1> -->
+    <div class="content">
+        @php
+            $content = apply_filters('the_content', $translation->content ?? $page->content ?? '<p class="text-muted">Contenido no disponible.</p>');
+            // Limpiar <p> que envuelven sliders/divs (HTML inválido de importación WP)
+            $content = preg_replace('/<p>\s*((<link[^>]*>\s*)*)\s*(<div\s)/s', '$1$3', $content);
+            $content = preg_replace('/(<\/script>)\s*<\/p>/s', '$1', $content);
+            $content = preg_replace('/<p>\s*(&nbsp;|\xC2\xA0|\s)*<\/p>/i', '', $content);
+        @endphp
+        {!! $content !!}
+    </div>
+</div>
+@endsection

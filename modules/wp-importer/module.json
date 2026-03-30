@@ -1,0 +1,16 @@
+{
+    "name": "WP Importer",
+    "slug": "wp-importer",
+    "description": "Importador de sitios WordPress: posts, páginas, categorías, tags, media, menus y estilos visuales.",
+    "version": "1.1.0",
+    "author": "MuseDock Team",
+    "active": true,
+    "cms_enabled": true,
+    "tenant_enabled_default": true,
+    "autoload": {
+        "psr-4": {
+            "WpImporter\\Controllers\\": "controllers/",
+            "WpImporter\\Services\\": "services/"
+        }
+    }
+}

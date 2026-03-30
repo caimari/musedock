@@ -1,0 +1,56 @@
+{
+    "title": "AI Writer",
+    "settings": "AI Writer Settings",
+    "settings_desc": "Configure the AI provider and usage limits",
+
+    "provider": "AI Provider",
+    "provider_default": "Default provider",
+    "provider_select": "Select a provider",
+    "provider_none": "None configured",
+
+    "limits": "Usage Limits",
+    "daily_token_limit": "Daily token limit",
+    "daily_token_limit_help": "0 = no limit",
+    "log_prompts": "Log all prompts",
+    "log_prompts_help": "Save AI request history",
+
+    "save": "Save settings",
+    "saved": "Settings saved successfully",
+    "error_saving": "Error saving settings",
+    "error_loading": "Error loading settings",
+
+    "dialog.title": "AI Writer",
+    "dialog.action": "Action",
+    "dialog.action_generate": "Generate content",
+    "dialog.action_improve": "Improve selected text",
+    "dialog.action_summarize": "Summarize text",
+    "dialog.action_correct": "Correct text",
+    "dialog.action_titles": "Generate title ideas",
+
+    "dialog.provider": "AI Provider",
+    "dialog.prompt": "Prompt / Instructions",
+    "dialog.prompt_placeholder": "Describe what you want to generate or how to improve the text...",
+    "dialog.replace": "Replace selected text",
+    "dialog.cancel": "Cancel",
+    "dialog.generate": "Generate",
+
+    "menu.generate_paragraph": "Generate paragraph",
+    "menu.complete_idea": "Complete idea",
+    "menu.improve_writing": "Improve writing",
+    "menu.correct_errors": "Correct errors",
+    "menu.more_options": "More options...",
+
+    "quick.title": "Generate with AI",
+    "quick.topic": "Topic or idea",
+    "quick.generating": "Generating content with AI...",
+    "quick.processing": "Processing with AI...",
+    "quick.select_text": "Select the text you want to process",
+
+    "success.generated": "Content generated successfully",
+    "success.tokens": "tokens",
+
+    "error.generate": "Error generating content",
+    "error.process": "Error processing with AI",
+    "error.connection": "Connection error",
+    "error.load_providers": "Error loading providers"
+}

@@ -1,0 +1,210 @@
+@extends('layouts.app')
+
+@section('title', $title ?? 'Editar Etiqueta')
+
+@section('content')
+<div class="app-content">
+  <div class="container-fluid">
+    {{-- Navegación --}}
+    @php
+      $backUrl = !empty($editingTenant)
+          ? route('blog.tags.index') . '?scope=tenant:' . $editingTenant->id
+          : route('blog.tags.index');
+      $backLabel = !empty($editingTenant)
+          ? ($editingTenant->domain ?? $editingTenant->name)
+          : __('blog.tags');
+      $createUrl = !empty($editingTenant)
+          ? route('blog.tags.create') . '?tenant_id=' . $editingTenant->id
+          : route('blog.tags.create');
+    @endphp
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="breadcrumb">
+        <a href="{{ route('blog.tags.index') }}">{{ __('blog.tags') }}</a>
+        @if(!empty($editingTenant))
+          <span class="mx-2">/</span>
+          <a href="{{ $backUrl }}">{{ $backLabel }}</a>
+        @endif
+        <span class="mx-2">/</span>
+        <span>{{ e($tag->name) }}</span>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{{ $backUrl }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> {{ $backLabel }}</a>
+        <a href="{{ $createUrl }}" class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i> {{ __('blog.tag.add_tag') }}</a>
+      </div>
+    </div>
+
+    {{-- Alertas Toast --}}
+    @if (session('success'))
+      <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          Swal.fire({
+            icon: 'success',
+            title: {!! json_encode(session('success')) !!},
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+          });
+        });
+      </script>
+    @endif
+    @if (session('error'))
+      <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          Swal.fire({
+            icon: 'error',
+            title: {!! json_encode(session('error')) !!},
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 5000,
+            timerProgressBar: true
+          });
+        });
+      </script>
+    @endif
+
+    @if(!empty($editingTenant))
+      <div class="alert alert-info d-flex align-items-center mb-3">
+        <i class="bi bi-globe me-2 fs-5"></i>
+        <div>
+          <strong>Editando etiqueta de:</strong> <a href="https://{{ $editingTenant->domain }}" target="_blank">{{ $editingTenant->domain }}</a>
+        </div>
+      </div>
+    @endif
+
+    <form method="POST" action="{{ route('blog.tags.update', ['id' => $tag->id]) }}" id="tagForm">
+      @csrf
+      @method('PUT')
+
+      <div class="row">
+        {{-- Columna izquierda --}}
+        <div class="col-md-9">
+          <div class="card mb-4">
+            <div class="card-header"><strong>Información de la Etiqueta</strong></div>
+            <div class="card-body">
+              {{-- Nombre --}}
+              <div class="mb-3">
+                <label for="name" class="form-label">Nombre <span class="text-danger">*</span></label>
+                <input type="text" class="form-control @error('name') is-invalid @enderror" name="name" id="name" value="{{ old('name', $tag->name) }}" required>
+                @error('name')
+                  <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+              </div>
+
+              {{-- Slug --}}
+              <div class="mb-3">
+                <label for="slug" class="form-label">Slug <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <input type="text" class="form-control @error('slug') is-invalid @enderror" name="slug" id="slug" value="{{ old('slug', $tag->slug) }}" required readonly>
+                  <button type="button" class="btn btn-outline-secondary" id="toggle-slug-edit" title="Editar Slug">
+                    <i class="bi bi-lock"></i>
+                  </button>
+                  @error('slug')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                  @enderror
+                </div>
+                <small class="text-muted">URL amigable. Se genera automáticamente desde el nombre.</small>
+                <span id="slug-check-result" class="ms-1 fw-bold"></span>
+              </div>
+
+              {{-- Descripción --}}
+              <div class="mb-3">
+                <label for="description" class="form-label">{{ __('blog.tag.description') }}</label>
+                <textarea class="form-control @error('description') is-invalid @enderror" name="description" id="description" rows="4" placeholder="Descripción breve de la etiqueta (opcional)">{{ old('description', $tag->description) }}</textarea>
+                @error('description')
+                  <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+                <small class="text-muted">Esta descripción puede aparecer en páginas de archivo de la etiqueta.</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {{-- Columna derecha --}}
+        <div class="col-md-3">
+          {{-- Card Actualizar --}}
+          <div class="card mb-4">
+            <div class="card-header"><strong>Actualizar</strong></div>
+            <div class="card-body">
+              <div class="d-grid">
+                <button type="submit" class="btn btn-primary">{{ __('common.update') }}</button>
+              </div>
+            </div>
+          </div>
+
+          {{-- Card Color --}}
+          <div class="card mb-4">
+            <div class="card-header"><strong>Personalización</strong></div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label for="color" class="form-label">Color de la etiqueta</label>
+                <input type="color" class="form-control form-control-color @error('color') is-invalid @enderror" name="color" id="color" value="{{ old('color', $tag->color ?? '#6c757d') }}">
+                @error('color')
+                  <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+                <small class="text-muted">Se usará para badges y destacados.</small>
+              </div>
+            </div>
+          </div>
+
+          {{-- Card Info --}}
+          <div class="card mb-4">
+            <div class="card-body p-2">
+              <small class="text-muted d-block mb-1">
+                <strong>Posts asociados:</strong> {{ $tag->posts_count ?? 0 }}
+              </small>
+              <small class="text-muted d-block mb-1">
+                <strong>Creado:</strong> {{ $tag->created_at ? $tag->created_at->format('d/m/Y H:i') : '—' }}
+              </small>
+              <small class="text-muted d-block">
+                <strong>Actualizado:</strong> {{ $tag->updated_at ? $tag->updated_at->format('d/m/Y H:i') : '—' }}
+              </small>
+            </div>
+          </div>
+
+          {{-- Card Eliminar --}}
+          <div class="card mb-4">
+            <div class="card-body text-center">
+              <a href="javascript:void(0);" onclick="confirmDelete({{ $tag->id }})" class="btn btn-sm btn-outline-danger">
+                <i class="fas fa-trash me-1"></i> Eliminar etiqueta
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<script>
+  function confirmDelete(tagId) {
+    Swal.fire({
+      title: '¿Estás seguro?',
+      text: 'Esta acción eliminará permanentemente esta etiqueta y no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `{{ admin_path() }}/blog/tags/${tagId}`;
+        form.innerHTML = `
+          @csrf
+          @method('DELETE')
+        `;
+        document.body.appendChild(form);
+        form.submit();
+      }
+    });
+  }
+</script>
+@endsection
+
+@include('Blog::partials._taxonomy_slug_scripts', ['type' => 'tag', 'entityId' => $tag->id])

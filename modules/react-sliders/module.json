@@ -1,0 +1,33 @@
+{
+  "name": "React Sliders",
+  "slug": "react-sliders",
+  "description": "Sistema moderno de sliders con React y Tailwind CSS",
+  "version": "1.0.0",
+  "author": "MuseDock",
+  "cms_enabled": true,
+  "requires": {
+    "php": ">=8.0",
+    "musedock": ">=1.0.0"
+  },
+  "permissions": [
+    "react_sliders.manage",
+    "react_sliders.view",
+    "react_sliders.create",
+    "react_sliders.edit",
+    "react_sliders.delete"
+  ],
+  "menu": {
+    "superadmin": {
+      "label": "React Sliders",
+      "icon": "fa-images",
+      "route": "react-sliders.index",
+      "order": 50
+    },
+    "tenant": {
+      "label": "Sliders Modernos",
+      "icon": "fa-images",
+      "route": "tenant.react-sliders.index",
+      "order": 50
+    }
+  }
+}

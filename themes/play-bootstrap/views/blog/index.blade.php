@@ -1,0 +1,141 @@
+@extends('layouts.app')
+
+{{-- SEO --}}
+@section('title')
+    @if(!empty($is_home))
+        @php $__subtitle = site_setting('site_subtitle', ''); @endphp
+        {{ site_setting('site_name', '') . ($__subtitle ? ' | ' . $__subtitle : '') }}
+    @else
+        {{ __('blog.title') . ' | ' . site_setting('site_name', '') }}
+    @endif
+@endsection
+
+@section('description')
+    {{ site_setting('site_description', '') }}
+@endsection
+
+@section('content')
+
+<!-- ====== Banner Start ====== -->
+<section class="ud-page-banner" style="background-image: linear-gradient(rgba(48, 86, 211, 0.55), rgba(48, 86, 211, 0.55)), url('{{ asset('img/background.jpg') }}'); background-size: cover; background-position: center; background-repeat: no-repeat;">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="ud-banner-content">
+                    <h1>{{ 'Blog' }}</h1>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- ====== Banner End ====== -->
+
+<!-- ====== Blog Start ====== -->
+<section class="ud-blog-grids py-5">
+    <div class="container">
+        @if(!empty($posts) && count($posts) > 0)
+        <div class="row">
+            @foreach($posts as $post)
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="ud-single-blog">
+                    <div class="ud-blog-image">
+                        <a href="{{ blog_url($post->slug) }}">
+                            @php
+                                if ($post->featured_image && !$post->hide_featured_image) {
+                                    $imageUrl = (str_starts_with($post->featured_image, '/') || str_starts_with($post->featured_image, 'http'))
+                                        ? $post->featured_image
+                                        : asset($post->featured_image);
+                                } else {
+                                    $imageUrl = asset('img/no-image.png');
+                                }
+                                $imageUrl = media_thumb_url($imageUrl, 'medium');
+                            @endphp
+                            <img src="{{ $imageUrl }}" alt="{{ $post->title }}" loading="lazy" />
+                        </a>
+                    </div>
+                    <div class="ud-blog-content">
+                        @php
+                            $dateVal = $post->published_at ?? $post->created_at;
+                            $dateStr = $dateVal instanceof \DateTime ? $dateVal->format('M d, Y') : date('M d, Y', strtotime($dateVal));
+                        @endphp
+                        <span class="ud-blog-date">{{ $dateStr }}</span>
+                        <h3 class="ud-blog-title">
+                            <a href="{{ blog_url($post->slug) }}">
+                                {{ $post->title }}
+                            </a>
+                        </h3>
+                        @php
+                            $__excerpt = $post->excerpt ?: strip_tags($post->content ?? '');
+                            $__excerpt = trim(preg_replace('/\s+/', ' ', $__excerpt));
+                            $__excerpt = mb_strlen($__excerpt) > 200 ? mb_substr($__excerpt, 0, 200) . '...' : $__excerpt;
+                        @endphp
+                        @if($__excerpt)
+                        <p class="ud-blog-desc">{{ $__excerpt }}</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+
+        {{-- Paginación --}}
+        @if(!empty($pagination) && $pagination['total_pages'] > 1)
+        <div class="row mt-4">
+            <div class="col-12">
+                <nav aria-label="Navegación de páginas">
+                    <ul class="pagination justify-content-center">
+                        {{-- Botón anterior --}}
+                        @if($pagination['current_page'] > 1)
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ $pagination['current_page'] - 1 }}" aria-label="Anterior">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        @else
+                        <li class="page-item disabled">
+                            <span class="page-link">&laquo;</span>
+                        </li>
+                        @endif
+
+                        {{-- Números de página --}}
+                        @for($i = 1; $i <= $pagination['total_pages']; $i++)
+                            @if($i == $pagination['current_page'])
+                            <li class="page-item active" aria-current="page">
+                                <span class="page-link">{{ $i }}</span>
+                            </li>
+                            @else
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ $i }}">{{ $i }}</a>
+                            </li>
+                            @endif
+                        @endfor
+
+                        {{-- Botón siguiente --}}
+                        @if($pagination['current_page'] < $pagination['total_pages'])
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ $pagination['current_page'] + 1 }}" aria-label="Siguiente">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        @else
+                        <li class="page-item disabled">
+                            <span class="page-link">&raquo;</span>
+                        </li>
+                        @endif
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        @endif
+@else
+        <div class="row">
+            <div class="col-12">
+                <p class="text-muted text-center">{{ __('blog.frontend.no_posts') }}</p>
+            </div>
+        </div>
+        @endif
+    </div>
+</section>
+<!-- ====== Blog End ====== -->
+
+@endsection

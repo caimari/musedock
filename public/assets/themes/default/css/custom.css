@@ -1,0 +1,1217 @@
+:root {
+  --topbar-bg-color: #1a2a40;
+  --topbar-text-color: #ffffff;
+  --header-bg-color: #f3edcd;
+  --header-cta-bg-color: #ff5e15;
+  --header-cta-text-color: #ffffff;
+  --footer-bg-color: #d3d9e4;
+  --footer-text-color: #333333;
+  --footer-link-color: #333333;
+  --footer-link-hover-color: #ff5e15;
+}
+
+
+/* Aplicación de la variable al elemento HTML correcto */
+.header-bottom {
+  background-color: var(--header-bg-color);
+}
+
+/* Estilos para widget de categorías - forzar color negro en todos los estados */
+.widget-blog-categories a,
+.widget-blog-categories a:link,
+.widget-blog-categories a:visited,
+.widget-blog-categories a:hover,
+.widget-blog-categories a:active {
+  color: #000 !important;
+}
+
+.widget-blog-categories h5 {
+  color: #000 !important;
+  font-size: 14px !important;
+}
+
+/* Reducir espacio entre widgets del sidebar */
+.sidebar .widget,
+.sidebar [class*="widget"] {
+  margin-bottom: 15px !important;
+}
+
+.sidebar .widget:last-child,
+.sidebar [class*="widget"]:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Fix para el título del hero/slider - evitar desbordamiento */
+.hero-cap h2,
+.slider-area .hero-cap h2 {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  max-width: 100%;
+  padding: 0 15px;
+}
+
+/* Responsive para títulos largos en mobile */
+@media (max-width: 767px) {
+  .hero-cap h2,
+  .slider-area .hero-cap h2 {
+    font-size: 28px !important;
+    line-height: 1.2;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  .hero-cap h2,
+  .slider-area .hero-cap h2 {
+    font-size: 36px !important;
+    line-height: 1.3;
+  }
+}
+
+/* ===============================================
+   FIX HEADER - REDUCIR ESPACIADO
+   =============================================== */
+
+.header-top {
+  padding: 6px 0;
+}
+
+.musedock-header {
+  padding: 0;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+}
+/* Layout logo-above: debe ser block, no flex (tiene filas logo + menú) */
+.musedock-header.header-layout-logo-above,
+.musedock-header.header-layout-logo-above-left {
+  display: block !important;
+  min-height: auto !important;
+}
+
+/* ===============================================
+   HEADER LAYOUTS
+   =============================================== */
+
+.musedock-header.header-layout-left .header-left-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.musedock-header.header-layout-left .header-left-group {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.musedock-header.header-layout-centered .header-centered-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 24px;
+}
+
+.musedock-header.header-layout-centered .header-centered-left .main-navigation ul {
+  justify-content: flex-end; /* pegar el menú al logo */
+}
+
+.musedock-header.header-layout-centered .header-centered-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 24px;
+}
+
+/* En layout centered: menú derecho cerca del logo, acciones al extremo derecho */
+.musedock-header.header-layout-centered .header-centered-right .header-menu-right {
+  margin-right: auto;
+}
+
+/* ===============================================
+   HEADER LAYOUT: ACA (logo grande + caja blanca)
+   =============================================== */
+
+.musedock-header.header-layout-aca {
+  background: transparent !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+  /* Por defecto: pequeño margen lateral */
+  margin-left: 12px;
+  margin-right: 12px;
+  /* Curvatura solo abajo - SIMÉTRICO */
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  border-bottom: none !important; /* quitar línea gris del header base */
+  box-shadow: none !important;
+}
+
+.musedock-header.header-layout-aca .header-aca-box {
+  background: var(--header-bg-color, #ffffff);
+  margin: 0 auto;
+  padding: 18px 22px 14px;
+  /* Solo redondear abajo (no arriba) - SIMÉTRICO */
+  border-radius: 0 0 16px 16px;
+  /* La sombra se aplica en ::after para evitar “restos” laterales */
+  box-shadow: none;
+  max-width: 1320px;
+  width: 100%;
+  position: relative;
+}
+
+/* Sombra SOLO por debajo (sin halo lateral) */
+.musedock-header.header-layout-aca .header-aca-box::after {
+  content: "";
+  position: absolute;
+  left: 34px;
+  right: 34px;
+  bottom: -26px;
+  height: 26px;
+  pointer-events: none;
+  border-radius: 0 0 14px 14px;
+  box-shadow: 0 22px 30px -22px rgba(0, 0, 0, 0.55);
+}
+
+.musedock-header.header-layout-aca .header-aca-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.musedock-header.header-layout-aca .header-aca-brand-link {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.musedock-header.header-layout-aca .header-aca-brand-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.musedock-header.header-layout-aca .header-aca-logo {
+  height: 56px !important; /* sobrescribir regla global img { height:auto !important } */
+  max-height: 56px !important;
+  width: auto !important;
+  display: block;
+}
+
+.musedock-header.header-layout-aca .header-aca-title {
+  font-family: var(--header-logo-font);
+  color: var(--header-logo-text-color);
+  font-weight: 800;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.musedock-header.header-layout-aca .header-aca-tagline {
+  margin-top: 0;
+  color: var(--header-tagline-color, #111827);
+  font-size: 13px;
+  line-height: 1.25;
+  max-width: 420px;
+}
+
+/* Tagline global (header clásico + Tema 2) */
+.header-brand-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.header-brand-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.header-brand-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-brand-logo {
+  max-height: var(--header-logo-max-height, 45px);
+  width: auto;
+  display: block;
+}
+
+.header-site-tagline {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.25;
+  color: var(--header-tagline-color, #111827);
+}
+
+.musedock-header.header-layout-centered .header-centered-logo .header-brand-block {
+  align-items: center;
+  text-align: center;
+}
+
+@media (max-width: 991px) {
+  .header-site-tagline {
+    display: none;
+  }
+}
+
+.musedock-header.header-layout-aca .header-aca-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.musedock-header.header-layout-aca .header-aca-nav ul {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.musedock-header.header-layout-aca .header-aca-nav a {
+  color: var(--header-link-color) !important;
+}
+
+.musedock-header.header-layout-aca .header-aca-nav a:hover {
+  color: var(--header-link-hover-color) !important;
+}
+
+.musedock-header.header-layout-aca .header-aca-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.musedock-header.header-layout-aca .header-aca-cta {
+  padding: 14px 22px;
+  border-radius: 0;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 991px) {
+  .musedock-header.header-layout-aca .header-aca-nav {
+    display: none;
+  }
+
+  .musedock-header.header-layout-aca .header-aca-title {
+    font-size: 26px;
+  }
+
+  .musedock-header.header-layout-aca .header-aca-logo {
+    height: 38px !important; /* mantener logo pequeño en responsive */
+    max-height: 38px !important;
+    width: auto !important;
+  }
+
+  .musedock-header.header-layout-aca .header-aca-tagline {
+    display: none; /* ocultar subtítulo en móvil */
+  }
+
+  .musedock-header.header-layout-aca .header-aca-box {
+    border-radius: 0 0 12px 12px;
+  }
+
+  .musedock-header.header-layout-aca .header-aca-box::after {
+    left: 18px;
+    right: 18px;
+    bottom: -22px;
+    height: 22px;
+    border-radius: 0 0 12px 12px;
+  }
+}
+
+/* Desktop: márgenes SIMÉTRICOS para centrar el header */
+@media (min-width: 1200px) {
+  .musedock-header.header-layout-aca {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 1320px;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Ajustes de layout para "Tema 2" (header ACA) */
+body:has(#main-header.header-layout-aca) main > .container {
+  padding-top: 0 !important;
+}
+
+body:has(#main-header.header-layout-aca) .page-content-wrapper .page-body .element-hero {
+  padding-top: 0 !important;
+  height: 546px;
+}
+
+@media (min-width: 769px) {
+  body:has(#main-header.header-layout-aca) .page-body .element-hero .container {
+    padding-top: 0 !important;
+  }
+}
+
+/* ===============================================
+   HEADER LAYOUT: TEMA1 (topbar negro + logo abajo)
+   =============================================== */
+
+/* Variables para tema1 - usa las variables existentes del tema:
+   - TOPBAR: usa colores de "Barra superior (Top Bar)"
+   - LOGO SECTION: usa colores de "Cabecera principal" */
+.musedock-header.header-layout-tema1 {
+  /* Topbar: usa colores de la seccion TopBar (fondo y texto) */
+  --tema1-topbar-bg: var(--topbar-bg-color, #1a1a1a);
+  --tema1-topbar-text: var(--topbar-text-color, #ff6b35);
+  --tema1-topbar-text-hover: var(--header-link-hover-color, #ffffff);
+  /* Logo section: usa color de fondo del header */
+  --tema1-logo-section-bg: var(--header-bg-color, #f5f5f5);
+  /* Textos: usa colores de la seccion Header */
+  --tema1-title-color: var(--header-logo-text-color, #1a1a1a);
+  --tema1-title-font: var(--header-logo-font, inherit);
+  --tema1-tagline-color: var(--header-tagline-color, #666666);
+  --tema1-menu-font: var(--header-menu-font, 'Poppins', sans-serif);
+}
+
+.musedock-header.header-layout-tema1 {
+  background: transparent !important;
+  padding: 0 !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+/* TOPBAR - fondo negro con menu naranja (por defecto) */
+.header-tema1-topbar {
+  background-color: var(--tema1-topbar-bg);
+  padding: 10px 0;
+}
+
+/* Topbar ahora usa grid Bootstrap igual que el footer para alineación perfecta */
+/* El menú está en col-xl-3, alineado al INICIO de la columna (igual que "Contacto" en el footer) */
+.header-tema1-topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* Alinear al INICIO de la columna = donde empieza "Contacto" */
+}
+
+/* No necesita padding extra - la columna Bootstrap ya alinea */
+.header-tema1-topbar .header-tema1-nav {
+  padding-right: 0;
+}
+
+/* Logo section también usa Bootstrap .container */
+.header-tema1-logo-section .container {
+  display: flex;
+  align-items: center;
+}
+
+/* Navegacion principal - alineada al INICIO de la columna Bootstrap (igual que footer) */
+.header-tema1-nav {
+  display: flex;
+  justify-content: flex-start; /* Alinear al inicio = donde empieza "Contacto" en el footer */
+}
+
+.header-tema1-nav ul,
+.header-tema1-nav ul.header-tema1-menu,
+.header-tema1-topbar .header-tema1-nav ul {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin: 0;
+  padding: 0 !important;
+  list-style: none;
+}
+
+/* En móvil, mostrar el toggle a la derecha */
+@media (max-width: 991px) {
+  .header-tema1-topbar-inner {
+    justify-content: flex-end; /* Toggle a la derecha en móvil */
+  }
+
+  .header-tema1-nav {
+    display: none; /* Ocultar menú en móvil */
+  }
+
+  .header-tema1-menu-toggle {
+    display: flex;
+  }
+}
+
+.header-tema1-nav ul li {
+  position: relative;
+}
+
+.header-tema1-nav ul li a {
+  color: var(--tema1-topbar-text) !important;
+  font-family: var(--tema1-menu-font);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  padding: 6px 0;
+  transition: color 0.2s ease;
+}
+
+.header-tema1-nav ul li a:hover {
+  color: var(--tema1-topbar-text-hover) !important;
+}
+
+/* Submenu */
+.header-tema1-nav ul li .submenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--tema1-topbar-bg);
+  min-width: 200px;
+  padding: 10px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.2s ease;
+  z-index: 1000;
+}
+
+.header-tema1-nav ul li:hover .submenu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.header-tema1-nav ul li .submenu li {
+  display: block;
+}
+
+.header-tema1-nav ul li .submenu li a {
+  display: block;
+  padding: 8px 20px;
+  font-size: 12px;
+}
+
+/* Iconos de redes sociales derecha */
+.header-tema1-social {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-tema1-social-icon {
+  color: var(--tema1-topbar-text) !important;
+  font-size: 14px;
+  transition: color 0.2s ease;
+}
+
+.header-tema1-social-icon:hover {
+  color: var(--tema1-topbar-text-hover) !important;
+}
+
+/* Selector de idioma */
+.header-tema1-lang {
+  position: relative;
+}
+
+.header-tema1-lang-btn {
+  background: transparent;
+  border: 1px solid var(--tema1-topbar-text);
+  color: var(--tema1-topbar-text);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.header-tema1-lang-btn:hover {
+  background: var(--tema1-topbar-text);
+  color: var(--tema1-topbar-bg);
+}
+
+.header-tema1-lang-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--tema1-topbar-bg);
+  min-width: 100px;
+  padding: 8px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 1000;
+}
+
+.header-tema1-lang:hover .header-tema1-lang-dropdown {
+  opacity: 1;
+  visibility: visible;
+}
+
+.header-tema1-lang-option {
+  display: block;
+  padding: 6px 15px;
+  color: var(--tema1-topbar-text) !important;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.header-tema1-lang-option:hover,
+.header-tema1-lang-option.active {
+  color: var(--tema1-topbar-text-hover) !important;
+  background: rgba(255,255,255,0.05);
+}
+
+/* Menu toggle movil */
+.header-tema1-menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+}
+
+.header-tema1-menu-toggle span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background-color: var(--tema1-topbar-text) !important;
+  background: var(--tema1-topbar-text) !important;
+  transition: all 0.2s ease;
+}
+
+/* LOGO SECTION - fondo blanco/claro */
+.header-tema1-logo-section {
+  background-color: var(--tema1-logo-section-bg);
+  padding: 12px 0;
+}
+
+/* Fix: asegurar que el header tema1 no tenga padding extra */
+.musedock-header.header-layout-tema1 {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Fix sticky header tema1 */
+body:has(.header-layout-tema1.sticky) {
+  padding-top: var(--sticky-header-height-tema1, 110px) !important;
+}
+
+.musedock-header.header-layout-tema1.sticky {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+}
+
+/* Asegurar que el main tenga espacio y no se solape con header tema1 */
+body:has(.header-layout-tema1) main {
+  position: relative;
+  z-index: 1;
+}
+
+.header-tema1-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.header-tema1-logo {
+  height: 60px !important;
+  max-height: 60px !important;
+  width: auto !important;
+  display: block;
+}
+
+.header-tema1-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.header-tema1-title {
+  font-family: var(--tema1-title-font);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--tema1-title-color);
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+}
+
+.header-tema1-tagline {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tema1-tagline-color);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+/* RESPONSIVE */
+@media (max-width: 991px) {
+  .header-tema1-nav {
+    display: none;
+  }
+
+  .header-tema1-menu-toggle {
+    display: flex;
+  }
+
+  .header-tema1-logo {
+    height: 50px !important;
+    max-height: 50px !important;
+  }
+
+  .header-tema1-title {
+    font-size: 20px;
+  }
+
+  .header-tema1-tagline {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+  }
+
+  .header-tema1-logo-section {
+    padding: 10px 0;
+  }
+}
+
+@media (max-width: 575px) {
+  .header-tema1-social-icon {
+    font-size: 12px;
+  }
+
+  .header-tema1-social {
+    gap: 10px;
+  }
+
+  .header-tema1-logo {
+    height: 36px !important;
+    max-height: 36px !important;
+  }
+
+  .header-tema1-title {
+    font-size: 14px;
+  }
+
+  .header-tema1-tagline {
+    font-size: 7px;
+    letter-spacing: 0.08em;
+  }
+
+  .header-tema1-brand {
+    gap: 6px;
+  }
+
+  .header-tema1-logo-section {
+    padding: 6px 0;
+  }
+
+  .header-tema1-brand-text {
+    gap: 0;
+  }
+}
+
+/* ===============================================
+   HEADER LAYOUT: LOGO-ABOVE (logo centrado + menú debajo)
+   Estilo tipo festival de cine: logo grande centrado,
+   barra de navegación horizontal separada debajo
+   =============================================== */
+.musedock-header.header-layout-logo-above {
+  padding: 0 !important;
+  border-bottom: none !important;
+}
+
+.header-layout-logo-above .header-logo-above-brand {
+  padding: 24px 0 16px;
+  text-align: center !important;
+  background: var(--header-bg-color, #ffffff);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.header-layout-logo-above .header-logo-above-brand .container {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+.header-layout-logo-above .header-brand-link {
+  text-decoration: none;
+  color: inherit;
+  display: inline-block;
+}
+.header-layout-logo-above .header-brand-block {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+}
+.header-layout-logo-above .header-brand-logo {
+  max-height: 120px;
+  width: auto;
+  display: block;
+  margin: 0 auto;
+}
+.header-logo-above-brand .header-site-tagline {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--header-tagline-color, #666);
+}
+
+.header-logo-above-nav {
+  background: var(--header-bg-color, #ffffff);
+  border-top: 1px solid rgba(0,0,0,0.06);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  padding: 0;
+}
+.header-logo-above-nav:empty,
+.header-logo-above-nav:has(.main-navigation:empty) {
+  display: none;
+}
+.header-logo-above-nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 44px;
+}
+.header-logo-above-nav .main-navigation ul {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  flex-wrap: wrap;
+}
+.header-logo-above-nav .main-navigation ul li a {
+  padding: 10px 14px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--header-link-color, #333);
+  text-decoration: none;
+  transition: color 0.2s;
+  display: block;
+  white-space: nowrap;
+}
+.header-logo-above-nav .main-navigation ul li a:hover {
+  color: var(--header-link-hover-color, #007bff);
+}
+.header-logo-above-nav .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.header-logo-above-nav .menu-toggle {
+  display: none;
+}
+
+@media (max-width: 991px) {
+  .header-logo-above-brand {
+    padding: 16px 0 12px;
+  }
+  .header-logo-above-brand .header-brand-logo {
+    max-height: 80px;
+  }
+  .header-logo-above-nav .main-navigation {
+    display: none;
+  }
+  .header-logo-above-nav .menu-toggle {
+    display: flex;
+  }
+  .header-logo-above-nav-inner {
+    justify-content: flex-end;
+    min-height: 40px;
+  }
+}
+
+/* ===============================================
+   FIX CONTENIDO - DELIMITACIÓN Y CENTRADO
+   =============================================== */
+
+/* Contenedor principal de páginas - forzar centrado y delimitación */
+main > .container,
+main > .container-fluid,
+main .page-container,
+main .has-slider-content {
+  max-width: 1170px !important;
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-left: 15px !important;
+  padding-right: 15px !important;
+  box-sizing: border-box !important;
+}
+
+/* Cuando hay hero full-width, eliminar padding vertical del contenedor */
+main .has-slider-content:has(.element-hero.layout-video.full-width),
+main .has-slider-content:has(.element-hero.layout-background.full-width),
+main .container.py-4:has(.element-hero.layout-video.full-width),
+main .container.py-4:has(.element-hero.layout-background.full-width) {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Permitir hero full-width fuera del contenedor */
+.page-content-wrapper:has(.element-hero.layout-background.full-width),
+.page-content-wrapper:has(.element-hero.layout-video.full-width),
+.page-body:has(.element-hero.layout-background.full-width),
+.page-body:has(.element-hero.layout-video.full-width) {
+  overflow: visible !important;
+}
+
+/* Excepción: el slider debe ser full-width */
+main > .slider-area,
+.slider-area {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Contenido de artículos y páginas - sin padding extra */
+.page-content-wrapper,
+.blog-post-single,
+article.page-content-wrapper,
+article.blog-post-single {
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Page body y post content - sin padding extra ya que el container lo tiene */
+.page-body,
+.post-content {
+  max-width: 100%;
+  width: 100%;
+}
+
+/* Fix para el espaciado del contenedor principal cuando hay slider */
+.has-slider-content {
+  margin-top: 0 !important;
+}
+
+/* ===============================================
+   FIX FOOTER - REDUCIR ESPACIADO
+   =============================================== */
+
+/* Base: compactar un poco el footer por defecto (no banner) */
+.footer-area:not(.footer-banner).footer-padding {
+  padding-top: 18px !important;
+  padding-bottom: 18px !important;
+}
+
+/* Footer banner: acercar selector de idioma y cookie */
+.footer-banner .cookie-settings-link {
+  margin-bottom: 0.4rem !important;
+}
+
+.footer-banner .language-selector {
+  margin-top: 0.4rem !important;
+  margin-bottom: 0 !important;
+}
+
+.footer-bottom-contrast {
+  background-color: var(--footer-bottom-bg-color, #ffffff) !important;
+}
+
+/* Footer banner: MÁS aire arriba (logo/columna) y control total de separación */
+.footer-area.footer-banner.footer-padding {
+  padding-top: 52px !important;
+  padding-bottom: 22px !important;
+}
+
+.footer-area.footer-banner .single-footer-caption.mb-50 {
+  margin-bottom: 10px !important;
+}
+
+/* La separación real entre banner (fondo) y el bloque copyright (blanco) */
+footer .footer-area.footer-banner + .footer-bottom-area.footer-bottom-contrast {
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  border-top: none !important; /* quitar línea del copyright */
+}
+
+/* Evitar doble scrollbar */
+html {
+  overflow-y: auto !important;
+}
+
+body {
+  overflow-y: visible !important;
+  overflow-x: hidden !important;
+}
+
+/* Bloquear scroll cuando magnific-popup está abierto */
+html.mfp-helper,
+body.mfp-helper {
+  overflow: hidden !important;
+}
+.mfp-wrap {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* Imágenes del contenido no deben desbordar su contenedor */
+.page-body img {
+  max-width: 100%;
+  height: auto;
+}
+
+body main,
+body .page-container,
+body .has-slider-content,
+body .page-content-wrapper,
+body .page-body,
+body article {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  overflow-y: visible !important;
+}
+
+/* ===============================================
+   STICKY HEADER (frontend usa template.css + custom.css)
+   =============================================== */
+
+/* Cuando el toggle está activo, el JS añade .sticky y el padding al body */
+.musedock-header.sticky {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+body.has-sticky-header {
+  padding-top: var(--sticky-header-height, 70px);
+}
+
+/* Reducir espacio entre logo y widgets del footer */
+.footer-area .footer-logo,
+.single-footer-caption .footer-logo {
+  margin-bottom: 8px !important;
+}
+
+.footer-area .footer-pera,
+.single-footer-caption .footer-pera {
+  margin-bottom: 0 !important;
+}
+
+.footer-area .footer-pera p {
+  margin-bottom: 8px !important;
+  padding-right: 0 !important;
+}
+
+.footer-area .footer-pera p:empty {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 0 !important;
+  font-size: 0 !important;
+  display: none !important;
+}
+
+.footer-area .single-footer-caption.mb-50 {
+  margin-bottom: 10px !important;
+}
+
+/* ===============================================
+   FIX SIDEBAR PAGES
+   =============================================== */
+
+/* Asegurar que el contenido de las páginas con sidebar no se desborde */
+.page-with-sidebar .page-content-wrapper,
+.page-with-sidebar .blog-post-single {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ===============================================
+   RESPONSIVE
+   =============================================== */
+
+@media (max-width: 991px) {
+  main > .container,
+  main > .container-fluid,
+  main .page-container,
+  main .has-slider-content {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
+}
+
+@media (max-width: 575px) {
+  main > .container,
+  main > .container-fluid,
+  main .page-container,
+  main .has-slider-content {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  .footer-area,
+  .footer-area.footer-padding {
+    padding-top: 15px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .footer-area .footer-top,
+  .footer-padding {
+    padding-top: 15px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .footer-area .single-footer-caption.mb-50 {
+    margin-bottom: 5px !important;
+  }
+
+  .footer-area .footer-logo {
+    margin-bottom: 5px !important;
+  }
+
+  .footer-area .footer-pera {
+    margin-bottom: 0 !important;
+  }
+
+  /* Ocultar columnas vacías del footer en móvil */
+  .footer-area .footer-col-empty {
+    display: none !important;
+  }
+}
+
+/* Reducir espacios entre sliders y contenido en página */
+.page-body .swiper {
+  margin-bottom: 8px;
+}
+
+.page-body .swiper + .swiper,
+.page-body script + .swiper,
+.page-body link + .swiper {
+  margin-top: 0;
+}
+
+/* Párrafos vacíos residuales de importación WP — agresivo */
+.page-body p:empty {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 0 !important;
+}
+
+/* En contenido con sliders: colapsar párrafos sin texto visible (solo si hay swipers reales) */
+.page-body > p:empty,
+.page-body:has(.swiper) > p:has(link):not(:has(img)):not(:has(video)):not(:has(iframe)) {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 0 !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+
+/* Reducir margenes entre cualquier elemento adyacente a swipers */
+.page-body .swiper + *,
+.page-body script + *,
+.page-body * + .swiper {
+  margin-top: 0 !important;
+}
+
+.page-body .swiper + p,
+.page-body script + p {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+@media (max-width: 767px) {
+  .container.py-4 {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
+  /* Contenedor con sliders: sin padding arriba */
+  .has-slider-content.py-4 {
+    padding-top: 0 !important;
+    padding-bottom: 4px !important;
+  }
+
+  .page-body .swiper {
+    margin-bottom: 4px;
+  }
+
+  /* Hero slider: altura adaptativa en móvil */
+  .page-body .swiper.theme-default {
+    height: 250px !important;
+    max-height: 60vw;
+  }
+
+  /* Portrait carousel: gap mínimo */
+  .page-body .swiper.theme-portrait-carousel {
+    margin-bottom: 4px;
+  }
+}
+
+/* Briefs sidebar */
+.briefs-sidebar .brief-item a:hover .brief-title {
+    color: #dc3545 !important;
+}
+.briefs-sidebar .brief-item {
+    transition: background-color 0.15s;
+    padding: 6px 8px;
+    margin-left: -8px;
+    margin-right: -8px;
+    border-radius: 4px;
+}
+.briefs-sidebar .brief-item:hover {
+    background-color: #f8f9fa;
+}
+@media (max-width: 991px) {
+    .briefs-sidebar {
+        position: static !important;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #dee2e6;
+    }
+}
+
+/* Slider responsive en móvil */
+@media (max-width: 767px) {
+    .swiper:not(.theme-portrait-carousel):not(.gallery-top):not(.gallery-thumbs) {
+        height: 220px !important;
+    }
+    /* Reducir espacio entre header y contenido en móvil */
+    main > .container.py-4 {
+        padding-top: 1rem !important;
+    }
+}
+@media (min-width: 768px) and (max-width: 991px) {
+    .swiper:not(.theme-portrait-carousel):not(.gallery-top):not(.gallery-thumbs) {
+        height: 280px !important;
+    }
+}
+
+/* Reducir espacio entre slider embebido y texto que le sigue */
+.page-body .swiper {
+    margin-bottom: 16px;
+}
+.page-body > p:first-child {
+    margin-top: 0;
+}
+/* Asegurar espacio mínimo entre header y slider embebido en página */
+.page-body > .swiper:first-child,
+.page-body > link:first-child + .swiper {
+    margin-top: 8px;
+}

@@ -1,0 +1,3 @@
+# Deny access to core directory
+Order Deny,Allow
+Deny from all

@@ -1,0 +1,56 @@
+{
+    "title": "AI Writer",
+    "settings": "Configuración de AI Writer",
+    "settings_desc": "Configura el proveedor de IA y los límites de uso",
+
+    "provider": "Proveedor de IA",
+    "provider_default": "Proveedor por defecto",
+    "provider_select": "Selecciona un proveedor",
+    "provider_none": "Ninguno configurado",
+
+    "limits": "Límites de Uso",
+    "daily_token_limit": "Límite diario de tokens",
+    "daily_token_limit_help": "0 = sin límite",
+    "log_prompts": "Registrar todos los prompts",
+    "log_prompts_help": "Guardar historial de solicitudes de IA",
+
+    "save": "Guardar configuración",
+    "saved": "Configuración guardada correctamente",
+    "error_saving": "Error al guardar la configuración",
+    "error_loading": "Error al cargar la configuración",
+
+    "dialog.title": "AI Writer",
+    "dialog.action": "Acción",
+    "dialog.action_generate": "Generar contenido",
+    "dialog.action_improve": "Mejorar texto seleccionado",
+    "dialog.action_summarize": "Resumir texto",
+    "dialog.action_correct": "Corregir texto",
+    "dialog.action_titles": "Generar ideas de título",
+
+    "dialog.provider": "Proveedor de IA",
+    "dialog.prompt": "Prompt / Instrucciones",
+    "dialog.prompt_placeholder": "Describe lo que quieres generar o cómo mejorar el texto...",
+    "dialog.replace": "Reemplazar texto seleccionado",
+    "dialog.cancel": "Cancelar",
+    "dialog.generate": "Generar",
+
+    "menu.generate_paragraph": "Generar párrafo",
+    "menu.complete_idea": "Completar idea",
+    "menu.improve_writing": "Mejorar redacción",
+    "menu.correct_errors": "Corregir errores",
+    "menu.more_options": "Más opciones...",
+
+    "quick.title": "Generar con IA",
+    "quick.topic": "Tema o idea",
+    "quick.generating": "Generando contenido con IA...",
+    "quick.processing": "Procesando con IA...",
+    "quick.select_text": "Selecciona el texto que deseas procesar",
+
+    "success.generated": "Contenido generado correctamente",
+    "success.tokens": "tokens",
+
+    "error.generate": "Error al generar contenido",
+    "error.process": "Error al procesar con IA",
+    "error.connection": "Error de conexión",
+    "error.load_providers": "Error al cargar proveedores"
+}

@@ -1,0 +1,16 @@
+{
+  "name": "AI Writer",
+  "slug": "ai-writer",
+  "description": "Integración de IA con TinyMCE para generar y mejorar contenido",
+  "version": "1.0.0",
+  "author": "MuseDock",
+  "active": true,
+  "public": true,
+  "cms_enabled": true,
+  "tenant_enabled_default": true,
+  "autoload": {
+    "psr-4": {
+      "AIWriter\\": "controllers/"
+    }
+  }
+}

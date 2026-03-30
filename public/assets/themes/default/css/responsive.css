@@ -1,0 +1,186 @@
+/* Normal desktop :1200px. */
+@media (min-width: 1200px) and (max-width: 1500px) {
+
+
+}
+
+
+/* Normal desktop :992px. */
+@media (min-width: 992px) and (max-width: 1200px) {
+
+
+}
+
+ 
+/* Tablet desktop :768px. */
+@media (min-width: 768px) and (max-width: 991px) {
+
+
+}
+
+ 
+/* small mobile :320px. */
+@media (max-width: 767px) {
+
+ 
+}
+ 
+/* Large Mobile :480px. */
+@media only screen and (min-width: 480px) and (max-width: 767px) {
+.container {width:450px}
+
+}
+
+/* ========== RESPONSIVE IMAGES FIX ========== */
+/* Forzar todas las imágenes a ser responsivas en todos los tamaños de pantalla */
+
+/* Rango tablet/desktop pequeño: 992px - 1200px */
+@media (min-width: 992px) and (max-width: 1200px) {
+  img,
+  img[width],
+  img[height],
+  .page-body img,
+  .post-content img,
+  .page-content-wrapper img,
+  .blog-post-single img,
+  article img,
+  .container img,
+  main img,
+  p img,
+  div img {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block;
+  }
+
+  .container,
+  .page-body,
+  .post-content,
+  article,
+  main {
+    overflow-x: hidden !important;
+  }
+}
+
+/* Rango tablet: 768px - 991px */
+@media (min-width: 768px) and (max-width: 991px) {
+  img,
+  img[width],
+  img[height],
+  .page-body img,
+  .post-content img,
+  .page-content-wrapper img,
+  .blog-post-single img,
+  article img,
+  .container img,
+  main img,
+  p img,
+  div img {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block;
+  }
+
+  .container,
+  .page-body,
+  .post-content,
+  article,
+  main {
+    overflow-x: hidden !important;
+  }
+}
+
+/* Móviles y tablets pequeñas: hasta 767px */
+@media (max-width: 767px) {
+  img,
+  img[width],
+  img[height],
+  .page-body img,
+  .post-content img,
+  .page-content-wrapper img,
+  .blog-post-single img,
+  article img,
+  .container img,
+  main img,
+  p img,
+  div img {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block;
+  }
+
+  .container,
+  .page-body,
+  .post-content,
+  article,
+  main {
+    overflow-x: hidden !important;
+  }
+}
+
+/* ========== GRID RESPONSIVO PARA IMÁGENES MÚLTIPLES ========== */
+/* Convertir párrafos con múltiples imágenes en grid responsivo */
+
+/* Grid en párrafos con múltiples imágenes */
+.page-body p:has(img + img),
+.post-content p:has(img + img),
+.page-content-wrapper p:has(img + img),
+.blog-post-single p:has(img + img) {
+  display: grid !important;
+  gap: 15px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  align-items: start;
+}
+
+/* Desktop grande: 4 columnas para muchas imágenes */
+@media (min-width: 1200px) {
+  .page-body p:has(img + img + img + img),
+  .post-content p:has(img + img + img + img),
+  .page-content-wrapper p:has(img + img + img + img),
+  .blog-post-single p:has(img + img + img + img) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .page-body p:has(img + img + img),
+  .post-content p:has(img + img + img),
+  .page-content-wrapper p:has(img + img + img),
+  .blog-post-single p:has(img + img + img) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .page-body p:has(img + img),
+  .post-content p:has(img + img),
+  .page-content-wrapper p:has(img + img),
+  .blog-post-single p:has(img + img) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Tablet: 2 columnas */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .page-body p:has(img + img),
+  .post-content p:has(img + img),
+  .page-content-wrapper p:has(img + img),
+  .blog-post-single p:has(img + img) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Móvil: 2 columnas para imágenes pequeñas (logos), 1 para imágenes grandes */
+@media (max-width: 767px) {
+  .page-body p:has(img + img),
+  .post-content p:has(img + img),
+  .page-content-wrapper p:has(img + img),
+  .blog-post-single p:has(img + img) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  /* Si las imágenes son muy grandes (más de 300px), usar 1 columna */
+  .page-body p:has(img + img) img,
+  .post-content p:has(img + img) img,
+  .page-content-wrapper p:has(img + img) img,
+  .blog-post-single p:has(img + img) img {
+    margin: 0 auto;
+  }
+}
