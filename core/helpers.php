@@ -2510,3 +2510,85 @@ if (!function_exists('media_thumb_url')) {
         return $url;
     }
 }
+
+if (!function_exists('extract_google_fonts_from_content')) {
+    /**
+     * Scans HTML content for inline font-family styles and returns
+     * an array of Google Font names that need to be loaded.
+     * Only returns fonts from the curated list (not system fonts).
+     */
+    function extract_google_fonts_from_content(string $html): array
+    {
+        if (empty($html)) return [];
+
+        // Curated Google Fonts — must match the TinyMCE selector list
+        static $knownGoogleFonts = [
+            'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Raleway',
+            'Nunito', 'Inter', 'Work Sans', 'Source Sans 3', 'DM Sans',
+            'Poppins', 'Quicksand',
+            'Playfair Display', 'Lora', 'Merriweather', 'PT Serif',
+            'Libre Baskerville', 'Crimson Text',
+            'JetBrains Mono', 'Fira Code', 'Source Code Pro',
+            'Oswald', 'Bebas Neue',
+        ];
+
+        // Extract font-family values from inline styles
+        if (!preg_match_all('/font-family:\s*([^;"]+)/i', $html, $matches)) {
+            return [];
+        }
+
+        $fontsNeeded = [];
+        foreach ($matches[1] as $fontStack) {
+            // Font stack: "'Montserrat', sans-serif" → extract first name
+            $parts = explode(',', $fontStack);
+            $fontName = trim($parts[0], " \t\n\r\0\x0B'\"");
+
+            if (in_array($fontName, $knownGoogleFonts, true) && !in_array($fontName, $fontsNeeded, true)) {
+                $fontsNeeded[] = $fontName;
+            }
+        }
+
+        return $fontsNeeded;
+    }
+}
+
+if (!function_exists('google_fonts_link_for_content')) {
+    /**
+     * Generates a <link> tag for loading Google Fonts detected in content HTML.
+     * Excludes fonts already loaded by the theme (to avoid duplicates).
+     */
+    function google_fonts_link_for_content(string $html, array $alreadyLoadedFonts = []): string
+    {
+        $fonts = extract_google_fonts_from_content($html);
+        if (empty($fonts)) return '';
+
+        // Font name → Google Fonts URL parameter
+        $fontUrlMap = [
+            'Roboto' => 'Roboto:wght@400;700', 'Open Sans' => 'Open+Sans:wght@400;700',
+            'Lato' => 'Lato:wght@400;700', 'Montserrat' => 'Montserrat:wght@400;700',
+            'Raleway' => 'Raleway:wght@400;700', 'Nunito' => 'Nunito:wght@400;700',
+            'Inter' => 'Inter:wght@400;700', 'Work Sans' => 'Work+Sans:wght@400;700',
+            'Source Sans 3' => 'Source+Sans+3:wght@400;700', 'DM Sans' => 'DM+Sans:wght@400;700',
+            'Poppins' => 'Poppins:wght@400;700', 'Quicksand' => 'Quicksand:wght@400;700',
+            'Playfair Display' => 'Playfair+Display:wght@400;700', 'Lora' => 'Lora:wght@400;700',
+            'Merriweather' => 'Merriweather:wght@400;700', 'PT Serif' => 'PT+Serif:wght@400;700',
+            'Libre Baskerville' => 'Libre+Baskerville:wght@400;700', 'Crimson Text' => 'Crimson+Text:wght@400;700',
+            'JetBrains Mono' => 'JetBrains+Mono:wght@400;700', 'Fira Code' => 'Fira+Code:wght@400;700',
+            'Source Code Pro' => 'Source+Code+Pro:wght@400;700',
+            'Oswald' => 'Oswald:wght@400;700', 'Bebas Neue' => 'Bebas+Neue',
+        ];
+
+        $families = [];
+        foreach ($fonts as $fontName) {
+            // Skip if already loaded by theme options
+            if (in_array($fontName, $alreadyLoadedFonts, true)) continue;
+            if (isset($fontUrlMap[$fontName])) {
+                $families[] = 'family=' . $fontUrlMap[$fontName];
+            }
+        }
+
+        if (empty($families)) return '';
+
+        return '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?' . implode('&', $families) . '&display=swap">';
+    }
+}

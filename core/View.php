@@ -328,6 +328,23 @@ class View
     }
     // ==========================================================
 
+    // === DETECTAR GOOGLE FONTS en inline styles del contenido ===
+    if (isset($data['translation']) && isset($data['translation']->content) && function_exists('google_fonts_link_for_content')) {
+        // Fonts already loaded by theme options (avoid duplicates)
+        $alreadyLoaded = [];
+        if (function_exists('themeOption')) {
+            foreach (['typography.content_heading_font', 'typography.content_body_font', 'header.header_logo_font'] as $opt) {
+                $val = themeOption($opt, 'inherit');
+                if ($val && $val !== 'inherit') {
+                    $cleanName = trim(explode(',', str_replace("'", '', $val))[0]);
+                    if (!empty($cleanName)) $alreadyLoaded[] = $cleanName;
+                }
+            }
+        }
+        $data['__contentFontsLink'] = google_fonts_link_for_content($data['translation']->content, $alreadyLoaded);
+    }
+    // ==========================================================
+
     // Pass default theme as a fallback path so @include can find shared partials
     // (e.g. blog/layouts/_taxonomy-chips from non-default themes)
     $defaultViewPath = __DIR__ . '/../themes/default/views';

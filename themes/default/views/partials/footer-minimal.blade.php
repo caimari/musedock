@@ -6,12 +6,46 @@
     $__bl = $currentLang;
 @endphp
 <footer class="footer-minimal">
-    {{-- Copyright bar --}}
+    {{-- Copyright bar: site name + year left, social icons right --}}
     <div class="footer-minimal-copyright" style="background-color: var(--footer-bg-color, #1a1a1a);">
         <div class="container">
-            <p style="color: var(--footer-text-color, #ccc);">
-                {!! site_setting('footer_copyright', '© Copyright ' . site_setting('site_name', 'MuseDock') . ' ' . date('Y') . '.') !!}
-            </p>
+            <div class="footer-minimal-copyright-inner">
+                @php
+                    $footerCopyright = site_setting('footer_copyright', '');
+                    if (empty(trim($footerCopyright))) {
+                        $footerCopyright = '&copy; ' . date('Y') . ' ' . site_setting('site_name', 'MuseDock');
+                    }
+                @endphp
+                <p style="color: var(--footer-text-color, #ccc); margin: 0;">
+                    {!! $footerCopyright !!}
+                </p>
+                <div class="footer-minimal-social">
+                    @if(site_setting('social_facebook', ''))
+                        <a href="{{ site_setting('social_facebook') }}" target="_blank" rel="noopener"><i class="fab fa-facebook-f"></i></a>
+                    @endif
+                    @if(site_setting('social_twitter', ''))
+                        <a href="{{ site_setting('social_twitter') }}" target="_blank" rel="noopener"><i class="fab fa-twitter"></i></a>
+                    @endif
+                    @if(site_setting('social_instagram', ''))
+                        <a href="{{ site_setting('social_instagram') }}" target="_blank" rel="noopener"><i class="fab fa-instagram"></i></a>
+                    @endif
+                    @if(site_setting('social_linkedin', ''))
+                        <a href="{{ site_setting('social_linkedin') }}" target="_blank" rel="noopener"><i class="fab fa-linkedin-in"></i></a>
+                    @endif
+                    @if(site_setting('social_youtube', ''))
+                        <a href="{{ site_setting('social_youtube') }}" target="_blank" rel="noopener"><i class="fab fa-youtube"></i></a>
+                    @endif
+                    @if(site_setting('social_tiktok', ''))
+                        <a href="{{ site_setting('social_tiktok') }}" target="_blank" rel="noopener"><i class="fab fa-tiktok"></i></a>
+                    @endif
+                    @if(site_setting('social_vimeo', ''))
+                        <a href="{{ site_setting('social_vimeo') }}" target="_blank" rel="noopener"><i class="fab fa-vimeo-v"></i></a>
+                    @endif
+                    @if(site_setting('social_pinterest', ''))
+                        <a href="{{ site_setting('social_pinterest') }}" target="_blank" rel="noopener"><i class="fab fa-pinterest"></i></a>
+                    @endif
+                </div>
+            </div>
         </div>
     </div>
 
@@ -113,11 +147,39 @@
 <style>
 .footer-minimal-copyright {
     padding: 18px 0;
-    text-align: left;
+}
+.footer-minimal-copyright-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
 }
 .footer-minimal-copyright p {
-    margin: 0;
-    font-size: 0.88rem;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 0.85rem;
+}
+.footer-minimal-social {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+.footer-minimal-social a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    color: var(--footer-icon-color, var(--footer-text-color, #ccc)) !important;
+    text-decoration: none !important;
+    font-size: 14px;
+    border-radius: 50%;
+    transition: color 0.2s, background 0.2s;
+}
+.footer-minimal-social a:hover {
+    color: var(--footer-link-hover-color, #fff) !important;
+    background: rgba(255,255,255,0.1);
 }
 .footer-minimal-legal {
     background: #fff;
@@ -145,6 +207,11 @@
     text-decoration: underline;
 }
 @media (max-width: 575px) {
+    .footer-minimal-copyright-inner {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
     .footer-minimal-nav {
         flex-direction: column;
         gap: 8px;

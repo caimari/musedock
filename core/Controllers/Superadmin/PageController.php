@@ -549,7 +549,7 @@ public function update($id)
 
     // Página de inicio
     $makeHomepage = isset($rawData['is_homepage']) && $rawData['is_homepage'] == '1';
-    unset($data['is_homepage']);
+    $data['is_homepage'] = $makeHomepage ? 1 : 0;
     
     // Manejo de checkboxes para opciones de cabecera
     $data['show_slider'] = isset($data['show_slider']) ? 1 : 0;
@@ -612,11 +612,11 @@ public function update($id)
         unset($data['prefix']);
         $page->update($data);
 
-        // 3. Actualizar is_homepage y tenant_id
+        // 3. Asegurar tenant_id = NULL para superadmin pages
         $updateCurrentStmt = $pdo->prepare(
-            "UPDATE pages SET is_homepage = ?, tenant_id = NULL WHERE id = ?"
+            "UPDATE pages SET tenant_id = NULL WHERE id = ?"
         );
-        $updateCurrentStmt->execute([$makeHomepage ? 1 : 0, $id]);
+        $updateCurrentStmt->execute([$id]);
 
         // === SINCRONIZACIÓN: Actualizar settings de lectura ===
         // Función helper para upsert compatible con MySQL y PostgreSQL
@@ -1804,5 +1804,16 @@ public function autosave($id)
     }
 
     exit;
+}
+
+/**
+ * GET /musedock/api/editor-styles.css
+ * Generates dynamic CSS for TinyMCE content_css (superadmin uses global defaults).
+ */
+public function editorStylesCss()
+{
+    // Reuse the tenant implementation — it reads themeOption which falls back to defaults
+    $tenantController = new \Screenart\Musedock\Controllers\Tenant\PageController();
+    $tenantController->editorStylesCss();
 }
 }

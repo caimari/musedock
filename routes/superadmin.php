@@ -283,6 +283,11 @@ Route::post('/musedock/settings/clear-flashes', function() {
 
 
 
+// Editor styles CSS (dynamic, for TinyMCE content_css)
+Route::get('/musedock/api/editor-styles.css', 'superadmin.PageController@editorStylesCss')
+    ->middleware('superadmin')
+    ->name('superadmin.editor.styles');
+
 // Rutas CRUD para Page
 // Listado de páginas
 Route::get('/musedock/pages', 'superadmin.PageController@index')

@@ -13,11 +13,65 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.6.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.6.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 31 de Marzo de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Sistema de tipografia del contenido</h6>
+                <ul class="mb-3">
+                    <li><strong>Panel de apariencia:</strong> Nueva seccion "Tipografia del contenido" con selector de fuentes para titulos (h1-h6) y texto, 3 escalas tipograficas (compacta/normal/grande), colores de texto, titulos y enlaces</li>
+                    <li><strong>CSS Variables dinamicas:</strong> 13 nuevas variables CSS (--content-heading-font, --content-body-font, --content-h1-size a h6, --content-text-color, etc.) generadas automaticamente desde el panel</li>
+                    <li><strong>TinyMCE WYSIWYG:</strong> content_css dinamico que sincroniza el editor con el frontend: las fuentes, tamanos y colores del tema se reflejan en tiempo real en el editor</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Selector de fuentes en TinyMCE</h6>
+                <ul class="mb-3">
+                    <li><strong>23 Google Fonts curadas:</strong> Desplegable de fuentes en el editor con Sans-serif, Serif, Monospace y Display. Las fuentes del tenant aparecen primero marcadas con estrella</li>
+                    <li><strong>Selector de tamano:</strong> Desplegable de tamanos de fuente (12px a 48px) en la toolbar</li>
+                    <li><strong>Carga automatica en frontend:</strong> Las Google Fonts usadas en el contenido se detectan automaticamente y se cargan solo en las paginas que las necesitan (zero overhead en paginas sin fuentes custom)</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Mejoras de TinyMCE</h6>
+                <ul class="mb-3">
+                    <li><strong>Tablas avanzadas:</strong> Boton de tabla en toolbar, propiedades avanzadas (color de fondo, bordes, ancho) por tabla, fila y celda. Tablas nuevas con width 100% por defecto</li>
+                    <li><strong>Lightbox configurable:</strong> Toggle en panel de apariencia "Lightbox automatico en imagenes" (on/off). Las imagenes pequenas (<400px) ya no se amplian</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Nuevos layouts de cabecera</h6>
+                <ul class="mb-3">
+                    <li><strong>FilmConnect:</strong> Logo arriba + barra de navegacion con highlight en hover/activo, estilo Hoot Du</li>
+                    <li><strong>Classic:</strong> Menu arriba + logo debajo</li>
+                </ul>
+
+                <h6 class="text-success"><i class="bi bi-bug me-1"></i> Correcciones</h6>
+                <ul class="mb-3">
+                    <li><strong>Slug doble barra:</strong> Corregido URL preview en creacion de paginas que mostraba doble barra (//) cuando el prefix estaba vacio</li>
+                    <li><strong>Pagina de inicio:</strong> Corregido bug donde marcar una pagina como inicio desde el editor no actualizaba los settings de lectura (is_homepage se perdia en el ORM update)</li>
+                    <li><strong>Imagenes centradas:</strong> Corregido centrado de imagenes display:block dentro de parrafos con text-align:center (patron TinyMCE)</li>
+                    <li><strong>Tablas responsive:</strong> Tablas del contenido ahora ocupan 100% del ancho con columnas fluidas. Eliminado display:block que rompia el layout. Scroll horizontal en movil</li>
+                    <li><strong>Tablas Google Sheets:</strong> Override de col width fijos para que las columnas se distribuyan proporcionalmente</li>
+                    <li><strong>Lightbox PNG transparente:</strong> Eliminado fondo gris (#444) en Magnific Popup para imagenes con transparencia</li>
+                </ul>
+
+                <h6 class="text-info"><i class="bi bi-hdd-rack me-1"></i> Panel (v1.0.31)</h6>
+                <ul class="mb-3">
+                    <li><strong>Migracion WordPress:</strong> Verificacion post-migracion de archivos core (index.php, wp-load.php, wp-includes/) con reparacion automatica descargando WP latest</li>
+                    <li><strong>Migracion tar:</strong> Logging mejorado de errores de permisos en el tar remoto (Permission denied con conteo y detalle)</li>
+                    <li><strong>Creacion de hosting:</strong> Modal de progreso con SSE en tiempo real (7 pasos: usuario, directorios, PHP-FPM, Caddy, permisos, BD). Reconexion automatica si se recarga la pagina</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.5.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.5.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">29 Mar 2026</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 29 de Marzo de 2026</p>

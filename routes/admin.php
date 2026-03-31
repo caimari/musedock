@@ -293,6 +293,11 @@ Route::get("$adminPath/roles/{id}/edit", 'tenant.RoleController@edit')->middlewa
 Route::post("$adminPath/roles/{id}/edit", 'tenant.RoleController@update')->middleware(['auth', 'permission:roles.edit']);
 
 // Rutas para la gestión de páginas del tenant
+// Editor styles CSS (dynamic, for TinyMCE content_css)
+Route::get("$adminPath/api/editor-styles.css", 'tenant.PageController@editorStylesCss')
+     ->middleware(['auth'])
+     ->name('tenant.editor.styles');
+
 Route::get("$adminPath/pages", 'tenant.PageController@index')
      ->middleware(['auth'])
      ->name('tenant.pages.index');
@@ -311,6 +316,9 @@ Route::put("$adminPath/pages/{id}", 'tenant.PageController@update')
 Route::delete("$adminPath/pages/{id}", 'tenant.PageController@delete')
      ->middleware(['auth'])
      ->name('tenant.pages.delete');
+Route::post("$adminPath/pages/{id}/delete", 'tenant.PageController@delete')
+     ->middleware(['auth'])
+     ->name('tenant.pages.delete.post');
 
 // Acciones en lote para páginas
 Route::post("$adminPath/pages/bulk", 'tenant.PageController@bulk')

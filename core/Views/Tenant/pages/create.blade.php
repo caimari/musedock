@@ -51,10 +51,12 @@
                     @endif
                 </div>
                 <small class="text-muted">
-                  {{-- Usamos getPrefix() del modelo si existe, si no 'p'. $baseUrl viene del controlador --}}
-                  URL: {{ $baseUrl ?? ($_SERVER['HTTP_HOST'] ?? 'localhost') }}/{{ $Page->getPrefix() ?? 'p' }}/<span id="slug-preview">{{ old('slug', $Page->slug ?? '') }}</span>
-                   {{-- Podrías añadir un campo para el prefijo si fuera editable --}}
-                   {{-- <input type="hidden" name="prefix" value="{{ $Page->getPrefix() ?? 'p' }}"> --}}
+                  @php
+                      $__prefix = $Page->getPrefix() ?? 'p';
+                      $__host = $baseUrl ?? ($_SERVER['HTTP_HOST'] ?? 'localhost');
+                      $__slugBase = $__prefix !== '' ? "{$__host}/{$__prefix}" : $__host;
+                  @endphp
+                  URL: {{ $__slugBase }}/<span id="slug-preview">{{ old('slug', $Page->slug ?? '') }}</span>
                 </small>
 
                 {{-- Aviso legal slug --}}

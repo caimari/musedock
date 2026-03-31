@@ -362,7 +362,9 @@
             "logo-above-left": "Logo izquierda arriba + menú debajo",
             "tema1": "Tema 1 (Topbar negro + logo)",
             "aca": "Tema 2",
-            "banner": "Logo bandera + menú derecha"
+            "banner": "Logo bandera + menú derecha",
+            "filmconnect": "FilmConnect (Logo arriba + barra menu highlight)",
+            "classic": "Clásico (Menú arriba + logo debajo)"
           },
           "description": "Selecciona la estructura del header"
         },
@@ -603,6 +605,91 @@
             "0.8": "Muy oscura (80%)"
           },
           "description": "Opacidad de la capa sobre la imagen (0 = transparente, 1 = opaco)"
+        }
+      }
+    },
+    "typography": {
+      "type": "section",
+      "label": "Tipografía del contenido",
+      "options": {
+        "content_heading_font": {
+          "type": "select",
+          "label": "Fuente de títulos (h1–h6)",
+          "default": "inherit",
+          "options": {
+            "inherit": "Por defecto del sistema",
+            "'Playfair Display', serif": "Playfair Display",
+            "'Montserrat', sans-serif": "Montserrat",
+            "'Roboto', sans-serif": "Roboto",
+            "'Open Sans', sans-serif": "Open Sans",
+            "'Lato', sans-serif": "Lato",
+            "'Poppins', sans-serif": "Poppins",
+            "'Oswald', sans-serif": "Oswald",
+            "'Raleway', sans-serif": "Raleway",
+            "'Merriweather', serif": "Merriweather",
+            "'Nunito', sans-serif": "Nunito",
+            "'Quicksand', sans-serif": "Quicksand",
+            "Georgia, serif": "Georgia",
+            "'Times New Roman', serif": "Times New Roman"
+          },
+          "description": "Tipografía para los encabezados h1, h2, h3... del contenido de páginas y posts"
+        },
+        "content_body_font": {
+          "type": "select",
+          "label": "Fuente del texto",
+          "default": "inherit",
+          "options": {
+            "inherit": "Por defecto del sistema",
+            "'Playfair Display', serif": "Playfair Display",
+            "'Montserrat', sans-serif": "Montserrat",
+            "'Roboto', sans-serif": "Roboto",
+            "'Open Sans', sans-serif": "Open Sans",
+            "'Lato', sans-serif": "Lato",
+            "'Poppins', sans-serif": "Poppins",
+            "'Oswald', sans-serif": "Oswald",
+            "'Raleway', sans-serif": "Raleway",
+            "'Merriweather', serif": "Merriweather",
+            "'Nunito', sans-serif": "Nunito",
+            "'Quicksand', sans-serif": "Quicksand",
+            "Georgia, serif": "Georgia",
+            "'Times New Roman', serif": "Times New Roman"
+          },
+          "description": "Tipografía para el texto del cuerpo (párrafos, listas, etc.)"
+        },
+        "content_type_scale": {
+          "type": "select",
+          "label": "Escala tipográfica",
+          "default": "normal",
+          "options": {
+            "compact": "Compacta (h1=28px, body=15px)",
+            "normal": "Normal (h1=36px, body=16px)",
+            "large": "Grande (h1=48px, body=17px)"
+          },
+          "description": "Controla el tamaño de todos los encabezados y del texto base"
+        },
+        "content_text_color": {
+          "type": "color",
+          "label": "Color del texto",
+          "default": "#334155",
+          "description": "Color principal del texto del contenido"
+        },
+        "content_heading_color": {
+          "type": "color",
+          "label": "Color de los títulos",
+          "default": "#0f172a",
+          "description": "Color de los encabezados h1–h6"
+        },
+        "content_link_color": {
+          "type": "color",
+          "label": "Color de los enlaces",
+          "default": "#3b82f6",
+          "description": "Color de los enlaces dentro del contenido"
+        },
+        "content_auto_lightbox": {
+          "type": "toggle",
+          "label": "Lightbox automático en imágenes",
+          "default": true,
+          "description": "Las imágenes del contenido de páginas y posts se amplían automáticamente al hacer clic, sin necesidad de añadir un enlace manualmente. Desactívalo si prefieres que solo se amplíen las imágenes con enlace explícito."
         }
       }
     },

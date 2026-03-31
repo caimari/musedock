@@ -215,6 +215,10 @@ class WpMediaImporter
             return $content;
         }
 
+        // Normalizar protocol-relative URLs en el contenido ANTES de reemplazar
+        // Convertir //domain.com/... a https://domain.com/...
+        $content = preg_replace('#(src|href|srcset)=(["\'])//([^"\']+)\2#i', '$1=$2https://$3$2', $content);
+
         // Ordenar por longitud descendente para evitar reemplazos parciales
         $sortedMap = $this->urlMap;
         uksort($sortedMap, function ($a, $b) {

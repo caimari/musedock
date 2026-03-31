@@ -171,6 +171,28 @@ class WpGalleryImporter
             }
         }
 
+        // 6. Inline image groups: paragraphs or divs with 3+ consecutive images (logos, partner grids, etc.)
+        // Detects patterns like: <p><img><img><img></p> or <p><a><img></a><a><img></a><a><img></a></p>
+        if (preg_match_all('/<(?:p|div)[^>]*>((?:\s*(?:<a[^>]*>\s*)?<img[^>]*>(?:\s*<\/a>)?\s*){3,})<\/(?:p|div)>/is', $content, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $m) {
+                // Check this block isn't already captured as another gallery type
+                $alreadyCaptured = false;
+                foreach ($galleries as $g) {
+                    if (strpos($g['html'], $m[0]) !== false || strpos($m[0], $g['html']) !== false) {
+                        $alreadyCaptured = true;
+                        break;
+                    }
+                }
+                if ($alreadyCaptured) continue;
+
+                $images = $this->extractImagesFromHtml($m[1], '');
+                if (count($images) >= 3) {
+                    $galleries[] = ['html' => $m[0], 'images' => $images, 'name' => 'Inline Gallery', 'index' => $index++];
+                    Logger::info("WpGalleryImporter: Inline image group detected with " . count($images) . " images");
+                }
+            }
+        }
+
         return $galleries;
     }
 

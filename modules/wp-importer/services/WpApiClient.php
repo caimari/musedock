@@ -321,6 +321,10 @@ class WpApiClient
                     foreach ($imgMatches as $sortOrder => $img) {
                         $imgUrl = $img[1];
                         $alt = $img[2] ?? '';
+                        // Normalizar protocol-relative URLs
+                        if (strpos($imgUrl, '//') === 0) {
+                            $imgUrl = 'https:' . $imgUrl;
+                        }
                         // Ignorar imágenes tiny o iconos
                         if (strpos($imgUrl, 'wp-emoji') !== false || strpos($imgUrl, 'gravatar') !== false) {
                             continue;
@@ -367,9 +371,11 @@ class WpApiClient
                     $slides = [];
                     if (preg_match_all('/<img[^>]+src=["\']([^"\']+)["\'][^>]*(?:alt=["\']([^"\']*)["\'])?[^>]*>/i', $match[1], $imgMatches, PREG_SET_ORDER)) {
                         foreach ($imgMatches as $sortOrder => $img) {
-                            if (strpos($img[1], 'wp-emoji') !== false || strpos($img[1], 'gravatar') !== false) continue;
+                            $imgUrl = $img[1];
+                            if (strpos($imgUrl, '//') === 0) $imgUrl = 'https:' . $imgUrl;
+                            if (strpos($imgUrl, 'wp-emoji') !== false || strpos($imgUrl, 'gravatar') !== false) continue;
                             $slides[] = [
-                                'image_url' => $img[1],
+                                'image_url' => $imgUrl,
                                 'title' => $img[2] ?? '',
                                 'sort_order' => $sortOrder,
                             ];
@@ -382,6 +388,38 @@ class WpApiClient
                         ];
                         break;
                     }
+                }
+            }
+        }
+
+        // WP Logo Showcase plugin: wpls-logo-cnt divs with wp-post-image
+        if (strpos($html, 'wpls-logo') !== false) {
+            if (preg_match_all('/<div[^>]+class="[^"]*wpls-logo-cnt[^"]*"[^>]*>.*?<img[^>]*src=["\']([^"\']+)["\'][^>]*>.*?<\/div>\s*<\/div>/si', $html, $logoMatches)) {
+                $slides = [];
+                $seen = [];
+                foreach ($logoMatches[1] as $sortOrder => $imgUrl) {
+                    if (strpos($imgUrl, '//') === 0) $imgUrl = 'https:' . $imgUrl;
+                    $basename = basename(parse_url($imgUrl, PHP_URL_PATH) ?: '');
+                    if (isset($seen[$basename])) continue;
+                    $seen[$basename] = true;
+
+                    $title = pathinfo($basename, PATHINFO_FILENAME);
+                    $title = str_replace(['-', '_'], ' ', $title);
+                    $title = preg_replace('/-?\d+x\d+$/', '', $title);
+
+                    $slides[] = [
+                        'image_url' => $imgUrl,
+                        'title' => ucwords(trim($title)),
+                        'sort_order' => $sortOrder,
+                    ];
+                }
+                if (count($slides) >= 2) {
+                    $sliders[] = [
+                        'name' => 'Logo Carousel',
+                        'slides' => $slides,
+                        'theme' => 'portrait-carousel',
+                    ];
+                    Logger::info("WpApiClient: WP Logo Showcase detectado con " . count($slides) . " logos");
                 }
             }
         }
@@ -524,11 +562,18 @@ class WpApiClient
             $slides = [];
             $sortOrder = 0;
 
-            // Extraer imágenes del Smart Slider (data-src y src con uploads)
-            if (preg_match('/<div[^>]+class="[^"]*n2-ss[^"]*".*?(?=<\/section>|<div[^>]+class="[^"]*carousel-slider)/si', $html, $ssBlock)) {
+            // Capturar el bloque del Smart Slider: desde el div con id/class n2-ss hasta su cierre
+            // Estrategia robusta: buscar el contenedor n2-ss-align o n2-ss-slider y extraer todo su contenido
+            $block = '';
+            if (preg_match('/<div[^>]+(?:id|class)="[^"]*n2-ss[^"]*"[^>]*>.*?<\/div>\s*<\/div>\s*<\/div>\s*<\/div>\s*<\/div>/si', $html, $ssBlock)) {
                 $block = $ssBlock[0];
-                // Buscar imágenes: data-src (lazy) o src con uploads
-                if (preg_match_all('/(?:data-src|src)=["\']([^"\']*uploads[^"\']+)["\']/i', $block, $imgMatches)) {
+            } elseif (preg_match('/<div[^>]+data-creator="Smart Slider[^"]*"[^>]*>.*?<\/div>\s*<\/div>\s*<\/div>\s*<\/div>/si', $html, $ssBlock)) {
+                $block = $ssBlock[0];
+            }
+
+            if ($block) {
+                // Buscar imágenes: data-src (lazy) o src con uploads o wp-content
+                if (preg_match_all('/(?:data-src|src)=["\']([^"\']*(?:uploads|wp-content)[^"\']+\.(?:jpg|jpeg|png|webp|gif))["\']/i', $block, $imgMatches)) {
                     $seen = [];
                     foreach ($imgMatches[1] as $imgUrl) {
                         // Normalizar protocol-relative
@@ -564,6 +609,52 @@ class WpApiClient
                     'is_hero' => true,
                 ];
                 Logger::info("WpApiClient: Smart Slider 3 detectado con " . count($slides) . " slides");
+            }
+        }
+
+        // Fallback: hero con background-image en secciones slider/hero/banner del tema
+        if (empty($sliders)) {
+            $heroPatterns = [
+                // <section class="slider"> o similar con background-image en hijos
+                '/<(?:section|div)[^>]*class="[^"]*(?:slider|hero|banner|masthead)[^"]*"[^>]*>.*?background-image\s*:\s*url\(["\']?([^"\')\s]+)["\']?\)/si',
+                // Directamente un div con style="background-image:url(...)"
+                '/<div[^>]*class="[^"]*(?:slider|hero|banner|slide)[^"]*"[^>]*style="[^"]*background-image\s*:\s*url\(["\']?([^"\')\s]+)["\']?\)/si',
+                // li dentro de .slides con background-image
+                '/<li[^>]*>\s*<div[^>]*style="[^"]*background-image\s*:\s*url\(["\']?([^"\')\s]+)["\']?\)/si',
+            ];
+
+            $heroSlides = [];
+            $seen = [];
+            foreach ($heroPatterns as $pattern) {
+                if (preg_match_all($pattern, $html, $bgMatches)) {
+                    foreach ($bgMatches[1] as $bgUrl) {
+                        if (strpos($bgUrl, '//') === 0) $bgUrl = 'https:' . $bgUrl;
+                        $basename = basename(parse_url($bgUrl, PHP_URL_PATH) ?: '');
+                        $baseKey = preg_replace('/-\d+x\d+\./', '.', $basename);
+                        if (isset($seen[$baseKey]) || empty($basename)) continue;
+                        $seen[$baseKey] = true;
+
+                        $title = pathinfo($basename, PATHINFO_FILENAME);
+                        $title = str_replace(['-', '_'], ' ', $title);
+
+                        $heroSlides[] = [
+                            'image_url' => $bgUrl,
+                            'title' => ucwords($title),
+                            'sort_order' => count($heroSlides),
+                        ];
+                    }
+                }
+            }
+
+            if (!empty($heroSlides)) {
+                $sliders[] = [
+                    'name' => 'Hero Slider',
+                    'slides' => $heroSlides,
+                    'theme' => null,
+                    'wp_page_slug' => 'home',
+                    'is_hero' => true,
+                ];
+                Logger::info("WpApiClient: Hero background-image detectado con " . count($heroSlides) . " slides");
             }
         }
 

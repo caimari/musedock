@@ -773,6 +773,12 @@ class ThemeAppearanceController
             'header.header_link_hover_color' => '--header-link-hover-color',
             'header.header_cta_bg_color' => '--header-cta-bg-color',
             'header.header_cta_text_color' => '--header-cta-text-color',
+            // Typography (simple mappings — fonts and colors)
+            'typography.content_heading_font' => '--content-heading-font',
+            'typography.content_body_font' => '--content-body-font',
+            'typography.content_text_color' => '--content-text-color',
+            'typography.content_heading_color' => '--content-heading-color',
+            'typography.content_link_color' => '--content-link-color',
             // Footer
             'footer.footer_bg_color' => '--footer-bg-color',
             'footer.footer_text_color' => '--footer-text-color',
@@ -796,6 +802,23 @@ class ThemeAppearanceController
                 $cssVars[$cssVar] = $value;
             }
         }
+
+        // Typography scale — generate size variables from the chosen scale
+        $scale = $this->getNestedValue($options, ['typography', 'content_type_scale']) ?? 'normal';
+        $scales = [
+            'compact' => ['h1' => '28px', 'h2' => '24px', 'h3' => '20px', 'h4' => '18px', 'h5' => '16px', 'h6' => '14px', 'body' => '15px', 'lh' => '1.6'],
+            'normal'  => ['h1' => '36px', 'h2' => '28px', 'h3' => '24px', 'h4' => '20px', 'h5' => '18px', 'h6' => '16px', 'body' => '16px', 'lh' => '1.7'],
+            'large'   => ['h1' => '48px', 'h2' => '36px', 'h3' => '28px', 'h4' => '24px', 'h5' => '20px', 'h6' => '18px', 'body' => '17px', 'lh' => '1.8'],
+        ];
+        $s = $scales[$scale] ?? $scales['normal'];
+        $cssVars['--content-h1-size'] = $s['h1'];
+        $cssVars['--content-h2-size'] = $s['h2'];
+        $cssVars['--content-h3-size'] = $s['h3'];
+        $cssVars['--content-h4-size'] = $s['h4'];
+        $cssVars['--content-h5-size'] = $s['h5'];
+        $cssVars['--content-h6-size'] = $s['h6'];
+        $cssVars['--content-body-size'] = $s['body'];
+        $cssVars['--content-line-height'] = $s['lh'];
 
         return $cssVars;
     }

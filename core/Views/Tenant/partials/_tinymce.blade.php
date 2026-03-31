@@ -145,12 +145,74 @@ $tinymce_plugins_list = [
     // Eliminado 'quickbars' para deshabilitar la barra flotante junto al cursor
 ];
 $tinymce_toolbar_lines = [
-    'undo redo | cut copy paste removeformat | blocks | bold italic underline strikethrough | forecolor backcolor',
-    'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media codesample | code fullscreen | help'
+    'undo redo | cut copy paste removeformat | blocks fontfamily fontsize | bold italic underline strikethrough | forecolor backcolor',
+    'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media table codesample | code fullscreen | help'
 ];
 $tinymce_external_plugins = [];
 // El menú 'image' ya incluye opciones de imagen. 'customimage' añade nuestras opciones personalizadas
 $tinymce_context_menu_items = ['link', 'image', 'customimage', 'table'];
+
+// --- Lista curada de Google Fonts para el selector de TinyMCE ---
+$curatedFonts = [
+    // Sans-serif
+    'Roboto' => "'Roboto', sans-serif",
+    'Open Sans' => "'Open Sans', sans-serif",
+    'Lato' => "'Lato', sans-serif",
+    'Montserrat' => "'Montserrat', sans-serif",
+    'Raleway' => "'Raleway', sans-serif",
+    'Nunito' => "'Nunito', sans-serif",
+    'Inter' => "'Inter', sans-serif",
+    'Work Sans' => "'Work Sans', sans-serif",
+    'Source Sans 3' => "'Source Sans 3', sans-serif",
+    'DM Sans' => "'DM Sans', sans-serif",
+    'Poppins' => "'Poppins', sans-serif",
+    'Quicksand' => "'Quicksand', sans-serif",
+    // Serif
+    'Playfair Display' => "'Playfair Display', serif",
+    'Lora' => "'Lora', serif",
+    'Merriweather' => "'Merriweather', serif",
+    'PT Serif' => "'PT Serif', serif",
+    'Libre Baskerville' => "'Libre Baskerville', serif",
+    'Crimson Text' => "'Crimson Text', serif",
+    // Monospace
+    'JetBrains Mono' => "'JetBrains Mono', monospace",
+    'Fira Code' => "'Fira Code', monospace",
+    'Source Code Pro' => "'Source Code Pro', monospace",
+    // Display
+    'Oswald' => "'Oswald', sans-serif",
+    'Bebas Neue' => "'Bebas Neue', sans-serif",
+];
+
+// Fuentes del tenant configuradas en el panel de apariencia
+$tenantHeadingFont = themeOption('typography.content_heading_font', 'inherit');
+$tenantBodyFont = themeOption('typography.content_body_font', 'inherit');
+$tenantFontNames = [];
+
+// Construir font_family_formats: fuentes del sitio primero, luego curadas
+$fontFormats = [];
+// System default siempre primero
+$fontFormats[] = "System Default=system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+
+// Fuentes del tenant (si no son system/inherit)
+foreach ([$tenantHeadingFont, $tenantBodyFont] as $tf) {
+    if ($tf && $tf !== 'inherit') {
+        // Extraer nombre limpio: "'Montserrat', sans-serif" → "Montserrat"
+        $cleanName = trim(explode(',', str_replace("'", '', $tf))[0]);
+        if (!in_array($cleanName, $tenantFontNames)) {
+            $tenantFontNames[] = $cleanName;
+            $fontFormats[] = "{$cleanName} ★={$tf}";
+        }
+    }
+}
+
+// Fuentes curadas (excluyendo las del tenant para no duplicar)
+foreach ($curatedFonts as $name => $stack) {
+    if (!in_array($name, $tenantFontNames)) {
+        $fontFormats[] = "{$name}={$stack}";
+    }
+}
+
+$fontFamilyFormats = implode('; ', $fontFormats);
 
 // La configuración del plugin AIWriter se agregará mediante JavaScript
 // para evitar problemas si el plugin no está disponible
@@ -245,10 +307,10 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         
         // --- Otras configuraciones ---
         block_formats: 'Párrafo=p; Encabezado 1=h1; Encabezado 2=h2; Encabezado 3=h3; Encabezado 4=h4; Encabezado 5=h5; Encabezado 6=h6; Preformateado=pre; Bloque de Código=code',
+        font_family_formats: <?php echo json_encode($fontFamilyFormats, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+        font_size_formats: '12px 14px 15px 16px 18px 20px 24px 28px 32px 36px 48px',
+        content_css: '/{{ admin_path() }}/api/editor-styles.css',
         content_style: `
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; font-size: 16px; margin: 15px; }
-            code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 4px; font-size: 90%; font-family: monospace; }
-            pre > code { display: block; padding: 10px; background-color: #2d2d2d; color: #f1f1f1; border-radius: 5px; overflow-x: auto; }
             img { max-width: 100%; height: auto; cursor: pointer; pointer-events: auto; user-select: auto; }
             figure img { pointer-events: auto; }
             .mce-content-body img[data-mce-selected] { outline: 2px solid rgba(59,125,221,0.35); outline-offset: 2px; box-shadow: 0 0 0 2px rgba(59,125,221,0.1); background-color: transparent; }
@@ -266,6 +328,14 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         image_advtab: true, // Pestaña avanzada en diálogo de imagen (para añadir enlaces, etc.)
         image_title: true,
         automatic_uploads: false,
+
+        // Propiedades avanzadas de tablas (color fondo, bordes, ancho, etc.)
+        table_advtab: true,
+        table_cell_advtab: true,
+        table_row_advtab: true,
+        table_appearance_options: true,
+        table_default_styles: { width: '100%', 'border-collapse': 'collapse' },
+        table_default_attributes: { border: '1' },
 
         // Hacer imágenes más fáciles de seleccionar con clic
         noneditable_noneditable_class: 'mceNonEditable',

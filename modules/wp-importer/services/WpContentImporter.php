@@ -410,6 +410,7 @@ class WpContentImporter
                     'seo_title' => mb_substr($title, 0, 70),
                     'seo_description' => mb_substr($excerpt, 0, 160),
                     'show_hero' => false,
+                    'hide_title' => true,
                     'post_type' => $asBriefs ? 'brief' : 'post',
                 ]);
 
@@ -536,11 +537,12 @@ class WpContentImporter
                     'seo_title' => mb_substr($title, 0, 70),
                     'seo_description' => mb_substr($excerpt, 0, 160),
                     'show_slider' => false,
+                    'hide_title' => true,
                 ]);
 
-                // Leer prefix directamente de BD (no usar page_prefix() que depende de tenant_id() global)
-                $pagePrefix = $this->getPagePrefix();
-                $pageModel->updateSlug($slug, $pagePrefix !== '' ? $pagePrefix : null);
+                // WordPress no usa prefijo de página — forzar sin prefijo
+                // Pasamos string vacío que updateSlug convertirá a NULL (sin prefijo en la URL)
+                $pageModel->updateSlug($slug, '');
 
                 // Si es homepage, configurar reading settings (mismas keys que SettingsController)
                 if ($isHomepage) {

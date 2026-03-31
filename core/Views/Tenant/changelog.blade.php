@@ -13,11 +13,46 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.6.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.6.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 31 de Marzo de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Sistema de tipografia del contenido</h6>
+                <ul class="mb-3">
+                    <li><strong>Panel de apariencia:</strong> Nueva seccion "Tipografia del contenido" con selector de fuentes para titulos y texto, escalas tipograficas y colores</li>
+                    <li><strong>TinyMCE WYSIWYG:</strong> El editor ahora refleja las fuentes y tamanos del tema en tiempo real</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Selector de fuentes en TinyMCE</h6>
+                <ul class="mb-3">
+                    <li><strong>23 Google Fonts curadas:</strong> Desplegable de fuentes con Sans-serif, Serif, Monospace y Display</li>
+                    <li><strong>Selector de tamano:</strong> Tamanos de 12px a 48px en la toolbar</li>
+                    <li><strong>Carga automatica:</strong> Las fuentes usadas en el contenido se detectan y cargan solo donde se necesitan</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Mejoras de TinyMCE</h6>
+                <ul class="mb-3">
+                    <li><strong>Tablas avanzadas:</strong> Propiedades de color, bordes y ancho por tabla, fila y celda</li>
+                    <li><strong>Lightbox configurable:</strong> Toggle para activar/desactivar lightbox automatico en imagenes</li>
+                </ul>
+
+                <h6 class="text-success"><i class="bi bi-bug me-1"></i> Correcciones</h6>
+                <ul class="mb-3">
+                    <li>Slug doble barra en creacion de paginas, pagina de inicio no se guardaba, imagenes centradas, tablas responsive, lightbox PNG transparente</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.5.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.5.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">29 Mar 2026</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 29 de Marzo de 2026</p>

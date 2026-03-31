@@ -461,7 +461,7 @@ class PageController
 
         // Página de inicio
         $makeHomepage = isset($rawData['is_homepage']) && $rawData['is_homepage'] == '1';
-        unset($data['is_homepage']);
+        $data['is_homepage'] = $makeHomepage ? 1 : 0;
 
         // Manejo de checkboxes
         $data['show_slider'] = isset($data['show_slider']) ? 1 : 0;
@@ -527,11 +527,7 @@ class PageController
             $page->update($data);
             error_log("SLIDER_IMAGE: Después de update - page->slider_image = " . ($page->slider_image ?? 'null'));
 
-            // 3. Actualizar is_homepage
-            $updateCurrentStmt = $pdo->prepare(
-                "UPDATE pages SET is_homepage = ? WHERE id = ?"
-            );
-            $updateCurrentStmt->execute([$makeHomepage ? 1 : 0, $id]);
+            // 3. is_homepage ya se actualizó via $page->update($data) arriba
 
             // === SINCRONIZACIÓN: Actualizar settings de lectura del tenant ===
             $upsertTenantSetting = function($pdo, $tenantId, $key, $value) {
@@ -1722,5 +1718,106 @@ class PageController
         }
 
         return ['path' => $relativePath . $filename];
+    }
+
+    /**
+     * GET /admin/api/editor-styles.css
+     * Generates dynamic CSS for TinyMCE content_css based on tenant typography options.
+     */
+    public function editorStylesCss()
+    {
+        header('Content-Type: text/css; charset=utf-8');
+        header('Cache-Control: public, max-age=3600');
+
+        // Google Fonts map — ALL curated fonts for the editor selector
+        $googleFonts = [
+            "'Playfair Display', serif" => 'Playfair+Display:wght@400;700',
+            "'Montserrat', sans-serif" => 'Montserrat:wght@400;500;600;700',
+            "'Roboto', sans-serif" => 'Roboto:wght@400;500;700',
+            "'Open Sans', sans-serif" => 'Open+Sans:wght@400;600;700',
+            "'Lato', sans-serif" => 'Lato:wght@400;700',
+            "'Poppins', sans-serif" => 'Poppins:wght@400;500;600;700',
+            "'Oswald', sans-serif" => 'Oswald:wght@400;500;600;700',
+            "'Raleway', sans-serif" => 'Raleway:wght@400;500;600;700',
+            "'Merriweather', serif" => 'Merriweather:wght@400;700',
+            "'Nunito', sans-serif" => 'Nunito:wght@400;600;700',
+            "'Quicksand', sans-serif" => 'Quicksand:wght@400;500;600;700',
+            "'Inter', sans-serif" => 'Inter:wght@400;500;600;700',
+            "'Work Sans', sans-serif" => 'Work+Sans:wght@400;500;600;700',
+            "'Source Sans 3', sans-serif" => 'Source+Sans+3:wght@400;600;700',
+            "'DM Sans', sans-serif" => 'DM+Sans:wght@400;500;700',
+            "'Lora', serif" => 'Lora:wght@400;700',
+            "'PT Serif', serif" => 'PT+Serif:wght@400;700',
+            "'Libre Baskerville', serif" => 'Libre+Baskerville:wght@400;700',
+            "'Crimson Text', serif" => 'Crimson+Text:wght@400;700',
+            "'JetBrains Mono', monospace" => 'JetBrains+Mono:wght@400;700',
+            "'Fira Code', monospace" => 'Fira+Code:wght@400;700',
+            "'Source Code Pro', monospace" => 'Source+Code+Pro:wght@400;700',
+            "'Bebas Neue', sans-serif" => 'Bebas+Neue',
+        ];
+
+        // Read tenant typography options
+        $headingFont = function_exists('themeOption') ? themeOption('typography.content_heading_font', 'inherit') : 'inherit';
+        $bodyFont = function_exists('themeOption') ? themeOption('typography.content_body_font', 'inherit') : 'inherit';
+        $scale = function_exists('themeOption') ? themeOption('typography.content_type_scale', 'normal') : 'normal';
+        $textColor = function_exists('themeOption') ? themeOption('typography.content_text_color', '#334155') : '#334155';
+        $headingColor = function_exists('themeOption') ? themeOption('typography.content_heading_color', '#0f172a') : '#0f172a';
+        $linkColor = function_exists('themeOption') ? themeOption('typography.content_link_color', '#3b82f6') : '#3b82f6';
+
+        // Resolve scale sizes
+        $scales = [
+            'compact' => ['h1' => '28px', 'h2' => '24px', 'h3' => '20px', 'h4' => '18px', 'h5' => '16px', 'h6' => '14px', 'body' => '15px', 'lh' => '1.6'],
+            'normal'  => ['h1' => '36px', 'h2' => '28px', 'h3' => '24px', 'h4' => '20px', 'h5' => '18px', 'h6' => '16px', 'body' => '16px', 'lh' => '1.7'],
+            'large'   => ['h1' => '48px', 'h2' => '36px', 'h3' => '28px', 'h4' => '24px', 'h5' => '20px', 'h6' => '18px', 'body' => '17px', 'lh' => '1.8'],
+        ];
+        $s = $scales[$scale] ?? $scales['normal'];
+
+        // Build font-family stacks
+        $systemStack = "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+        $bodyFontStack = ($bodyFont !== 'inherit' && $bodyFont !== '') ? "{$bodyFont}, {$systemStack}" : $systemStack;
+        $headingFontStack = ($headingFont !== 'inherit' && $headingFont !== '') ? "{$headingFont}, {$systemStack}" : $bodyFontStack;
+
+        // Load ALL curated Google Fonts in the editor iframe (admin only, not frontend)
+        $fontFamilies = array_map(fn($f) => 'family=' . $f, array_values($googleFonts));
+        $imports = "@import url('https://fonts.googleapis.com/css2?" . implode('&', $fontFamilies) . "&display=swap');\n";
+
+        $css = $imports;
+        $css .= <<<CSS
+
+body {
+  font-family: {$bodyFontStack};
+  font-size: {$s['body']};
+  line-height: {$s['lh']};
+  color: {$textColor};
+  padding: 12px 16px;
+  max-width: 820px;
+  margin: 0;
+}
+
+h1 { font-family: {$headingFontStack}; font-size: {$s['h1']}; font-weight: 700; color: {$headingColor}; margin: 0 0 16px; line-height: 1.2; }
+h2 { font-family: {$headingFontStack}; font-size: {$s['h2']}; font-weight: 700; color: {$headingColor}; margin: 24px 0 12px; line-height: 1.3; }
+h3 { font-family: {$headingFontStack}; font-size: {$s['h3']}; font-weight: 600; color: {$headingColor}; margin: 20px 0 10px; line-height: 1.4; }
+h4 { font-family: {$headingFontStack}; font-size: {$s['h4']}; font-weight: 600; color: {$headingColor}; margin: 16px 0 8px; line-height: 1.4; }
+h5 { font-family: {$headingFontStack}; font-size: {$s['h5']}; font-weight: 600; color: {$headingColor}; margin: 12px 0 6px; line-height: 1.4; }
+h6 { font-family: {$headingFontStack}; font-size: {$s['h6']}; font-weight: 600; color: {$headingColor}; margin: 12px 0 6px; line-height: 1.4; }
+
+p { margin: 0 0 1rem; }
+a { color: {$linkColor}; }
+img { max-width: 100%; height: auto; }
+strong { font-weight: 700; color: #333; }
+blockquote { border-left: 3px solid #e2e8f0; padding: 8px 0 8px 16px; margin: 1rem 0; color: #64748b; font-style: italic; }
+code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; font-family: 'SFMono-Regular', Consolas, monospace; }
+pre { background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 1rem 0; }
+pre code { background: none; padding: 0; color: inherit; font-size: 14px; }
+ul, ol { margin: 1rem 0; padding-left: 2rem; }
+li { margin-bottom: 0.4rem; line-height: 1.6; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+td, th { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+th { background: #f8fafc; font-weight: 600; }
+hr { border: none; border-top: 1px solid #e2e8f0; margin: 1.5rem 0; }
+CSS;
+
+        echo $css;
+        exit;
     }
 }

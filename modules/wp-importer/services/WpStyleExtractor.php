@@ -639,16 +639,35 @@ class WpStyleExtractor
         }
 
         // Logo URL (múltiples patrones de temas WP)
-        if (preg_match('/class=["\'][^"\']*custom-logo[^"\']*["\'][^>]*src=["\']([^"\']+)["\']/', $html, $match)) {
+        // Soportar ambos órdenes de atributos: class...src y src...class
+        if (preg_match('/<img[^>]*class=["\'][^"\']*custom-logo[^"\']*["\'][^>]*src=["\']([^"\']+)["\']/', $html, $match)) {
             $info['logo_url'] = $match[1];
-        } elseif (preg_match('/class=["\'][^"\']*site-logo[^"\']*["\'].*?<img[^>]*src=["\']([^"\']+)["\']/', $html, $match)) {
+        } elseif (preg_match('/<img[^>]*src=["\']([^"\']+)["\'][^>]*class=["\'][^"\']*custom-logo[^"\']*["\']/', $html, $match)) {
             $info['logo_url'] = $match[1];
-        } elseif (preg_match('/class=["\'][^"\']*navbar-brand[^"\']*["\'].*?<img[^>]*src=["\']([^"\']+)["\']/', $html, $match)) {
+        } elseif (preg_match('/class=["\'][^"\']*site-logo[^"\']*["\'].*?<img[^>]*src=["\']([^"\']+)["\']/si', $html, $match)) {
+            $info['logo_url'] = $match[1];
+        } elseif (preg_match('/class=["\'][^"\']*navbar-brand[^"\']*["\'].*?<img[^>]*src=["\']([^"\']+)["\']/si', $html, $match)) {
             $info['logo_url'] = $match[1];
         } elseif (preg_match('/<div[^>]+class=["\'][^"\']*\blogo\b[^"\']*["\'][^>]*>.*?<img[^>]*src=["\']([^"\']+)["\']/si', $html, $match)) {
             $info['logo_url'] = $match[1];
         } elseif (preg_match('/class=["\'][^"\']*logoimga[^"\']*["\'][^>]*>\s*<img[^>]*src=["\']([^"\']+)["\']/', $html, $match)) {
             $info['logo_url'] = $match[1];
+        }
+
+        // Fallback: primera imagen dentro de <header> (muchos temas usan el logo sin clase específica)
+        if (empty($info['logo_url'])) {
+            if (preg_match('/<header[^>]*>.*?<img[^>]*src=["\']([^"\']+)["\'][^>]*>/si', $html, $match)) {
+                $logoUrl = $match[1];
+                // Solo aceptar si parece un logo (no un banner gigante o avatar)
+                if (!preg_match('/gravatar|avatar|banner|hero|slide|background/i', $logoUrl)) {
+                    $info['logo_url'] = $logoUrl;
+                }
+            }
+        }
+
+        // Normalizar protocol-relative URLs del logo
+        if (!empty($info['logo_url']) && strpos($info['logo_url'], '//') === 0) {
+            $info['logo_url'] = 'https:' . $info['logo_url'];
         }
 
         // Favicon
@@ -698,6 +717,7 @@ class WpStyleExtractor
             if ($logoMedia) {
                 $settings['site_logo'] = $logoMedia['url'];
                 $settings['show_logo'] = '1';
+                $settings['show_title'] = '0'; // Desactivar título de texto cuando hay logo imagen
             }
             unset($settings['logo_url']);
         }

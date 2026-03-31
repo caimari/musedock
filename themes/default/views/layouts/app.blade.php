@@ -139,6 +139,8 @@
     {{-- Google Fonts para tipografías del tema --}}
     @php
         $logoFont = themeOption('header.header_logo_font', 'inherit');
+        $contentHeadingFont = themeOption('typography.content_heading_font', 'inherit');
+        $contentBodyFont = themeOption('typography.content_body_font', 'inherit');
 
         // Mapa de fuentes de Google (las fuentes del sistema no necesitan carga)
         // Las claves deben coincidir EXACTAMENTE con los valores en theme.json
@@ -151,15 +153,23 @@
             "'Poppins', sans-serif" => 'Poppins:wght@400;500;600;700',
             "'Oswald', sans-serif" => 'Oswald:wght@400;500;600;700',
             "'Raleway', sans-serif" => 'Raleway:wght@400;500;600;700',
+            "'Merriweather', serif" => 'Merriweather:wght@400;700',
+            "'Nunito', sans-serif" => 'Nunito:wght@400;600;700',
+            "'Quicksand', sans-serif" => 'Quicksand:wght@400;500;600;700',
         ];
 
-        // Detectar si necesitamos cargar Google Fonts
-        $needsGoogleFont = isset($googleFonts[$logoFont]);
+        // Collect unique Google Font families needed
+        $fontsToLoad = [];
+        foreach ([$logoFont, $contentHeadingFont, $contentBodyFont] as $f) {
+            if (isset($googleFonts[$f]) && !in_array($googleFonts[$f], $fontsToLoad)) {
+                $fontsToLoad[] = $googleFonts[$f];
+            }
+        }
     @endphp
-    @if($needsGoogleFont)
+    @if(!empty($fontsToLoad))
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family={{ $googleFonts[$logoFont] }}&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?{{ implode('&', array_map(fn($f) => 'family=' . $f, $fontsToLoad)) }}&display=swap" rel="stylesheet">
     @endif
 
     {{-- Bootstrap CSS local --}}
@@ -249,6 +259,29 @@
         --scroll-to-top-bg-color: {{ themeOption('scroll_to_top.scroll_to_top_bg_color', '#ff5e15') }};
         --scroll-to-top-icon-color: {{ themeOption('scroll_to_top.scroll_to_top_icon_color', '#ffffff') }};
         --scroll-to-top-hover-bg-color: {{ themeOption('scroll_to_top.scroll_to_top_hover_bg_color', '#e54c08') }};
+        /* Tipografía del contenido */
+        --content-heading-font: {!! themeOption('typography.content_heading_font', 'inherit') !!};
+        --content-body-font: {!! themeOption('typography.content_body_font', 'inherit') !!};
+        --content-text-color: {{ themeOption('typography.content_text_color', '#334155') }};
+        --content-heading-color: {{ themeOption('typography.content_heading_color', '#0f172a') }};
+        --content-link-color: {{ themeOption('typography.content_link_color', '#3b82f6') }};
+        @php
+            $__typoScale = themeOption('typography.content_type_scale', 'normal');
+            $__typoScales = [
+                'compact' => ['h1' => '28px', 'h2' => '24px', 'h3' => '20px', 'h4' => '18px', 'h5' => '16px', 'h6' => '14px', 'body' => '15px', 'lh' => '1.6'],
+                'normal'  => ['h1' => '36px', 'h2' => '28px', 'h3' => '24px', 'h4' => '20px', 'h5' => '18px', 'h6' => '16px', 'body' => '16px', 'lh' => '1.7'],
+                'large'   => ['h1' => '48px', 'h2' => '36px', 'h3' => '28px', 'h4' => '24px', 'h5' => '20px', 'h6' => '18px', 'body' => '17px', 'lh' => '1.8'],
+            ];
+            $__ts = $__typoScales[$__typoScale] ?? $__typoScales['normal'];
+        @endphp
+        --content-h1-size: {{ $__ts['h1'] }};
+        --content-h2-size: {{ $__ts['h2'] }};
+        --content-h3-size: {{ $__ts['h3'] }};
+        --content-h4-size: {{ $__ts['h4'] }};
+        --content-h5-size: {{ $__ts['h5'] }};
+        --content-h6-size: {{ $__ts['h6'] }};
+        --content-body-size: {{ $__ts['body'] }};
+        --content-line-height: {{ $__ts['lh'] }};
     }
 
     /* ===== Estilos del Header usando CSS Variables ===== */
@@ -1913,6 +1946,11 @@ body.mobile-menu-open {
         </style>
 
 
+    {{-- Google Fonts detectadas en el contenido de la página (inline font-family) --}}
+    @if(!empty($__contentFontsLink))
+    {!! $__contentFontsLink !!}
+    @endif
+
     {{-- Estilos adicionales --}}
     @stack('styles')
 
@@ -2747,13 +2785,17 @@ document.addEventListener('DOMContentLoaded', function() {
         $a.css('cursor', 'zoom-in');
     });
 
-    // 2. Imágenes sueltas sin enlace: envolverlas en <a>
+    // 2. Imágenes sueltas sin enlace: envolverlas en <a> para lightbox
+    //    Configurable via panel de apariencia (typography.content_auto_lightbox)
+    //    Solo para imágenes suficientemente grandes (>400px) — laureles, badges e iconos no se amplían
+    @php $__autoLightbox = themeOption('typography.content_auto_lightbox', true); @endphp
+    @if($__autoLightbox)
     $('.page-body img').each(function() {
         var $img = $(this);
         if ($img.closest('a, .swiper, .gallery-container, .portrait-lightbox, .element-hero, header, footer, nav').length) return;
-        var w = $img.attr('width') || $img.prop('naturalWidth') || 999;
-        var h = $img.attr('height') || $img.prop('naturalHeight') || 999;
-        if (parseInt(w) < 80 || parseInt(h) < 80) return;
+        var w = parseInt($img.attr('width') || $img.prop('naturalWidth') || 0);
+        var h = parseInt($img.attr('height') || $img.prop('naturalHeight') || 0);
+        if (w < 400 || h < 250) return;
         var src = $img.attr('src');
         if (!src) return;
         // Heredar el display de la imagen para no romper centrado ni layouts inline
@@ -2771,6 +2813,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         $img.wrap($link);
     });
+    @endif
 
     // 3. Inicializar Magnific Popup en todos los lightbox del contenido
     var $contentLinks = $('.page-body .page-content-lightbox');
