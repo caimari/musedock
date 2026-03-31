@@ -13,11 +13,60 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.7.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.7.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 31 de Marzo de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> HTML Static Cache (ISR)</h6>
+                <ul class="mb-3">
+                    <li><strong>Cache hibrido por URL:</strong> Sistema de cache HTML estatico tipo ISR (Incremental Static Regeneration). Las paginas publicas se sirven como archivos .html pre-renderizados, eliminando el bootstrap PHP en cada peticion (~3x mas rapido)</li>
+                    <li><strong>Early-exit middleware:</strong> Insercion ultra-temprana en index.php. Si existe cache en disco, se sirve con readfile() + exit antes de cargar sesion, base de datos, modulos o rutas</li>
+                    <li><strong>Escritura atomica:</strong> flock() + rename() para evitar race conditions. Dos visitantes simultaneos a la misma URL sin cache no generan conflictos ni archivos corruptos</li>
+                    <li><strong>Multi-tenant aislado:</strong> Cache separado por tenant en /storage/html-cache/_tenant_{id}/ con resolucion ligera del tenant desde dominio (sin bootstrap completo)</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Invalidacion inteligente</h6>
+                <ul class="mb-3">
+                    <li><strong>Por eventos:</strong> Al crear/editar/eliminar paginas o posts, se invalida y regenera automaticamente la pagina afectada, el listado del blog y la homepage</li>
+                    <li><strong>Por tags:</strong> Sistema de meta-archivos (.meta.json) por pagina cacheada con tags (blog, pages, home, blog-list) para invalidacion selectiva sin escanear todo el disco</li>
+                    <li><strong>Cambio de prefijos:</strong> Al modificar blog_url_prefix o page_url_prefix en Settings > Reading, se purga todo el cache del tenant y se regenera con las nuevas URLs</li>
+                    <li><strong>Cambio de tema:</strong> Al activar un tema diferente (custom o global), se purga todo el cache del tenant automaticamente</li>
+                    <li><strong>Taxonomias:</strong> Al crear/editar/eliminar categorias o tags del blog, se invalidan los listados relacionados</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Exclusiones de seguridad</h6>
+                <ul class="mb-3">
+                    <li><strong>Sesiones admin:</strong> Visitantes con cookie de sesion PHP nunca reciben cache (siempre contenido dinamico fresco)</li>
+                    <li><strong>Rutas protegidas:</strong> /admin, /musedock, /api, /ajax, /media, /storage, /login, /search excluidos permanentemente</li>
+                    <li><strong>Solo GET + HTML 200:</strong> Solo se cachean respuestas exitosas (HTTP 200) de tipo text/html en peticiones GET</li>
+                    <li><strong>TTL 24h:</strong> Safety net automatico: cache expira tras 24 horas aunque no se invalide manualmente</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> CLI de gestion</h6>
+                <ul class="mb-3">
+                    <li><strong>cache:warm:</strong> Pre-genera cache de homepage, blog y paginas para todos los tenants o uno especifico (--tenant=ID, --only=home,blog,pages, --limit=N)</li>
+                    <li><strong>cache:purge:</strong> Elimina todo el cache o solo el de un tenant especifico</li>
+                    <li><strong>cache:status:</strong> Muestra estadisticas: archivos, tamano, antigueedad por tenant</li>
+                    <li><strong>cache:enable / cache:disable:</strong> Activa o desactiva el sistema desde .env (HTML_CACHE_ENABLED)</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Paginacion con URLs limpias</h6>
+                <ul class="mb-3">
+                    <li><strong>Rutas /prefix/page/N:</strong> Nueva ruta /{prefix}/page/{num} para paginacion del blog sin query strings (?page=), compatible con el sistema de cache estatico</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.6.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.6.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">31 Mar 2026</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 31 de Marzo de 2026</p>
@@ -44,7 +93,8 @@
 
                 <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Nuevos layouts de cabecera</h6>
                 <ul class="mb-3">
-                    <li><strong>FilmConnect:</strong> Logo arriba + barra de navegacion con highlight en hover/activo, estilo Hoot Du</li>
+                    <li><strong>Logo + Tabs:</strong> Logo arriba + menu en pestañas (tabs de pagina con pestaña activa)</li>
+                    <li><strong>Paper Card:</strong> Header flotante con efecto hojas apiladas, CTA prominente y alineacion de footer</li>
                     <li><strong>Classic:</strong> Menu arriba + logo debajo</li>
                 </ul>
 

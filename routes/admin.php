@@ -313,10 +313,13 @@ Route::get("$adminPath/pages/{id}/edit", 'tenant.PageController@edit')
 Route::put("$adminPath/pages/{id}", 'tenant.PageController@update')
      ->middleware(['auth'])
      ->name('tenant.pages.update');
-Route::delete("$adminPath/pages/{id}", 'tenant.PageController@delete')
+Route::delete("$adminPath/pages/{id}", 'tenant.PageController@destroy')
      ->middleware(['auth'])
      ->name('tenant.pages.delete');
-Route::post("$adminPath/pages/{id}/delete", 'tenant.PageController@delete')
+Route::delete("$adminPath/pages/{id}/delete", 'tenant.PageController@destroy')
+     ->middleware(['auth'])
+     ->name('tenant.pages.delete.path');
+Route::post("$adminPath/pages/{id}/delete", 'tenant.PageController@destroy')
      ->middleware(['auth'])
      ->name('tenant.pages.delete.post');
 

@@ -11,6 +11,7 @@ use Screenart\Musedock\Requests\PageRequest;
 use Screenart\Musedock\Models\PageTranslation;
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Services\AuditLogger;
+use Screenart\Musedock\Cache\HtmlCache;
 use Screenart\Musedock\Traits\RequiresPermission;
 
 class PageController
@@ -293,6 +294,14 @@ class PageController
         if (($data['status'] ?? '') === 'published') {
             \Blog\Controllers\Frontend\SitemapController::invalidateCache($tenantId);
         }
+
+        // Invalidar y regenerar HTML cache
+        HtmlCache::onPageSaved([
+            'slug'        => $data['slug'] ?? '',
+            'prefix'      => $data['prefix'] ?? page_prefix(),
+            'is_homepage' => $isFirstPage ? 1 : 0,
+            'status'      => $data['status'] ?? 'published',
+        ], $tenantId);
 
         flash('success', __('pages.success_created'));
         header('Location: ' . admin_url("pages/{$page->id}/edit"));
@@ -600,6 +609,14 @@ class PageController
             // Invalidar caché del sitemap (la página podría haber cambiado de status)
             \Blog\Controllers\Frontend\SitemapController::invalidateCache($tenantId);
 
+            // Invalidar y regenerar HTML cache
+            HtmlCache::onPageSaved([
+                'slug'        => $newSlug,
+                'prefix'      => $prefix,
+                'is_homepage' => $makeHomepage ? 1 : 0,
+                'status'      => $data['status'] ?? 'published',
+            ], $tenantId);
+
         } catch (\Exception $e) {
             if ($pdo && $pdo->inTransaction()) { $pdo->rollBack(); }
             error_log("ERROR en transacción update página {$id}: " . $e->getMessage());
@@ -686,6 +703,23 @@ class PageController
                 'title' => $result['title'] ?? '',
                 'tenant_id' => $tenantId
             ]);
+
+            // Invalidar HTML cache de la página eliminada
+            try {
+                $slugStmt = $pdo->prepare("SELECT slug, prefix FROM slugs WHERE module = 'pages' AND reference_id = ? LIMIT 1");
+                $slugStmt->execute([$pageId]);
+                $slugRow = $slugStmt->fetch(\PDO::FETCH_ASSOC);
+                if ($slugRow) {
+                    HtmlCache::onPageSaved([
+                        'slug'        => $slugRow['slug'],
+                        'prefix'      => $slugRow['prefix'] ?? page_prefix(),
+                        'is_homepage' => false,
+                        'status'      => 'trash',
+                    ], $tenantId);
+                }
+            } catch (\Exception $cacheErr) {
+                error_log("HtmlCache: Error invalidating on destroy: " . $cacheErr->getMessage());
+            }
 
             flash('success', __('pages.success_trashed'));
 

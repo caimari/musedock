@@ -7,6 +7,7 @@ use Blog\Models\BlogTag;
 use Blog\Requests\BlogTagRequest;
 use Screenart\Musedock\Services\TenantManager;
 use Screenart\Musedock\Database;
+use Screenart\Musedock\Cache\HtmlCache;
 use Screenart\Musedock\Traits\RequiresPermission;
 
 class BlogTagController
@@ -194,6 +195,8 @@ class BlogTagController
             throw $e;
         }
 
+        HtmlCache::onTaxonomySaved($tenantId);
+
         flash('success', __('blog.tag.success_created'));
         header("Location: /" . admin_path() . "/blog/tags/{$tag->id}/edit");
         exit;
@@ -338,6 +341,8 @@ class BlogTagController
             exit;
         }
 
+        HtmlCache::onTaxonomySaved($tenantId);
+
         flash('success', __('blog.tag.success_updated'));
         header("Location: /" . admin_path() . "/blog/tags/{$id}/edit");
         exit;
@@ -384,6 +389,8 @@ class BlogTagController
 
             // Eliminar la etiqueta
             $tag->delete();
+
+            HtmlCache::onTaxonomySaved($tenantId);
 
             flash('success', __('blog.tag.success_deleted'));
         } catch (\Exception $e) {

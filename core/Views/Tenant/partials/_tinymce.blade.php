@@ -188,10 +188,14 @@ $tenantHeadingFont = themeOption('typography.content_heading_font', 'inherit');
 $tenantBodyFont = themeOption('typography.content_body_font', 'inherit');
 $tenantFontNames = [];
 
-// Construir font_family_formats: fuentes del sitio primero, luego curadas
+// Construir font_family_formats: system + web-safe + tenant + curadas
 $fontFormats = [];
-// System default siempre primero
 $fontFormats[] = "System Default=system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+$fontFormats[] = "Arial=Arial, Helvetica, sans-serif";
+$fontFormats[] = "Georgia=Georgia, serif";
+$fontFormats[] = "Times New Roman='Times New Roman', Times, serif";
+$fontFormats[] = "Verdana=Verdana, Geneva, sans-serif";
+$fontFormats[] = "Courier New='Courier New', Courier, monospace";
 
 // Fuentes del tenant (si no son system/inherit)
 foreach ([$tenantHeadingFont, $tenantBodyFont] as $tf) {

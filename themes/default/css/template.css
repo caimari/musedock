@@ -43,9 +43,11 @@ body {
   display: flex !important;
   align-items: center !important;
 }
-/* Layout logo-above: debe ser block, no flex (tiene filas logo + menú) */
+/* Layouts con filas (logo + menú debajo): deben ser block, no flex */
 .musedock-header.header-layout-logo-above,
-.musedock-header.header-layout-logo-above-left {
+.musedock-header.header-layout-logo-above-left,
+.musedock-header.header-layout-filmconnect,
+.musedock-header.header-layout-floating {
   display: block !important;
   min-height: auto !important;
 }

@@ -136,6 +136,18 @@ Route::post('/musedock/themes/appearance/{slug}/{tenantId}', 'superadmin.ThemeAp
 // Route::post('/themes/preview/{slug}', [ThemeAppearanceController::class, 'preview'])
 //      ->name('themes.preview.global');
 
+// CSS Auditor (theme-extractor)
+Route::get('/musedock/theme-extractor', 'superadmin.CssAuditorController@index')->middleware('superadmin');
+Route::get('/musedock/theme-extractor/extract', 'superadmin.CssAuditorController@extract')->middleware('superadmin');
+Route::get('/musedock/theme-extractor/progress', 'superadmin.CssAuditorController@progress')->middleware('superadmin');
+Route::get('/musedock/theme-extractor/download', 'superadmin.CssAuditorController@download')->middleware('superadmin');
+Route::get('/musedock/theme-extractor/clean-css', 'superadmin.CssAuditorController@getCleanCss')->middleware('superadmin');
+Route::get('/musedock/theme-extractor/clone', 'superadmin.CssAuditorController@clonePage')->middleware('superadmin');
+Route::get('/musedock/theme-extractor/preview', 'superadmin.CssAuditorController@preview')->middleware('superadmin');
+Route::get('/musedock/theme-extractor/download-clone', 'superadmin.CssAuditorController@downloadClone')->middleware('superadmin');
+Route::get('/musedock/theme-extractor/download-js', 'superadmin.CssAuditorController@downloadJs')->middleware('superadmin');
+Route::get('/musedock/theme-extractor/unified-js', 'superadmin.CssAuditorController@getUnifiedJs')->middleware('superadmin');
+
 // Users
 Route::get('/musedock/users', 'superadmin.UsersController@index')->middleware('superadmin');
 Route::get('/musedock/users/{id}/edit', 'superadmin.UsersController@edit')->middleware('superadmin');

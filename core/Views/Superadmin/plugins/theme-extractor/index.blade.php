@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $title ?? 'Theme Extractor')
+@section('title', $title ?? 'CSS Auditor')
 
 @section('content')
 @include('partials.alerts-sweetalert2')
@@ -8,359 +8,646 @@
 <div class="container-fluid" style="max-width: 1300px;">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="mb-1"><i class="bi bi-cloud-download me-2"></i>Theme Extractor</h2>
-            <p class="text-muted mb-0">Extrae colores, fuentes y estilos de cualquier web para crear un skin MuseDock</p>
+            <h2 class="mb-1"><i class="bi bi-filetype-css me-2"></i>CSS Auditor</h2>
+            <p class="text-muted mb-0">Analiza el CSS de cualquier web: descubre selectores no usados y genera un CSS limpio unificado</p>
         </div>
         <a href="/musedock/themes" class="btn btn-outline-secondary btn-sm text-decoration-none">
             <i class="bi bi-arrow-left me-1"></i> Volver a Temas
         </a>
     </div>
 
-    {{-- Step 1: URL Input --}}
+    {{-- URL Input --}}
     <div class="card mb-4">
         <div class="card-body">
-            <form method="POST" action="/musedock/theme-extractor/extract" id="extractForm">
-                {!! csrf_field() !!}
-                <div class="row align-items-end">
-                    <div class="col-lg-9 mb-3 mb-lg-0">
-                        <label class="form-label fw-semibold">URL del sitio web</label>
-                        <div class="input-group input-group-lg">
-                            <span class="input-group-text"><i class="bi bi-globe"></i></span>
-                            <input type="url" name="url" class="form-control" placeholder="https://ejemplo.com" value="{{ $sourceUrl ?? '' }}" required>
-                        </div>
-                        <small class="text-muted">Introduce la URL de la web cuyo diseño quieres extraer</small>
+            <div class="row align-items-end">
+                <div class="col-lg-9 mb-3 mb-lg-0">
+                    <label class="form-label fw-semibold">URL de la pagina a analizar</label>
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text"><i class="bi bi-globe"></i></span>
+                        <input type="url" id="inputUrl" class="form-control" placeholder="https://ejemplo.com" required>
                     </div>
-                    <div class="col-lg-3">
-                        <button type="submit" class="btn btn-primary btn-lg w-100" id="btnExtract">
-                            <i class="bi bi-cloud-download me-1"></i> Extraer Diseño
-                        </button>
-                    </div>
+                    <small class="text-muted">Analizaremos los CSS de esta pagina, detectaremos selectores usados y generaremos un CSS limpio</small>
                 </div>
-            </form>
+                <div class="col-lg-3">
+                    <button type="button" class="btn btn-primary btn-lg w-100" id="btnExtract">
+                        <i class="bi bi-search me-1"></i> Analizar CSS
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
-    @if(!empty($extracted))
-    {{-- Results --}}
-    <form method="POST" action="/musedock/theme-extractor/save" id="saveForm">
-        {!! csrf_field() !!}
-        <input type="hidden" name="source_url" value="{{ $sourceUrl ?? '' }}">
-
-        <div class="row">
-            {{-- Left: Extracted Data --}}
-            <div class="col-lg-7">
-                {{-- Color Palette --}}
-                <div class="card mb-4">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="bi bi-palette me-2 text-primary"></i>Colores Extraídos</h5>
-                        <span class="badge bg-primary">{{ count($colors) }} colores</span>
-                    </div>
-                    <div class="card-body">
-                        @php
-                            $bgColors = array_filter($colors, fn($c) => $c['category'] === 'background');
-                            $textColors = array_filter($colors, fn($c) => $c['category'] === 'text');
-                            $accentColors = array_filter($colors, fn($c) => $c['category'] === 'accent');
-                        @endphp
-
-                        @if(!empty($accentColors))
-                        <h6 class="text-muted small text-uppercase mb-2">Acentos / Marca</h6>
-                        <div class="d-flex flex-wrap gap-2 mb-3">
-                            @foreach(array_slice($accentColors, 0, 15) as $c)
-                            <div class="te-color-swatch" data-color="{{ $c['hex'] }}" title="{{ $c['hex'] }} ({{ $c['count'] }}x)" style="background: {{ $c['hex'] }};">
-                                <span class="te-color-label">{{ $c['hex'] }}</span>
-                            </div>
-                            @endforeach
-                        </div>
-                        @endif
-
-                        @if(!empty($bgColors))
-                        <h6 class="text-muted small text-uppercase mb-2">Fondos</h6>
-                        <div class="d-flex flex-wrap gap-2 mb-3">
-                            @foreach(array_slice($bgColors, 0, 12) as $c)
-                            <div class="te-color-swatch te-light" data-color="{{ $c['hex'] }}" title="{{ $c['hex'] }} ({{ $c['count'] }}x)" style="background: {{ $c['hex'] }};">
-                                <span class="te-color-label">{{ $c['hex'] }}</span>
-                            </div>
-                            @endforeach
-                        </div>
-                        @endif
-
-                        @if(!empty($textColors))
-                        <h6 class="text-muted small text-uppercase mb-2">Textos</h6>
-                        <div class="d-flex flex-wrap gap-2 mb-3">
-                            @foreach(array_slice($textColors, 0, 10) as $c)
-                            <div class="te-color-swatch" data-color="{{ $c['hex'] }}" title="{{ $c['hex'] }} ({{ $c['count'] }}x)" style="background: {{ $c['hex'] }};">
-                                <span class="te-color-label">{{ $c['hex'] }}</span>
-                            </div>
-                            @endforeach
-                        </div>
-                        @endif
-                    </div>
-                </div>
-
-                {{-- Fonts --}}
-                @if(!empty($fonts))
-                <div class="card mb-4">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0"><i class="bi bi-fonts me-2 text-primary"></i>Fuentes Detectadas</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            @foreach($fonts as $fontName => $count)
-                            <div class="col-md-6 mb-2">
-                                <div class="p-2 bg-light rounded d-flex justify-content-between align-items-center">
-                                    <span style="font-family: '{{ $fontName }}', sans-serif; font-size: 15px;">{{ $fontName }}</span>
-                                    <span class="badge bg-secondary">{{ $count }}x</span>
-                                </div>
-                            </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-                @endif
-
-                {{-- CSS Variables --}}
-                @if(!empty($cssVars))
-                <div class="card mb-4">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="bi bi-code-slash me-2 text-primary"></i>Variables CSS</h5>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('cssVarsPanel').classList.toggle('d-none')">
-                            <i class="bi bi-chevron-down"></i>
-                        </button>
-                    </div>
-                    <div class="card-body d-none" id="cssVarsPanel">
-                        <div style="max-height: 300px; overflow-y: auto;">
-                            <table class="table table-sm table-hover mb-0">
-                                @foreach($cssVars as $varName => $varValue)
-                                <tr>
-                                    <td class="text-nowrap"><code>{{ $varName }}</code></td>
-                                    <td>
-                                        {{ mb_substr($varValue, 0, 60) }}
-                                        @if(preg_match('/^#[0-9a-f]{3,8}$/i', trim($varValue)))
-                                            <span class="d-inline-block" style="width:14px;height:14px;border-radius:3px;background:{{ trim($varValue) }};border:1px solid #ddd;vertical-align:middle;"></span>
-                                        @endif
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                @endif
-
-                {{-- Background Images --}}
-                @if(!empty($bgImages))
-                <div class="card mb-4">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="bi bi-image me-2 text-primary"></i>Imagenes de Fondo</h5>
-                        <span class="badge bg-primary">{{ count($bgImages) }}</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-2">
-                            @foreach($bgImages as $img)
-                            <div class="col-4 col-md-3">
-                                <div class="te-bg-thumb" title="{{ $img['url'] }}">
-                                    <img src="{{ $img['url'] }}" alt="{{ $img['filename'] }}" loading="lazy" onerror="this.parentElement.style.display='none'">
-                                    <small class="te-bg-filename">{{ mb_substr($img['filename'], 0, 20) }}</small>
-                                </div>
-                            </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-                @endif
-
-                {{-- JS Sources --}}
-                @if(!empty($jsSources))
-                <div class="card mb-4">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="bi bi-filetype-js me-2 text-warning"></i>Scripts JS</h5>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('jsPanel').classList.toggle('d-none')">
-                            <i class="bi bi-chevron-down"></i> {{ count($jsSources) }} archivos
-                        </button>
-                    </div>
-                    <div class="card-body d-none" id="jsPanel">
-                        <div style="max-height: 250px; overflow-y: auto;">
-                            @foreach($jsSources as $js)
-                            <div class="d-flex align-items-center gap-2 mb-1 p-1 {{ $js['is_library'] ? 'opacity-50' : '' }}" style="font-size: 12px;">
-                                <i class="bi {{ $js['is_library'] ? 'bi-box-seam text-muted' : 'bi-file-code text-warning' }}"></i>
-                                <span class="text-truncate flex-grow-1" title="{{ $js['url'] }}">{{ $js['filename'] }}</span>
-                                @if($js['is_library'])<span class="badge bg-light text-muted">lib</span>@endif
-                                <a href="{{ $js['url'] }}" target="_blank" class="text-muted" title="Abrir"><i class="bi bi-box-arrow-up-right"></i></a>
-                            </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-                @endif
-
-                {{-- Custom CSS --}}
-                <div class="card mb-4">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0"><i class="bi bi-filetype-css me-2 text-primary"></i>CSS Personalizado</h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted small mb-2">{{ number_format($rawCssLength / 1024, 1) }} KB de CSS detectados. Pega aqui CSS adicional o decoraciones especiales:</p>
-                        <textarea name="custom_css" class="form-control font-monospace" rows="6" placeholder="/* CSS personalizado para el skin */"></textarea>
-                    </div>
-                </div>
+    {{-- Results (hidden initially) --}}
+    <div id="resultsContainer" class="d-none">
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card text-center h-100"><div class="card-body py-3">
+                    <div class="display-6 fw-bold text-primary" id="statFiles">0</div>
+                    <small class="text-muted">Archivos CSS</small>
+                </div></div>
             </div>
+            <div class="col-md-3">
+                <div class="card text-center h-100"><div class="card-body py-3">
+                    <div class="display-6 fw-bold text-info" id="statSelectors">0</div>
+                    <small class="text-muted">Selectores totales</small>
+                </div></div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center h-100"><div class="card-body py-3">
+                    <div class="display-6 fw-bold" id="statUsedPct">0%</div>
+                    <small class="text-muted">Selectores usados</small>
+                </div></div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center h-100"><div class="card-body py-3">
+                    <div class="display-6 fw-bold text-success" id="statReduction">0%</div>
+                    <small class="text-muted">Reduccion total</small>
+                </div></div>
+            </div>
+        </div>
 
-            {{-- Right: Mapping Panel --}}
-            <div class="col-lg-5">
-                <div class="card mb-4 sticky-top" style="top: 20px;">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0"><i class="bi bi-map me-2 text-success"></i>Mapeo de Colores</h5>
-                    </div>
-                    <div class="card-body" style="max-height: 70vh; overflow-y: auto;">
-                        <p class="text-muted small mb-3">Asigna los colores extraidos a las variables del tema MuseDock. Haz clic en un color de la izquierda para copiarlo.</p>
-
-                        @php
-                            $mappingFields = [
-                                'Topbar' => [
-                                    'topbar_bg_color' => 'Fondo topbar',
-                                    'topbar_text_color' => 'Texto topbar',
-                                ],
-                                'Header' => [
-                                    'header_bg_color' => 'Fondo header',
-                                    'header_link_color' => 'Color enlaces',
-                                    'header_link_hover_color' => 'Color hover',
-                                    'header_cta_bg_color' => 'Fondo botón CTA',
-                                    'header_cta_text_color' => 'Texto botón CTA',
-                                ],
-                                'Hero' => [
-                                    'hero_title_color' => 'Color título',
-                                    'hero_overlay_color' => 'Color overlay',
-                                ],
-                                'Footer' => [
-                                    'footer_bg_color' => 'Fondo footer',
-                                    'footer_text_color' => 'Texto footer',
-                                    'footer_heading_color' => 'Títulos footer',
-                                    'footer_link_color' => 'Enlaces footer',
-                                    'footer_link_hover_color' => 'Hover footer',
-                                    'footer_icon_color' => 'Iconos footer',
-                                ],
-                                'Otros' => [
-                                    'scroll_to_top_bg_color' => 'Botón scroll top',
-                                ],
-                            ];
-                        @endphp
-
-                        @foreach($mappingFields as $section => $fields)
-                        <h6 class="text-uppercase text-muted small mt-3 mb-2 border-bottom pb-1">{{ $section }}</h6>
-                        @foreach($fields as $key => $label)
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            <input type="color" name="map_{{ $key }}" value="{{ $autoMapping[$key] ?? '#ffffff' }}" class="form-control form-control-color flex-shrink-0" style="width:38px;height:32px;" title="{{ $label }}">
-                            <input type="text" class="form-control form-control-sm te-hex-input" value="{{ $autoMapping[$key] ?? '#ffffff' }}" placeholder="#000000" style="width:90px;font-size:12px;font-family:monospace;">
-                            <span class="small text-muted flex-grow-1">{{ $label }}</span>
-                        </div>
-                        @endforeach
-                        @endforeach
-                    </div>
-
-                    <div class="card-footer bg-white">
-                        {{-- Skin metadata --}}
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold small">Nombre del Skin</label>
-                            <input type="text" name="skin_name" class="form-control" placeholder="Mi Skin Personalizado" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold small">Descripcion</label>
-                            <input type="text" name="skin_description" class="form-control form-control-sm" placeholder="Skin basado en..." value="Extraido de {{ $sourceUrl ?? '' }}">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold small">Asignar a tenant (privado)</label>
-                            <select name="tenant_id" class="form-select form-select-sm">
-                                <option value="">Global (todos los tenants)</option>
-                                @foreach($tenants ?? [] as $t)
-                                    <option value="{{ $t['id'] }}">{{ $t['name'] }} ({{ $t['domain'] }})</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-success w-100">
-                            <i class="bi bi-save me-1"></i> Crear Skin
-                        </button>
-                    </div>
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="fw-semibold">CSS Original: <code id="sizeOriginal">0 KB</code></span>
+                    <span class="fw-semibold text-success">CSS Limpio: <code id="sizeClean">0 KB</code></span>
+                </div>
+                <div class="progress" style="height: 24px;">
+                    <div class="progress-bar bg-success" id="barUsed" style="width: 0%;">0%</div>
+                    <div class="progress-bar bg-danger bg-opacity-50" id="barUnused" style="width: 100%;">100%</div>
                 </div>
             </div>
         </div>
-    </form>
-    @endif
+
+        <div class="card mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-code me-2 text-primary"></i>Analisis por archivo</h5>
+                <span class="badge bg-primary" id="badgeFiles">0 archivos</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="min-width: 300px;">Archivo CSS</th>
+                                <th class="text-center" style="width: 100px;">Original</th>
+                                <th class="text-center" style="width: 100px;">Limpio</th>
+                                <th class="text-center" style="width: 100px;">Reduccion</th>
+                                <th class="text-center" style="width: 120px;">Selectores</th>
+                                <th style="width: 200px;">Uso</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {{-- JavaScript Files --}}
+        <div class="card mb-4 d-none" id="jsSection">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-filetype-js me-2 text-warning"></i>JavaScript Detectado</h5>
+                <div class="d-flex gap-2 align-items-center">
+                    <span class="badge bg-warning text-dark" id="badgeJsFiles">0 archivos</span>
+                    <span class="text-muted small" id="jsTotalSize"></span>
+                    <a href="/musedock/theme-extractor/download-js" class="btn btn-warning btn-sm text-white">
+                        <i class="bi bi-download me-1"></i> Descargar JS Unificado
+                    </a>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="min-width: 300px;">Archivo JS</th>
+                                <th class="text-center" style="width: 100px;">Tamano</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jsResultsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-stars me-2 text-success"></i>CSS Limpio Unificado</h5>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTogglePreview">
+                        <i class="bi bi-eye me-1"></i> Ver/Ocultar
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="btnCopyCss">
+                        <i class="bi bi-clipboard me-1"></i> Copiar
+                    </button>
+                    <a href="/musedock/theme-extractor/download" class="btn btn-success btn-sm">
+                        <i class="bi bi-download me-1"></i> Descargar CSS Limpio
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-2" id="cleanSummary"></p>
+                <div id="cssPreview" class="d-none">
+                    <textarea class="form-control font-monospace" rows="20" readonly id="cssTextarea"
+                        style="font-size: 12px; background: #1e1e2e; color: #cdd6f4; border: none;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        {{-- Clone & Preview --}}
+        <div class="card mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-copy me-2 text-info"></i>Clonar y Previsualizar</h5>
+                <div class="d-flex gap-2 align-items-center">
+                    <div class="form-check form-switch me-2" title="Incluir JavaScript unificado en el clon">
+                        <input class="form-check-input" type="checkbox" id="chkIncludeJs">
+                        <label class="form-check-label small" for="chkIncludeJs">Incluir JS</label>
+                    </div>
+                    <button type="button" class="btn btn-info btn-sm text-white" id="btnClone">
+                        <i class="bi bi-copy me-1"></i> Generar Clon
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="btnOpenPreview">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> Abrir en nueva pestana
+                    </button>
+                    <button type="button" class="btn btn-outline-success btn-sm d-none" id="btnDownloadClone">
+                        <i class="bi bi-download me-1"></i> Descargar HTML
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">Genera una copia de la pagina con solo el CSS utilizado integrado. Compara visualmente el original con el clon para verificar que se ve correctamente.</p>
+
+                {{-- Comparison view --}}
+                <div id="clonePreviewArea" class="d-none">
+                    <div class="d-flex gap-2 mb-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary active" data-view="side" id="btnViewSide">
+                            <i class="bi bi-layout-split me-1"></i> Lado a lado
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-view="clone" id="btnViewClone">
+                            <i class="bi bi-file-earmark-code me-1"></i> Solo clon
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-view="original" id="btnViewOriginal">
+                            <i class="bi bi-globe me-1"></i> Solo original
+                        </button>
+                    </div>
+
+                    <div class="row g-2" id="framesContainer">
+                        <div class="col-md-6" id="frameOriginalCol">
+                            <div class="border rounded overflow-hidden">
+                                <div class="bg-dark text-white px-3 py-1 d-flex justify-content-between align-items-center" style="font-size: 12px;">
+                                    <span><i class="bi bi-globe me-1"></i>Original</span>
+                                    <a id="originalUrlLink" href="#" target="_blank" class="text-white text-truncate text-decoration-none" style="max-width: 250px;">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i><span id="originalUrlLabel"></span>
+                                    </a>
+                                </div>
+                                <iframe id="frameOriginal" style="width: 100%; height: 600px; border: none; background: #fff;"></iframe>
+                                {{-- Fallback if iframe is blocked --}}
+                                <div id="frameOriginalBlocked" class="d-none text-center py-5" style="height: 600px; background: #f8f9fa;">
+                                    <i class="bi bi-shield-exclamation display-3 text-muted"></i>
+                                    <p class="text-muted mt-3 mb-2">La web original bloquea ser cargada en iframe (CSP/X-Frame-Options)</p>
+                                    <a id="originalOpenLink" href="#" target="_blank" class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i> Abrir original en nueva pestana
+                                    </a>
+                                    <p class="text-muted small mt-2">Abre el original y el clon en pestanas separadas para comparar</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="frameCloneCol">
+                            <div class="border rounded overflow-hidden">
+                                <div class="bg-info text-white px-3 py-1 d-flex justify-content-between align-items-center" style="font-size: 12px;">
+                                    <span><i class="bi bi-copy me-1"></i>Clon (solo CSS utilizado, sin JS)</span>
+                                    <span id="cloneSizeLabel" class="text-white-50"></span>
+                                </div>
+                                <iframe id="frameClone" style="width: 100%; height: 600px; border: none; background: #fff;"></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Clone loading state --}}
+                <div id="cloneLoading" class="text-center py-4 d-none">
+                    <div class="spinner-border text-info mb-2"></div>
+                    <p class="text-muted">Generando clon de la pagina...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Progress Modal --}}
+<div class="modal fade" id="progressModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-gear-wide-connected me-2 text-primary css-spin"></i>Analizando CSS
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small class="text-muted" id="progressLabel">Conectando...</small>
+                        <small class="fw-bold" id="progressPct">0%</small>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" id="progressBar" style="width: 5%;"></div>
+                    </div>
+                </div>
+                <div id="progressLog" class="bg-light rounded p-2 font-monospace mb-3"
+                     style="max-height: 150px; overflow-y: auto; font-size: 12px;"></div>
+                <div id="liveResults" style="max-height: 300px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
-.te-color-swatch {
-    width: 56px; height: 56px; border-radius: 10px; cursor: pointer;
-    display: flex; align-items: flex-end; justify-content: center;
-    border: 2px solid transparent; transition: all 0.15s;
-    position: relative; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+@keyframes css-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.css-spin { display: inline-block; animation: css-spin 2s linear infinite; }
+#progressLog .log-line { padding: 2px 0; border-bottom: 1px solid #e9ecef; }
+#progressLog .log-line:last-child { border-bottom: none; }
+.log-ok { color: #198754; } .log-info { color: #0d6efd; } .log-err { color: #dc3545; }
+.live-row {
+    display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+    border-radius: 6px; background: #f8f9fa; margin-bottom: 4px; font-size: 12px;
+    animation: liveSlide 0.3s ease;
 }
-.te-color-swatch:hover { transform: scale(1.1); border-color: #333; z-index: 2; }
-.te-color-swatch.te-light { border-color: #e0e0e0; }
-.te-color-swatch.te-light:hover { border-color: #333; }
-.te-color-label {
-    font-size: 8px; font-family: monospace; color: #fff;
-    background: rgba(0,0,0,0.5); padding: 1px 4px; border-radius: 3px;
-    margin-bottom: 3px; white-space: nowrap;
-}
-.te-light .te-color-label { color: #333; background: rgba(255,255,255,0.8); }
-.te-color-swatch.selected { border-color: #0d6efd !important; box-shadow: 0 0 0 3px rgba(13,110,253,0.3); }
-.te-bg-thumb {
-    width: 100%; height: 80px; border-radius: 8px; overflow: hidden;
-    background: #f0f2f5; position: relative; border: 1px solid #e5e7eb;
-}
-.te-bg-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.te-bg-filename {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    background: rgba(0,0,0,0.6); color: #fff; padding: 2px 4px;
-    font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+@keyframes liveSlide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.live-row .pct-badge {
+    min-width: 60px; text-align: center; padding: 2px 6px; border-radius: 4px;
+    font-weight: 600; font-size: 11px; color: #fff;
 }
 </style>
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Loading state for extract button
-    document.getElementById('extractForm')?.addEventListener('submit', function() {
-        const btn = document.getElementById('btnExtract');
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Extrayendo...';
+(function() {
+    const $ = id => document.getElementById(id);
+    const esc = s => s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : '';
+    const shortUrl = u => !u ? '(inline)' : (u.length > 70 ? '...' + u.slice(-67) : u);
+    const kb = b => (b / 1024).toFixed(1);
+
+    const btnExtract = $('btnExtract');
+    const inputUrl   = $('inputUrl');
+    const modal      = new bootstrap.Modal($('progressModal'));
+    let animTimer = null;
+    let pollTimer = null;
+    let currentJobId = null;
+    let isRunning = false;
+
+    function go() {
+        const url = inputUrl.value.trim();
+        if (!url || isRunning) return;
+        if (!/^https?:\/\/.+/i.test(url)) {
+            inputUrl.classList.add('is-invalid');
+            setTimeout(() => inputUrl.classList.remove('is-invalid'), 2000);
+            return;
+        }
+
+        isRunning = true;
+
+        // Reset
+        $('resultsTable').innerHTML = '';
+        $('progressLog').innerHTML = '';
+        $('liveResults').innerHTML = '';
+        $('resultsContainer').classList.add('d-none');
+        $('progressBar').style.width = '5%';
+        $('progressBar').className = 'progress-bar progress-bar-striped progress-bar-animated';
+        $('progressPct').textContent = '0%';
+        $('progressLabel').textContent = 'Iniciando...';
+        $('cssTextarea').value = '';
+
+        modal.show();
+        btnExtract.disabled = true;
+        btnExtract.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Analizando...';
+
+        addLog('Enviando peticion a ' + url, 'info');
+        startAnimatedPhases();
+
+        // Use GET to avoid CSRF issues with AJAX
+        const extractUrl = '/musedock/theme-extractor/extract?url=' + encodeURIComponent(url);
+
+        fetch(extractUrl, {
+            credentials: 'same-origin',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+            .then(async r => {
+                const ct = r.headers.get('content-type') || '';
+                if (!ct.includes('application/json')) {
+                    const text = await r.text();
+                    console.error('CSS Auditor: Non-JSON response', {status: r.status, contentType: ct, body: text.substring(0, 500)});
+                    throw new Error('Respuesta no-JSON (status ' + r.status + ', type: ' + ct + '). Ver consola para detalles.');
+                }
+                return r.json();
+            })
+            .then(onSuccess)
+            .catch(onError);
+    }
+
+    function onSuccess(data) {
+        stopTimers();
+        isRunning = false;
+
+        if (data.error) {
+            addLog(data.error, 'err');
+            $('progressLabel').textContent = data.error;
+            $('progressBar').className = 'progress-bar bg-danger';
+            $('progressBar').style.width = '100%';
+            setTimeout(() => { modal.hide(); resetBtn(); }, 2500);
+            return;
+        }
+
+        // Show 100%
+        $('progressBar').style.width = '100%';
+        $('progressBar').className = 'progress-bar bg-success';
+        $('progressPct').textContent = '100%';
+        $('progressLabel').textContent = 'Analisis completado!';
+        addLog('Completado! ' + (data.results||[]).length + ' archivos analizados.', 'ok');
+
+        // Show file results in modal
+        (data.results || []).forEach(r => addLiveResult(r));
+
+        // Start polling progress for live updates if jobId exists
+        if (data.jobId) currentJobId = data.jobId;
+
+        setTimeout(() => {
+            modal.hide();
+            renderFinal(data);
+            $('resultsContainer').classList.remove('d-none');
+            $('resultsContainer').scrollIntoView({ behavior: 'smooth' });
+            resetBtn();
+        }, 1200);
+    }
+
+    function onError(err) {
+        stopTimers();
+        isRunning = false;
+        addLog('Error de red: ' + err.message, 'err');
+        $('progressLabel').textContent = 'Error de conexion';
+        $('progressBar').className = 'progress-bar bg-danger';
+        setTimeout(() => { modal.hide(); resetBtn(); }, 2500);
+    }
+
+    // Animated phases while waiting for the response
+    const phases = [
+        { msg: 'Descargando pagina HTML...', pct: 8, delay: 1500 },
+        { msg: 'Analizando estructura HTML...', pct: 15, delay: 2000 },
+        { msg: 'Buscando archivos CSS enlazados...', pct: 22, delay: 2500 },
+        { msg: 'Descargando hojas de estilo...', pct: 35, delay: 4000 },
+        { msg: 'Analizando selectores CSS...', pct: 50, delay: 5000 },
+        { msg: 'Comparando selectores con HTML...', pct: 65, delay: 6000 },
+        { msg: 'Identificando CSS no utilizado...', pct: 75, delay: 5000 },
+        { msg: 'Generando CSS limpio unificado...', pct: 85, delay: 4000 },
+        { msg: 'Finalizando...', pct: 92, delay: 3000 },
+    ];
+    let phaseIdx = 0;
+
+    function startAnimatedPhases() {
+        phaseIdx = 0;
+        nextPhase();
+    }
+
+    function nextPhase() {
+        if (phaseIdx >= phases.length || !isRunning) return;
+        const p = phases[phaseIdx];
+        $('progressLabel').textContent = p.msg;
+        $('progressBar').style.width = p.pct + '%';
+        $('progressPct').textContent = p.pct + '%';
+        addLog(p.msg, 'info');
+        phaseIdx++;
+        animTimer = setTimeout(nextPhase, p.delay);
+    }
+
+    function stopTimers() {
+        if (animTimer) { clearTimeout(animTimer); animTimer = null; }
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    }
+
+    function resetBtn() {
+        btnExtract.disabled = false;
+        btnExtract.innerHTML = '<i class="bi bi-search me-1"></i> Analizar CSS';
+    }
+
+    function addLog(msg, type) {
+        const d = document.createElement('div');
+        d.className = 'log-line log-' + (type||'info');
+        const t = new Date().toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        d.innerHTML = '<span class="text-muted">[' + t + ']</span> ' + esc(msg);
+        $('progressLog').appendChild(d);
+        $('progressLog').scrollTop = $('progressLog').scrollHeight;
+    }
+
+    function addLiveResult(r) {
+        const name = r.is_inline ? '<i class="bi bi-code-slash text-muted me-1"></i>&lt;style&gt; inline' : '<i class="bi bi-file-earmark-code text-primary me-1"></i>' + esc(shortUrl(r.url));
+        const bg = r.reduction_pct >= 80 ? 'bg-danger' : (r.reduction_pct >= 50 ? 'bg-warning' : 'bg-success');
+        const d = document.createElement('div');
+        d.className = 'live-row';
+        d.innerHTML = name +
+            '<span class="flex-grow-1"></span>' +
+            '<span class="pct-badge ' + bg + '">' + r.reduction_pct + '% menor</span>' +
+            '<span class="badge bg-light text-dark border">' + r.used_pct + '% usado</span>' +
+            '<span class="text-muted text-nowrap">' + kb(r.original_size) + ' &rarr; ' + kb(r.clean_size) + ' KB</span>';
+        $('liveResults').appendChild(d);
+        $('liveResults').scrollTop = $('liveResults').scrollHeight;
+    }
+
+    function renderFinal(d) {
+        const r = d.results || [];
+        $('statFiles').textContent = r.length;
+        $('statSelectors').textContent = (d.totalSelectors||0).toLocaleString();
+
+        const uPct = d.totalSelectors > 0 ? Math.round(d.totalUsed / d.totalSelectors * 100) : 0;
+        $('statUsedPct').textContent = uPct + '%';
+        $('statUsedPct').className = 'display-6 fw-bold ' + (uPct > 50 ? 'text-success' : 'text-warning');
+
+        const rPct = d.totalOriginal > 0 ? Math.round((1 - d.totalClean / d.totalOriginal) * 100) : 0;
+        $('statReduction').textContent = rPct + '%';
+        $('sizeOriginal').textContent = kb(d.totalOriginal) + ' KB';
+        $('sizeClean').textContent = kb(d.totalClean) + ' KB';
+
+        const cPct = d.totalOriginal > 0 ? Math.round(d.totalClean / d.totalOriginal * 100) : 0;
+        $('barUsed').style.width = cPct + '%'; $('barUsed').textContent = cPct + '% usado';
+        $('barUnused').style.width = (100-cPct) + '%'; $('barUnused').textContent = (100-cPct) + '% eliminable';
+        $('badgeFiles').textContent = r.length + ' archivos';
+
+        const tbody = $('resultsTable');
+        tbody.innerHTML = '';
+        r.forEach((f, i) => {
+            const rc = f.reduction_pct >= 80 ? 'text-bg-danger' : (f.reduction_pct >= 50 ? 'text-bg-warning' : 'text-bg-success');
+            const bc = f.used_pct > 50 ? 'bg-success' : (f.used_pct > 20 ? 'bg-warning' : 'bg-danger');
+            const nc = f.is_inline
+                ? '<i class="bi bi-code-slash text-muted me-1"></i><span class="text-muted fst-italic">&lt;style&gt; inline #'+(i+1)+'</span>'
+                : '<i class="bi bi-file-earmark-code text-primary me-1"></i><a href="'+esc(f.url)+'" target="_blank" class="text-decoration-none" title="'+esc(f.url)+'">'+esc(shortUrl(f.url))+'</a>';
+            const tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td>'+nc+'</td>'+
+                '<td class="text-center"><code>'+kb(f.original_size)+' KB</code></td>'+
+                '<td class="text-center"><code class="text-success">'+kb(f.clean_size)+' KB</code></td>'+
+                '<td class="text-center"><span class="badge '+rc+'">'+f.reduction_pct+'% menor</span></td>'+
+                '<td class="text-center"><span class="text-success fw-bold">'+f.used_selectors+'</span><span class="text-muted">/</span>'+f.total_selectors+'</td>'+
+                '<td><div class="d-flex align-items-center gap-2"><div class="progress flex-grow-1" style="height:8px"><div class="progress-bar '+bc+'" style="width:'+f.used_pct+'%"></div></div><small class="fw-bold" style="width:35px">'+f.used_pct+'%</small></div></td>';
+            tbody.appendChild(tr);
+        });
+
+        $('cleanSummary').innerHTML = 'CSS unificado con solo los selectores usados. De <strong>'+kb(d.totalOriginal)+' KB</strong> a <strong class="text-success">'+kb(d.totalClean)+' KB</strong> ('+rPct+'% de reduccion).';
+
+        // ─── JS Results ───
+        const jsR = d.jsResults || [];
+        const jsSection = $('jsSection');
+        if (jsR.length > 0) {
+            jsSection.classList.remove('d-none');
+            $('badgeJsFiles').textContent = jsR.length + ' archivos';
+            $('jsTotalSize').textContent = 'Total: ' + kb(d.totalJsSize) + ' KB → Unificado: ' + kb(d.unifiedJsSize) + ' KB';
+
+            const jsTbody = $('jsResultsTable');
+            jsTbody.innerHTML = '';
+            jsR.forEach((f, i) => {
+                const nc = f.is_inline
+                    ? '<i class="bi bi-code-slash text-muted me-1"></i><span class="text-muted fst-italic">&lt;script&gt; inline #'+(i+1)+'</span>'
+                    : '<i class="bi bi-filetype-js text-warning me-1"></i><a href="'+esc(f.url)+'" target="_blank" class="text-decoration-none" title="'+esc(f.url)+'">'+esc(shortUrl(f.url))+'</a>';
+                const tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td>'+nc+'</td>'+
+                    '<td class="text-center"><code>'+kb(f.size)+' KB</code></td>';
+                jsTbody.appendChild(tr);
+            });
+        } else {
+            jsSection.classList.add('d-none');
+        }
+    }
+
+    // Preview toggle
+    $('btnTogglePreview').addEventListener('click', function() {
+        const p = $('cssPreview'), ta = $('cssTextarea');
+        p.classList.toggle('d-none');
+        if (!p.classList.contains('d-none') && !ta.value) {
+            ta.value = 'Cargando...';
+            fetch('/musedock/theme-extractor/clean-css', {credentials:'same-origin'}).then(r=>r.json()).then(d => { ta.value = d.css||'(vacio)'; });
+        }
+    });
+
+    // Copy
+    $('btnCopyCss').addEventListener('click', function() {
+        const btn = this;
+        fetch('/musedock/theme-extractor/clean-css', {credentials:'same-origin'}).then(r=>r.json()).then(d => {
+            navigator.clipboard.writeText(d.css).then(() => {
+                const o = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check me-1"></i> Copiado!';
+                btn.classList.replace('btn-outline-primary','btn-success');
+                setTimeout(() => { btn.innerHTML = o; btn.classList.replace('btn-success','btn-outline-primary'); }, 1500);
+            });
+        });
+    });
+
+    // ─── Clone & Preview ───
+    let currentCloneId = null;
+    let analyzedUrl = null;
+
+    // Store the analyzed URL when results come in
+    const origOnSuccess = onSuccess;
+    function onSuccessWrapped(data) {
+        if (data.success) analyzedUrl = inputUrl.value.trim();
+        origOnSuccess(data);
+    }
+    // Patch: replace onSuccess reference used in fetch chain
+    // (already bound inline, so we store analyzedUrl separately in renderFinal)
+
+    $('btnClone').addEventListener('click', function() {
+        const btn = this;
+        const loading = $('cloneLoading');
+        const area = $('clonePreviewArea');
+
         btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generando...';
+        loading.classList.remove('d-none');
+        area.classList.add('d-none');
+
+        const includeJs = $('chkIncludeJs').checked ? '1' : '0';
+        fetch('/musedock/theme-extractor/clone?include_js=' + includeJs, { credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(data => {
+                loading.classList.add('d-none');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-copy me-1"></i> Regenerar Clon';
+
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                currentCloneId = data.cloneId;
+                const previewUrl = data.previewUrl;
+
+                // Show buttons
+                $('btnOpenPreview').classList.remove('d-none');
+                $('btnDownloadClone').classList.remove('d-none');
+
+                // Show comparison area
+                area.classList.remove('d-none');
+                $('cloneSizeLabel').textContent = kb(data.size) + ' KB';
+
+                // Load iframes
+                const srcUrl = inputUrl.value.trim();
+                $('originalUrlLabel').textContent = srcUrl;
+                $('originalUrlLink').href = srcUrl;
+                $('originalOpenLink').href = srcUrl;
+
+                // Original iframe: most sites block framing, show fallback directly
+                $('frameOriginal').classList.add('d-none');
+                $('frameOriginalBlocked').classList.remove('d-none');
+
+                $('frameClone').src = previewUrl;
+            })
+            .catch(err => {
+                loading.classList.add('d-none');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-copy me-1"></i> Generar Clon';
+                alert('Error: ' + err.message);
+            });
     });
 
-    // Click color swatch to copy hex
-    let lastClickedColor = '';
-    document.querySelectorAll('.te-color-swatch').forEach(swatch => {
-        swatch.addEventListener('click', function() {
-            lastClickedColor = this.dataset.color;
-            document.querySelectorAll('.te-color-swatch').forEach(s => s.classList.remove('selected'));
-            this.classList.add('selected');
-
-            // Copy to clipboard
-            navigator.clipboard?.writeText(lastClickedColor);
-
-            // Flash feedback
-            const label = this.querySelector('.te-color-label');
-            const orig = label.textContent;
-            label.textContent = 'Copiado!';
-            setTimeout(() => label.textContent = orig, 800);
-        });
+    // Open in new tab
+    $('btnOpenPreview').addEventListener('click', function() {
+        if (currentCloneId) {
+            window.open('/musedock/theme-extractor/preview?id=' + encodeURIComponent(currentCloneId), '_blank');
+        }
     });
 
-    // Sync color picker <-> hex input
-    document.querySelectorAll('input[type="color"]').forEach(picker => {
-        const hexInput = picker.nextElementSibling;
-        if (!hexInput || !hexInput.classList.contains('te-hex-input')) return;
+    // Download clone
+    $('btnDownloadClone').addEventListener('click', function() {
+        if (currentCloneId) {
+            window.location.href = '/musedock/theme-extractor/download-clone?id=' + encodeURIComponent(currentCloneId);
+        }
+    });
 
-        picker.addEventListener('input', () => {
-            hexInput.value = picker.value;
-        });
-        hexInput.addEventListener('change', () => {
-            if (/^#[0-9a-fA-F]{6}$/.test(hexInput.value)) {
-                picker.value = hexInput.value;
-                picker.name && (picker.value = hexInput.value);
+    // View mode toggles
+    ['btnViewSide', 'btnViewClone', 'btnViewOriginal'].forEach(id => {
+        $(id).addEventListener('click', function() {
+            ['btnViewSide', 'btnViewClone', 'btnViewOriginal'].forEach(b => $(b).classList.remove('active'));
+            this.classList.add('active');
+            const mode = this.dataset.view;
+            const origCol = $('frameOriginalCol');
+            const cloneCol = $('frameCloneCol');
+
+            if (mode === 'side') {
+                origCol.classList.remove('d-none'); origCol.className = 'col-md-6';
+                cloneCol.classList.remove('d-none'); cloneCol.className = 'col-md-6';
+            } else if (mode === 'clone') {
+                origCol.classList.add('d-none');
+                cloneCol.classList.remove('d-none'); cloneCol.className = 'col-12';
+            } else {
+                cloneCol.classList.add('d-none');
+                origCol.classList.remove('d-none'); origCol.className = 'col-12';
             }
         });
     });
-});
+
+    btnExtract.addEventListener('click', go);
+    inputUrl.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+})();
 </script>
 @endpush
 @endsection

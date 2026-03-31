@@ -12,6 +12,7 @@ use Screenart\Musedock\Traits\RequiresPermission;
 use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Models\ThemeSkin;
 use Screenart\Musedock\Models\ThemeOption;
+use Screenart\Musedock\Cache\HtmlCache;
 
 class ThemesController
 {
@@ -137,6 +138,7 @@ class ThemesController
             if (class_exists('Screenart\Musedock\Security\AuditLogger')) {
                 AuditLogger::log('theme.activated', 'INFO', ['theme_slug' => $slug, 'theme_type' => 'custom']);
             }
+            HtmlCache::onThemeChanged($tenantId);
             flash('success', 'Tema personalizado activado correctamente.');
         } else {
             flash('error', 'Error al activar tema. Verifica que esté validado.');
@@ -158,6 +160,7 @@ class ThemesController
             if (class_exists('Screenart\Musedock\Security\AuditLogger')) {
                 AuditLogger::log('theme.activated', 'INFO', ['theme_slug' => $slug, 'theme_type' => 'global']);
             }
+            HtmlCache::onThemeChanged($tenantId);
             flash('success', 'Tema global activado correctamente.');
         } else {
             flash('error', 'Error al activar tema global.');

@@ -5,6 +5,7 @@ use Screenart\Musedock\Database;
 use Screenart\Musedock\View;
 use Screenart\Musedock\Models\Language;
 use Screenart\Musedock\Security\SessionSecurity;
+use Screenart\Musedock\Cache\HtmlCache;
 use Screenart\Musedock\Traits\RequiresPermission;
 
 class SettingsController
@@ -507,6 +508,9 @@ class SettingsController
 
             $pdo->commit();
             clear_tenant_settings_cache();
+
+            // HTML Cache: URLs changed — purge and re-warm
+            HtmlCache::onPrefixChanged($tenantId);
 
             $_SESSION['success'] = 'Ajustes de lectura guardados correctamente';
         } catch (\Exception $e) {

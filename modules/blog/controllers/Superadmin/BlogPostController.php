@@ -14,6 +14,7 @@ use Blog\Requests\BlogPostRequest;
 use Screenart\Musedock\Database;
 use Carbon\Carbon;
 use Screenart\Musedock\Helpers\FileUploadValidator;
+use Screenart\Musedock\Cache\HtmlCache;
 
 class BlogPostController
 {
@@ -349,6 +350,13 @@ class BlogPostController
         } catch (\Exception $e) {
             error_log("Error al crear revisión inicial: " . $e->getMessage());
         }
+
+        // Invalidar y regenerar HTML cache
+        $cacheTenantId = $targetTenantId ?? null;
+        HtmlCache::onPostSaved([
+            'slug'   => $data['slug'] ?? '',
+            'status' => $data['status'] ?? 'published',
+        ], $cacheTenantId);
 
         flash('success', __('blog.post.success_created'));
 
@@ -694,6 +702,12 @@ class BlogPostController
             header("Location: /musedock/blog/posts/{$id}/edit");
             exit;
         }
+
+        // Invalidar y regenerar HTML cache
+        HtmlCache::onPostSaved([
+            'slug'   => $newSlug ?? ($data['slug'] ?? ''),
+            'status' => $data['status'] ?? 'published',
+        ], $post->tenant_id ? (int)$post->tenant_id : null);
 
         flash('success', __('blog.post.success_updated'));
         header("Location: /musedock/blog/posts/{$id}/edit");
@@ -1083,6 +1097,12 @@ class BlogPostController
             // 4. Actualizar contadores de categorías y etiquetas
             $this->updateAllCategoryCounts();
             $this->updateAllTagCounts();
+
+            // Invalidar HTML cache del post eliminado
+            HtmlCache::onPostSaved([
+                'slug'   => $post->slug ?? '',
+                'status' => 'trash',
+            ], $post->tenant_id ? (int)$post->tenant_id : null);
 
             flash('success', __('blog.post.success_moved_to_trash'));
         } catch (\Exception $e) {

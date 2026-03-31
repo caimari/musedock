@@ -50,6 +50,14 @@ if (!$vendorExists) {
 require_once __DIR__ . '/../core/Env.php';
 \Screenart\Musedock\Env::load();
 
+// =========== HTML CACHE: PHASE 1 — EARLY EXIT ===========
+// Try to serve a cached HTML file BEFORE any heavy bootstrap.
+// If cache hit: sends HTML and exits immediately (~0ms PHP).
+// If cache miss: starts output buffering for Phase 2 capture.
+require_once __DIR__ . '/../core/Cache/HtmlCache.php';
+require_once __DIR__ . '/../core/Cache/HtmlCacheMiddleware.php';
+\Screenart\Musedock\Cache\HtmlCacheMiddleware::tryServeFromCache();
+
 // Determinar entorno (producción vs desarrollo)
 $isProduction = \Screenart\Musedock\Env::get('APP_ENV', 'production') === 'production';
 $debug = \Screenart\Musedock\Env::get('APP_DEBUG', false);
@@ -470,3 +478,8 @@ use Screenart\Musedock\Route; // Asegurarse que Route esté disponible
 Logger::info("Resolviendo ruta para URI: " . ($_SERVER['REQUEST_URI'] ?? 'N/A'));
 Route::resolve();
 Logger::info("Resolución de ruta completada.");
+
+// =========== HTML CACHE: PHASE 2 — CAPTURE & STORE ===========
+// If Phase 1 started output buffering (cache miss), capture the rendered
+// HTML and write it to disk for future requests.
+\Screenart\Musedock\Cache\HtmlCacheMiddleware::captureAndCache();

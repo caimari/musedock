@@ -172,13 +172,14 @@
 
 <style>
 /* ═══════════════════════════════════════════
-   Header Layout: FilmConnect
-   Logo arriba + barra de menu tipo Hoot Du
+   Header Layout: Brand Top
+   Logo arriba + barra de navegacion con tabs
    ═══════════════════════════════════════════ */
 
-/* Brand row */
+/* Brand row — fondo blanco, logo prominente */
 .hdr-fc-brand {
-    padding: 20px 0;
+    padding: 24px 0 20px;
+    background: #fff;
 }
 .hdr-fc-brand-inner {
     display: flex;
@@ -199,8 +200,8 @@
 }
 .hdr-fc-tagline {
     font-size: 13px;
-    color: #888;
-    margin-top: 2px;
+    color: #999;
+    margin-top: 4px;
     letter-spacing: 0.3px;
 }
 .hdr-fc-brand-right {
@@ -213,32 +214,28 @@
     opacity: 0.6;
     transition: opacity 0.2s;
 }
-.hdr-fc-social a:hover {
-    opacity: 1;
-}
+.hdr-fc-social a:hover { opacity: 1; }
 .hdr-fc-search {
     font-size: 16px;
     opacity: 0.5;
     transition: opacity 0.2s;
 }
-.hdr-fc-search:hover {
-    opacity: 1;
-}
-.hdr-fc-mobile-toggle {
-    display: none;
-}
+.hdr-fc-search:hover { opacity: 1; }
+.hdr-fc-mobile-toggle { display: none; }
 
-/* Navigation bar */
+/* Navigation bar — barra con borde inferior que los tabs "cortan" */
 .hdr-fc-nav {
-    background: var(--header-bg-color, #ffffff);
-    border-top: 1px solid rgba(0,0,0,0.08);
-    border-bottom: 3px solid transparent;
+    background: var(--header-bg-color, #f8f9fa);
+    border-bottom: 1px solid #ccc;
+    position: relative;
+}
+.hdr-fc-nav > .container {
+    position: relative;
 }
 .hdr-fc-nav-inner {
     display: flex;
     align-items: stretch;
     justify-content: space-between;
-    min-height: 44px;
 }
 .hdr-fc-nav-left {
     display: flex;
@@ -246,7 +243,7 @@
     flex: 1;
 }
 
-/* Menu items: horizontal, highlight style like Hoot Du theme */
+/* Menu items: estilo TABS de carpeta/pagina */
 .hdr-fc-menu ul#main-menu {
     display: flex;
     list-style: none;
@@ -258,31 +255,43 @@
     position: relative;
     display: flex;
     align-items: stretch;
+    margin-bottom: -1px; /* solaparse con el border-bottom de la barra */
 }
 .hdr-fc-menu ul#main-menu > li > a {
     display: flex;
     align-items: center;
     padding: 10px 18px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--header-link-color, #333);
+    color: var(--header-link-color, #555);
     text-decoration: none;
-    transition: background-color 0.2s, color 0.2s;
     white-space: nowrap;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -3px;
+    background: transparent;
+    /* Forma de tab: bordes arriba y lados */
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    transition: background-color 0.15s, color 0.15s;
 }
-.hdr-fc-menu ul#main-menu > li > a:hover,
+/* Hover: se insinua la pestaña */
+.hdr-fc-menu ul#main-menu > li > a:hover {
+    background: var(--page-bg-color, #f3f4f6);
+    color: var(--header-link-hover-color, #000) !important;
+    border-color: #ccc;
+}
+/* Activo: tab abierto — fondo = fondo del contenido, borde inferior "desaparece" */
+.hdr-fc-menu ul#main-menu > li.current > a,
 .hdr-fc-menu ul#main-menu > li.current-menu-item > a,
 .hdr-fc-menu ul#main-menu > li.active > a {
-    background-color: rgba(0,0,0,0.04);
-    color: var(--header-link-hover-color, #000);
-}
-.hdr-fc-menu ul#main-menu > li.current-menu-item > a,
-.hdr-fc-menu ul#main-menu > li.active > a {
-    border-bottom-color: var(--header-link-hover-color, #000);
+    background: var(--page-bg-color, #f3f4f6) !important;
+    color: var(--header-link-hover-color, #000) !important;
+    font-weight: 600;
+    border-color: #ccc !important;
+    border-bottom: none !important;
+    /* Truco: box-shadow inferior del mismo color que el fondo "tapa" la linea de la barra */
+    box-shadow: 0 1px 0 0 var(--page-bg-color, #f3f4f6);
 }
 
 /* Submenus */
@@ -292,13 +301,13 @@
     top: 100%;
     left: 0;
     background: #fff;
-    border: 1px solid rgba(0,0,0,0.1);
-    border-radius: 0 0 4px 4px;
+    border: 1px solid #d7d7d7;
+    border-top: none;
     min-width: 200px;
     z-index: 100;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.06);
     list-style: none;
-    padding: 4px 0;
+    padding: 0;
     margin: 0;
 }
 .hdr-fc-menu ul#main-menu li:hover > .submenu {
@@ -306,15 +315,20 @@
 }
 .hdr-fc-menu ul#main-menu .submenu li a {
     display: block;
-    padding: 8px 18px;
+    padding: 8px 20px;
     font-size: 13px;
-    color: #444;
+    color: #555;
     text-decoration: none;
+    border-bottom: 1px solid #f0f0f0;
     transition: background-color 0.15s;
 }
+.hdr-fc-menu ul#main-menu .submenu li:last-child a {
+    border-bottom: none;
+}
 .hdr-fc-menu ul#main-menu .submenu li a:hover,
+.hdr-fc-menu ul#main-menu .submenu li.current a,
 .hdr-fc-menu ul#main-menu .submenu li.current-menu-item a {
-    background: rgba(0,0,0,0.04);
+    background: #f2f2f2;
     color: #000;
 }
 
@@ -331,56 +345,38 @@
     .hdr-fc-brand {
         padding: 14px 0;
     }
-    .hdr-fc-brand-right {
-        display: none;
-    }
-    .hdr-fc-mobile-toggle {
-        display: flex;
-    }
-    .hdr-fc-site-title {
-        font-size: 22px;
-    }
-    .header-brand-logo {
-        max-height: 60px !important;
-    }
+    .hdr-fc-brand-right { display: none; }
+    .hdr-fc-mobile-toggle { display: flex; }
+    .hdr-fc-site-title { font-size: 22px; }
+    .header-layout-filmconnect .header-brand-logo { max-height: 60px !important; }
 
-    /* Nav bar becomes hidden on mobile, toggle controls it */
-    .hdr-fc-nav {
-        display: none;
-    }
-    .hdr-fc-nav.mobile-open {
-        display: block;
-    }
-    .hdr-fc-nav-inner {
-        flex-direction: column;
-    }
-    .hdr-fc-menu ul#main-menu {
-        flex-direction: column;
-    }
+    .hdr-fc-nav { display: none; }
+    .hdr-fc-nav.mobile-open { display: block; }
+    .hdr-fc-nav-inner { flex-direction: column; }
+    .hdr-fc-menu ul#main-menu { flex-direction: column; }
     .hdr-fc-menu ul#main-menu > li > a {
         padding: 12px 16px;
-        border-bottom: none;
-        border-left: 3px solid transparent;
-        margin-bottom: 0;
+        border-right: none;
+        border-left: none;
+        border-bottom: 1px solid #d7d7d7;
     }
+    .hdr-fc-menu ul#main-menu > li:first-child > a { border-left: none; }
+    .hdr-fc-menu ul#main-menu > li.current > a,
     .hdr-fc-menu ul#main-menu > li.current-menu-item > a,
     .hdr-fc-menu ul#main-menu > li.active > a {
-        border-bottom-color: transparent;
-        border-left-color: var(--header-link-hover-color, #000);
+        background: #fff;
+        border-left: 3px solid var(--header-link-hover-color, #000);
     }
     .hdr-fc-menu ul#main-menu .submenu {
         position: static;
         box-shadow: none;
         border: none;
-        border-radius: 0;
-        background: rgba(0,0,0,0.02);
+        background: #f8f8f8;
     }
-    .hdr-fc-menu ul#main-menu .submenu li a {
-        padding-left: 32px;
-    }
+    .hdr-fc-menu ul#main-menu .submenu li a { padding-left: 32px; }
     .hdr-fc-nav-actions {
         padding: 10px 16px;
-        border-top: 1px solid rgba(0,0,0,0.06);
+        border-top: 1px solid #d7d7d7;
     }
 }
 </style>

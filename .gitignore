@@ -27,6 +27,8 @@ storage/cache/*
 !storage/cache/.gitkeep
 storage/views/*
 !storage/views/.gitkeep
+storage/html-cache/
+storage/css-auditor/
 
 # Uploads de usuarios
 public/assets/uploads/*

@@ -115,6 +115,16 @@ if ($pagePrefix !== '') {
     })->name('pages.list.slash');
 }
 
+// ============================================================================
+// RUTAS DE PAGINACIÓN CON URLs LIMPIAS (para HTML cache)
+// /blog/page/2 en lugar de /blog/?page=2
+// IMPORTANTE: Deben estar ANTES de las rutas genéricas de slug
+// ============================================================================
+Route::get('/{prefix}/page/{num}', function ($prefix, $num) {
+    $_GET['page'] = max(1, (int) $num);
+    return \Screenart\Musedock\Services\SlugRouter::resolve($prefix, '');
+})->name('slug.prefix-paginated');
+
 // Ruta genérica para prefijos sin slug (ej: /b/, /s/)
 Route::get('/{prefix}/', function ($prefix) {
     if ($prefix !== 'p') { // Evitar duplicación con la ruta específica de arriba

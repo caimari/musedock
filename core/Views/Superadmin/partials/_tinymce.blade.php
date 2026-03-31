@@ -170,7 +170,14 @@ $curatedFonts = [
 $tenantHeadingFont = function_exists('themeOption') ? themeOption('typography.content_heading_font', 'inherit') : 'inherit';
 $tenantBodyFont = function_exists('themeOption') ? themeOption('typography.content_body_font', 'inherit') : 'inherit';
 $tenantFontNames = [];
-$fontFormats = ["System Default=system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"];
+$fontFormats = [
+    "System Default=system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+    "Arial=Arial, Helvetica, sans-serif",
+    "Georgia=Georgia, serif",
+    "Times New Roman='Times New Roman', Times, serif",
+    "Verdana=Verdana, Geneva, sans-serif",
+    "Courier New='Courier New', Courier, monospace",
+];
 foreach ([$tenantHeadingFont, $tenantBodyFont] as $tf) {
     if ($tf && $tf !== 'inherit') {
         $cleanName = trim(explode(',', str_replace("'", '', $tf))[0]);

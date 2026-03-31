@@ -14,6 +14,7 @@ use Blog\Requests\BlogPostRequest;
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Services\AuditLogger;
 use Screenart\Musedock\Helpers\FileUploadValidator;
+use Screenart\Musedock\Cache\HtmlCache;
 use Screenart\Musedock\Traits\RequiresPermission;
 
 class BlogPostController
@@ -339,6 +340,12 @@ class BlogPostController
             \Blog\Controllers\Frontend\FeedController::invalidateCache($tenantId);
             \Blog\Controllers\Frontend\SitemapController::invalidateCache($tenantId);
         }
+
+        // Invalidar y regenerar HTML cache
+        HtmlCache::onPostSaved([
+            'slug'   => $data['slug'] ?? '',
+            'status' => $data['status'] ?? 'published',
+        ], $tenantId);
 
         flash('success', __('blog.post.success_created'));
         header("Location: /" . admin_path() . "/blog/posts/{$post->id}/edit");
@@ -678,6 +685,12 @@ class BlogPostController
             \Blog\Controllers\Frontend\FeedController::invalidateCache($tenantId);
             \Blog\Controllers\Frontend\SitemapController::invalidateCache($tenantId);
 
+            // Invalidar y regenerar HTML cache
+            HtmlCache::onPostSaved([
+                'slug'   => $newSlug,
+                'status' => $data['status'] ?? 'published',
+            ], $tenantId);
+
         } catch (\Throwable $e) {
             if ($pdo && $pdo->inTransaction()) { $pdo->rollBack(); }
             error_log("ERROR en transacción update post {$id}: " . $e->getMessage());
@@ -793,6 +806,12 @@ class BlogPostController
             // Invalidar caché del feed RSS y sitemap
             \Blog\Controllers\Frontend\FeedController::invalidateCache($tenantId);
             \Blog\Controllers\Frontend\SitemapController::invalidateCache($tenantId);
+
+            // Invalidar HTML cache del post eliminado
+            HtmlCache::onPostSaved([
+                'slug'   => $post->slug ?? '',
+                'status' => 'trash',
+            ], $tenantId);
 
             flash('success', __('blog.post.success_moved_to_trash'));
         } catch (\Exception $e) {

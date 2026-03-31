@@ -360,11 +360,11 @@
             "centered": "Logo centrado + menús a izquierda/derecha",
             "logo-above": "Logo centrado arriba + menú debajo",
             "logo-above-left": "Logo izquierda arriba + menú debajo",
-            "tema1": "Tema 1 (Topbar negro + logo)",
-            "aca": "Tema 2",
-            "banner": "Logo bandera + menú derecha",
-            "filmconnect": "FilmConnect (Logo arriba + barra menu highlight)",
-            "classic": "Clásico (Menú arriba + logo debajo)"
+"banner": "Logo bandera + menú derecha",
+            "filmconnect": "Logo + Tabs (Logo arriba + menu en pestañas)",
+            "classic": "Clásico (Menú arriba + logo debajo)",
+            "aca": "Paper Card (Logo + menú flotante con hojas)",
+            "floating": "Shadow Bar (Barra con sombra + linea accent + CTA)"
           },
           "description": "Selecciona la estructura del header"
         },

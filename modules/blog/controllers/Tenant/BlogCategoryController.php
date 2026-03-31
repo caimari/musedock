@@ -8,6 +8,7 @@ use Blog\Requests\BlogCategoryRequest;
 use Screenart\Musedock\Services\TenantManager;
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Helpers\FileUploadValidator;
+use Screenart\Musedock\Cache\HtmlCache;
 use Screenart\Musedock\Traits\RequiresPermission;
 
 class BlogCategoryController
@@ -211,6 +212,8 @@ class BlogCategoryController
             throw $e;
         }
 
+        HtmlCache::onTaxonomySaved($tenantId);
+
         flash('success', __('blog.category.success_created'));
         header("Location: /" . admin_path() . "/blog/categories/{$category->id}/edit");
         exit;
@@ -392,6 +395,8 @@ class BlogCategoryController
             exit;
         }
 
+        HtmlCache::onTaxonomySaved($tenantId);
+
         flash('success', __('blog.category.success_updated'));
         header("Location: /" . admin_path() . "/blog/categories/{$id}/edit");
         exit;
@@ -447,6 +452,8 @@ class BlogCategoryController
 
             // Eliminar la categoría
             $category->delete();
+
+            HtmlCache::onTaxonomySaved($tenantId);
 
             flash('success', __('blog.category.success_deleted'));
         } catch (\Exception $e) {
