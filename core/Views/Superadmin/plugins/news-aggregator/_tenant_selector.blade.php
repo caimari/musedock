@@ -20,7 +20,7 @@
                     }
                 @endphp
                 @if($currentTenantObj)
-                    <span class="badge bg-info text-dark">
+                    <span class="badge text-dark" style="background-color: #d0e8ff;">
                         <i class="bi bi-globe"></i> {{ $currentTenantObj->domain }}
                     </span>
                 @endif

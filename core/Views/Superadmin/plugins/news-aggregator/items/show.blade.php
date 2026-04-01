@@ -40,7 +40,7 @@
                     @php
                         $csData = !empty($item->cluster_sources) ? json_decode($item->cluster_sources, true) : [];
                         $sourceCount = count($csData) > 1 ? count($csData) : ($cluster->source_count ?? 1);
-                        $clusterBadge = $sourceCount >= 3 ? 'bg-success' : ($sourceCount >= 2 ? 'bg-info' : 'bg-warning text-dark');
+                        $clusterBadge = $sourceCount >= 3 ? 'bg-success' : ($sourceCount >= 2 ? 'text-dark" style="background-color:#d0e8ff;' : 'bg-warning text-dark');
                         $clusterLabel = $sourceCount >= 3 ? 'Confirmado' : ($sourceCount >= 2 ? $sourceCount . ' fuentes' : 'Fuente única');
                     @endphp
                     @if($sourceCount >= 2)
@@ -62,22 +62,26 @@
                         </span>
                     @endif
                 </div>
-                <div class="btn-group">
+                <div class="d-flex gap-2 flex-wrap">
                     @if($item->status === 'pending')
-                        <a href="/musedock/news-aggregator/items/{{ $item->id }}/rewrite?tenant={{ $tenantId }}" class="btn btn-info">
+                        <button type="button" class="btn btn-info btn-rewrite" data-item-id="{{ $item->id }}" data-tenant-id="{{ $tenantId }}">
                             <i class="bi bi-robot"></i> Reescribir con IA
-                        </a>
+                        </button>
                     @endif
                     @if($item->status === 'ready')
                         <a href="/musedock/news-aggregator/items/{{ $item->id }}/approve?tenant={{ $tenantId }}&next=1" class="btn btn-success">
                             <i class="bi bi-check-lg"></i> Aprobar
                         </a>
+                        <a href="/musedock/news-aggregator/items/{{ $item->id }}/approve?tenant={{ $tenantId }}" class="btn btn-primary"
+                           onclick="event.preventDefault(); window.location.href=this.href + '&publish=1';">
+                            <i class="bi bi-send"></i> Aprobar y Publicar
+                        </a>
                         <a href="/musedock/news-aggregator/items/{{ $item->id }}/reject?tenant={{ $tenantId }}" class="btn btn-warning">
                             <i class="bi bi-x-lg"></i> Rechazar
                         </a>
-                        <a href="/musedock/news-aggregator/items/{{ $item->id }}/rewrite?tenant={{ $tenantId }}" class="btn btn-outline-info">
+                        <button type="button" class="btn btn-outline-info btn-rewrite" data-item-id="{{ $item->id }}" data-tenant-id="{{ $tenantId }}">
                             <i class="bi bi-arrow-clockwise"></i> Reescribir
-                        </a>
+                        </button>
                     @endif
                     @if($item->status === 'approved')
                         <a href="/musedock/news-aggregator/items/{{ $item->id }}/publish?tenant={{ $tenantId }}" class="btn btn-primary">
@@ -120,7 +124,7 @@
             </div>
         @endif
 
-        <div class="row">
+        <div class="row" id="compareRow">
             {{-- Original Content (izquierda) --}}
             <div class="col-md-6">
                 <div class="card border-0 shadow-sm">
@@ -242,7 +246,7 @@
                     <div class="card-header bg-white d-flex justify-content-between align-items-center"
                          data-bs-toggle="collapse" data-bs-target="#sourceContextSection" role="button">
                         <h6 class="mb-0">
-                            <i class="bi bi-file-earmark-text"></i> Contexto de la fuente original
+                            <i class="bi bi-file-earmark-text"></i> Contexto de las fuentes
                             @if(!empty($item->source_context))
                                 <span class="badge bg-success ms-1">Extraído</span>
                             @endif
@@ -255,7 +259,7 @@
                     <div id="sourceContextSection" class="collapse {{ !empty($item->source_context) ? 'show' : '' }}">
                         <div class="card-body">
                             <p class="text-muted small mb-2">
-                                Extrae el texto completo del artículo original para dar más contexto a la IA al reescribir.
+                                Extrae el texto completo de los artículos originales (todas las fuentes del cluster si las hay) para dar más contexto a la IA al reescribir.
                             </p>
 
                             <div id="sourceContextContent">
@@ -366,9 +370,9 @@
             <div class="col-md-6">
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="bi bi-robot"></i> Texto generado</h5>
+                        <h5 class="mb-0" id="rightCardTitle"><i class="bi bi-robot"></i> Texto generado</h5>
                         @if(!empty($item->rewritten_title))
-                            <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="collapse" data-bs-target="#editForm">
+                            <button type="button" class="btn btn-sm btn-outline-light" id="btnToggleEdit" onclick="toggleEditMode(true)">
                                 <i class="bi bi-pencil"></i> Editar
                             </button>
                         @endif
@@ -379,9 +383,9 @@
                                 <i class="bi bi-robot fs-1"></i>
                                 <p class="mt-3">No hay contenido reescrito todavía.</p>
                                 @if($item->status === 'pending')
-                                    <a href="/musedock/news-aggregator/items/{{ $item->id }}/rewrite?tenant={{ $tenantId }}" class="btn btn-info">
+                                    <button type="button" class="btn btn-info btn-rewrite" data-item-id="{{ $item->id }}" data-tenant-id="{{ $tenantId }}">
                                         <i class="bi bi-robot"></i> Reescribir con IA
-                                    </a>
+                                    </button>
                                 @endif
                             </div>
                         @else
@@ -398,29 +402,29 @@
                                 </div>
                             </div>
 
-                            {{-- Edit Mode --}}
-                            <div id="editForm" class="collapse">
+                            {{-- Edit Mode (mismo sitio, sin collapse) --}}
+                            <div id="editSection" style="display:none;">
                                 <form action="/musedock/news-aggregator/items/{{ $item->id }}/update" method="POST">
                                     @csrf
                                     <input type="hidden" name="tenant_id" value="{{ $tenantId }}">
                                     <div class="mb-3">
-                                        <label class="form-label">Título</label>
+                                        <label class="form-label fw-semibold">Título</label>
                                         <input type="text" name="rewritten_title" class="form-control"
                                                value="{{ $item->rewritten_title }}">
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">Extracto</label>
+                                        <label class="form-label fw-semibold">Extracto</label>
                                         <textarea name="rewritten_excerpt" class="form-control" rows="2">{{ $item->rewritten_excerpt ?? '' }}</textarea>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">Contenido</label>
-                                        <textarea name="rewritten_content" class="form-control" rows="10">{{ $item->rewritten_content }}</textarea>
+                                        <label class="form-label fw-semibold">Contenido</label>
+                                        <textarea name="rewritten_content" id="newsEditorContent" class="form-control" rows="10">{!! htmlspecialchars($item->rewritten_content ?? '') !!}</textarea>
                                     </div>
-                                    <div class="d-flex gap-2">
+                                    <div class="d-flex gap-2 flex-wrap">
                                         <button type="submit" class="btn btn-success">
                                             <i class="bi bi-check-lg"></i> Guardar cambios
                                         </button>
-                                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#editForm">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="toggleEditMode(false)">
                                             Cancelar
                                         </button>
                                     </div>
@@ -478,7 +482,7 @@
                     <div class="mt-2">
                         <strong>Tags IA:</strong>
                         @foreach(json_decode($item->ai_tags, true) ?? [] as $tag)
-                            <span class="badge bg-info me-1">{{ $tag }}</span>
+                            <span class="badge text-dark me-1" style="background-color:#d0e8ff;">{{ $tag }}</span>
                         @endforeach
                     </div>
                 @endif
@@ -495,6 +499,7 @@
 }
 </style>
 
+<script src="/assets/vendor/tinymce/js/tinymce/tinymce.min.js"></script>
 <script>
 /**
  * Extraer contexto de la fuente original
@@ -535,7 +540,8 @@ function extractContext(itemId) {
             if (data.cached) {
                 showToast('Contexto cargado desde caché', 'info');
             } else {
-                showToast('Contexto extraído correctamente', 'success');
+                const msg = data.summary || 'Contexto extraído correctamente';
+                showToast(msg, 'success', 5000);
             }
         } else {
             btn.innerHTML = origHtml;
@@ -691,5 +697,171 @@ function showToast(message, type) {
         }
     });
 }
+
+// Toggle edit mode with TinyMCE — inline in right column
+let tinyInitialized = false;
+
+function toggleEditMode(show) {
+    const viewContent = document.getElementById('viewContent');
+    const editSection = document.getElementById('editSection');
+    const btnToggle = document.getElementById('btnToggleEdit');
+    const cardTitle = document.getElementById('rightCardTitle');
+
+    if (show) {
+        if (viewContent) viewContent.style.display = 'none';
+        if (editSection) editSection.style.display = '';
+        if (btnToggle) { btnToggle.innerHTML = '<i class="bi bi-x-lg"></i> Cerrar'; btnToggle.setAttribute('onclick', 'toggleEditMode(false)'); }
+        if (cardTitle) cardTitle.innerHTML = '<i class="bi bi-pencil"></i> Editando';
+
+        if (!tinyInitialized) {
+            tinymce.init({
+                selector: '#newsEditorContent',
+                height: 500,
+                menubar: false,
+                plugins: 'lists blockquote code table',
+                toolbar: 'undo redo | blocks | bold italic underline | bullist numlist | blockquote addlink removelink | removeformat code',
+                toolbar_mode: 'wrap',
+                block_formats: 'Paragraph=p; Heading 3=h3; Heading 4=h4',
+                content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 15px; line-height: 1.6; padding: 10px; } a { color: #2563eb; }',
+                paste_as_text: false,
+                branding: false,
+                promotion: false,
+                statusbar: true,
+                elementpath: false,
+                contextmenu: false,
+                setup: function(editor) {
+                    editor.on('change', function() { editor.save(); });
+
+                    // Add link via SweetAlert2 — no TinyMCE popups
+                    editor.ui.registry.addButton('addlink', {
+                        icon: 'link',
+                        tooltip: 'Insertar/editar enlace',
+                        onAction: function() {
+                            var selectedText = editor.selection.getContent({ format: 'text' });
+                            var node = editor.selection.getNode();
+                            var existingHref = '';
+                            if (node && node.tagName === 'A') {
+                                existingHref = node.getAttribute('href') || '';
+                                if (!selectedText) selectedText = node.textContent;
+                            }
+
+                            Swal.fire({
+                                title: 'Insertar enlace',
+                                html:
+                                    '<div class="mb-3 text-start">' +
+                                    '<label class="form-label small fw-semibold">URL</label>' +
+                                    '<input id="swal-link-url" class="form-control" placeholder="https://..." value="' + existingHref.replace(/"/g, '&quot;') + '">' +
+                                    '</div>' +
+                                    '<div class="mb-2 text-start">' +
+                                    '<label class="form-label small fw-semibold">Texto</label>' +
+                                    '<input id="swal-link-text" class="form-control" placeholder="Texto del enlace" value="' + selectedText.replace(/"/g, '&quot;') + '">' +
+                                    '</div>',
+                                showCancelButton: true,
+                                confirmButtonText: 'Insertar',
+                                cancelButtonText: 'Cancelar',
+                                focusConfirm: false,
+                                didOpen: function() {
+                                    document.getElementById('swal-link-url').focus();
+                                },
+                                preConfirm: function() {
+                                    var url = document.getElementById('swal-link-url').value.trim();
+                                    if (!url) { Swal.showValidationMessage('Introduce una URL'); return false; }
+                                    return {
+                                        url: url,
+                                        text: document.getElementById('swal-link-text').value.trim()
+                                    };
+                                }
+                            }).then(function(result) {
+                                if (result.isConfirmed && result.value) {
+                                    var linkText = result.value.text || result.value.url;
+                                    if (node && node.tagName === 'A') {
+                                        node.setAttribute('href', result.value.url);
+                                        node.setAttribute('target', '_blank');
+                                        node.textContent = linkText;
+                                    } else {
+                                        editor.insertContent('<a href="' + result.value.url + '" target="_blank">' + editor.dom.encode(linkText) + '</a>');
+                                    }
+                                }
+                            });
+                        }
+                    });
+
+                    // Remove link button
+                    editor.ui.registry.addButton('removelink', {
+                        icon: 'unlink',
+                        tooltip: 'Quitar enlace',
+                        onAction: function() {
+                            editor.execCommand('Unlink');
+                        }
+                    });
+                }
+            });
+            tinyInitialized = true;
+        }
+    } else {
+        if (editSection) editSection.style.display = 'none';
+        if (viewContent) viewContent.style.display = '';
+        if (btnToggle) { btnToggle.innerHTML = '<i class="bi bi-pencil"></i> Editar'; btnToggle.setAttribute('onclick', 'toggleEditMode(true)'); }
+        if (cardTitle) cardTitle.innerHTML = '<i class="bi bi-robot"></i> Texto generado';
+    }
+}
+
+// Rewrite AJAX con SweetAlert2
+document.querySelectorAll('.btn-rewrite').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const itemId = this.dataset.itemId;
+        const tenantId = this.dataset.tenantId;
+
+        Swal.fire({
+            title: 'Reescribiendo con IA...',
+            html: '<div class="mb-3"><div class="spinner-border text-primary" role="status"></div></div>' +
+                  '<p class="text-muted mb-1">Enviando a la IA para reescritura.</p>' +
+                  '<p class="text-muted small">Esto puede tardar 15-30 segundos.</p>',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        fetch('/musedock/news-aggregator/items/' + itemId + '/rewrite', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: '_token={{ csrf_token() }}&tenant_id=' + encodeURIComponent(tenantId)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Reescritura completada',
+                    html: '<p class="mb-1"><strong>' + (data.title || '').substring(0, 80) + '</strong></p>' +
+                          '<p class="text-muted small">' + (data.tokens || 0).toLocaleString() + ' tokens utilizados</p>',
+                    confirmButtonText: 'Ver resultado'
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error al reescribir',
+                    text: data.error || 'Error desconocido',
+                    confirmButtonText: 'Cerrar'
+                });
+            }
+        })
+        .catch(err => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexión',
+                text: 'No se pudo conectar con el servidor: ' + err.message,
+                confirmButtonText: 'Cerrar'
+            });
+        });
+    });
+});
 </script>
 @endsection

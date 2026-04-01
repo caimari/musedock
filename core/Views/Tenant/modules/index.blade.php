@@ -179,6 +179,11 @@
             <h3 class="mb-1">{{ __('modules_title') }}</h3>
             <p class="text-muted mb-0">{{ __('modules_subtitle') ?? 'Gestiona los módulos activos en tu sitio' }}</p>
         </div>
+        <div class="d-flex align-items-center gap-3">
+            <a href="{{ admin_url('plugin-store') }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-shop me-1"></i>Plugin Store
+            </a>
+        </div>
         <div class="modules-stats">
             <div class="stat-badge active">
                 <i class="bi bi-check-circle-fill"></i>

@@ -155,7 +155,7 @@
                                 Publicación {{ ($settings['auto_publish'] ?? false) ? '(auto)' : '(manual)' }}
                             </span>
                             <i class="bi bi-arrow-right"></i>
-                            <span class="badge bg-info">Blog Post</span>
+                            <span class="badge text-dark" style="background-color:#d0e8ff;">Blog Post</span>
                         </div>
                     </div>
                 </div>
@@ -237,7 +237,7 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="newsapi_key" class="form-label">NewsAPI.org <span class="badge bg-info">100 req/día</span></label>
+                                <label for="newsapi_key" class="form-label">NewsAPI.org <span class="badge text-dark" style="background-color:#d0e8ff;">100 req/día</span></label>
                                 <input type="text" class="form-control" id="newsapi_key" name="newsapi_key"
                                        value="{{ $settings['newsapi_key'] ?? '' }}"
                                        placeholder="Tu API key de NewsAPI">
@@ -248,7 +248,7 @@
                     <div class="row">
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="gnews_key" class="form-label">GNews.io <span class="badge bg-info">100 req/día</span></label>
+                                <label for="gnews_key" class="form-label">GNews.io <span class="badge text-dark" style="background-color:#d0e8ff;">100 req/día</span></label>
                                 <input type="text" class="form-control" id="gnews_key" name="gnews_key"
                                        value="{{ $settings['gnews_key'] ?? '' }}"
                                        placeholder="Tu API key de GNews">
@@ -257,7 +257,7 @@
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="thenewsapi_key" class="form-label">TheNewsAPI.com <span class="badge bg-info">100 req/día</span></label>
+                                <label for="thenewsapi_key" class="form-label">TheNewsAPI.com <span class="badge text-dark" style="background-color:#d0e8ff;">100 req/día</span></label>
                                 <input type="text" class="form-control" id="thenewsapi_key" name="thenewsapi_key"
                                        value="{{ $settings['thenewsapi_key'] ?? '' }}"
                                        placeholder="Tu API key de TheNewsAPI">
@@ -294,6 +294,90 @@
                 <i class="bi bi-check-lg"></i> Guardar configuración
             </button>
         </form>
+
+        {{-- Cron Info --}}
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Cron / Ejecución programada</h5>
+            </div>
+            <div class="card-body">
+                @php
+                    $appRoot = defined('APP_ROOT') ? APP_ROOT : realpath(__DIR__ . '/../../../../');
+                    $cronScript = $appRoot . '/cli/cron-plugins.php';
+                    $cronCmd = '*/15 * * * * /usr/bin/php ' . $cronScript . ' >> ' . $appRoot . '/storage/logs/cron-plugins.log 2>&1';
+                    $cronSingle = '/usr/bin/php ' . $cronScript . ' --plugin=news-aggregator --tenant=' . $tenantId;
+
+                    // Check if cron-plugins.php exists
+                    $cronExists = file_exists($cronScript);
+
+                    // Try to detect if cron is installed
+                    $cronInstalled = false;
+                    $logFile = $appRoot . '/storage/logs/cron-plugins.log';
+                    if (function_exists('exec')) {
+                        $lines = [];
+                        @exec('crontab -l 2>/dev/null', $lines);
+                        $cronInstalled = str_contains(implode("\n", $lines), 'cron-plugins.php');
+                    }
+                    // Fallback: if log file was updated recently, cron is running
+                    if (!$cronInstalled && file_exists($logFile)) {
+                        $cronInstalled = (time() - filemtime($logFile)) < 1800; // updated in last 30 min
+                    }
+                @endphp
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Estado del cron</label>
+                    <div>
+                        @if($cronInstalled)
+                            <span class="badge bg-success"><i class="bi bi-check-circle"></i> Instalado y activo</span>
+                        @elseif($cronExists)
+                            <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Script existe pero no detectado en crontab</span>
+                        @else
+                            <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Script no encontrado</span>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Cron centralizado (todos los plugins y tenants)</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control font-monospace bg-light" value="{{ $cronCmd }}" id="cronCmdFull" readonly>
+                        <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('cronCmdFull').value); this.innerHTML='<i class=\'bi bi-check\'></i>'; setTimeout(() => this.innerHTML='<i class=\'bi bi-clipboard\'></i>', 1500);">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                    <div class="form-text">Este cron ejecuta todos los plugins con soporte cron para todos los tenants activos cada 15 minutos.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Ejecución manual (solo este plugin + tenant)</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control font-monospace bg-light" value="{{ $cronSingle }}" id="cronCmdSingle" readonly>
+                        <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('cronCmdSingle').value); this.innerHTML='<i class=\'bi bi-check\'></i>'; setTimeout(() => this.innerHTML='<i class=\'bi bi-clipboard\'></i>', 1500);">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                    <div class="form-text">Para probar o ejecutar manualmente desde terminal.</div>
+                </div>
+
+                <div>
+                    <label class="form-label fw-semibold">Rutas detectadas</label>
+                    <table class="table table-sm table-bordered mb-0" style="font-size: 0.85em;">
+                        <tr>
+                            <td class="fw-semibold" style="width:140px;">APP_ROOT</td>
+                            <td class="font-monospace">{{ $appRoot }}</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">Script cron</td>
+                            <td class="font-monospace">{{ $cronScript }}</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">Log</td>
+                            <td class="font-monospace">{{ $appRoot }}/storage/logs/cron-plugins.log</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 

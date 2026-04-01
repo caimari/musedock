@@ -88,7 +88,7 @@
                                 Publicación {{ ($settings['auto_publish'] ?? false) ? '(auto)' : '(manual)' }}
                             </span>
                             <i class="bi bi-arrow-right text-muted"></i>
-                            <span class="badge bg-info">Blog</span>
+                            <span class="badge text-dark" style="background-color:#d0e8ff;">Blog</span>
                         </div>
                         <form action="/musedock/news-aggregator/run-pipeline" method="POST" class="ms-3">
                             @csrf
@@ -173,8 +173,8 @@
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <div class="flex-shrink-0 me-3">
-                                    <div class="bg-info bg-opacity-10 rounded-3 p-3">
-                                        <i class="bi bi-cpu fs-4 text-info"></i>
+                                    <div class="rounded-3 p-3" style="background-color:#d0e8ff;">
+                                        <i class="bi bi-cpu fs-4 text-primary"></i>
                                     </div>
                                 </div>
                                 <div>

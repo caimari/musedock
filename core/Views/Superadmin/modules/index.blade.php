@@ -15,6 +15,9 @@
                     <p class="text-muted mb-0">Instala, activa y gestiona módulos del CMS</p>
                 </div>
                 <div>
+                    <a href="/musedock/plugin-store" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-shop me-1"></i>Plugin Store
+                    </a>
                     <button type="button" class="btn btn-primary" id="btnUploadModule">
                         <i class="bi bi-upload me-2"></i>
                         Subir Módulo ZIP

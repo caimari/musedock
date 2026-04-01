@@ -11,6 +11,9 @@
                 <p class="text-muted">Plugins personalizados instalados exclusivamente para tu sitio</p>
             </div>
             <div class="d-flex gap-2">
+                <a href="{{ admin_url('plugin-store') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-shop me-1"></i>Plugin Store
+                </a>
                 <button type="button" class="btn btn-outline-secondary" id="btn-sync-plugins">
                     <i class="bi bi-arrow-repeat"></i> Sincronizar
                 </button>

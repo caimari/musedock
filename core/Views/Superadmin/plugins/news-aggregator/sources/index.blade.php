@@ -47,7 +47,7 @@
                                     <td>
                                         <strong>{{ $source->name }}</strong>
                                         @if(($source->processing_type ?? 'direct') === 'verified')
-                                            <span class="badge bg-info ms-1" title="Fuente verificada: compara múltiples medios"><i class="bi bi-shield-check"></i> Verificada</span>
+                                            <span class="badge text-dark ms-1" style="background-color:#d0e8ff;" title="Fuente verificada: compara múltiples medios"><i class="bi bi-shield-check"></i> Verificada</span>
                                         @endif
                                         @if(!empty($source->keywords))
                                             <br><small class="text-muted">{{ $source->keywords }}</small>
@@ -80,13 +80,13 @@
                                     </td>
                                     <td>{{ $source->last_fetch_count ?? 0 }}</td>
                                     <td>
-                                        <div class="btn-group btn-group-sm">
+                                        <div class="d-flex gap-1">
                                             <a href="/musedock/news-aggregator/sources/{{ $source->id }}/fetch?tenant={{ $tenantId }}"
-                                               class="btn btn-outline-success" title="Fetch ahora">
+                                               class="btn btn-sm btn-outline-success" title="Fetch ahora">
                                                 <i class="bi bi-arrow-clockwise"></i>
                                             </a>
                                             <a href="/musedock/news-aggregator/sources/{{ $source->id }}/edit?tenant={{ $tenantId }}"
-                                               class="btn btn-outline-primary" title="Editar">
+                                               class="btn btn-sm btn-outline-primary" title="Editar">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
                                             <form action="/musedock/news-aggregator/sources/{{ $source->id }}/delete"
@@ -94,7 +94,7 @@
                                                   onsubmit="return confirm('¿Estás seguro de eliminar esta fuente?')">
                                                 @csrf
                                                 <input type="hidden" name="tenant_id" value="{{ $tenantId }}">
-                                                <button type="submit" class="btn btn-outline-danger" title="Eliminar">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </form>

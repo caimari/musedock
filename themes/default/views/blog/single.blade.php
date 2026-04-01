@@ -320,6 +320,159 @@
                 </style>
                 @endif
             </article>
+
+            {{-- Code blocks styling --}}
+            <style>
+            /* Inline code */
+            .post-content code:not(pre code) {
+                background: #f3f4f6;
+                color: #e11d48;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 0.88em;
+                font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+                word-break: break-word;
+            }
+            /* Code block container */
+            .code-block {
+                background: #1e1e2e;
+                border-radius: 8px;
+                margin: 1.5rem 0;
+                overflow: hidden;
+                font-size: 0.88rem;
+            }
+            .code-block-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 16px;
+                background: #313244;
+                color: #a6adc8;
+                font-size: 0.78rem;
+                font-family: inherit;
+            }
+            .code-block-lang {
+                font-weight: 600;
+                text-transform: capitalize;
+            }
+            .code-block-copy {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                background: none;
+                border: none;
+                color: #a6adc8;
+                cursor: pointer;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 0.78rem;
+                transition: all 0.15s;
+            }
+            .code-block-copy:hover {
+                background: rgba(255,255,255,0.1);
+                color: #cdd6f4;
+            }
+            .code-block pre {
+                margin: 0;
+                padding: 16px;
+                overflow-x: auto;
+                color: #cdd6f4;
+                line-height: 1.6;
+            }
+            .code-block pre code {
+                background: none !important;
+                color: inherit !important;
+                padding: 0 !important;
+                border-radius: 0 !important;
+                font-size: inherit !important;
+                font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            }
+            </style>
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var container = document.querySelector('.post-content');
+                if (!container) return;
+
+                // 0. Clean ChatGPT pasted code blocks (CodeMirror divs with token classes)
+                container.querySelectorAll('.cm-content, [id="code-block-viewer"]').forEach(function(cm) {
+                    var wrapper = cm.closest('.relative.w-full') || cm.closest('[class*="border-radius-3xl"]')?.closest('.relative');
+                    if (!wrapper) wrapper = cm.closest('div.relative');
+                    var text = cm.textContent.trim();
+                    if (text && wrapper) {
+                        var target = wrapper;
+                        // Walk up to find the outermost ChatGPT wrapper
+                        while (target.parentElement && target.parentElement !== container &&
+                               !target.parentElement.matches('p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, article')) {
+                            if (target.parentElement.classList.contains('relative') && target.parentElement.classList.contains('w-full')) {
+                                target = target.parentElement;
+                                break;
+                            }
+                            target = target.parentElement;
+                        }
+                        makeCodeBlock(target, text);
+                    }
+                });
+
+                // 1. Wrap existing <pre><code> blocks
+                container.querySelectorAll('pre').forEach(function(pre) {
+                    if (pre.closest('.code-block')) return;
+                    makeCodeBlock(pre, pre.textContent);
+                });
+
+                // 2. Detect standalone <code> that look like code blocks
+                container.querySelectorAll('code').forEach(function(code) {
+                    if (code.closest('pre') || code.closest('.code-block') || code.closest('table') || code.closest('li')) return;
+                    var text = code.textContent;
+                    var isBlock = (text.includes('\n') && text.length > 40) || text.length > 120;
+                    if (isBlock) {
+                        makeCodeBlock(code, text);
+                    }
+                });
+
+                function makeCodeBlock(el, text) {
+                    var lang = detectLang(text);
+                    var wrapper = document.createElement('div');
+                    wrapper.className = 'code-block';
+                    wrapper.innerHTML =
+                        '<div class="code-block-header">' +
+                            '<span class="code-block-lang">' + lang + '</span>' +
+                            '<button class="code-block-copy" onclick="copyCode(this)" title="Copiar">' +
+                            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copiar</button>' +
+                        '</div>' +
+                        '<pre><code></code></pre>';
+                    wrapper.querySelector('code').textContent = text.trim();
+                    el.replaceWith(wrapper);
+                }
+
+                function detectLang(text) {
+                    if (/<\?php|namespace |use |function .*\(.*\$/.test(text)) return 'PHP';
+                    if (/tinymce\.init|toolbar_mode|selector:|addEventListener|querySelector|document\.|function\s*\(|const |let |=>|\.then\(/.test(text)) return 'JavaScript';
+                    if (/[\{][\s\S]*?[a-z-]+\s*:\s*[^;]+;/.test(text) && !/function/.test(text)) return 'CSS';
+                    if (/<[a-z][\s\S]*>/i.test(text) && /<\/[a-z]+>/i.test(text)) return 'HTML';
+                    if (/^(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER)\b/i.test(text.trim())) return 'SQL';
+                    if (/^\s*\$\s|apt |npm |composer |php |git |curl /m.test(text)) return 'Bash';
+                    if (/def |import |class .*:$|print\(/m.test(text)) return 'Python';
+                    return 'Codigo';
+                }
+
+                // 3. Clean leftover empty ChatGPT divs
+                container.querySelectorAll('[class*="token-"], [class*="corner-superellipse"], [class*="clipPathFallback"]').forEach(function(el) {
+                    var parent = el.closest('.relative.w-full');
+                    if (parent && !parent.querySelector('.code-block') && parent.textContent.trim() === '') {
+                        parent.remove();
+                    }
+                });
+            });
+
+            function copyCode(btn) {
+                var code = btn.closest('.code-block').querySelector('code');
+                navigator.clipboard.writeText(code.textContent).then(function() {
+                    var orig = btn.innerHTML;
+                    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a6e3a1" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copiado';
+                    setTimeout(function() { btn.innerHTML = orig; }, 1500);
+                });
+            }
+            </script>
         </div>
 
         {{-- Sidebar right --}}

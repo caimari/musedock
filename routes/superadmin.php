@@ -779,6 +779,18 @@ Route::get('/musedock/marketplace/developer', 'superadmin.MarketplaceController@
     ->name('superadmin.marketplace.developer')->middleware('superadmin');
 
 // ============================================
+// PLUGIN STORE (Premium plugins/modules)
+// ============================================
+Route::get('/musedock/plugin-store', 'superadmin.PluginStoreController@index')
+    ->name('superadmin.plugin-store')->middleware('superadmin');
+
+Route::post('/musedock/plugin-store/verify', 'superadmin.PluginStoreController@verify')
+    ->name('superadmin.plugin-store.verify')->middleware('superadmin');
+
+Route::post('/musedock/plugin-store/install', 'superadmin.PluginStoreController@install')
+    ->name('superadmin.plugin-store.install')->middleware('superadmin');
+
+// ============================================
 // TWO-FACTOR AUTHENTICATION (2FA)
 // ============================================
 Route::get('/musedock/security/2fa', 'superadmin.TwoFactorController@index')

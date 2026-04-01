@@ -13,11 +13,44 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.8.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.8.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 1 de Abril de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Plugin Store</h6>
+                <ul class="mb-3">
+                    <li><strong>Catalogo de productos:</strong> Nueva pantalla Plugin Store accesible desde Plugins y Modulos. Muestra plugins y modulos premium disponibles con precios, versiones y estado de instalacion</li>
+                    <li><strong>Verificacion de licencias:</strong> Sistema de activacion por clave (MDCK-XXXX-XXXX-XXXX) con vinculacion a dominio. Modal SweetAlert2 para introducir y verificar licencias</li>
+                    <li><strong>Descarga e instalacion:</strong> Descarga automatica del ZIP desde el License Server, extraccion en la ruta correcta (plugins o modulos) y ejecucion de install.php si existe</li>
+                    <li><strong>Acceso dual:</strong> Plugin Store disponible tanto para superadmin (/musedock/plugin-store) como para tenants (/admin/plugin-store)</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Soporte de modulos premium</h6>
+                <ul class="mb-3">
+                    <li><strong>Ruta externa de modulos:</strong> Nueva variable PRIVATE_MODULES_PATH en .env para modulos premium en repo privado separado (musedock-modules)</li>
+                    <li><strong>modules_loader.php ampliado:</strong> Escanea modulos en APP_ROOT/modules/ (gratuitos) y PRIVATE_MODULES_PATH/ (premium). Registro de namespaces PSR-4 y carga de archivos en ambas rutas</li>
+                    <li><strong>Tres repos independientes:</strong> musedock (publico MIT), musedock-plugins (privado), musedock-modules (privado)</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> LicenseClient service</h6>
+                <ul class="mb-3">
+                    <li><strong>Cliente HTTP:</strong> Servicio LicenseClient para comunicacion con el License Server (getCatalog, verifyLicense, activateLicense, downloadProduct)</li>
+                    <li><strong>Almacenamiento local:</strong> Licencias premium almacenadas en storage/premium-licenses.json como cache local</li>
+                    <li><strong>Verificacion diaria:</strong> Cron verify-premium-licenses.php que verifica todas las licencias contra el servidor y marca las expiradas</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.7.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.7.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">Previous</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 31 de Marzo de 2026</p>

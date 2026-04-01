@@ -6,23 +6,30 @@
 <div class="app-content">
     <div class="container-fluid">
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        {{-- Header --}}
+        <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
-                <h2><i class="bi bi-globe2"></i> Domain Manager</h2>
-                <p class="text-muted mb-0">Gestiona los dominios custom de tus tenants e integra con Caddy Server</p>
+                <h2 class="mb-0"><i class="bi bi-globe2"></i> Domain Manager</h2>
+                <p class="text-muted mb-0 small">Gestiona los dominios custom de tus tenants e integra con Caddy Server</p>
             </div>
-            <div class="d-flex gap-2">
+            <div>
                 @if($caddyApiAvailable)
-                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Caddy API Conectado</span>
+                    <span class="badge bg-success fs-6"><i class="bi bi-check-circle"></i> Caddy API</span>
                 @else
-                    <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Caddy API No Disponible</span>
+                    <span class="badge bg-danger fs-6"><i class="bi bi-x-circle"></i> Caddy API</span>
                 @endif
-                <button type="button" class="btn btn-outline-secondary" onclick="openCloudflareSettings()">
-                    <i class="bi bi-gear"></i> Cloudflare
-                </button>
-                <a href="/musedock/domain-manager/customers" class="btn btn-outline-primary">
-                    <i class="bi bi-people"></i> Clientes
-                </a>
+            </div>
+        </div>
+
+        {{-- Toolbar --}}
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <a href="/musedock/plugins/caddy-domain-manager/cloudflare-accounts" class="btn btn-outline-warning">
+                <i class="bi bi-cloud-fill"></i> Cuentas Cloudflare
+            </a>
+            <a href="/musedock/domain-manager/customers" class="btn btn-outline-primary">
+                <i class="bi bi-people"></i> Clientes
+            </a>
+            <div class="ms-auto d-flex gap-2">
                 <button type="button" class="btn btn-success" onclick="showCreateFreeSubdomainModal()">
                     <i class="bi bi-gift"></i> Crear Subdominio FREE
                 </button>

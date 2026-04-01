@@ -23,6 +23,15 @@ Logger::debug("Module Loader: Inicializando");
 $modulesPath = APP_ROOT . '/modules';
 $loadedSlugs = [];
 
+// Build list of module directories to scan (core + private/premium)
+$modulesDirs = [$modulesPath];
+$privateModulesPath = defined('PRIVATE_MODULES_PATH') ? PRIVATE_MODULES_PATH
+    : ($_ENV['PRIVATE_MODULES_PATH'] ?? null);
+if ($privateModulesPath && is_dir($privateModulesPath)) {
+    $modulesDirs[] = rtrim($privateModulesPath, '/');
+    Logger::debug("Module Loader: Añadida ruta de módulos premium: {$privateModulesPath}");
+}
+
 // Determinar el modo multi-tenant
 // IMPORTANTE: Leer directamente del config, no de setting() que lee de DB
 $config = require APP_ROOT . '/config/config.php';
@@ -69,7 +78,8 @@ try {
 // FASE 1: Registrar todos los namespaces primero
 Logger::debug("Module Loader: Fase 1 - Registro de namespaces PSR-4");
 
-foreach (glob($modulesPath . '/*', GLOB_ONLYDIR) as $moduleDir) {
+foreach ($modulesDirs as $_mDir) {
+foreach (glob($_mDir . '/*', GLOB_ONLYDIR) as $moduleDir) {
     $slug = basename($moduleDir);
     $metaFile = $moduleDir . '/module.json';
     
@@ -140,6 +150,7 @@ foreach (glob($modulesPath . '/*', GLOB_ONLYDIR) as $moduleDir) {
         Logger::debug("Module Loader: Módulo {$slug} no tiene configuración PSR-4");
     }
 }
+} // end foreach $modulesDirs (Fase 1)
 
 // Verificar registro de namespaces
 $namespaces = ModuleAutoloader::getRegisteredNamespaces();
@@ -151,7 +162,8 @@ Logger::debug("Module Loader: Namespaces registrados", [
 // FASE 2: Ahora cargar otros archivos solo para módulos activos
 Logger::debug("Module Loader: Fase 2 - Carga de archivos de módulos activos");
 
-foreach (glob($modulesPath . '/*', GLOB_ONLYDIR) as $moduleDir) {
+foreach ($modulesDirs as $_mDir) {
+foreach (glob($_mDir . '/*', GLOB_ONLYDIR) as $moduleDir) {
     $slug = basename($moduleDir);
 
     // Obtener el slug real del module.json si existe
@@ -206,6 +218,7 @@ foreach (glob($modulesPath . '/*', GLOB_ONLYDIR) as $moduleDir) {
     $loadedSlugs[] = $slug;
     Logger::info("Module Loader: Módulo {$slug} cargado correctamente");
 }
+} // end foreach $modulesDirs (Fase 2)
 
 // Resultado final
 Logger::info("Module Loader: Carga de módulos completada", [

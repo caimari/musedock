@@ -34,6 +34,17 @@ Route::post("$adminPath/plugins/sync", 'tenant.PluginsController@sync')
      ->middleware(['auth'])
      ->name('tenant.plugins.sync');
 
+// Plugin Store (Premium)
+Route::get("$adminPath/plugin-store", 'tenant.PluginStoreController@index')
+     ->middleware(['auth'])
+     ->name('tenant.plugin-store');
+Route::post("$adminPath/plugin-store/verify", 'tenant.PluginStoreController@verify')
+     ->middleware(['auth'])
+     ->name('tenant.plugin-store.verify');
+Route::post("$adminPath/plugin-store/install", 'tenant.PluginStoreController@install')
+     ->middleware(['auth'])
+     ->name('tenant.plugin-store.install');
+
 // Panel del tenant
 Route::get($adminPath, 'tenant.AdminController@index')
      ->middleware(['auth']);

@@ -239,7 +239,7 @@
     @if($__block['type'] === 'tags' && !empty($sidebarPopularTags))
     <div class="sidebar-extras-section mb-4">
         <h5 class="sidebar-extras-title">{{ __('blog.popular_tags') }}</h5>
-        <div class="d-flex flex-wrap gap-2">
+        <div class="sidebar-tags-cloud">
             @foreach($sidebarPopularTags as $sTag)
             @php
                 $__sc = !empty($sTag->color) ? trim($sTag->color) : null;
@@ -249,10 +249,10 @@
                     $__sr = hexdec(substr($__sh,0,2)); $__sg = hexdec(substr($__sh,2,2)); $__sb = hexdec(substr($__sh,4,2));
                     $__ss = "background:rgba({$__sr},{$__sg},{$__sb},0.10);color:{$__sc};border-color:rgba({$__sr},{$__sg},{$__sb},0.32);";
                 } else {
-                    $__ss = 'background:#eaf0fb;color:#1a4fa0;border-color:rgba(154,184,232,0.8);';
+                    $__ss = '';
                 }
             @endphp
-            <a href="{{ blog_url($sTag->slug, 'tag') }}" class="tx-chip tx-chip-tag" style="{{ $__ss }}">{{ $sTag->name }} <span style="font-size:9px;opacity:0.65;margin-left:3px;">{{ $sTag->post_count }}</span></a>
+            <a href="{{ blog_url($sTag->slug, 'tag') }}" class="sidebar-tag-pill" {!! $__ss ? 'style="'.$__ss.'"' : '' !!}>{{ $sTag->name }} <span class="sidebar-tag-count">{{ $sTag->post_count }}</span></a>
             @endforeach
         </div>
     </div>
@@ -310,21 +310,25 @@
     gap: 8px;
 }
 .sidebar-tag-pill {
-    display: inline-block;
-    padding: 4px 12px;
-    font-size: .8rem;
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 14px;
+    font-size: .78rem;
     font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
     color: #4a5568;
     background: #f7fafc;
     border: 1px solid #e2e8f0;
-    border-radius: 20px;
+    border-radius: 4px;
     text-decoration: none;
     transition: all .2s;
+    white-space: nowrap;
 }
 .sidebar-tag-pill:hover {
     color: #fff;
-    background: #e74c3c;
-    border-color: #e74c3c;
+    background: var(--header-link-hover-color, #e74c3c);
+    border-color: var(--header-link-hover-color, #e74c3c);
     text-decoration: none;
 }
 .sidebar-tag-pill:visited {
@@ -334,9 +338,9 @@
     color: #fff;
 }
 .sidebar-tag-count {
-    font-size: .7rem;
+    font-size: .65rem;
     color: #a0aec0;
-    margin-left: 4px;
+    margin-left: 5px;
 }
 .sidebar-tag-pill:hover .sidebar-tag-count {
     color: rgba(255,255,255,0.8);

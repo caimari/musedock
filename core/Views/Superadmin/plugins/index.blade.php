@@ -14,6 +14,9 @@
             <p class="text-muted">Gestiona plugins exclusivos para el dominio base (superadmin)</p>
         </div>
         <div class="col-md-4 text-end">
+            <a href="/musedock/plugin-store" class="btn btn-outline-primary me-2">
+                <i class="bi bi-shop me-1"></i>Plugin Store
+            </a>
             <button type="button" class="btn btn-primary" id="btnUploadPlugin">
                 <i class="bi bi-upload me-2"></i>Subir Plugin
             </button>

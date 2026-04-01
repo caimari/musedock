@@ -505,6 +505,22 @@ if ($dryRun) {
     $r = caddyRequest('PATCH', '/config/apps/http/servers/srv0/routes', $allRoutesJson);
     if ($r['code'] >= 200 && $r['code'] < 300) {
         echo "[ROUTES] " . count($missingRoutes) . " rutas añadidas en un solo PATCH (HTTP {$r['code']})\n";
+
+        // Register all hosting domains for Fail2Ban access logging
+        $allHostingDomains = [];
+        foreach ($missingRoutes as $route) {
+            $id = $route['@id'] ?? '';
+            if (str_starts_with($id, 'hosting-') && !empty($route['match'][0]['host'])) {
+                foreach ($route['match'][0]['host'] as $h) {
+                    $allHostingDomains[] = $h;
+                }
+            }
+        }
+        if (!empty($allHostingDomains)) {
+            require_once '/opt/musedock-panel/app/Services/SystemService.php';
+            \MuseDockPanel\Services\SystemService::ensureHostingAccessLog($caddyApi, $allHostingDomains);
+            echo "[LOGS] " . count($allHostingDomains) . " dominios registrados para access logging\n";
+        }
     } else {
         echo "[ROUTES] ERROR al aplicar rutas (HTTP {$r['code']}): {$r['body']}\n";
         $errors += count($missingRoutes);
