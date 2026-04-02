@@ -48,8 +48,11 @@ class TenantService
 
         // Si no hay tenant
         if (!$tenant) {
-            if ($domain === $mainDomain) {
-                // Dominio principal, permitir modo clásico
+            // Comparar con y sin www contra el mainDomain
+            $normalizedDomain = preg_replace('/^www\./i', '', $domain);
+            $normalizedMain = preg_replace('/^www\./i', '', $mainDomain);
+            if ($normalizedDomain === $normalizedMain) {
+                // Dominio principal (con o sin www), permitir modo clásico
                 return true;
             }
 

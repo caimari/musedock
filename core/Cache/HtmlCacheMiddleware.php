@@ -293,12 +293,16 @@ class HtmlCacheMiddleware
             return null;
         }
 
+        // Normalize www: strip www. prefix for consistent matching
+        $normalizedHost = preg_replace('/^www\./i', '', $host);
+
         // Check if this is the main domain (= master, no tenant)
         $mainDomain = getenv('MAIN_DOMAIN');
         if ($mainDomain === false) {
             $mainDomain = $_ENV['MAIN_DOMAIN'] ?? '';
         }
-        if ($host === $mainDomain) {
+        $normalizedMain = preg_replace('/^www\./i', '', $mainDomain);
+        if ($normalizedHost === $normalizedMain) {
             self::$tenantId = null;
             return null;
         }
@@ -326,9 +330,9 @@ class HtmlCacheMiddleware
                 \PDO::ATTR_TIMEOUT => 2,
             ]);
 
-            // Try tenants table first
-            $stmt = $pdo->prepare("SELECT id FROM tenants WHERE domain = ? AND status = 'active' LIMIT 1");
-            $stmt->execute([$host]);
+            // Try tenants table first (exact match or without www)
+            $stmt = $pdo->prepare("SELECT id FROM tenants WHERE (domain = ? OR domain = ?) AND status = 'active' LIMIT 1");
+            $stmt->execute([$host, $normalizedHost]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if ($row) {
@@ -337,8 +341,8 @@ class HtmlCacheMiddleware
             }
 
             // Try domain_aliases table
-            $stmt = $pdo->prepare("SELECT tenant_id FROM domain_aliases WHERE domain = ? LIMIT 1");
-            $stmt->execute([$host]);
+            $stmt = $pdo->prepare("SELECT tenant_id FROM domain_aliases WHERE (domain = ? OR domain = ?) LIMIT 1");
+            $stmt->execute([$host, $normalizedHost]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if ($row) {
