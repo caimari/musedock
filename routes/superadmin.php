@@ -250,6 +250,8 @@ Route::get('/musedock/settings/advanced', 'superadmin.SettingsController@advance
 Route::post('/musedock/settings/advanced', 'superadmin.SettingsController@updateAdvanced')->name('settings.advanced.update')->middleware('superadmin');
 Route::get('/musedock/settings/advanced/clear-blade-cache', 'superadmin.SettingsController@clearBladeCache')->name('settings.clear-blade-cache')->middleware('superadmin');
 Route::get('/musedock/settings/check-updates', 'superadmin.SettingsController@checkUpdates')->name('settings.check-updates')->middleware('superadmin');
+Route::post('/musedock/settings/run-update', 'superadmin.SettingsController@runCmsUpdate')->name('settings.run-update')->middleware('superadmin');
+Route::get('/musedock/settings/update-status', 'superadmin.SettingsController@cmsUpdateStatus')->name('settings.update-status')->middleware('superadmin');
 
 // Settings - Email
 Route::get('/musedock/settings/email', 'superadmin.SettingsController@email')->name('settings.email')->middleware('superadmin');

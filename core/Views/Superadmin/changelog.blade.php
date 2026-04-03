@@ -13,11 +13,71 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.9.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.9.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 3 de Abril de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> CSS Image System Overhaul</h6>
+                <ul class="mb-3">
+                    <li><strong>Responsive images fix:</strong> Removed <code>width: auto !important</code> from responsive.css media queries — HTML width attributes are now respected</li>
+                    <li><strong>WordPress alignment classes:</strong> Added <code>.aligncenter</code>, <code>.alignnone</code>, <code>.alignleft</code>, <code>.alignright</code> with correct cascade order and <code>!important</code> on size classes</li>
+                    <li><strong>Lightbox wrapper fix:</strong> Lightbox JS now inherits image display mode (block/inline) instead of forcing inline-block, preventing centered images from jumping left</li>
+                    <li><strong>Paragraph overflow fix:</strong> Replaced <code>overflow-x: hidden</code> on paragraphs with <code>overflow-wrap: break-word</code> — inline images no longer get crushed</li>
+                    <li><strong>Spacing paragraph fix:</strong> JS that preserves TinyMCE spacing now skips paragraphs containing images, videos, or iframes</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Tenant CSS Architecture Refactor</h6>
+                <ul class="mb-3">
+                    <li><strong>Tenant CSS generation:</strong> ThemeAppearanceController no longer copies entire template.css — generates only <code>:root</code> variables + custom CSS</li>
+                    <li><strong>Dual template.css sync:</strong> Public and source template.css are now kept in sync</li>
+                    <li><strong>Footer minimal:</strong> Copyright bar now shows site name + year (left) and social icons (right)</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> WP Importer Improvements</h6>
+                <ul class="mb-3">
+                    <li><strong>Protocol-relative URLs:</strong> All <code>//domain</code> URLs normalized to <code>https://domain</code> across sliders, galleries, content replacement, and logo detection</li>
+                    <li><strong>Smart Slider 3:</strong> Fixed regex to capture slider block by id/class instead of broken lookahead</li>
+                    <li><strong>Hero background-image:</strong> New detector for CSS background-image heroes in slider/banner sections</li>
+                    <li><strong>WP Logo Showcase:</strong> New detector for wpls-logo-cnt plugin grids — imports as logo carousel</li>
+                    <li><strong>Logo detection:</strong> Supports both src-before-class and class-before-src attribute orders, multiline regex, header fallback</li>
+                    <li><strong>Inline gallery detection:</strong> Detects paragraphs with 3+ consecutive images as potential galleries</li>
+                    <li><strong>Lightbox links:</strong> Content URLs normalized before replacement — lightbox now opens full-size images instead of thumbnails</li>
+                    <li><strong>Page slug prefix fix:</strong> Imported pages now always use <code>prefix = NULL</code> — menus no longer 404</li>
+                    <li><strong>Hide title on import:</strong> Pages and posts imported with <code>hide_title = true</code> by default</li>
+                    <li><strong>Logo text disabled:</strong> When logo image is imported, <code>show_title</code> is set to 0 to avoid double logo</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Header & Layout</h6>
+                <ul class="mb-3">
+                    <li><strong>Classic header layout:</strong> New "Clasico" layout — dark topbar with menu + social icons, logo bar below</li>
+                    <li><strong>Image link styling:</strong> Links wrapping images no longer show underline or visited color</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Multi-tenant Fixes</h6>
+                <ul class="mb-3">
+                    <li><strong>WWW tenant resolution:</strong> HtmlCacheMiddleware and TenantService now normalize www prefix — <code>www.domain.com</code> resolves to the correct tenant instead of showing the master site</li>
+                    <li><strong>Page delete route:</strong> Added POST route for <code>/admin/pages/{id}/delete</code> to fix 404 on page deletion</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Web Updater</h6>
+                <ul class="mb-3">
+                    <li><strong>One-click updates:</strong> New "Actualizar ahora" button in Settings > Advanced — pulls from GitHub, runs migrations, clears cache, all from the web panel</li>
+                    <li><strong>CmsUpdateService:</strong> Version comparison against GitHub raw composer.json with 6-hour cache</li>
+                    <li><strong>Live update log:</strong> Real-time polling shows update.sh output in the browser</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.8.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.8.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">Previous</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 1 de Abril de 2026</p>

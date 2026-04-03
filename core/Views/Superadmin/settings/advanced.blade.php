@@ -23,10 +23,16 @@
           </div>
 
           <div id="update-result" class="mb-3" style="display: none;"></div>
+          <div id="update-log" class="mb-3" style="display: none;">
+            <pre style="background:#1a1a2e;color:#94a3b8;padding:12px;border-radius:6px;max-height:300px;overflow-y:auto;font-size:0.8rem;" id="update-log-content"></pre>
+          </div>
 
           <div class="d-flex gap-2">
             <button type="button" id="checkUpdatesBtn" class="btn btn-outline-primary">
               <i class="bi bi-arrow-repeat me-1"></i> {{ __('settings.check_updates') }}
+            </button>
+            <button type="button" id="runUpdateBtn" class="btn btn-success" style="display: none;">
+              <i class="bi bi-download me-1"></i> Actualizar ahora
             </button>
             <a href="{{ $versionInfo['repository'] ?? '#' }}" target="_blank" class="btn btn-outline-secondary">
               <i class="bi bi-github me-1"></i> GitHub
@@ -208,18 +214,13 @@ document.addEventListener('DOMContentLoaded', function() {
                   <strong><i class="bi bi-arrow-up-circle me-1"></i> {{ __("settings.new_version_available") }}</strong><br>
                   <small>{{ __("settings.current") }}: <code>${data.current_version}</code> → {{ __("settings.latest") }}: <code>${data.latest_version}</code></small>
                 </div>
-                ${data.download_url && data.source !== 'packagist' ?
-                  `<a href="${data.download_url}" target="_blank" class="btn btn-sm btn-warning">
-                    <i class="bi bi-download me-1"></i> {{ __("settings.view_release") }}
-                  </a>` :
-                  `<code class="bg-dark text-light p-2 rounded">${data.download_url}</code>`
-                }
               </div>
               ${data.changelog ? `<hr class="my-2"><small class="text-muted">${data.changelog.substring(0, 200)}...</small>` : ''}
             </div>
           `;
           resultDiv.innerHTML = updateHtml;
           resultDiv.style.display = 'block';
+          document.getElementById('runUpdateBtn').style.display = 'inline-block';
         } else {
           statusDiv.innerHTML = '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>{{ __("settings.up_to_date") }}</span>';
 
@@ -287,6 +288,70 @@ document.addEventListener('DOMContentLoaded', function() {
 
       resultDiv.innerHTML = errorHtml;
       resultDiv.style.display = 'block';
+    });
+  });
+
+  // Run CMS Update
+  document.getElementById('runUpdateBtn').addEventListener('click', function() {
+    const btn = this;
+    const logDiv = document.getElementById('update-log');
+    const logContent = document.getElementById('update-log-content');
+    const statusDiv = document.getElementById('update-status');
+
+    Swal.fire({
+      title: 'Actualizar MuseDock CMS?',
+      text: 'Se descargará la última versión desde GitHub, se ejecutarán migraciones y se limpiará la caché.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: '<i class="bi bi-download me-1"></i> Actualizar',
+      confirmButtonColor: '#28a745',
+      cancelButtonText: '{{ __("common.cancel") }}'
+    }).then(function(result) {
+      if (!result.isConfirmed) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Actualizando...';
+      statusDiv.innerHTML = '<span class="badge bg-info"><i class="bi bi-arrow-repeat me-1"></i>Actualizando...</span>';
+      logDiv.style.display = 'block';
+      logContent.textContent = 'Iniciando actualización...\n';
+
+      fetch('/musedock/settings/run-update', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+      })
+      .then(r => r.json())
+      .then(function(data) {
+        if (!data.success) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-download me-1"></i> Actualizar ahora';
+          logContent.textContent += 'ERROR: ' + (data.error || data.message) + '\n';
+          return;
+        }
+
+        // Poll for status
+        var pollInterval = setInterval(function() {
+          fetch('/musedock/settings/update-status')
+          .then(r => r.json())
+          .then(function(s) {
+            if (s.output) logContent.textContent = s.output;
+            logDiv.scrollTop = logDiv.scrollHeight;
+
+            if (!s.in_progress) {
+              clearInterval(pollInterval);
+              btn.style.display = 'none';
+              statusDiv.innerHTML = '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Actualizado a v' + (s.version || '?') + '</span>';
+              logContent.textContent += '\n✓ Actualización completada. Recargando...\n';
+              setTimeout(function() { window.location.reload(); }, 2000);
+            }
+          })
+          .catch(function() {});
+        }, 1500);
+      })
+      .catch(function(err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-download me-1"></i> Actualizar ahora';
+        logContent.textContent += 'Error de red: ' + err.message + '\n';
+      });
     });
   });
 

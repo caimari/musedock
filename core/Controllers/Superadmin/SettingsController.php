@@ -387,6 +387,42 @@ class SettingsController
         exit;
     }
 
+    /**
+     * Run CMS update (AJAX POST)
+     */
+    public function runCmsUpdate()
+    {
+        while (ob_get_level() > 0) ob_get_clean();
+        header('Content-Type: application/json; charset=utf-8');
+
+        try {
+            SessionSecurity::startSession();
+            $this->checkPermission('settings.edit');
+
+            $result = \Screenart\Musedock\Services\CmsUpdateService::runUpdate();
+            echo json_encode($result, JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /**
+     * Get CMS update status (AJAX GET, polling)
+     */
+    public function cmsUpdateStatus()
+    {
+        while (ob_get_level() > 0) ob_get_clean();
+        header('Content-Type: application/json; charset=utf-8');
+
+        try {
+            $status = \Screenart\Musedock\Services\CmsUpdateService::getUpdateStatus();
+            echo json_encode($status, JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            echo json_encode(['in_progress' => false, 'error' => $e->getMessage()]);
+        }
+        exit;
+    }
 
 public function update()
 {
