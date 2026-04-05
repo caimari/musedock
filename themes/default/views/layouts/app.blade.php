@@ -141,8 +141,12 @@
             ],
         ];
     @endphp
-    {{-- JSON-LD: WebSite default for all pages --}}
+    {{-- JSON-LD Structured Data --}}
+    @if(!empty($__jsonld_article))
+    <script type="application/ld+json">{!! $__jsonld_article !!}</script>
+    @else
     <script type="application/ld+json">{!! json_encode($__websiteJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
+    @endif
 
     {{-- hreflang for multilingual tenants --}}
     @php

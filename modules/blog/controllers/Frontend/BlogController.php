@@ -308,6 +308,66 @@ class BlogController
             // Silently fail - navigation is non-critical
         }
 
+        // Generate Article + BreadcrumbList JSON-LD (passed as global data so layout <head> can use it)
+        $siteUrl = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+        $postUrl = $siteUrl . '/' . ltrim(blog_url($post->slug), '/');
+        $siteName = function_exists('site_setting') ? site_setting('site_name', '') : '';
+        $siteLogo = function_exists('site_setting') ? site_setting('site_logo', '') : '';
+        $seoTitle = $displayData->seo_title ?: $displayData->title;
+        $seoDesc = $displayData->seo_description ?: ($displayData->excerpt ?? mb_substr(strip_tags($displayData->content ?? ''), 0, 160));
+        $pubDate = is_string($post->published_at) ? $post->published_at : (is_object($post->published_at) ? $post->published_at->format('c') : date('c'));
+        $modDate = is_string($post->updated_at) ? $post->updated_at : (is_object($post->updated_at) ? $post->updated_at->format('c') : $pubDate);
+        $postImage = !empty($post->featured_image) ? (str_starts_with($post->featured_image, 'http') ? $post->featured_image : $siteUrl . '/' . ltrim($post->featured_image, '/')) : '';
+
+        // Author name
+        $authorName = $siteName;
+        try {
+            if (!empty($post->user_id)) {
+                $authorRow = Database::query("SELECT name FROM admins WHERE id = ? LIMIT 1", [$post->user_id])->fetch(\PDO::FETCH_OBJ);
+                if ($authorRow && !empty($authorRow->name)) $authorName = $authorRow->name;
+            }
+        } catch (\Throwable $e) {}
+
+        $articleLd = [
+            '@type' => 'Article',
+            'headline' => $seoTitle,
+            'description' => trim($seoDesc),
+            'url' => $postUrl,
+            'datePublished' => $pubDate,
+            'dateModified' => $modDate,
+            'author' => ['@type' => 'Person', 'name' => $authorName],
+            'publisher' => ['@type' => 'Organization', 'name' => $siteName, 'url' => $siteUrl . '/'],
+            'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => $postUrl],
+        ];
+        if ($postImage) $articleLd['image'] = $postImage;
+        if ($siteLogo) $articleLd['publisher']['logo'] = ['@type' => 'ImageObject', 'url' => $siteUrl . '/' . ltrim(function_exists('public_file_url') ? public_file_url($siteLogo) : $siteLogo, '/')];
+
+        // BreadcrumbList
+        $breadcrumbs = [
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => [
+                ['@type' => 'ListItem', 'position' => 1, 'name' => $siteName ?: 'Home', 'item' => $siteUrl . '/'],
+            ],
+        ];
+        $pos = 2;
+        $cats = $post->categories ?? [];
+        if (is_object($cats) && method_exists($cats, 'toArray')) $cats = $cats->toArray();
+        if (!empty($cats)) {
+            $firstCat = is_array($cats) ? reset($cats) : $cats;
+            if (is_object($firstCat)) {
+                $catName = $firstCat->name ?? '';
+                $catSlug = $firstCat->slug ?? '';
+                if ($catName && $catSlug) {
+                    $breadcrumbs['itemListElement'][] = ['@type' => 'ListItem', 'position' => $pos++, 'name' => $catName, 'item' => $siteUrl . '/category/' . $catSlug];
+                }
+            }
+        }
+        $breadcrumbs['itemListElement'][] = ['@type' => 'ListItem', 'position' => $pos, 'name' => $seoTitle];
+
+        View::addGlobalData([
+            '__jsonld_article' => json_encode(['@context' => 'https://schema.org', '@graph' => [$articleLd, $breadcrumbs]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        ]);
+
         // Para posts del blog, usar la plantilla del blog
         $templatePath = 'blog/single';
 
