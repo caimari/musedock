@@ -535,17 +535,46 @@ footer .footer-tittle ul li a,
 
 /* Mantener decoración solo en el enlace de configuración de cookies */
 .cookie-settings-link a,
-footer .cookie-settings-link a {
+.cookie-settings-link button,
+footer .cookie-settings-link a,
+footer .cookie-settings-link button {
   text-decoration: underline !important;
+}
+
+/* Áreas táctiles mínimas de 48x48px para iconos sociales (accesibilidad móvil) */
+.footer-social a,
+.footer-minimal-social a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px;
+}
+
+/* Footer headings: usar div con clase en vez de h4 para evitar salto de nivel semántico */
+.footer-tittle .footer-heading,
+.single-footer-caption .footer-heading {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  margin-bottom: 12px !important;
+  line-height: 1.4 !important;
+  color: var(--footer-heading-color, #333) !important;
 }
 
 /* Igualar tamaño de todos los títulos en el footer - Máxima especificidad */
 footer .footer-tittle h4,
 footer .single-footer-caption h4,
+footer .footer-tittle .footer-heading,
+footer .single-footer-caption .footer-heading,
 .footer-area .footer-tittle h4,
 .footer-area .single-footer-caption h4,
+.footer-area .footer-tittle .footer-heading,
+.footer-area .single-footer-caption .footer-heading,
 .footer-tittle h4,
-.single-footer-caption h4 {
+.single-footer-caption h4,
+.footer-tittle .footer-heading,
+.single-footer-caption .footer-heading {
   font-size: 16px !important;
   font-weight: 600 !important;
   margin-bottom: 12px !important;

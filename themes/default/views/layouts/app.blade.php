@@ -218,37 +218,16 @@
     @if(!empty($fontsToLoad))
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?{{ implode('&', array_map(fn($f) => 'family=' . $f, $fontsToLoad)) }}&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?{{ implode('&', array_map(fn($f) => 'family=' . $f, $fontsToLoad)) }}&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+        <noscript><link href="https://fonts.googleapis.com/css2?{{ implode('&', array_map(fn($f) => 'family=' . $f, $fontsToLoad)) }}&display=swap" rel="stylesheet"></noscript>
     @endif
 
-    {{-- Bootstrap CSS local --}}
-    <link rel="stylesheet" href="/assets/vendor/bootstrap/css/bootstrap.min.css"> 
-<!--    <link rel="stylesheet" href="{{ asset('themes/default/css/owl.carousel.min.css') }}"> -->
-    <link rel="stylesheet" href="{{ asset('themes/default/css/slicknav.css') }}">
-    <link rel="stylesheet" href="{{ asset('themes/default/css/animate.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('themes/default/css/magnific-popup.css') }}">
+    {{-- ====== CSS CRÍTICO (render-blocking, necesario para first paint) ====== --}}
+    <link rel="stylesheet" href="/assets/vendor/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ asset('themes/default/css/fontawesome-all.min.css') }}">
     <link rel="stylesheet" href="{{ asset('themes/default/css/themify-icons.css') }}">
-<!-- <link rel="stylesheet" href="{{ asset('themes/default/css/slick.css') }}"> --}} -->
-    {{-- DESACTIVADO - nice-select interfiere con selectores de idioma --}}
-    {{-- <link rel="stylesheet" href="{{ asset('themes/default/css/nice-select.css') }}"> --}}
     <link rel="stylesheet" href="{{ asset('themes/default/css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('themes/default/css/responsive.css') }}">
-	
-	{{-- Swiper CSS local (DEBE cargarse ANTES de slider-themes.css para que nuestros estilos sobrescriban) --}}
-	<link rel="stylesheet" href="/assets/css/swiper-bundle.min.css?v={{ file_exists(public_path('assets/css/swiper-bundle.min.css')) ? filemtime(public_path('assets/css/swiper-bundle.min.css')) : time() }}">
-	<link rel="stylesheet" href="{{ asset('themes/default/css/slider-themes.css') }}?v={{ file_exists(public_path('assets/themes/default/css/slider-themes.css')) ? filemtime(public_path('assets/themes/default/css/slider-themes.css')) : time() }}">
-{{-- Slick Carousel CSS (local) --}}
-<link rel="stylesheet" href="{{ asset('vendor/slick/slick.min.css') }}" />
-<link rel="stylesheet" href="{{ asset('vendor/slick/slick-theme.min.css') }}" />
-{{-- Owl Carousel CSS (local) --}}
-<link rel="stylesheet" href="{{ asset('vendor/owl-carousel/owl.carousel.min.css') }}" />
-<link rel="stylesheet" href="{{ asset('vendor/owl-carousel/owl.theme.default.min.css') }}" />
-
-
-
-    {{-- CSS de Cookies --}}
-    <link rel="stylesheet" href="{{ asset('themes/default/css/cookie-consent.css') }}">
 
     {{-- CSS Personalizado - Espaciado y estilos del tema --}}
     <link rel="stylesheet" href="{{ asset('themes/default/css/template.css') }}?v={{ time() }}">
@@ -269,8 +248,38 @@
         <link rel="stylesheet" href="{{ asset("themes/{$cssTenantPrefix}/css/custom.css") }}?v={{ $cssTimestamp }}">
     @endif
 
+    {{-- ====== CSS NO CRÍTICO (diferido — se carga async para no bloquear render) ====== --}}
+    {{-- Patrón: media="print" + onload cambia a "all" = carga async sin bloquear --}}
+    <link rel="stylesheet" href="{{ asset('themes/default/css/slicknav.css') }}" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ asset('themes/default/css/animate.min.css') }}" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ asset('themes/default/css/magnific-popup.css') }}" media="print" onload="this.media='all'">
+    {{-- Swiper CSS (carousel) --}}
+    <link rel="stylesheet" href="/assets/css/swiper-bundle.min.css?v={{ file_exists(public_path('assets/css/swiper-bundle.min.css')) ? filemtime(public_path('assets/css/swiper-bundle.min.css')) : time() }}" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ asset('themes/default/css/slider-themes.css') }}?v={{ file_exists(public_path('assets/themes/default/css/slider-themes.css')) ? filemtime(public_path('assets/themes/default/css/slider-themes.css')) : time() }}" media="print" onload="this.media='all'">
+    {{-- Slick Carousel CSS --}}
+    <link rel="stylesheet" href="{{ asset('vendor/slick/slick.min.css') }}" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ asset('vendor/slick/slick-theme.min.css') }}" media="print" onload="this.media='all'">
+    {{-- Owl Carousel CSS --}}
+    <link rel="stylesheet" href="{{ asset('vendor/owl-carousel/owl.carousel.min.css') }}" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ asset('vendor/owl-carousel/owl.theme.default.min.css') }}" media="print" onload="this.media='all'">
+    {{-- Cookie consent CSS --}}
+    <link rel="stylesheet" href="{{ asset('themes/default/css/cookie-consent.css') }}" media="print" onload="this.media='all'">
     {{-- Nice Select 2 CSS --}}
-    <link rel="stylesheet" href="/assets/vendor/nice-select2/nice-select2.min.css">
+    <link rel="stylesheet" href="/assets/vendor/nice-select2/nice-select2.min.css" media="print" onload="this.media='all'">
+    {{-- Fallback noscript para CSS diferido --}}
+    <noscript>
+        <link rel="stylesheet" href="{{ asset('themes/default/css/slicknav.css') }}">
+        <link rel="stylesheet" href="{{ asset('themes/default/css/animate.min.css') }}">
+        <link rel="stylesheet" href="{{ asset('themes/default/css/magnific-popup.css') }}">
+        <link rel="stylesheet" href="/assets/css/swiper-bundle.min.css">
+        <link rel="stylesheet" href="{{ asset('themes/default/css/slider-themes.css') }}">
+        <link rel="stylesheet" href="{{ asset('vendor/slick/slick.min.css') }}">
+        <link rel="stylesheet" href="{{ asset('vendor/slick/slick-theme.min.css') }}">
+        <link rel="stylesheet" href="{{ asset('vendor/owl-carousel/owl.carousel.min.css') }}">
+        <link rel="stylesheet" href="{{ asset('vendor/owl-carousel/owl.theme.default.min.css') }}">
+        <link rel="stylesheet" href="{{ asset('themes/default/css/cookie-consent.css') }}">
+        <link rel="stylesheet" href="/assets/vendor/nice-select2/nice-select2.min.css">
+    </noscript>
 
 	{{-- CSS Variables dinámicas desde la base de datos (tenant-aware) --}}
     <style>
@@ -381,7 +390,10 @@
     .footer-area h4,
     .footer-area .footer-tittle h4,
     .footer-tittle h4,
-    .single-footer-caption h4 {
+    .single-footer-caption h4,
+    .footer-area .footer-heading,
+    .footer-tittle .footer-heading,
+    .single-footer-caption .footer-heading {
         color: var(--footer-heading-color) !important;
         font-size: 16px !important;
         font-weight: 600 !important;
@@ -404,7 +416,8 @@
     }
 
     /* Mantener subrayado solo en enlace de cookies */
-    .cookie-settings-link a {
+    .cookie-settings-link a,
+    .cookie-settings-link button {
         text-decoration: underline !important;
     }
 
@@ -1923,7 +1936,8 @@ body:has(.header-layout-banner) .header-top { display: none !important; }
     border-top: 1px solid #eee;
 }
 
-.mobile-languages h4 {
+.mobile-languages h4,
+.mobile-languages .mobile-languages-heading {
     margin-bottom: 15px;
     font-size: 15px;
     font-weight: 600;
@@ -2318,9 +2332,9 @@ body.mobile-menu-open {
 
         @if($showLangSelector && ($langSelectorEnabled ?? true))
         <div class="mobile-languages">
-            <h4>{{ __('mobile_menu.select_language') }}</h4>
+            <div class="mobile-languages-heading">{{ __('mobile_menu.select_language') }}</div>
             <div class="mobile-lang-select">
-                <select id="mobile-lang-switcher" onchange="window.location.href='?lang=' + this.value;" style="
+                <select id="mobile-lang-switcher" aria-label="{{ __('mobile_menu.select_language') }}" onchange="window.location.href='?lang=' + this.value;" style="
                     border: 1px solid #000;
                     border-radius: 4px;
                     padding: 10px 14px;

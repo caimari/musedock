@@ -99,7 +99,7 @@
 
             @if($sidebarLangSelector && $showLangSelector)
                 <div class="sidebar-nav-lang">
-                    <select onchange="window.location.href='?lang='+this.value;" class="sidebar-nav-lang-select">
+                    <select onchange="window.location.href='?lang='+this.value;" aria-label="Select language" class="sidebar-nav-lang-select">
                         @foreach($languages as $lang)
                             <option value="{{ $lang['code'] }}" {{ $currentLang == $lang['code'] ? 'selected' : '' }}>
                                 {{ $lang['name'] ?? strtoupper($lang['code']) }}

@@ -77,7 +77,7 @@
                             @if($showFooterLangSelector)
                             <div class="language-selector my-4 text-left">
                                 <form action="" method="get" id="language-form" class="d-inline-block">
-                                    <select name="lang" id="language-select" onchange="this.form.submit();" style="
+                                    <select name="lang" id="language-select" aria-label="{{ $__bl === 'en' ? 'Select language' : 'Seleccionar idioma' }}" onchange="this.form.submit();" style="
                                         border: 1px solid #000;
                                         border-radius: 4px;
                                         padding: 8px 12px;
@@ -100,28 +100,28 @@
                          <!-- social -->
                          <div class="footer-social mt-3" style="--icon-color: var(--footer-icon-color, #333);">
                             @if(site_setting('social_facebook', ''))
-                                <a href="{{ site_setting('social_facebook') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-facebook-square"></i></a>
+                                <a href="{{ site_setting('social_facebook') }}" target="_blank" rel="noopener" aria-label="Facebook" style="color: var(--footer-icon-color, #333);"><i class="fab fa-facebook-square"></i></a>
                             @endif
                             @if(site_setting('social_twitter', ''))
-                                <a href="{{ site_setting('social_twitter') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-twitter-square"></i></a>
+                                <a href="{{ site_setting('social_twitter') }}" target="_blank" rel="noopener" aria-label="Twitter" style="color: var(--footer-icon-color, #333);"><i class="fab fa-twitter-square"></i></a>
                             @endif
                             @if(site_setting('social_instagram', ''))
-                                <a href="{{ site_setting('social_instagram') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-instagram"></i></a>
+                                <a href="{{ site_setting('social_instagram') }}" target="_blank" rel="noopener" aria-label="Instagram" style="color: var(--footer-icon-color, #333);"><i class="fab fa-instagram"></i></a>
                             @endif
                             @if(site_setting('social_linkedin', ''))
-                                <a href="{{ site_setting('social_linkedin') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-linkedin"></i></a>
+                                <a href="{{ site_setting('social_linkedin') }}" target="_blank" rel="noopener" aria-label="LinkedIn" style="color: var(--footer-icon-color, #333);"><i class="fab fa-linkedin"></i></a>
                             @endif
                             @if(site_setting('social_pinterest', ''))
-                                <a href="{{ site_setting('social_pinterest') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-pinterest-square"></i></a>
+                                <a href="{{ site_setting('social_pinterest') }}" target="_blank" rel="noopener" aria-label="Pinterest" style="color: var(--footer-icon-color, #333);"><i class="fab fa-pinterest-square"></i></a>
                             @endif
                             @if(site_setting('social_youtube', ''))
-                                <a href="{{ site_setting('social_youtube') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-youtube"></i></a>
+                                <a href="{{ site_setting('social_youtube') }}" target="_blank" rel="noopener" aria-label="YouTube" style="color: var(--footer-icon-color, #333);"><i class="fab fa-youtube"></i></a>
                             @endif
                             @if(site_setting('social_vimeo', ''))
-                                <a href="{{ site_setting('social_vimeo') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-vimeo-v"></i></a>
+                                <a href="{{ site_setting('social_vimeo') }}" target="_blank" rel="noopener" aria-label="Vimeo" style="color: var(--footer-icon-color, #333);"><i class="fab fa-vimeo-v"></i></a>
                             @endif
                             @if(site_setting('social_tiktok', ''))
-                                <a href="{{ site_setting('social_tiktok') }}" target="_blank" style="color: var(--footer-icon-color, #333);"><i class="fab fa-tiktok"></i></a>
+                                <a href="{{ site_setting('social_tiktok') }}" target="_blank" rel="noopener" aria-label="TikTok" style="color: var(--footer-icon-color, #333);"><i class="fab fa-tiktok"></i></a>
                             @endif
                         </div>
                      </div>
@@ -155,7 +155,7 @@
                         @if($hasFooter1Menu)
                             <div class="footer-tittle">
                                 @if($footer1Title && $showFooter1Title)
-                                    <h4 style="color: var(--footer-heading-color, #333);">{{ $footer1Title }}</h4>
+                                    <div class="footer-heading" style="color: var(--footer-heading-color, #333);">{{ $footer1Title }}</div>
                                 @endif
                                 @custommenu('footer1', null, [
                                     'nav_class' => '',
@@ -197,7 +197,7 @@
                         @if($hasFooter2Menu)
                             <div class="footer-tittle">
                                 @if($footer2Title && $showFooter2Title)
-                                    <h4 style="color: var(--footer-heading-color, #333);">{{ $footer2Title }}</h4>
+                                    <div class="footer-heading" style="color: var(--footer-heading-color, #333);">{{ $footer2Title }}</div>
                                 @endif
                                 @custommenu('footer2', null, [
                                     'nav_class' => '',
@@ -239,7 +239,7 @@
                         @if($hasFooter3Menu)
                             <div class="footer-tittle">
                                 @if($footer3Title && $showFooter3Title)
-                                    <h4 style="color: var(--footer-heading-color, #333);">{{ $footer3Title }}</h4>
+                                    <div class="footer-heading" style="color: var(--footer-heading-color, #333);">{{ $footer3Title }}</div>
                                 @endif
                                 @custommenu('footer3', null, [
                                     'nav_class' => '',
@@ -258,7 +258,7 @@
                             @endphp
                             @if($__hasContactData)
                             <div class="footer-tittle">
-                                <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--footer-heading-color, #333);">{{ site_setting('footer_col4_title', __('footer.contact')) }}</h4>
+                                <div class="footer-heading" style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--footer-heading-color, #333);">{{ site_setting('footer_col4_title', __('footer.contact')) }}</div>
                                 <ul>
                                     @if($__contactPhone)<li><span>{{ $__contactPhone }}</span></li>@endif
                                     @if($__contactEmail)<li><span>{{ $__contactEmail }}</span></li>@endif
@@ -381,9 +381,9 @@
                                     }
                                 @endphp
                                 <li class="footer-legal-item">
-                                    <a href="javascript:void(0);" id="open-cookie-settings" class="footer-legal-link" style="color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75;">
+                                    <button type="button" id="open-cookie-settings" class="footer-legal-link" style="background: none; border: none; cursor: pointer; padding: 0; color: var(--footer-text-color, #333); font-size: 12px; text-decoration: none; opacity: 0.75; font-family: inherit;">
                                         {!! $cookieIconHtml !!}{{ $__bl === 'en' ? 'Cookie Settings' : 'Configuración de Cookies' }}
-                                    </a>
+                                    </button>
                                 </li>
                                 @endif
                             </ul>

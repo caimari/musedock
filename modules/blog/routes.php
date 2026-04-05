@@ -761,6 +761,10 @@ if ($blogPrefix !== '') {
         ->name('blog.show');
 } else {
     // Sin prefijo: posts resueltos via SlugRouter, categorías y tags en raíz
+    // Siempre registrar /blog como entrada al listado de posts (SEO + navegación)
+    Route::get('/blog', 'Blog\Controllers\Frontend\BlogController@index')
+        ->name('blog.index');
+
     Route::get('/category/{slug}', 'Blog\Controllers\Frontend\BlogController@category')
         ->name('blog.category');
 

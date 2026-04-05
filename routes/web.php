@@ -144,6 +144,10 @@ Route::get('/{prefix}/{slug}', function ($prefix, $slug) {
     return \Screenart\Musedock\Services\SlugRouter::resolve($prefix, $slug);
 })->name('slug.with-prefix');
 
+// Blog index: siempre disponible en /blog (incluso si blog_url_prefix es vacío)
+Route::get('/blog', 'Blog\Controllers\Frontend\BlogController@index')
+    ->name('blog.index.alias');
+
 // Ruta sin prefijo
 Route::get('/{slug}', function ($slug) {
     return \Screenart\Musedock\Services\SlugRouter::resolve(null, $slug);

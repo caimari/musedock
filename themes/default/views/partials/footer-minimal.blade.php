@@ -21,28 +21,28 @@
                 </p>
                 <div class="footer-minimal-social">
                     @if(site_setting('social_facebook', ''))
-                        <a href="{{ site_setting('social_facebook') }}" target="_blank" rel="noopener"><i class="fab fa-facebook-f"></i></a>
+                        <a href="{{ site_setting('social_facebook') }}" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
                     @endif
                     @if(site_setting('social_twitter', ''))
-                        <a href="{{ site_setting('social_twitter') }}" target="_blank" rel="noopener"><i class="fab fa-twitter"></i></a>
+                        <a href="{{ site_setting('social_twitter') }}" target="_blank" rel="noopener" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
                     @endif
                     @if(site_setting('social_instagram', ''))
-                        <a href="{{ site_setting('social_instagram') }}" target="_blank" rel="noopener"><i class="fab fa-instagram"></i></a>
+                        <a href="{{ site_setting('social_instagram') }}" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
                     @endif
                     @if(site_setting('social_linkedin', ''))
-                        <a href="{{ site_setting('social_linkedin') }}" target="_blank" rel="noopener"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="{{ site_setting('social_linkedin') }}" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
                     @endif
                     @if(site_setting('social_youtube', ''))
-                        <a href="{{ site_setting('social_youtube') }}" target="_blank" rel="noopener"><i class="fab fa-youtube"></i></a>
+                        <a href="{{ site_setting('social_youtube') }}" target="_blank" rel="noopener" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
                     @endif
                     @if(site_setting('social_tiktok', ''))
-                        <a href="{{ site_setting('social_tiktok') }}" target="_blank" rel="noopener"><i class="fab fa-tiktok"></i></a>
+                        <a href="{{ site_setting('social_tiktok') }}" target="_blank" rel="noopener" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
                     @endif
                     @if(site_setting('social_vimeo', ''))
-                        <a href="{{ site_setting('social_vimeo') }}" target="_blank" rel="noopener"><i class="fab fa-vimeo-v"></i></a>
+                        <a href="{{ site_setting('social_vimeo') }}" target="_blank" rel="noopener" aria-label="Vimeo"><i class="fab fa-vimeo-v"></i></a>
                     @endif
                     @if(site_setting('social_pinterest', ''))
-                        <a href="{{ site_setting('social_pinterest') }}" target="_blank" rel="noopener"><i class="fab fa-pinterest"></i></a>
+                        <a href="{{ site_setting('social_pinterest') }}" target="_blank" rel="noopener" aria-label="Pinterest"><i class="fab fa-pinterest"></i></a>
                     @endif
                 </div>
             </div>
@@ -135,7 +135,7 @@
                         }
                     @endphp
                     <li class="footer-minimal-nav-item">
-                        <a href="javascript:void(0);" id="open-cookie-settings" class="footer-minimal-nav-link">{!! $cookieIconHtml !!}{{ $__bl === 'en' ? 'Cookie Settings' : 'Configuracion de Cookies' }}</a>
+                        <button type="button" id="open-cookie-settings" class="footer-minimal-nav-link" style="background: none; border: none; cursor: pointer; padding: 0; font-family: inherit;">{!! $cookieIconHtml !!}{{ $__bl === 'en' ? 'Cookie Settings' : 'Configuracion de Cookies' }}</button>
                     </li>
                     @endif
                 </ul>
