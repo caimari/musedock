@@ -240,6 +240,20 @@ Route::get("$adminPath/settings/storage", 'tenant.SettingsController@storage')
      ->middleware(['auth', 'permission:settings.view'])
      ->name('tenant.settings.storage');
 
+// Settings - API Keys
+Route::get("$adminPath/settings/api-keys", function () {
+    (new \Screenart\Musedock\Controllers\Api\V1\ApiKeyController())->index();
+})->middleware(['auth', 'permission:settings.view'])->name('tenant.settings.api-keys');
+Route::post("$adminPath/settings/api-keys", function () {
+    (new \Screenart\Musedock\Controllers\Api\V1\ApiKeyController())->store();
+})->middleware(['auth', 'permission:settings.edit'])->name('tenant.settings.api-keys.store');
+Route::post("$adminPath/settings/api-keys/{id}/toggle", function ($id) {
+    (new \Screenart\Musedock\Controllers\Api\V1\ApiKeyController())->toggle((int) $id);
+})->middleware(['auth', 'permission:settings.edit'])->name('tenant.settings.api-keys.toggle');
+Route::post("$adminPath/settings/api-keys/{id}/delete", function ($id) {
+    (new \Screenart\Musedock\Controllers\Api\V1\ApiKeyController())->destroy((int) $id);
+})->middleware(['auth', 'permission:settings.edit'])->name('tenant.settings.api-keys.delete');
+
 // AI Settings (Configuración de IA del Tenant)
 Route::get("$adminPath/ai/settings", 'tenant.AISettingsController@settings')
      ->middleware(['auth', 'permission:settings.view'])

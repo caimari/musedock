@@ -13,11 +13,53 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.12.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.12.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 5 de Abril de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> API REST v1</h6>
+                <ul class="mb-3">
+                    <li><strong>API REST completa:</strong> Nuevos endpoints <code>/api/v1/</code> para gestionar posts, paginas, categorias y tags via HTTP con autenticacion Bearer token</li>
+                    <li><strong>CRUD completo:</strong> Create, Read, Update, Delete para posts, paginas, categorias, tags. Creacion automatica de categorias/tags al publicar posts</li>
+                    <li><strong>Descarga de imagenes:</strong> Al crear un post con <code>featured_image_url</code>, la imagen se descarga y almacena automaticamente en el Media Manager</li>
+                    <li><strong>OpenAPI schema:</strong> Endpoint <code>/api/v1/openapi.yaml</code> para configurar ChatGPT Custom GPTs (Actions)</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> API Keys y Autenticacion</h6>
+                <ul class="mb-3">
+                    <li><strong>Sistema de API Keys:</strong> Generacion de keys con prefijo <code>mdk_</code>, hash SHA-256, se muestra una sola vez al crearla</li>
+                    <li><strong>Permisos granulares:</strong> 17 permisos individuales por recurso y accion (ej: <code>posts.create</code>, <code>pages.delete</code>, <code>tags.read</code>)</li>
+                    <li><strong>Keys de tenant:</strong> Cada tenant puede crear sus propias API keys desde Ajustes > API Keys, limitadas a su sitio</li>
+                    <li><strong>Confirmacion de acciones peligrosas:</strong> Los endpoints de eliminacion requieren <code>"confirm": true</code> (HTTP 428)</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Rate Limiting y Logging</h6>
+                <ul class="mb-3">
+                    <li><strong>Rate limit global:</strong> Configurable por key (default 60 req/min)</li>
+                    <li><strong>Rate limit por accion:</strong> Limites especificos para acciones destructivas (<code>delete</code>: 5/min, <code>create</code>: 15/min)</li>
+                    <li><strong>Logging completo:</strong> Registro de cada llamada API con tool, duracion, status e IP</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Integraciones</h6>
+                <ul class="mb-3">
+                    <li><strong>Zapier / Make / n8n:</strong> Conecta workflows de automatizacion directamente via REST</li>
+                    <li><strong>ChatGPT Custom GPTs:</strong> Configura Actions con el schema OpenAPI para publicar desde el chat</li>
+                    <li><strong>Claude Code / Desktop:</strong> MCP Server integrado para gestionar contenido via IA</li>
+                    <li><strong>Panel de gestion:</strong> Nueva seccion Ajustes > API Keys con URLs listas para copiar</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.11.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.11.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">5 Abr 2026</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 5 de Abril de 2026</p>

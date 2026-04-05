@@ -1,0 +1,470 @@
+openapi: 3.0.3
+info:
+  title: MuseDock CMS API
+  description: REST API for publishing content in MuseDock CMS. Supports multi-tenant blog post management, categories, tags, and cross-publishing.
+  version: "1.0.0"
+  contact:
+    name: MuseDock
+    url: https://musedock.com
+servers:
+  - url: https://musedock.com
+    description: Production
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: "API key with mdk_ prefix. Example: Bearer mdk_abc123..."
+
+  schemas:
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        title:
+          type: string
+        slug:
+          type: string
+        url:
+          type: string
+        excerpt:
+          type: string
+        content:
+          type: string
+        status:
+          type: string
+          enum: [draft, published, scheduled]
+        featured_image:
+          type: string
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        published_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+
+    Tenant:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        domain:
+          type: string
+        status:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+paths:
+  /api/v1/tenants:
+    get:
+      operationId: listTenants
+      summary: List all available tenants/websites
+      description: Returns all active tenants. Requires a superadmin API key.
+      tags: [Tenants]
+      responses:
+        '200':
+          description: List of tenants
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  tenants:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tenant'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/categories:
+    get:
+      operationId: listCategories
+      summary: List categories for a tenant
+      tags: [Categories]
+      parameters:
+        - name: tenant_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  tenant_id:
+                    type: integer
+                  categories:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+
+  /api/v1/tags:
+    get:
+      operationId: listTags
+      summary: List tags for a tenant
+      tags: [Tags]
+      parameters:
+        - name: tenant_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of tags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  tenant_id:
+                    type: integer
+                  tags:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tag'
+
+  /api/v1/posts:
+    get:
+      operationId: listPosts
+      summary: List posts for a tenant
+      tags: [Posts]
+      parameters:
+        - name: tenant_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, published]
+      responses:
+        '200':
+          description: Paginated list of posts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  tenant_id:
+                    type: integer
+                  posts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Post'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      per_page:
+                        type: integer
+                      last_page:
+                        type: integer
+
+    post:
+      operationId: createPost
+      summary: Create a new blog post
+      description: |
+        Creates a new post. Categories and tags accept slugs or names — if they don't exist, they are created automatically.
+        If featured_image_url is provided, the image is downloaded and stored in the Media Manager.
+        If published_at is in the future and status is "published", status changes to "scheduled".
+      tags: [Posts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tenant_id, title, content]
+              properties:
+                tenant_id:
+                  type: integer
+                  description: Target tenant ID
+                title:
+                  type: string
+                  description: Post title
+                content:
+                  type: string
+                  description: HTML content of the post
+                excerpt:
+                  type: string
+                  description: Optional summary
+                categories:
+                  type: array
+                  items:
+                    type: string
+                  description: Category slugs or names (created if missing)
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  description: Tag slugs or names (created if missing)
+                status:
+                  type: string
+                  enum: [draft, published]
+                  default: draft
+                featured_image_url:
+                  type: string
+                  format: uri
+                  description: URL of image to download as featured image
+                seo_title:
+                  type: string
+                seo_description:
+                  type: string
+                published_at:
+                  type: string
+                  format: date-time
+                hide_title:
+                  type: boolean
+                  default: false
+                post_type:
+                  type: string
+                  enum: [post, brief]
+                  default: post
+      responses:
+        '201':
+          description: Post created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  post:
+                    $ref: '#/components/schemas/Post'
+
+  /api/v1/posts/{id}:
+    get:
+      operationId: getPost
+      summary: Get post details
+      tags: [Posts]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Post details with categories and tags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  post:
+                    $ref: '#/components/schemas/Post'
+
+    put:
+      operationId: updatePost
+      summary: Update a post
+      tags: [Posts]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                excerpt:
+                  type: string
+                status:
+                  type: string
+                  enum: [draft, published]
+                categories:
+                  type: array
+                  items:
+                    type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+                seo_title:
+                  type: string
+                seo_description:
+                  type: string
+                featured_image_url:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: Post updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  post:
+                    $ref: '#/components/schemas/Post'
+
+    delete:
+      operationId: deletePost
+      summary: Delete a post (soft delete)
+      tags: [Posts]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Post deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  /api/v1/posts/{id}/cross-publish:
+    post:
+      operationId: crossPublishPost
+      summary: Cross-publish a post to other tenants
+      description: Requires the Cross-Publisher plugin. Queues the post for publishing to target tenants.
+      tags: [Posts]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_tenant_ids]
+              properties:
+                target_tenant_ids:
+                  type: array
+                  items:
+                    type: integer
+                  description: List of tenant IDs to publish to
+                target_status:
+                  type: string
+                  enum: [draft, published]
+                  default: draft
+      responses:
+        '200':
+          description: Cross-publish results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        tenant_id:
+                          type: integer
+                        tenant_name:
+                          type: string
+                        status:
+                          type: string
+                          enum: [queued, error]

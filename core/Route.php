@@ -260,6 +260,7 @@ public static function resolve() {
         $csrfExcludedRoutes = [
             '/api/analytics/track',
             '/api/ai/',         // API de IA (verifica sesión internamente)
+            '/api/v1/',         // API REST v1 (autenticación por API key, no sesión)
             '/api/webhooks/',   // Para futuros webhooks
             '/clear-flashes',   // Limpieza de flash messages (ya verifica sesión admin internamente)
         ];

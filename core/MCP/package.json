@@ -1,0 +1,16 @@
+{
+  "name": "@musedock/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for MuseDock CMS — auto-discovers API tools from core and plugins",
+  "main": "server.js",
+  "type": "module",
+  "bin": {
+    "musedock-mcp": "./server.js"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

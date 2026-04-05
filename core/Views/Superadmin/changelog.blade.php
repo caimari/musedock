@@ -13,11 +13,73 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.12.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.12.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 5 de Abril de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> API REST v1</h6>
+                <ul class="mb-3">
+                    <li><strong>API REST completa:</strong> Nuevos endpoints <code>/api/v1/</code> para gestionar posts, paginas, categorias y tags via HTTP con autenticacion Bearer token</li>
+                    <li><strong>CRUD completo:</strong> Create, Read, Update, Delete para posts, paginas, categorias, tags. Creacion automatica de categorias/tags al publicar posts</li>
+                    <li><strong>Descarga de imagenes:</strong> Al crear un post con <code>featured_image_url</code>, la imagen se descarga y almacena automaticamente en el Media Manager</li>
+                    <li><strong>Cross-publish via API:</strong> Endpoint <code>/api/v1/posts/{id}/cross-publish</code> para publicar en otros tenants del grupo editorial</li>
+                    <li><strong>OpenAPI schema:</strong> Endpoint <code>/api/v1/openapi.yaml</code> para configurar ChatGPT Custom GPTs (Actions)</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> API Keys y Autenticacion</h6>
+                <ul class="mb-3">
+                    <li><strong>Sistema de API Keys:</strong> Generacion de keys con prefijo <code>mdk_</code>, hash SHA-256, se muestra una sola vez al crearla</li>
+                    <li><strong>Permisos granulares:</strong> 17 permisos individuales por recurso y accion (ej: <code>posts.create</code>, <code>pages.delete</code>, <code>tags.read</code>)</li>
+                    <li><strong>Keys de tenant:</strong> Cada tenant puede crear sus propias API keys desde Ajustes > API Keys, limitadas a su sitio</li>
+                    <li><strong>Keys de superadmin:</strong> Pueden limitarse a un grupo editorial del Cross-Publisher o a un tenant individual</li>
+                    <li><strong>Confirmacion de acciones peligrosas:</strong> Los endpoints de eliminacion y cross-publish requieren <code>"confirm": true</code> en el body (HTTP 428)</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Rate Limiting y Logging</h6>
+                <ul class="mb-3">
+                    <li><strong>Rate limit global:</strong> Configurable por key (default 60 req/min)</li>
+                    <li><strong>Rate limit por tool:</strong> Limites especificos para acciones destructivas (<code>delete_post</code>: 5/min, <code>create_post</code>: 15/min)</li>
+                    <li><strong>Respuestas con retry_after:</strong> Las respuestas 429 incluyen campo <code>retry_after</code> para que los clientes se adapten</li>
+                    <li><strong>Logging completo:</strong> Tabla <code>api_tool_logs</code> registra cada llamada con tool, input, status, duracion, IP y tenant</li>
+                    <li><strong>Metricas:</strong> Endpoint <code>/api/v1/stats</code> con uso por tool, por tenant, por key y tendencia diaria</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> MCP Server (Claude Code / Desktop)</h6>
+                <ul class="mb-3">
+                    <li><strong>MCP Server dinamico:</strong> Servidor MCP en <code>core/MCP/server.js</code> que auto-descubre los tools disponibles via <code>/api/v1/tools</code></li>
+                    <li><strong>Auto-discovery:</strong> Cuando un plugin se activa/desactiva, sus tools API aparecen o desaparecen automaticamente del MCP Server</li>
+                    <li><strong>Plugins extensibles:</strong> Cualquier plugin puede registrar tools API creando un archivo <code>api_tools.php</code> o <code>api_tools.json</code></li>
+                    <li><strong>Confirmacion inteligente:</strong> El MCP Server muestra warnings de confirmacion antes de ejecutar acciones destructivas</li>
+                    <li><strong>Compatible con:</strong> Claude Code, Claude Desktop, Cursor, y cualquier cliente MCP</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Arquitectura modular de la API</h6>
+                <ul class="mb-3">
+                    <li><strong>Core vs Modulos:</strong> Las rutas API de posts/categorias/tags solo se cargan si el modulo Blog esta activo. Paginas y tenants son siempre core</li>
+                    <li><strong>Discovery respeta plugins activos:</strong> Solo se escanean tools de modulos/plugins con estado activo en la BD</li>
+                    <li><strong>CSRF excluido:</strong> Los endpoints <code>/api/v1/</code> usan Bearer token, no sesiones — excluidos del middleware CSRF</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Panel de gestion</h6>
+                <ul class="mb-3">
+                    <li><strong>Ajustes > API Keys:</strong> Nueva seccion en el panel de superadmin y tenant para crear, activar/desactivar y eliminar API keys</li>
+                    <li><strong>URLs por sitio:</strong> Las cards informativas muestran la URL completa de la API del sitio actual</li>
+                    <li><strong>SweetAlert2:</strong> Formularios de creacion y eliminacion usan SweetAlert2 en vez de modales Bootstrap</li>
+                    <li><strong>Menu sidebar:</strong> Entrada "API Keys" añadida automaticamente bajo Ajustes para todos los tenants</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.11.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.11.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">5 Abr 2026</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 5 de Abril de 2026</p>

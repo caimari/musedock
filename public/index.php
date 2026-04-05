@@ -252,6 +252,7 @@ Logger::debug("Cargando archivos de rutas...");
 require_once __DIR__ . '/../routes/superadmin.php';
 require_once __DIR__ . '/../routes/admin.php';
 require_once __DIR__ . '/../routes/api_ai.php';
+require_once __DIR__ . '/../routes/api_v1.php';
 require_once __DIR__ . '/../routes/tenant.php';
 require_once __DIR__ . '/../routes/web.php';
 Logger::debug("Archivos de rutas cargados.");

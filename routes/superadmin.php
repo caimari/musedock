@@ -274,6 +274,20 @@ Route::post('/musedock/settings/backups/restore', 'superadmin.SettingsController
 Route::get('/musedock/settings/tenant-defaults', 'superadmin.TenantDefaultsController@index')->name('tenant-defaults.index')->middleware('superadmin');
 Route::post('/musedock/settings/tenant-defaults', 'superadmin.TenantDefaultsController@update')->name('tenant-defaults.update')->middleware('superadmin');
 
+// Settings - API Keys
+Route::get('/musedock/settings/api-keys', function () {
+    (new \Screenart\Musedock\Controllers\Api\V1\ApiKeyController())->index();
+})->middleware('superadmin')->name('settings.api-keys');
+Route::post('/musedock/settings/api-keys', function () {
+    (new \Screenart\Musedock\Controllers\Api\V1\ApiKeyController())->store();
+})->middleware('superadmin')->name('settings.api-keys.store');
+Route::post('/musedock/settings/api-keys/{id}/toggle', function ($id) {
+    (new \Screenart\Musedock\Controllers\Api\V1\ApiKeyController())->toggle((int) $id);
+})->middleware('superadmin')->name('settings.api-keys.toggle');
+Route::post('/musedock/settings/api-keys/{id}/delete', function ($id) {
+    (new \Screenart\Musedock\Controllers\Api\V1\ApiKeyController())->destroy((int) $id);
+})->middleware('superadmin')->name('settings.api-keys.delete');
+
 Route::get('/musedock/settings/advanced/clear-blade-cache', 'superadmin.SettingsController@clearBladeCache')->name('settings.advanced.clearBladeCache')->middleware('superadmin');
 Route::get('/musedock/settings/advanced/clear-opcache', 'superadmin.SettingsController@clearOpcache')->name('settings.advanced.clearOpcache')->middleware('superadmin');
 
