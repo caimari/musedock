@@ -73,9 +73,14 @@
         ],
     ];
     $__pos = 2;
-    // Add category if available
-    if (!empty($post->categories) && is_array($post->categories) && !empty($post->categories[0])) {
-        $__cat = is_object($post->categories[0]) ? $post->categories[0] : (object)$post->categories[0];
+    // Add category if available (supports arrays, Collections, and iterables)
+    $__cats = $post->categories ?? [];
+    if (is_object($__cats) && method_exists($__cats, 'toArray')) $__cats = $__cats->toArray();
+    if (is_object($__cats) && method_exists($__cats, 'first')) $__cats = [$__cats->first()];
+    if (!is_array($__cats)) $__cats = (array)$__cats;
+    $__firstCat = !empty($__cats) ? reset($__cats) : null;
+    if ($__firstCat) {
+        $__cat = is_object($__firstCat) ? $__firstCat : (object)$__firstCat;
         $__catName = $__cat->name ?? $__cat->title ?? '';
         $__catSlug = $__cat->slug ?? '';
         if (!empty($__catName) && !empty($__catSlug)) {
@@ -84,9 +89,8 @@
     }
     $__breadcrumbs['itemListElement'][] = ['@type' => 'ListItem', 'position' => $__pos, 'name' => $seoTitle];
 
-    $__jsonLdOutput = '<script type="application/ld+json">' . json_encode($__articleLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>'
-                    . "\n    " . '<script type="application/ld+json">' . json_encode($__breadcrumbs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
-    \Screenart\Musedock\View::startSection('jsonld', $__jsonLdOutput);
+    unset($__articleLd['@context'], $__breadcrumbs['@context']);
+    $GLOBALS['__musedock_jsonld'] = json_encode(['@context' => 'https://schema.org', '@graph' => [$__articleLd, $__breadcrumbs]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 @endphp
 
 @section('content')
@@ -94,6 +98,10 @@
 @php
     $showHero = !empty($post->show_hero);
 @endphp
+
+<?php if (!empty($GLOBALS['__musedock_jsonld'])): ?>
+<script type="application/ld+json"><?php echo $GLOBALS['__musedock_jsonld']; ?></script>
+<?php endif; ?>
 
 {{-- Hero (a lo ancho, pegado al header) --}}
 @if($showHero)

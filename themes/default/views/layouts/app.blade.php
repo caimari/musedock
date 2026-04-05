@@ -141,11 +141,8 @@
             ],
         ];
     @endphp
-    @if(empty(\Screenart\Musedock\View::yieldSection('jsonld')))
+    {{-- JSON-LD: WebSite default for all pages --}}
     <script type="application/ld+json">{!! json_encode($__websiteJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
-    @else
-    {!! \Screenart\Musedock\View::yieldSection('jsonld') !!}
-    @endif
 
     {{-- hreflang for multilingual tenants --}}
     @php
