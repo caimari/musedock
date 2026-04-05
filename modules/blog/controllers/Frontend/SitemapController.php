@@ -88,12 +88,21 @@ class SitemapController
             // 4. Posts del blog
             $posts = $this->getPosts($pdo, $tenantId);
             foreach ($posts as $post) {
-                $urls[] = [
+                $entry = [
                     'loc' => $siteUrl . blog_url($post->slug),
                     'lastmod' => $this->formatDate($post->updated_at ?? $post->published_at),
                     'changefreq' => 'weekly',
-                    'priority' => '0.8'
+                    'priority' => '0.8',
                 ];
+                // Add featured image to sitemap
+                if (!empty($post->featured_image)) {
+                    $imgUrl = $post->featured_image;
+                    if (!str_starts_with($imgUrl, 'http')) {
+                        $imgUrl = $siteUrl . '/' . ltrim($imgUrl, '/');
+                    }
+                    $entry['images'] = [['loc' => $imgUrl, 'title' => $post->title ?? '']];
+                }
+                $urls[] = $entry;
             }
 
             // 5. Categorías del blog (solo las que tienen posts)
@@ -144,7 +153,7 @@ class SitemapController
     private function generateSitemapXml(array $urls): string
     {
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' . "\n";
 
         foreach ($urls as $url) {
             $xml .= '  <url>' . "\n";
@@ -160,6 +169,18 @@ class SitemapController
 
             if (!empty($url['priority'])) {
                 $xml .= '    <priority>' . $url['priority'] . '</priority>' . "\n";
+            }
+
+            // Image sitemap extension
+            if (!empty($url['images'])) {
+                foreach ($url['images'] as $image) {
+                    $xml .= '    <image:image>' . "\n";
+                    $xml .= '      <image:loc>' . $this->escapeXml($image['loc']) . '</image:loc>' . "\n";
+                    if (!empty($image['title'])) {
+                        $xml .= '      <image:title>' . $this->escapeXml($image['title']) . '</image:title>' . "\n";
+                    }
+                    $xml .= '    </image:image>' . "\n";
+                }
             }
 
             $xml .= '  </url>' . "\n";
@@ -239,13 +260,16 @@ class SitemapController
             $slugRecord = $stmt->fetch(\PDO::FETCH_OBJ);
 
             if ($slugRecord) {
-                $prefix = $slugRecord->prefix ?? 'p';
-                return $siteUrl . '/' . $prefix . '/' . $slugRecord->slug;
+                $prefix = $slugRecord->prefix ?? null;
+                if ($prefix) {
+                    return $siteUrl . '/' . $prefix . '/' . $slugRecord->slug;
+                }
+                return $siteUrl . '/' . $slugRecord->slug;
             }
 
-            // Fallback: usar slug directo
+            // Fallback: usar slug directo (sin prefijo)
             if (!empty($page->slug)) {
-                return $siteUrl . '/p/' . $page->slug;
+                return $siteUrl . '/' . $page->slug;
             }
 
             return null;
@@ -262,7 +286,7 @@ class SitemapController
         try {
             if ($tenantId !== null) {
                 $stmt = $pdo->prepare("
-                    SELECT slug, published_at, updated_at
+                    SELECT slug, title, published_at, updated_at, featured_image
                     FROM blog_posts
                     WHERE status = 'published'
                       AND visibility = 'public'
@@ -273,7 +297,7 @@ class SitemapController
                 $stmt->execute([$tenantId]);
             } else {
                 $stmt = $pdo->prepare("
-                    SELECT slug, published_at, updated_at
+                    SELECT slug, title, published_at, updated_at, featured_image
                     FROM blog_posts
                     WHERE status = 'published'
                       AND visibility = 'public'

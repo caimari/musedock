@@ -64,7 +64,29 @@
     if (!empty($__siteLogo)) {
         $__articleLd['publisher']['logo'] = ['@type' => 'ImageObject', 'url' => url(public_file_url($__siteLogo))];
     }
-    \Screenart\Musedock\View::startSection('jsonld', '<script type="application/ld+json">' . json_encode($__articleLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>');
+    // BreadcrumbList schema: Home > Blog > Category > Post
+    $__breadcrumbs = [
+        '@context' => 'https://schema.org',
+        '@type' => 'BreadcrumbList',
+        'itemListElement' => [
+            ['@type' => 'ListItem', 'position' => 1, 'name' => site_setting('site_name', 'Home'), 'item' => url('/')],
+        ],
+    ];
+    $__pos = 2;
+    // Add category if available
+    if (!empty($post->categories) && is_array($post->categories) && !empty($post->categories[0])) {
+        $__cat = is_object($post->categories[0]) ? $post->categories[0] : (object)$post->categories[0];
+        $__catName = $__cat->name ?? $__cat->title ?? '';
+        $__catSlug = $__cat->slug ?? '';
+        if (!empty($__catName) && !empty($__catSlug)) {
+            $__breadcrumbs['itemListElement'][] = ['@type' => 'ListItem', 'position' => $__pos++, 'name' => $__catName, 'item' => url('/category/' . $__catSlug)];
+        }
+    }
+    $__breadcrumbs['itemListElement'][] = ['@type' => 'ListItem', 'position' => $__pos, 'name' => $seoTitle];
+
+    $__jsonLdOutput = '<script type="application/ld+json">' . json_encode($__articleLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>'
+                    . "\n    " . '<script type="application/ld+json">' . json_encode($__breadcrumbs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
+    \Screenart\Musedock\View::startSection('jsonld', $__jsonLdOutput);
 @endphp
 
 @section('content')
