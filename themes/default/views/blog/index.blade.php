@@ -10,9 +10,14 @@
     @endif
 @endsection
 
-@section('description')
-    {{ site_setting('site_description', '') }}
-@endsection
+@php
+    $__blogDesc = trim(site_setting('site_description', ''));
+    if (empty($__blogDesc)) {
+        $__sub = site_setting('site_subtitle', '');
+        $__blogDesc = $__sub ? site_setting('site_name', '') . ' — ' . $__sub : site_setting('site_name', '');
+    }
+    \Screenart\Musedock\View::startSection('description', $__blogDesc);
+@endphp
 
 @section('content')
 @php

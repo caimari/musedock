@@ -5,17 +5,24 @@
     {{ site_setting('site_name', '') . ($__subtitle ? ' | ' . $__subtitle : '') }}
 @endsection
 
+@php
+    $__homeDesc = trim($translation->seo_description ?? $page->seo_description ?? site_setting('site_description', ''));
+    if (empty($__homeDesc)) {
+        $__sub = site_setting('site_subtitle', '');
+        $__homeDesc = $__sub ? site_setting('site_name', '') . ' — ' . $__sub : site_setting('site_name', '');
+    }
+@endphp
+@php \Screenart\Musedock\View::startSection('description', $__homeDesc); @endphp
+
 @section('keywords')
     {{ $translation->seo_keywords ?? $page->seo_keywords ?? site_setting('site_keywords', '') }}
 @endsection
 
 @section('og_title')
-    {{ $translation->seo_title ?? $page->seo_title ?? $translation->title ?? $page->title ?? __('home_title') }}
+    {{ $translation->seo_title ?? $page->seo_title ?? $translation->title ?? $page->title ?? site_setting('site_name', '') }}
 @endsection
 
-@section('og_description')
-    {{ $translation->seo_description ?? $page->seo_description ?? site_setting('site_description', '') }}
-@endsection
+@php \Screenart\Musedock\View::startSection('og_description', $__homeDesc); @endphp
 
 @section('content')
     @if(isset($customizations))

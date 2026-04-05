@@ -13,11 +13,49 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.10.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.10.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 5 de Abril de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> SEO: Structured Data (JSON-LD)</h6>
+                <ul class="mb-3">
+                    <li><strong>Article schema:</strong> Blog posts now include <code>application/ld+json</code> with headline, author, datePublished, dateModified, publisher, and image. Enables rich snippets in Google results</li>
+                    <li><strong>WebSite schema:</strong> All pages include WebSite schema with SearchAction for Google Sitelinks search box</li>
+                    <li><strong>Publisher logo:</strong> Organization logo automatically included when site_logo is configured</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> SEO: hreflang for Multilingual Tenants</h6>
+                <ul class="mb-3">
+                    <li><strong>Automatic hreflang tags:</strong> When a tenant has multilang enabled with active languages, hreflang alternate links are generated for each language plus x-default</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> SEO: Meta Tags Improvements</h6>
+                <ul class="mb-3">
+                    <li><strong>Description auto-fallback:</strong> If no site_description is set, generates <code>site_name — site_subtitle</code> automatically. Pages extract from content, blog index from site subtitle</li>
+                    <li><strong>Robots tag always present:</strong> <code>index, follow</code> by default on all pages</li>
+                    <li><strong>og:description + twitter:description:</strong> Always populated with fallback to meta description</li>
+                    <li><strong>HTML cache awareness:</strong> Fixed issue where html-cache served stale meta tags after updates</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Cross-Publisher: Canonical Fix</h6>
+                <ul class="mb-3">
+                    <li><strong>No more cross-domain canonical:</strong> Cross-Publisher no longer inserts canonical URL pointing to the source domain by default. Each tenant is treated as independent for Google indexing</li>
+                    <li><strong>Existing posts cleaned:</strong> 8 syndicated posts had their cross-domain canonical_url removed</li>
+                    <li><strong>Setting default changed:</strong> <code>add_canonical_link</code> now defaults to <code>false</code></li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.9.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.9.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">Previous</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 3 de Abril de 2026</p>

@@ -11,18 +11,23 @@
     {{ $translation->seo_keywords ?? site_setting('site_keywords', '') }}
 @endsection
 
-@section('description') {{-- Añadir meta description --}}
-    {{ $translation->seo_description ?? site_setting('site_description', '') }}
-@endsection
+@php
+    $__desc = trim($translation->seo_description ?? '');
+    if (empty($__desc) && !empty($translation->content)) {
+        $__desc = mb_substr(strip_tags(html_entity_decode($translation->content)), 0, 160);
+        $__desc = trim(preg_replace('/\s+/', ' ', $__desc));
+    }
+    if (empty($__desc)) {
+        $__desc = ($translation->title ?: '') . ' — ' . site_setting('site_name', '');
+    }
+@endphp
+@php \Screenart\Musedock\View::startSection('description', $__desc); @endphp
 
 @section('og_title')
-    {{-- Usar título SEO o normal para Open Graph --}}
-    {{ $translation->seo_title ?: $translation->title ?: 'Página' }}
+    {{ $translation->seo_title ?: $translation->title ?: site_setting('site_name', '') }}
 @endsection
 
-@section('og_description')
-    {{ $translation->seo_description ?? site_setting('site_description', '') }}
-@endsection
+@php \Screenart\Musedock\View::startSection('og_description', $__desc); @endphp
 
 {{-- Añadir más metas SEO si es necesario (imagen, canónica, robots, twitter) --}}
 @section('extra_head')

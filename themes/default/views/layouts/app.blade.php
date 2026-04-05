@@ -28,17 +28,27 @@
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
 
-    {{-- Título dinámico - Sin fallback a MuseDock para tenants --}}
-    <title>{{ \Screenart\Musedock\View::yieldSection('title') ?: $_siteName }}</title>
+    {{-- Título dinámico - trim para evitar espacios --}}
+    <title>{{ trim(\Screenart\Musedock\View::yieldSection('title') ?: $_siteName) }}</title>
 
-    {{-- Metas dinámicas - Solo usa datos del tenant/cms actual, sin fallback cruzado --}}
+    {{-- Metas dinámicas --}}
     @php
-        $metaDescription = \Screenart\Musedock\View::yieldSection('description') ?: $_siteDescription;
+        // Intentar obtener description de View::sections O del blade engine
+        $__yieldDesc = \Screenart\Musedock\View::yieldSection('description') ?? '';
+        // Limpiar whitespace agresivamente (trim + strip non-breaking spaces + collapse)
+        $__yieldDesc = preg_replace('/[\s\x{00A0}]+/u', ' ', $__yieldDesc);
+        $__yieldDesc = trim($__yieldDesc);
+
+        $metaDescription = !empty($__yieldDesc) ? $__yieldDesc : trim($_siteDescription ?? '');
+
+        // Fallback: si no hay descripción, generar del nombre y subtítulo del tenant
+        if (empty($metaDescription)) {
+            $__sub = site_setting('site_subtitle', '');
+            $metaDescription = !empty($__sub) ? $_siteName . ' — ' . $__sub : $_siteName;
+        }
         $metaAuthor = $_siteAuthor;
     @endphp
-    @if($metaDescription)
-    <meta name="description" content="{{ $metaDescription }}">
-    @endif
+    <meta name="description" content="{{ !empty(trim($metaDescription)) ? trim($metaDescription) : (!empty(site_setting('site_subtitle', '')) ? site_setting('site_name', '') . ' — ' . site_setting('site_subtitle', '') : site_setting('site_name', '')) }}">
     @if($metaAuthor)
     <meta name="author" content="{{ $metaAuthor }}">
     @endif
@@ -54,8 +64,8 @@
     <!-- SEO Meta Tags dinámicas -->
     @php
         $seoKeywords = \Screenart\Musedock\View::yieldSection('keywords') ?: $_siteKeywords;
-        $ogTitle = \Screenart\Musedock\View::yieldSection('og_title') ?: $_siteName;
-        $ogDescription = \Screenart\Musedock\View::yieldSection('og_description') ?: $_siteDescription;
+        $ogTitle = trim(\Screenart\Musedock\View::yieldSection('og_title') ?: '') ?: $_siteName;
+        $ogDescription = trim(\Screenart\Musedock\View::yieldSection('og_description') ?: '') ?: $metaDescription;
         $ogImage = trim(\Screenart\Musedock\View::yieldSection('og_image', ''));
         $ogType = trim(\Screenart\Musedock\View::yieldSection('og_type', '')) ?: 'website';
         $canonicalUrl = trim(\Screenart\Musedock\View::yieldSection('canonical_url', ''));
@@ -67,19 +77,15 @@
             $robotsDirective = 'noindex, nofollow';
         }
 
-        $twitterTitle = \Screenart\Musedock\View::yieldSection('twitter_title') ?: $_siteName;
-        $twitterDescription = \Screenart\Musedock\View::yieldSection('twitter_description') ?: ($_twitterDescription ?: $_siteDescription);
+        $twitterTitle = trim(\Screenart\Musedock\View::yieldSection('twitter_title') ?: '') ?: $_siteName;
+        $twitterDescription = trim(\Screenart\Musedock\View::yieldSection('twitter_description') ?: '') ?: $metaDescription;
         $twitterImage = trim(\Screenart\Musedock\View::yieldSection('twitter_image', ''));
     @endphp
     @if($seoKeywords)
     <meta name="keywords" content="{{ $seoKeywords }}">
     @endif
-    @if($ogTitle)
-    <meta property="og:title" content="{{ $ogTitle }}">
-    @endif
-    @if($ogDescription)
-    <meta property="og:description" content="{{ $ogDescription }}">
-    @endif
+    <meta property="og:title" content="{{ $ogTitle ?: $siteName }}">
+    <meta property="og:description" content="{{ $ogDescription ?: $siteName }}">
     <meta property="og:url" content="{{ url($_SERVER['REQUEST_URI']) }}">
     @if($siteName)
     <meta property="og:site_name" content="{{ $siteName }}">
@@ -98,9 +104,7 @@
     @if($_siteName)
     <link rel="alternate" type="application/rss+xml" title="{{ $_siteName }} RSS Feed" href="{{ url('/feed') }}">
     @endif
-    @if($robotsDirective)
-    <meta name="robots" content="{{ $robotsDirective }}">
-    @endif
+    <meta name="robots" content="{{ $robotsDirective ?: 'index, follow' }}">
     <meta name="twitter:card" content="summary_large_image">
     @if($twitterTitle)
     <meta name="twitter:title" content="{{ $twitterTitle }}">
@@ -118,6 +122,50 @@
     <meta name="twitter:image" content="{{ public_file_url($_twitterImage) }}">
     @elseif($_ogImage)
     <meta name="twitter:image" content="{{ public_file_url($_ogImage) }}">
+    @endif
+
+    {{-- JSON-LD Structured Data --}}
+    {{-- JSON-LD: injected at end of <head> via push, or WebSite default --}}
+    @php
+        // Default WebSite schema (overridden by blog/single if it pushes Article schema)
+        $__websiteJsonLd = [
+            '@context' => 'https://schema.org',
+            '@type' => 'WebSite',
+            'name' => $_siteName,
+            'url' => url('/'),
+            'description' => $metaDescription,
+            'potentialAction' => [
+                '@type' => 'SearchAction',
+                'target' => url('/search?q={search_term_string}'),
+                'query-input' => 'required name=search_term_string',
+            ],
+        ];
+    @endphp
+    @if(empty(\Screenart\Musedock\View::yieldSection('jsonld')))
+    <script type="application/ld+json">{!! json_encode($__websiteJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
+    @else
+    {!! \Screenart\Musedock\View::yieldSection('jsonld') !!}
+    @endif
+
+    {{-- hreflang for multilingual tenants --}}
+    @php
+        $__langs = [];
+        if (function_exists('tenant_setting')) {
+            $__enableMultilang = site_setting('enable_multilang', '0');
+            if ($__enableMultilang === '1') {
+                try {
+                    $__pdo = \Screenart\Musedock\Database::connect();
+                    $__langStmt = $__pdo->query("SELECT code FROM languages WHERE active = 1 ORDER BY is_default DESC, code ASC");
+                    $__langs = $__langStmt->fetchAll(\PDO::FETCH_COLUMN);
+                } catch (\Exception $e) {}
+            }
+        }
+    @endphp
+    @if(count($__langs) > 1)
+        @foreach($__langs as $__lang)
+    <link rel="alternate" hreflang="{{ $__lang }}" href="{{ url($_SERVER['REQUEST_URI']) }}?lang={{ $__lang }}">
+        @endforeach
+    <link rel="alternate" hreflang="x-default" href="{{ url($_SERVER['REQUEST_URI']) }}">
     @endif
 
     <!-- Responsive (igual en ambos) -->

@@ -20,6 +20,7 @@
 @section('og_title', $seoTitle)
 @section('og_description', $seoDesc)
 @section('og_type', 'article')
+@php \Screenart\Musedock\View::startSection('og_type', 'article'); @endphp
 @if($postImage)
 @section('og_image', $postImage)
 @endif
@@ -34,6 +35,37 @@
 @if($post->robots_directive)
 @section('robots', $post->robots_directive)
 @endif
+
+@php
+    // Article JSON-LD structured data
+    $__authorName = '';
+    if (!empty($post->user_id)) {
+        try {
+            $__authorRow = \Screenart\Musedock\Database::query("SELECT name FROM admins WHERE id = ? LIMIT 1", [$post->user_id])->fetch(\PDO::FETCH_OBJ);
+            $__authorName = $__authorRow->name ?? '';
+        } catch (\Exception $e) {}
+    }
+    $__articleLd = [
+        '@context' => 'https://schema.org',
+        '@type' => 'Article',
+        'headline' => $seoTitle,
+        'description' => $seoDesc,
+        'url' => url($_SERVER['REQUEST_URI']),
+        'datePublished' => $post->published_at ?? $post->created_at ?? date('c'),
+        'dateModified' => $post->updated_at ?? $post->published_at ?? date('c'),
+        'author' => ['@type' => 'Person', 'name' => $__authorName ?: site_setting('site_name', '')],
+        'publisher' => ['@type' => 'Organization', 'name' => site_setting('site_name', ''), 'url' => url('/')],
+        'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => url($_SERVER['REQUEST_URI'])],
+    ];
+    if (!empty($postImage)) {
+        $__articleLd['image'] = $postImage;
+    }
+    $__siteLogo = site_setting('site_logo', '');
+    if (!empty($__siteLogo)) {
+        $__articleLd['publisher']['logo'] = ['@type' => 'ImageObject', 'url' => url(public_file_url($__siteLogo))];
+    }
+    \Screenart\Musedock\View::startSection('jsonld', '<script type="application/ld+json">' . json_encode($__articleLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>');
+@endphp
 
 @section('content')
 
