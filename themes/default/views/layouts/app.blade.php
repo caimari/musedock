@@ -266,6 +266,8 @@
     <link rel="stylesheet" href="{{ asset('themes/default/css/cookie-consent.css') }}" media="print" onload="this.media='all'">
     {{-- Nice Select 2 CSS --}}
     <link rel="stylesheet" href="/assets/vendor/nice-select2/nice-select2.min.css" media="print" onload="this.media='all'">
+    {{-- Prism.js — syntax highlighting para bloques de código (codesample) --}}
+    <link rel="stylesheet" href="/assets/vendor/prism/prism-tomorrow.min.css" media="print" onload="this.media='all'">
     {{-- Fallback noscript para CSS diferido --}}
     <noscript>
         <link rel="stylesheet" href="{{ asset('themes/default/css/slicknav.css') }}">
@@ -2795,7 +2797,23 @@ document.querySelectorAll('.footer-area .widget-area').forEach(function(wa) {
 @if(site_setting('cookies_enabled', '1') == '1')
 <script src="{{ asset('themes/default/js/cookie-consent.js') }}?v={{ filemtime(public_path('assets/themes/default/js/cookie-consent.js')) ?: time() }}"></script>
 @endif
-	
+
+{{-- Prism.js — syntax highlighting para bloques de código (solo si hay <pre> en la página) --}}
+<script>
+if (document.querySelector('pre code[class*="language-"]')) {
+    var ps = document.createElement('script');
+    ps.src = '/assets/vendor/prism/prism.min.js';
+    ps.onload = function() {
+        ['markup','css','javascript','php','bash','sql','json','python'].forEach(function(l) {
+            var s = document.createElement('script');
+            s.src = '/assets/vendor/prism/prism-' + l + '.min.js';
+            document.head.appendChild(s);
+        });
+    };
+    document.head.appendChild(ps);
+}
+</script>
+
 @php
     $tenantId = tenant()['id'] ?? null;
     $themeSlug = themeConfig('slug', 'default');

@@ -13,11 +13,60 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.11.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.11.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 5 de Abril de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Rendimiento movil</h6>
+                <ul class="mb-3">
+                    <li><strong>CSS diferido:</strong> 11 archivos CSS no criticos cargados con <code>media="print" onload</code> (slicknav, animate, magnific-popup, Swiper, Slick, Owl Carousel, cookie-consent, nice-select2)</li>
+                    <li><strong>Google Fonts:</strong> Carga async con <code>media="print"</code> + fallback <code>&lt;noscript&gt;</code></li>
+                    <li><strong>CSS critico:</strong> Solo 6 archivos bloqueantes (Bootstrap, FontAwesome, Themify, style, responsive, template/custom)</li>
+                    <li><strong>Ahorro estimado:</strong> ~1800ms de tiempo de bloqueo eliminado en movil</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Accesibilidad</h6>
+                <ul class="mb-3">
+                    <li><strong>aria-label:</strong> Añadido a todos los iconos sociales del footer (Facebook, Instagram, Twitter, etc.) en los 3 layouts de footer</li>
+                    <li><strong>aria-label:</strong> Añadido a selectores de idioma (footer, mobile menu, sidebar)</li>
+                    <li><strong>Areas tactiles:</strong> Iconos sociales del footer con minimo 44x44px para cumplir requisitos moviles</li>
+                    <li><strong>Encabezados semanticos:</strong> Footer <code>&lt;h4&gt;</code> reemplazados por <code>&lt;div class="footer-heading"&gt;</code> para evitar saltos de jerarquia</li>
+                    <li><strong>rel="noopener":</strong> Añadido a todos los enlaces sociales <code>target="_blank"</code></li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> SEO</h6>
+                <ul class="mb-3">
+                    <li><strong>Enlaces rastreables:</strong> Enlace de cookies cambiado de <code>&lt;a href="javascript:void(0)"&gt;</code> a <code>&lt;button&gt;</code> en los 3 layouts de footer</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> TinyMCE: Codesample</h6>
+                <ul class="mb-3">
+                    <li><strong>Proteccion de codigo:</strong> Handler BeforeSetContent que preserva entidades HTML dentro de bloques <code>&lt;pre&gt;&lt;code&gt;</code> al editar</li>
+                    <li><strong>Doble clic:</strong> Doble clic en bloques de codigo abre el dialogo de edicion de codesample</li>
+                    <li><strong>valid_children:</strong> Configuracion <code>+pre[code]</code> y <code>pre/code</code> en extended_valid_elements</li>
+                    <li><strong>Lenguajes:</strong> 8 lenguajes configurados (HTML/XML, CSS, JavaScript, PHP, Bash, SQL, JSON, Python)</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Frontend: Syntax Highlighting</h6>
+                <ul class="mb-3">
+                    <li><strong>Prism.js:</strong> Syntax highlighting en el frontend para bloques de codigo insertados con codesample</li>
+                    <li><strong>Tema Tomorrow:</strong> Tema oscuro para bloques de codigo</li>
+                    <li><strong>Carga condicional:</strong> JS solo se carga si la pagina contiene bloques <code>&lt;pre&gt;&lt;code class="language-*"&gt;</code></li>
+                    <li><strong>8 lenguajes:</strong> markup, CSS, JavaScript, PHP, Bash, SQL, JSON, Python</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.6.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.6.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">31 Mar 2026</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 31 de Marzo de 2026</p>

@@ -277,9 +277,24 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         entity_encoding: 'raw',
         convert_urls: false,
 
+        // Proteger bloques de código: codesample plugin usa <pre><code> con class language-*
+        // valid_children permite <code> dentro de <pre> sin que TinyMCE lo limpie
+        valid_children: '+pre[code]',
+        // Lenguajes disponibles en el diálogo de codesample
+        codesample_languages: [
+            { text: 'HTML/XML', value: 'markup' },
+            { text: 'CSS', value: 'css' },
+            { text: 'JavaScript', value: 'javascript' },
+            { text: 'PHP', value: 'php' },
+            { text: 'Bash', value: 'bash' },
+            { text: 'SQL', value: 'sql' },
+            { text: 'JSON', value: 'json' },
+            { text: 'Python', value: 'python' },
+        ],
+
         // Soporte para embeds de video (YouTube, Vimeo, etc.)
         media_live_embeds: true,
-        extended_valid_elements: 'iframe[src|width|height|name|align|frameborder|scrolling|allowfullscreen|allow|style|class|loading|title|referrerpolicy],video[src|width|height|controls|autoplay|loop|muted|poster|preload|class|style],source[src|type],embed[src|type|width|height|class|style]',
+        extended_valid_elements: 'iframe[src|width|height|name|align|frameborder|scrolling|allowfullscreen|allow|style|class|loading|title|referrerpolicy],video[src|width|height|controls|autoplay|loop|muted|poster|preload|class|style],source[src|type],embed[src|type|width|height|class|style],pre[class|style],code[class|style]',
 
         // Context menu nativo de TinyMCE: impedir nativo del navegador
         contextmenu_never_use_native: true,
@@ -347,6 +362,43 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
 
         // Función Setup con solución para el borde azul
         setup: function(editor) {
+            // === PROTEGER BLOQUES <pre><code> DE DECODIFICACIÓN DE ENTIDADES ===
+            // Solo en la carga inicial (no al actualizar bloques desde codesample)
+            var _initialLoadDone = false;
+            editor.on('BeforeSetContent', function(e) {
+                if (!_initialLoadDone && e.content) {
+                    _initialLoadDone = true;
+                    e.content = e.content.replace(/<pre([^>]*)><code([^>]*)>([\s\S]*?)<\/code><\/pre>/gi, function(match, preAttr, codeAttr, inner) {
+                        var safe = inner
+                            .replace(/&lt;/g, '\x00LT\x00')
+                            .replace(/&gt;/g, '\x00GT\x00')
+                            .replace(/&amp;/g, '\x00AMP\x00')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/\x00LT\x00/g, '&lt;')
+                            .replace(/\x00GT\x00/g, '&gt;')
+                            .replace(/\x00AMP\x00/g, '&amp;');
+                        return '<pre' + preAttr + '><code' + codeAttr + '>' + safe + '</code></pre>';
+                    });
+                }
+            });
+
+            // === DOBLE CLIC EN BLOQUES DE CÓDIGO ABRE CODESAMPLE ===
+            editor.on('init', function() {
+                editor.dom.bind(editor.getBody(), 'dblclick', function(e) {
+                    var node = e.target;
+                    while (node && node !== editor.getBody()) {
+                        if (node.nodeName === 'PRE' && node.className && node.className.indexOf('language-') !== -1) {
+                            e.preventDefault();
+                            editor.selection.select(node);
+                            editor.execCommand('codesample');
+                            return;
+                        }
+                        node = node.parentNode;
+                    }
+                });
+            });
+
             // === MENÚ CONTEXTUAL PERSONALIZADO PARA IMÁGENES ===
             function showFallbackImageMenu(e, img) {
                 removeFallbackImageMenu();
