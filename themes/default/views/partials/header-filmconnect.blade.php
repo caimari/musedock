@@ -79,9 +79,16 @@
                     @endif
 
                     @if($__hdrSearchEnabled)
-                    <a href="{{ url('/search') }}" class="header-search-icon hdr-fc-search" aria-label="Buscar">
-                        <i class="fas fa-search"></i>
-                    </a>
+                        @php $__searchMode = themeOption('header.header_search_mode', 'modal'); @endphp
+                        @if($__searchMode === 'page')
+                        <a href="{{ url('/search') }}" class="header-search-icon hdr-fc-search" aria-label="Buscar">
+                            <i class="fas fa-search"></i>
+                        </a>
+                        @else
+                        <button type="button" class="header-search-toggle header-search-icon hdr-fc-search" aria-label="Buscar" style="background:none;border:none;cursor:pointer;">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        @endif
                     @endif
                 </div>
 

@@ -608,6 +608,7 @@ main > .slider-area:first-child {
 main {
   padding-top: 0;
   margin-top: 0;
+  background-color: #fff;
 }
 
 /* Forzar body sin margen para que slider esté a sangre */

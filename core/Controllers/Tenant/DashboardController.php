@@ -11,7 +11,15 @@ class DashboardController
     public function index()
     {
         SessionSecurity::startSession();
-        
+
+        // Limpiar flash messages residuales de errores de permisos anteriores
+        if (isset($_SESSION['flash_error']) && str_contains($_SESSION['flash_error'], 'permiso')) {
+            unset($_SESSION['flash_error']);
+        }
+        if (isset($_SESSION['error']) && str_contains($_SESSION['error'], 'permiso')) {
+            unset($_SESSION['error']);
+        }
+
         // Verificar si hay una sesión de admin o de usuario
         $admin = $_SESSION['admin'] ?? null;
         $user = $_SESSION['user'] ?? null;

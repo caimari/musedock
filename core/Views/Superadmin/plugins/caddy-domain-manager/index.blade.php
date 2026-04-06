@@ -7,16 +7,27 @@
     <div class="container-fluid">
 
         {{-- Header --}}
-        <div class="d-flex justify-content-between align-items-start mb-2">
-            <div>
-                <h2 class="mb-0"><i class="bi bi-globe2"></i> Domain Manager</h2>
-                <p class="text-muted mb-0 small">Gestiona los dominios custom de tus tenants e integra con Caddy Server</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#0d6efd,#6ea8fe);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-globe2" style="font-size:1.35rem;color:#fff;"></i>
+                </div>
+                <div>
+                    <h3 class="mb-0" style="font-size:1.25rem;font-weight:700;">Domain Manager</h3>
+                    <p class="text-muted mb-0" style="font-size:0.85rem;">Gestiona los dominios custom de tus tenants e integra con Caddy Server</p>
+                </div>
             </div>
-            <div>
+            <div style="display:flex;gap:1rem;align-items:center;">
                 @if($caddyApiAvailable)
-                    <span class="badge bg-success fs-6"><i class="bi bi-check-circle"></i> Caddy API</span>
+                    <div style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:rgba(25,135,84,0.1);border:1px solid rgba(25,135,84,0.2);color:#198754;">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Caddy API</span>
+                    </div>
                 @else
-                    <span class="badge bg-danger fs-6"><i class="bi bi-x-circle"></i> Caddy API</span>
+                    <div style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:rgba(220,53,69,0.1);border:1px solid rgba(220,53,69,0.2);color:#dc3545;">
+                        <i class="bi bi-x-circle-fill"></i>
+                        <span>Caddy API</span>
+                    </div>
                 @endif
             </div>
         </div>

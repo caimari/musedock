@@ -301,10 +301,17 @@ class BlogPostController
             'tenant_id' => $tenantId
         ]);
 
+        // Sincronizar categorías (before slug so we can detect docs prefix)
+        if (!empty($selectedCategories)) {
+            $post->syncCategories($selectedCategories);
+        }
+
         // Crear slug con tenant_id
         try {
             $pdo = Database::connect();
-            $prefix = function_exists('blog_prefix') ? blog_prefix() : 'blog';
+            $prefix = ($data['post_type'] ?? 'post') === 'docs'
+                ? 'docs'
+                : (function_exists('blog_prefix') ? blog_prefix() : 'blog');
             $prefix = $prefix !== '' ? $prefix : null;
 
             $insertStmt = $pdo->prepare("INSERT INTO slugs (module, reference_id, slug, tenant_id, prefix) VALUES (?, ?, ?, ?, ?)");
@@ -312,11 +319,6 @@ class BlogPostController
 
         } catch (\Exception $e) {
             error_log("ERROR AL CREAR SLUG: " . $e->getMessage());
-        }
-
-        // Sincronizar categorías
-        if (!empty($selectedCategories)) {
-            $post->syncCategories($selectedCategories);
         }
 
         // Sincronizar etiquetas
@@ -619,7 +621,9 @@ class BlogPostController
         }
 
         $newSlug = $data['slug'];
-        $prefix = function_exists('blog_prefix') ? blog_prefix() : 'blog';
+        $prefix = ($data['post_type'] ?? $post->post_type ?? 'post') === 'docs'
+            ? 'docs'
+            : (function_exists('blog_prefix') ? blog_prefix() : 'blog');
         $prefix = $prefix !== '' ? $prefix : null;
 
         $pdo = null;
@@ -630,10 +634,7 @@ class BlogPostController
 
             // Actualizar datos principales del post
             unset($data['prefix']);
-            error_log("HERO_IMAGE: Antes de update - data[hero_image] = " . ($data['hero_image'] ?? 'NO SET'));
-            error_log("HERO_IMAGE: Antes de update - data keys = " . implode(', ', array_keys($data)));
             $post->update($data);
-            error_log("HERO_IMAGE: Después de update - post->hero_image = " . ($post->hero_image ?? 'null'));
 
             // Actualizar slug
             $deleteSlugStmt = $pdo->prepare("DELETE FROM slugs WHERE module = 'blog' AND reference_id = ?");
@@ -1949,6 +1950,34 @@ class BlogPostController
         }
 
         exit;
+    }
+
+    /**
+     * Check if selected categories include a "docs" category (or child of docs).
+     * Returns 'docs' prefix if applicable, null otherwise.
+     */
+    private function getDocsPrefixIfApplicable($pdo, array $categoryIds, $tenantId): ?string
+    {
+        if (empty($categoryIds)) return null;
+
+        // Find docs root category for this tenant (or global)
+        if ($tenantId) {
+            $stmt = $pdo->prepare("SELECT id FROM blog_categories WHERE slug = 'docs' AND tenant_id = ? LIMIT 1");
+            $stmt->execute([$tenantId]);
+        } else {
+            $stmt = $pdo->prepare("SELECT id FROM blog_categories WHERE slug = 'docs' AND tenant_id IS NULL LIMIT 1");
+            $stmt->execute();
+        }
+        $docsRootId = $stmt->fetchColumn();
+        if (!$docsRootId) return null;
+
+        // Check if any selected category is docs root or child of docs
+        $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
+        $stmt = $pdo->prepare("SELECT 1 FROM blog_categories WHERE id IN ($placeholders) AND (id = ? OR parent_id = ?) LIMIT 1");
+        $params = array_merge($categoryIds, [$docsRootId, $docsRootId]);
+        $stmt->execute($params);
+
+        return $stmt->fetchColumn() ? 'docs' : null;
     }
 }
 

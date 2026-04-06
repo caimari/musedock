@@ -43,7 +43,7 @@
       nav#sidebar.sidebar {
           position: relative !important; z-index: 1 !important; overflow-y: auto !important; overflow-x: hidden !important; flex-shrink: 0 !important; display: flex; flex-direction: column;
           transition: width 0.25s ease-in-out, min-width 0.25s ease-in-out, padding 0.25s ease-in-out, margin 0.25s ease-in-out;
-          height: auto !important; min-height: 100vh; background: #222e3c !important; /* Force dark bg */ color: #dee2e6 !important; /* Default light text */
+          height: auto !important; min-height: 100vh; background: #222e3c !important; color: #dee2e6 !important;
       }
       nav#sidebar.sidebar .sidebar-content { display: flex; flex-direction: column; flex-grow: 1; min-height: 100%; height: auto; overflow: visible !important; opacity: 1; transition: opacity 0.2s ease-in-out; }
 
@@ -253,6 +253,54 @@
   } catch (\Exception $e) {
     error_log("Error cargando AdminMenu::getMenusWithCustomizations(): " . $e->getMessage());
     $adminMenus = [];
+  }
+
+  // Inyectar módulos activos (con admin_url) como hijos de "Módulos" en el sidebar
+  try {
+    $pdo = \Screenart\Musedock\Database::connect();
+    $activeModules = $pdo->query("SELECT slug, name FROM modules WHERE active = 1 ORDER BY name")->fetchAll(\PDO::FETCH_ASSOC);
+    $moduleChildSlugs = [];
+    // Recopilar slugs ya presentes como hijos de modules
+    foreach ($adminMenus as &$_menu) {
+        if (($_menu['slug'] ?? '') === 'modules' && !empty($_menu['children'])) {
+            foreach ($_menu['children'] as $ch) $moduleChildSlugs[] = $ch['slug'] ?? '';
+        }
+    }
+    unset($_menu);
+    $moduleIconMap = [
+        'blog' => 'bi-journal-richtext', 'custom-forms' => 'bi-ui-checks', 'image-gallery' => 'bi-card-image',
+        'react-sliders' => 'bi-sliders2', 'media-manager' => 'bi-images', 'elements' => 'bi-bricks',
+        'ai-writer' => 'bi-pencil-square', 'ai-image' => 'bi-stars', 'wp-importer' => 'bi-wordpress',
+        'instagram-gallery' => 'bi-instagram',
+    ];
+    foreach ($activeModules as $am) {
+        if (in_array($am['slug'], $moduleChildSlugs)) continue; // Ya existe
+        // Leer admin_url desde module.json
+        $mjPath = defined('APP_ROOT') ? APP_ROOT . '/modules/' . $am['slug'] . '/module.json' : null;
+        $adminUrl = null;
+        if ($mjPath && file_exists($mjPath)) {
+            $mj = json_decode(file_get_contents($mjPath), true);
+            $adminUrl = $mj['admin_url'] ?? $mj['settings_url'] ?? null;
+        }
+        if (!$adminUrl) continue;
+        // Añadir como hijo de modules
+        foreach ($adminMenus as &$_menu) {
+            if (($_menu['slug'] ?? '') === 'modules') {
+                $_menu['children'][] = [
+                    'slug' => $am['slug'],
+                    'title' => $am['name'],
+                    'url' => '{admin_path}/' . ltrim($adminUrl, '/'),
+                    'icon' => $moduleIconMap[$am['slug']] ?? 'bi-puzzle',
+                    'icon_type' => 'bi',
+                    'order_position' => 99,
+                ];
+                break;
+            }
+        }
+        unset($_menu);
+    }
+  } catch (\Exception $e) {
+    // silenciar
   }
 
   // Función auxiliar para verificar si una URL está activa
@@ -639,6 +687,8 @@
                             <span class="text-dark">{{ $userName }}</span>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end">
+                            <a class="dropdown-item" href="/" target="_blank"><i class="align-middle me-1" data-feather="external-link"></i> Visitar sitio</a>
+                            <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="/musedock/profile"><i class="align-middle me-1" data-feather="user"></i> Perfil</a>
                             <a class="dropdown-item" href="/musedock/logout"><i class="align-middle me-1" data-feather="log-out"></i> Cerrar sesión</a>
                         </div>
@@ -813,6 +863,21 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof feather !== 'undefined') {
         try { feather.replace(); } catch (e) { console.error("Feather icon error:", e); }
     } else { console.warn("Feather Icons library not found."); }
+
+    // Auto-scroll: centrar la página en el item activo del sidebar
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            const allActive = document.querySelectorAll('#sidebar .sidebar-item.active');
+            if (!allActive.length) return;
+            const el = allActive[allActive.length - 1];
+            const rect = el.getBoundingClientRect();
+            // Si el item activo no está en la parte visible de la ventana
+            if (rect.top > window.innerHeight * 0.6 || rect.top < 0) {
+                const targetY = window.scrollY + rect.top - (window.innerHeight * 0.3);
+                window.scrollTo({ top: Math.max(0, targetY), behavior: 'auto' });
+            }
+        }, 50);
+    });
 
     const sidebarToggler = document.querySelector('.js-sidebar-toggle');
     const sidebar = document.getElementById('sidebar');

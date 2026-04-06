@@ -177,7 +177,12 @@ if (!function_exists('module_menu_table_exists')) {
             return $cache[$table];
         }
 
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+        $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        if ($driver === 'pgsql') {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = ?");
+        } else {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+        }
         $stmt->execute([$table]);
         $cache[$table] = (bool) $stmt->fetchColumn();
 

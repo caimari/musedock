@@ -28,7 +28,8 @@ public function index()
         $this->checkPermission('appearance.menus');
 
     $pdo = Database::connect();
-    $stmt = $pdo->prepare("SELECT * FROM site_menus ORDER BY id DESC");
+    // Solo menús del CMS principal (tenant_id IS NULL)
+    $stmt = $pdo->prepare("SELECT * FROM site_menus WHERE tenant_id IS NULL ORDER BY id DESC");
     $stmt->execute();
     $menus = array_map(fn($row) => new Menu((array) $row), $stmt->fetchAll(\PDO::FETCH_ASSOC));
 
@@ -74,7 +75,7 @@ public function createForm()
         $this->checkPermission('appearance.menus');
 
     $pdo = Database::connect();
-    $stmt = $pdo->prepare("SELECT id, code, name FROM languages WHERE active = 1 ORDER BY id ASC");
+    $stmt = $pdo->prepare("SELECT id, code, name FROM languages WHERE active = 1 AND tenant_id IS NULL ORDER BY id ASC");
     $stmt->execute();
     $languages = $stmt->fetchAll(\PDO::FETCH_OBJ);
     
@@ -214,11 +215,11 @@ public function edit($id)
     $stmt->execute([$tenantId]);
     $allPages = $stmt->fetchAll(\PDO::FETCH_OBJ);
 
-    // Obtener idiomas disponibles
+    // Obtener idiomas disponibles (solo CMS principal)
     $stmt = $pdo->prepare("
-        SELECT id, code, name 
-        FROM languages 
-        WHERE active = 1
+        SELECT id, code, name
+        FROM languages
+        WHERE active = 1 AND tenant_id IS NULL
         ORDER BY id ASC
     ");
     $stmt->execute();

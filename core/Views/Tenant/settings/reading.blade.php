@@ -116,7 +116,10 @@
                   <input type="number" name="posts_per_rss" class="form-control" value="{{ $settings['posts_per_rss'] ?? '10' }}" min="1" max="50">
                   <span class="input-group-text">elementos</span>
                 </div>
-                <small class="text-muted">Número de entradas en el feed RSS</small>
+                <small class="text-muted">
+                  Controla cuántos posts recientes aparecen en el feed RSS (<code>/feed</code>), usado por lectores como Feedly o agregadores de noticias.
+                  No afecta al sitemap ni a la indexación en buscadores: todas tus entradas publicadas siguen apareciendo en el <code>sitemap.xml</code>.
+                </small>
               </div>
             </div>
           </div>

@@ -1,9 +1,10 @@
 {{-- Search Overlay --}}
 @php
     $__searchEnabled = $headerSearchEnabled ?? themeOption('header.header_search_enabled', false);
+    $__searchMode = themeOption('header.header_search_mode', 'modal');
     $__searchLang = $currentLang ?? 'es';
 @endphp
-@if($__searchEnabled)
+@if($__searchEnabled && $__searchMode === 'modal')
 <div class="md-search-overlay" id="md-search-overlay">
     <div class="md-search-overlay-inner">
         <button type="button" class="md-search-close" id="md-search-close" aria-label="Cerrar">

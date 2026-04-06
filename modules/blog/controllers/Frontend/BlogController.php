@@ -368,8 +368,8 @@ class BlogController
             '__jsonld_article' => json_encode(['@context' => 'https://schema.org', '@graph' => [$articleLd, $breadcrumbs]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         ]);
 
-        // Para posts del blog, usar la plantilla del blog
-        $templatePath = 'blog/single';
+        // Use docs template if post_type is 'docs'
+        $templatePath = ($post->post_type ?? 'post') === 'docs' ? 'blog/single-docs' : 'blog/single';
 
         return View::renderTheme($templatePath, [
             'post' => $post,
@@ -378,6 +378,34 @@ class BlogController
             'prevPost' => $prevPost,
             'nextPost' => $nextPost
         ]);
+    }
+
+    /**
+     * Check if a post belongs to "docs" category or a child of it
+     */
+    private function isDocsPost($post, $tenantId): bool
+    {
+        $pdo = \Screenart\Musedock\Database::connect();
+        // Find docs root category
+        if ($tenantId) {
+            $stmt = $pdo->prepare("SELECT id FROM blog_categories WHERE slug = 'docs' AND tenant_id = ? LIMIT 1");
+            $stmt->execute([$tenantId]);
+        } else {
+            $stmt = $pdo->prepare("SELECT id FROM blog_categories WHERE slug = 'docs' AND tenant_id IS NULL LIMIT 1");
+            $stmt->execute();
+        }
+        $docsRootId = $stmt->fetchColumn();
+        if (!$docsRootId) return false;
+
+        // Check if post belongs to docs root or any child
+        $stmt = $pdo->prepare("
+            SELECT 1 FROM blog_post_categories pc
+            INNER JOIN blog_categories c ON c.id = pc.category_id
+            WHERE pc.post_id = ? AND (c.id = ? OR c.parent_id = ?)
+            LIMIT 1
+        ");
+        $stmt->execute([$post->id, $docsRootId, $docsRootId]);
+        return (bool) $stmt->fetchColumn();
     }
 
     /**

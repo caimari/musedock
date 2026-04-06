@@ -5,34 +5,39 @@
 @section('content')
 <div class="container-fluid">
     <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="h3 mb-0">
-                <i class="fas fa-ticket-alt me-2"></i>
-                {{ __('tickets.title') }}
-            </h1>
-            <p class="text-muted mb-0">{{ __('tickets.manage_all_tenants') }}</p>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <div class="d-flex align-items-center gap-3">
+            <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#fd7e14,#ffb74d);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="bi bi-ticket-detailed" style="font-size:1.35rem;color:#fff;"></i>
+            </div>
+            <div>
+                <h3 class="mb-0" style="font-size:1.25rem;font-weight:700;">{{ __('tickets.title') }}</h3>
+                <p class="text-muted mb-0" style="font-size:0.85rem;">{{ __('tickets.manage_all_tenants') }}</p>
+            </div>
+        </div>
+        <div style="display:flex;gap:1rem;">
+            @php $open = $stats['open'] ?? 0; $inProgress = $stats['in_progress'] ?? 0; $total = $stats['total'] ?? 0; @endphp
+            @if($open > 0)
+            <div style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:rgba(255,193,7,0.12);border:1px solid rgba(255,193,7,0.3);color:#cc9a06;">
+                <i class="bi bi-exclamation-circle-fill"></i>
+                <span>{{ $open }} {{ __('tickets.status_open') }}</span>
+            </div>
+            @endif
+            @if($inProgress > 0)
+            <div style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:rgba(13,202,240,0.1);border:1px solid rgba(13,202,240,0.2);color:#0dcaf0;">
+                <i class="bi bi-arrow-repeat"></i>
+                <span>{{ $inProgress }} {{ __('tickets.status_in_progress') }}</span>
+            </div>
+            @endif
+            <div style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:#f8f9fa;border:1px solid #e9ecef;">
+                <i class="bi bi-ticket-detailed"></i>
+                <span>{{ $total }} {{ __('common.total') }}</span>
+            </div>
         </div>
     </div>
 
-    <!-- Estadísticas -->
+    <!-- Estadísticas detalladas -->
     <div class="row mb-4">
-        <div class="col-md-2 col-sm-6 mb-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body text-center">
-                    <h3 class="mb-0"><?= $stats['total'] ?? 0 ?></h3>
-                    <small class="text-muted">{{ __('common.total') }}</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2 col-sm-6 mb-3">
-            <div class="card border-0 shadow-sm border-warning">
-                <div class="card-body text-center">
-                    <h3 class="mb-0 text-warning"><?= $stats['open'] ?? 0 ?></h3>
-                    <small class="text-muted">{{ __('tickets.status_open') }}</small>
-                </div>
-            </div>
-        </div>
         <div class="col-md-2 col-sm-6 mb-3">
             <div class="card border-0 shadow-sm border-info">
                 <div class="card-body text-center">

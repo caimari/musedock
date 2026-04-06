@@ -97,7 +97,7 @@
 @endif
 
 @php
-    $containerPaddingClass = $showHero ? 'pt-0 pb-5' : 'py-5';
+    $containerPaddingClass = $showHero ? 'pt-0 pb-5' : 'pb-5';
     // Determine post template
     $postTemplate = $post->template ?: 'template-sidebar-right';
     // Normalize old values: 'single', null, empty → sidebar-right (retrocompatibility)
@@ -115,23 +115,24 @@
     $contentCol = $hasSidebar ? 'col-lg-8' : 'col-lg-12';
 @endphp
 
-<div class="container {{ $containerPaddingClass }}">
+<div class="container {{ $containerPaddingClass }}" style="padding-top:0">
     <div class="row">
         {{-- Sidebar left --}}
         @if($hasSidebar && $sidebarLeft)
-        <div class="col-lg-4">
+        <div class="col-lg-4" style="padding-top:26px">
             @include('blog.layouts._blog-sidebar-extras', ['post' => $post])
             @include('partials.sidebar')
         </div>
         @endif
 
         {{-- Contenido principal --}}
-        <div class="{{ $contentCol }}">
+        @php $__hideTitle = ($post->hide_title ?? 0) == 1; @endphp
+        <div class="{{ $contentCol }}" style="margin-top:{{ $__hideTitle ? '20px' : '-12px' }}">
             <article class="blog-post-single page-content-wrapper">
 
                 {{-- Título - Ocultar solo si hide_title está activado --}}
                 @if(!$post->hide_title || $post->hide_title != 1)
-                    <h1 class="mb-3">{{ $post->title }}</h1>
+                    <h1 class="mb-4">{{ $post->title }}</h1>
                 @endif
 
                 {{-- Meta información --}}
@@ -480,7 +481,7 @@
 
         {{-- Sidebar right --}}
         @if($hasSidebar && !$sidebarLeft)
-        <div class="col-lg-4">
+        <div class="col-lg-4" style="padding-top:26px">
             @include('blog.layouts._blog-sidebar-extras', ['post' => $post])
             @include('partials.sidebar')
         </div>

@@ -21,6 +21,7 @@ class SuperadminPlugin
     public bool $is_active;
     public bool $is_installed;
     public bool $auto_activate;
+    public bool $show_in_dashboard;
     public ?string $requires_php;
     public ?string $requires_musedock;
     public ?array $dependencies;
@@ -392,6 +393,7 @@ class SuperadminPlugin
         $plugin->is_active = (bool) $data['is_active'];
         $plugin->is_installed = (bool) $data['is_installed'];
         $plugin->auto_activate = (bool) $data['auto_activate'];
+        $plugin->show_in_dashboard = (bool) ($data['show_in_dashboard'] ?? true);
         $plugin->requires_php = $data['requires_php'];
         $plugin->requires_musedock = $data['requires_musedock'];
         $plugin->dependencies = $data['dependencies'] ? json_decode($data['dependencies'], true) : null;
@@ -424,6 +426,7 @@ class SuperadminPlugin
             'is_active' => $this->is_active,
             'is_installed' => $this->is_installed,
             'auto_activate' => $this->auto_activate,
+            'show_in_dashboard' => $this->show_in_dashboard,
             'requires_php' => $this->requires_php,
             'requires_musedock' => $this->requires_musedock,
             'dependencies' => $this->dependencies,

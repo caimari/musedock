@@ -33,28 +33,4 @@ if (!function_exists('aiimage_is_active')) {
     }
 }
 
-/**
- * Registrar menú de admin si el módulo está activo
- */
-if (aiimage_is_active()) {
-    if (isset($_SESSION['super_admin'])) {
-        $GLOBALS['ADMIN_MENU'] = $GLOBALS['ADMIN_MENU'] ?? [];
-        $GLOBALS['ADMIN_MENU']['aiimage_settings'] = [
-            'title' => 'Configuración AI Image',
-            'icon' => 'fas fa-image',
-            'url' => '/musedock/ai-image/settings',
-            'parent' => 'settings'
-        ];
-    }
-
-    if (isset($_SESSION['admin'])) {
-        $GLOBALS['ADMIN_MENU'] = $GLOBALS['ADMIN_MENU'] ?? [];
-        $adminPath = function_exists('admin_url') ? admin_url() : '/admin';
-        $GLOBALS['ADMIN_MENU']['aiimage_tenant_settings'] = [
-            'title' => 'Configuración AI Image',
-            'icon' => 'fas fa-image',
-            'url' => rtrim($adminPath, '/') . '/aiimage/settings',
-            'parent' => 'settings'
-        ];
-    }
-}
+// Menú registrado en admin_menus (BD) como hijo de IA — no usar $GLOBALS['ADMIN_MENU']

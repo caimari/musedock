@@ -48,6 +48,11 @@ class SettingsController
         try {
             $data = $_POST;
 
+            // Mode
+            if (isset($data['instagram_mode'])) {
+                InstagramSetting::set('instagram_mode', $data['instagram_mode'], $this->tenantId, 'string');
+            }
+
             // API Credentials
             if (isset($data['instagram_app_id'])) {
                 InstagramSetting::set('instagram_app_id', $data['instagram_app_id'], $this->tenantId, 'string');

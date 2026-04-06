@@ -66,19 +66,25 @@ if (!function_exists('add_filter')) {
     }
 }
 
-// Register Instagram shortcode processor
+// Register Instagram shortcode processors (Graph API feed + oEmbed posts)
 add_filter('the_content', function ($content) {
-    return process_instagram_shortcodes($content);
+    // Process [instagram connection=1 ...] shortcodes (Graph API)
+    $content = process_instagram_shortcodes($content);
+    // Process [instagram-post url="..."] shortcodes (oEmbed)
+    $content = process_instagram_oembed_shortcodes($content);
+    return $content;
 }, 10);
 
-// Register global function for manual shortcode processing
+// Register global functions for manual shortcode processing
 if (!function_exists('apply_instagram_shortcodes')) {
     function apply_instagram_shortcodes(string $content): string {
-        return process_instagram_shortcodes($content);
+        $content = process_instagram_shortcodes($content);
+        $content = process_instagram_oembed_shortcodes($content);
+        return $content;
     }
 }
 
-// Register admin menu items
+// Register admin menu items (como hijo de Módulos)
 if (function_exists('register_module_admin_menu')) {
     register_module_admin_menu([
         'module_slug' => 'instagram-gallery',
@@ -86,6 +92,7 @@ if (function_exists('register_module_admin_menu')) {
         'title' => 'Instagram Gallery',
         'superadmin_url' => '/musedock/instagram',
         'tenant_url' => '{admin_path}/instagram',
+        'parent_slug' => 'modules',
         'icon' => 'bi-instagram',
         'icon_type' => 'bi',
         'order' => 45,

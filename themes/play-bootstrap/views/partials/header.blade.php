@@ -14,6 +14,10 @@
         : themeOption('header.header_cta_text_es', 'Iniciar Sesión');
     $ctaUrl = themeOption('header.header_cta_url', '#');
 
+    // Búsqueda
+    $searchEnabled = themeOption('header.header_search_enabled', false);
+    $searchMode = themeOption('header.header_search_mode', 'modal');
+
     // Selector de idiomas
     $pdo = \Screenart\Musedock\Database::connect();
     $tenantId = tenant_id();
@@ -42,7 +46,6 @@
                         @if($showLogo)
                             <img src="{{ $logoPath ? asset($logoPath) : $defaultLogo }}"
                                  alt="{{ $siteName }}"
-                                 style="max-height: 40px; width: auto;"
                                  onerror="this.onerror=null; this.src='{{ $defaultLogo }}';" />
                         @endif
 
@@ -84,7 +87,20 @@
                         @endif
                     </div>
 
-                    <div class="navbar-btn d-none d-sm-inline-block">
+                    {{-- Search icon --}}
+                    @if($searchEnabled)
+                        @if($searchMode === 'page')
+                        <a href="{{ url('/search') }}" class="header-search-toggle" aria-label="Buscar">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        </a>
+                        @else
+                        <button type="button" class="header-search-toggle" aria-label="Buscar">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        </button>
+                        @endif
+                    @endif
+
+                    <div class="navbar-btn">
                         {{-- Selector de idiomas (desktop) --}}
                         @if($langSelectorEnabled && count($languages) > 1)
                         <div class="language-selector">

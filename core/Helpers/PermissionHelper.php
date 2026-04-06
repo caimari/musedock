@@ -144,16 +144,22 @@ class PermissionHelper
 
         // Super admin con is_root=1 tiene acceso total
         if (($auth['type'] ?? '') === 'super_admin') {
-            // Verificar si es root (acceso total) o debe respetar permisos
             if (self::isSuperAdminRoot($userId)) {
                 return true;
             }
-            // Super admin sin is_root debe verificar permisos via roles
             return self::superAdminCan($userId, $permissionSlug);
         }
 
         if (!$userId) {
             return false;
+        }
+
+        // Admin root del tenant (is_root_admin = 1) tiene acceso total a su tenant
+        if (($auth['type'] ?? '') === 'admin') {
+            $effectiveTenantId = $tenantId ?: self::getAdminTenantId($userId);
+            if ($effectiveTenantId && self::isTenantRootAdmin($userId, (int)$effectiveTenantId)) {
+                return true;
+            }
         }
 
         return self::userCan($userId, $permissionSlug, $tenantId);
@@ -185,6 +191,55 @@ class PermissionHelper
             return $isRoot;
         } catch (\Exception $e) {
             error_log("PermissionHelper::isSuperAdminRoot error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Obtener el tenant_id de un admin desde la BD (fallback si no está en sesión)
+     */
+    private static function getAdminTenantId(int $userId): ?int
+    {
+        static $cache = [];
+        if (isset($cache[$userId])) return $cache[$userId];
+
+        try {
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("SELECT tenant_id FROM admins WHERE id = ? LIMIT 1");
+            $stmt->execute([$userId]);
+            $tid = $stmt->fetchColumn();
+            $cache[$userId] = $tid ? (int)$tid : null;
+            return $cache[$userId];
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Verificar si un admin de tenant es root (is_root_admin = 1)
+     * El admin root tiene acceso total a su tenant.
+     */
+    public static function isTenantRootAdmin(int $userId, int $tenantId): bool
+    {
+        static $cache = [];
+        $key = "{$userId}:{$tenantId}";
+
+        if (isset($cache[$key])) {
+            return $cache[$key];
+        }
+
+        try {
+            $pdo = Database::connect();
+            $stmt = $pdo->prepare("SELECT is_root_admin FROM admins WHERE id = ? AND tenant_id = ? LIMIT 1");
+            $stmt->execute([$userId, $tenantId]);
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            $isRoot = $result && (bool) ($result['is_root_admin'] ?? false);
+            $cache[$key] = $isRoot;
+
+            return $isRoot;
+        } catch (\Exception $e) {
+            error_log("PermissionHelper::isTenantRootAdmin error: " . $e->getMessage());
             return false;
         }
     }
@@ -518,3 +573,4 @@ class PermissionHelper
         }
     }
 }
+

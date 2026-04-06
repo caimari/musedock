@@ -9,48 +9,61 @@
 @section('content')
 <div class="app-content">
     <div class="container-fluid">
-        <div class="row mb-4">
-            <div class="col-md-8">
-                <h1 class="h3 mb-1">
-                    <i class="bi bi-instagram text-danger"></i>
-                    <?php echo __instagram('connection.connections'); ?>
-                </h1>
-                <p class="text-muted"><?php echo __instagram('module.description'); ?></p>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-instagram" style="font-size:1.35rem;color:#fff;"></i>
+                </div>
+                <div>
+                    <h3 class="mb-0" style="font-size:1.25rem;font-weight:700;"><?php echo __instagram('connection.connections'); ?></h3>
+                    <p class="text-muted mb-0" style="font-size:0.85rem;"><?php echo __instagram('module.description'); ?></p>
+                </div>
             </div>
-            <div class="col-md-4 text-end">
-                <a href="/musedock/instagram/settings" class="btn btn-outline-secondary me-2">
-                    <i class="bi bi-gear"></i> <?php echo __instagram('settings.settings'); ?>
+            <div style="display:flex;gap:1rem;">
+                <a href="/musedock/instagram/settings" style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:#f8f9fa;border:1px solid #e9ecef;color:#6c757d;text-decoration:none;">
+                    <i class="bi bi-gear"></i>
+                    <span><?php echo __instagram('settings.settings'); ?></span>
                 </a>
                 <?php if ($apiConfigured): ?>
-                    <a href="/musedock/instagram/connect" class="btn btn-danger">
-                        <i class="bi bi-instagram"></i> <?php echo __instagram('connection.connect_new'); ?>
+                    <a href="/musedock/instagram/connect" style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:linear-gradient(135deg,#f09433,#dc2743,#bc1888);border:none;color:#fff;text-decoration:none;">
+                        <i class="bi bi-instagram"></i>
+                        <span><?php echo __instagram('connection.connect_new'); ?></span>
                     </a>
                 <?php else: ?>
-                    <button class="btn btn-danger" onclick="showApiWarning()">
-                        <i class="bi bi-instagram"></i> <?php echo __instagram('connection.connect_new'); ?>
+                    <button onclick="showApiWarning()" style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:linear-gradient(135deg,#f09433,#dc2743,#bc1888);border:none;color:#fff;cursor:pointer;">
+                        <i class="bi bi-instagram"></i>
+                        <span><?php echo __instagram('connection.connect_new'); ?></span>
                     </button>
                 <?php endif; ?>
             </div>
         </div>
 
-        <?php if (!$apiConfigured): ?>
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle"></i>
-                <?php echo __instagram('connection.api_not_configured'); ?>
-                <a href="/musedock/instagram/settings" class="alert-link"><?php echo __instagram('connection.configure_api'); ?></a>
-            </div>
-        <?php endif; ?>
-
         <?php if (empty($connections)): ?>
-            <div class="text-center py-5">
-                <i class="bi bi-instagram" style="font-size: 4rem; color: #ddd;"></i>
-                <h4 class="mt-3"><?php echo __instagram('connection.no_connections'); ?></h4>
-                <p class="text-muted"><?php echo __instagram('connection.connect_first'); ?></p>
-                <?php if ($apiConfigured): ?>
-                    <a href="/musedock/instagram/connect" class="btn btn-danger mt-3">
-                        <i class="bi bi-instagram"></i> <?php echo __instagram('connection.connect'); ?>
-                    </a>
-                <?php endif; ?>
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
+                        <i class="bi bi-instagram" style="font-size:1.75rem;color:#fff;"></i>
+                    </div>
+                    <?php if (!$apiConfigured): ?>
+                        <h5 class="mb-2">Configura las credenciales de API</h5>
+                        <p class="text-muted mb-3" style="max-width:440px;margin:0 auto;">Para conectar tu cuenta de Instagram necesitas configurar las credenciales de la API de Facebook Developers. También puedes usar el modo oEmbed para insertar posts sin API.</p>
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="/musedock/instagram/settings" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.5rem 1.25rem;border-radius:8px;background:linear-gradient(135deg,#f09433,#dc2743,#bc1888);color:#fff;text-decoration:none;font-size:0.85rem;font-weight:500;">
+                                <i class="bi bi-gear"></i> Configurar API
+                            </a>
+                        </div>
+                        <div class="mt-3 pt-3 border-top" style="max-width:440px;margin:0 auto;">
+                            <p class="text-muted small mb-1"><strong>Sin API:</strong> usa este shortcode para insertar posts públicos:</p>
+                            <code style="font-size:0.8rem;">[instagram-post url="https://instagram.com/p/ABC123"]</code>
+                        </div>
+                    <?php else: ?>
+                        <h5 class="mb-2"><?php echo __instagram('connection.no_connections'); ?></h5>
+                        <p class="text-muted mb-3" style="max-width:400px;margin:0 auto;"><?php echo __instagram('connection.connect_first'); ?></p>
+                        <a href="/musedock/instagram/connect" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.5rem 1.25rem;border-radius:8px;background:linear-gradient(135deg,#f09433,#dc2743,#bc1888);color:#fff;text-decoration:none;font-size:0.85rem;font-weight:500;">
+                            <i class="bi bi-instagram"></i> <?php echo __instagram('connection.connect'); ?>
+                        </a>
+                    <?php endif; ?>
+                </div>
             </div>
         <?php else: ?>
             <div class="row">
@@ -138,6 +151,81 @@
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
+        {{-- Generador de Shortcodes --}}
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-white d-flex align-items-center gap-2">
+                <i class="bi bi-code-slash"></i>
+                <h5 class="mb-0">Generador de Shortcodes</h5>
+            </div>
+            <div class="card-body p-0">
+                {{-- oEmbed --}}
+                <div class="p-3">
+                    <h6 class="mb-1"><i class="bi bi-link-45deg me-1"></i> Post individual (oEmbed)</h6>
+                    <p class="text-muted small mb-2">Pega la URL de cualquier post público. No necesita API.</p>
+                    <div class="input-group input-group-sm" style="max-width:600px;">
+                        <input type="url" class="form-control" id="oembedUrlInput" placeholder="https://www.instagram.com/p/ABC123/">
+                        <button class="btn btn-outline-secondary" type="button" id="btnGenerateOembed">
+                            <i class="bi bi-lightning me-1"></i> Generar
+                        </button>
+                    </div>
+                    <div id="oembedResult" class="mt-2" style="display:none;max-width:600px;">
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control font-monospace" id="oembedShortcode" readonly style="font-size:0.8rem;background:#f8f9fa;">
+                            <button class="btn btn-outline-primary" type="button" id="btnCopyOembed" title="Copiar">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Separador --}}
+                <hr class="m-0">
+
+                {{-- Graph API --}}
+                <div class="p-3">
+                    <h6 class="mb-1"><i class="bi bi-grid-3x3 me-1"></i> Feed completo (Graph API)</h6>
+                    <?php if (!empty($connections)): ?>
+                        <p class="text-muted small mb-2">Configura el feed y copia el shortcode.</p>
+                        <div class="d-flex flex-wrap gap-2 align-items-end" style="max-width:600px;">
+                            <div>
+                                <label class="form-label small text-muted mb-0">Cuenta</label>
+                                <select class="form-select form-select-sm" id="feedConnection" style="min-width:140px;">
+                                    <?php foreach ($connections as $c): ?>
+                                        <option value="<?= $c->id ?>">@<?= htmlspecialchars($c->username) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label small text-muted mb-0">Layout</label>
+                                <select class="form-select form-select-sm" id="feedLayout" style="min-width:100px;">
+                                    <option value="grid">Grid</option>
+                                    <option value="masonry">Masonry</option>
+                                    <option value="carousel">Carousel</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label small text-muted mb-0">Cols</label>
+                                <input type="number" class="form-control form-control-sm" id="feedColumns" value="3" min="1" max="6" style="width:60px;">
+                            </div>
+                            <div>
+                                <label class="form-label small text-muted mb-0">Posts</label>
+                                <input type="number" class="form-control form-control-sm" id="feedLimit" value="12" min="1" max="50" style="width:65px;">
+                            </div>
+                        </div>
+                        <div class="mt-2" style="max-width:600px;">
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control font-monospace" id="feedShortcode" readonly style="font-size:0.8rem;background:#f8f9fa;">
+                                <button class="btn btn-outline-primary" type="button" id="btnCopyFeed" title="Copiar">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <p class="text-muted small mb-0">Conecta una cuenta de Instagram para generar shortcodes de feed.</p>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 @endsection
@@ -250,5 +338,62 @@
             }
         });
     }
+
+    // ========== SHORTCODE GENERATOR ==========
+    // oEmbed generator
+    const oembedInput = document.getElementById('oembedUrlInput');
+    const oembedResult = document.getElementById('oembedResult');
+    const oembedShortcode = document.getElementById('oembedShortcode');
+
+    document.getElementById('btnGenerateOembed')?.addEventListener('click', function() {
+        const url = oembedInput.value.trim();
+        if (!url || !url.match(/instagram\.com\/(p|reel|tv)\//i)) {
+            Swal.fire({ icon: 'warning', title: 'URL no válida', text: 'Introduce una URL de post de Instagram (instagram.com/p/... o instagram.com/reel/...)', timer: 3000, showConfirmButton: false });
+            return;
+        }
+        oembedShortcode.value = `[instagram-post url="${url}"]`;
+        oembedResult.style.display = '';
+    });
+
+    // Also generate on Enter key
+    oembedInput?.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('btnGenerateOembed').click(); }
+    });
+
+    // Copy oEmbed shortcode
+    document.getElementById('btnCopyOembed')?.addEventListener('click', function() {
+        navigator.clipboard.writeText(oembedShortcode.value).then(() => {
+            this.innerHTML = '<i class="bi bi-check-lg text-success"></i>';
+            setTimeout(() => { this.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 2000);
+        });
+    });
+
+    // Feed shortcode generator
+    function updateFeedShortcode() {
+        const conn = document.getElementById('feedConnection')?.value;
+        if (!conn) return;
+        const layout = document.getElementById('feedLayout')?.value || 'grid';
+        const cols = document.getElementById('feedColumns')?.value || 3;
+        const limit = document.getElementById('feedLimit')?.value || 12;
+        const sc = document.getElementById('feedShortcode');
+        if (sc) sc.value = `[instagram connection=${conn} layout="${layout}" columns=${cols} limit=${limit}]`;
+    }
+
+    ['feedConnection', 'feedLayout', 'feedColumns', 'feedLimit'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', updateFeedShortcode);
+        document.getElementById(id)?.addEventListener('input', updateFeedShortcode);
+    });
+    updateFeedShortcode(); // Initial generation
+
+    // Copy feed shortcode
+    document.getElementById('btnCopyFeed')?.addEventListener('click', function() {
+        const sc = document.getElementById('feedShortcode');
+        if (sc) {
+            navigator.clipboard.writeText(sc.value).then(() => {
+                this.innerHTML = '<i class="bi bi-check-lg text-success"></i>';
+                setTimeout(() => { this.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 2000);
+            });
+        }
+    });
 </script>
 @endpush

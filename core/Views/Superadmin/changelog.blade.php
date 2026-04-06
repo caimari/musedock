@@ -13,11 +13,125 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.14.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.14.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 6 de Abril de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-shield-check me-1"></i> Legal Templates Engine</h6>
+                <ul class="mb-3">
+                    <li><strong>Datos legales en Settings:</strong> Nueva seccion completa con jurisdiccion (ES/EU/US/BR/MX/AR), tipo de titular (personal/autonomo/empresa), NIF/CIF, email legal, domicilio, datos registrales y autoridad de control</li>
+                    <li><strong>Aviso Legal dinamico:</strong> Genera automaticamente con <code>@{{legal_name}}</code> vs <code>@{{site_name}}</code>, datos registrales condicionales, LSSI solo para ES, proteccion de consumidores</li>
+                    <li><strong>Politica de Privacidad RGPD:</strong> Responsable del tratamiento, bases legales (art. 6), plazos de conservacion (art. 13.2.a), categorias de destinatarios, transferencias internacionales, derechos completos incl. limitacion y retirada del consentimiento</li>
+                    <li><strong>Politica de Cookies condicional:</strong> Toggle <code>site_uses_analytics_cookies</code> — si inactivo, solo declara cookies tecnicas. Si activo, tabla completa de cookies GA con transferencias internacionales</li>
+                    <li><strong>Terminos y Condiciones:</strong> Secciones condicionales para registro (<code>site_has_user_registration</code>) y pagos (<code>site_has_paid_services</code>) con derecho de desistimiento art. 103.m RDL 1/2007. Numeracion automatica via CSS counters</li>
+                    <li><strong>Cadena de fallback:</strong> <code>legal_email</code> → <code>contact_email</code> → default. Datos legales independientes de contacto publico</li>
+                    <li><strong>Multi-jurisdiccion:</strong> Labels adaptativos por pais (NIF/CNPJ/EIN/RFC), autoridad de control auto-completada (AEPD/ANPD/INAI/CNIL), LSSI solo para ES, LGPD para BR</li>
+                </ul>
+
+                <h6 class="text-success"><i class="bi bi-book me-1"></i> Documentation System</h6>
+                <ul class="mb-3">
+                    <li><strong>Template de documentacion:</strong> <code>single-docs.blade.php</code> con sidebar de navegacion, Table of Contents auto-generado desde H2/H3, breadcrumbs, prev/next, scroll-spy</li>
+                    <li><strong>post_type = docs:</strong> Selector "Documentacion" en el formulario de creacion. El prefix <code>/docs/</code> se asigna automaticamente</li>
+                    <li><strong>URL preview dinamica:</strong> Al seleccionar tipo "Documentacion", la URL preview cambia de <code>/blog/</code> a <code>/docs/</code></li>
+                    <li><strong>Code blocks:</strong> Boton "Copiar" automatico en todos los bloques de codigo, estilo dark con syntax highlighting</li>
+                    <li><strong>Disponible para tenants:</strong> Cualquier tenant puede crear documentacion tecnica con su propio <code>/docs/</code></li>
+                </ul>
+
+                <h6 class="text-info"><i class="bi bi-palette me-1"></i> Frontend & UX</h6>
+                <ul class="mb-3">
+                    <li><strong>Header responsive mobile:</strong> Logo izquierda + hamburguesa derecha en todos los layouts (logo-above-left, play-bootstrap)</li>
+                    <li><strong>Container responsive:</strong> Eliminado <code>width:450px</code> fijo en 480-767px, ahora fluido al 100%</li>
+                    <li><strong>Categorias/tags en portada:</strong> Limitadas a 3 aleatorias por post en layouts newspaper, grid, etc. Una sola linea sin overflow</li>
+                    <li><strong>Busqueda modal overlay:</strong> Lupa en header con opcion modal/pagina configurable en theme.json. Implementado en temas default y play-bootstrap</li>
+                    <li><strong>Espaciado blog single:</strong> Titulo mas pegado al header, sidebar con separacion independiente, ajuste con/sin titulo oculto</li>
+                    <li><strong>Paginas legales:</strong> Titulo H1 con subrayado de color del tema, <code>display:inline-block</code>, menos espacio header-contenido</li>
+                    <li><strong>Candado SEO:</strong> Lock/unlock en secciones SEO y Twitter Cards para evitar autocomplete de Chrome. En blog posts y paginas, superadmin y tenant</li>
+                </ul>
+
+                <h6 class="text-warning"><i class="bi bi-pencil-square me-1"></i> Blog Post Editing</h6>
+                <ul class="mb-3">
+                    <li><strong>Prompt editorial:</strong> Prompt completo para generar articulos con diseño premium (hero, callouts, tablas, comparativas, pasos, takeaway) con estilos inline</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v2.13.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.13.0</h5>
+                <span class="badge bg-secondary">Previous</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 6 de Abril de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Menus inteligentes y URLs limpias</h6>
+                <ul class="mb-3">
+                    <li><strong>Auto-sync menu links:</strong> Al cambiar prefijos de URL en Ajustes > Lectura, los links de los menus se actualizan automaticamente (PostgreSQL + MySQL)</li>
+                    <li><strong>Homepage detection:</strong> Los menus detectan la pagina de inicio y enlazan a <code>/</code> en vez del slug. Redirect 301 al acceder al slug directo de la homepage</li>
+                    <li><strong>Sin prefijo por defecto:</strong> Los nuevos tenants se crean sin prefijo <code>/p/</code> — URLs limpias tipo <code>/nosotros</code></li>
+                    <li><strong>Redirect 301 legacy WordPress:</strong> URLs tipo <code>/index.php/2026/01/25/slug</code>, <code>/index.php/tag/slug</code> y <code>/index.php/category/slug</code> redirigen a la URL actual correcta</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Diseño admin unificado</h6>
+                <ul class="mb-3">
+                    <li><strong>Cabecera estandar:</strong> Nuevo patron de diseño para todas las paginas admin — icono degradado 48x48 + titulo bold + subtitulo + stat-badges</li>
+                    <li><strong>Aplicado a:</strong> Modulos, Plugin Store, Plugins, AI Image, AI Writer, Instagram Gallery y sus sub-paginas (superadmin + tenant)</li>
+                    <li><strong>Toggle switches:</strong> Botones activar/desactivar reemplazados por toggle switches estilo iOS en Modulos y Plugins</li>
+                    <li><strong>Empty states:</strong> Paginas vacias con icono grande, texto descriptivo y CTA contextual</li>
+                    <li><strong>Visitar sitio:</strong> Enlace "Visitar sitio" en el dropdown del usuario (target blank) para superadmin y tenants</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Dashboard y accesos directos</h6>
+                <ul class="mb-3">
+                    <li><strong>Accesos directos:</strong> Seccion "Accesos directos" en el dashboard del superadmin con cards de plugins y modulos activos</li>
+                    <li><strong>Toggle Dashboard:</strong> Cada plugin y modulo tiene un toggle para controlar si aparece como acceso directo en el dashboard</li>
+                    <li><strong>Cards de gestion:</strong> Tenants, Modulos y Plugins como cards clickeables con iconos degradados</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Gestion de modulos y plugins (superadmin)</h6>
+                <ul class="mb-3">
+                    <li><strong>3 toggles por modulo:</strong> Dashboard (naranja), Tenants (azul), CMS (verde) — controlan visibilidad, disponibilidad para tenants y estado activo</li>
+                    <li><strong>Modulos como hijos de sidebar:</strong> Los modulos activos con admin_url aparecen como hijos del menu "Modulos" automaticamente</li>
+                    <li><strong>Instagram Gallery:</strong> Movido como hijo de Modulos (via <code>register_module_admin_menu</code> con <code>parent_slug</code>)</li>
+                    <li><strong>IA reorganizada:</strong> AI Writer y AI Image como hijos del grupo "IA" en el sidebar (superadmin + tenant)</li>
+                    <li><strong>Eliminado Hello World:</strong> Modulo de ejemplo eliminado del sistema</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-instagram me-1"></i> Instagram Gallery: oEmbed + Widget</h6>
+                <ul class="mb-3">
+                    <li><strong>oEmbed (sin API):</strong> Nuevo shortcode <code>[instagram-post url="..."]</code> para insertar cualquier post publico de Instagram sin configurar credenciales</li>
+                    <li><strong>Fallback inteligente:</strong> Si hay credenciales API usa el endpoint oEmbed oficial de Meta. Si no, usa el embed nativo de Instagram via blockquote + embed.js</li>
+                    <li><strong>Cache 24h:</strong> Los embeds oEmbed se cachean para evitar llamadas repetidas</li>
+                    <li><strong>Selector de modo:</strong> Nueva card "Modo de funcionamiento" en Settings — Graph API, oEmbed, o Ambos</li>
+                    <li><strong>Widget Instagram Feed:</strong> Nuevo widget disponible en Apariencia > Widgets con modo Feed (Graph API) u oEmbed (post individual)</li>
+                    <li><strong>Generador de shortcodes:</strong> Seccion interactiva en la pagina principal del modulo — pegar URL o seleccionar cuenta + layout + columnas + limite. Copia al portapapeles</li>
+                    <li><strong>Credenciales bloqueadas:</strong> Los inputs de API credentials se muestran deshabilitados si ya estan configurados. Boton "Desbloquear para editar"</li>
+                    <li><strong>Redirect URI auto:</strong> Se pre-rellena con el dominio real del sitio + boton copiar</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> SEO y lectura</h6>
+                <ul class="mb-3">
+                    <li><strong>Posts por pagina:</strong> Default 9 (grid simetrico 3x3) para todos los tenants existentes y nuevos</li>
+                    <li><strong>Nota feed RSS:</strong> Texto explicativo en Ajustes > Lectura aclarando que el feed RSS no afecta al sitemap ni SEO</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Sidebar UX</h6>
+                <ul class="mb-3">
+                    <li><strong>Auto-scroll:</strong> Al cargar una pagina del admin, la pagina scrollea automaticamente a la posicion del item activo en el sidebar</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.12.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.12.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">Previous</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 5 de Abril de 2026</p>

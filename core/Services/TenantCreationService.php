@@ -154,6 +154,9 @@ class TenantCreationService
             // 7. Crear idiomas por defecto para el tenant
             $this->createDefaultTenantLanguages($tenantId);
 
+            // 8. Crear ajustes de lectura por defecto (sin prefijo de página)
+            $this->createDefaultReadingSettings($tenantId);
+
             $this->pdo->commit();
 
             return [
@@ -824,6 +827,39 @@ class TenantCreationService
         }
 
         $stmt->execute(['tenant_id' => $tenantId, 'value' => $langCode]);
+    }
+
+    /**
+     * Crear ajustes de lectura por defecto para el tenant.
+     * Por defecto: sin prefijo de página (URLs limpias /slug en vez de /p/slug).
+     */
+    private function createDefaultReadingSettings(int $tenantId): void
+    {
+        $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+        $defaults = [
+            'page_url_prefix' => '',    // Sin prefijo /p/ — URLs limpias
+            'blog_url_prefix' => 'blog',
+            'posts_per_page'  => '9',   // 9 posts = grid simétrico (3x3)
+            'posts_per_rss'   => '10',
+        ];
+
+        foreach ($defaults as $key => $value) {
+            if ($driver === 'mysql') {
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO tenant_settings (tenant_id, `key`, value)
+                    VALUES (:tenant_id, :key, :value)
+                    ON DUPLICATE KEY UPDATE value = VALUES(value)
+                ");
+            } else {
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO tenant_settings (tenant_id, \"key\", value)
+                    VALUES (:tenant_id, :key, :value)
+                    ON CONFLICT (tenant_id, \"key\") DO UPDATE SET value = EXCLUDED.value
+                ");
+            }
+            $stmt->execute(['tenant_id' => $tenantId, 'key' => $key, 'value' => $value]);
+        }
     }
 
     /**

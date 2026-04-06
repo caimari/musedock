@@ -1812,7 +1812,7 @@ public function autosave($id)
  */
 public function editorStylesCss()
 {
-    // Reuse the tenant implementation — it reads themeOption which falls back to defaults
+    // No requiere checkPermission — es un recurso CSS cargado por TinyMCE
     $tenantController = new \Screenart\Musedock\Controllers\Tenant\PageController();
     $tenantController->editorStylesCss();
 }

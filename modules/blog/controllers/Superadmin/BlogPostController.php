@@ -311,28 +311,31 @@ class BlogPostController
             error_log("ERROR AL ACTUALIZAR TENANT_ID EN STORE: " . $e->getMessage());
         }
 
+        // Sincronizar categorías (before slug creation to detect docs prefix)
+        if (!empty($selectedCategories)) {
+            $post->syncCategories($selectedCategories);
+        }
+
         // Crear slug con el tenant_id y prefijo correctos
         try {
             $pdo = Database::connect();
             $deleteStmt = $pdo->prepare("DELETE FROM slugs WHERE module = 'blog' AND reference_id = ?");
             $deleteStmt->execute([$post->id]);
 
-            // Determinar prefijo: para posts de tenants, usar su blog_url_prefix
-            if ($targetTenantId) {
+            // Determinar prefijo
+            if (($data['post_type'] ?? 'post') === 'docs') {
+                $prefix = 'docs';
+            } elseif ($targetTenantId) {
                 $prefix = $this->getTenantBlogPrefixForScope($targetTenantId);
             } else {
                 $prefix = 'blog';
             }
+
             $insertStmt = $pdo->prepare("INSERT INTO slugs (module, reference_id, slug, tenant_id, prefix) VALUES (?, ?, ?, ?, ?)");
             $insertStmt->execute(['blog', $post->id, $data['slug'], $targetTenantId, $prefix]);
 
         } catch (\Exception $e) {
             error_log("ERROR AL CREAR SLUG: " . $e->getMessage());
-        }
-
-        // Sincronizar categorías
-        if (!empty($selectedCategories)) {
-            $post->syncCategories($selectedCategories);
         }
 
         // Sincronizar etiquetas
@@ -612,8 +615,10 @@ class BlogPostController
 
         $newSlug = $data['slug'];
 
-        // Determinar el prefijo correcto: para posts de tenants, usar su blog_url_prefix
-        if ($originalTenantId && is_cross_publisher_active()) {
+        // Determinar el prefijo correcto
+        if (($data['post_type'] ?? $post->post_type ?? 'post') === 'docs') {
+            $prefix = 'docs';
+        } elseif ($originalTenantId && is_cross_publisher_active()) {
             $prefix = $this->getTenantBlogPrefixForScope((int) $originalTenantId);
         } else {
             $prefix = $rawData['prefix'] ?? 'blog';
@@ -1832,5 +1837,31 @@ class BlogPostController
         }
 
         exit;
+    }
+
+    /**
+     * Check if selected categories include a "docs" category (or child of docs).
+     * Returns 'docs' prefix if applicable, null otherwise.
+     */
+    private function getDocsPrefixIfApplicable($pdo, array $categoryIds, $tenantId): ?string
+    {
+        if (empty($categoryIds)) return null;
+
+        if ($tenantId) {
+            $stmt = $pdo->prepare("SELECT id FROM blog_categories WHERE slug = 'docs' AND tenant_id = ? LIMIT 1");
+            $stmt->execute([$tenantId]);
+        } else {
+            $stmt = $pdo->prepare("SELECT id FROM blog_categories WHERE slug = 'docs' AND tenant_id IS NULL LIMIT 1");
+            $stmt->execute();
+        }
+        $docsRootId = $stmt->fetchColumn();
+        if (!$docsRootId) return null;
+
+        $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
+        $stmt = $pdo->prepare("SELECT 1 FROM blog_categories WHERE id IN ($placeholders) AND (id = ? OR parent_id = ?) LIMIT 1");
+        $params = array_merge($categoryIds, [$docsRootId, $docsRootId]);
+        $stmt->execute($params);
+
+        return $stmt->fetchColumn() ? 'docs' : null;
     }
 }

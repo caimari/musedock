@@ -5,17 +5,27 @@
 @section('content')
 <div class="container-fluid">
     <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h1 class="h3 mb-0">
-                <i class="fas fa-ticket-alt me-2"></i>
-                Tickets de Soporte
-            </h1>
-            <p class="text-muted mb-0">Gestiona tus solicitudes de soporte técnico</p>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <div class="d-flex align-items-center gap-3">
+            <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#fd7e14,#ffb74d);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="bi bi-ticket-detailed" style="font-size:1.35rem;color:#fff;"></i>
+            </div>
+            <div>
+                <h3 class="mb-0" style="font-size:1.25rem;font-weight:700;">Tickets de Soporte</h3>
+                <p class="text-muted mb-0" style="font-size:0.85rem;">Gestiona tus solicitudes de soporte técnico</p>
+            </div>
         </div>
-        <div class="col-md-4 text-end">
-            <a href="<?= admin_url('tickets/create') ?>" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Nuevo Ticket
+        <div style="display:flex;gap:1rem;">
+            @php $openT = $stats['open'] ?? 0; @endphp
+            @if($openT > 0)
+            <div style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:rgba(255,193,7,0.12);border:1px solid rgba(255,193,7,0.3);color:#cc9a06;">
+                <i class="bi bi-exclamation-circle-fill"></i>
+                <span>{{ $openT }} abiertos</span>
+            </div>
+            @endif
+            <a href="<?= admin_url('tickets/create') ?>" style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:linear-gradient(135deg,#fd7e14,#ffb74d);border:none;color:#fff;text-decoration:none;font-weight:500;">
+                <i class="bi bi-plus-lg"></i>
+                <span>Nuevo Ticket</span>
             </a>
         </div>
     </div>

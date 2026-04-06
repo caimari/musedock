@@ -60,6 +60,9 @@ class AnalyticsController
      */
     public function pagesApi()
     {
+        SessionSecurity::startSession();
+        $this->checkPermission('analytics.view');
+
         // Limpiar output previo para garantizar JSON limpio
         while (ob_get_level()) ob_end_clean();
         header('Content-Type: application/json');

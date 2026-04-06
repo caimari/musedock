@@ -13,11 +13,87 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.14.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.14.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 6 de Abril de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-shield-check me-1"></i> Legal Templates Engine</h6>
+                <ul class="mb-3">
+                    <li><strong>Datos legales:</strong> Nueva seccion en Configuracion con jurisdiccion, tipo de titular, NIF/CIF, email legal, domicilio, datos registrales y autoridad de control</li>
+                    <li><strong>Paginas legales automaticas:</strong> Aviso Legal, Privacidad (RGPD completo), Cookies (condicional) y Terminos y Condiciones generados automaticamente</li>
+                    <li><strong>Multi-jurisdiccion:</strong> Adapta labels y contenido segun pais (ES/EU/US/BR/MX/AR)</li>
+                    <li><strong>Datos independientes:</strong> Email y domicilio legal separados de los datos de contacto publicos</li>
+                </ul>
+
+                <h6 class="text-success"><i class="bi bi-book me-1"></i> Documentacion Tecnica</h6>
+                <ul class="mb-3">
+                    <li><strong>Tipo de post "Documentacion":</strong> Selector en el formulario de creacion con prefix automatico <code>/docs/</code></li>
+                    <li><strong>Template docs:</strong> Sidebar de navegacion, Table of Contents automatico, breadcrumbs, boton copiar en codigo</li>
+                </ul>
+
+                <h6 class="text-info"><i class="bi bi-palette me-1"></i> Frontend & UX</h6>
+                <ul class="mb-3">
+                    <li><strong>Header responsive:</strong> Logo + hamburguesa alineados en mobile</li>
+                    <li><strong>Busqueda modal:</strong> Opcion modal overlay o pagina de busqueda en header</li>
+                    <li><strong>Categorias limitadas:</strong> Max 3 aleatorias en portada para evitar overflow visual</li>
+                    <li><strong>Candado SEO:</strong> Bloqueo de campos SEO/Twitter para evitar autocomplete</li>
+                    <li><strong>Paginas con titulo subrayado:</strong> Diseño mejorado para paginas estaticas</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v2.13.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.13.0</h5>
+                <span class="badge bg-secondary">Previous</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 6 de Abril de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Menus inteligentes y URLs limpias</h6>
+                <ul class="mb-3">
+                    <li><strong>Auto-sync menu links:</strong> Al cambiar prefijos de URL en Ajustes > Lectura, los links de los menus se actualizan automaticamente</li>
+                    <li><strong>Homepage detection:</strong> Los menus detectan la pagina de inicio y enlazan a <code>/</code>. Redirect 301 al acceder al slug directo</li>
+                    <li><strong>Sin prefijo por defecto:</strong> Nuevos tenants sin prefijo <code>/p/</code> — URLs limpias</li>
+                    <li><strong>Redirect 301 legacy WordPress:</strong> URLs tipo <code>/index.php/YYYY/MM/DD/slug</code>, <code>/index.php/tag/slug</code> y <code>/index.php/category/slug</code></li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> Diseño admin mejorado</h6>
+                <ul class="mb-3">
+                    <li><strong>Cabecera estandar:</strong> Nuevo patron visual para todas las paginas admin con icono degradado + titulo + stat-badges</li>
+                    <li><strong>Toggle switches:</strong> Activar/desactivar modulos con toggle switches estilo iOS</li>
+                    <li><strong>Visitar sitio:</strong> Enlace "Visitar sitio" en el menu de usuario (target blank)</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-instagram me-1"></i> Instagram Gallery: oEmbed + Widget</h6>
+                <ul class="mb-3">
+                    <li><strong>oEmbed (sin API):</strong> Shortcode <code>[instagram-post url="..."]</code> para insertar posts publicos sin configurar credenciales</li>
+                    <li><strong>Selector de modo:</strong> Graph API, oEmbed, o Ambos en la configuracion del modulo</li>
+                    <li><strong>Widget Instagram Feed:</strong> Nuevo widget en Apariencia > Widgets con modo Feed u oEmbed</li>
+                    <li><strong>Generador de shortcodes:</strong> UI interactiva para generar shortcodes — pegar URL o configurar feed visualmente</li>
+                    <li><strong>Credenciales protegidas:</strong> Inputs API bloqueados con boton "Desbloquear para editar"</li>
+                    <li><strong>Redirect URI auto:</strong> Pre-rellenada con el dominio del sitio + boton copiar</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-stars me-1"></i> SEO y lectura</h6>
+                <ul class="mb-3">
+                    <li><strong>Posts por pagina:</strong> Default 9 (grid simetrico 3x3)</li>
+                    <li><strong>Nota feed RSS:</strong> Texto explicativo en Ajustes > Lectura</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.12.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.12.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">Previous</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 5 de Abril de 2026</p>

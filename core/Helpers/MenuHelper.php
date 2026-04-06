@@ -7,6 +7,8 @@ use Screenart\Musedock\Database;
 class MenuHelper
 {
     private static $menuCache = [];
+    private static $homepagePageId = null;
+    private static $homepageResolved = false;
 
     // --- Mantenemos renderMenu como estaba si aún la usas en otro lugar ---
     /**
@@ -45,14 +47,15 @@ class MenuHelper
         $html = '<ul class="' . $className . '">';
         foreach ($items as $item) {
             $hasChildren = !empty($item['children']);
+            $link = self::resolveHomepageLink($item);
             $classes = [];
             if ($hasChildren) $classes[] = 'has-children';
             $currentUrl = $_SERVER['REQUEST_URI'];
-            if ($currentUrl === $item['link']) $classes[] = 'current';
+            if ($currentUrl === $link) $classes[] = 'current';
             $classAttribute = !empty($classes) ? ' class="' . implode(' ', $classes) . '"' : '';
 
             $html .= '<li' . $classAttribute . '>';
-            $html .= '<a href="' . e($item['link']) . '" title="' . e($item['title']) . '">' . e($item['title']) . '</a>';
+            $html .= '<a href="' . e($link) . '" title="' . e($item['title']) . '">' . e($item['title']) . '</a>';
             if ($hasChildren) {
                 $html .= self::renderMenuItemsSimple($item['children'], $depth + 1);
             }
@@ -135,7 +138,7 @@ class MenuHelper
 
         foreach ($items as $item) {
             $hasChildren = !empty($item['children']);
-            $link = $item['link'] ?? '#';
+            $link = self::resolveHomepageLink($item);
             $title = $item['title'] ?? '';
 
             // Construir clases del LI
@@ -292,11 +295,90 @@ class MenuHelper
     }
 
     /**
+     * Obtiene el page_id de la página de inicio del tenant/site actual.
+     * Cachea el resultado para evitar queries repetidas en el mismo request.
+     */
+    private static function getHomepagePageId(): ?int
+    {
+        if (self::$homepageResolved) {
+            return self::$homepagePageId;
+        }
+        self::$homepageResolved = true;
+
+        try {
+            $pdo = Database::connect();
+            $tenantId = null;
+            if (class_exists('\\Screenart\\Musedock\\Services\\TenantManager')) {
+                $tenant = \Screenart\Musedock\Services\TenantManager::current();
+                if ($tenant) {
+                    $tenantId = $tenant['id'] ?? null;
+                }
+            }
+
+            // Primero comprobar show_on_front = 'page' y page_on_front
+            if ($tenantId) {
+                $stmt = $pdo->prepare("SELECT value FROM tenant_settings WHERE tenant_id = ? AND \"key\" = 'show_on_front'");
+                $stmt->execute([$tenantId]);
+                $showOnFront = $stmt->fetchColumn();
+
+                if ($showOnFront === 'page') {
+                    $stmt = $pdo->prepare("SELECT value FROM tenant_settings WHERE tenant_id = ? AND \"key\" = 'page_on_front'");
+                    $stmt->execute([$tenantId]);
+                    $pageOnFront = $stmt->fetchColumn();
+                    if ($pageOnFront && is_numeric($pageOnFront)) {
+                        self::$homepagePageId = (int)$pageOnFront;
+                        return self::$homepagePageId;
+                    }
+                }
+
+                // Fallback: is_homepage flag
+                $stmt = $pdo->prepare("SELECT id FROM pages WHERE is_homepage = 1 AND status = 'published' AND tenant_id = ? LIMIT 1");
+                $stmt->execute([$tenantId]);
+            } else {
+                $showOnFront = function_exists('setting') ? setting('show_on_front', 'posts') : 'posts';
+                if ($showOnFront === 'page') {
+                    $pageOnFront = function_exists('setting') ? setting('page_on_front', '') : '';
+                    if ($pageOnFront && is_numeric($pageOnFront)) {
+                        self::$homepagePageId = (int)$pageOnFront;
+                        return self::$homepagePageId;
+                    }
+                }
+                $stmt = $pdo->prepare("SELECT id FROM pages WHERE is_homepage = 1 AND status = 'published' AND tenant_id IS NULL LIMIT 1");
+                $stmt->execute();
+            }
+
+            $id = $stmt->fetchColumn();
+            self::$homepagePageId = $id ? (int)$id : null;
+        } catch (\Exception $e) {
+            self::$homepagePageId = null;
+        }
+
+        return self::$homepagePageId;
+    }
+
+    /**
+     * Si el item del menú apunta a la página de inicio, devuelve '/' en vez del slug.
+     */
+    private static function resolveHomepageLink(array $item): string
+    {
+        $link = $item['link'] ?? '#';
+        $pageId = $item['page_id'] ?? null;
+
+        if ($pageId && (int)$pageId === self::getHomepagePageId()) {
+            return '/';
+        }
+
+        return $link;
+    }
+
+    /**
      * Limpia la caché de menús
      */
     public static function clearCache()
     {
         self::$menuCache = [];
+        self::$homepageResolved = false;
+        self::$homepagePageId = null;
     }
 
     // Helper para escapar HTML (si no tienes uno global)

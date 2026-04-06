@@ -9,58 +9,121 @@
 @section('content')
 <div class="app-content">
     <div class="container-fluid">
-        <div class="row mb-4">
-            <div class="col-md-8">
-                <a href="/{{ admin_path() }}/instagram" class="btn btn-sm btn-outline-secondary mb-2">
-                    <i class="bi bi-arrow-left"></i> <?php echo __instagram('common.back'); ?>
-                </a>
-                <h1 class="h3 mb-1">
-                    <i class="bi bi-gear text-danger"></i>
-                    <?php echo __instagram('settings.settings'); ?>
-                </h1>
-                <p class="text-muted"><?php echo __instagram('module.description'); ?></p>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-gear" style="font-size:1.35rem;color:#fff;"></i>
+                </div>
+                <div>
+                    <h3 class="mb-0" style="font-size:1.25rem;font-weight:700;"><?php echo __instagram('settings.settings'); ?></h3>
+                    <p class="text-muted mb-0" style="font-size:0.85rem;"><?php echo __instagram('module.description'); ?></p>
+                </div>
             </div>
+            <a href="/{{ admin_path() }}/instagram" style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:#f8f9fa;border:1px solid #e9ecef;color:#6c757d;text-decoration:none;">
+                <i class="bi bi-arrow-left"></i>
+                <span><?php echo __instagram('common.back'); ?></span>
+            </a>
         </div>
 
         <form method="POST" action="/{{ admin_path() }}/instagram/settings">
             {!! csrf_field() !!}
             <div class="row">
                 <div class="col-lg-8">
-                    <!-- API Credentials -->
+                    <!-- Modo de funcionamiento -->
+                    @php $currentMode = $settings['instagram_mode'] ?? 'both'; @endphp
                     <div class="card mb-4">
                         <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-toggles"></i> Modo de funcionamiento</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="instagram_mode" id="mode_both" value="both" {{ $currentMode === 'both' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="mode_both">
+                                    <strong>Ambos (recomendado)</strong>
+                                    <small class="d-block text-muted">Feed completo con Graph API + insertar posts individuales con oEmbed</small>
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="instagram_mode" id="mode_graph" value="graph" {{ $currentMode === 'graph' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="mode_graph">
+                                    <strong>Solo Graph API</strong>
+                                    <small class="d-block text-muted">Feed de Instagram con diseño personalizado. Requiere credenciales de API.</small>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="instagram_mode" id="mode_oembed" value="oembed" {{ $currentMode === 'oembed' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="mode_oembed">
+                                    <strong>Solo oEmbed</strong>
+                                    <small class="d-block text-muted">Insertar posts públicos de Instagram sin configurar API. Diseño nativo de Instagram.</small>
+                                </label>
+                            </div>
+
+                            <div class="alert alert-light border mt-3 mb-0" style="font-size:0.85rem;">
+                                <strong>Shortcodes disponibles:</strong>
+                                <div class="mt-2">
+                                    <code>[instagram connection=1 layout="grid" columns=3 limit=12]</code>
+                                    <small class="text-muted ms-2">— Feed con Graph API</small>
+                                </div>
+                                <div class="mt-1">
+                                    <code>[instagram-post url="https://instagram.com/p/ABC123"]</code>
+                                    <small class="text-muted ms-2">— Post individual con oEmbed</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- API Credentials -->
+                    @php $hasCredentials = !empty($settings['instagram_app_id'] ?? ''); @endphp
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="bi bi-key"></i> <?php echo __instagram('settings.api_credentials'); ?></h5>
+                            @if($hasCredentials)
+                            <button type="button" class="btn btn-sm btn-outline-warning" id="btnUnlockApi">
+                                <i class="bi bi-unlock me-1"></i> Desbloquear para editar
+                            </button>
+                            @endif
                         </div>
                         <div class="card-body">
                             <div class="alert alert-info">
                                 <i class="bi bi-info-circle"></i>
-                                <strong>Configuracion de Instagram Basic Display API:</strong>
+                                <strong>Configuración de Instagram Basic Display API:</strong>
                                 <ol class="mb-0 mt-2">
                                     <li>Ve a <a href="https://developers.facebook.com/" target="_blank">Facebook Developers</a></li>
                                     <li>Crea una app y configura Instagram Basic Display</li>
-                                    <li>Copia el App ID y App Secret aqui</li>
-                                    <li>En "Valid OAuth Redirect URIs" anade: <code>{{ url('/' . admin_path() . '/instagram/callback') }}</code></li>
+                                    <li>Copia el App ID y App Secret aquí</li>
+                                    <li>En "Valid OAuth Redirect URIs" añade: <code>{{ url('/' . admin_path() . '/instagram/callback') }}</code></li>
                                 </ol>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label"><?php echo __instagram('settings.instagram_app_id'); ?></label>
-                                <input type="text" class="form-control" name="instagram_app_id"
-                                       value="<?php echo htmlspecialchars($settings['instagram_app_id'] ?? ''); ?>">
+                                <input type="text" class="form-control api-credential" name="instagram_app_id"
+                                       value="<?php echo htmlspecialchars($settings['instagram_app_id'] ?? ''); ?>"
+                                       {{ $hasCredentials ? 'disabled' : '' }}>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label"><?php echo __instagram('settings.instagram_app_secret'); ?></label>
-                                <input type="password" class="form-control" name="instagram_app_secret"
-                                       value="<?php echo htmlspecialchars($settings['instagram_app_secret'] ?? ''); ?>">
+                                <input type="password" class="form-control api-credential" name="instagram_app_secret"
+                                       value="<?php echo htmlspecialchars($settings['instagram_app_secret'] ?? ''); ?>"
+                                       {{ $hasCredentials ? 'disabled' : '' }}>
                             </div>
 
+                            @php
+                                $defaultRedirectUri = url('/' . admin_path() . '/instagram/callback');
+                                $redirectUriValue = !empty($settings['instagram_redirect_uri']) ? $settings['instagram_redirect_uri'] : $defaultRedirectUri;
+                            @endphp
                             <div class="mb-3">
                                 <label class="form-label"><?php echo __instagram('settings.instagram_redirect_uri'); ?></label>
-                                <input type="url" class="form-control" name="instagram_redirect_uri"
-                                       value="<?php echo htmlspecialchars($settings['instagram_redirect_uri'] ?? ''); ?>"
-                                       placeholder="{{ url('/' . admin_path() . '/instagram/callback') }}">
-                                <small class="form-text text-muted">Debe coincidir con la configurada en Facebook Developers</small>
+                                <div class="input-group">
+                                    <input type="url" class="form-control api-credential" name="instagram_redirect_uri" id="redirectUriInput"
+                                           value="{{ htmlspecialchars($redirectUriValue) }}"
+                                           {{ $hasCredentials ? 'disabled' : '' }}>
+                                    <button type="button" class="btn btn-outline-secondary" id="btnCopyUri" title="Copiar URI">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                                <small class="form-text text-muted">Copia esta URL e insértala en "Valid OAuth Redirect URIs" en Facebook Developers</small>
                             </div>
                         </div>
                     </div>
@@ -201,5 +264,31 @@
         });
         <?php unset($_SESSION['error']); ?>
     <?php endif; ?>
+
+    // Copiar Redirect URI
+    const copyBtn = document.getElementById('btnCopyUri');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+            const input = document.getElementById('redirectUriInput');
+            navigator.clipboard.writeText(input.value).then(() => {
+                this.innerHTML = '<i class="bi bi-check-lg text-success"></i>';
+                setTimeout(() => { this.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 2000);
+            });
+        });
+    }
+
+    // Desbloquear campos de API
+    const unlockBtn = document.getElementById('btnUnlockApi');
+    if (unlockBtn) {
+        unlockBtn.addEventListener('click', function() {
+            document.querySelectorAll('.api-credential').forEach(input => {
+                input.disabled = false;
+            });
+            this.innerHTML = '<i class="bi bi-lock-fill me-1"></i> Desbloqueado';
+            this.classList.remove('btn-outline-warning');
+            this.classList.add('btn-outline-success');
+            this.disabled = true;
+        });
+    }
 </script>
 @endpush

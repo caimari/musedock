@@ -530,6 +530,17 @@
           "label": "Mostrar buscador en el header",
           "default": false
         },
+        "header_search_mode": {
+          "type": "select",
+          "label": "Modo del buscador",
+          "default": "modal",
+          "options": {
+            "modal": "Modal overlay (se abre encima de la página)",
+            "page": "Página de búsqueda (redirige a /search)"
+          },
+          "depends_on": "header.header_search_enabled=1",
+          "description": "Elige si la lupa abre un modal o redirige a /search"
+        },
         "header_social_enabled": {
           "type": "toggle",
           "label": "Mostrar iconos de redes sociales en el header",

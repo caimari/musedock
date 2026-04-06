@@ -116,6 +116,40 @@ if ($pagePrefix !== '') {
 }
 
 // ============================================================================
+// REDIRECTS 301 PARA URLs LEGACY DE WORDPRESS
+// Patrones: /index.php/YYYY/MM/DD/slug, /YYYY/MM/DD/slug, /index.php/slug
+// Redirigen al slug actual si existe, o 404 si no.
+// IMPORTANTE: Deben estar ANTES de las rutas genéricas de slug
+// ============================================================================
+// /index.php/YYYY/MM/DD/slug o /index.php/slug o /index.php/tag/slug etc.
+Route::get('/index.php/{path:.*}', function ($path) {
+    $path = trim($path, '/');
+    // Eliminar segmentos de fecha (YYYY/MM/DD) del inicio si existen
+    $clean = preg_replace('#^\d{4}/\d{2}/\d{2}/#', '', $path);
+    $clean = preg_replace('#^\d{4}/\d{2}/#', '', $clean);
+    return \Screenart\Musedock\Services\SlugRouter::redirectLegacy($clean ?: '');
+})->name('legacy.indexphp');
+
+// /YYYY/MM/DD/slug (patrón fecha WordPress)
+Route::get('/{year}/{month}/{day}/{slug}', function ($year, $month, $day, $slug) {
+    if (preg_match('/^\d{4}$/', $year) && preg_match('/^\d{2}$/', $month) && preg_match('/^\d{2}$/', $day)) {
+        return \Screenart\Musedock\Services\SlugRouter::redirectLegacy($slug);
+    }
+    // Si no son fechas, dejar que lo procese como slug normal con prefijo
+    return \Screenart\Musedock\Services\SlugRouter::resolve($year, $month . '/' . $day . '/' . $slug);
+})->name('legacy.date-slug');
+
+// /YYYY/MM/slug (patrón fecha corto)
+Route::get('/{year}/{month}/{slug}', function ($year, $month, $slug) {
+    if (preg_match('/^\d{4}$/', $year) && preg_match('/^\d{2}$/', $month)) {
+        return \Screenart\Musedock\Services\SlugRouter::redirectLegacy($slug);
+    }
+    // Si no son fechas, resolver como slug normal
+    return \Screenart\Musedock\Services\SlugRouter::resolve($year, $month . '/' . $slug);
+})->name('legacy.month-slug');
+// ============================================================================
+
+// ============================================================================
 // RUTAS DE PAGINACIÓN CON URLs LIMPIAS (para HTML cache)
 // /blog/page/2 en lugar de /blog/?page=2
 // IMPORTANTE: Deben estar ANTES de las rutas genéricas de slug

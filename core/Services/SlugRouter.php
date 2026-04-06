@@ -110,12 +110,21 @@ class SlugRouter
         if (is_array($entry)) {
             $entry = (object) $entry;
         }
-        
+
         file_put_contents($logPath, "- Resultado encontrado: " . json_encode($entry) . "\n", FILE_APPEND);
+
+        // Redirect 301 si el slug resuelve a la página de inicio (evitar contenido duplicado)
+        if ($entry && $entry->module === 'pages') {
+            $homepageId = self::getHomepagePageId($tenantId);
+            if ($homepageId && (int)$entry->reference_id === $homepageId) {
+                file_put_contents($logPath, date('Y-m-d H:i:s') . " - 301 REDIRECT: slug de homepage '{$slug}' -> /\n", FILE_APPEND);
+                header('Location: /', true, 301);
+                exit;
+            }
+        }
 
         if (!$entry) {
             // === FALLBACK: Verificar si es una página legal por defecto ===
-            // Funciona con prefijo 'p' (páginas) o sin prefijo (URLs directas como /cookie-policy)
             $pagePrefix = function_exists('page_prefix') ? page_prefix() : 'p';
             if (($prefix === $pagePrefix || $prefix === null) && DefaultLegalPagesService::isLegalPageSlug($slug)) {
                 file_put_contents($logPath, date('Y-m-d H:i:s') . " - FALLBACK: Página legal por defecto - $slug\n", FILE_APPEND);
@@ -123,67 +132,18 @@ class SlugRouter
                 return $controller->showDefaultLegalPage($slug);
             }
 
-            http_response_code(404);
             file_put_contents($logPath, date('Y-m-d H:i:s') . " - 404 NOT FOUND: Renderizando página 404\n", FILE_APPEND);
-
-            // Limpiar cualquier buffer de output
-            while (ob_get_level() > 0) {
-                ob_end_clean();
-            }
-
-            // Asegurar headers correctos
-            if (!headers_sent()) {
-                header('Content-Type: text/html; charset=UTF-8');
-            }
-
-            // Intentar renderizar con Blade, con fallback a HTML directo
-            try {
-                $blade = new \Screenart\Musedock\BladeExtended(
-                    __DIR__ . '/../Views/errors',
-                    __DIR__ . '/../../storage/cache/errors',
-                    \Screenart\Musedock\BladeExtended::MODE_AUTO
-                );
-                echo $blade->run('404');
-            } catch (\Exception $e) {
-                file_put_contents($logPath, date('Y-m-d H:i:s') . " - ERROR BLADE 404: " . $e->getMessage() . "\n", FILE_APPEND);
-                // Fallback a HTML genérico si Blade falla
-                echo self::getGeneric404Html();
-            }
-            exit;
+            self::render404();
         }
-        
+
         $method = 'resolve_' . strtolower($entry->module);
         if (method_exists(__CLASS__, $method)) {
             return self::$method($entry->reference_id);
         }
 
-        // Módulo no soportado, mostrar 404
-        http_response_code(404);
-        file_put_contents($logPath, date('Y-m-d H:i:s') . " - 404 NOT FOUND: Módulo '{$entry->module}' no soportado - Renderizando página 404\n", FILE_APPEND);
-
-        // Limpiar cualquier buffer de output
-        while (ob_get_level() > 0) {
-            ob_end_clean();
-        }
-
-        // Asegurar headers correctos
-        if (!headers_sent()) {
-            header('Content-Type: text/html; charset=UTF-8');
-        }
-
-        // Intentar renderizar con Blade, con fallback a HTML directo
-        try {
-            $blade = new \Screenart\Musedock\BladeExtended(
-                __DIR__ . '/../Views/errors',
-                __DIR__ . '/../../storage/cache/errors',
-                \Screenart\Musedock\BladeExtended::MODE_AUTO
-            );
-            echo $blade->run('404');
-        } catch (\Exception $e) {
-            file_put_contents($logPath, date('Y-m-d H:i:s') . " - ERROR BLADE 404: " . $e->getMessage() . "\n", FILE_APPEND);
-            echo self::getGeneric404Html();
-        }
-        exit;
+        // Módulo no soportado
+        file_put_contents($logPath, date('Y-m-d H:i:s') . " - 404 NOT FOUND: Módulo '{$entry->module}' no soportado\n", FILE_APPEND);
+        self::render404();
     }
 
     /**
@@ -309,5 +269,168 @@ HTML;
     {
         $controller = new \Blog\Controllers\Frontend\BlogController();
         return $controller->showById($id);
+    }
+
+    /**
+     * Obtiene el page_id de la página de inicio.
+     */
+    private static function getHomepagePageId(?int $tenantId): ?int
+    {
+        try {
+            $pdo = \Screenart\Musedock\Database::connect();
+
+            if ($tenantId) {
+                $stmt = $pdo->prepare("SELECT value FROM tenant_settings WHERE tenant_id = ? AND \"key\" = 'show_on_front'");
+                $stmt->execute([$tenantId]);
+                $showOnFront = $stmt->fetchColumn();
+
+                if ($showOnFront === 'page') {
+                    $stmt = $pdo->prepare("SELECT value FROM tenant_settings WHERE tenant_id = ? AND \"key\" = 'page_on_front'");
+                    $stmt->execute([$tenantId]);
+                    $pageOnFront = $stmt->fetchColumn();
+                    if ($pageOnFront && is_numeric($pageOnFront)) {
+                        return (int)$pageOnFront;
+                    }
+                }
+
+                $stmt = $pdo->prepare("SELECT id FROM pages WHERE is_homepage = 1 AND status = 'published' AND tenant_id = ? LIMIT 1");
+                $stmt->execute([$tenantId]);
+            } else {
+                $showOnFront = function_exists('setting') ? setting('show_on_front', 'posts') : 'posts';
+                if ($showOnFront === 'page') {
+                    $pageOnFront = function_exists('setting') ? setting('page_on_front', '') : '';
+                    if ($pageOnFront && is_numeric($pageOnFront)) {
+                        return (int)$pageOnFront;
+                    }
+                }
+                $stmt = $pdo->prepare("SELECT id FROM pages WHERE is_homepage = 1 AND status = 'published' AND tenant_id IS NULL LIMIT 1");
+                $stmt->execute();
+            }
+
+            $id = $stmt->fetchColumn();
+            return $id ? (int)$id : null;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Redirect 301 para URLs legacy de WordPress.
+     * Patrones soportados:
+     *   /index.php/YYYY/MM/DD/slug       -> /[prefix/]slug
+     *   /YYYY/MM/DD/slug                 -> /[prefix/]slug
+     *   /index.php/slug                  -> /[prefix/]slug
+     *   /index.php/tag/slug              -> /[blog_prefix/]tag/slug
+     *   /index.php/category/slug         -> /[blog_prefix/]category/slug
+     *   /YYYY/MM/slug                    -> /[prefix/]slug
+     *
+     * Si el slug existe, redirige 301 a la URL actual correcta.
+     * Si no existe, devuelve 404.
+     *
+     * @param string $path Path completo después de /index.php/ o tras la fecha
+     */
+    public static function redirectLegacy(string $path): void
+    {
+        $path = trim($path, '/');
+        if ($path === '') {
+            header('Location: /', true, 301);
+            exit;
+        }
+
+        $segments = explode('/', $path);
+        $tenantId = TenantManager::currentTenantId();
+        $pdo = \Screenart\Musedock\Database::connect();
+
+        // Obtener blog_prefix del tenant para construir URLs de tag/category
+        $blogPrefix = function_exists('blog_prefix') ? blog_prefix() : 'blog';
+
+        // --- Detectar tag/slug o category/slug ---
+        if (count($segments) >= 2 && ($segments[0] === 'tag' || $segments[0] === 'category')) {
+            $type = $segments[0]; // 'tag' o 'category'
+            $slug = $segments[1];
+            $table = ($type === 'tag') ? 'blog_tags' : 'blog_categories';
+
+            $sql = "SELECT slug FROM {$table} WHERE slug = :slug";
+            $params = [':slug' => $slug];
+            if ($tenantId !== null) {
+                $sql .= " AND tenant_id = :tid";
+                $params[':tid'] = $tenantId;
+            } else {
+                $sql .= " AND tenant_id IS NULL";
+            }
+            $sql .= " LIMIT 1";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            $entry = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($entry) {
+                $newUrl = $blogPrefix !== '' ? "/{$blogPrefix}/{$type}/{$slug}" : "/{$type}/{$slug}";
+                header('Location: ' . $newUrl, true, 301);
+                exit;
+            }
+
+            // Tag/category no encontrado — 404
+            self::render404();
+            return;
+        }
+
+        // --- Filtrar segmentos de fecha (YYYY, MM, DD numéricos) y quedarse con el slug ---
+        $slug = end($segments);
+
+        // Buscar el slug en la tabla slugs (posts/pages)
+        $sql = "SELECT slug, prefix, module FROM slugs WHERE slug = :slug";
+        $params = [':slug' => $slug];
+
+        if ($tenantId !== null) {
+            $sql .= " AND tenant_id = :tid";
+            $params[':tid'] = $tenantId;
+        } else {
+            $sql .= " AND tenant_id IS NULL";
+        }
+        $sql .= " LIMIT 1";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $entry = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($entry) {
+            $newUrl = '/';
+            if (!empty($entry['prefix'])) {
+                $newUrl .= $entry['prefix'] . '/';
+            }
+            $newUrl .= $entry['slug'];
+
+            header('Location: ' . $newUrl, true, 301);
+            exit;
+        }
+
+        // Slug no encontrado — 404
+        self::render404();
+    }
+
+    /**
+     * Renderiza la página 404 y termina la ejecución.
+     */
+    private static function render404(): void
+    {
+        http_response_code(404);
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        if (!headers_sent()) {
+            header('Content-Type: text/html; charset=UTF-8');
+        }
+        try {
+            $blade = new \Screenart\Musedock\BladeExtended(
+                __DIR__ . '/../Views/errors',
+                __DIR__ . '/../../storage/cache/errors',
+                \Screenart\Musedock\BladeExtended::MODE_AUTO
+            );
+            echo $blade->run('404');
+        } catch (\Exception $e) {
+            echo self::getGeneric404Html();
+        }
+        exit;
     }
 }

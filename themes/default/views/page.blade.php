@@ -222,7 +222,7 @@
     {!! $fullWidthSliderHtml !!}
 @endif
 
-<div class="{{ isset($post) ? 'container py-4' : ((isset($customizations) ? $customizations->container_class : null) ?? 'container py-4 page-container') }} has-slider-content">
+<div class="{{ isset($post) ? 'container py-4' : ((isset($customizations) ? $customizations->container_class : null) ?? 'container pb-4 page-container') }} has-slider-content">
     <article class="{{ isset($post) ? 'blog-post-single' : ((isset($customizations) ? $customizations->content_class : null) ?? 'page-content-wrapper') }}">
         @if(isset($post))
             {{-- Es un post de blog - mostrar imagen destacada si no está oculta --}}
@@ -260,7 +260,7 @@
             {{-- Es una página --}}
             {{-- Mostrar el título H1 solo si NO está oculto mediante hide_title Y no es la página de inicio --}}
             @if(isset($customizations) && !$customizations->hide_title && isset($page) && !$page->is_homepage)
-                <h1 class="page-title">{{ $translation->title ?? '' }}</h1>
+                <h1 class="page-title" style="font-size:1.6rem; padding-bottom:0.6rem; margin-top:0; margin-bottom:1.5rem; border-bottom:2px solid var(--header-link-hover-color, #2563eb); display:inline-block;">{{ $translation->title ?? '' }}</h1>
             @endif
 
             {{-- Renderizar el contenido HTML con filtros aplicados (shortcodes, etc.) --}}

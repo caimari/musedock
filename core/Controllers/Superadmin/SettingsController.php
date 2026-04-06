@@ -412,6 +412,9 @@ class SettingsController
      */
     public function cmsUpdateStatus()
     {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.edit');
+
         while (ob_get_level() > 0) ob_get_clean();
         header('Content-Type: application/json; charset=utf-8');
 

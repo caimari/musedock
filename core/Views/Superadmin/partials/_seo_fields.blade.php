@@ -2,11 +2,16 @@
 <div class="card mb-4">
   <div class="card-header d-flex justify-content-between align-items-center">
     <strong>Optimización para Motores de Búsqueda (SEO) - Opcional</strong>
-    <button type="button" class="btn btn-sm btn-outline-primary" id="btn-ai-seo" title="Generar campos SEO con IA">
-      <i class="bi bi-magic"></i> Generar con IA
-    </button>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-sm btn-outline-primary" id="btn-ai-seo" title="Generar campos SEO con IA">
+        <i class="bi bi-magic"></i> Generar con IA
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-secondary seo-lock-toggle" data-target="#seo-card-body" title="Bloquear/desbloquear campos">
+        <i class="bi bi-unlock"></i>
+      </button>
+    </div>
   </div>
-  <div class="card-body">
+  <div class="card-body" id="seo-card-body">
     <p class="text-muted small mb-3">Define cómo quieres que esta página aparezca en los resultados de búsqueda y redes sociales.</p>
 
     {{-- SEO Title --}}
@@ -61,10 +66,13 @@
 
 {{-- Card para X (Twitter) Cards --}}
 <div class="card mb-4">
-  <div class="card-header">
+  <div class="card-header d-flex justify-content-between align-items-center">
     <strong>Tarjetas de X / Twitter (Opcional)</strong>
+    <button type="button" class="btn btn-sm btn-outline-secondary seo-lock-toggle" data-target="#twitter-card-body" title="Bloquear/desbloquear campos">
+      <i class="bi bi-unlock"></i>
+    </button>
   </div>
-  <div class="card-body">
+  <div class="card-body" id="twitter-card-body">
     <p class="text-muted small mb-3">Personaliza cómo se muestra esta página cuando se comparte en X (antes Twitter). Estos datos son específicos para X y usan el formato "Twitter Cards".</p>
 
     {{-- Twitter Title --}}
@@ -153,6 +161,54 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 1000);
     }
+
+    // --- Lock/Unlock toggle for SEO cards ---
+    document.querySelectorAll('.seo-lock-toggle').forEach(function(btn) {
+        const targetSelector = btn.getAttribute('data-target');
+        const cardBody = document.querySelector(targetSelector);
+        if (!cardBody) return;
+
+        let locked = true;
+        setLockState(true);
+
+        btn.addEventListener('click', function() {
+            locked = !locked;
+            setLockState(locked);
+        });
+
+        function setLockState(isLocked) {
+            const icon = btn.querySelector('i');
+            if (isLocked) {
+                icon.className = 'bi bi-lock';
+                btn.classList.remove('btn-outline-secondary');
+                btn.classList.add('btn-outline-warning');
+                cardBody.querySelectorAll('input, textarea').forEach(function(el) {
+                    el.setAttribute('readonly', '');
+                    el.setAttribute('tabindex', '-1');
+                });
+                cardBody.querySelectorAll('select').forEach(function(el) {
+                    el.setAttribute('data-seo-locked', '1');
+                    el.style.pointerEvents = 'none';
+                    el.style.opacity = '0.6';
+                });
+                cardBody.style.opacity = '0.6';
+            } else {
+                icon.className = 'bi bi-unlock';
+                btn.classList.remove('btn-outline-warning');
+                btn.classList.add('btn-outline-secondary');
+                cardBody.querySelectorAll('input, textarea').forEach(function(el) {
+                    el.removeAttribute('readonly');
+                    el.removeAttribute('tabindex');
+                });
+                cardBody.querySelectorAll('select').forEach(function(el) {
+                    el.removeAttribute('data-seo-locked');
+                    el.style.pointerEvents = '';
+                    el.style.opacity = '';
+                });
+                cardBody.style.opacity = '1';
+            }
+        }
+    });
 
     // --- AI SEO Generation ---
     const btnAiSeo = document.getElementById('btn-ai-seo');
@@ -256,6 +312,8 @@ IMPORTANTE: Responde SOLO el JSON, sin bloques de código, sin explicaciones. El
             }
 
             if (shouldFill) {
+                // Unlock all SEO cards before filling
+                document.querySelectorAll('.seo-lock-toggle').forEach(function(b) { if (b.querySelector('.bi-lock')) b.click(); });
                 if (seoData.seo_title) document.getElementById('seo_title').value = seoData.seo_title;
                 if (seoData.seo_description) document.getElementById('seo_description').value = seoData.seo_description;
                 if (seoData.seo_keywords) document.getElementById('seo_keywords').value = seoData.seo_keywords;

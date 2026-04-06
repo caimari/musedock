@@ -2,29 +2,82 @@
 
 @section('title', $title ?? 'Plugin Store')
 
+@push('styles')
+<style>
+.store-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+.store-stats {
+    display: flex;
+    gap: 1rem;
+}
+.stat-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+.stat-badge i {
+    font-size: 0.9rem;
+}
+</style>
+@endpush
+
 @section('content')
-<div class="container-fluid py-4">
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="h3 mb-0">
-                        <i class="bi bi-shop me-2"></i>
-                        Plugin Store
-                    </h1>
-                    <p class="text-muted mb-0">Plugins y modulos premium disponibles</p>
-                </div>
-                <a href="{{ admin_url('plugins') }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-arrow-left me-1"></i>Volver a Plugins
-                </a>
+<div class="container-fluid">
+    @php
+        $installedCount = 0;
+        foreach ($catalog as $p) { if (!empty($p['is_installed'])) $installedCount++; }
+        $totalCount = count($catalog);
+    @endphp
+
+    <div class="store-header">
+        <div class="d-flex align-items-center gap-3">
+            <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="bi bi-shop" style="font-size:1.35rem;color:#fff;"></i>
             </div>
+            <div>
+                <h3 class="mb-0" style="font-size:1.25rem;font-weight:700;">Plugin Store</h3>
+                <p class="text-muted mb-0" style="font-size:0.85rem;">Descubre plugins y módulos para ampliar tu sitio</p>
+            </div>
+        </div>
+        <div class="store-stats">
+            <div class="stat-badge" style="background:rgba(25,135,84,0.1);border-color:rgba(25,135,84,0.2);color:#198754;">
+                <i class="bi bi-check-circle-fill"></i>
+                <span>{{ $installedCount }} instalados</span>
+            </div>
+            <div class="stat-badge">
+                <i class="bi bi-box-seam"></i>
+                <span>{{ $totalCount }} disponibles</span>
+            </div>
+            <a href="{{ admin_url('modules') }}" class="stat-badge" style="text-decoration:none;color:#6366f1;border-color:rgba(99,102,241,0.2);background:rgba(99,102,241,0.08);transition:all 0.15s ease;">
+                <i class="bi bi-arrow-left"></i>
+                <span>Módulos</span>
+            </a>
         </div>
     </div>
 
     @if(empty($catalog))
-    <div class="alert alert-info">
-        <i class="bi bi-info-circle me-2"></i>
-        No hay productos disponibles en este momento.
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,#e0e7ff,#c7d2fe);display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
+                <i class="bi bi-shop" style="font-size:1.75rem;color:#6366f1;"></i>
+            </div>
+            <h5 class="mb-2">No hay productos disponibles</h5>
+            <p class="text-muted mb-3" style="max-width:400px;margin:0 auto;">El catálogo de plugins y módulos premium se actualizará próximamente. Vuelve más tarde para ver las novedades.</p>
+            <a href="{{ admin_url('modules') }}" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.5rem 1.25rem;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;text-decoration:none;font-size:0.85rem;font-weight:500;transition:opacity 0.15s ease;"
+               onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                <i class="bi bi-puzzle"></i>
+                Gestionar Módulos
+            </a>
+        </div>
     </div>
     @else
     <div class="row g-4">

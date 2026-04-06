@@ -604,6 +604,12 @@ Route::post('/musedock/modules/upload', 'superadmin.ModuleController@upload')
 Route::post('/musedock/modules/run-migrations', 'superadmin.ModuleController@runMigrations')
     ->name('modules.runMigrations')->middleware('superadmin');
 
+Route::post('/musedock/modules/toggle-dashboard', 'superadmin.ModuleController@toggleDashboard')
+    ->name('modules.toggleDashboard')->middleware('superadmin');
+
+Route::post('/musedock/modules/toggle-tenant-default', 'superadmin.ModuleController@toggleTenantDefault')
+    ->name('modules.toggleTenantDefault')->middleware('superadmin');
+
 Route::get('/musedock/modules/{slug}', 'superadmin.ModuleController@show')
     ->name('modules.show')->middleware('superadmin');
 
@@ -734,6 +740,9 @@ Route::post('/musedock/plugins/upload', 'superadmin.PluginsController@upload')
 
 Route::post('/musedock/plugins/scan', 'superadmin.PluginsController@scan')
     ->name('superadmin.plugins.scan')->middleware('superadmin');
+
+Route::post('/musedock/plugins/{id}/toggle-dashboard', 'superadmin.PluginsController@toggleDashboard')
+    ->name('superadmin.plugins.toggleDashboard')->middleware('superadmin');
 
 // ============================================
 // LANGUAGE SWITCHER

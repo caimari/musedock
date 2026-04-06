@@ -69,6 +69,10 @@
   },
   "settings": {
     "settings": "Settings",
+    "mode": "Operating Mode",
+    "mode_both": "Both (Graph API + oEmbed)",
+    "mode_graph": "Graph API Only",
+    "mode_oembed": "oEmbed Only",
     "api_credentials": "API Credentials",
     "instagram_app_id": "Instagram App ID",
     "instagram_app_secret": "Instagram App Secret",
@@ -94,6 +98,22 @@
     "image_aspect_ratio": "Image Aspect Ratio",
     "settings_saved": "Settings saved successfully",
     "settings_error": "Error saving settings"
+  },
+  "oembed": {
+    "title": "Embed Instagram Post",
+    "description": "Embed a public Instagram post using its URL. No API configuration needed.",
+    "url_label": "Instagram Post URL",
+    "url_placeholder": "https://www.instagram.com/p/ABC123/",
+    "shortcode_info": "Use the shortcode [instagram-post url=\"...\"] in your content",
+    "no_api_needed": "No API needed — works with any public post"
+  },
+  "widget": {
+    "title": "Instagram Feed",
+    "description": "Display an Instagram feed or a single embedded post",
+    "mode_feed": "Instagram Feed",
+    "mode_feed_desc": "Show posts from your connected account (requires API)",
+    "mode_oembed": "Single Post",
+    "mode_oembed_desc": "Embed a public post by URL (no API)"
   },
   "layout": {
     "grid": "Grid",

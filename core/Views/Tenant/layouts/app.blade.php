@@ -27,29 +27,29 @@
 
       /* Sidebar Base */
       nav#sidebar.sidebar {
-          position: relative !important; 
-          z-index: 1 !important; 
-          overflow-y: auto !important; 
-          overflow-x: hidden !important; 
-          flex-shrink: 0 !important; 
-          display: flex; 
+          position: relative !important;
+          z-index: 1 !important;
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
+          flex-shrink: 0 !important;
+          display: flex;
           flex-direction: column;
           transition: width 0.25s ease-in-out, min-width 0.25s ease-in-out, padding 0.25s ease-in-out, margin 0.25s ease-in-out;
-          height: auto !important; 
-          min-height: 100vh; 
-          background: #222e3c !important; 
+          height: auto !important;
+          min-height: 100vh;
+          background: #222e3c !important;
           color: #dee2e6 !important;
       }
-      
-      nav#sidebar.sidebar .sidebar-content { 
-          display: flex; 
-          flex-direction: column; 
-          flex-grow: 1; 
-          min-height: 100%; 
-          height: auto; 
-          overflow: visible !important; 
-          opacity: 1; 
-          transition: opacity 0.2s ease-in-out; 
+
+      nav#sidebar.sidebar .sidebar-content {
+          display: flex;
+          flex-direction: column;
+          flex-grow: 1;
+          min-height: 100%;
+          height: auto;
+          overflow: visible !important;
+          opacity: 1;
+          transition: opacity 0.2s ease-in-out;
       }
 
       /* Sidebar Expandido */
@@ -760,6 +760,10 @@ function generate_id($prefix = 'menu-') {
                             <span class="text-dark" id="header-user-name">{{ $userName }}</span>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end">
+                            <a class="dropdown-item" href="/" target="_blank">
+                                <i class="align-middle me-1" data-feather="external-link"></i> Visitar sitio
+                            </a>
+                            <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="{{ admin_url('/profile') }}">
                                 <i class="align-middle me-1" data-feather="user"></i> Perfil
                             </a>
@@ -900,6 +904,20 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof feather !== 'undefined') {
         try { feather.replace(); } catch (e) { console.error("Feather icon error:", e); }
     }
+
+    // Auto-scroll: centrar la página en el item activo del sidebar
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            const allActive = document.querySelectorAll('#sidebar .sidebar-item.active');
+            if (!allActive.length) return;
+            const el = allActive[allActive.length - 1];
+            const rect = el.getBoundingClientRect();
+            if (rect.top > window.innerHeight * 0.6 || rect.top < 0) {
+                const targetY = window.scrollY + rect.top - (window.innerHeight * 0.3);
+                window.scrollTo({ top: Math.max(0, targetY), behavior: 'auto' });
+            }
+        }, 50);
+    });
 
     const sidebarToggler = document.querySelector('.js-sidebar-toggle');
     const sidebar = document.getElementById('sidebar');

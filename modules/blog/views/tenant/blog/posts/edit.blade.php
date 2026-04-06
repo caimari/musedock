@@ -303,6 +303,7 @@
                 <select class="form-select" id="post_type" name="post_type">
                   <option value="post" {{ $__postType === 'post' ? 'selected' : '' }}>{{ __('blog.post.type_post') }}</option>
                   <option value="brief" {{ $__postType === 'brief' ? 'selected' : '' }}>{{ __('blog.post.type_brief') }}</option>
+                  <option value="docs" {{ $__postType === 'docs' ? 'selected' : '' }}>Documentación</option>
                 </select>
               </div>
 

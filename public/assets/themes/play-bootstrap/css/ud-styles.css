@@ -236,12 +236,20 @@ body {
   padding: 5px 0;
   border-radius: 5px;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
   -webkit-transition: all 0.3s ease-out 0s;
   transition: all 0.3s ease-out 0s;
 }
 
 .navbar-brand {
   padding: 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
 }
 
 @media only screen and (min-width: 768px) and (max-width: 991px), (max-width: 767px) {
@@ -252,10 +260,40 @@ body {
 
 .navbar-brand img {
   max-width: 160px;
+  height: auto;
+}
+
+@media only screen and (max-width: 991px) {
+  .navbar-brand img {
+    max-width: 140px;
+    max-height: 38px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+}
+
+@media only screen and (max-width: 575px) {
+  .navbar-brand img {
+    max-width: 120px;
+    max-height: 32px;
+  }
 }
 
 .navbar-toggler {
   padding: 0;
+  border: none;
+  background: none;
+  display: none;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+@media only screen and (max-width: 991px) {
+  .navbar-toggler {
+    display: block;
+    order: 3;
+  }
 }
 
 .navbar-toggler .toggler-icon {
@@ -293,6 +331,7 @@ body {
 .navbar-collapse {
   display: flex !important;
   flex-basis: auto;
+  flex-grow: 1;
   align-items: center;
 }
 
@@ -304,7 +343,7 @@ body {
   list-style: none;
 }
 
-@media only screen and (min-width: 768px) and (max-width: 991px), (max-width: 767px) {
+@media only screen and (max-width: 991px) {
   .navbar-collapse {
     position: absolute;
     top: 100%;
@@ -500,13 +539,15 @@ body {
   }
 }
 
-@media only screen and (min-width: 768px) and (max-width: 991px), (max-width: 767px) {
+.navbar-btn {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+@media only screen and (max-width: 991px) {
   .navbar-btn {
-    position: absolute;
-    top: 50%;
-    right: 50px;
-    -webkit-transform: translateY(-50%);
-    transform: translateY(-50%);
+    display: none !important;
   }
 }
 
@@ -674,6 +715,26 @@ body {
   color: #ffffff;
 }
 
+/* ===== Header Search Toggle ===== */
+.header-search-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  margin-right: 10px;
+  color: var(--header-link-color, #fff);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  vertical-align: middle;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.header-search-toggle:hover {
+  color: var(--header-link-hover-color, rgba(255,255,255,0.7));
+}
+
 /* ===== Navbar Brand Text ===== */
 .navbar-brand-text {
   color: var(--header-logo-text-color, #ffffff);
@@ -681,6 +742,13 @@ body {
   font-weight: 700;
   font-size: 22px;
   margin-left: 8px;
+}
+
+@media only screen and (max-width: 767px) {
+  .navbar-brand-text {
+    font-size: 17px;
+    margin-left: 6px;
+  }
 }
 
 /* ===== Submenú Acordeón Móvil ===== */

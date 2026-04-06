@@ -77,13 +77,17 @@
                 $__excerpt = trim(preg_replace('/\s+/', ' ', $__excerpt));
                 $__excerpt = mb_strlen($__excerpt) > 250 ? mb_substr($__excerpt, 0, 250) . '...' : $__excerpt;
 
-                // Categorías para overlay
+                // Categorías para overlay (max 3, aleatorias si hay más)
                 $__featCats = [];
                 if ($__newspaperOverlay && !empty($featured->id)) {
                     $__pdo = $__pdo ?? \Screenart\Musedock\Database::connect();
                     $__catStmt = $__pdo->prepare("SELECT c.name, c.slug FROM blog_categories c INNER JOIN blog_post_categories pc ON pc.category_id = c.id WHERE pc.post_id = ?");
                     $__catStmt->execute([$featured->id]);
                     $__featCats = $__catStmt->fetchAll(\PDO::FETCH_OBJ);
+                    if (count($__featCats) > 3) {
+                        shuffle($__featCats);
+                        $__featCats = array_slice($__featCats, 0, 3);
+                    }
                 }
             @endphp
             <article class="newspaper-featured {{ $__newspaperOverlay ? 'newspaper-overlay' : '' }}">
@@ -173,13 +177,17 @@
                         }
                     }
 
-                    // Categorías para overlay lateral
+                    // Categorías para overlay lateral (max 3, aleatorias si hay más)
                     $__sideCats = [];
                     if ($__newspaperOverlay && !empty($sidePost->id)) {
                         $__pdo = $__pdo ?? \Screenart\Musedock\Database::connect();
                         $__catStmt = $__pdo->prepare("SELECT c.name, c.slug FROM blog_categories c INNER JOIN blog_post_categories pc ON pc.category_id = c.id WHERE pc.post_id = ?");
                         $__catStmt->execute([$sidePost->id]);
                         $__sideCats = $__catStmt->fetchAll(\PDO::FETCH_OBJ);
+                        if (count($__sideCats) > 3) {
+                            shuffle($__sideCats);
+                            $__sideCats = array_slice($__sideCats, 0, 3);
+                        }
                     }
                 @endphp
                 <article class="newspaper-side mb-3 flex-fill {{ $__newspaperOverlay ? 'newspaper-overlay' : '' }}">
@@ -359,8 +367,10 @@
 }
 .newspaper-overlay-cats {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 6px;
+    overflow: hidden;
+    max-width: 100%;
 }
 .newspaper-overlay-cat {
     display: inline-block;
@@ -371,6 +381,8 @@
     font-size: 0.75rem;
     font-weight: 500;
     letter-spacing: 0.02em;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 .newspaper-featured.newspaper-overlay .newspaper-overlay-content h2 {
     color: #fff;

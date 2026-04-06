@@ -12,6 +12,20 @@
 @php
   $__cats = !empty($post->categories) ? (array)$post->categories : [];
   $__tags = !empty($post->tags)       ? (array)$post->tags       : [];
+
+  // Limit: max 3 total chips (random selection if more)
+  $__maxChips = $__maxChips ?? 3;
+  $__allChips = array_merge(
+      array_map(fn($c) => (object)['type' => 'cat', 'item' => $c], $__cats),
+      array_map(fn($t) => (object)['type' => 'tag', 'item' => $t], $__tags)
+  );
+  if (count($__allChips) > $__maxChips) {
+      shuffle($__allChips);
+      $__allChips = array_slice($__allChips, 0, $__maxChips);
+  }
+  $__cats = array_map(fn($c) => $c->item, array_filter($__allChips, fn($c) => $c->type === 'cat'));
+  $__tags = array_map(fn($c) => $c->item, array_filter($__allChips, fn($c) => $c->type === 'tag'));
+
   $__hasTaxonomy = !empty($__cats) || !empty($__tags);
 @endphp
 @if($__hasTaxonomy)
@@ -60,9 +74,11 @@
 <style>
 .post-taxonomy-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
   margin-bottom: 8px;
+  overflow: hidden;
+  max-width: 100%;
 }
 .tx-chip {
   display: inline-block;

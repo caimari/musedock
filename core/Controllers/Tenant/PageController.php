@@ -1760,6 +1760,7 @@ class PageController
      */
     public function editorStylesCss()
     {
+        // No requiere checkPermission — es un recurso CSS cargado por TinyMCE
         header('Content-Type: text/css; charset=utf-8');
         header('Cache-Control: public, max-age=3600');
 

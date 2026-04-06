@@ -58,23 +58,23 @@ class RolesAndPermissionsSeeder
             ['slug' => 'languages.manage', 'name' => 'Gestionar idiomas', 'description' => 'Agregar, editar y configurar idiomas disponibles en el sitio', 'category' => 'Configuración', 'scope' => 'tenant'],
 
             // Blog - Posts
-            ['slug' => 'blog.view', 'name' => 'Ver Blog', 'description' => 'Ver y listar publicaciones del blog', 'category' => 'Blog', 'scope' => 'global'],
-            ['slug' => 'blog.create', 'name' => 'Crear Blog', 'description' => 'Crear nuevas publicaciones en el blog', 'category' => 'Blog', 'scope' => 'global'],
-            ['slug' => 'blog.edit', 'name' => 'Editar Blog', 'description' => 'Editar publicaciones propias del blog', 'category' => 'Blog', 'scope' => 'global'],
-            ['slug' => 'blog.edit.all', 'name' => 'Editar todos los posts', 'description' => 'Editar cualquier publicación del blog, incluyendo las de otros autores', 'category' => 'Blog', 'scope' => 'global'],
-            ['slug' => 'blog.delete', 'name' => 'Eliminar Blog', 'description' => 'Eliminar publicaciones del blog', 'category' => 'Blog', 'scope' => 'global'],
+            ['slug' => 'blog.view', 'name' => 'Ver Blog', 'description' => 'Ver y listar publicaciones del blog', 'category' => 'Blog', 'scope' => 'tenant'],
+            ['slug' => 'blog.create', 'name' => 'Crear Blog', 'description' => 'Crear nuevas publicaciones en el blog', 'category' => 'Blog', 'scope' => 'tenant'],
+            ['slug' => 'blog.edit', 'name' => 'Editar Blog', 'description' => 'Editar publicaciones propias del blog', 'category' => 'Blog', 'scope' => 'tenant'],
+            ['slug' => 'blog.edit.all', 'name' => 'Editar todos los posts', 'description' => 'Editar cualquier publicación del blog, incluyendo las de otros autores', 'category' => 'Blog', 'scope' => 'tenant'],
+            ['slug' => 'blog.delete', 'name' => 'Eliminar Blog', 'description' => 'Eliminar publicaciones del blog', 'category' => 'Blog', 'scope' => 'tenant'],
 
             // Blog - Categorías
-            ['slug' => 'blog.categories.view', 'name' => 'Ver categorías de blog', 'description' => 'Ver y listar categorías del blog', 'category' => 'Blog', 'scope' => 'global'],
-            ['slug' => 'blog.categories.create', 'name' => 'Crear categorías de blog', 'description' => 'Crear nuevas categorías para organizar posts del blog', 'category' => 'Blog', 'scope' => 'global'],
-            ['slug' => 'blog.categories.edit', 'name' => 'Editar categorías de blog', 'description' => 'Editar categorías existentes del blog', 'category' => 'Blog', 'scope' => 'global'],
-            ['slug' => 'blog.categories.delete', 'name' => 'Eliminar categorías de blog', 'description' => 'Eliminar categorías del blog', 'category' => 'Blog', 'scope' => 'global'],
+            ['slug' => 'blog.categories.view', 'name' => 'Ver categorías de blog', 'description' => 'Ver y listar categorías del blog', 'category' => 'Blog', 'scope' => 'tenant'],
+            ['slug' => 'blog.categories.create', 'name' => 'Crear categorías de blog', 'description' => 'Crear nuevas categorías para organizar posts del blog', 'category' => 'Blog', 'scope' => 'tenant'],
+            ['slug' => 'blog.categories.edit', 'name' => 'Editar categorías de blog', 'description' => 'Editar categorías existentes del blog', 'category' => 'Blog', 'scope' => 'tenant'],
+            ['slug' => 'blog.categories.delete', 'name' => 'Eliminar categorías de blog', 'description' => 'Eliminar categorías del blog', 'category' => 'Blog', 'scope' => 'tenant'],
 
             // Blog - Etiquetas
-            ['slug' => 'blog.tags.view', 'name' => 'Ver etiquetas de blog', 'description' => 'Ver y listar etiquetas del blog', 'category' => 'Blog', 'scope' => 'global'],
-            ['slug' => 'blog.tags.create', 'name' => 'Crear etiquetas de blog', 'description' => 'Crear nuevas etiquetas para posts del blog', 'category' => 'Blog', 'scope' => 'global'],
-            ['slug' => 'blog.tags.edit', 'name' => 'Editar etiquetas de blog', 'description' => 'Editar etiquetas existentes del blog', 'category' => 'Blog', 'scope' => 'global'],
-            ['slug' => 'blog.tags.delete', 'name' => 'Eliminar etiquetas de blog', 'description' => 'Eliminar etiquetas del blog', 'category' => 'Blog', 'scope' => 'global'],
+            ['slug' => 'blog.tags.view', 'name' => 'Ver etiquetas de blog', 'description' => 'Ver y listar etiquetas del blog', 'category' => 'Blog', 'scope' => 'tenant'],
+            ['slug' => 'blog.tags.create', 'name' => 'Crear etiquetas de blog', 'description' => 'Crear nuevas etiquetas para posts del blog', 'category' => 'Blog', 'scope' => 'tenant'],
+            ['slug' => 'blog.tags.edit', 'name' => 'Editar etiquetas de blog', 'description' => 'Editar etiquetas existentes del blog', 'category' => 'Blog', 'scope' => 'tenant'],
+            ['slug' => 'blog.tags.delete', 'name' => 'Eliminar etiquetas de blog', 'description' => 'Eliminar etiquetas del blog', 'category' => 'Blog', 'scope' => 'tenant'],
 
             // Instagram Feed
             ['slug' => 'instagram.view', 'name' => 'Ver Instagram Feed', 'description' => 'Ver configuración del feed de Instagram', 'category' => 'Instagram', 'scope' => 'tenant'],
@@ -84,39 +84,39 @@ class RolesAndPermissionsSeeder
             ['slug' => 'instagram.settings', 'name' => 'Ajustes de Instagram', 'description' => 'Configurar ajustes avanzados del módulo Instagram', 'category' => 'Instagram', 'scope' => 'tenant'],
 
             // Custom Forms
-            ['slug' => 'custom_forms.view', 'name' => 'Ver formularios', 'description' => 'Ver y listar formularios personalizados', 'category' => 'Formularios', 'scope' => 'global'],
-            ['slug' => 'custom_forms.create', 'name' => 'Crear formularios', 'description' => 'Crear nuevos formularios personalizados con campos dinámicos', 'category' => 'Formularios', 'scope' => 'global'],
-            ['slug' => 'custom_forms.edit', 'name' => 'Editar formularios', 'description' => 'Editar estructura y configuración de formularios existentes', 'category' => 'Formularios', 'scope' => 'global'],
-            ['slug' => 'custom_forms.delete', 'name' => 'Eliminar formularios', 'description' => 'Eliminar formularios personalizados y sus datos', 'category' => 'Formularios', 'scope' => 'global'],
-            ['slug' => 'custom_forms.submissions.view', 'name' => 'Ver envíos', 'description' => 'Ver los envíos recibidos de formularios personalizados', 'category' => 'Formularios', 'scope' => 'global'],
-            ['slug' => 'custom_forms.submissions.delete', 'name' => 'Eliminar envíos', 'description' => 'Eliminar envíos de formularios personalizados', 'category' => 'Formularios', 'scope' => 'global'],
-            ['slug' => 'custom_forms.submissions.export', 'name' => 'Exportar envíos', 'description' => 'Exportar envíos de formularios a CSV/Excel', 'category' => 'Formularios', 'scope' => 'global'],
+            ['slug' => 'custom_forms.view', 'name' => 'Ver formularios', 'description' => 'Ver y listar formularios personalizados', 'category' => 'Formularios', 'scope' => 'tenant'],
+            ['slug' => 'custom_forms.create', 'name' => 'Crear formularios', 'description' => 'Crear nuevos formularios personalizados con campos dinámicos', 'category' => 'Formularios', 'scope' => 'tenant'],
+            ['slug' => 'custom_forms.edit', 'name' => 'Editar formularios', 'description' => 'Editar estructura y configuración de formularios existentes', 'category' => 'Formularios', 'scope' => 'tenant'],
+            ['slug' => 'custom_forms.delete', 'name' => 'Eliminar formularios', 'description' => 'Eliminar formularios personalizados y sus datos', 'category' => 'Formularios', 'scope' => 'tenant'],
+            ['slug' => 'custom_forms.submissions.view', 'name' => 'Ver envíos', 'description' => 'Ver los envíos recibidos de formularios personalizados', 'category' => 'Formularios', 'scope' => 'tenant'],
+            ['slug' => 'custom_forms.submissions.delete', 'name' => 'Eliminar envíos', 'description' => 'Eliminar envíos de formularios personalizados', 'category' => 'Formularios', 'scope' => 'tenant'],
+            ['slug' => 'custom_forms.submissions.export', 'name' => 'Exportar envíos', 'description' => 'Exportar envíos de formularios a CSV/Excel', 'category' => 'Formularios', 'scope' => 'tenant'],
 
             // Image Gallery
-            ['slug' => 'image_gallery.view', 'name' => 'Ver galerías', 'description' => 'Ver y listar galerías de imágenes', 'category' => 'Galerías', 'scope' => 'global'],
-            ['slug' => 'image_gallery.create', 'name' => 'Crear galerías', 'description' => 'Crear nuevas galerías de imágenes', 'category' => 'Galerías', 'scope' => 'global'],
-            ['slug' => 'image_gallery.edit', 'name' => 'Editar galerías', 'description' => 'Editar galerías de imágenes y sus configuraciones', 'category' => 'Galerías', 'scope' => 'global'],
-            ['slug' => 'image_gallery.delete', 'name' => 'Eliminar galerías', 'description' => 'Eliminar galerías de imágenes', 'category' => 'Galerías', 'scope' => 'global'],
+            ['slug' => 'image_gallery.view', 'name' => 'Ver galerías', 'description' => 'Ver y listar galerías de imágenes', 'category' => 'Galerías', 'scope' => 'tenant'],
+            ['slug' => 'image_gallery.create', 'name' => 'Crear galerías', 'description' => 'Crear nuevas galerías de imágenes', 'category' => 'Galerías', 'scope' => 'tenant'],
+            ['slug' => 'image_gallery.edit', 'name' => 'Editar galerías', 'description' => 'Editar galerías de imágenes y sus configuraciones', 'category' => 'Galerías', 'scope' => 'tenant'],
+            ['slug' => 'image_gallery.delete', 'name' => 'Eliminar galerías', 'description' => 'Eliminar galerías de imágenes', 'category' => 'Galerías', 'scope' => 'tenant'],
 
             // React Sliders
-            ['slug' => 'react_sliders.view', 'name' => 'Ver sliders', 'description' => 'Ver y listar sliders interactivos', 'category' => 'Sliders', 'scope' => 'global'],
-            ['slug' => 'react_sliders.create', 'name' => 'Crear sliders', 'description' => 'Crear nuevos sliders interactivos', 'category' => 'Sliders', 'scope' => 'global'],
-            ['slug' => 'react_sliders.edit', 'name' => 'Editar sliders', 'description' => 'Editar configuración y contenido de sliders existentes', 'category' => 'Sliders', 'scope' => 'global'],
-            ['slug' => 'react_sliders.delete', 'name' => 'Eliminar sliders', 'description' => 'Eliminar sliders interactivos', 'category' => 'Sliders', 'scope' => 'global'],
+            ['slug' => 'react_sliders.view', 'name' => 'Ver sliders', 'description' => 'Ver y listar sliders interactivos', 'category' => 'Sliders', 'scope' => 'tenant'],
+            ['slug' => 'react_sliders.create', 'name' => 'Crear sliders', 'description' => 'Crear nuevos sliders interactivos', 'category' => 'Sliders', 'scope' => 'tenant'],
+            ['slug' => 'react_sliders.edit', 'name' => 'Editar sliders', 'description' => 'Editar configuración y contenido de sliders existentes', 'category' => 'Sliders', 'scope' => 'tenant'],
+            ['slug' => 'react_sliders.delete', 'name' => 'Eliminar sliders', 'description' => 'Eliminar sliders interactivos', 'category' => 'Sliders', 'scope' => 'tenant'],
 
             // Tenants (Superadmin)
-            ['slug' => 'tenants.manage', 'name' => 'Gestionar Tenants', 'description' => 'Gestión completa de inquilinos/organizaciones del sistema', 'category' => 'Superadmin', 'scope' => 'global'],
+            ['slug' => 'tenants.manage', 'name' => 'Gestionar Tenants', 'description' => 'Gestión completa de inquilinos/organizaciones del sistema', 'category' => 'Superadmin', 'scope' => 'tenant'],
 
             // Soporte
-            ['slug' => 'tickets.manage', 'name' => 'Gestionar tickets', 'description' => 'Gestión completa de tickets de soporte', 'category' => 'Soporte', 'scope' => 'global'],
+            ['slug' => 'tickets.manage', 'name' => 'Gestionar tickets', 'description' => 'Gestión completa de tickets de soporte', 'category' => 'Soporte', 'scope' => 'tenant'],
 
             // Seguridad
-            ['slug' => 'security-dashboard', 'name' => 'Ver Security Dashboard', 'description' => 'Ver dashboard de seguridad con intentos fallidos, rate limiting y estadísticas', 'category' => 'Seguridad', 'scope' => 'global'],
-            ['slug' => 'security-manage-trusted-ips', 'name' => 'Gestionar IPs de confianza', 'description' => 'Añadir y eliminar IPs de confianza (whitelist) para bypass de rate limiting', 'category' => 'Seguridad', 'scope' => 'global'],
+            ['slug' => 'security-dashboard', 'name' => 'Ver Security Dashboard', 'description' => 'Ver dashboard de seguridad con intentos fallidos, rate limiting y estadísticas', 'category' => 'Seguridad', 'scope' => 'tenant'],
+            ['slug' => 'security-manage-trusted-ips', 'name' => 'Gestionar IPs de confianza', 'description' => 'Añadir y eliminar IPs de confianza (whitelist) para bypass de rate limiting', 'category' => 'Seguridad', 'scope' => 'tenant'],
 
             // Analytics
-            ['slug' => 'analytics-view', 'name' => 'Ver Analytics', 'description' => 'Ver dashboard de Web Analytics con estadísticas de visitas, visitantes y tráfico del sitio', 'category' => 'Analytics', 'scope' => 'global'],
-            ['slug' => 'analytics-export', 'name' => 'Exportar Analytics', 'description' => 'Exportar datos de analytics a CSV/Excel para análisis externo', 'category' => 'Analytics', 'scope' => 'global'],
+            ['slug' => 'analytics-view', 'name' => 'Ver Analytics', 'description' => 'Ver dashboard de Web Analytics con estadísticas de visitas, visitantes y tráfico del sitio', 'category' => 'Analytics', 'scope' => 'tenant'],
+            ['slug' => 'analytics-export', 'name' => 'Exportar Analytics', 'description' => 'Exportar datos de analytics a CSV/Excel para análisis externo', 'category' => 'Analytics', 'scope' => 'tenant'],
         ];
 
         foreach ($permissions as $permission) {

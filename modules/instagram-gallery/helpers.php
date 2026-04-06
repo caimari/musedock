@@ -510,6 +510,134 @@ function get_instagram_layouts(): array
     return InstagramSetting::getAvailableLayouts();
 }
 
+// ============================================================================
+// oEmbed Functions — Insert any public Instagram post without API credentials
+// ============================================================================
+
+/**
+ * Process oEmbed shortcodes in content.
+ *
+ * Supported formats:
+ * - [instagram-post url="https://www.instagram.com/p/ABC123/"]
+ * - [instagram-post url="https://www.instagram.com/reel/ABC123/"]
+ * - [instagram-post url="https://instagram.com/p/ABC123" maxwidth=540 caption=false]
+ */
+function process_instagram_oembed_shortcodes(string $content): string
+{
+    $pattern = '/\[instagram-post\s+([^\]]+)\]/i';
+
+    return preg_replace_callback($pattern, function ($matches) {
+        $attributes = parse_instagram_shortcode_attributes($matches[1]);
+
+        try {
+            return render_instagram_oembed($attributes);
+        } catch (\Exception $e) {
+            error_log('Instagram oEmbed shortcode error: ' . $e->getMessage());
+            return '<div class="instagram-oembed-error" style="padding:1rem;border:1px solid #fee;border-radius:8px;color:#c00;font-size:0.85rem;">Error al cargar el post de Instagram</div>';
+        }
+    }, $content);
+}
+
+/**
+ * Render a single Instagram post via oEmbed.
+ *
+ * Uses Meta's oEmbed endpoint (no token required for public posts).
+ * Results are cached in the database to avoid repeated API calls.
+ *
+ * @param array $attributes {url, maxwidth, caption, hidecaption}
+ * @return string HTML embed code
+ */
+function render_instagram_oembed(array $attributes): string
+{
+    $url = $attributes['url'] ?? '';
+    if (empty($url)) {
+        return '<div class="instagram-oembed-error">URL de Instagram no especificada</div>';
+    }
+
+    // Validate Instagram URL
+    if (!preg_match('#^https?://(www\.)?instagram\.com/(p|reel|tv)/[A-Za-z0-9_-]+#', $url)) {
+        return '<div class="instagram-oembed-error">URL de Instagram no válida</div>';
+    }
+
+    $maxWidth = (int) ($attributes['maxwidth'] ?? 540);
+    $hideCaption = ($attributes['caption'] ?? 'true') === 'false' || ($attributes['hidecaption'] ?? false);
+
+    // Try cache first (instagram_settings table with special key)
+    $cacheKey = 'oembed_cache_' . md5($url . $maxWidth . ($hideCaption ? '1' : '0'));
+    $tenantId = null;
+    if (class_exists('\\Screenart\\Musedock\\Services\\TenantManager')) {
+        $tenantId = \Screenart\Musedock\Services\TenantManager::currentTenantId();
+    }
+
+    $cached = InstagramSetting::get($cacheKey, $tenantId);
+    if ($cached) {
+        $cacheData = json_decode($cached, true);
+        // Cache valid for 24 hours
+        if ($cacheData && isset($cacheData['html']) && isset($cacheData['cached_at']) && (time() - $cacheData['cached_at']) < 86400) {
+            return $cacheData['html'];
+        }
+    }
+
+    // Call Meta oEmbed API (no token needed for public posts)
+    $oembedUrl = 'https://graph.facebook.com/v18.0/instagram_oembed?' . http_build_query([
+        'url' => $url,
+        'maxwidth' => $maxWidth,
+        'hidecaption' => $hideCaption ? 'true' : 'false',
+        'omitscript' => 'false',
+    ]);
+
+    // Note: oEmbed API requires a Facebook App access token since 2020
+    // Try with app token if available, otherwise use client-side embed fallback
+    $appId = InstagramSetting::get('instagram_app_id', $tenantId);
+    $appSecret = InstagramSetting::get('instagram_app_secret', $tenantId);
+
+    if ($appId && $appSecret) {
+        $oembedUrl .= '&access_token=' . $appId . '|' . $appSecret;
+
+        $ch = curl_init($oembedUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 200 && $response) {
+            $data = json_decode($response, true);
+            if (isset($data['html'])) {
+                $html = '<div class="instagram-oembed-wrapper" style="max-width:' . $maxWidth . 'px;margin:0 auto;">' . $data['html'] . '</div>';
+
+                // Cache the result
+                InstagramSetting::set($cacheKey, json_encode([
+                    'html' => $html,
+                    'cached_at' => time(),
+                ]), $tenantId, 'string');
+
+                return $html;
+            }
+        }
+    }
+
+    // Fallback: client-side Instagram embed (works without API token)
+    // Uses Instagram's embed.js script which renders the post from the blockquote
+    $permalink = rtrim($url, '/') . '/';
+    $html = '<div class="instagram-oembed-wrapper" style="max-width:' . $maxWidth . 'px;margin:0 auto;">';
+    $html .= '<blockquote class="instagram-media" data-instgrm-permalink="' . htmlspecialchars($permalink) . '" data-instgrm-version="14"';
+    if ($hideCaption) {
+        $html .= ' data-instgrm-captioned=""';
+    }
+    $html .= ' style="background:#FFF;border:0;border-radius:3px;box-shadow:0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15);margin:1px;max-width:' . $maxWidth . 'px;min-width:326px;padding:0;width:calc(100% - 2px);">';
+    $html .= '<a href="' . htmlspecialchars($permalink) . '" target="_blank" rel="noopener noreferrer" style="display:block;padding:16px;text-align:center;text-decoration:none;color:#3897f0;">Ver esta publicación en Instagram</a>';
+    $html .= '</blockquote>';
+    $html .= '<script async src="//www.instagram.com/embed.js"></script>';
+    $html .= '</div>';
+
+    return $html;
+}
+
 /**
  * Sync Instagram posts for a connection
  */

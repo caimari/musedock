@@ -42,6 +42,8 @@ class ModuleController
             if ($moduleSlug && isset($installedMap[$moduleSlug])) {
                 $module['db_data'] = $installedMap[$moduleSlug];
                 $module['active'] = (bool) $installedMap[$moduleSlug]['active'];
+                $module['tenant_enabled_default'] = (bool) ($installedMap[$moduleSlug]['tenant_enabled_default'] ?? 1);
+                $module['show_in_dashboard'] = (bool) ($installedMap[$moduleSlug]['show_in_dashboard'] ?? 0);
             }
         }
 
@@ -345,6 +347,95 @@ class ModuleController
             }
             flash('error', $errorMsg);
         }
+
+        header('Location: /musedock/modules');
+        exit;
+    }
+
+    /**
+     * Toggle show_in_dashboard para un módulo.
+     */
+    public function toggleDashboard()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('modules.manage');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /musedock/modules');
+            exit;
+        }
+
+        $slug = $_POST['slug'] ?? null;
+        if (!$slug) {
+            flash('error', 'Slug no especificado');
+            header('Location: /musedock/modules');
+            exit;
+        }
+
+        $pdo = \Screenart\Musedock\Database::connect();
+        $stmt = $pdo->prepare("SELECT id, name, show_in_dashboard FROM modules WHERE slug = ?");
+        $stmt->execute([$slug]);
+        $module = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$module) {
+            flash('error', 'Módulo no encontrado');
+            header('Location: /musedock/modules');
+            exit;
+        }
+
+        $newState = $module['show_in_dashboard'] ? 0 : 1;
+        $stmt = $pdo->prepare("UPDATE modules SET show_in_dashboard = ? WHERE id = ?");
+        $stmt->execute([$newState, $module['id']]);
+
+        $statusText = $newState ? 'visible' : 'oculto';
+        flash('success', "\"{$module['name']}\" ahora está {$statusText} en el dashboard");
+
+        header('Location: /musedock/modules');
+        exit;
+    }
+
+    /**
+     * Toggle tenant_enabled_default para un módulo.
+     * Controla si el módulo está disponible para tenants por defecto.
+     */
+    public function toggleTenantDefault()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('modules.manage');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            flash('error', 'Método no permitido');
+            header('Location: /musedock/modules');
+            exit;
+        }
+
+        $slug = $_POST['slug'] ?? null;
+        if (!$slug) {
+            flash('error', 'Slug de módulo no especificado');
+            header('Location: /musedock/modules');
+            exit;
+        }
+
+        $pdo = \Screenart\Musedock\Database::connect();
+        $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+        // Obtener estado actual
+        $stmt = $pdo->prepare("SELECT id, name, tenant_enabled_default FROM modules WHERE slug = ?");
+        $stmt->execute([$slug]);
+        $module = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$module) {
+            flash('error', 'Módulo no encontrado');
+            header('Location: /musedock/modules');
+            exit;
+        }
+
+        $newState = $module['tenant_enabled_default'] ? 0 : 1;
+        $stmt = $pdo->prepare("UPDATE modules SET tenant_enabled_default = ? WHERE id = ?");
+        $stmt->execute([$newState, $module['id']]);
+
+        $statusText = $newState ? 'disponible' : 'no disponible';
+        flash('success', "Módulo \"{$module['name']}\" ahora es {$statusText} para nuevos tenants");
 
         header('Location: /musedock/modules');
         exit;

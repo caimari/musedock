@@ -261,6 +261,36 @@ class PluginsController
     }
 
     /**
+     * Toggle show_in_dashboard para un plugin
+     */
+    public function toggleDashboard(int $id)
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('modules.manage');
+
+        $pdo = \Screenart\Musedock\Database::connect();
+        $stmt = $pdo->prepare("SELECT id, name, show_in_dashboard FROM superadmin_plugins WHERE id = ?");
+        $stmt->execute([$id]);
+        $plugin = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$plugin) {
+            flash('error', 'Plugin no encontrado');
+            header('Location: /musedock/plugins');
+            exit;
+        }
+
+        $newState = $plugin['show_in_dashboard'] ? 0 : 1;
+        $stmt = $pdo->prepare("UPDATE superadmin_plugins SET show_in_dashboard = ? WHERE id = ?");
+        $stmt->execute([$newState, $id]);
+
+        $statusText = $newState ? 'visible' : 'oculto';
+        flash('success', "\"{$plugin['name']}\" ahora está {$statusText} en el dashboard");
+
+        header('Location: /musedock/plugins');
+        exit;
+    }
+
+    /**
      * Desactivar plugin con verificación de contraseña (AJAX)
      */
     public function deactivateWithPassword(int $id)

@@ -75,6 +75,18 @@ class EnforcePermissionMiddleware
         'NotificationsController@getUnreadCount',
         'NotificationsController@markAsRead',
         'NotificationsController@markAllAsRead',
+
+        // Recursos CSS (cargados por TinyMCE, no requieren permiso específico)
+        'PageController@editorStylesCss',
+
+        // Métodos internos/CLI (sin ruta web, llamados por cron o internamente)
+        'PluginStoreController@checkLicenses',
+        'SettingsController@performBackup',
+        'SettingsController@performBackupPgDump',
+        'SettingsController@performBackupPDO',
+        'SettingsController@cleanupOldBackups',
+        'SettingsController@getBackupDir',
+        'SettingsController@getSettings',
     ];
 
     /**

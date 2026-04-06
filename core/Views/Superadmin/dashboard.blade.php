@@ -3,39 +3,168 @@
 @section('title', __('dashboard.title'))
 
 @section('content')
-
-
 <div class="app-content">
     <div class="container-fluid">
 
-        <div class="card">
-            <div class="card-body">
-                <h5>{{ __('dashboard.welcome', ['name' => $_SESSION['super_admin']['email'] ?? 'Admin']) }}</h5>
-                <p>{{ __('dashboard.welcome_message') }}</p>
-                <a href="/musedock/logout" class="btn btn-danger mt-2">{{ __('auth.logout') }}</a>
+        {{-- Header del dashboard --}}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#3b7ddd,#6ea8fe);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-speedometer2" style="font-size:1.35rem;color:#fff;"></i>
+                </div>
+                <div>
+                    <h3 class="mb-0" style="font-size:1.25rem;font-weight:700;">{{ __('dashboard.welcome', ['name' => $name ?? 'Admin']) }}</h3>
+                    <p class="text-muted mb-0" style="font-size:0.85rem;">Panel de administración de {{ cms_version('name') }} v{{ cms_version('version') }}</p>
+                </div>
+            </div>
+            <div style="display:flex;gap:1rem;">
+                <a href="/" target="_blank" style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:#f8f9fa;border:1px solid #e9ecef;color:#6c757d;text-decoration:none;">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                    <span>Visitar sitio</span>
+                </a>
+                <a href="/musedock/logout" style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:rgba(220,53,69,0.08);border:1px solid rgba(220,53,69,0.2);color:#dc3545;text-decoration:none;">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Cerrar sesión</span>
+                </a>
             </div>
         </div>
 
-        {{-- Aquí podrías cargar estadísticas, resumen de uso, widgets, etc. --}}
-        <div class="row mt-4">
-            <div class="col-md-6">
-                <div class="card text-bg-light">
-                    <div class="card-header">{{ __('dashboard.active_tenants') }}</div>
-                    <div class="card-body">
-                        <p class="card-text">{{ __('dashboard.add_stats') }}</p>
-                        <a href="/musedock/tenants" class="btn btn-outline-primary">{{ __('tenants.view_all') }}</a>
-                    </div>
-                </div>
+        {{-- Accesos directos (plugins + módulos con show_in_dashboard) --}}
+        @if (!empty($activePlugins) || !empty($dashboardModules))
+        @php
+            $pluginUrlMap = [
+                'caddy-domain-manager' => '/musedock/domain-manager',
+                'cross-publisher' => '/musedock/cross-publisher',
+                'news-aggregator' => '/musedock/news-aggregator',
+                'ai-skin-generator' => '/musedock/ai-skin-generator',
+                'theme-extractor' => '/musedock/theme-extractor',
+            ];
+            $pluginIconMap = [
+                'caddy-domain-manager' => 'bi-globe',
+                'cross-publisher' => 'bi-share',
+                'news-aggregator' => 'bi-newspaper',
+                'ai-skin-generator' => 'bi-palette',
+                'theme-extractor' => 'bi-brush',
+            ];
+            $pluginColorMap = [
+                'caddy-domain-manager' => ['#0d6efd', '#6ea8fe'],
+                'cross-publisher' => ['#198754', '#20c997'],
+                'news-aggregator' => ['#fd7e14', '#ffb74d'],
+                'ai-skin-generator' => ['#d63384', '#e685b5'],
+                'theme-extractor' => ['#6f42c1', '#a370db'],
+            ];
+        @endphp
+        <div class="row mb-4">
+            <div class="col-12">
+                <h6 class="text-muted mb-3" style="font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;">
+                    <i class="bi bi-lightning-charge me-1"></i> Accesos directos
+                </h6>
             </div>
-            <div class="col-md-6">
-                <div class="card text-bg-light">
-                    <div class="card-header">{{ __('dashboard.available_modules') }}</div>
-                    <div class="card-body">
-                        <p class="card-text">{{ __('dashboard.manage_modules_desc') }}</p>
-                        <a href="/musedock/modules" class="btn btn-outline-secondary">{{ __('modules.manage') }}</a>
+            @foreach ($activePlugins as $ap)
+            @php
+                $apUrl = $pluginUrlMap[$ap['slug']] ?? '/musedock/plugins';
+                $apIcon = $pluginIconMap[$ap['slug']] ?? 'bi-plug';
+                $apColors = $pluginColorMap[$ap['slug']] ?? ['#6c757d', '#adb5bd'];
+            @endphp
+            <div class="col-md-4 col-lg-3 mb-3">
+                <a href="{{ $apUrl }}" class="card border-0 shadow-sm text-decoration-none h-100" style="transition:transform 0.15s,box-shadow 0.15s;"
+                   onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
+                   onmouseout="this.style.transform='';this.style.boxShadow=''">
+                    <div class="card-body d-flex align-items-center gap-3 py-3">
+                        <div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,{{ $apColors[0] }},{{ $apColors[1] }});display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="bi {{ $apIcon }}" style="font-size:1.2rem;color:#fff;"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight:600;font-size:0.9rem;color:#212529;">{{ $ap['name'] }}</div>
+                            <div style="font-size:0.75rem;color:#6c757d;">{{ mb_strimwidth($ap['description'] ?? '', 0, 45, '...') }}</div>
+                        </div>
                     </div>
-                </div>
+                </a>
             </div>
+            @endforeach
+
+            @php
+                $moduleIconMap = [
+                    'blog' => 'bi-journal-richtext',
+                    'custom-forms' => 'bi-ui-checks',
+                    'image-gallery' => 'bi-card-image',
+                    'react-sliders' => 'bi-sliders2',
+                    'instagram-gallery' => 'bi-instagram',
+                    'media-manager' => 'bi-images',
+                    'wp-importer' => 'bi-wordpress',
+                    'ai-writer' => 'bi-pencil-square',
+                    'ai-image' => 'bi-stars',
+                    'elements' => 'bi-bricks',
+                ];
+                $moduleUrlMap = [
+                    'blog' => '/musedock/blog/posts',
+                    'custom-forms' => '/musedock/custom-forms',
+                    'image-gallery' => '/musedock/image-gallery',
+                    'instagram-gallery' => '/musedock/instagram',
+                    'media-manager' => '/musedock/media',
+                    'wp-importer' => '/musedock/wp-importer',
+                    'ai-writer' => '/musedock/aiwriter/settings',
+                    'ai-image' => '/musedock/ai-image/settings',
+                    'elements' => '/musedock/elements',
+                    'react-sliders' => '/musedock/sliders',
+                ];
+            @endphp
+            @foreach ($dashboardModules ?? [] as $dm)
+            @php
+                $dmUrl = $moduleUrlMap[$dm['slug']] ?? '/musedock/modules';
+                $dmIcon = $moduleIconMap[$dm['slug']] ?? 'bi-puzzle';
+            @endphp
+            <div class="col-md-4 col-lg-3 mb-3">
+                <a href="{{ $dmUrl }}" class="card border-0 shadow-sm text-decoration-none h-100" style="transition:transform 0.15s,box-shadow 0.15s;"
+                   onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
+                   onmouseout="this.style.transform='';this.style.boxShadow=''">
+                    <div class="card-body d-flex align-items-center gap-3 py-3">
+                        <div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#198754,#20c997);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="bi {{ $dmIcon }}" style="font-size:1.2rem;color:#fff;"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight:600;font-size:0.9rem;color:#212529;">{{ $dm['name'] }}</div>
+                            <div style="font-size:0.75rem;color:#6c757d;">{{ mb_strimwidth($dm['description'] ?? '', 0, 45, '...') }}</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            @endforeach
+        </div>
+        @endif
+
+        {{-- Cards de gestión --}}
+        <h6 class="text-muted mb-3" style="font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;">
+            <i class="bi bi-grid-3x3-gap me-1"></i> Gestión
+        </h6>
+        <div class="row mb-4">
+            @php
+                $managementCards = [
+                    ['url' => '/musedock/tenants', 'icon' => 'bi-people', 'colors' => ['#0d6efd','#6ea8fe'], 'title' => __('dashboard.active_tenants'), 'desc' => __('tenants.view_all')],
+                    ['url' => '/musedock/modules', 'icon' => 'bi-puzzle', 'colors' => ['#198754','#20c997'], 'title' => __('dashboard.available_modules'), 'desc' => __('modules.manage')],
+                    ['url' => '/musedock/plugins', 'icon' => 'bi-plug', 'colors' => ['#6f42c1','#a370db'], 'title' => 'Plugins', 'desc' => 'Gestionar plugins del sistema'],
+                    ['url' => '/musedock/settings', 'icon' => 'bi-gear', 'colors' => ['#6c757d','#adb5bd'], 'title' => 'Ajustes', 'desc' => 'Configuración del sitio'],
+                    ['url' => '/musedock/tickets', 'icon' => 'bi-ticket-detailed', 'colors' => ['#fd7e14','#ffb74d'], 'title' => 'Tickets', 'desc' => 'Soporte técnico'],
+                    ['url' => '/musedock/logs', 'icon' => 'bi-terminal', 'colors' => ['#495057','#6c757d'], 'title' => 'Logs', 'desc' => 'Registros del sistema'],
+                ];
+            @endphp
+            @foreach($managementCards as $mc)
+            <div class="col-md-4 col-lg-3 mb-3">
+                <a href="{{ $mc['url'] }}" class="card border-0 shadow-sm text-decoration-none h-100" style="transition:transform 0.15s,box-shadow 0.15s;"
+                   onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
+                   onmouseout="this.style.transform='';this.style.boxShadow=''">
+                    <div class="card-body d-flex align-items-center gap-3 py-3">
+                        <div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,{{ $mc['colors'][0] }},{{ $mc['colors'][1] }});display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="bi {{ $mc['icon'] }}" style="font-size:1.2rem;color:#fff;"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight:600;font-size:0.9rem;color:#212529;">{{ $mc['title'] }}</div>
+                            <div style="font-size:0.75rem;color:#6c757d;">{{ $mc['desc'] }}</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            @endforeach
         </div>
 
         {{-- Alerta de seeders faltantes - Debajo de los cards --}}

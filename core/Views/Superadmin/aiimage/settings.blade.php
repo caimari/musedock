@@ -3,21 +3,27 @@
 @section('title', 'Proveedores de Imagen IA')
 
 @section('content')
-<div class="container-fluid py-4">
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="h3 mb-0">
-                        <i class="bi bi-image me-2"></i>
-                        Proveedores de Imagen IA
-                    </h1>
-                    <p class="text-muted mb-0">Gestiona los proveedores de generacion de imagenes con IA</p>
-                </div>
-                <button type="button" class="btn btn-primary" id="btnNewProvider">
-                    <i class="bi bi-plus-lg me-1"></i> Nuevo proveedor
-                </button>
+<div class="container-fluid">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <div class="d-flex align-items-center gap-3">
+            <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#d63384,#e685b5);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="bi bi-stars" style="font-size:1.35rem;color:#fff;"></i>
             </div>
+            <div>
+                <h3 class="mb-0" style="font-size:1.25rem;font-weight:700;">Proveedores de Imagen IA</h3>
+                <p class="text-muted mb-0" style="font-size:0.85rem;">Gestiona los proveedores de generación de imágenes con IA</p>
+            </div>
+        </div>
+        <div style="display:flex;gap:1rem;">
+            <button type="button" id="btnNewProvider" style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:#f8f9fa;border:1px solid #e9ecef;color:#6c757d;cursor:pointer;transition:all 0.15s;"
+                    onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f8f9fa'">
+                <i class="bi bi-plus-lg"></i>
+                <span>Nuevo proveedor</span>
+            </button>
+            <a href="/musedock/modules" style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:#f8f9fa;border:1px solid #e9ecef;color:#6c757d;text-decoration:none;">
+                <i class="bi bi-arrow-left"></i>
+                <span>Módulos</span>
+            </a>
         </div>
     </div>
 

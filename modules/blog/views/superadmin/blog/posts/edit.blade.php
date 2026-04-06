@@ -123,16 +123,24 @@
                   @enderror
                 </div>
                 @php
+                  // Get actual prefix from slugs table
+                  $__pdo = \Screenart\Musedock\Database::connect();
+                  $__slugStmt = $__pdo->prepare("SELECT prefix FROM slugs WHERE module = 'blog' AND reference_id = ? LIMIT 1");
+                  $__slugStmt->execute([$post->id]);
+                  $__actualPrefix = $__slugStmt->fetchColumn() ?: 'blog';
+
                   if (!empty($editingTenant)) {
                       $slugDomain = 'https://' . $editingTenant->domain;
-                      $slugPrefix = $editingTenantPrefix ?? '';
-                      $slugUrl = $slugDomain . ($slugPrefix ? '/' . $slugPrefix : '') . '/' . $post->slug;
+                      $slugUrl = $slugDomain . '/' . $__actualPrefix . '/' . $post->slug;
                   } else {
-                      $slugUrl = config('app.url') . '/blog/' . $post->slug;
+                      $slugUrl = config('app.url') . '/' . $__actualPrefix . '/' . $post->slug;
                   }
                 @endphp
                 <small class="text-muted mt-1 d-inline-block">
                   URL: <a href="{{ $slugUrl }}" target="_blank">{{ $slugUrl }}</a>
+                  @if($__actualPrefix === 'docs')
+                    <span class="badge bg-info ms-2">Docs</span>
+                  @endif
                 </small>
                 <span id="slug-check-result" class="ms-3 fw-bold"></span>
               </div>
@@ -315,6 +323,7 @@
                 <select class="form-select" id="post_type" name="post_type">
                   <option value="post" {{ $__postType === 'post' ? 'selected' : '' }}>{{ __('blog.post.type_post') }}</option>
                   <option value="brief" {{ $__postType === 'brief' ? 'selected' : '' }}>{{ __('blog.post.type_brief') }}</option>
+                  <option value="docs" {{ $__postType === 'docs' ? 'selected' : '' }}>Documentación</option>
                 </select>
               </div>
 

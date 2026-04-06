@@ -18,7 +18,7 @@ class SliderController
         SessionSecurity::startSession();
         $this->checkPermission('media.manage');
 
-        $sliders = Slider::query()->orderBy('name')->get(); // Obtener todos los sliders
+        $sliders = Slider::query()->whereRaw('tenant_id IS NULL')->orderBy('name')->get(); // Solo CMS principal
         return View::renderSuperadmin('sliders.index', [
             'title' => 'Sliders',
             'sliders' => $sliders

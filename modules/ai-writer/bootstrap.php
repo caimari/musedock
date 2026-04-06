@@ -58,32 +58,4 @@ if (aiwriter_is_active()) {
 */
 
 
-/**
- * Registrar menú de admin si el módulo está activo
- * (Asumiendo que el core lee $GLOBALS['ADMIN_MENU'])
- */
-if (aiwriter_is_active()) { // <-- Envuelve la lógica del menú en la verificación
-    // Añadir al menú del superadmin
-    if (isset($_SESSION['super_admin'])) {
-        $GLOBALS['ADMIN_MENU'] = $GLOBALS['ADMIN_MENU'] ?? [];
-        $GLOBALS['ADMIN_MENU']['aiwriter_settings'] = [ // Usar clave única
-            'title' => 'Configuración AI Writer', // Título más específico
-            'icon' => 'fas fa-magic', // Ejemplo con FontAwesome
-            'url' => '/musedock/aiwriter/settings', // Ruta directa
-            'parent' => 'settings' // Asignar a un menú padre 'settings' (ajustar si es diferente)
-            // Quitar 'children' si es un enlace directo
-        ];
-    }
-
-    // Añadir al menú de admin de tenant
-    if (isset($_SESSION['admin'])) {
-        $GLOBALS['ADMIN_MENU'] = $GLOBALS['ADMIN_MENU'] ?? [];
-        $adminPath = function_exists('admin_url') ? admin_url() : '/admin'; // Usar helper si existe
-        $GLOBALS['ADMIN_MENU']['aiwriter_tenant_settings'] = [ // Clave única diferente
-             'title' => 'Configuración AI Writer',
-             'icon' => 'fas fa-magic',
-             'url' => rtrim($adminPath, '/') . '/aiwriter/settings', // Asegurar barra inicial
-             'parent' => 'settings' // Asignar a un menú padre (ajustar si es diferente)
-        ];
-    }
-}
+// Menú registrado en admin_menus (BD) como hijo de IA — no usar $GLOBALS['ADMIN_MENU']

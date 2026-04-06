@@ -89,6 +89,8 @@
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
     font-family: monospace;
+    min-width: 52px;
+    text-align: center;
 }
 .module-status {
     display: flex;
@@ -98,6 +100,8 @@
     font-weight: 500;
     padding: 0.35rem 0.75rem;
     border-radius: 20px;
+    min-width: 90px;
+    justify-content: center;
 }
 .module-status.active {
     background: rgba(25, 135, 84, 0.1);
@@ -114,6 +118,44 @@
     min-width: 110px;
     font-size: 0.85rem;
     padding: 0.4rem 0.75rem;
+}
+/* Toggle switch estilo iOS */
+.toggle-switch {
+    position: relative;
+    width: 50px;
+    height: 28px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.toggle-track {
+    position: absolute;
+    inset: 0;
+    background: #dee2e6;
+    border-radius: 999px;
+    transition: background 0.25s ease;
+}
+.toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    transition: transform 0.25s ease;
+}
+.toggle-switch.active .toggle-track {
+    background: #198754;
+}
+.toggle-switch.active .toggle-track::after {
+    transform: translateX(22px);
 }
 .modules-header {
     display: flex;
@@ -175,14 +217,14 @@
     @endphp
 
     <div class="modules-header">
-        <div>
-            <h3 class="mb-1">{{ __('modules_title') }}</h3>
-            <p class="text-muted mb-0">{{ __('modules_subtitle') ?? 'Gestiona los módulos activos en tu sitio' }}</p>
-        </div>
         <div class="d-flex align-items-center gap-3">
-            <a href="{{ admin_url('plugin-store') }}" class="btn btn-outline-primary btn-sm">
-                <i class="bi bi-shop me-1"></i>Plugin Store
-            </a>
+            <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#198754,#20c997);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="bi bi-puzzle" style="font-size:1.35rem;color:#fff;"></i>
+            </div>
+            <div>
+                <h3 class="mb-0" style="font-size:1.25rem;font-weight:700;">{{ __('modules_title') }}</h3>
+                <p class="text-muted mb-0" style="font-size:0.85rem;">{{ __('modules_subtitle') ?? 'Gestiona los módulos activos en tu sitio' }}</p>
+            </div>
         </div>
         <div class="modules-stats">
             <div class="stat-badge active">
@@ -193,6 +235,10 @@
                 <i class="bi bi-grid-3x3-gap"></i>
                 <span>{{ $totalCount }} {{ __('total') ?? 'total' }}</span>
             </div>
+            <a href="{{ admin_url('plugin-store') }}" class="stat-badge" style="text-decoration:none;color:#0d6efd;border-color:rgba(13,110,253,0.2);background:rgba(13,110,253,0.1);">
+                <i class="bi bi-shop"></i>
+                <span>Plugin Store</span>
+            </a>
         </div>
     </div>
 
@@ -270,10 +316,11 @@
                               data-module-action="{{ $isEnabled ? 'desactivar' : 'activar' }}">
                             {!! csrf_field() !!}
                             <input type="hidden" name="password" class="password-input">
-                            <button type="button" class="btn btn-sm btn-toggle {{ $isEnabled ? 'btn-outline-danger' : 'btn-success' }} toggle-module-btn">
-                                <i class="bi {{ $isEnabled ? 'bi-x-lg' : 'bi-check-lg' }} me-1"></i>
-                                {{ $isEnabled ? (__('deactivate') ?? 'Desactivar') : (__('activate') ?? 'Activar') }}
-                            </button>
+                            <label class="toggle-switch {{ $isEnabled ? 'active' : '' }} toggle-module-btn"
+                                   title="{{ $isEnabled ? (__('deactivate') ?? 'Desactivar') : (__('activate') ?? 'Activar') }}">
+                                <input type="checkbox" {{ $isEnabled ? 'checked' : '' }}>
+                                <span class="toggle-track"></span>
+                            </label>
                         </form>
                     </div>
                 </div>
@@ -352,8 +399,13 @@ document.addEventListener('DOMContentLoaded', function() {
         securityConfirm: {!! json_encode(__("security_confirm_password") ?? "Por seguridad, introduce tu contraseña para confirmar:") !!}
     };
 
-    document.querySelectorAll('.toggle-module-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
+    document.querySelectorAll('.toggle-module-btn').forEach(function(toggle) {
+        // Prevenir que el click en el label toggle el checkbox directamente
+        const checkbox = toggle.querySelector('input[type="checkbox"]');
+        if (checkbox) checkbox.addEventListener('click', function(e) { e.preventDefault(); });
+
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
             const form = this.closest('.module-toggle-form');
             const moduleName = form.dataset.moduleName;
             const action = form.dataset.moduleAction;

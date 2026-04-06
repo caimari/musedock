@@ -89,6 +89,21 @@ class SettingsController
                 'force_lang',
                 'show_language_switcher',
 
+                // Datos legales
+                'legal_jurisdiction',
+                'legal_entity_type',
+                'legal_name',
+                'legal_nif',
+                'legal_email',
+                'legal_address',
+                'legal_registry_data',
+                'legal_supervisory_authority',
+                'site_has_economic_activity',
+                'legal_targets_eu',
+                'site_uses_analytics_cookies',
+                'site_has_user_registration',
+                'site_has_paid_services',
+
                 // Footer
                 'footer_copyright',
 
@@ -110,7 +125,7 @@ class SettingsController
                 $value = $_POST[$key] ?? null;
 
                 // Manejar checkboxes
-                if (in_array($key, ['show_logo', 'show_title', 'show_subtitle', 'show_language_switcher'])) {
+                if (in_array($key, ['show_logo', 'show_title', 'show_subtitle', 'show_language_switcher', 'site_has_economic_activity', 'legal_targets_eu', 'site_uses_analytics_cookies', 'site_has_user_registration', 'site_has_paid_services'])) {
                     $value = isset($_POST[$key]) ? '1' : '0';
                 }
 
@@ -505,6 +520,39 @@ class SettingsController
                 WHERE tenant_id = ? AND module = 'pages'
             ");
             $stmt->execute([$newPagePrefix, $tenantId]);
+
+            // Sincronizar links de menú: actualizar site_menu_items que apuntan a páginas/posts
+            // para que reflejen los nuevos prefijos automáticamente
+            if ($driver === 'pgsql') {
+                $stmt = $pdo->prepare("
+                    UPDATE site_menu_items
+                    SET link = CASE
+                        WHEN s.prefix IS NOT NULL AND s.prefix != '' THEN '/' || s.prefix || '/' || s.slug
+                        ELSE '/' || s.slug
+                    END,
+                    updated_at = NOW()
+                    FROM slugs s
+                    WHERE s.reference_id = site_menu_items.page_id
+                      AND s.tenant_id = site_menu_items.tenant_id
+                      AND s.module IN ('pages', 'blog')
+                      AND site_menu_items.tenant_id = ?
+                      AND site_menu_items.page_id IS NOT NULL
+                ");
+            } else {
+                $stmt = $pdo->prepare("
+                    UPDATE site_menu_items mi
+                    INNER JOIN slugs s ON s.reference_id = mi.page_id AND s.tenant_id = mi.tenant_id
+                    SET mi.link = CASE
+                        WHEN s.prefix IS NOT NULL AND s.prefix != '' THEN CONCAT('/', s.prefix, '/', s.slug)
+                        ELSE CONCAT('/', s.slug)
+                    END,
+                    mi.updated_at = NOW()
+                    WHERE mi.tenant_id = ?
+                      AND mi.page_id IS NOT NULL
+                      AND s.module IN ('pages', 'blog')
+                ");
+            }
+            $stmt->execute([$tenantId]);
 
             $pdo->commit();
             clear_tenant_settings_cache();

@@ -227,7 +227,7 @@
     <link rel="stylesheet" href="{{ asset('themes/default/css/fontawesome-all.min.css') }}">
     <link rel="stylesheet" href="{{ asset('themes/default/css/themify-icons.css') }}">
     <link rel="stylesheet" href="{{ asset('themes/default/css/style.css') }}">
-    <link rel="stylesheet" href="{{ asset('themes/default/css/responsive.css') }}">
+    <link rel="stylesheet" href="{{ asset('themes/default/css/responsive.css') }}?v={{ time() }}">
 
     {{-- CSS Personalizado - Espaciado y estilos del tema --}}
     <link rel="stylesheet" href="{{ asset('themes/default/css/template.css') }}?v={{ time() }}">
@@ -989,6 +989,8 @@ html.mobile-menu-open {
 
 @media (max-width: 991px) {
     .logo-above-brand-row { justify-content: center; }
+    /* Logo-above-left: keep space-between on mobile (logo left, hamburger right) */
+    .header-layout-logo-above-left .logo-above-brand-row { justify-content: space-between !important; }
     .logo-above-brand-side { display: none; }
     .header-inline-search { display: none; }
 }

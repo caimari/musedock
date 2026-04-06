@@ -79,8 +79,12 @@
                     <div class="invalid-feedback">{{ $message }}</div>
                   @enderror
                 </div>
+                @php
+                  $__tBlogBase = config('app.url') . (blog_prefix() !== '' ? '/' . blog_prefix() : '') . '/';
+                  $__tDocsBase = config('app.url') . '/docs/';
+                @endphp
                 <small class="text-muted mt-1 d-inline-block">
-                  URL: {{ config('app.url') }}{{ blog_prefix() !== '' ? '/' . blog_prefix() : '' }}/<span id="slug-preview">{{ old('slug') }}</span>
+                  URL: <span id="slug-base">{{ $__tBlogBase }}</span><span id="slug-preview">{{ old('slug') }}</span>
                 </small>
                 <span id="slug-check-result" class="ms-3 fw-bold"></span>
               </div>
@@ -258,6 +262,7 @@
                 <select class="form-select" id="post_type" name="post_type">
                   <option value="post" {{ $__postType === 'post' ? 'selected' : '' }}>{{ __('blog.post.type_post') }}</option>
                   <option value="brief" {{ $__postType === 'brief' ? 'selected' : '' }}>{{ __('blog.post.type_brief') }}</option>
+                  <option value="docs" {{ $__postType === 'docs' ? 'selected' : '' }}>Documentación</option>
                 </select>
               </div>
 
@@ -393,6 +398,20 @@ document.addEventListener('DOMContentLoaded', function() {
   const passwordField = document.getElementById('password-field');
   const featuredImageInput = document.getElementById('featured_image');
   const featuredImagePreview = document.getElementById('featured-image-preview');
+
+  // Docs prefix detection via post_type selector
+  const postTypeSelect = document.getElementById('post_type');
+  const slugBaseEl = document.getElementById('slug-base');
+  const blogBase = @json($__tBlogBase);
+  const docsBase = @json($__tDocsBase);
+  function updateSlugPrefix() {
+      if (!postTypeSelect || !slugBaseEl) return;
+      slugBaseEl.textContent = postTypeSelect.value === 'docs' ? docsBase : blogBase;
+  }
+  if (postTypeSelect) {
+      postTypeSelect.addEventListener('change', updateSlugPrefix);
+      updateSlugPrefix();
+  }
 
   // Auto-generar slug desde título
   if (titleInput && slugInput) {

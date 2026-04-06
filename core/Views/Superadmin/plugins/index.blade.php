@@ -2,245 +2,270 @@
 
 @section('title', 'Plugins del Sistema')
 
+@push('styles')
+<style>
+.plugins-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+.plugins-stats {
+    display: flex;
+    gap: 1rem;
+}
+.stat-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+.stat-badge i { font-size: 0.9rem; }
+.plugin-list { display: flex; flex-direction: column; gap: 0; }
+.plugin-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-bottom: none;
+    transition: all 0.15s ease;
+}
+.plugin-item:first-child { border-radius: 0.5rem 0.5rem 0 0; }
+.plugin-item:last-child { border-bottom: 1px solid #e9ecef; border-radius: 0 0 0.5rem 0.5rem; }
+.plugin-item:only-child { border-radius: 0.5rem; border-bottom: 1px solid #e9ecef; }
+.plugin-item:hover { background: #f8f9fa; }
+.plugin-item.enabled { border-left: 3px solid #198754; }
+.plugin-item.disabled { border-left: 3px solid #dee2e6; opacity: 0.85; }
+.plugin-item.new { border-left: 3px solid #0dcaf0; }
+.plugin-icon {
+    width: 48px; height: 48px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; flex-shrink: 0; margin-right: 1rem;
+}
+.plugin-icon.enabled { background: linear-gradient(135deg, #198754 0%, #20c997 100%); color: white; }
+.plugin-icon.disabled { background: #e9ecef; color: #6c757d; }
+.plugin-icon.new { background: linear-gradient(135deg, #0dcaf0, #6edff6); color: white; }
+.plugin-info { flex-grow: 1; min-width: 0; }
+.plugin-name { font-weight: 600; font-size: 1rem; color: #212529; margin-bottom: 0.15rem; }
+.plugin-description { font-size: 0.85rem; color: #6c757d; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.plugin-meta { display: flex; align-items: center; gap: 1rem; flex-shrink: 0; }
+.plugin-version {
+    font-size: 0.75rem; color: #6c757d; background: #f1f3f4;
+    padding: 0.2rem 0.5rem; border-radius: 4px; font-family: monospace;
+    min-width: 52px; text-align: center;
+}
+.plugin-status {
+    display: flex; align-items: center; gap: 0.35rem;
+    font-size: 0.8rem; font-weight: 500; padding: 0.35rem 0.75rem;
+    border-radius: 20px; min-width: 90px; justify-content: center;
+}
+.plugin-status.active { background: rgba(25, 135, 84, 0.1); color: #198754; }
+.plugin-status.inactive { background: rgba(108, 117, 125, 0.1); color: #6c757d; }
+.plugin-actions { display: flex; align-items: center; flex-shrink: 0; }
+/* Toggle switch */
+.toggle-switch {
+    position: relative; width: 50px; height: 28px; cursor: pointer; flex-shrink: 0;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-track {
+    position: absolute; inset: 0; background: #dee2e6;
+    border-radius: 999px; transition: background 0.25s ease;
+}
+.toggle-track::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 22px; height: 22px; background: #fff; border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: transform 0.25s ease;
+}
+.toggle-switch.active .toggle-track { background: #198754; }
+.toggle-switch.active .toggle-track::after { transform: translateX(22px); }
+.toggle-switch.dash-toggle .toggle-track { background: #dee2e6; }
+.toggle-switch.dash-toggle.active .toggle-track { background: #0d6efd; }
+.toggle-label { font-size: 0.7rem; color: #6c757d; text-align: center; margin-top: 2px; white-space: nowrap; }
+@media (max-width: 768px) {
+    .plugins-header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+    .plugin-item { flex-wrap: wrap; gap: 0.75rem; }
+    .plugin-meta { width: 100%; }
+}
+</style>
+@endpush
+
 @section('content')
-<div class="container-fluid p-0">
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h1 class="h3 mb-3">
-                <i class="bi bi-plugin me-2"></i>
-                Plugins del Sistema
-            </h1>
-            <p class="text-muted">Gestiona plugins exclusivos para el dominio base (superadmin)</p>
+<div class="container-fluid">
+    <div class="plugins-header">
+        <div class="d-flex align-items-center gap-3">
+            <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#6f42c1,#a370db);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="bi bi-plug" style="font-size:1.35rem;color:#fff;"></i>
+            </div>
+            <div>
+                <h3 class="mb-0" style="font-size:1.25rem;font-weight:700;">Plugins del Sistema</h3>
+                <p class="text-muted mb-0" style="font-size:0.85rem;">Gestiona plugins exclusivos del panel de administración</p>
+            </div>
         </div>
-        <div class="col-md-4 text-end">
-            <a href="/musedock/plugin-store" class="btn btn-outline-primary me-2">
-                <i class="bi bi-shop me-1"></i>Plugin Store
+        <div class="plugins-stats">
+            <div class="stat-badge" style="background:rgba(25,135,84,0.1);border-color:rgba(25,135,84,0.2);color:#198754;">
+                <i class="bi bi-check-circle-fill"></i>
+                <span><?= $stats['active'] ?> activos</span>
+            </div>
+            <div class="stat-badge">
+                <i class="bi bi-plug"></i>
+                <span><?= $stats['total'] ?> total</span>
+            </div>
+            <a href="/musedock/plugin-store" class="stat-badge" style="text-decoration:none;color:#6366f1;border-color:rgba(99,102,241,0.2);background:rgba(99,102,241,0.08);">
+                <i class="bi bi-shop"></i>
+                <span>Plugin Store</span>
             </a>
-            <button type="button" class="btn btn-primary" id="btnUploadPlugin">
-                <i class="bi bi-upload me-2"></i>Subir Plugin
+            <button type="button" class="stat-badge" id="btnUploadPlugin" style="cursor:pointer;color:#0d6efd;border-color:rgba(13,110,253,0.2);background:rgba(13,110,253,0.08);">
+                <i class="bi bi-upload"></i>
+                <span>Subir ZIP</span>
             </button>
         </div>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">Total</h6>
-                            <h3 class="mb-0"><?= $stats['total'] ?></h3>
-                        </div>
-                        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
-                            <i class="bi bi-plugin text-primary fs-4"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">Activos</h6>
-                            <h3 class="mb-0 text-success"><?= $stats['active'] ?></h3>
-                        </div>
-                        <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
-                            <i class="bi bi-check-circle text-success fs-4"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">Inactivos</h6>
-                            <h3 class="mb-0 text-warning"><?= $stats['inactive'] ?></h3>
-                        </div>
-                        <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
-                            <i class="bi bi-pause-circle text-warning fs-4"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">Disponibles</h6>
-                            <h3 class="mb-0 text-info"><?= $stats['available'] ?></h3>
-                        </div>
-                        <div class="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
-                            <i class="bi bi-box-seam text-info fs-4"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php
+        // Map de URLs de admin para cada plugin
+        $pluginUrlMap = [
+            'caddy-domain-manager' => '/musedock/domain-manager',
+            'cross-publisher' => '/musedock/cross-publisher',
+            'news-aggregator' => '/musedock/news-aggregator',
+            'ai-skin-generator' => '/musedock/ai-skin-generator',
+            'theme-extractor' => '/musedock/theme-extractor',
+        ];
+        $pluginIconMap = [
+            'caddy-domain-manager' => 'bi-globe',
+            'cross-publisher' => 'bi-share',
+            'news-aggregator' => 'bi-newspaper',
+            'ai-skin-generator' => 'bi-palette',
+            'theme-extractor' => 'bi-brush',
+        ];
+    ?>
 
     <!-- Plugins Instalados -->
     <?php if (!empty($installedPlugins)): ?>
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">Plugins Instalados</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>Plugin</th>
-                                <th>Versión</th>
-                                <th>Autor</th>
-                                <th>Estado</th>
-                                <th class="text-end">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($installedPlugins as $plugin): ?>
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                                                <i class="bi bi-plugin text-primary"></i>
-                                            </div>
-                                            <div>
-                                                <strong><?= htmlspecialchars($plugin->name) ?></strong>
-                                                <br>
-                                                <small class="text-muted"><?= htmlspecialchars($plugin->description ?? 'Sin descripción') ?></small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-secondary"><?= htmlspecialchars($plugin->version) ?></span>
-                                    </td>
-                                    <td>
-                                        <?php if ($plugin->author_url): ?>
-                                            <a href="<?= htmlspecialchars($plugin->author_url) ?>" target="_blank" rel="noopener">
-                                                <?= htmlspecialchars($plugin->author ?? 'Desconocido') ?>
-                                            </a>
-                                        <?php else: ?>
-                                            <?= htmlspecialchars($plugin->author ?? 'Desconocido') ?>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php if ($plugin->is_active): ?>
-                                            <span class="badge bg-success">
-                                                <i class="bi bi-check-circle me-1"></i>Activo
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="badge bg-secondary">
-                                                <i class="bi bi-pause-circle me-1"></i>Inactivo
-                                            </span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-end">
-                                        <div class="btn-group btn-group-sm">
-                                            <?php if ($plugin->is_active): ?>
-                                                <button type="button" class="btn btn-outline-warning btn-sm btn-deactivate-plugin"
-                                                        data-plugin-id="<?= $plugin->id ?>"
-                                                        data-plugin-name="<?= htmlspecialchars($plugin->name) ?>">
-                                                    <i class="bi bi-pause-circle"></i> Desactivar
-                                                </button>
-                                            <?php else: ?>
-                                                <form method="POST" action="/musedock/plugins/<?= $plugin->id ?>/activate" style="display:inline;">
-                                                    <?= csrf_field() ?>
-                                                    <button type="submit" class="btn btn-outline-success btn-sm">
-                                                        <i class="bi bi-play-circle"></i> Activar
-                                                    </button>
-                                                </form>
-                                            <?php endif; ?>
+        <div class="plugin-list">
+            <?php foreach ($installedPlugins as $plugin): ?>
+                <?php
+                    $isActive = (bool) $plugin->is_active;
+                    $showDash = (bool) ($plugin->show_in_dashboard ?? true);
+                    $icon = $pluginIconMap[$plugin->slug] ?? 'bi-plug';
+                    $settingsUrl = $pluginUrlMap[$plugin->slug] ?? null;
+                ?>
+                <div class="plugin-item <?= $isActive ? 'enabled' : 'disabled' ?>">
+                    <div class="plugin-icon <?= $isActive ? 'enabled' : 'disabled' ?>">
+                        <i class="bi <?= $icon ?>"></i>
+                    </div>
 
-                                            <a href="/musedock/plugins/<?= $plugin->id ?>" class="btn btn-outline-primary btn-sm">
-                                                <i class="bi bi-eye"></i> Ver
-                                            </a>
+                    <div class="plugin-info">
+                        <div class="plugin-name"><?= htmlspecialchars($plugin->name) ?></div>
+                        <p class="plugin-description"><?= htmlspecialchars($plugin->description ?? 'Sin descripción') ?></p>
+                    </div>
 
-                                            <?php if (!$plugin->is_active): ?>
-                                                <button type="button" class="btn btn-outline-danger btn-sm btn-uninstall-plugin"
-                                                        data-plugin-id="<?= $plugin->id ?>"
-                                                        data-plugin-name="<?= htmlspecialchars($plugin->name) ?>">
-                                                    <i class="bi bi-trash"></i> Desinstalar
-                                                </button>
-                                            <?php endif; ?>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                    <div class="plugin-meta">
+                        <span class="plugin-version">v<?= htmlspecialchars($plugin->version) ?></span>
+                        <div class="plugin-status <?= $isActive ? 'active' : 'inactive' ?>">
+                            <i class="bi <?= $isActive ? 'bi-check-circle-fill' : 'bi-dash-circle' ?>"></i>
+                            <?= $isActive ? 'Activo' : 'Inactivo' ?>
+                        </div>
+                    </div>
+
+                    <div class="plugin-actions">
+                        {{-- Settings --}}
+                        <div style="width:36px;text-align:center;margin-right:12px;">
+                            <?php if ($settingsUrl && $isActive): ?>
+                            <a href="<?= $settingsUrl ?>" title="Configuración"
+                               style="color:#6c757d;font-size:1.1rem;transition:color 0.15s;"
+                               onmouseover="this.style.color='#212529'" onmouseout="this.style.color='#6c757d'">
+                                <i class="bi bi-gear"></i>
+                            </a>
+                            <?php endif; ?>
+                        </div>
+
+                        {{-- Toggle Dashboard --}}
+                        <div style="width:60px;text-align:center;margin-right:12px;">
+                            <form method="POST" action="/musedock/plugins/<?= $plugin->id ?>/toggle-dashboard" class="d-inline">
+                                <?= csrf_field() ?>
+                                <label class="toggle-switch dash-toggle <?= $showDash ? 'active' : '' ?> toggle-dash-btn"
+                                       title="<?= $showDash ? 'Ocultar del dashboard' : 'Mostrar en dashboard' ?>"
+                                       style="cursor:pointer;">
+                                    <input type="checkbox" <?= $showDash ? 'checked' : '' ?>>
+                                    <span class="toggle-track"></span>
+                                </label>
+                            </form>
+                            <div class="toggle-label">Dashboard</div>
+                        </div>
+
+                        {{-- Toggle Activar/Desactivar --}}
+                        <div style="width:60px;text-align:center;">
+                            <?php if ($isActive): ?>
+                                <label class="toggle-switch active toggle-plugin-btn"
+                                       data-plugin-id="<?= $plugin->id ?>"
+                                       data-plugin-name="<?= htmlspecialchars($plugin->name) ?>"
+                                       data-action="deactivate"
+                                       title="Desactivar">
+                                    <input type="checkbox" checked>
+                                    <span class="toggle-track"></span>
+                                </label>
+                            <?php else: ?>
+                                <form method="POST" action="/musedock/plugins/<?= $plugin->id ?>/activate" class="d-inline">
+                                    <?= csrf_field() ?>
+                                    <label class="toggle-switch toggle-activate-btn" title="Activar" style="cursor:pointer;">
+                                        <input type="checkbox">
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </form>
+                            <?php endif; ?>
+                            <div class="toggle-label">Activo</div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            <?php endforeach; ?>
         </div>
     <?php else: ?>
-        <div class="alert alert-info">
-            <i class="bi bi-info-circle me-2"></i>
-            No hay plugins instalados. Puedes subir un plugin o explorar el directorio.
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,#e8e0f3,#d4c5ed);display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
+                    <i class="bi bi-plug" style="font-size:1.75rem;color:#6f42c1;"></i>
+                </div>
+                <h5 class="mb-2">No hay plugins instalados</h5>
+                <p class="text-muted mb-3" style="max-width:400px;margin:0 auto;">Sube un plugin ZIP o visita el Plugin Store para empezar.</p>
+            </div>
         </div>
     <?php endif; ?>
 
     <!-- Plugins Disponibles (No Instalados) -->
     <?php if (!empty($newPlugins)): ?>
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">Plugins Disponibles para Instalar</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>Plugin</th>
-                                <th>Versión</th>
-                                <th>Autor</th>
-                                <th class="text-end">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($newPlugins as $plugin): ?>
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                                                <i class="bi bi-box-seam text-info"></i>
-                                            </div>
-                                            <div>
-                                                <strong><?= htmlspecialchars($plugin['name']) ?></strong>
-                                                <br>
-                                                <small class="text-muted"><?= htmlspecialchars($plugin['description'] ?? 'Sin descripción') ?></small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-secondary"><?= htmlspecialchars($plugin['version'] ?? '1.0.0') ?></span>
-                                    </td>
-                                    <td><?= htmlspecialchars($plugin['author'] ?? 'Desconocido') ?></td>
-                                    <td class="text-end">
-                                        <form method="POST" action="/musedock/plugins/install" style="display:inline;">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="slug" value="<?= htmlspecialchars($plugin['slug']) ?>">
-                                            <button type="submit" class="btn btn-primary btn-sm">
-                                                <i class="bi bi-download"></i> Instalar
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+        <h6 class="mt-4 mb-3 text-muted" style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;">
+            <i class="bi bi-box-seam me-1"></i> Disponibles para instalar
+        </h6>
+        <div class="plugin-list">
+            <?php foreach ($newPlugins as $np): ?>
+                <?php $npIcon = $pluginIconMap[$np['slug']] ?? 'bi-box-seam'; ?>
+                <div class="plugin-item new">
+                    <div class="plugin-icon new">
+                        <i class="bi <?= $npIcon ?>"></i>
+                    </div>
+                    <div class="plugin-info">
+                        <div class="plugin-name"><?= htmlspecialchars($np['name']) ?></div>
+                        <p class="plugin-description"><?= htmlspecialchars($np['description'] ?? 'Sin descripción') ?></p>
+                    </div>
+                    <div class="plugin-meta">
+                        <span class="plugin-version">v<?= htmlspecialchars($np['version'] ?? '1.0.0') ?></span>
+                    </div>
+                    <div class="plugin-actions">
+                        <form method="POST" action="/musedock/plugins/install" class="d-inline">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="slug" value="<?= htmlspecialchars($np['slug']) ?>">
+                            <button type="submit" class="btn btn-sm btn-success">
+                                <i class="bi bi-download me-1"></i> Instalar
+                            </button>
+                        </form>
+                    </div>
                 </div>
-            </div>
+            <?php endforeach; ?>
         </div>
     <?php endif; ?>
 </div>
@@ -257,191 +282,74 @@
 document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = '<?= csrf_token() ?>';
 
-    // ========== DESACTIVAR PLUGIN con SweetAlert2 ==========
-    document.querySelectorAll('.btn-deactivate-plugin').forEach(btn => {
-        btn.addEventListener('click', function() {
+    // ========== TOGGLE DESACTIVAR (con contraseña) ==========
+    document.querySelectorAll('.toggle-plugin-btn').forEach(toggle => {
+        const checkbox = toggle.querySelector('input[type="checkbox"]');
+        if (checkbox) checkbox.addEventListener('click', e => e.preventDefault());
+
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
             const pluginId = this.dataset.pluginId;
             const pluginName = this.dataset.pluginName;
 
             Swal.fire({
-                title: '<i class="bi bi-shield-lock text-warning"></i> Confirmar Desactivación',
-                html: `
-                    <div class="text-start">
-                        <p class="mb-3">Estás a punto de desactivar el plugin <strong>${pluginName}</strong>.</p>
-                        <div class="alert alert-warning py-2 mb-3">
-                            <i class="bi bi-exclamation-triangle me-2"></i>
-                            <small>El plugin dejará de funcionar pero permanecerá instalado.</small>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Introduce tu contraseña para confirmar:</label>
-                            <input type="password" id="deactivatePassword" class="form-control" placeholder="Contraseña del superadmin" autocomplete="current-password">
-                        </div>
-                    </div>
-                `,
+                title: `¿Desactivar "${pluginName}"?`,
+                html: `<div class="text-start">
+                    <p class="text-muted mb-3">El plugin dejará de funcionar pero permanecerá instalado.</p>
+                    <label class="form-label fw-bold">Contraseña para confirmar:</label>
+                    <input type="password" id="deactivatePassword" class="form-control" placeholder="Contraseña del superadmin" autocomplete="current-password">
+                </div>`,
                 showCancelButton: true,
-                confirmButtonText: '<i class="bi bi-pause-circle me-1"></i> Desactivar Plugin',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#ffc107',
-                cancelButtonColor: '#6c757d',
-                width: '450px',
-                focusConfirm: false,
-                didOpen: () => {
-                    document.getElementById('deactivatePassword').focus();
-                },
-                preConfirm: () => {
-                    const password = document.getElementById('deactivatePassword').value;
-                    if (!password) {
-                        Swal.showValidationMessage('La contraseña es requerida');
-                        return false;
-                    }
-                    return password;
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Desactivando plugin...',
-                        html: '<p class="mb-0">Por favor espera...</p>',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        showConfirmButton: false,
-                        didOpen: () => Swal.showLoading()
-                    });
-
-                    fetch(`/musedock/plugins/${pluginId}/deactivate-secure`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify({
-                            _csrf: csrfToken,
-                            password: result.value
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Plugin Desactivado',
-                                text: data.message,
-                                confirmButtonColor: '#0d6efd'
-                            }).then(() => location.reload());
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: data.message,
-                                confirmButtonColor: '#0d6efd'
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Error de conexión. Intenta de nuevo.',
-                            confirmButtonColor: '#0d6efd'
-                        });
-                    });
-                }
-            });
-        });
-    });
-
-    // ========== DESINSTALAR PLUGIN con SweetAlert2 ==========
-    document.querySelectorAll('.btn-uninstall-plugin').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const pluginId = this.dataset.pluginId;
-            const pluginName = this.dataset.pluginName;
-
-            Swal.fire({
-                title: '<i class="bi bi-exclamation-triangle text-danger"></i> Confirmar Desinstalación',
-                html: `
-                    <div class="text-start">
-                        <p class="mb-3">Estás a punto de desinstalar el plugin <strong>${pluginName}</strong>.</p>
-                        <div class="alert alert-danger py-2 mb-3">
-                            <i class="bi bi-trash me-2"></i>
-                            <small><strong>Esta acción no se puede deshacer.</strong> Se eliminarán todos los datos y configuraciones del plugin.</small>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Introduce tu contraseña para confirmar:</label>
-                            <input type="password" id="uninstallPassword" class="form-control" placeholder="Contraseña del superadmin" autocomplete="current-password">
-                        </div>
-                    </div>
-                `,
-                showCancelButton: true,
-                confirmButtonText: '<i class="bi bi-trash me-1"></i> Desinstalar Plugin',
+                confirmButtonText: 'Desactivar',
                 cancelButtonText: 'Cancelar',
                 confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                width: '450px',
                 focusConfirm: false,
-                didOpen: () => {
-                    document.getElementById('uninstallPassword').focus();
-                },
+                didOpen: () => document.getElementById('deactivatePassword').focus(),
                 preConfirm: () => {
-                    const password = document.getElementById('uninstallPassword').value;
-                    if (!password) {
-                        Swal.showValidationMessage('La contraseña es requerida');
-                        return false;
-                    }
-                    return password;
+                    const pw = document.getElementById('deactivatePassword').value;
+                    if (!pw) { Swal.showValidationMessage('La contraseña es requerida'); return false; }
+                    return pw;
                 }
-            }).then((result) => {
+            }).then(result => {
                 if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Desinstalando plugin...',
-                        html: '<p class="mb-0">Por favor espera...</p>',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        showConfirmButton: false,
-                        didOpen: () => Swal.showLoading()
-                    });
-
-                    fetch(`/musedock/plugins/${pluginId}/uninstall-secure`, {
+                    Swal.fire({ title: 'Desactivando...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+                    fetch(`/musedock/plugins/${pluginId}/deactivate-secure`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify({
-                            _csrf: csrfToken,
-                            password: result.value
-                        })
+                        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        body: JSON.stringify({ _csrf: csrfToken, password: result.value })
                     })
-                    .then(response => response.json())
+                    .then(r => r.json())
                     .then(data => {
-                        if (data.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Plugin Desinstalado',
-                                text: data.message,
-                                confirmButtonColor: '#0d6efd'
-                            }).then(() => location.reload());
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: data.message,
-                                confirmButtonColor: '#0d6efd'
-                            });
-                        }
+                        if (data.success) { Swal.fire({ icon: 'success', title: 'Desactivado', text: data.message, timer: 2000, showConfirmButton: false }).then(() => location.reload()); }
+                        else { Swal.fire({ icon: 'error', title: 'Error', text: data.message }); }
                     })
-                    .catch(error => {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Error de conexión. Intenta de nuevo.',
-                            confirmButtonColor: '#0d6efd'
-                        });
-                    });
+                    .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Error de conexión' }));
                 }
             });
         });
     });
 
-    // ========== SUBIR PLUGIN ZIP con SweetAlert2 ==========
+    // ========== TOGGLE ACTIVAR (submit form) ==========
+    document.querySelectorAll('.toggle-activate-btn').forEach(toggle => {
+        const checkbox = toggle.querySelector('input[type="checkbox"]');
+        if (checkbox) checkbox.addEventListener('click', e => e.preventDefault());
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            this.closest('form').submit();
+        });
+    });
+
+    // ========== TOGGLE DASHBOARD (submit form) ==========
+    document.querySelectorAll('.toggle-dash-btn').forEach(toggle => {
+        const checkbox = toggle.querySelector('input[type="checkbox"]');
+        if (checkbox) checkbox.addEventListener('click', e => e.preventDefault());
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            this.closest('form').submit();
+        });
+    });
+
+    // ========== SUBIR PLUGIN ZIP ==========
     const btnUpload = document.getElementById('btnUploadPlugin');
     const uploadForm = document.getElementById('uploadPluginForm');
     const fileInput = document.getElementById('pluginZipInput');
@@ -450,114 +358,53 @@ document.addEventListener('DOMContentLoaded', function() {
         btnUpload.addEventListener('click', function() {
             Swal.fire({
                 title: '<i class="bi bi-cloud-upload text-primary"></i> Subir Plugin',
-                html: `
-                    <div class="text-start">
-                        <p class="text-muted mb-3">Selecciona un archivo ZIP con el plugin a instalar.</p>
-                        <div class="upload-zone border border-2 border-dashed rounded-3 p-4 text-center" id="dropZone" style="cursor: pointer; transition: all 0.3s;">
-                            <i class="bi bi-file-earmark-zip display-4 text-muted"></i>
-                            <p class="mb-1 mt-2"><strong>Arrastra el archivo aquí</strong></p>
-                            <p class="text-muted small mb-2">o haz clic para seleccionar</p>
-                            <span class="badge bg-secondary">Máximo 50MB</span>
-                        </div>
-                        <div id="selectedFile" class="mt-3 d-none">
-                            <div class="alert alert-success py-2 mb-0">
-                                <i class="bi bi-file-earmark-check me-2"></i>
-                                <span id="fileName"></span>
-                                <button type="button" class="btn-close btn-sm float-end" id="clearFile"></button>
-                            </div>
-                        </div>
-                        <div class="alert alert-info mt-3 mb-0">
-                            <i class="bi bi-info-circle me-2"></i>
-                            <strong>Importante:</strong> Asegúrate de que el plugin sea compatible con MuseDock y provenga de una fuente confiable.
+                html: `<div class="text-start">
+                    <p class="text-muted mb-3">Selecciona un archivo ZIP con el plugin a instalar.</p>
+                    <div class="upload-zone border border-2 border-dashed rounded-3 p-4 text-center" id="dropZone" style="cursor:pointer;">
+                        <i class="bi bi-file-earmark-zip display-4 text-muted"></i>
+                        <p class="mb-1 mt-2"><strong>Arrastra el archivo aquí</strong></p>
+                        <p class="text-muted small mb-2">o haz clic para seleccionar</p>
+                        <span class="badge bg-secondary">Máximo 50MB</span>
+                    </div>
+                    <div id="selectedFile" class="mt-3 d-none">
+                        <div class="alert alert-success py-2 mb-0">
+                            <i class="bi bi-file-earmark-check me-2"></i><span id="fileName"></span>
+                            <button type="button" class="btn-close btn-sm float-end" id="clearFile"></button>
                         </div>
                     </div>
-                `,
+                </div>`,
                 showCancelButton: true,
                 confirmButtonText: '<i class="bi bi-upload me-1"></i> Subir e Instalar',
                 cancelButtonText: 'Cancelar',
                 confirmButtonColor: '#0d6efd',
-                cancelButtonColor: '#6c757d',
                 width: '500px',
                 didOpen: () => {
                     const dropZone = document.getElementById('dropZone');
                     const selectedFileDiv = document.getElementById('selectedFile');
                     const fileNameSpan = document.getElementById('fileName');
                     const clearFileBtn = document.getElementById('clearFile');
-                    let selectedFile = null;
-
-                    // Click para seleccionar archivo
                     dropZone.addEventListener('click', () => fileInput.click());
-
-                    // Drag & Drop
-                    dropZone.addEventListener('dragover', (e) => {
-                        e.preventDefault();
-                        dropZone.classList.add('border-primary', 'bg-light');
-                    });
-                    dropZone.addEventListener('dragleave', () => {
-                        dropZone.classList.remove('border-primary', 'bg-light');
-                    });
-                    dropZone.addEventListener('drop', (e) => {
-                        e.preventDefault();
-                        dropZone.classList.remove('border-primary', 'bg-light');
+                    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-primary','bg-light'); });
+                    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-primary','bg-light'));
+                    dropZone.addEventListener('drop', e => {
+                        e.preventDefault(); dropZone.classList.remove('border-primary','bg-light');
                         const file = e.dataTransfer.files[0];
-                        if (file && file.name.endsWith('.zip')) {
-                            handleFileSelect(file);
-                        } else {
-                            Swal.showValidationMessage('Por favor selecciona un archivo .zip');
-                        }
+                        if (file && file.name.endsWith('.zip')) handleFileSelect(file);
+                        else Swal.showValidationMessage('Solo archivos .zip');
                     });
-
-                    // Cuando se selecciona archivo
-                    fileInput.addEventListener('change', function() {
-                        if (this.files[0]) {
-                            handleFileSelect(this.files[0]);
-                        }
-                    });
-
-                    // Limpiar archivo
-                    clearFileBtn.addEventListener('click', () => {
-                        fileInput.value = '';
-                        selectedFileDiv.classList.add('d-none');
-                        dropZone.classList.remove('d-none');
-                        selectedFile = null;
-                    });
-
+                    fileInput.addEventListener('change', function() { if (this.files[0]) handleFileSelect(this.files[0]); });
+                    clearFileBtn.addEventListener('click', () => { fileInput.value=''; selectedFileDiv.classList.add('d-none'); dropZone.classList.remove('d-none'); });
                     function handleFileSelect(file) {
-                        if (file.size > 50 * 1024 * 1024) {
-                            Swal.showValidationMessage('El archivo excede el límite de 50MB');
-                            return;
-                        }
-                        selectedFile = file;
-                        fileNameSpan.textContent = file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
-                        selectedFileDiv.classList.remove('d-none');
-                        dropZone.classList.add('d-none');
-
-                        // Crear nuevo FileList para el input
-                        const dt = new DataTransfer();
-                        dt.items.add(file);
-                        fileInput.files = dt.files;
+                        if (file.size > 50*1024*1024) { Swal.showValidationMessage('Máximo 50MB'); return; }
+                        fileNameSpan.textContent = file.name+' ('+(file.size/1024/1024).toFixed(2)+' MB)';
+                        selectedFileDiv.classList.remove('d-none'); dropZone.classList.add('d-none');
+                        const dt = new DataTransfer(); dt.items.add(file); fileInput.files = dt.files;
                     }
                 },
-                preConfirm: () => {
-                    if (!fileInput.files[0]) {
-                        Swal.showValidationMessage('Por favor selecciona un archivo ZIP');
-                        return false;
-                    }
-                    return true;
-                }
-            }).then((result) => {
+                preConfirm: () => { if (!fileInput.files[0]) { Swal.showValidationMessage('Selecciona un archivo ZIP'); return false; } return true; }
+            }).then(result => {
                 if (result.isConfirmed) {
-                    // Mostrar loading
-                    Swal.fire({
-                        title: 'Subiendo plugin...',
-                        html: '<p class="mb-2">Por favor espera mientras se sube e instala el plugin.</p><div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div></div>',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
+                    Swal.fire({ title: 'Subiendo plugin...', html: '<div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div>', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
                     uploadForm.submit();
                 }
             });

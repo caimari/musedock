@@ -34,6 +34,20 @@ class DashboardController {
         // Detectar seeders faltantes
         $missingSeeders = $this->detectMissingSeeders();
 
+        // Obtener plugins activos para accesos directos en el dashboard
+        $activePlugins = [];
+        $dashboardModules = [];
+        try {
+            $pdo = Database::connect();
+            $stmt = $pdo->query("SELECT slug, name, description FROM superadmin_plugins WHERE is_active = 1 AND show_in_dashboard = 1 ORDER BY name");
+            $activePlugins = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $stmt = $pdo->query("SELECT slug, name, description FROM modules WHERE active = 1 AND show_in_dashboard = 1 ORDER BY name");
+            $dashboardModules = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            // Silenciar si la tabla no existe aún
+        }
+
         // Obtener email y nombre del usuario
         $email = $auth['email'] ?? 'Usuario';
         $name = $auth['name'] ?? 'Usuario';
@@ -45,7 +59,9 @@ class DashboardController {
             'name' => $name,
             'userType' => $auth['type'],
             'isSuperAdmin' => $isSuperAdmin,
-            'missingSeeders' => $missingSeeders
+            'missingSeeders' => $missingSeeders,
+            'activePlugins' => $activePlugins,
+            'dashboardModules' => $dashboardModules
         ]);
     }
 

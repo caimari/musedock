@@ -69,6 +69,13 @@
   },
   "settings": {
     "settings": "Configuración",
+    "mode": "Modo de funcionamiento",
+    "mode_both": "Ambos (Graph API + oEmbed)",
+    "mode_graph": "Solo Graph API",
+    "mode_oembed": "Solo oEmbed",
+    "mode_both_desc": "Feed completo con Graph API + insertar posts individuales con oEmbed",
+    "mode_graph_desc": "Feed de Instagram con diseño personalizado. Requiere credenciales de API.",
+    "mode_oembed_desc": "Insertar posts públicos de Instagram sin configurar API. Diseño nativo de Instagram.",
     "api_credentials": "Credenciales de API",
     "instagram_app_id": "App ID de Instagram",
     "instagram_app_secret": "App Secret de Instagram",
@@ -94,6 +101,23 @@
     "image_aspect_ratio": "Relación de Aspecto",
     "settings_saved": "Configuración guardada exitosamente",
     "settings_error": "Error al guardar configuración"
+  },
+  "oembed": {
+    "title": "Insertar Post de Instagram",
+    "description": "Inserta un post público de Instagram usando su URL. No requiere configuración de API.",
+    "url_label": "URL del post de Instagram",
+    "url_placeholder": "https://www.instagram.com/p/ABC123/",
+    "shortcode_info": "Usa el shortcode [instagram-post url=\"...\"] en tu contenido",
+    "embed_preview": "Vista previa del embed",
+    "no_api_needed": "No necesita API — funciona con cualquier post público"
+  },
+  "widget": {
+    "title": "Feed de Instagram",
+    "description": "Muestra un feed de Instagram o un post individual embebido",
+    "mode_feed": "Feed de Instagram",
+    "mode_feed_desc": "Muestra posts de tu cuenta conectada (requiere API)",
+    "mode_oembed": "Post individual",
+    "mode_oembed_desc": "Embebe un post público por URL (sin API)"
   },
   "layout": {
     "grid": "Cuadrícula",
