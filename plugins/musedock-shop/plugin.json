@@ -1,0 +1,11 @@
+{
+    "name": "MuseDock Shop",
+    "slug": "musedock-shop",
+    "version": "0.1.0",
+    "description": "E-commerce plugin for MuseDock CMS. Stripe payments, cart, checkout, subscriptions, invoices. Available for any tenant.",
+    "author": "Screen Art S.L.U.",
+    "license": "MIT",
+    "requires": [],
+    "provides": ["shop", "payments", "subscriptions"],
+    "status": "development"
+}

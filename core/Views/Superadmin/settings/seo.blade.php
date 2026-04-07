@@ -88,7 +88,23 @@
               <input type="url" name="social_linkedin" class="form-control" value="{{ $settings['social_linkedin'] ?? '' }}" placeholder="https://linkedin.com/company/tuempresa">
             </div>
           </div>
-          
+
+          <div class="mb-3">
+            <label class="form-label">GitHub</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fab fa-github"></i></span>
+              <input type="url" name="social_github" class="form-control" value="{{ $settings['social_github'] ?? '' }}" placeholder="https://github.com/tuusuario">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">TikTok</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fab fa-tiktok"></i></span>
+              <input type="url" name="social_tiktok" class="form-control" value="{{ $settings['social_tiktok'] ?? '' }}" placeholder="https://tiktok.com/@tuusuario">
+            </div>
+          </div>
+
           <div class="mb-3">
             <label class="form-label">YouTube</label>
             <div class="input-group">

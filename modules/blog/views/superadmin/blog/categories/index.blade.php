@@ -118,16 +118,29 @@
               <tr data-id="{{ $category->id }}">
                 <td><input type="checkbox" name="selected[]" value="{{ $category->id }}" class="form-check-input select-item"></td>
                 <td>
-                  @if($category->image)
-                    <img src="{{ $category->image }}" alt="{{ $category->name }}" class="rounded me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                  @endif
-                  <strong>{{ str_repeat('— ', $category->depth ?? 0) }}{{ e($category->name) }}</strong>
-                  <br>
-                  <small>
-                    <a href="{{ route('blog.categories.edit', ['id' => $category->id]) }}">{{ __('common.edit') }}</a>
-                     |
-                    <a href="#" class="delete-category-link" data-category-id="{{ $category->id }}" data-category-name="{{ htmlspecialchars($category->name, ENT_QUOTES, 'UTF-8') }}" style="color: #dc3545; text-decoration: none;">{{ __('common.delete') }}</a>
-                  </small>
+                  <div style="padding-left: {{ ($category->depth ?? 0) * 24 }}px; display: flex; align-items: center; gap: 8px;">
+                    @if(($category->depth ?? 0) > 0)
+                      <span style="color: #ccc; font-size: 0.8rem;">└</span>
+                    @endif
+                    @if($category->image)
+                      <img src="{{ $category->image }}" alt="{{ $category->name }}" class="rounded" style="width: 26px; height: 26px; object-fit: cover;">
+                    @endif
+                    @if($category->color)
+                      <span style="width:10px; height:10px; border-radius:50%; background:{{ $category->color }}; flex-shrink:0;"></span>
+                    @endif
+                    <div>
+                      <strong>{{ e($category->name) }}</strong>
+                      @if($category->parent_id)
+                        <small class="text-muted ms-1">({{ $category->slug }})</small>
+                      @endif
+                      <br>
+                      <small>
+                        <a href="{{ route('blog.categories.edit', ['id' => $category->id]) }}">{{ __('common.edit') }}</a>
+                         |
+                        <a href="#" class="delete-category-link" data-category-id="{{ $category->id }}" data-category-name="{{ htmlspecialchars($category->name, ENT_QUOTES, 'UTF-8') }}" style="color: #dc3545; text-decoration: none;">{{ __('common.delete') }}</a>
+                      </small>
+                    </div>
+                  </div>
                 </td>
                 <td><small class="text-muted">{{ $category->slug }}</small></td>
                 @if (!empty($scope) && ($scope['mode'] ?? 'mine') !== 'mine')

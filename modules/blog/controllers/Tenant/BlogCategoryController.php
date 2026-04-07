@@ -15,6 +15,21 @@ class BlogCategoryController
 {
     use RequiresPermission;
 
+    private function buildCategoryTree(array $categories, $parentId = null, int $depth = 0): array
+    {
+        $result = [];
+        foreach ($categories as $cat) {
+            $catParentId = $cat->parent_id ?? null;
+            if ($catParentId == $parentId) {
+                $cat->depth = $depth;
+                $result[] = $cat;
+                $children = $this->buildCategoryTree($categories, $cat->id, $depth + 1);
+                $result = array_merge($result, $children);
+            }
+        }
+        return $result;
+    }
+
     private function updateAllCategoryCounts(int $tenantId): void
     {
         try {
@@ -106,8 +121,19 @@ class BlogCategoryController
             ", [$searchTerm, $searchTerm, $searchTerm]);
         }
 
-        // Paginación
-        if ($perPage == -1) {
+        // Tree view (no search): load all. Search: paginate flat.
+        if (empty($search)) {
+            $categories = $query->get();
+            $pagination = [
+                'total' => count($categories),
+                'per_page' => count($categories),
+                'current_page' => 1,
+                'last_page' => 1,
+                'from' => 1,
+                'to' => count($categories),
+                'items' => $categories
+            ];
+        } elseif ($perPage == -1) {
             $categories = $query->get();
             $pagination = [
                 'total' => count($categories),
@@ -125,6 +151,11 @@ class BlogCategoryController
 
         // Procesar categorías
         $processedCategories = array_map(fn($row) => ($row instanceof BlogCategory) ? $row : new BlogCategory((array) $row), $categories);
+
+        // Build tree with depth for visual nesting
+        if (empty($search)) {
+            $processedCategories = $this->buildCategoryTree($processedCategories);
+        }
 
         return View::renderTenantAdmin('blog.categories.index', [
             'title'       => 'Listado de categorías',
@@ -150,11 +181,14 @@ class BlogCategoryController
 
         // Obtener todas las categorías del tenant para el selector de categoría padre
         $categories = BlogCategory::where('tenant_id', $tenantId)->orderBy('name', 'ASC')->get();
+        $processed = array_map(fn($r) => ($r instanceof BlogCategory) ? $r : new BlogCategory((array)$r), $categories);
+        $parentCategories = $this->buildCategoryTree($processed);
 
         return View::renderTenantAdmin('blog.categories.create', [
             'title' => 'Crear Categoría',
             'category' => new BlogCategory(),
             'categories' => $categories,
+            'parentCategories' => $parentCategories,
             'isNew' => true,
         ]);
     }
@@ -287,10 +321,14 @@ class BlogCategoryController
             error_log("Error al formatear fechas: " . $e->getMessage());
         }
 
+        $processed = array_map(fn($r) => ($r instanceof BlogCategory) ? $r : new BlogCategory((array)$r), $categories);
+        $parentCategories = $this->buildCategoryTree($processed);
+
         return View::renderTenantAdmin('blog.categories.edit', [
             'title'      => 'Editar categoría: ' . e($category->name),
             'category'   => $category,
             'categories' => $categories,
+            'parentCategories' => $parentCategories,
         ]);
     }
 

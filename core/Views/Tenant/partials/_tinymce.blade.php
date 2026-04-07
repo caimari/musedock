@@ -146,7 +146,7 @@ $tinymce_plugins_list = [
 ];
 $tinymce_toolbar_lines = [
     'undo redo | cut copy paste removeformat | blocks fontfamily fontsize | bold italic underline strikethrough | forecolor backcolor',
-    'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media table codesample | code fullscreen | help'
+    'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media table codesample | inserttoc | code fullscreen | help'
 ];
 $tinymce_external_plugins = [];
 // El menú 'image' ya incluye opciones de imagen. 'customimage' añade nuestras opciones personalizadas
@@ -433,6 +433,36 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
 
         // Función Setup con solución para el borde azul
         setup: function(editor) {
+            // === BOTÓN "INSERTAR ÍNDICE" (TOC) ===
+            editor.ui.registry.addButton('inserttoc', {
+                icon: 'list-num-default',
+                tooltip: 'Insertar Tabla de Contenidos',
+                onAction: function() {
+                    var content = editor.getContent({format: 'html'});
+                    var div = document.createElement('div');
+                    div.innerHTML = content;
+                    var headings = div.querySelectorAll('h2, h3');
+                    if (headings.length === 0) {
+                        editor.notificationManager.open({text: 'No se encontraron encabezados H2/H3 en el contenido.', type: 'warning', timeout: 3000});
+                        return;
+                    }
+                    var tocItems = [];
+                    headings.forEach(function(h, i) {
+                        var id = h.id || h.textContent.toLowerCase().replace(/[^a-z0-9áéíóúñü]+/g, '-').replace(/^-|-$/g, '') || 'section-' + i;
+                        h.id = id;
+                        var indent = h.tagName === 'H3' ? ' style="padding-left:1.2rem;"' : '';
+                        tocItems.push('<li' + indent + '><a href="#' + id + '">' + h.textContent + '</a></li>');
+                    });
+                    var tocHtml = '<nav class="toc-block" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:1.2rem 1.5rem;margin:1.5rem 0;">' +
+                        '<p style="font-weight:700;font-size:0.9rem;margin:0 0 0.6rem;color:#374151;">Tabla de contenidos</p>' +
+                        '<ol style="margin:0;padding:0 0 0 1.2rem;font-size:0.88rem;line-height:1.8;">' + tocItems.join('') + '</ol></nav>';
+                    editor.setContent(div.innerHTML);
+                    editor.selection.setCursorLocation(editor.getBody(), 0);
+                    editor.insertContent(tocHtml);
+                    editor.notificationManager.open({text: 'Tabla de contenidos insertada con ' + headings.length + ' secciones.', type: 'success', timeout: 2000});
+                }
+            });
+
             // === PROTEGER BLOQUES <pre><code> DE DECODIFICACIÓN DE ENTIDADES ===
             var _initialLoadDone = false;
             editor.on('BeforeSetContent', function(e) {

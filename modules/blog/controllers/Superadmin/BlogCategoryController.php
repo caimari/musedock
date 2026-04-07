@@ -14,6 +14,24 @@ class BlogCategoryController
     use RequiresPermission;
     use \Blog\Traits\CrossPublisherScope;
 
+    /**
+     * Build a flat list sorted as a tree with depth for visual nesting.
+     */
+    private function buildCategoryTree(array $categories, $parentId = null, int $depth = 0): array
+    {
+        $result = [];
+        foreach ($categories as $cat) {
+            $catParentId = $cat->parent_id ?? null;
+            if ($catParentId == $parentId) {
+                $cat->depth = $depth;
+                $result[] = $cat;
+                $children = $this->buildCategoryTree($categories, $cat->id, $depth + 1);
+                $result = array_merge($result, $children);
+            }
+        }
+        return $result;
+    }
+
     private function updateAllCategoryCounts(): void
     {
         try {
@@ -91,8 +109,20 @@ class BlogCategoryController
             ", [$searchTerm, $searchTerm, $searchTerm]);
         }
 
-        // Si queremos todos los registros
-        if ($perPage == -1) {
+        // For tree view (no search): load all categories and build hierarchy
+        // For search: paginate flat results
+        if (empty($search)) {
+            $categories = $query->get();
+            $pagination = [
+                'total' => count($categories),
+                'per_page' => count($categories),
+                'current_page' => 1,
+                'last_page' => 1,
+                'from' => 1,
+                'to' => count($categories),
+                'items' => $categories
+            ];
+        } elseif ($perPage == -1) {
             $categories = $query->get();
             $pagination = [
                 'total' => count($categories),
@@ -104,13 +134,17 @@ class BlogCategoryController
                 'items' => $categories
             ];
         } else {
-            // Paginamos con el número solicitado
             $pagination = $query->paginate($perPage, $currentPage);
             $categories = $pagination['items'] ?? [];
         }
 
         // Procesamos los objetos BlogCategory
         $processedCategories = array_map(fn($row) => ($row instanceof BlogCategory) ? $row : new BlogCategory((array) $row), $categories);
+
+        // Build tree structure with depth for visual nesting (only when not searching)
+        if (empty($search)) {
+            $processedCategories = $this->buildCategoryTree($processedCategories);
+        }
 
         // Mapa de tenants para mostrar dominio
         $tenantMap = ($scope['mode'] !== 'mine') ? $this->buildTenantMap($scope['tenantIds']) : [];
@@ -151,10 +185,14 @@ class BlogCategoryController
             $categories = BlogCategory::whereRaw('(tenant_id IS NULL OR tenant_id = 0)')->orderBy('name', 'ASC')->get();
         }
 
+        $processedCats = array_map(fn($row) => ($row instanceof BlogCategory) ? $row : new BlogCategory((array) $row), $categories);
+        $parentCategories = $this->buildCategoryTree($processedCats);
+
         return View::renderSuperadmin('blog.categories.create', [
             'title' => 'Crear Categoría',
             'category' => new BlogCategory(),
             'categories' => $categories,
+            'parentCategories' => $parentCategories,
             'isNew' => true,
             'targetTenantId' => $targetTenantId,
             'targetTenant' => $targetTenant,
@@ -292,10 +330,15 @@ class BlogCategoryController
             error_log("Error al obtener/formatear fechas para categoría {$id}: " . $e->getMessage());
         }
 
+        // Build tree with depth for the parent selector
+        $processedCategories = array_map(fn($row) => ($row instanceof BlogCategory) ? $row : new BlogCategory((array) $row), $categories);
+        $parentCategories = $this->buildCategoryTree($processedCategories);
+
         return View::renderSuperadmin('blog.categories.edit', [
             'title'      => 'Editar categoría: ' . e($category->name),
             'category'   => $category,
             'categories' => $categories,
+            'parentCategories' => $parentCategories,
             'editingTenant' => $editingTenant,
         ]);
     }

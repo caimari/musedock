@@ -51,7 +51,7 @@ $headerSticky = themeOption('header.header_sticky', false);
 
 
 
-            <a href="{{ url('/contact') }}" class="icon-fa-question-circle">
+            <a href="{{ url('/soporte') }}" class="icon-fa-question-circle">
               <i class="fa fa-question-circle"></i> {{ __('header.support') }}
             </a>
             

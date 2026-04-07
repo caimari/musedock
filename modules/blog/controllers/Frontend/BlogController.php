@@ -82,9 +82,10 @@ class BlogController
         $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $offset = ($currentPage - 1) * $postsPerPage;
 
-        // Contar total de posts (excluir briefs del listado principal)
+        // Contar total de posts (excluir briefs y docs del listado principal)
         $countQuery = BlogPost::where('status', 'published')
-            ->where('post_type', '!=', 'brief');
+            ->where('post_type', '!=', 'brief')
+            ->where('post_type', '!=', 'docs');
         if ($tenantId !== null) {
             $countQuery->where('tenant_id', $tenantId);
         } else {
@@ -93,9 +94,10 @@ class BlogController
         $totalPosts = $countQuery->count();
         $totalPages = ceil($totalPosts / $postsPerPage);
 
-        // Obtener posts publicados con paginación (excluir briefs)
+        // Obtener posts publicados con paginación (excluir briefs y docs)
         $query = BlogPost::where('status', 'published')
             ->where('post_type', '!=', 'brief')
+            ->where('post_type', '!=', 'docs')
             ->orderBy('published_at', 'DESC');
 
         if ($tenantId !== null) {
@@ -148,6 +150,7 @@ class BlogController
         $featuredQuery = BlogPost::where('status', 'published')
             ->where('featured', 1)
             ->where('post_type', '!=', 'brief')
+            ->where('post_type', '!=', 'docs')
             ->orderBy('published_at', 'DESC');
         if ($tenantId !== null) {
             $featuredQuery->where('tenant_id', $tenantId);
@@ -406,6 +409,118 @@ class BlogController
         ");
         $stmt->execute([$post->id, $docsRootId, $docsRootId]);
         return (bool) $stmt->fetchColumn();
+    }
+
+    /**
+     * Docs index page — lists all docs sections and posts
+     */
+    public function docsIndex()
+    {
+        $tenantId = TenantManager::currentTenantId();
+        $pdo = \Screenart\Musedock\Database::connect();
+        $catTf = $tenantId ? "tenant_id = $tenantId" : "tenant_id IS NULL";
+        $tf = $tenantId ? "p.tenant_id = $tenantId" : "p.tenant_id IS NULL";
+        $sf = $tenantId ? "s.tenant_id = $tenantId" : "s.tenant_id IS NULL";
+
+        // 1. Load all product-level categories (direct children of "docs" root)
+        $docsRootStmt = $pdo->query("SELECT id FROM blog_categories WHERE slug = 'docs' AND $catTf LIMIT 1");
+        $docsRootId = $docsRootStmt->fetchColumn();
+
+        $products = [];
+        if ($docsRootId) {
+            // Get product categories (children of docs root)
+            $productStmt = $pdo->prepare("SELECT id, name, slug, description, \"order\" FROM blog_categories WHERE parent_id = ? AND $catTf ORDER BY \"order\" ASC");
+            $productStmt->execute([$docsRootId]);
+            $productRows = $productStmt->fetchAll(\PDO::FETCH_OBJ);
+
+            foreach ($productRows as $prod) {
+                $products[$prod->slug] = (object)[
+                    'name' => $prod->name,
+                    'description' => $prod->description ?: '',
+                    'order' => $prod->order ?? 99,
+                    'id' => $prod->id,
+                    'sections' => [],
+                    'postCount' => 0
+                ];
+
+                // Get sections (children of this product)
+                $sectionStmt = $pdo->prepare("SELECT id, name, slug, description, \"order\" FROM blog_categories WHERE parent_id = ? AND $catTf ORDER BY \"order\" ASC");
+                $sectionStmt->execute([$prod->id]);
+                $sectionRows = $sectionStmt->fetchAll(\PDO::FETCH_OBJ);
+
+                foreach ($sectionRows as $sec) {
+                    $products[$prod->slug]->sections[$sec->slug] = (object)[
+                        'name' => $sec->name,
+                        'description' => $sec->description ?: '',
+                        'posts' => []
+                    ];
+                }
+            }
+        }
+
+        // 2. Load all published docs posts and assign to products/sections
+        $postStmt = $pdo->query("
+            SELECT p.id, p.title, p.slug, p.excerpt,
+                   c.slug as cat_slug, c.parent_id as cat_parent_id,
+                   COALESCE(s.prefix, 'docs') as url_prefix
+            FROM blog_posts p
+            LEFT JOIN blog_post_categories bpc ON bpc.post_id = p.id
+            LEFT JOIN blog_categories c ON c.id = bpc.category_id
+            LEFT JOIN slugs s ON s.reference_id = p.id AND s.module = 'blog' AND $sf
+            WHERE p.post_type = 'docs' AND p.status = 'published' AND $tf
+            ORDER BY p.title ASC
+        ");
+        $postRows = $postStmt->fetchAll(\PDO::FETCH_OBJ);
+
+        $seen = [];
+        foreach ($postRows as $row) {
+            if (isset($seen[$row->id])) continue;
+            $seen[$row->id] = true;
+
+            $postObj = (object)[
+                'title' => $row->title,
+                'url' => '/' . $row->url_prefix . '/' . $row->slug
+            ];
+
+            // Find which product/section this post belongs to
+            $assigned = false;
+            foreach ($products as $prodSlug => $prod) {
+                // Check if post's category is a section of this product
+                if (isset($prod->sections[$row->cat_slug])) {
+                    $prod->sections[$row->cat_slug]->posts[] = $postObj;
+                    $prod->postCount++;
+                    $assigned = true;
+                    break;
+                }
+                // Check if post's category parent is this product
+                if ($row->cat_parent_id == $prod->id) {
+                    if (isset($prod->sections[$row->cat_slug])) {
+                        $prod->sections[$row->cat_slug]->posts[] = $postObj;
+                    } else {
+                        $prod->sections['_root'] = $prod->sections['_root'] ?? (object)['name' => '', 'description' => '', 'posts' => []];
+                        $prod->sections['_root']->posts[] = $postObj;
+                    }
+                    $prod->postCount++;
+                    $assigned = true;
+                    break;
+                }
+            }
+
+            // Post not in any product — add to general
+            if (!$assigned) {
+                if (!isset($products['_general'])) {
+                    $products['_general'] = (object)['name' => 'General', 'description' => '', 'order' => 999, 'id' => 0, 'sections' => [], 'postCount' => 0];
+                }
+                $products['_general']->sections['_root'] = $products['_general']->sections['_root'] ?? (object)['name' => '', 'description' => '', 'posts' => []];
+                $products['_general']->sections['_root']->posts[] = $postObj;
+                $products['_general']->postCount++;
+            }
+        }
+
+        return View::renderTheme('blog/docs-index', [
+            'products' => $products,
+            'totalDocs' => count($seen)
+        ]);
     }
 
     /**

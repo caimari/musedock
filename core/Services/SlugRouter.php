@@ -113,6 +113,28 @@ class SlugRouter
 
         file_put_contents($logPath, "- Resultado encontrado: " . json_encode($entry) . "\n", FILE_APPEND);
 
+        // If not found with given prefix, check if slug exists with a different prefix (cross-prefix redirect)
+        if (!$entry && $prefix !== null) {
+            $crossSql = "SELECT prefix FROM slugs WHERE slug = :slug AND module = 'blog'";
+            $crossParams = [':slug' => $slug];
+            if ($multiTenant) {
+                if ($tenantId !== null) {
+                    $crossSql .= " AND tenant_id = :tid";
+                    $crossParams[':tid'] = $tenantId;
+                } else {
+                    $crossSql .= " AND tenant_id IS NULL";
+                }
+            }
+            $crossSql .= " LIMIT 1";
+            try {
+                $crossEntry = \Screenart\Musedock\Database::query($crossSql, $crossParams)->fetch(\PDO::FETCH_OBJ);
+                if ($crossEntry && $crossEntry->prefix && $crossEntry->prefix !== $prefix) {
+                    header('Location: /' . $crossEntry->prefix . '/' . $slug, true, 301);
+                    exit;
+                }
+            } catch (\Exception $e) {}
+        }
+
         // Redirect 301 si el slug resuelve a la página de inicio (evitar contenido duplicado)
         if ($entry && $entry->module === 'pages') {
             $homepageId = self::getHomepagePageId($tenantId);
@@ -167,6 +189,10 @@ class SlugRouter
             case 'p': // Fallback para compatibilidad
                 $controller = new \Screenart\Musedock\Controllers\Frontend\PageController();
                 return $controller->listPages();
+                break;
+            case 'docs':
+                $controller = new \Blog\Controllers\Frontend\BlogController();
+                return $controller->docsIndex();
                 break;
             default:
                 // Prefijo no reconocido: intentar resolver como slug sin prefijo

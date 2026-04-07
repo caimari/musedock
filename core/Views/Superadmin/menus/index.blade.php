@@ -36,10 +36,12 @@
                   <td>
                     @if($menu->location == 'nav')
                       <span class="badge bg-primary">Navegación principal</span>
-                    @elseif($menu->location == 'footer')
-                      <span class="badge bg-secondary">Footer</span>
+                    @elseif(str_starts_with($menu->location ?? '', 'footer'))
+                      <span class="badge bg-secondary">Footer ({{ $menu->location }})</span>
                     @elseif($menu->location == 'sidebar')
                       <span class="badge bg-info">Sidebar</span>
+                    @elseif($menu->location)
+                      <span class="badge bg-warning text-dark">{{ $menu->location }}</span>
                     @else
                       <span class="badge bg-light text-dark">Sin ubicación</span>
                     @endif

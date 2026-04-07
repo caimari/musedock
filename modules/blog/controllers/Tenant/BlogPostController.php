@@ -223,7 +223,7 @@ class BlogPostController
         $data['user_type'] = 'admin';
 
         // Tipo de post (post o brief)
-        $data['post_type'] = in_array($data['post_type'] ?? 'post', ['post', 'brief']) ? $data['post_type'] : 'post';
+        $data['post_type'] = in_array($data['post_type'] ?? 'post', ['post', 'brief', 'docs']) ? $data['post_type'] : 'post';
 
         // Manejo de checkboxes
         $data['show_hero'] = isset($data['show_hero']) ? 1 : 0;
@@ -533,7 +533,7 @@ class BlogPostController
         unset($data['_token'], $data['_csrf'], $data['_method']);
 
         // Tipo de post (post o brief)
-        $data['post_type'] = in_array($data['post_type'] ?? 'post', ['post', 'brief']) ? $data['post_type'] : 'post';
+        $data['post_type'] = in_array($data['post_type'] ?? 'post', ['post', 'brief', 'docs']) ? $data['post_type'] : 'post';
 
         // Manejo de checkboxes
         $data['show_hero'] = isset($data['show_hero']) ? 1 : 0;

@@ -6,6 +6,13 @@
   "url": "https://musedock.net",
   "license": "MIT",
   "compatibility": ">=1.0.0",
+  "menu_areas": [
+    {"id": "nav", "name": "Navegación principal"},
+    {"id": "footer1", "name": "Footer - Columna 1 (Productos)"},
+    {"id": "footer2", "name": "Footer - Columna 2 (Hosting)"},
+    {"id": "footer3", "name": "Footer - Columna 3 (Recursos)"},
+    {"id": "footer4", "name": "Footer - Columna 4 (Legal)"}
+  ],
   "requirements": {
     "php": ">=8.0",
     "extensions": ["pdo", "mbstring", "json", "gd"]

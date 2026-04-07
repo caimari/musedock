@@ -456,12 +456,25 @@ public function update()
 
     // Guardar ajustes básicos
     $this->saveSettings([
-        'site_name', 'site_description', 'admin_email',
+        'site_name', 'site_subtitle', 'site_description', 'admin_email',
+        'show_logo', 'show_title', 'show_subtitle', 'site_logo', 'site_favicon',
         'timezone', 'date_format', 'time_format',
-        'show_logo', 'show_title', 'site_logo', 'site_favicon',
-        'footer_short_description', 'contact_address', 'contact_email',
-        'contact_phone', 'contact_whatsapp', 'footer_copyright'
+        // Contact
+        'contact_address', 'contact_email', 'contact_phone', 'contact_whatsapp',
+        // Footer
+        'footer_short_description', 'footer_copyright',
+        // Language
+        'default_lang', 'force_lang', 'show_language_switcher',
+        // Custom code
+        'custom_head_code', 'custom_body_start_code', 'custom_body_end_code',
+        // Legal
+        'legal_jurisdiction', 'legal_entity_type', 'legal_name', 'legal_nif',
+        'legal_email', 'legal_address', 'legal_registry_data',
+        'legal_supervisory_authority', 'site_has_economic_activity',
+        'legal_targets_eu', 'site_uses_analytics_cookies',
+        'site_has_user_registration', 'site_has_paid_services'
     ]);
+
 
     // Guardar traducciones de footer_short_description por idioma
     $activeLanguages = Database::table('languages')
@@ -656,7 +669,8 @@ public function deleteFavicon()
         $this->saveSettings([
             'site_keywords', 'site_author', 'og_image', 'twitter_site',
             'social_facebook', 'social_twitter', 'social_instagram',
-            'social_pinterest', 'social_youtube', 'social_linkedin'
+            'social_pinterest', 'social_youtube', 'social_linkedin',
+            'social_github', 'social_tiktok'
         ]);
         
         // Limpiar caché de helper
@@ -757,7 +771,7 @@ public function deleteFavicon()
             $value = $_POST[$key] ?? '';
             
             // Checkbox se envía como "on" o no se envía
-            if ($key === 'show_logo' || $key === 'show_title' || $key === 'cookies_enabled' || $key === 'cookies_show_icon') {
+            if (in_array($key, ['show_logo', 'show_title', 'show_subtitle', 'show_language_switcher', 'cookies_enabled', 'cookies_show_icon', 'site_has_economic_activity', 'legal_targets_eu', 'site_uses_analytics_cookies', 'site_has_user_registration', 'site_has_paid_services'])) {
                 $value = isset($_POST[$key]) ? '1' : '0';
             }
             

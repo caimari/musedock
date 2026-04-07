@@ -29,7 +29,7 @@
         <div class="container">
             <div class="row align-items-start">
 
-                <div class="col-xl-4 col-lg-4 col-md-6 col-sm-12">
+                <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
                    <div class="single-footer-caption">
                      <div class="single-footer-caption">
                           <!-- logo (solo si show_logo está activo) -->
@@ -130,6 +130,9 @@
                             @endif
                             @if(site_setting('social_tiktok', ''))
                                 <a href="{{ site_setting('social_tiktok') }}" target="_blank" rel="noopener" aria-label="TikTok" style="color: var(--footer-icon-color, #333);"><i class="fab fa-tiktok"></i></a>
+                            @endif
+                            @if(site_setting('social_github', '') ?: setting('social_github', ''))
+                                <a href="{{ site_setting('social_github', '') ?: setting('social_github', '') }}" target="_blank" rel="noopener" aria-label="GitHub" style="color: var(--footer-icon-color, #333);"><i class="fab fa-github"></i></a>
                             @endif
                         </div>
                      </div>
@@ -283,7 +286,7 @@
                     $hasFooter3Content = $hasFooter3Menu || $hasContactData || !empty($footer3TextContent);
                 @endphp
 
-                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6{{ $hasFooter3Content ? '' : ' footer-col-empty' }}">
+                <div class="col-xl-2 col-lg-2 col-md-4 col-sm-6{{ $hasFooter3Content ? '' : ' footer-col-empty' }}">
                     @if($hasFooter3Content)
                     <div class="single-footer-caption mb-50" style="padding-top: {{ $__colPadTop }}px;">
                         @if($hasFooter3Menu)
@@ -314,10 +317,50 @@
                     </div>
                     @endif
                 </div>
+
+                {{-- Footer Column 4 (Legal) --}}
+                @php
+                    $pdo = $pdo ?? \Screenart\Musedock\Database::connect();
+                    if ($tenantId ?? null) {
+                        $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer4' AND m.tenant_id = ? LIMIT 1");
+                        $stmt->execute([$tenantId]);
+                    } else {
+                        $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer4' AND m.tenant_id IS NULL LIMIT 1");
+                        $stmt->execute();
+                    }
+                    $footer4Menu = $stmt->fetch(\PDO::FETCH_ASSOC);
+                    $hasFooter4Menu = !empty($footer4Menu);
+                    $footer4Title = '';
+                    $showFooter4Title = true;
+                    if ($hasFooter4Menu) {
+                        $showFooter4Title = (bool)($footer4Menu['show_title'] ?? 1);
+                        $stmt = $pdo->prepare("SELECT mt.title FROM site_menu_translations mt WHERE mt.menu_id = ? AND mt.locale = ? ORDER BY mt.id DESC LIMIT 1");
+                        $stmt->execute([$footer4Menu['id'], $currentLang]);
+                        $footer4Title = $stmt->fetchColumn();
+                    }
+                @endphp
+                @if($hasFooter4Menu)
+                <div class="col-xl-2 col-lg-2 col-md-4 col-sm-6">
+                    <div class="single-footer-caption mb-50" style="padding-top: {{ $__colPadTop ?? 0 }}px;">
+                        <div class="footer-tittle">
+                            @if($footer4Title && $showFooter4Title)
+                                <div class="footer-heading" style="color: var(--footer-heading-color, #333);">{{ $footer4Title }}</div>
+                            @endif
+                            @custommenu('footer4', null, [
+                                'nav_class' => '',
+                                'li_class' => '',
+                                'a_class' => '',
+                                'submenu_class' => 'submenu'
+                            ])
+                        </div>
+                    </div>
+                </div>
+                @endif
+
             </div>
         </div>
     </div>
-    
+
     <!-- footer-bottom area -->
     <div class="footer-bottom-area footer-bg" style="background-color: var(--footer-bg-color, #f8fafe);">
         <div class="container">
@@ -384,18 +427,43 @@
                     $urlTerminos     = $legalPageUrl(['terms-and-conditions', 'terminos-y-condiciones', 'terminos-y-condiciones-de-uso', 'terminos', 'terms', 'condiciones-de-uso'], 'terms-and-conditions');
                 @endphp
 
-                <div class="row d-flex align-items-center">
-                    <div class="col-xl-12">
-                        <div class="footer-copy-right text-center">
-                            <p style="color: var(--footer-text-color, #333);">
-                                {!! site_setting('footer_copyright', '© Copyright ' . site_setting('site_name', 'MuseDock') . ' ' . date('Y') . '.') !!}
+                <div class="row d-flex align-items-center" style="padding: 12px 0;">
+                    <div class="col-md-6">
+                        <div class="footer-copy-right" style="text-align:left;">
+                            <p style="color: var(--footer-text-color, #333); font-size: 12px; margin: 0; opacity: 0.75;">
+                                {!! site_setting('footer_copyright', '© ' . date('Y') . ' ' . site_setting('site_name', 'MuseDock')) !!}
                             </p>
                         </div>
                     </div>
-                    <div class="col-xl-12">
+                    <div class="col-md-6">
+                        <div class="footer-bottom-social" style="text-align:right; display:flex; justify-content:flex-end; gap:12px; align-items:center;">
+                            @if(setting('social_github', ''))
+                                <a href="{{ setting('social_github') }}" target="_blank" rel="noopener" aria-label="GitHub" style="color: var(--footer-text-color, #333); opacity:0.6; font-size:16px;"><i class="fab fa-github"></i></a>
+                            @endif
+                            @if(site_setting('social_linkedin', ''))
+                                <a href="{{ site_setting('social_linkedin') }}" target="_blank" rel="noopener" aria-label="LinkedIn" style="color: var(--footer-text-color, #333); opacity:0.6; font-size:16px;"><i class="fab fa-linkedin"></i></a>
+                            @endif
+                            @if(site_setting('social_instagram', ''))
+                                <a href="{{ site_setting('social_instagram') }}" target="_blank" rel="noopener" aria-label="Instagram" style="color: var(--footer-text-color, #333); opacity:0.6; font-size:16px;"><i class="fab fa-instagram"></i></a>
+                            @endif
+                            @if(site_setting('social_twitter', ''))
+                                <a href="{{ site_setting('social_twitter') }}" target="_blank" rel="noopener" aria-label="X/Twitter" style="color: var(--footer-text-color, #333); opacity:0.6; font-size:16px;"><i class="fab fa-twitter"></i></a>
+                            @endif
+                            @php
+                                $cookieIconEnabled = themeOption('footer.footer_cookie_icon_enabled', site_setting('cookies_show_icon', '1') == '1');
+                            @endphp
+                            @if(site_setting('cookies_enabled', '1') == '1' && $cookieIconEnabled)
+                            <button type="button" id="open-cookie-settings" style="background:none; border:none; cursor:pointer; padding:0; color:var(--footer-text-color, #333); font-size:12px; opacity:0.6; font-family:inherit;">
+                                🍪
+                            </button>
+                            @endif
+                        </div>
+                    </div>
+                    {{-- Fallback: legal links for tenants without footer4 menu --}}
+                    @if(!$hasFooter4Menu)
+                    <div class="col-12">
                         <div class="footer-legal-links text-center" style="padding: 8px 0 4px;">
                             @if($hasFooterLegalMenu)
-                                {{-- Menú personalizado del tenant --}}
                                 @custommenu('footer-legal', null, [
                                     'nav_class' => 'footer-legal-nav',
                                     'li_class' => 'footer-legal-item',
@@ -449,6 +517,7 @@
                             @endif
                         </div>
                     </div>
+                    @endif
                 </div>
             </div>
         </div>

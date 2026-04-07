@@ -36,14 +36,15 @@ public function index()
     // Obtener los datos de cada menú
     foreach ($menus as $menu) {
         // Obtener la traducción y el idioma
+        $__adminLang = setting('language', 'es');
         $stmtTranslation = $pdo->prepare("
             SELECT mt.title, mt.locale
             FROM site_menu_translations mt
-            WHERE mt.menu_id = ? 
-            ORDER BY mt.id DESC 
+            WHERE mt.menu_id = ?
+            ORDER BY CASE WHEN mt.locale = ? THEN 0 ELSE 1 END, mt.id ASC
             LIMIT 1
         ");
-        $stmtTranslation->execute([$menu->id]);
+        $stmtTranslation->execute([$menu->id, $__adminLang]);
         $translation = $stmtTranslation->fetch(\PDO::FETCH_ASSOC);
         
         $menu->title = $translation['title'] ?? 'Sin título';
@@ -225,19 +226,20 @@ public function edit($id)
     $stmt->execute();
     $languages = $stmt->fetchAll(\PDO::FETCH_OBJ);
 
-    // Obtener la traducción actual del menú
+    // Obtener la traducción actual del menú (priorizar idioma del admin)
+    $__defaultLang = setting('language', 'es');
     $stmt = $pdo->prepare("
-        SELECT locale, title 
-        FROM site_menu_translations 
-        WHERE menu_id = ? 
-        ORDER BY id DESC 
+        SELECT locale, title
+        FROM site_menu_translations
+        WHERE menu_id = ?
+        ORDER BY CASE WHEN locale = ? THEN 0 ELSE 1 END, id ASC
         LIMIT 1
     ");
-    $stmt->execute([$id]);
+    $stmt->execute([$id, $__defaultLang]);
     $translation = $stmt->fetch(\PDO::FETCH_ASSOC);
 
     // Obtener el idioma actual y el título
-    $currentLocale = $translation['locale'] ?? setting('language', 'es');
+    $currentLocale = $translation['locale'] ?? $__defaultLang;
     $menu->title = $translation['title'] ?? 'Sin título';
     
     // Cargar las áreas de menú dinámicamente desde el tema activo
@@ -250,7 +252,12 @@ public function edit($id)
 
     // Verificar si existe la tabla blog_posts (módulo de blog activo)
     try {
-        $stmt = $pdo->query("SHOW TABLES LIKE 'blog_posts'");
+        $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        if ($driver === 'pgsql') {
+            $stmt = $pdo->query("SELECT 1 FROM information_schema.tables WHERE table_name = 'blog_posts' LIMIT 1");
+        } else {
+            $stmt = $pdo->query("SHOW TABLES LIKE 'blog_posts'");
+        }
         if ($stmt->rowCount() > 0) {
             // Obtener posts publicados
             $stmt = $pdo->prepare("
@@ -314,16 +321,8 @@ public function edit($id)
  */
 private function getMenuAreasFromTheme()
 {
-    // Obtener el tema activo desde la base de datos
-    $pdo = Database::connect();
-    $stmt = $pdo->prepare("SELECT slug FROM themes WHERE active = 1 LIMIT 1");
-    $stmt->execute();
-    $activeTheme = $stmt->fetchColumn();
-
-    // Si no hay tema activo, usar el predeterminado
-    if (!$activeTheme) {
-        $activeTheme = 'default';
-    }
+    // Obtener el tema activo desde settings
+    $activeTheme = setting('default_theme', 'default');
 
     // Áreas de menú predeterminadas en caso de que no se encuentren en el tema
     $defaultAreas = [

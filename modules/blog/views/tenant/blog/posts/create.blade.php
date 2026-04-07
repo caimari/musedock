@@ -327,9 +327,19 @@
               {{-- Categorías --}}
               <label class="form-label fw-semibold">{{ __('blog.post.categories') }}</label>
               <div class="mb-3">
+                @php
+                    $__docsRootId = null;
+                    foreach ($categories as $c) { if ($c->slug === 'docs') { $__docsRootId = $c->id; break; } }
+                @endphp
                 <select class="form-select @error('categories') is-invalid @enderror" name="categories[]" id="categories" multiple size="5">
                   @foreach($categories as $category)
-                    <option value="{{ $category->id }}" @selected(in_array($category->id, old('categories', [])))>
+                    @php
+                        $__catType = 'blog';
+                        if ($category->slug === 'docs' || ($__docsRootId && ($category->parent_id ?? null) == $__docsRootId)) {
+                            $__catType = 'docs';
+                        }
+                    @endphp
+                    <option value="{{ $category->id }}" data-type="{{ $__catType }}" @selected(in_array($category->id, old('categories', [])))>
                       {{ str_repeat('— ', $category->depth ?? 0) }}{{ $category->name }}
                     </option>
                   @endforeach
@@ -406,7 +416,21 @@ document.addEventListener('DOMContentLoaded', function() {
   const docsBase = @json($__tDocsBase);
   function updateSlugPrefix() {
       if (!postTypeSelect || !slugBaseEl) return;
-      slugBaseEl.textContent = postTypeSelect.value === 'docs' ? docsBase : blogBase;
+      var isDocs = postTypeSelect.value === 'docs';
+      slugBaseEl.textContent = isDocs ? docsBase : blogBase;
+      var catSelect = document.getElementById('categories');
+      if (catSelect) {
+          Array.from(catSelect.options).forEach(function(opt) {
+              var catType = opt.getAttribute('data-type') || 'blog';
+              if (isDocs) {
+                  opt.style.display = catType === 'docs' ? '' : 'none';
+                  if (catType !== 'docs') opt.selected = false;
+              } else {
+                  opt.style.display = catType === 'blog' ? '' : 'none';
+                  if (catType !== 'blog') opt.selected = false;
+              }
+          });
+      }
   }
   if (postTypeSelect) {
       postTypeSelect.addEventListener('change', updateSlugPrefix);

@@ -1,0 +1,12 @@
+{
+    "name": "MuseDock Cloud",
+    "slug": "musedock-cloud",
+    "version": "0.1.0",
+    "description": "Hosting platform plugin. Tenant registration, hosting plans, domain registration, DNS management via Cloudflare. Requires MuseDock Shop.",
+    "author": "Screen Art S.L.U.",
+    "license": "proprietary",
+    "requires": ["musedock-shop"],
+    "provides": ["cloud", "hosting", "domains", "dns"],
+    "private": true,
+    "status": "development"
+}

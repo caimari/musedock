@@ -20,6 +20,7 @@ $socialLinkedIn = site_setting('social_linkedin');
 $socialYoutube = site_setting('social_youtube');
 $socialPinterest = site_setting('social_pinterest');
 $socialTiktok = site_setting('social_tiktok');
+$socialGithub = site_setting('social_github', '') ?: setting('social_github', '');
 
 // Opciones del tema footer - MuseDock defaults
 $footerBgColor = themeOption('footer.footer_bg_color', '#0C112A');
@@ -54,127 +55,101 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
         <div class="col-md-8">
           <div class="row">
             <div class="col-md-4 col-sm-6">
-              <!-- Hosting Packages Widget -->
+              <!-- Productos (dynamic menu footer1) -->
+              @php
+                  $__pdo = $__pdo ?? \Screenart\Musedock\Database::connect();
+                  $__tid = tenant_id();
+                  $__tq = $__tid ? "AND m.tenant_id = $__tid" : "AND m.tenant_id IS NULL";
+                  $__f1s = $__pdo->query("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer1' $__tq LIMIT 1");
+                  $__f1 = $__f1s->fetch(\PDO::FETCH_ASSOC);
+                  $__f1Title = '';
+                  if ($__f1) { $__ts = $__pdo->prepare("SELECT title FROM site_menu_translations WHERE menu_id = ? AND locale = ? LIMIT 1"); $__ts->execute([$__f1['id'], $currentLang]); $__f1Title = $__ts->fetchColumn() ?: ''; }
+              @endphp
+              @if($__f1)
               <div class="ziph-footer_widget zipprich-link-widget">
-                <h4 class="ziph-footrwidget_title">
-                  {{ __('footer.hosting_packages') }}
-                </h4>
-                <ul>
-                  <li>
-                    <a href="{{ url('/hosting') }}">
-                      {{ __('footer.web_hosting') }}
-                    </a>
-                  </li>
-                  <li>
-                    <a href="{{ url('/shared-hosting') }}">
-                      {{ __('footer.shared_hosting') }}
-                    </a>
-                  </li>
-                  <li>
-                    <a href="{{ url('/cloud-hosting') }}">
-                      {{ __('footer.cloud_server') }}
-                    </a>
-                  </li>
-                  <li>
-                    <a href="{{ url('/dedicated-hosting') }}">
-                      {{ __('footer.dedicated_hosting') }}
-                    </a>
-                  </li>
-                  <li>
-                    <a href="{{ url('/reseller-hosting') }}">
-                      {{ __('footer.reseller_hosting') }}
-                    </a>
-                  </li>
-                </ul>
+                @if($__f1Title && ($__f1['show_title'] ?? 1))
+                <h4 class="ziph-footrwidget_title">{{ $__f1Title }}</h4>
+                @endif
+                @custommenu('footer1', null, ['nav_class' => '', 'li_class' => '', 'a_class' => ''])
               </div>
+              @endif
 
-              <!-- Support Widget -->
+              <!-- Hosting (dynamic menu footer2) -->
+              @php
+                  $__f2s = $__pdo->query("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer2' $__tq LIMIT 1");
+                  $__f2 = $__f2s->fetch(\PDO::FETCH_ASSOC);
+                  $__f2Title = '';
+                  if ($__f2) { $__ts = $__pdo->prepare("SELECT title FROM site_menu_translations WHERE menu_id = ? AND locale = ? LIMIT 1"); $__ts->execute([$__f2['id'], $currentLang]); $__f2Title = $__ts->fetchColumn() ?: ''; }
+              @endphp
+              @if($__f2)
               <div class="ziph-footer_widget zipprich-link-widget">
-                <h4 class="ziph-footrwidget_title">
-                  {{ __('footer.support') }}
-                </h4>
-                <ul>
-                  <li>
-                    <a href="{{ url('/contact') }}">
-                      {{ __('footer.contact') }}
-                    </a>
-                  </li>
-                  <li>
-                    <a href="{{ url('/domain') }}">
-                      {{ __('footer.domain') }}
-                    </a>
-                  </li>
-                  <li>
-                    <a href="{{ url('/services') }}">
-                      {{ __('footer.services') }}
-                    </a>
-                  </li>
-                  <li>
-                    <a href="{{ url('/faq') }}">
-                      {{ __('footer.faq') }}
-                    </a>
-                  </li>
-                </ul>
+                @if($__f2Title && ($__f2['show_title'] ?? 1))
+                <h4 class="ziph-footrwidget_title">{{ $__f2Title }}</h4>
+                @endif
+                @custommenu('footer2', null, ['nav_class' => '', 'li_class' => '', 'a_class' => ''])
               </div>
+              @endif
             </div>
             
             <div class="col-md-4 col-sm-6">
-              <!-- Company Widget -->
+              <!-- Recursos (dynamic menu footer3) -->
+              @php
+                  $__f3s = $__pdo->query("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer3' $__tq LIMIT 1");
+                  $__f3 = $__f3s->fetch(\PDO::FETCH_ASSOC);
+                  $__f3Title = '';
+                  if ($__f3) { $__ts = $__pdo->prepare("SELECT title FROM site_menu_translations WHERE menu_id = ? AND locale = ? LIMIT 1"); $__ts->execute([$__f3['id'], $currentLang]); $__f3Title = $__ts->fetchColumn() ?: ''; }
+              @endphp
+              @if($__f3)
               <div class="ziph-footer_widget zipprich-link-widget">
-                <h4 class="ziph-footrwidget_title">
-                  {{ __('footer.company') }}
-                </h4>
-                <ul>
-                  <li>
-                    <a href="{{ url('/about') }}">
-                      {{ __('footer.about_us') }}
-                    </a>
-                  </li>
-                  <li>
-                    <a href="{{ url('/affiliate') }}">
-                      {{ __('footer.affiliate') }}
-                    </a>
-                  </li>
-                  <li>
-                    <a href="{{ url('/contact') }}">
-                      {{ __('footer.contact') }}
-                    </a>
-                  </li>
-                  <li>
-                    <a href="{{ url('/terms') }}">
-                      {{ __('footer.terms') }}
-                    </a>
-                  </li>
-                  <li>
-                    <a href="{{ url('/privacy') }}">
-                      {{ __('footer.privacy') }}
-                    </a>
-                  </li>
-                </ul>
+                @if($__f3Title && ($__f3['show_title'] ?? 1))
+                <h4 class="ziph-footrwidget_title">{{ $__f3Title }}</h4>
+                @endif
+                @custommenu('footer3', null, ['nav_class' => '', 'li_class' => '', 'a_class' => ''])
               </div>
+              @endif
 
               <!-- Contact Details Widget -->
+              @php
+                  $__legalName = site_setting('legal_name', '') ?: $siteName;
+                  $__legalAddress = site_setting('legal_address', '') ?: $contactAddress;
+                  $__legalNif = site_setting('legal_nif', '');
+                  $__legalRegistry = site_setting('legal_registry_data', '');
+                  $__entityType = site_setting('legal_entity_type', 'personal');
+              @endphp
               <div class="ziph-footer_widget vt-text-widget">
                 <h4 class="ziph-footrwidget_title">
                   {{ __('footer.contact_details') }}
                 </h4>
                 <div>
-                  @if($contactAddress)
+                  @if($__legalName && $__legalName !== $siteName)
                   <div class="ziph-footrwidget_loc">
-                    <i class="fa fa-map-marker"></i> {{ $contactAddress }}
+                    <i class="fa fa-building"></i> {{ $__legalName }}
                   </div>
                   @endif
-                  
+
+                  @if($__legalNif && $__entityType !== 'personal')
+                  <div class="ziph-footrwidget_loc">
+                    <i class="fa fa-briefcase"></i> {{ $__legalNif }}
+                  </div>
+                  @endif
+
+                  @if($__legalAddress)
+                  <div class="ziph-footrwidget_loc">
+                    <i class="fa fa-map-marker"></i> {{ $__legalAddress }}
+                  </div>
+                  @endif
+
+
                   @if($contactPhone)
                   <div class="ziph-footrwidget_loc">
-                    <i class="fa fa-phone"></i> 
+                    <i class="fa fa-phone"></i>
                     <a class="" href="tel:{{ $contactPhone }}">{{ $contactPhone }}</a>
                   </div>
                   @endif
-                  
+
                   @if($contactEmail)
                   <div class="ziph-footrwidget_loc">
-                    <i class="fa fa-envelope"></i> 
+                    <i class="fa fa-envelope"></i>
                     <a class="" href="mailto:{{ $contactEmail }}">{{ $contactEmail }}</a>
                   </div>
                   @endif
@@ -183,19 +158,21 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
             </div>
 
             <div class="col-md-4 col-sm-6">
-              <!-- Domain Names Widget -->
+              <!-- Legal (dynamic menu footer4) -->
+              @php
+                  $__f4s = $__pdo->query("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer4' $__tq LIMIT 1");
+                  $__f4 = $__f4s->fetch(\PDO::FETCH_ASSOC);
+                  $__f4Title = '';
+                  if ($__f4) { $__ts = $__pdo->prepare("SELECT title FROM site_menu_translations WHERE menu_id = ? AND locale = ? LIMIT 1"); $__ts->execute([$__f4['id'], $currentLang]); $__f4Title = $__ts->fetchColumn() ?: ''; }
+              @endphp
+              @if($__f4)
               <div class="ziph-footer_widget zipprich-link-widget">
-                <h4 class="ziph-footrwidget_title">
-                  {{ __('footer.domain_names') }}
-                </h4>
-                <ul>
-                  <li><a href="{{ url('/domain') }}">{{ __('footer.buy_a_domain') }}</a></li>
-                  <li><a href="{{ url('/domain') }}">{{ __('footer.premium_domains') }}</a></li>
-                  <li><a href="{{ url('/hosting') }}">{{ __('footer.hosting') }}</a></li>
-                  <li><a href="{{ url('/services') }}">{{ __('footer.domain_services') }}</a></li>
-                  <li><a href="{{ url('/domain') }}">{{ __('footer.domain_check') }}</a></li>
-                </ul>
+                @if($__f4Title && ($__f4['show_title'] ?? 1))
+                <h4 class="ziph-footrwidget_title">{{ $__f4Title }}</h4>
+                @endif
+                @custommenu('footer4', null, ['nav_class' => '', 'li_class' => '', 'a_class' => ''])
               </div>
+              @endif
 
               <!-- Social Media Widget -->
               <div class="ziph-footer_widget zipprich-social-widget">
@@ -210,6 +187,7 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
                   @if($socialYoutube)<li><a href="{{ $socialYoutube }}" target="_blank"><i class="fa fa-youtube"></i></a></li>@endif
                   @if($socialPinterest)<li><a href="{{ $socialPinterest }}" target="_blank"><i class="fa fa-pinterest"></i></a></li>@endif
                   @if($socialTiktok)<li><a href="{{ $socialTiktok }}" target="_blank"><i class="fa fa-music"></i></a></li>@endif
+                  @if($socialGithub)<li><a href="{{ $socialGithub }}" target="_blank"><i class="fa fa-github"></i></a></li>@endif
                 </ul>
                 <div class="clear"></div>
               </div>
@@ -293,7 +271,7 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
           @endphp
 
           <p class="ziph-copyright">
-            {!! $footerCopyright !!} {{ __('footer.powered_by') }} <a href="https://musedock.net" target="_blank">MuseDock CMS</a>
+            {!! $footerCopyright !!}
           </p>
 
           @if($showFooterLangSelector)

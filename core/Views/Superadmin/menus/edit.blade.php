@@ -1286,7 +1286,7 @@ $(document).ready(function() {
             $grandchildItems = [];
             
             foreach ($items as $dbItem) {
-                if ($dbItem['parent'] === null) {
+                if (empty($dbItem['parent'])) {
                     $parentItems[] = $dbItem;
                 } else {
                     if (!isset($childItems[$dbItem['parent']])) {
@@ -1303,7 +1303,7 @@ $(document).ready(function() {
             
             // Segunda pasada para identificar nietos
             foreach ($items as $dbItem) {
-                if ($dbItem['parent'] !== null && isset($childItems[$dbItem['parent']])) {
+                if (!empty($dbItem['parent']) && isset($childItems[$dbItem['parent']])) {
                     // Verificar si este elemento tiene un padre que es hijo de otro
                     foreach ($childItems as $parentId => $children) {
                         foreach ($children as $child) {
