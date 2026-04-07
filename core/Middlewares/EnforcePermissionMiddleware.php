@@ -205,8 +205,11 @@ class EnforcePermissionMiddleware
      */
     private static function resolveFullClassName(string $controllerClass): string
     {
-        // Si ya es nombre completo
+        // Si ya es nombre completo con namespace y la clase existe, usarla directamente
         if (strpos($controllerClass, '\\') !== false) {
+            if (class_exists($controllerClass)) {
+                return $controllerClass;
+            }
             return $controllerClass;
         }
 

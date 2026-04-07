@@ -18,13 +18,9 @@ if (!empty($tenant)) {
     return;
 }
 
-// Verificar que estemos en una ruta del superadmin
-$requestUri = $_SERVER['REQUEST_URI'] ?? '';
-
-if (!str_starts_with($requestUri, '/musedock')) {
-    // No estamos en una ruta de superadmin
-    return;
-}
+// Los plugins de superadmin se cargan en TODAS las rutas del dominio principal
+// (admin /musedock/ y también rutas públicas como /register, /plans, /customer/*)
+// ya que algunos plugins (como Cloud) necesitan servir rutas públicas.
 
 try {
     // Cargar todos los plugins activos del superadmin

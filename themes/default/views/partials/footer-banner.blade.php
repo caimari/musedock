@@ -132,9 +132,19 @@
                     <div class="single-footer-caption mb-50" style="padding-top: {{ $__colPadTop }}px;">
                         @php
                             $pdo = \Screenart\Musedock\Database::connect();
-                            $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer1' LIMIT 1");
-                            $stmt->execute();
-                            $footer1Menu = $stmt->fetch(\PDO::FETCH_ASSOC);
+                            $__tenantId = tenant_id();
+                            $__appHost = parse_url(config('app.url', ''), PHP_URL_HOST) ?: 'musedock.com';
+                            $__isMasterSite = !$__tenantId && (($_SERVER['HTTP_HOST'] ?? '') === $__appHost || ($_SERVER['HTTP_HOST'] ?? '') === 'www.' . $__appHost);
+                            if ($__tenantId) {
+                                $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer1' AND m.tenant_id = ? LIMIT 1");
+                                $stmt->execute([$__tenantId]);
+                            } elseif ($__isMasterSite) {
+                                $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer1' AND m.tenant_id IS NULL LIMIT 1");
+                                $stmt->execute();
+                            } else {
+                                $stmt = null;
+                            }
+                            $footer1Menu = $stmt ? $stmt->fetch(\PDO::FETCH_ASSOC) : false;
                             $hasFooter1Menu = !empty($footer1Menu);
 
                             $footer1Title = '';
@@ -173,10 +183,14 @@
                 <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
                     <div class="single-footer-caption mb-50" style="padding-top: {{ $__colPadTop }}px;">
                         @php
-                            $pdo = \Screenart\Musedock\Database::connect();
-                            $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer2' LIMIT 1");
-                            $stmt->execute();
-                            $footer2Menu = $stmt->fetch(\PDO::FETCH_ASSOC);
+                            if ($__tenantId) {
+                                $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer2' AND m.tenant_id = ? LIMIT 1");
+                                $stmt->execute([$__tenantId]);
+                            } elseif ($__isMasterSite) {
+                                $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer2' AND m.tenant_id IS NULL LIMIT 1");
+                                $stmt->execute();
+                            } else { $stmt = null; }
+                            $footer2Menu = $stmt ? $stmt->fetch(\PDO::FETCH_ASSOC) : false;
                             $hasFooter2Menu = !empty($footer2Menu);
 
                             $footer2Title = '';
@@ -215,10 +229,14 @@
                 <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
                     <div class="single-footer-caption mb-50" style="padding-top: {{ $__colPadTop }}px;">
                         @php
-                            $pdo = \Screenart\Musedock\Database::connect();
-                            $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer3' LIMIT 1");
-                            $stmt->execute();
-                            $footer3Menu = $stmt->fetch(\PDO::FETCH_ASSOC);
+                            if ($__tenantId) {
+                                $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer3' AND m.tenant_id = ? LIMIT 1");
+                                $stmt->execute([$__tenantId]);
+                            } elseif ($__isMasterSite) {
+                                $stmt = $pdo->prepare("SELECT m.id, m.show_title FROM site_menus m WHERE m.location = 'footer3' AND m.tenant_id IS NULL LIMIT 1");
+                                $stmt->execute();
+                            } else { $stmt = null; }
+                            $footer3Menu = $stmt ? $stmt->fetch(\PDO::FETCH_ASSOC) : false;
                             $hasFooter3Menu = !empty($footer3Menu);
 
                             $footer3Title = '';

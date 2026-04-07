@@ -263,6 +263,7 @@ public static function resolve() {
             '/api/v1/',         // API REST v1 (autenticación por API key, no sesión)
             '/api/webhooks/',   // Para futuros webhooks
             '/clear-flashes',   // Limpieza de flash messages (ya verifica sesión admin internamente)
+            '/shop/webhook/',   // Stripe webhooks (verified by signature)
         ];
 
         $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';

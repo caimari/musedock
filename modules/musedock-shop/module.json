@@ -1,0 +1,19 @@
+{
+    "name": "MuseDock Shop",
+    "slug": "musedock-shop",
+    "description": "E-commerce module for MuseDock CMS. Stripe payments, cart, checkout, subscriptions, invoices.",
+    "version": "0.1.0",
+    "author": "Screen Art S.L.U.",
+    "active": true,
+    "cms_enabled": true,
+    "tenant_enabled_default": false,
+    "autoload": {
+        "psr-4": {
+            "Shop\\Controllers\\": "controllers/",
+            "Shop\\Models\\": "models/",
+            "Shop\\Services\\": "services/",
+            "Shop\\Events\\": "events/",
+            "Shop\\Contracts\\": "contracts/"
+        }
+    }
+}

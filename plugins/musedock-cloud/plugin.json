@@ -2,11 +2,35 @@
     "name": "MuseDock Cloud",
     "slug": "musedock-cloud",
     "version": "0.1.0",
-    "description": "Hosting platform plugin. Tenant registration, hosting plans, domain registration, DNS management via Cloudflare. Requires MuseDock Shop.",
+    "description": "Hosting platform module. Tenant registration, hosting plans, domain registration, DNS management via Cloudflare. Requires MuseDock Shop.",
     "author": "Screen Art S.L.U.",
     "license": "proprietary",
     "requires": ["musedock-shop"],
     "provides": ["cloud", "hosting", "domains", "dns"],
     "private": true,
-    "status": "development"
+    "status": "implemented",
+    "location": "plugins/superadmin/musedock-cloud",
+    "changelog": [
+        {
+            "version": "0.1.0",
+            "date": "2026-04-07",
+            "changes": [
+                "Initial implementation: module structure, bootstrap, routes, translations (es/en)",
+                "4 database tables: cloud_plans, cloud_tenants, cloud_domains, cloud_dns_records",
+                "4 models: CloudPlan, CloudTenant, CloudDomain, DnsRecord",
+                "Services: TenantProvisioningService (provision/suspend/activate), CloudflareService (DNS API wrapper)",
+                "Listeners: OnOrderCompleted, OnSubscriptionRenewed, OnSubscriptionCancelled (listen to Shop events)",
+                "RegisterController: handles POST /register, subdomain validation, free plan direct provisioning, paid plan redirect to Shop checkout, AJAX check-subdomain endpoint",
+                "CustomerAuthController: handles POST /customer/login, GET /customer/logout, GET /customer/dashboard",
+                "PlanController: public /plans page with plan cards",
+                "Superadmin controllers: CloudPlanController (CRUD), CloudTenantController (list/show/suspend/activate), CloudDomainController, CloudSettingsController (Cloudflare + general config)",
+                "13 Blade views: registration form with plan selection, plans page, customer dashboard, superadmin CRUD for plans/tenants/domains/settings",
+                "Admin menu: Cloud > Planes, Tenants, Dominios, Configuración",
+                "Seeded Free plan: 1GB disk, 10 pages, 50 posts, SSL, blog, .musedock.com subdomain",
+                "Bootstrap: registers Shop event listeners (shop_order_completed, shop_subscription_*) for auto-provisioning",
+                "CSRF exclusion added for Stripe webhook endpoint",
+                "All modals use SweetAlert2"
+            ]
+        }
+    ]
 }

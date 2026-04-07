@@ -2,10 +2,32 @@
     "name": "MuseDock Shop",
     "slug": "musedock-shop",
     "version": "0.1.0",
-    "description": "E-commerce plugin for MuseDock CMS. Stripe payments, cart, checkout, subscriptions, invoices. Available for any tenant.",
+    "description": "E-commerce module for MuseDock CMS. Stripe payments, cart, checkout, subscriptions, invoices. Available for any tenant.",
     "author": "Screen Art S.L.U.",
     "license": "MIT",
     "requires": [],
     "provides": ["shop", "payments", "subscriptions"],
-    "status": "development"
+    "status": "implemented",
+    "location": "modules/musedock-shop",
+    "changelog": [
+        {
+            "version": "0.1.0",
+            "date": "2026-04-07",
+            "changes": [
+                "Initial implementation: module structure, bootstrap, routes, translations (es/en)",
+                "7 database tables: shop_products, shop_customers, shop_orders, shop_order_items, shop_subscriptions, shop_coupons, shop_invoices",
+                "7 models with query builder, relationships, and helpers",
+                "Contracts: PayableProduct, BillableCustomer interfaces for external module integration",
+                "Events: ShopEvents using CMS hooks system (shop_order_completed, shop_subscription_*, etc.)",
+                "StripeService: full Stripe API wrapper (customers, products, checkout sessions, payment intents, subscriptions, refunds, webhooks, billing portal)",
+                "CheckoutService: cart management (session-based), order creation, coupon application, tax calculation, order completion flow",
+                "Superadmin controllers: ProductController (CRUD), OrderController, SubscriptionController, CouponController, SettingsController",
+                "Tenant controllers: ShopController (catalog), CartController (cart+checkout), CustomerController (account area), WebhookController (Stripe), ShopAdminController (tenant product/order management)",
+                "26 Blade views: superadmin CRUD (products, orders, subscriptions, coupons, settings), tenant frontend (catalog, product detail, cart, checkout, success/cancel, customer dashboard/orders/subscriptions), tenant admin (products, orders, settings)",
+                "Admin menu: Tienda > Productos, Pedidos, Suscripciones, Cupones, Configuración",
+                "Stripe webhook handler: checkout.session.completed, payment_intent.succeeded, invoice.paid, invoice.payment_failed, customer.subscription.updated/deleted",
+                "All modals use SweetAlert2 (no Bootstrap modals)"
+            ]
+        }
+    ]
 }

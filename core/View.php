@@ -397,14 +397,23 @@ class View
         self::loadGlobals();
         $data = array_merge(self::$globalData, $data);
 
+        // Buscar vistas en modules/ primero, luego en plugins/superadmin/, luego en private-plugins/superadmin/
         $viewPath = __DIR__ . "/../modules/{$slug}/views";
+        if (!is_dir($viewPath)) {
+            $viewPath = __DIR__ . "/../plugins/superadmin/{$slug}/views";
+        }
+        if (!is_dir($viewPath)) {
+            $privatePath = defined('PRIVATE_PLUGINS_PATH') ? PRIVATE_PLUGINS_PATH
+                : ($_ENV['PRIVATE_PLUGINS_PATH'] ?? '/var/www/vhosts/musedock.com/private-plugins');
+            $viewPath = rtrim($privatePath, '/') . "/superadmin/{$slug}/views";
+        }
         $cache = __DIR__ . "/../storage/cache/modules/{$slug}";
 
         if (!is_dir($cache)) mkdir($cache, 0775, true);
 
-        // Verificar que el directorio de vistas del módulo exista
+        // Verificar que el directorio de vistas exista
         if (!is_dir($viewPath)) {
-            Logger::log("Module views directory not found: {$viewPath}", 'ERROR');
+            Logger::log("Module/plugin views directory not found for '{$slug}'", 'ERROR');
             return "Error: Directorio de vistas del módulo '{$slug}' no encontrado";
         }
 

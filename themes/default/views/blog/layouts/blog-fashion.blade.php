@@ -147,7 +147,7 @@
                 </a>
                 @endif
 
-                <div class="post-meta mb-0 text-muted small">
+                <div class="post-meta mb-2 text-muted small">
                     @php
                         $dateVal = $post->published_at ?? $post->created_at;
                         $dateStr = $dateVal instanceof \DateTime ? $dateVal->format('d/m/Y') : date('d/m/Y', strtotime($dateVal));
@@ -197,7 +197,7 @@
                     $__excerpt = trim(preg_replace('/\s+/', ' ', $__excerpt));
                     $__excerpt = mb_strlen($__excerpt) > 150 ? mb_substr($__excerpt, 0, 150) . '...' : $__excerpt;
                 @endphp
-                <p class="fashion-card-excerpt text-muted">{{ $__excerpt }}</p>
+                <p class="fashion-card-excerpt text-muted mb-3">{{ $__excerpt }}</p>
 
                 <a href="{{ blog_url($post->slug) }}" class="btn-read-more">{{ __('blog.read_more') }}</a>
             </article>

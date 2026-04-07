@@ -15,6 +15,6 @@ return [
     //Middleware dinámico
     'dynamic.permission' => \Screenart\Musedock\Middlewares\DynamicPermissionMiddleware::class,
 
-    // Customer auth (4to nivel de usuarios - Caddy Domain Manager plugin)
-    'customer' => \CaddyDomainManager\Middlewares\CustomerAuthMiddleware::class,
+    // Customer auth (4to nivel de usuarios - MuseDock Cloud plugin)
+    'customer' => \Cloud\Middlewares\CustomerAuthMiddleware::class,
 ];

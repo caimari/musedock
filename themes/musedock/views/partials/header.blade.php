@@ -19,6 +19,57 @@ $headerSticky = themeOption('header.header_sticky', false);
 // (selector de idioma eliminado)
 @endphp
 
+<style>
+@media (max-width: 767px) {
+  /* Flex row to align logo and hamburger vertically */
+  .ziph-header_navigation .container > .row {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+  }
+  .ziph-header_navigation .container > .row > [class*="col-"] {
+    float: none !important;
+  }
+  /* Fix hamburger: remove ugly default background, align nicely */
+  .menu-collapser {
+    background: none !important;
+    height: auto !important;
+    line-height: normal !important;
+    padding: 0 !important;
+    text-align: right !important;
+  }
+  .menu-collapser .collapse-button {
+    position: relative !important;
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    transform: none !important;
+    top: auto !important;
+    right: auto !important;
+    float: right !important;
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    background: #f0f4f8 !important;
+    border: 1px solid #dde3eb !important;
+    cursor: pointer !important;
+  }
+  .menu-collapser .collapse-button:hover {
+    background: #e4eaf1 !important;
+  }
+  .menu-collapser .collapse-button .icon-bar {
+    background-color: #243141 !important;
+    width: 18px !important;
+    height: 2.5px !important;
+    border-radius: 2px !important;
+    margin: 0 !important;
+    display: block !important;
+  }
+}
+</style>
 <!-- Header -->
 <header class="ziph-header_area @if($headerSticky) ziph-is-sticky @endif">
   @if($topbarEnabled)
@@ -55,9 +106,13 @@ $headerSticky = themeOption('header.header_sticky', false);
               <i class="fa fa-question-circle"></i> {{ __('header.support') }}
             </a>
             
-            {{-- Login Button --}}
+            {{-- Login / Dashboard Button --}}
             <div class="ziph-flt_right ziph-headlogin_btn">
-              <a href="{{ url('/customer/login') }}" class="btn btn-info">{{ __('header.login') }}</a>
+              @if(!empty($_SESSION['customer']))
+                <a href="{{ url('/customer/dashboard') }}" class="btn btn-info">Dashboard</a>
+              @else
+                <a href="{{ url('/customer/login') }}" class="btn btn-info">{{ __('header.login') }}</a>
+              @endif
             </div>
             
           </div>

@@ -186,8 +186,8 @@ class MenuHelper
         $pdo = Database::connect();
 
         // Obtener tenant_id actual (si existe)
-        $tenantId = null;
-        if (class_exists('\\Screenart\\Musedock\\Services\\TenantManager')) {
+        $tenantId = function_exists('tenant_id') ? tenant_id() : null;
+        if (!$tenantId && class_exists('\\Screenart\\Musedock\\Services\\TenantManager')) {
             $tenant = \Screenart\Musedock\Services\TenantManager::current();
             if ($tenant) {
                 $tenantId = $tenant['id'] ?? null;
@@ -227,8 +227,8 @@ class MenuHelper
         $pdo = Database::connect();
 
         // Obtener tenant_id actual (si existe)
-        $tenantId = null;
-        if (class_exists('\\Screenart\\Musedock\\Services\\TenantManager')) {
+        $tenantId = function_exists('tenant_id') ? tenant_id() : null;
+        if (!$tenantId && class_exists('\\Screenart\\Musedock\\Services\\TenantManager')) {
             $tenant = \Screenart\Musedock\Services\TenantManager::current();
             if ($tenant) {
                 $tenantId = $tenant['id'] ?? null;

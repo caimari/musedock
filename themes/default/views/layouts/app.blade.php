@@ -223,6 +223,7 @@
     @endif
 
     {{-- ====== CSS CRÍTICO (render-blocking, necesario para first paint) ====== --}}
+    <link rel="preload" href="{{ asset('themes/default/css/fontawesome-all.min.css') }}" as="style">
     <link rel="stylesheet" href="/assets/vendor/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ asset('themes/default/css/fontawesome-all.min.css') }}">
     <link rel="stylesheet" href="{{ asset('themes/default/css/themify-icons.css') }}">
@@ -1402,12 +1403,36 @@ body:has(.header-layout-banner) .header-top { display: none !important; }
 }
 
 /* Responsive */
+@media (max-width: 1199px) {
+    .header-banner-logo-inner { padding-left: 15px; }
+}
 @media (max-width: 991px) {
     .header-banner-wrap { flex-wrap: wrap; }
-    .header-banner-logo::before { display: none; }
+    .header-banner-logo { width: 100%; }
+    .header-banner-logo::before { width: 50vw; }
+    .header-banner-logo::after {
+        content: "";
+        position: absolute;
+        top: 0; bottom: 0;
+        left: 100%;
+        width: 100vw;
+        background: var(--header-cta-bg-color, #f3595b);
+    }
+    .header-banner-logo-inner { padding-left: 20px; }
     .header-banner-right { padding: 10px 15px; width: 100%; }
     .header-layout-banner .header-menu { display: none; }
-    .header-layout-banner .menu-toggle { display: block; }
+    .header-layout-banner .menu-toggle {
+        display: block;
+        margin-left: auto;
+    }
+    .header-layout-banner .header-banner-nav-row {
+        display: flex;
+        justify-content: flex-end;
+        width: 100%;
+    }
+    .header-layout-banner .header-actions {
+        margin-left: auto;
+    }
 }
 @media (max-width: 575px) {
     .header-banner-title { font-size: 1.4rem; }

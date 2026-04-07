@@ -128,7 +128,7 @@ $_contactAddress = site_setting('contact_address', '');
   <link rel="stylesheet" href="{{ asset('themes/musedock/css/simple-slider.css') }}">
 
   {{-- Nice Select 2 --}}
-  <link rel="stylesheet" href="{{ asset('themes/musedock/assets/vendor/nice-select2/nice-select2.min.css') }}">
+  <link rel="stylesheet" href="{{ asset('vendor/nice-select2/nice-select2.min.css') }}">
 
   {{-- CSS Variables dinámicas --}}
   <style>
@@ -201,7 +201,7 @@ $_contactAddress = site_setting('contact_address', '');
   <script src="{{ asset('themes/musedock/js/simple-slider.js') }}"></script>
 
   {{-- Nice Select 2 --}}
-  <script src="{{ asset('themes/musedock/assets/vendor/nice-select2/nice-select2.min.js') }}"></script>
+  <script src="{{ asset('vendor/nice-select2/nice-select2.min.js') }}"></script>
 
   @stack('scripts')
   
