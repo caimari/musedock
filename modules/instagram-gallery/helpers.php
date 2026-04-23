@@ -12,6 +12,32 @@ use Modules\InstagramGallery\Models\InstagramPost;
 use Modules\InstagramGallery\Models\InstagramSetting;
 
 /**
+ * ¿El tenant actual tiene al menos una conexión de Instagram activa
+ * (con token vigente) que pueda publicar? Cacheado por request.
+ */
+function instagram_has_publishable_connection(?int $tenantId = null): bool
+{
+    static $cache = [];
+    $tenantId = $tenantId ?? (function_exists('tenant_id') ? tenant_id() : null);
+    $key = (string)($tenantId ?? 'global');
+    if (isset($cache[$key])) return $cache[$key];
+
+    try {
+        $pdo = \Screenart\Musedock\Database::connect();
+        InstagramConnection::setPdo($pdo);
+        $rows = InstagramConnection::getActiveByTenant($tenantId);
+        foreach ($rows as $c) {
+            if (!empty($c->access_token) && strtotime((string)$c->token_expires_at) > time()) {
+                return $cache[$key] = true;
+            }
+        }
+    } catch (\Throwable $e) {
+        // tabla no existe o módulo no instalado
+    }
+    return $cache[$key] = false;
+}
+
+/**
  * Translate Instagram Gallery module strings
  */
 function __instagram(string $key, array $replacements = []): string
@@ -658,16 +684,15 @@ function sync_instagram_posts(int $connectionId): array
         throw new Exception('Connection not found');
     }
 
-    // Get API credentials
-    $appId = InstagramSetting::get('instagram_app_id', $connection->tenant_id);
-    $appSecret = InstagramSetting::get('instagram_app_secret', $connection->tenant_id);
-    $redirectUri = InstagramSetting::get('instagram_redirect_uri', $connection->tenant_id);
+    // Credenciales: ahora están en la propia conexión (antes en instagram_settings globales)
+    $appId = $connection->app_id ?? null;
+    $appSecret = $connection->app_secret ?? null;
+    $redirectUri = $connection->redirect_uri ?? null;
 
     if (!$appId || !$appSecret) {
-        throw new Exception('Instagram API credentials not configured');
+        throw new Exception('Instagram API credentials missing for this connection');
     }
 
-    // Initialize API
     $api = new \Modules\InstagramGallery\Services\InstagramApiService($appId, $appSecret, $redirectUri);
 
     // Get max posts setting

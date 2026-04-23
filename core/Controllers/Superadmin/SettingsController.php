@@ -106,6 +106,28 @@ class SettingsController
             }
 
             // Actualizar solo los settings de lectura
+            $blogCommentsCaptchaThreshold = (int)($_POST['blog_comments_captcha_spam_threshold'] ?? 5);
+            if ($blogCommentsCaptchaThreshold < 1) {
+                $blogCommentsCaptchaThreshold = 1;
+            }
+            if ($blogCommentsCaptchaThreshold > 200) {
+                $blogCommentsCaptchaThreshold = 200;
+            }
+
+            $blogCommentsApprovalMode = (string)($_POST['blog_comments_approval_mode'] ?? 'trusted_authors');
+            $validApprovalModes = ['manual', 'trusted_authors', 'auto_approve'];
+            if (!in_array($blogCommentsApprovalMode, $validApprovalModes, true)) {
+                $blogCommentsApprovalMode = 'trusted_authors';
+            }
+
+            $blogCommentsSpamLinksThreshold = (int)($_POST['blog_comments_spam_links_threshold'] ?? 3);
+            if ($blogCommentsSpamLinksThreshold < 1) {
+                $blogCommentsSpamLinksThreshold = 1;
+            }
+            if ($blogCommentsSpamLinksThreshold > 20) {
+                $blogCommentsSpamLinksThreshold = 20;
+            }
+
             $readingSettings = [
                 'show_on_front' => $_POST['show_on_front'] ?? 'posts',
                 'page_on_front' => $_POST['page_on_front'] ?? '',
@@ -113,6 +135,10 @@ class SettingsController
                 'posts_per_page' => $_POST['posts_per_page'] ?? '10',
                 'posts_per_rss' => $_POST['posts_per_rss'] ?? '10',
                 'blog_public' => isset($_POST['blog_public']) ? '0' : '1',
+                'blog_comments_approval_mode' => $blogCommentsApprovalMode,
+                'blog_comments_spam_links_threshold' => (string)$blogCommentsSpamLinksThreshold,
+                'blog_comments_captcha_enabled' => isset($_POST['blog_comments_captcha_enabled']) ? '1' : '0',
+                'blog_comments_captcha_spam_threshold' => (string)$blogCommentsCaptchaThreshold,
                 'blog_url_prefix' => $blogUrlPrefix,
                 'page_url_prefix' => $pageUrlPrefix,
             ];

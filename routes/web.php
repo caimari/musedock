@@ -6,6 +6,40 @@ use Screenart\Musedock\Middlewares\TenantResolver;
 // use Screenart\Musedock\Controllers\frontend\HomeController;
 
 // ============================================================================
+// API ANALYTICS - Tracking público (sin autenticación, disponible en todos los dominios)
+// Movido desde superadmin.php porque allí no se carga cuando hay tenant activo
+// ============================================================================
+Route::post('/api/analytics/track', function() {
+    // Limpiar cualquier output previo y asegurar headers limpios para Cloudflare
+    if (ob_get_level()) ob_end_clean();
+
+    header('Content-Type: application/json');
+    header('Cache-Control: no-store');
+
+    try {
+        $raw = file_get_contents('php://input');
+        $data = $raw ? json_decode($raw, true) : null;
+
+        if (!$data || !is_array($data)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid data']);
+            exit;
+        }
+
+        $tracked = \Screenart\Musedock\Services\WebAnalytics::track($data);
+
+        http_response_code(200);
+        echo json_encode(['success' => $tracked]);
+        exit;
+
+    } catch (\Throwable $e) {
+        http_response_code(200); // 200 para evitar que Cloudflare marque 520 por errores internos
+        echo json_encode(['success' => false]);
+        exit;
+    }
+})->name('analytics.track');
+
+// ============================================================================
 // RUTAS DE MEDIA MANAGER (públicas, sin autenticación)
 // IMPORTANTE: Deben estar ANTES de cualquier ruta genérica para evitar conflictos
 // NOTA: Se usa Route::any() para soportar GET y HEAD (necesario para Google Images)
@@ -101,6 +135,35 @@ Route::get('/sitemap.xml', 'Blog\Controllers\Frontend\SitemapController@index')-
 // ROBOTS.TXT
 // ============================================================================
 Route::get('/robots.txt', 'Blog\Controllers\Frontend\RobotsController@index')->name('robots.txt.main');
+// ============================================================================
+
+// ============================================================================
+// ADS.TXT (per-tenant virtual ads.txt for AdSense/ad networks)
+// ============================================================================
+Route::get('/ads.txt', function() {
+    try {
+        $pdo = \Screenart\Musedock\Database::connect();
+        $tenantId = function_exists('tenant_id') ? tenant_id() : null;
+        if ($tenantId) {
+            $stmt = $pdo->prepare("SELECT value FROM tenant_settings WHERE tenant_id = ? AND key = 'ads_txt' LIMIT 1");
+            $stmt->execute([$tenantId]);
+        } else {
+            $stmt = $pdo->prepare("SELECT value FROM settings WHERE key = 'ads_txt' LIMIT 1");
+            $stmt->execute();
+        }
+        $adsTxt = $stmt->fetchColumn();
+        if ($adsTxt) {
+            header('Content-Type: text/plain; charset=UTF-8');
+            header('Cache-Control: public, max-age=86400');
+            echo $adsTxt;
+            exit;
+        }
+    } catch (\Exception $e) {}
+    http_response_code(404);
+    header('Content-Type: text/plain');
+    echo 'No ads.txt configured.';
+    exit;
+})->name('ads.txt');
 // ============================================================================
 
 // Ruta para listado de páginas (prefijo configurable, por defecto 'p')

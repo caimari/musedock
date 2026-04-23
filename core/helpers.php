@@ -392,6 +392,12 @@ if (!function_exists('tenant_id')) {
     }
 }
 
+if (!function_exists('menu_has_items')) {
+    function menu_has_items(string $location = 'nav', ?string $locale = null): bool {
+        return \Screenart\Musedock\Helpers\MenuHelper::hasMenuItems($location, $locale);
+    }
+}
+
 // Shortcut de sesión
 if (!function_exists('session')) {
     function session(string $key, $default = null) {
@@ -2456,6 +2462,72 @@ if (!function_exists('page_url')) {
     }
 }
 
+if (!function_exists('legal_page_url')) {
+    /**
+     * Resuelve la URL de una página legal:
+     * - Prioriza una página publicada real del tenant/global con alguno de los slugs candidatos
+     * - Si no existe, devuelve fallback dinámico usando page_url($defaultSlug)
+     *
+     * @param array $slugCandidates Lista ordenada de slugs candidatos
+     * @param string $defaultSlug Slug de fallback
+     * @return string URL absoluta
+     */
+    function legal_page_url(array $slugCandidates, string $defaultSlug): string
+    {
+        $slugCandidates = array_values(array_filter(array_unique(array_map(static function ($slug) {
+            return trim((string) $slug);
+        }, $slugCandidates))));
+
+        if (empty($slugCandidates)) {
+            return url(page_url($defaultSlug));
+        }
+
+        try {
+            $pdo = \Screenart\Musedock\Database::connect();
+            $tenantId = tenant_id();
+            $placeholders = implode(',', array_fill(0, count($slugCandidates), '?'));
+
+            if ($tenantId) {
+                $stmt = $pdo->prepare("
+                    SELECT s.slug, s.prefix
+                    FROM slugs s
+                    INNER JOIN pages p ON p.id = s.reference_id
+                    WHERE s.module = 'pages'
+                      AND s.slug IN ({$placeholders})
+                      AND s.tenant_id = ?
+                      AND p.status = 'published'
+                ");
+                $stmt->execute(array_merge($slugCandidates, [(int) $tenantId]));
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT s.slug, s.prefix
+                    FROM slugs s
+                    INNER JOIN pages p ON p.id = s.reference_id
+                    WHERE s.module = 'pages'
+                      AND s.slug IN ({$placeholders})
+                      AND s.tenant_id IS NULL
+                      AND p.status = 'published'
+                ");
+                $stmt->execute($slugCandidates);
+            }
+
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+            foreach ($slugCandidates as $candidate) {
+                foreach ($rows as $row) {
+                    if (($row['slug'] ?? '') === $candidate) {
+                        $prefix = !empty($row['prefix']) ? '/' . trim((string) $row['prefix'], '/') . '/' : '/';
+                        return url($prefix . ltrim((string) $row['slug'], '/'));
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fallback below
+        }
+
+        return url(page_url($defaultSlug));
+    }
+}
+
 if (!function_exists('is_cross_publisher_active')) {
     /**
      * Verifica si el plugin cross-publisher esta activo e instalado.
@@ -2590,5 +2662,17 @@ if (!function_exists('google_fonts_link_for_content')) {
         if (empty($families)) return '';
 
         return '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?' . implode('&', $families) . '&display=swap">';
+    }
+}
+
+// ── Ad Rendering ────────────────────────────────────────────────────────
+if (!function_exists('render_ad_slot')) {
+    /**
+     * Render an ad slot. Returns empty string if no ad is configured.
+     * Usage in Blade: {!! render_ad_slot('header-below') !!}
+     */
+    function render_ad_slot(string $slug, array $options = []): string
+    {
+        return \Screenart\Musedock\Helpers\AdHelper::renderSlot($slug, $options);
     }
 }

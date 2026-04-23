@@ -8,16 +8,36 @@ namespace Screenart\Musedock\Security;
 class Captcha
 {
     /**
+     * Obtiene la clave de sesión para el contexto indicado.
+     */
+    private static function sessionKey(string $name, string $context = 'default'): string
+    {
+        $normalizedContext = strtolower(trim($context));
+        if ($normalizedContext === '' || $normalizedContext === 'default') {
+            if ($name === 'show') {
+                return 'show_captcha';
+            }
+            return 'captcha_' . $name;
+        }
+
+        if ($name === 'show') {
+            return 'show_captcha_' . $normalizedContext;
+        }
+
+        return 'captcha_' . $normalizedContext . '_' . $name;
+    }
+
+    /**
      * Genera una imagen CAPTCHA y la envía al navegador
      */
-    public static function generate()
+    public static function generate(string $context = 'default')
     {
         // Generar código aleatorio (5 caracteres)
         $code = substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZ23456789'), 0, 5);
 
         // Guardar en sesión
-        $_SESSION['captcha_code'] = $code;
-        $_SESSION['captcha_time'] = time();
+        $_SESSION[self::sessionKey('code', $context)] = $code;
+        $_SESSION[self::sessionKey('time', $context)] = time();
 
         // Configuración de la imagen
         $width = 180;
@@ -93,24 +113,27 @@ class Captcha
      * @param string $input Código ingresado por el usuario
      * @return bool True si es válido
      */
-    public static function verify($input)
+    public static function verify($input, string $context = 'default')
     {
-        if (!isset($_SESSION['captcha_code']) || !isset($_SESSION['captcha_time'])) {
+        $codeKey = self::sessionKey('code', $context);
+        $timeKey = self::sessionKey('time', $context);
+
+        if (!isset($_SESSION[$codeKey]) || !isset($_SESSION[$timeKey])) {
             return false;
         }
 
         // Expirar después de 5 minutos
-        if (time() - $_SESSION['captcha_time'] > 300) {
-            self::clear();
+        if (time() - (int)$_SESSION[$timeKey] > 300) {
+            self::clear($context);
             return false;
         }
 
         // Verificar código (case insensitive)
-        $valid = strtoupper(trim($input)) === $_SESSION['captcha_code'];
+        $valid = strtoupper(trim((string)$input)) === (string)$_SESSION[$codeKey];
 
         // Limpiar después de verificar
         if ($valid) {
-            self::clear();
+            self::clear($context);
         }
 
         return $valid;
@@ -119,11 +142,11 @@ class Captcha
     /**
      * Limpia el CAPTCHA de la sesión
      */
-    public static function clear()
+    public static function clear(string $context = 'default')
     {
-        unset($_SESSION['captcha_code']);
-        unset($_SESSION['captcha_time']);
-        unset($_SESSION['show_captcha']);
+        unset($_SESSION[self::sessionKey('code', $context)]);
+        unset($_SESSION[self::sessionKey('time', $context)]);
+        unset($_SESSION[self::sessionKey('show', $context)]);
     }
 
     /**
@@ -131,16 +154,17 @@ class Captcha
      *
      * @return bool
      */
-    public static function shouldShow()
+    public static function shouldShow(string $context = 'default')
     {
-        return isset($_SESSION['show_captcha']) && $_SESSION['show_captcha'] === true;
+        $showKey = self::sessionKey('show', $context);
+        return isset($_SESSION[$showKey]) && $_SESSION[$showKey] === true;
     }
 
     /**
      * Marca que se debe mostrar el CAPTCHA
      */
-    public static function enable()
+    public static function enable(string $context = 'default')
     {
-        $_SESSION['show_captcha'] = true;
+        $_SESSION[self::sessionKey('show', $context)] = true;
     }
 }

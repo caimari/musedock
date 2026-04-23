@@ -35,14 +35,14 @@ class PageController
         $scope = $_GET['scope'] ?? 'mine';
 
         if (!is_cross_publisher_active() || $scope === 'mine') {
-            return ['mode' => 'mine', 'tenantIds' => [], 'label' => 'Mis páginas'];
+            return ['mode' => 'mine', 'tenantIds' => [], 'label' => __('pages.scope_mine')];
         }
 
         if (str_starts_with($scope, 'group:')) {
             $groupId = (int) substr($scope, 6);
             $group = \CrossPublisherAdmin\Models\DomainGroup::find($groupId);
             if (!$group) {
-                return ['mode' => 'mine', 'tenantIds' => [], 'label' => 'Mis páginas'];
+                return ['mode' => 'mine', 'tenantIds' => [], 'label' => __('pages.scope_mine')];
             }
             $members = \CrossPublisherAdmin\Models\DomainGroup::getMembers($groupId);
             $tenantIds = array_map(fn($m) => $m->id, $members);
@@ -50,7 +50,7 @@ class PageController
                 'mode' => 'group',
                 'groupId' => $groupId,
                 'tenantIds' => $tenantIds,
-                'label' => 'Grupo: ' . $group->name,
+                'label' => __('pages.scope_group_label', ['name' => $group->name]),
                 'members' => $members,
             ];
         }
@@ -62,7 +62,7 @@ class PageController
             $stmt->execute([$tenantId]);
             $tenant = $stmt->fetch(\PDO::FETCH_OBJ);
             if (!$tenant) {
-                return ['mode' => 'mine', 'tenantIds' => [], 'label' => 'Mis páginas'];
+                return ['mode' => 'mine', 'tenantIds' => [], 'label' => __('pages.scope_mine')];
             }
             return [
                 'mode' => 'tenant',
@@ -73,7 +73,7 @@ class PageController
             ];
         }
 
-        return ['mode' => 'mine', 'tenantIds' => [], 'label' => 'Mis páginas'];
+        return ['mode' => 'mine', 'tenantIds' => [], 'label' => __('pages.scope_mine')];
     }
 
     /**
@@ -247,7 +247,7 @@ public function index()
 
     // Renderizamos la vista
     return View::renderSuperadmin('pages.index', array_merge([
-        'title'       => 'Listado de páginas',
+        'title'       => __('pages.list'),
         'pages'       => $processedPages,
         'authors'     => $authors,
         'search'      => $search,
@@ -276,7 +276,7 @@ public function create()
     }
 
     return View::renderSuperadmin('pages.create', [
-        'title' => 'Crear Página',
+        'title' => __('pages.create'),
         'Page'  => new Page(),
         'isNew' => true, // Para identificar que es una página nueva
         'baseUrl' => $_SERVER['HTTP_HOST'], // Para mostrar la URL base
@@ -408,7 +408,7 @@ public function store()
 
     // ✅ Crear primera revisión de la página
     try {
-        \Screenart\Musedock\Models\PageRevision::createFromPage($page, 'initial', 'Versión inicial de la página');
+        \Screenart\Musedock\Models\PageRevision::createFromPage($page, 'initial', __('pages.revision_initial_summary'));
     } catch (\Exception $e) {
         error_log("Error al crear revisión inicial: " . $e->getMessage());
     }
@@ -514,7 +514,7 @@ public function edit($id)
 
     // --- Renderizar vista ---
     return View::renderSuperadmin('pages.edit', [
-        'title'               => 'Editar página: ' . e($page->title),
+        'title'               => __('pages.edit_title_with_name', ['title' => e($page->title)]),
         'Page'                => $page,
         'locales'             => $locales,
         'translatedLocales'   => $translatedLocales,
@@ -676,13 +676,13 @@ public function update($id)
         try {
             // Detectar cambios
             $changes = [];
-            if ($oldTitle !== $page->title) $changes[] = 'título';
-            if ($oldContent !== $page->content) $changes[] = 'contenido';
-            if ($oldStatus !== $data['status']) $changes[] = 'status';
+            if ($oldTitle !== $page->title) $changes[] = __('pages.change_title');
+            if ($oldContent !== $page->content) $changes[] = __('pages.change_content');
+            if ($oldStatus !== $data['status']) $changes[] = __('pages.change_status');
 
             $summary = !empty($changes)
-                ? 'Modificó: ' . implode(', ', $changes)
-                : 'Actualización de metadatos';
+                ? __('pages.revision_changes_summary', ['changes' => implode(', ', $changes)])
+                : __('pages.revision_metadata_updated');
 
             \Screenart\Musedock\Models\PageRevision::createFromPage($page, 'manual', $summary);
         } catch (\Exception $revError) {
@@ -772,7 +772,7 @@ private function processSliderImageUpload($file, $currentImage = null)
     $fileInfo = getimagesize($file['tmp_name']);
     if ($fileInfo === false) {
         error_log("Error: El archivo no es una imagen válida");
-        return ['error' => 'El archivo no es una imagen válida.'];
+        return ['error' => __('pages.error_image_invalid_file')];
     }
     
     // Dimensiones deseadas
@@ -793,7 +793,7 @@ private function processSliderImageUpload($file, $currentImage = null)
         if (!$mkdirResult) {
             $errorMsg = "Error al crear el directorio: " . $uploadDir;
             error_log($errorMsg);
-            return ['error' => $errorMsg];
+            return ['error' => __('pages.error_image_directory_create')];
         } else {
             error_log("Directorio creado exitosamente: " . $uploadDir);
         }
@@ -812,7 +812,7 @@ private function processSliderImageUpload($file, $currentImage = null)
         if (!move_uploaded_file($file['tmp_name'], $fullPath)) {
             $errorMsg = "Error al mover el archivo subido";
             error_log($errorMsg);
-            return ['error' => $errorMsg];
+            return ['error' => __('pages.error_image_move_uploaded')];
         }
         error_log("Archivo subido (sin redimensionar) a: " . $fullPath);
     } 
@@ -902,7 +902,7 @@ private function processSliderImageUpload($file, $currentImage = null)
         } catch (\Exception $e) {
             $errorMsg = "Error al procesar la imagen: " . $e->getMessage();
             error_log($errorMsg);
-            return ['error' => $errorMsg];
+            return ['error' => __('pages.error_image_process') . ': ' . $e->getMessage()];
         }
     }
     
@@ -1310,8 +1310,8 @@ public function editTranslation($id, $locale)
         // Renderizar la vista del formulario de traducción
         return View::renderSuperadmin('pages.translation_edit', [
             'title'       => $isNewTranslation
-                                ? "Crear Traducción ({$localeName}) para \"{$page->title}\""
-                                : "Editar Traducción ({$localeName}) para \"{$page->title}\"",
+                                ? __('pages.translation_title_create_with_page', ['locale' => $localeName, 'title' => $page->title])
+                                : __('pages.translation_title_edit_with_page', ['locale' => $localeName, 'title' => $page->title]),
             'Page'        => $page,          // La página base original
             'translation' => $translation,   // La traducción (existente o nueva instancia)
             'locale'      => $locale,         // El código del idioma a editar
@@ -1466,7 +1466,7 @@ public function revisions($id)
     $revisions = \Screenart\Musedock\Models\PageRevision::getPageRevisions($id, 100);
 
     return View::renderSuperadmin('pages.revisions', [
-        'title' => 'Historial de revisiones: ' . e($page->title),
+        'title' => __('pages.revisions_title_with_page', ['title' => e($page->title)]),
         'page' => $page,
         'revisions' => $revisions,
     ]);
@@ -1604,7 +1604,7 @@ public function previewRevision($pageId, $revisionId)
     }
 
     return View::renderSuperadmin('pages.preview-revision', [
-        'title' => 'Preview: ' . e($revision->title),
+        'title' => __('pages.preview_title_with_page', ['title' => e($revision->title)]),
         'revision' => $revision,
         'page' => Page::find($pageId),
     ]);
@@ -1630,7 +1630,7 @@ public function compareRevisions($pageId, $id1, $id2)
     $diff = $revision1->diffWith($revision2);
 
     return View::renderSuperadmin('pages.compare-revisions', [
-        'title' => 'Comparar revisiones',
+        'title' => __('pages.compare_revisions_title'),
         'page' => Page::find($pageId),
         'revision1' => $revision1,
         'revision2' => $revision2,
@@ -1662,7 +1662,7 @@ public function trash()
     }
 
     return View::renderSuperadmin('pages.trash', [
-        'title' => 'Papelera de páginas',
+        'title' => __('pages.trash_title'),
         'pages' => $pages,
         'trashInfo' => $trashInfo,
     ]);
@@ -1768,7 +1768,7 @@ public function autosave($id)
 
     $page = Page::find($id);
     if (!$page) {
-        echo json_encode(['success' => false, 'message' => 'Página no encontrada']);
+        echo json_encode(['success' => false, 'message' => __('pages.error_not_found')]);
         exit;
     }
 
@@ -1777,7 +1777,7 @@ public function autosave($id)
     $data = json_decode($rawData, true);
 
     if (!$data) {
-        echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
+        echo json_encode(['success' => false, 'message' => __('pages.error_invalid_payload')]);
         exit;
     }
 
@@ -1791,16 +1791,16 @@ public function autosave($id)
         $page->save();
 
         // Crear revisión de tipo autosave
-        \Screenart\Musedock\Models\PageRevision::createFromPage($page, 'autosave', 'Autoguardado');
+        \Screenart\Musedock\Models\PageRevision::createFromPage($page, 'autosave', __('pages.revision_autosave_summary'));
 
         echo json_encode([
             'success' => true,
-            'message' => 'Autoguardado exitoso',
+            'message' => __('pages.autosave_success'),
             'timestamp' => date('Y-m-d H:i:s')
         ]);
     } catch (\Exception $e) {
         error_log("Error en autosave: " . $e->getMessage());
-        echo json_encode(['success' => false, 'message' => 'Error al autoguardar']);
+        echo json_encode(['success' => false, 'message' => __('pages.error_autosave_failed')]);
     }
 
     exit;

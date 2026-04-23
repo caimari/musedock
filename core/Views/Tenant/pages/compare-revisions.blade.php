@@ -5,10 +5,10 @@
 @endsection
 @section('content')
 <div class="app-content"><div class="container-fluid">
-<div class="d-flex justify-content-between align-items-center mb-3"><h2>{{ $title }}</h2><a href="{{ admin_url('pages') }}/{{ $page->id }}/revisions" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver a revisiones</a></div>
+<div class="d-flex justify-content-between align-items-center mb-3"><h2>{{ $title }}</h2><a href="{{ admin_url('pages') }}/{{ $page->id }}/revisions" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> {{ __('pages.back_to_revisions') }}</a></div>
 <div class="diff-container">
-<div class="diff-column"><h6>Revisión #{{ $revision1->id }}</h6><div><strong>Título:</strong><div class="content-preview @if($diff['title']) diff-removed @endif">{{ e($revision1->title) }}</div></div></div>
-<div class="diff-column"><h6>Revisión #{{ $revision2->id }}</h6><div><strong>Título:</strong><div class="content-preview @if($diff['title']) diff-added @endif">{{ e($revision2->title) }}</div></div></div>
+<div class="diff-column"><h6>{{ __('pages.revision_number_label', ['id' => $revision1->id]) }}</h6><div><strong>{{ __('pages.title_field') }}:</strong><div class="content-preview @if($diff['title']) diff-removed @endif">{{ e($revision1->title) }}</div></div></div>
+<div class="diff-column"><h6>{{ __('pages.revision_number_label', ['id' => $revision2->id]) }}</h6><div><strong>{{ __('pages.title_field') }}:</strong><div class="content-preview @if($diff['title']) diff-added @endif">{{ e($revision2->title) }}</div></div></div>
 </div>
 </div></div>
 @endsection

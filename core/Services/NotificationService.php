@@ -4,6 +4,7 @@ namespace Screenart\Musedock\Services;
 
 use Screenart\Musedock\Models\Notification;
 use Screenart\Musedock\Env;
+use Screenart\Musedock\Database;
 
 class NotificationService
 {
@@ -186,6 +187,72 @@ class NotificationService
                 'action_url' => $recipientType === 'admin' ? admin_url('tickets/' . $ticketId) : '/musedock/tickets/' . $ticketId
             ]
         ]);
+    }
+
+    /**
+     * Notificar nuevo comentario pendiente de moderación.
+     * Envía al panel de tenant (admins del tenant) y al panel principal (superadmins).
+     */
+    public static function notifyBlogCommentPending(
+        int $commentId,
+        int $postId,
+        string $postTitle,
+        string $authorName,
+        ?int $tenantId
+    ): void {
+        $postTitle = trim($postTitle) !== '' ? trim($postTitle) : 'Post';
+        $authorName = trim($authorName) !== '' ? trim($authorName) : 'Anónimo';
+
+        $superadminPath = '/' . trim((string) Env::get('ADMIN_PATH_MUSEDOCK', 'musedock'), '/');
+        $tenantPath = '/' . trim((string) Env::get('ADMIN_PATH_TENANT', 'admin'), '/');
+
+        $message = "Nuevo comentario de {$authorName} en \"{$postTitle}\"";
+
+        // Notificar a todos los superadmins (panel principal)
+        self::notifySuperAdmins([
+            'type' => 'blog_comment_pending',
+            'title' => 'Comentario pendiente',
+            'message' => $message,
+            'data' => [
+                'comment_id' => $commentId,
+                'post_id' => $postId,
+                'tenant_id' => $tenantId,
+                'action_url' => $superadminPath . '/blog/comments?status=pending&scope=all',
+            ],
+        ]);
+
+        // Notificar a admins del tenant correspondiente (si aplica)
+        if ($tenantId !== null && $tenantId > 0) {
+            self::notifyTenantAdmins($tenantId, [
+                'type' => 'blog_comment_pending',
+                'title' => 'Comentario pendiente',
+                'message' => $message,
+                'data' => [
+                    'comment_id' => $commentId,
+                    'post_id' => $postId,
+                    'tenant_id' => $tenantId,
+                    'action_url' => $tenantPath . '/blog/comments?status=pending',
+                ],
+            ]);
+        }
+    }
+
+    /**
+     * Notificar a todos los superadmins
+     */
+    private static function notifyTenantAdmins(int $tenantId, array $data): void
+    {
+        $db = Database::connect();
+        $stmt = $db->prepare("SELECT id FROM admins WHERE tenant_id = ?");
+        $stmt->execute([$tenantId]);
+        $admins = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($admins as $admin) {
+            self::send(array_merge($data, [
+                'user_id' => (int) $admin['id'],
+                'user_type' => 'admin'
+            ]));
+        }
     }
 
     /**

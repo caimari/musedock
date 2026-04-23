@@ -13,11 +13,132 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.17.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.17.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 21 de Abril de 2026</p>
+
+                <h6 class="text-success"><i class="bi bi-check2-circle me-1"></i> Cierre de Fases (i18n)</h6>
+                <ul class="mb-3">
+                    <li><strong>Fase 0 cerrada:</strong> Infraestructura de traducciones (JSON + BD), migracion y editor de overrides en CMS principal</li>
+                    <li><strong>Fase 1 cerrada:</strong> Modulo <code>Pages</code> (CMS + Tenant) traducido en vistas, JS/modales, revisiones, papelera, bulk edit y controladores</li>
+                    <li><strong>Paridad validada:</strong> Claves <code>pages/common</code> sincronizadas en <code>lang/superadmin</code> y <code>lang/tenant</code> para <code>es/en</code></li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-translate me-1"></i> Motor de Traducciones con Overrides</h6>
+                <ul class="mb-3">
+                    <li><strong>Nuevo almacenamiento en base de datos:</strong> Tabla <code>translation_overrides</code> para personalizar textos sin editar archivos JSON</li>
+                    <li><strong>Resolucion hibrida:</strong> El sistema combina <em>JSON base + overrides BD por clave</em>. Solo las claves editadas reemplazan al JSON</li>
+                    <li><strong>Fallback conservado:</strong> Si una clave no existe en el idioma actual, se mantiene el fallback a <code>es</code></li>
+                </ul>
+
+                <h6 class="text-info"><i class="bi bi-sliders me-1"></i> Editor de Traducciones en CMS Principal</h6>
+                <ul class="mb-3">
+                    <li><strong>Nueva pantalla:</strong> <code>/musedock/languages/translations</code> con filtros por contexto, idioma y buscador por clave/texto</li>
+                    <li><strong>Acciones por clave:</strong> Guardar override y restablecer al valor base del JSON</li>
+                    <li><strong>Ayuda en UI:</strong> Bloque <em>Como funciona</em> visible dentro del editor</li>
+                </ul>
+
+                <h6 class="text-warning"><i class="bi bi-diagram-3 me-1"></i> Overrides por Tenant desde Superadmin</h6>
+                <ul class="mb-3">
+                    <li><strong>Nuevo ambito:</strong> Selector Global o Tenant especifico en el editor</li>
+                    <li><strong>Guardado por scope:</strong> Los overrides se guardan como globales (<code>tenant_id=0</code>) o por tenant (<code>tenant_id=&gt;0</code>)</li>
+                    <li><strong>Badge contextual:</strong> Indicador visual de ambito activo (Global / Tenant seleccionado)</li>
+                </ul>
+
+                <h6 class="text-secondary"><i class="bi bi-arrow-repeat me-1"></i> Ajustes de Idioma en Tenant</h6>
+                <ul class="mb-0">
+                    <li><strong>Ruta de cambio de idioma corregida:</strong> El switcher tenant ya usa <code>admin_path</code> dinamico y evita hardcode <code>/admin</code></li>
+                    <li><strong>Redirect seguro:</strong> Fallback a <code>admin_url('dashboard')</code> cuando no hay redireccion valida</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v2.16.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.16.0</h5>
+                <span class="badge bg-secondary">Previous</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 12 de Abril de 2026</p>
+
+                <h6 class="text-danger"><i class="bi bi-megaphone me-1"></i> Social Publisher (antes Instagram Gallery)</h6>
+                <ul class="mb-3">
+                    <li><strong>Nuevo nombre y URL:</strong> El modulo pasa a llamarse <strong>Social Publisher</strong>. La URL cambia de <code>/admin/instagram</code> a <code>/admin/social-publisher</code> (los enlaces viejos redirigen automaticamente)</li>
+                    <li><strong>Publicacion en Facebook:</strong> Ya puedes vincular la Pagina de Facebook asociada a tu cuenta de Instagram Business. Al publicar un post del blog, puedes elegir en que red publicarlo (IG, FB, o ambas)</li>
+                    <li><strong>API nueva de Instagram:</strong> Migrado a la «Instagram API con inicio de sesion para empresas de Instagram» (la que sustituyo a Basic Display API)</li>
+                    <li><strong>Hashtags de marca:</strong> Cada cuenta tiene sus hashtags predefinidos configurables. Se combinan automaticamente con categorias y tags del post al publicar (prioridad a los preset, limite de 30)</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-newspaper me-1"></i> Compartir posts del blog</h6>
+                <ul class="mb-3">
+                    <li><strong>Boton «Compartir» en /admin/blog/posts:</strong> Aparece en cada post publicado con imagen destacada cuando Social Publisher tiene una cuenta valida</li>
+                    <li><strong>Modal con preview:</strong> Imagen, selector de cuenta, checkboxes para IG/FB, caption editable con contador 0/2200. Facebook recibe el link como preview automatico; Instagram lo lleva como texto</li>
+                    <li><strong>Badges de publicacion:</strong> Los posts muestran badge IG (rosa) y FB (azul) con link directo al permalink publicado en cada red</li>
+                    <li><strong>Caption inteligente:</strong> Si el post no tiene excerpt, se usa un teaser con los H2 del contenido en lugar del cuerpo completo (no desvela el articulo)</li>
+                </ul>
+
+                <h6 class="text-warning"><i class="bi bi-ui-radios me-1"></i> Blog mosaico</h6>
+                <ul class="mb-3">
+                    <li><strong>Card hero con categorias:</strong> La tarjeta grande del layout mosaico ya muestra chips de categoria sobre el titulo, igual que las pequeñas</li>
+                    <li><strong>Chips clicables:</strong> Al pulsarlos llevan al listado de esa categoria/tag, manteniendo color blanco (no se pinta con el color visited del tema)</li>
+                </ul>
+
+                <h6 class="text-secondary"><i class="bi bi-list me-1"></i> Header</h6>
+                <ul class="mb-0">
+                    <li><strong>Hamburguesa inteligente:</strong> El boton de menu movil deja de aparecer si el menu esta vacio. Arreglado en todos los layouts del tema default</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v2.15.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.15.0</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 12 de Abril de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-chat-left-text me-1"></i> Sistema de comentarios en Blog</h6>
+                <ul class="mb-3">
+                    <li><strong>Comentarios publicos activables por post:</strong> Formulario en frontend default con nombre, email, web opcional y comentario</li>
+                    <li><strong>Panel de moderacion:</strong> Nueva seccion de comentarios con filtros por estado y acciones (aprobar, spam, eliminar)</li>
+                    <li><strong>Menu lateral:</strong> Nuevo item <code>Comentarios</code> dentro de <code>Blog</code></li>
+                </ul>
+
+                <h6 class="text-warning"><i class="bi bi-shield-check me-1"></i> Moderacion y Anti-spam</h6>
+                <ul class="mb-3">
+                    <li><strong>Modo de aprobacion configurable:</strong> Manual, autoaprobar todos o autoaprobar solo autores previamente aprobados (recomendado)</li>
+                    <li><strong>Ajustes en Lectura:</strong> Configuracion centralizada en <code>/{admin_path}/settings/reading</code></li>
+                    <li><strong>Umbral de enlaces spam:</strong> Regla configurable para deteccion automatica de spam</li>
+                    <li><strong>CAPTCHA adaptativo:</strong> Solo aparece cuando hay pico de spam en las ultimas 24h</li>
+                </ul>
+
+                <h6 class="text-info"><i class="bi bi-bell me-1"></i> Notificaciones</h6>
+                <ul class="mb-3">
+                    <li><strong>Campana en dashboard:</strong> Aviso inmediato cuando entra un comentario pendiente</li>
+                    <li><strong>Enlace directo:</strong> La notificacion abre la bandeja de comentarios pendientes</li>
+                </ul>
+
+                <h6 class="text-success"><i class="bi bi-shield-lock me-1"></i> RGPD</h6>
+                <ul class="mb-0">
+                    <li><strong>Consentimiento obligatorio:</strong> Checkbox con enlaces a Privacidad y Terminos antes de enviar comentario</li>
+                    <li><strong>Registro de consentimiento:</strong> Se guarda estado y fecha/hora de aceptacion por comentario</li>
+                    <li><strong>Transparencia legal:</strong> Las plantillas legales incluyen ya el tratamiento de datos de comentarios</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.14.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.14.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">Previous</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 6 de Abril de 2026</p>

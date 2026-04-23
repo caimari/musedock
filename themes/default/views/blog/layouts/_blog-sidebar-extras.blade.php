@@ -10,10 +10,12 @@
     $__sidebarBlocks = [];
     if ($showSidebarSearch) $__sidebarBlocks[] = ['type' => 'search', 'order' => (int) themeOption('blog.blog_sidebar_search_order', 1)];
     if ($showRelatedPosts) $__sidebarBlocks[] = ['type' => 'related', 'order' => (int) themeOption('blog.blog_sidebar_related_posts_order', 2)];
-    if ($showSidebarTags) $__sidebarBlocks[] = ['type' => 'tags', 'order' => (int) themeOption('blog.blog_sidebar_tags_order', 3)];
-    if ($showSidebarCategories) $__sidebarBlocks[] = ['type' => 'categories', 'order' => (int) themeOption('blog.blog_sidebar_categories_order', 4)];
+    if ($showSidebarCategories) $__sidebarBlocks[] = ['type' => 'categories', 'order' => (int) themeOption('blog.blog_sidebar_categories_order', 3)];
+    if ($showSidebarTags) $__sidebarBlocks[] = ['type' => 'tags', 'order' => (int) themeOption('blog.blog_sidebar_tags_order', 4)];
     usort($__sidebarBlocks, fn($a, $b) => $a['order'] - $b['order']);
 @endphp
+
+{!! render_ad_slot('sidebar-top') !!}
 
 @if(!empty($__sidebarBlocks))
 @php
@@ -380,3 +382,5 @@
 }
 </style>
 @endif
+
+{!! render_ad_slot('sidebar-bottom') !!}

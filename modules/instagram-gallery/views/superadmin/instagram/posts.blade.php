@@ -7,7 +7,7 @@
     <div class="container-fluid">
         <div class="row mb-4">
             <div class="col-md-8">
-                <a href="/musedock/instagram" class="btn btn-sm btn-outline-secondary mb-2">
+                <a href="/musedock/social-publisher" class="btn btn-sm btn-outline-secondary mb-2">
                     <i class="bi bi-arrow-left"></i> <?php echo __instagram('common.back'); ?>
                 </a>
                 <h1 class="h3 mb-1">

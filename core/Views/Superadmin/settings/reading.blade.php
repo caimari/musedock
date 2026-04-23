@@ -242,6 +242,72 @@
         </div>
       </div>
 
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">Comentarios del blog</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3" style="max-width: 560px;">
+            <label class="form-label" for="blog_comments_approval_mode">Aprobación de comentarios</label>
+            @php
+              $approvalMode = (string)($settings['blog_comments_approval_mode'] ?? 'trusted_authors');
+            @endphp
+            <select class="form-select" id="blog_comments_approval_mode" name="blog_comments_approval_mode">
+              <option value="trusted_authors" @if($approvalMode === 'trusted_authors') selected @endif>Aprobar automáticamente solo autores ya aprobados (Recomendado)</option>
+              <option value="manual" @if($approvalMode === 'manual') selected @endif>Siempre moderar (pendiente)</option>
+              <option value="auto_approve" @if($approvalMode === 'auto_approve') selected @endif>Aprobar automáticamente todos</option>
+            </select>
+            <small class="text-muted d-block mt-1">Modo tipo WordPress: el recomendado reduce fricción sin perder control anti-spam.</small>
+          </div>
+
+          <div class="mb-3" style="max-width: 340px;">
+            <label class="form-label" for="blog_comments_spam_links_threshold">Marcar como spam desde</label>
+            <div class="input-group">
+              <input
+                type="number"
+                min="1"
+                max="20"
+                step="1"
+                class="form-control"
+                id="blog_comments_spam_links_threshold"
+                name="blog_comments_spam_links_threshold"
+                value="{{ (int)($settings['blog_comments_spam_links_threshold'] ?? 3) }}"
+              >
+              <span class="input-group-text">enlaces</span>
+            </div>
+            <small class="text-muted d-block mt-1">Si un comentario tiene este número de enlaces o más, se marcará como spam.</small>
+          </div>
+
+          <hr>
+
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="blog_comments_captcha_enabled" id="blog_comments_captcha_enabled" value="1"
+              @if(($settings['blog_comments_captcha_enabled'] ?? '0') === '1') checked @endif>
+            <label class="form-check-label" for="blog_comments_captcha_enabled">
+              <strong>Activar CAPTCHA adaptativo en comentarios</strong>
+            </label>
+          </div>
+          <small class="text-muted d-block mt-2">
+            <i class="bi bi-shield-check"></i> Solo se pedirá CAPTCHA cuando haya picos de spam.
+          </small>
+
+          <div class="mt-3" style="max-width: 340px;">
+            <label class="form-label" for="blog_comments_captcha_spam_threshold">Umbral de spam (últimas 24h)</label>
+            <input
+              type="number"
+              min="1"
+              max="200"
+              step="1"
+              class="form-control"
+              id="blog_comments_captcha_spam_threshold"
+              name="blog_comments_captcha_spam_threshold"
+              value="{{ (int)($settings['blog_comments_captcha_spam_threshold'] ?? 5) }}"
+            >
+            <small class="text-muted d-block mt-1">Al superar este número de comentarios spam, el formulario público exigirá CAPTCHA.</small>
+          </div>
+        </div>
+      </div>
+
       <div class="d-flex justify-content-end">
         <button type="submit" class="btn btn-primary">
           <i class="bi bi-save"></i> Guardar cambios

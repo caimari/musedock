@@ -1,7 +1,92 @@
 {
-  "name": "Instagram Gallery",
+  "name": "Social Publisher",
   "slug": "instagram-gallery",
-  "version": "1.0.0",
+  "version": "3.2.0",
+  "changelog": [
+    {
+      "version": "3.2.0",
+      "date": "2026-04-12",
+      "changes": [
+        "Renombrado el módulo a «Social Publisher»: antes sólo publicaba en Instagram, ahora también en Facebook.",
+        "URLs movidas de /admin/instagram → /admin/social-publisher y /musedock/instagram → /musedock/social-publisher. Los /callback antiguos siguen funcionando porque son los registrados en Meta.",
+        "Nuevo: vincular Página de Facebook a cada cuenta IG mediante OAuth separado con scopes pages_show_list, pages_manage_posts, pages_read_engagement.",
+        "Nuevo: publicación dual Instagram + Facebook desde el modal «Compartir» del listado de posts del blog. Checkboxes para elegir qué redes. Facebook usa link clicable + preview automático.",
+        "Nuevas columnas en instagram_connections: facebook_page_id, facebook_page_name, facebook_page_token, facebook_user_token, facebook_enabled.",
+        "Nuevas columnas en blog_posts: facebook_posted_at, facebook_post_id, facebook_permalink (tracking paralelo al IG).",
+        "Badge FB (azul Facebook) en listado de posts del blog junto al badge IG, ambos enlazan al permalink del post publicado.",
+        "Superadmin domain-manager: columna «Página Facebook» en la tabla de cuentas."
+      ]
+    },
+    {
+      "version": "3.1.0",
+      "date": "2026-04-12",
+      "changes": [
+        "Caption: si el post no tiene excerpt, ahora se genera un teaser con los H2 del contenido (índice de secciones) en lugar de mostrar el cuerpo entero.",
+        "Hashtags predefinidos por cuenta de Instagram: nuevo botón «Hashtags» en cada conexión (modal SweetAlert con preview y normalización).",
+        "Merge inteligente al publicar: preset primero (prioridad), después dinámicos (categorías + tags del post), cap a 30 (límite de IG) recortando los dinámicos.",
+        "Modal de compartir: al cambiar de cuenta en el select, el caption se recalcula automáticamente con los hashtags preset de esa cuenta (si el usuario no ha tocado el texto aún).",
+        "Migración automática: nueva columna `hashtags_preset` en `instagram_connections`."
+      ]
+    },
+    {
+      "version": "3.0.0",
+      "date": "2026-04-12",
+      "changes": [
+        "Rediseño completo de la UI del módulo: una sola página /admin/instagram con todo integrado (antes había una pantalla Settings separada que no encajaba con la lógica multi-cuenta).",
+        "BREAKING: las credenciales (App ID, App Secret, Redirect URI) ahora se guardan por cuenta (tabla instagram_connections), no por tenant. Cada cuenta puede usar una app de Meta distinta.",
+        "Migración automática: los settings globales anteriores se copian a las conexiones existentes al instalar esta versión.",
+        "Nuevo flujo «Añadir cuenta»: modal con credenciales → probar → guardar → redirige a Instagram para OAuth → vuelve. Reemplaza el anterior «Conectar» opaco.",
+        "Botón «Reautorizar» en cada cuenta para reescribir el token sin perder la conexión (por ejemplo tras cambiar scopes).",
+        "Cada cuenta conectada expande un acordeón propio con sus credenciales editables y botones de «Probar» y «Guardar».",
+        "Pantalla antigua /admin/instagram/settings ahora redirige a /admin/instagram (bookmarks antiguos siguen funcionando).",
+        "Fix: detección del tenant_id fallaba (class_exists('TenantManager') sin namespace) → las conexiones se guardaban con tenant_id=1 en vez del real. Sustituido por tenant_id() del helper global."
+      ]
+    },
+    {
+      "version": "2.1.0",
+      "date": "2026-04-12",
+      "changes": [
+        "Nuevo: botón «Compartir en Instagram» en el listado de posts del blog (/admin/blog/posts). Solo aparece si el módulo está activo, hay una conexión válida y el post tiene imagen destacada.",
+        "Nuevo: modal de publicación con preview de imagen, selector de cuenta, caption editable (título + extracto + link al post) con contador de caracteres.",
+        "Nuevo: endpoint POST /admin/instagram/share/publish y GET /admin/instagram/share/preview.",
+        "Service: nuevo método publishPhoto() — flujo de 2 pasos (crear container + media_publish) de la API de Meta.",
+        "OAuth: añadido scope instagram_business_content_publish. Las cuentas conectadas antes de esta versión necesitan reconectarse para obtener el permiso.",
+        "Settings: aviso de que las credenciales son una sola app de Meta para todas las cuentas que vayas a conectar.",
+        "UI: botón «Conectar Nueva Cuenta» renombrado a «Añadir cuenta de Instagram» para mayor claridad."
+      ]
+    },
+    {
+      "version": "2.0.1",
+      "date": "2026-04-12",
+      "changes": [
+        "Fix: el botón «Sincronizar Ahora» fallaba por CSRF (sesión expirada). Ahora envía el token correctamente.",
+        "Fix: la página de galería (/admin/instagram/{id}/gallery) no extendía el layout admin, salía sin sidebar ni menú. Reescrita usando layouts::app.",
+        "Nuevo cron de sincronización de posts cada 6h (commands/SyncInstagramPosts.php). El cron antiguo (refresh de tokens, 02:00 diario) sigue funcionando.",
+        "Fix: botón «Desconectar» también enviaba sin CSRF, ahora lo añade como input oculto."
+      ]
+    },
+    {
+      "version": "2.0.0",
+      "date": "2026-04-12",
+      "changes": [
+        "Migración a la nueva «Instagram API con login de empresa» (la antigua Instagram Basic Display fue deprecada por Meta en dic-2024).",
+        "OAuth ahora apunta a https://www.instagram.com/oauth/authorize con scope instagram_business_basic.",
+        "Endpoints de Graph API versionados a v21.0 (/me, /me/media, /{media-id}).",
+        "Token endpoint movido a https://api.instagram.com/oauth/access_token.",
+        "Settings: instrucciones reducidas a 4 pasos claros + 1 bloque opcional para Webhooks/revisión.",
+        "Settings: URLs opcionales (Deauthorize, Data Deletion, Webhook) escondidas tras un desplegable para no confundir."
+      ]
+    },
+    {
+      "version": "1.1.0",
+      "date": "2026-04-12",
+      "changes": [
+        "Settings: banner de estado de conexión (cuentas conectadas + caducidad del token).",
+        "Settings: botón «Probar credenciales» que valida App ID + Secret contra Meta antes de guardar.",
+        "Settings: instrucciones paso a paso en acordeón."
+      ]
+    }
+  ],
   "description": "Galería de Instagram con conexión a cuentas de Instagram Basic Display API. Permite a SuperAdmin y Tenants conectar sus cuentas de Instagram y mostrar sus publicaciones en galerías con múltiples diseños.",
   "author": "MuseDock",
   "enabled_by_default": true,

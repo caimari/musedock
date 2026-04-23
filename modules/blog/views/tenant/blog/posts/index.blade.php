@@ -82,6 +82,9 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h2>{{ $title }}</h2>
       <div class="d-flex gap-2">
+        <a href="{{ admin_url('blog/comments') }}" class="btn btn-outline-secondary" title="Moderar comentarios">
+          <i class="bi bi-chat-left-text me-1"></i> Comentarios
+        </a>
         <a href="{{ admin_url('blog/posts/trash') }}" class="btn btn-outline-danger" title="{{ __('blog.post.view_trash') }}">
           <i class="bi bi-trash me-1"></i> {{ __('blog.post.trash') }}
         </a>
@@ -207,12 +210,43 @@
                   @if(!$post->allow_comments)
                     <span class="badge rounded-pill bg-secondary ms-1" style="font-size: 0.7em; vertical-align: middle;"><i class="bi bi-chat-slash"></i></span>
                   @endif
+                  @if(!empty($post->instagram_posted_at))
+                    @php $igTitle = 'Publicado en Instagram el ' . date('d/m/Y H:i', strtotime($post->instagram_posted_at)); @endphp
+                    @if(!empty($post->instagram_permalink))
+                      <a href="{{ $post->instagram_permalink }}" target="_blank" rel="noopener noreferrer" class="badge rounded-pill ms-1 text-decoration-none" style="background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); color: #fff; font-size: 0.7em; vertical-align: middle;" title="{{ $igTitle }}">
+                        <i class="bi bi-instagram"></i> IG
+                      </a>
+                    @else
+                      <span class="badge rounded-pill ms-1" style="background: linear-gradient(45deg, #f09433 0%, #dc2743 50%, #bc1888 100%); color: #fff; font-size: 0.7em; vertical-align: middle;" title="{{ $igTitle }}">
+                        <i class="bi bi-instagram"></i> IG
+                      </span>
+                    @endif
+                  @endif
+                  @if(!empty($post->facebook_posted_at))
+                    @php $fbTitle = 'Publicado en Facebook el ' . date('d/m/Y H:i', strtotime($post->facebook_posted_at)); @endphp
+                    @if(!empty($post->facebook_permalink))
+                      <a href="{{ $post->facebook_permalink }}" target="_blank" rel="noopener noreferrer" class="badge rounded-pill ms-1 text-decoration-none" style="background:#1877f2;color:#fff;font-size:0.7em;vertical-align:middle;" title="{{ $fbTitle }}">
+                        <i class="bi bi-facebook"></i> FB
+                      </a>
+                    @else
+                      <span class="badge rounded-pill ms-1" style="background:#1877f2;color:#fff;font-size:0.7em;vertical-align:middle;" title="{{ $fbTitle }}">
+                        <i class="bi bi-facebook"></i> FB
+                      </span>
+                    @endif
+                  @endif
                   <br>
                   <small>
                     <a href="{{ admin_url('blog/posts/' . $post->id . '/edit') }}">{{ __('common.edit') }}</a>
                     @if ($post->status === 'published')
                        |
                       <a href="{{ blog_url($post->slug) }}" target="_blank" rel="noopener noreferrer">{{ __('blog.post.view_post') }}</a>
+                      @php $__igOk = function_exists('instagram_has_publishable_connection') && instagram_has_publishable_connection() && !empty($post->featured_image); @endphp
+                      @if($__igOk)
+                         |
+                        <a href="#" class="share-instagram-link" data-post-id="{{ $post->id }}" style="color:#dc2743;text-decoration:none;" title="Compartir en redes">
+                          <i class="bi bi-megaphone"></i> {{ (!empty($post->instagram_posted_at) || !empty($post->facebook_posted_at)) ? 'Re-publicar' : 'Compartir' }}
+                        </a>
+                      @endif
                     @endif
                      |
                     <a href="#" class="delete-post-link" data-post-id="{{ $post->id }}" data-post-title="{{ htmlspecialchars($post->title, ENT_QUOTES, 'UTF-8') }}" style="color: #dc3545; text-decoration: none;">{{ __('common.delete') }}</a>
@@ -296,6 +330,230 @@
 
   </div> {{-- fin container-fluid --}}
 </div> {{-- fin app-content --}}
+
+@if(function_exists('instagram_has_publishable_connection') && instagram_has_publishable_connection())
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+(function(){
+    const adminPath = @json(admin_path());
+    const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const escAttr = s => String(s ?? '').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    document.addEventListener('click', async function(e) {
+        const link = e.target.closest('.share-instagram-link');
+        if (!link) return;
+        e.preventDefault();
+        await openShare(link.dataset.postId);
+    });
+
+    async function openShare(postId) {
+        Swal.fire({
+            title: 'Preparando publicación…',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        let preview;
+        try {
+            const res = await fetch(`/${adminPath}/instagram/share/preview?post_id=${encodeURIComponent(postId)}`, {
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            preview = await res.json();
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'Error de red', text: err.message });
+            return;
+        }
+
+        if (!preview.ok) {
+            Swal.fire({ icon: 'error', title: 'No se puede compartir', text: preview.message });
+            return;
+        }
+
+        showShareForm(postId, preview);
+    }
+
+    /**
+     * Reconstruye el caption reemplazando la línea de hashtags por preset+dinámicos
+     * de la cuenta actual. Preserva el resto del caption (título, excerpt, link).
+     * Mismo merge que el backend: preset primero, dinámicos después, cap 30.
+     */
+    function rebuildCaption(preview, preset) {
+        const dynamic = preview.dynamic_hashtags || [];
+        const seen = {};
+        const out = [];
+        const add = (h) => {
+            if (!h || seen[h] || out.length >= 30) return;
+            seen[h] = true; out.push('#' + h);
+        };
+        (preset || []).forEach(add);
+        dynamic.forEach(add);
+        // El caption original tiene la línea de hashtags al final (la del backend).
+        // La sustituimos buscando el último bloque separado por doble salto.
+        const parts = preview.caption.split('\n\n');
+        // Si la última parte empieza por '#', es la línea de hashtags → reemplazar.
+        if (parts.length > 1 && parts[parts.length - 1].trim().startsWith('#')) {
+            parts.pop();
+        }
+        if (out.length) parts.push(out.join(' '));
+        return parts.join('\n\n');
+    }
+
+    function showShareForm(postId, preview, prefillCaption) {
+        const accountsOptions = preview.accounts.map(a => {
+            const fbTag = a.facebook_enabled ? ` — <i class="bi bi-facebook" style="color:#1877f2;"></i> ${escAttr(a.facebook_page_name || 'FB')}` : '';
+            return `<option value="${a.id}" data-fb="${a.facebook_enabled ? '1' : '0'}" data-fb-name="${escAttr(a.facebook_page_name || '')}">@${escAttr(a.username)}${fbTag}</option>`;
+        }).join('');
+        const caption = prefillCaption !== undefined ? prefillCaption : preview.caption;
+        const firstHasFb = preview.accounts.length > 0 && preview.accounts[0].facebook_enabled;
+
+        const html = `
+            <div style="text-align:left;font-size:0.9rem;">
+                <div style="display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:start;">
+                    <div>
+                        <label class="form-label" style="font-size:0.8rem;margin-bottom:4px;">Imagen</label>
+                        <div style="aspect-ratio:1;background:#f8f9fa;border:1px solid #e9ecef;border-radius:6px;overflow:hidden;">
+                            <img src="${escAttr(preview.image_url)}" style="width:100%;height:100%;object-fit:cover;">
+                        </div>
+                        <small class="text-muted" style="display:block;margin-top:6px;font-size:0.72rem;">Instagram pedirá imagen cuadrada o vertical.</small>
+                    </div>
+                    <div>
+                        <div style="margin-bottom:12px;">
+                            <label class="form-label" style="font-size:0.8rem;margin-bottom:4px;">Cuenta</label>
+                            <select class="form-select" id="swal-account">${accountsOptions}</select>
+                        </div>
+                        <div style="margin-bottom:12px;display:flex;gap:14px;flex-wrap:wrap;">
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                                <input type="checkbox" id="swal-publish-ig" checked>
+                                <i class="bi bi-instagram" style="color:#dc2743;"></i>
+                                <strong>Instagram</strong>
+                            </label>
+                            <label id="swal-fb-label" style="display:${firstHasFb ? 'flex' : 'none'};align-items:center;gap:6px;cursor:pointer;">
+                                <input type="checkbox" id="swal-publish-fb">
+                                <i class="bi bi-facebook" style="color:#1877f2;"></i>
+                                <strong>Facebook</strong>
+                                <small class="text-muted" id="swal-fb-hint"></small>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size:0.8rem;margin-bottom:4px;display:flex;justify-content:space-between;">
+                                <span>Texto a publicar</span>
+                                <small class="text-muted"><span id="swal-charcount">0</span> / 2200</small>
+                            </label>
+                            <textarea class="form-control" id="swal-caption" rows="8" maxlength="2200" style="font-size:0.85rem;">${escAttr(caption)}</textarea>
+                            <small class="text-muted" style="font-size:0.72rem;">Instagram <strong>no permite enlaces clicables</strong>. En Facebook el link va aparte y genera preview automático.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        Swal.fire({
+            title: '<i class="bi bi-megaphone"></i> Compartir post',
+            html: html,
+            width: 760,
+            showCancelButton: true,
+            confirmButtonText: '<i class="bi bi-send"></i> Publicar ahora',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc2743',
+            focusConfirm: false,
+            didOpen: () => {
+                const ta = document.getElementById('swal-caption');
+                const counter = document.getElementById('swal-charcount');
+                const select = document.getElementById('swal-account');
+                const fbLabel = document.getElementById('swal-fb-label');
+                const fbCheck = document.getElementById('swal-publish-fb');
+                const fbHint = document.getElementById('swal-fb-hint');
+                const updateCount = () => { counter.textContent = ta.value.length; };
+                ta.addEventListener('input', updateCount);
+
+                const refreshFbUI = () => {
+                    const opt = select.options[select.selectedIndex];
+                    const hasFb = opt && opt.dataset.fb === '1';
+                    fbLabel.style.display = hasFb ? 'flex' : 'none';
+                    if (!hasFb) {
+                        fbCheck.checked = false;
+                        fbHint.textContent = '';
+                    } else {
+                        fbHint.textContent = `(→ ${opt.dataset.fbName || ''})`;
+                    }
+                };
+                refreshFbUI();
+
+                let originalCaption = caption;
+                let userEdited = false;
+                ta.addEventListener('input', () => { userEdited = ta.value !== originalCaption; });
+                select.addEventListener('change', () => {
+                    refreshFbUI();
+                    if (userEdited) return;
+                    const acc = preview.accounts.find(a => String(a.id) === select.value);
+                    if (!acc) return;
+                    const newCaption = rebuildCaption(preview, acc.hashtags_preset || []);
+                    ta.value = newCaption;
+                    originalCaption = newCaption;
+                    updateCount();
+                });
+                updateCount();
+            },
+            preConfirm: async () => {
+                const accountId = document.getElementById('swal-account').value;
+                const captionVal = document.getElementById('swal-caption').value;
+                const doIG = document.getElementById('swal-publish-ig').checked;
+                const doFB = document.getElementById('swal-publish-fb').checked;
+                if (!accountId) { Swal.showValidationMessage('Selecciona una cuenta'); return false; }
+                if (!doIG && !doFB) { Swal.showValidationMessage('Marca al menos una red.'); return false; }
+
+                const fd = new FormData();
+                fd.append('post_id', postId);
+                fd.append('connection_id', accountId);
+                fd.append('caption', captionVal);
+                fd.append('publish_instagram', doIG ? '1' : '0');
+                fd.append('publish_facebook', doFB ? '1' : '0');
+                fd.append('_csrf', csrf());
+
+                try {
+                    const res = await fetch(`/${adminPath}/social-publisher/share/publish`, {
+                        method: 'POST', credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-Token': csrf() },
+                        body: fd
+                    });
+                    const data = await res.json();
+                    if (!data.ok && !data.partial) {
+                        Swal.showValidationMessage(data.message || 'Error al publicar');
+                        return false;
+                    }
+                    return data;
+                } catch (err) {
+                    Swal.showValidationMessage('Error de red: ' + err.message);
+                    return false;
+                }
+            }
+        }).then(result => {
+            if (!result.isConfirmed || !result.value) return;
+            const data = result.value;
+            let linksHtml = '';
+            if (data.instagram?.permalink) {
+                linksHtml += `<div style="margin:6px 0;"><a href="${escAttr(data.instagram.permalink)}" target="_blank" rel="noopener" style="color:#dc2743;font-weight:600;"><i class="bi bi-instagram"></i> Ver en Instagram →</a></div>`;
+            }
+            if (data.facebook?.permalink) {
+                linksHtml += `<div style="margin:6px 0;"><a href="${escAttr(data.facebook.permalink)}" target="_blank" rel="noopener" style="color:#1877f2;font-weight:600;"><i class="bi bi-facebook"></i> Ver en Facebook →</a></div>`;
+            }
+            if ((data.errors || []).length) {
+                linksHtml += `<div class="alert alert-warning mt-3" style="text-align:left;font-size:0.85rem;"><strong>Parcial:</strong><br>${data.errors.join('<br>')}</div>`;
+            }
+            Swal.fire({
+                icon: data.partial ? 'warning' : 'success',
+                title: data.partial ? 'Publicado con errores' : '¡Publicado!',
+                html: linksHtml || data.message,
+            });
+        });
+    }
+})();
+</script>
+@endpush
+@endif
+
 @endsection
 
 @push('scripts')

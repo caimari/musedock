@@ -285,7 +285,7 @@ class PageController
 
         // Crear primera revisión de la página
         try {
-            \Screenart\Musedock\Models\PageRevision::createFromPage($page, 'initial', 'Versión inicial de la página');
+            \Screenart\Musedock\Models\PageRevision::createFromPage($page, 'initial', __('pages.revision_initial_summary'));
         } catch (\Exception $e) {
             error_log("Error al crear revisión inicial: " . $e->getMessage());
         }
@@ -584,13 +584,13 @@ class PageController
             // Crear revisión después de actualizar exitosamente
             try {
                 $changes = [];
-                if ($oldTitle !== $page->title) $changes[] = 'título';
-                if ($oldContent !== $page->content) $changes[] = 'contenido';
-                if ($oldStatus !== $data['status']) $changes[] = 'status';
+                if ($oldTitle !== $page->title) $changes[] = __('pages.change_title');
+                if ($oldContent !== $page->content) $changes[] = __('pages.change_content');
+                if ($oldStatus !== $data['status']) $changes[] = __('pages.change_status');
 
                 $summary = !empty($changes)
-                    ? 'Modificó: ' . implode(', ', $changes)
-                    : 'Actualización de metadatos';
+                    ? __('pages.revision_changes_summary', ['changes' => implode(', ', $changes)])
+                    : __('pages.revision_metadata_updated');
 
                 \Screenart\Musedock\Models\PageRevision::createFromPage($page, 'manual', $summary);
             } catch (\Exception $revError) {
@@ -1324,7 +1324,7 @@ class PageController
         }
 
         return View::renderTenantAdmin('pages.preview-revision', [
-            'title' => 'Preview: ' . e($revision->title),
+            'title' => __('pages.preview_title_with_page', ['title' => e($revision->title)]),
             'revision' => $revision,
             'page' => Page::where('id', $pageId)->where('tenant_id', $tenantId)->first(),
         ]);
@@ -1532,19 +1532,19 @@ class PageController
 
         // Verificar permiso sin redirigir
         if (!userCan('pages.edit')) {
-            echo json_encode(['success' => false, 'message' => 'Sin permiso']);
+            echo json_encode(['success' => false, 'message' => __('pages.error_no_permission')]);
             exit;
         }
 
         $tenantId = TenantManager::currentTenantId();
         if (!$tenantId) {
-            echo json_encode(['success' => false, 'message' => 'Sesión inválida']);
+            echo json_encode(['success' => false, 'message' => __('pages.error_invalid_session')]);
             exit;
         }
 
         $page = Page::where('id', $id)->where('tenant_id', $tenantId)->first();
         if (!$page) {
-            echo json_encode(['success' => false, 'message' => 'Página no encontrada']);
+            echo json_encode(['success' => false, 'message' => __('pages.error_not_found')]);
             exit;
         }
 
@@ -1553,7 +1553,7 @@ class PageController
         $data = json_decode($rawData, true);
 
         if (!$data) {
-            echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
+            echo json_encode(['success' => false, 'message' => __('pages.error_invalid_payload')]);
             exit;
         }
 
@@ -1566,16 +1566,16 @@ class PageController
             $page->save();
 
             // Crear revisión de tipo autosave
-            \Screenart\Musedock\Models\PageRevision::createFromPage($page, 'autosave', 'Autoguardado');
+            \Screenart\Musedock\Models\PageRevision::createFromPage($page, 'autosave', __('pages.revision_autosave_summary'));
 
             echo json_encode([
                 'success' => true,
-                'message' => 'Autoguardado exitoso',
+                'message' => __('pages.autosave_success'),
                 'timestamp' => date('Y-m-d H:i:s')
             ]);
         } catch (\Exception $e) {
             error_log("Error en autosave: " . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'Error al autoguardar']);
+            echo json_encode(['success' => false, 'message' => __('pages.error_autosave_failed')]);
         }
 
         exit;
@@ -1634,7 +1634,7 @@ class PageController
     {
         $fileInfo = getimagesize($file['tmp_name']);
         if ($fileInfo === false) {
-            return ['error' => 'El archivo no es una imagen válida.'];
+            return ['error' => __('pages.error_image_invalid_file')];
         }
 
         // Dimensiones deseadas
@@ -1647,7 +1647,7 @@ class PageController
         // Crear directorio si no existe
         if (!file_exists($uploadDir)) {
             if (!mkdir($uploadDir, 0755, true)) {
-                return ['error' => 'Error al crear el directorio para guardar la imagen.'];
+                return ['error' => __('pages.error_image_directory_create')];
             }
         }
 
@@ -1661,7 +1661,7 @@ class PageController
 
         if ($isUnsupportedFormat) {
             if (!move_uploaded_file($file['tmp_name'], $fullPath)) {
-                return ['error' => 'Error al mover el archivo subido'];
+                return ['error' => __('pages.error_image_move_uploaded')];
             }
         } else {
             try {
@@ -1739,7 +1739,7 @@ class PageController
                 imagedestroy($targetImage);
 
             } catch (\Exception $e) {
-                return ['error' => 'Error al procesar la imagen: ' . $e->getMessage()];
+                return ['error' => __('pages.error_image_process') . ': ' . $e->getMessage()];
             }
         }
 

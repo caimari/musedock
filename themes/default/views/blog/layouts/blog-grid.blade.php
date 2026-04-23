@@ -4,6 +4,7 @@
 
     <div class="row mt-4">
     @foreach($posts as $post)
+    {!! render_ad_slot('in-feed', ['index' => $loop->index]) !!}
     <div class="col-lg-4 col-md-6 mb-4">
         <article class="card h-100 shadow-sm border-0">
             @if(($post->post_type ?? 'post') !== 'brief')

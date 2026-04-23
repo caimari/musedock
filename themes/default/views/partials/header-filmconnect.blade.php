@@ -93,9 +93,11 @@
                 </div>
 
                 {{-- Mobile toggle --}}
+                @if(menu_has_items('nav'))
                 <button type="button" class="menu-toggle hdr-fc-mobile-toggle" id="menu-toggle" aria-label="Abrir menu">
                     <span></span><span></span><span></span>
                 </button>
+                @endif
             </div>
         </div>
     </div>

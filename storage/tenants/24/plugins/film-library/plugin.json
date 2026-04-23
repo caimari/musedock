@@ -1,0 +1,79 @@
+{
+    "name": "Film Library",
+    "slug": "film-library",
+    "description": "Biblioteca de películas con integración TMDb, fichas editoriales y Schema.org Movie para IberoFilms",
+    "version": "1.0.0",
+    "author": "MuseDock Team",
+    "active": true,
+    "autoload": {
+        "psr-4": {
+            "FilmLibrary\\Controllers\\": "src/Controllers/",
+            "FilmLibrary\\Models\\": "src/Models/",
+            "FilmLibrary\\Services\\": "src/Services/"
+        }
+    },
+    "permissions": [
+        "films.view",
+        "films.create",
+        "films.edit",
+        "films.delete",
+        "films.import"
+    ],
+    "admin_menu": {
+        "title": "Películas",
+        "slug": "plugin-films",
+        "icon": "bi-camera-reels",
+        "icon_type": "bi",
+        "url": "{admin_path}/films",
+        "order": 35,
+        "children": [
+            {
+                "title": "Todas las Películas",
+                "slug": "plugin-films-all",
+                "icon": "bi-grid-3x3-gap",
+                "icon_type": "bi",
+                "url": "{admin_path}/films",
+                "order": 1
+            },
+            {
+                "title": "Géneros",
+                "slug": "plugin-films-genres",
+                "icon": "bi-tags",
+                "icon_type": "bi",
+                "url": "{admin_path}/films/genres",
+                "order": 2
+            },
+            {
+                "title": "Importar de TMDb",
+                "slug": "plugin-films-tmdb",
+                "icon": "bi-cloud-download",
+                "icon_type": "bi",
+                "url": "{admin_path}/films/tmdb",
+                "order": 3
+            },
+            {
+                "title": "Configuración",
+                "slug": "plugin-films-settings",
+                "icon": "bi-gear",
+                "icon_type": "bi",
+                "url": "{admin_path}/films/settings",
+                "order": 4
+            }
+        ]
+    },
+    "settings": {
+        "tmdb_api_key": "",
+        "tmdb_language": "es-ES",
+        "films_per_page": 12,
+        "poster_base_url": "https://image.tmdb.org/t/p/w500"
+    },
+    "changelog": [
+        {
+            "version": "1.0.0",
+            "date": "2026-04-10",
+            "changes": [
+                "Initial release: Film CRUD, TMDb API integration, genres, editorial content, Schema.org Movie, frontend catalog"
+            ]
+        }
+    ]
+}

@@ -195,6 +195,7 @@
             'ticket_reply': 'message-circle',
             'ticket_assigned': 'user-check',
             'ticket_status_changed': 'check-circle',
+            'blog_comment_pending': 'message-square',
             'default': 'bell'
         };
 
@@ -210,6 +211,7 @@
             'ticket_reply': '#28a745',
             'ticket_assigned': '#ffc107',
             'ticket_status_changed': '#17a2b8',
+            'blog_comment_pending': '#fd7e14',
             'default': '#6c757d'
         };
 

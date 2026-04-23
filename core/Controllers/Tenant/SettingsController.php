@@ -460,6 +460,28 @@ class SettingsController
             }
 
             // Settings de lectura
+            $blogCommentsCaptchaThreshold = (int)($_POST['blog_comments_captcha_spam_threshold'] ?? 5);
+            if ($blogCommentsCaptchaThreshold < 1) {
+                $blogCommentsCaptchaThreshold = 1;
+            }
+            if ($blogCommentsCaptchaThreshold > 200) {
+                $blogCommentsCaptchaThreshold = 200;
+            }
+
+            $blogCommentsApprovalMode = (string)($_POST['blog_comments_approval_mode'] ?? 'trusted_authors');
+            $validApprovalModes = ['manual', 'trusted_authors', 'auto_approve'];
+            if (!in_array($blogCommentsApprovalMode, $validApprovalModes, true)) {
+                $blogCommentsApprovalMode = 'trusted_authors';
+            }
+
+            $blogCommentsSpamLinksThreshold = (int)($_POST['blog_comments_spam_links_threshold'] ?? 3);
+            if ($blogCommentsSpamLinksThreshold < 1) {
+                $blogCommentsSpamLinksThreshold = 1;
+            }
+            if ($blogCommentsSpamLinksThreshold > 20) {
+                $blogCommentsSpamLinksThreshold = 20;
+            }
+
             $readingSettings = [
                 'show_on_front' => $_POST['show_on_front'] ?? 'posts',
                 'page_on_front' => $_POST['page_on_front'] ?? '',
@@ -468,6 +490,10 @@ class SettingsController
                 'posts_per_rss' => $_POST['posts_per_rss'] ?? '10',
                 'blog_public' => isset($_POST['blog_public']) ? '0' : '1',
                 'blog_show_views' => isset($_POST['blog_show_views']) ? '1' : '0',
+                'blog_comments_approval_mode' => $blogCommentsApprovalMode,
+                'blog_comments_spam_links_threshold' => (string)$blogCommentsSpamLinksThreshold,
+                'blog_comments_captcha_enabled' => isset($_POST['blog_comments_captcha_enabled']) ? '1' : '0',
+                'blog_comments_captcha_spam_threshold' => (string)$blogCommentsCaptchaThreshold,
                 'blog_url_prefix' => $blogUrlPrefix,
                 'page_url_prefix' => $pageUrlPrefix,
             ];
@@ -1043,5 +1069,111 @@ class SettingsController
 
         header('Location: /' . admin_path() . '/settings/storage');
         exit;
+    }
+
+    /**
+     * Muestra la página de ajustes de seguridad CSP
+     */
+    public function security()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.view');
+
+        $tenantId = tenant_id();
+        if (!$tenantId) {
+            $_SESSION['error'] = 'No se ha detectado el tenant actual';
+            header('Location: /' . admin_path());
+            exit;
+        }
+
+        $settings = $this->getTenantSettings($tenantId);
+
+        return View::renderTenantAdmin('settings/security', [
+            'title' => __('security_settings_title'),
+            'settings' => $settings,
+        ]);
+    }
+
+    /**
+     * Guarda los ajustes de seguridad CSP
+     */
+    public function updateSecurity()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.edit');
+
+        $tenantId = tenant_id();
+        if (!$tenantId) {
+            $_SESSION['error'] = 'No se ha detectado el tenant actual';
+            header('Location: /' . admin_path());
+            exit;
+        }
+
+        try {
+            $pdo = Database::connect();
+            $pdo->beginTransaction();
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+            $cspKeys = [
+                'csp_connect_src',
+                'csp_script_src',
+                'csp_frame_src',
+                'csp_img_src',
+            ];
+
+            foreach ($cspKeys as $key) {
+                $raw = trim($_POST[$key] ?? '');
+                // Validar y limpiar cada línea
+                $cleaned = $this->sanitizeCspDomains($raw);
+                $this->saveTenantSetting($pdo, $tenantId, $key, $cleaned, $driver);
+            }
+
+            $pdo->commit();
+            clear_tenant_settings_cache();
+
+            $_SESSION['success'] = __('security_settings_saved');
+        } catch (\Exception $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log("Error updating tenant security/CSP settings: " . $e->getMessage());
+            $_SESSION['error'] = __('security_settings_error') . ': ' . $e->getMessage();
+        }
+
+        header('Location: /' . admin_path() . '/settings/security');
+        exit;
+    }
+
+    /**
+     * Sanitiza y valida dominios CSP introducidos por el usuario.
+     * Acepta uno por línea. Formatos válidos:
+     *   https://dominio.com
+     *   wss://dominio.com
+     *   https://*.subdominio.com
+     * Devuelve string limpio con dominios válidos separados por salto de línea.
+     */
+    private function sanitizeCspDomains(string $raw): string
+    {
+        if (empty($raw)) {
+            return '';
+        }
+
+        $lines = preg_split('/[\r\n]+/', $raw);
+        $valid = [];
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) {
+                continue;
+            }
+
+            // Permitir esquemas: https://, wss://, ws:// (dev)
+            // Formato: scheme://[*.] domain.tld [:port] [/path]
+            if (preg_match('#^(https?|wss?)://(\*\.)?[a-zA-Z0-9\-]+(\.[a-zA-Z0-9\-]+)*(:\d{1,5})?(/[^\s]*)?$#', $line)) {
+                $valid[] = $line;
+            }
+        }
+
+        return implode("\n", array_unique($valid));
     }
 }

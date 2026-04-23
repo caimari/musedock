@@ -5,6 +5,7 @@ namespace Modules\InstagramGallery\Controllers\Tenant;
 use Modules\InstagramGallery\Models\InstagramConnection;
 use Modules\InstagramGallery\Models\InstagramPost;
 use Modules\InstagramGallery\Models\InstagramSetting;
+use Screenart\Musedock\View;
 
 class GalleryController
 {
@@ -19,7 +20,7 @@ class GalleryController
         InstagramSetting::setPdo($this->pdo);
 
         // Get tenant ID
-        $this->tenantId = class_exists('TenantManager') ? TenantManager::currentTenantId() : 1;
+        $this->tenantId = function_exists('tenant_id') ? (tenant_id() ?? 1) : 1;
     }
 
     /**
@@ -31,14 +32,14 @@ class GalleryController
 
         if (!$connection) {
             $_SESSION['error'] = __instagram('connection.not_found');
-            redirect('/admin/instagram');
+            redirect('/admin/social-publisher');
             return;
         }
 
         // Check if tenant can access this connection (own or global)
         if ($connection->tenant_id !== null && $connection->tenant_id !== $this->tenantId) {
             $_SESSION['error'] = __instagram('errors.permission_denied');
-            redirect('/admin/instagram');
+            redirect('/admin/social-publisher');
             return;
         }
 
@@ -53,13 +54,13 @@ class GalleryController
         $defaultColumns = InstagramSetting::get('default_columns', $this->tenantId, 3);
         $defaultGap = InstagramSetting::get('default_gap', $this->tenantId, 10);
 
-        render('modules/instagram-gallery/views/tenant/instagram/gallery.blade.php', [
+        return View::renderModule('instagram-gallery', 'tenant.instagram.gallery', [
             'connection' => $connection,
             'posts' => $posts,
             'layouts' => $layouts,
             'defaultLayout' => $defaultLayout,
             'defaultColumns' => $defaultColumns,
-            'defaultGap' => $defaultGap
+            'defaultGap' => $defaultGap,
         ]);
     }
 }

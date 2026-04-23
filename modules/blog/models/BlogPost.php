@@ -60,6 +60,15 @@ class BlogPost extends Model
         'hero_content',
         // --- Tipo de post ---
         'post_type',
+        // --- Tracking publicación Instagram ---
+        'instagram_posted_at',
+        'instagram_post_id',
+        'instagram_permalink',
+        'instagram_connection_id',
+        // --- Tracking publicación Facebook ---
+        'facebook_posted_at',
+        'facebook_post_id',
+        'facebook_permalink',
     ];
 
     /**

@@ -105,6 +105,11 @@
   .tox .tox-edit-area__iframe {
     background-color: white !important;
   }
+
+  /* Asegurar z-index alto para popups */
+  .tox-tinymce-aux {
+    z-index: 100002 !important;
+  }
   
   /* --- Estilos Opcionales --- */
   .tox .tox-tbtn--bespoke { background-color: #f8f9fa !important; }
@@ -231,6 +236,7 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
 <script>
 // Inicializar TinyMCE inmediatamente (sin esperar DOMContentLoaded para más rapidez)
 (function() {
+
     // Función para ocultar skeleton y mostrar editor
     function hideSkeleton() {
         const skeleton = document.getElementById('tinymce-skeleton');
@@ -243,18 +249,35 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         if (tinymceContainer) {
             tinymceContainer.style.display = 'block';
             tinymceContainer.style.visibility = 'visible';
+
+            // Si TinyMCE cargó correctamente, ocultar el textarea fallback y error msg
+            const textarea = document.getElementById('content-editor');
+            if (textarea) {
+                textarea.style.cssText = '';
+                textarea.style.display = 'none';
+            }
+            const errorMsg = document.getElementById('tinymce-error-msg');
+            if (errorMsg) {
+                errorMsg.remove();
+            }
         }
     }
 
     // Función para mostrar el textarea como fallback
+    let fallbackActive = false;
     function showTextareaFallback(showError = false) {
+        // Si TinyMCE ya cargó mientras esperábamos, no mostrar fallback
+        if (typeof tinymce !== 'undefined' && tinymce.get('content-editor')) {
+            hideSkeleton();
+            return;
+        }
+        fallbackActive = true;
         hideSkeleton();
         const textarea = document.getElementById('content-editor');
         if (textarea) {
             textarea.style.cssText = 'display: block !important; width: 100%; height: 400px; min-height: 400px; padding: 15px; border: 1px solid #ced4da; border-radius: 0.25rem; font-family: monospace;';
 
             if (showError) {
-                // Agregar un mensaje sobre el error si no existe ya
                 if (!document.getElementById('tinymce-error-msg')) {
                     const errorDiv = document.createElement('div');
                     errorDiv.id = 'tinymce-error-msg';
@@ -266,13 +289,13 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         }
     }
 
-    // Timeout de seguridad: si TinyMCE no carga en 10 segundos, mostrar textarea
+    // Timeout de seguridad: si TinyMCE no carga en 30 segundos, mostrar textarea
     const safetyTimeout = setTimeout(function() {
-        console.warn('TinyMCE no cargó en 10 segundos. Mostrando textarea como fallback.');
+        console.warn('TinyMCE no cargó en 30 segundos. Mostrando textarea como fallback.');
         if (typeof tinymce === 'undefined' || !tinymce.get('content-editor')) {
             showTextareaFallback(true);
         }
-    }, 10000);
+    }, 30000);
 
     // Verificar si TinyMCE está disponible
     if (typeof tinymce === 'undefined') {
@@ -302,7 +325,7 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         height: 600,
         menubar: true,
         license_key: 'gpl',
-        
+
         // --- Configuración generada ---
         plugins: '{{ $pluginsString }}',
         toolbar: <?php echo json_encode($tinymce_toolbar_lines, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
@@ -434,32 +457,212 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         // Función Setup con solución para el borde azul
         setup: function(editor) {
             // === BOTÓN "INSERTAR ÍNDICE" (TOC) ===
+            // Dos modos:
+            //  1. Si hay una lista (ol/ul) seleccionada sin links → añade links a los H2 preservando estética
+            //  2. Si no hay selección → inserta un TOC nuevo con estilo en la posición del cursor
             editor.ui.registry.addButton('inserttoc', {
                 icon: 'list-num-default',
-                tooltip: 'Insertar Tabla de Contenidos',
+                tooltip: 'Insertar Tabla de Contenidos (o añadir links a lista seleccionada)',
                 onAction: function() {
-                    var content = editor.getContent({format: 'html'});
-                    var div = document.createElement('div');
-                    div.innerHTML = content;
-                    var headings = div.querySelectorAll('h2, h3');
+                    var body = editor.getBody();
+                    var headings = body.querySelectorAll('h2');
+
                     if (headings.length === 0) {
-                        editor.notificationManager.open({text: 'No se encontraron encabezados H2/H3 en el contenido.', type: 'warning', timeout: 3000});
+                        editor.notificationManager.open({text: 'No se encontraron encabezados H2 en el contenido.', type: 'warning', timeout: 3000});
                         return;
                     }
-                    var tocItems = [];
+
+                    // Generar IDs en los H2
+                    var h2Data = [];
                     headings.forEach(function(h, i) {
                         var id = h.id || h.textContent.toLowerCase().replace(/[^a-z0-9áéíóúñü]+/g, '-').replace(/^-|-$/g, '') || 'section-' + i;
                         h.id = id;
-                        var indent = h.tagName === 'H3' ? ' style="padding-left:1.2rem;"' : '';
-                        tocItems.push('<li' + indent + '><a href="#' + id + '">' + h.textContent + '</a></li>');
+                        h2Data.push({ id: id, text: h.textContent.trim() });
                     });
+
+                    // === MODO 1: Detectar si hay una ol/ul seleccionada/cercana al cursor ===
+                    var selectedNode = editor.selection.getNode();
+                    var targetList = null;
+                    var walker = selectedNode;
+                    while (walker && walker !== body) {
+                        if (walker.tagName === 'OL' || walker.tagName === 'UL') {
+                            targetList = walker;
+                            break;
+                        }
+                        walker = walker.parentNode;
+                    }
+
+                    if (targetList) {
+                        // === ESTRATEGIA SEGURA ===
+                        // En vez de mutar el DOM existente del <li> (que puede tener
+                        // bookmarks/data-mce-selected/nodos invisibles de TinyMCE que
+                        // hacen que al guardar se pierda el primer item), reconstruimos
+                        // la lista completa de cero y la sustituimos con setContent.
+                        //
+                        // Eso garantiza que no quede ningún rastro del estado interno
+                        // del editor en los nodos resultantes.
+
+                        // 1. Leer items SIN tocar el DOM
+                        var liNodes = targetList.querySelectorAll(':scope > li');
+                        if (liNodes.length === 0) {
+                            editor.notificationManager.open({text: 'La lista seleccionada está vacía.', type: 'warning', timeout: 3000});
+                            return;
+                        }
+
+                        var normalize = function(s) {
+                            return s.toLowerCase()
+                                .replace(/^\s*\d+[\.\)]\s*/, '')
+                                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                                .replace(/[^\w\s]/g, '')
+                                .trim();
+                        };
+
+                        // Helper: extraer texto limpio de un <li> recorriendo
+                        // todos los text nodes manualmente. Esto sortea cualquier
+                        // anomalía de textContent en presencia de bookmarks de TinyMCE.
+                        var getCleanLiText = function(li) {
+                            var text = '';
+                            var walker = document.createTreeWalker(li, NodeFilter.SHOW_TEXT, null, false);
+                            var node;
+                            while ((node = walker.nextNode())) {
+                                text += node.nodeValue || '';
+                            }
+                            return text
+                                .replace(/[\uFEFF\u200B]/g, '')
+                                .replace(/\s+/g, ' ')
+                                .trim();
+                        };
+
+                        // Helper: escapar para construir HTML seguro
+                        var escapeHtml = function(s) {
+                            return String(s).replace(/[&<>"']/g, function(c) {
+                                return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+                            });
+                        };
+
+                        var liData = [];
+                        liNodes.forEach(function(li) {
+                            // Guardamos también el innerHTML original como fallback
+                            liData.push({ text: getCleanLiText(li), originalHtml: li.innerHTML });
+                        });
+
+                        // 2. Emparejar cada item con un H2
+                        var matched = 0;
+                        liData.forEach(function(item, idx) {
+                            if (!item.text) return;
+                            var liNorm = normalize(item.text);
+                            for (var j = 0; j < h2Data.length; j++) {
+                                var h2Norm = normalize(h2Data[j].text);
+                                if (liNorm === h2Norm || liNorm.indexOf(h2Norm) !== -1 || h2Norm.indexOf(liNorm) !== -1) {
+                                    item.h2 = h2Data[j];
+                                    matched++;
+                                    return;
+                                }
+                            }
+                            // Fallback posicional si todos los items mapean 1:1
+                            if (liData.length === h2Data.length) {
+                                item.h2 = h2Data[idx];
+                                matched++;
+                            }
+                        });
+
+                        if (matched === 0) {
+                            editor.notificationManager.open({text: 'No se pudo emparejar ningún item con los H2 del contenido.', type: 'warning', timeout: 3000});
+                            return;
+                        }
+
+                        // 3. Construir el HTML nuevo de la lista completa
+                        var listTag = targetList.tagName.toLowerCase();
+                        var listAttrs = '';
+                        for (var k = 0; k < targetList.attributes.length; k++) {
+                            var attr = targetList.attributes[k];
+                            // Saltar atributos internos de TinyMCE
+                            if (attr.name.indexOf('data-mce') === 0) continue;
+                            listAttrs += ' ' + attr.name + '="' + escapeHtml(attr.value) + '"';
+                        }
+
+                        var newItemsHtml = liData.map(function(item) {
+                            // Si por alguna razón no pudimos extraer texto pero el
+                            // <li> original tenía contenido, preservamos el original.
+                            // Esto previene la pérdida del primer item si TinyMCE
+                            // mete instrumentación rara que confunde la extracción.
+                            if (!item.text && item.originalHtml && item.originalHtml.trim() !== '') {
+                                return '<li>' + item.originalHtml + '</li>';
+                            }
+                            var safeText = escapeHtml(item.text || '');
+                            if (item.h2) {
+                                return '<li><a href="#' + item.h2.id + '">' + safeText + '</a></li>';
+                            }
+                            return '<li>' + safeText + '</li>';
+                        }).join('');
+
+                        var newListHtml = '<' + listTag + listAttrs + '>' + newItemsHtml + '</' + listTag + '>';
+
+                        // 4. Reemplazar la lista entera de forma atómica usando DOM
+                        //    directo (no editor.selection.setContent, que reselecciona
+                        //    el contenido insertado y deja el primer <li> marcado).
+                        //    Construimos los nodos nuevos en un contenedor temporal y
+                        //    los sustituimos en el lugar del targetList.
+                        editor.undoManager.transact(function() {
+                            var temp = document.createElement('div');
+                            temp.innerHTML = newListHtml;
+                            var newList = temp.firstChild;
+
+                            // Insertar la lista nueva justo después de la antigua
+                            // y eliminar la antigua.
+                            var parent = targetList.parentNode;
+                            if (parent && newList) {
+                                parent.insertBefore(newList, targetList);
+                                parent.removeChild(targetList);
+
+                                // Mover el cursor a un lugar seguro: el siguiente
+                                // bloque después de la lista (o crear un <p> vacío
+                                // si no hay nada después).
+                                var afterNode = newList.nextSibling;
+                                if (!afterNode) {
+                                    var emptyP = document.createElement('p');
+                                    emptyP.innerHTML = '<br data-mce-bogus="1">';
+                                    parent.appendChild(emptyP);
+                                    afterNode = emptyP;
+                                }
+
+                                try {
+                                    var rng2 = editor.dom.createRng();
+                                    rng2.setStart(afterNode, 0);
+                                    rng2.collapse(true);
+                                    editor.selection.setRng(rng2);
+                                } catch (e) {}
+                            }
+                        });
+
+                        // Quitar cualquier data-mce-selected residual del body por si
+                        // alguna otra parte del editor lo aplica.
+                        try {
+                            editor.getBody().querySelectorAll('[data-mce-selected]').forEach(function(el) {
+                                el.removeAttribute('data-mce-selected');
+                            });
+                            editor.nodeChanged();
+                        } catch (e) {}
+
+                        editor.notificationManager.open({text: matched + ' enlaces añadidos al índice existente.', type: 'success', timeout: 2500});
+                        return;
+                    }
+
+                    // === MODO 2: Insertar TOC nuevo con estilo ===
+                    var bookmark2 = editor.selection.getBookmark(2, true);
+
+                    var tocItems = h2Data.map(function(h) {
+                        return '<li><a href="#' + h.id + '">' + h.text + '</a></li>';
+                    });
+
                     var tocHtml = '<nav class="toc-block" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:1.2rem 1.5rem;margin:1.5rem 0;">' +
                         '<p style="font-weight:700;font-size:0.9rem;margin:0 0 0.6rem;color:#374151;">Tabla de contenidos</p>' +
                         '<ol style="margin:0;padding:0 0 0 1.2rem;font-size:0.88rem;line-height:1.8;">' + tocItems.join('') + '</ol></nav>';
-                    editor.setContent(div.innerHTML);
-                    editor.selection.setCursorLocation(editor.getBody(), 0);
+
+                    editor.selection.moveToBookmark(bookmark2);
                     editor.insertContent(tocHtml);
-                    editor.notificationManager.open({text: 'Tabla de contenidos insertada con ' + headings.length + ' secciones.', type: 'success', timeout: 2000});
+
+                    editor.notificationManager.open({text: 'Tabla de contenidos insertada con ' + h2Data.length + ' secciones.', type: 'success', timeout: 2000});
                 }
             });
 
@@ -702,10 +905,20 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
             function deepCleanOrphanElements(doc) {
                 if (!doc) return;
 
-                // 1. Eliminar cualquier elemento con data-mce-selected que no tenga imagen
+                // 1. Eliminar SOLO wrappers de imagen huérfanos con data-mce-selected.
+                //    IMPORTANTE: antes se eliminaba CUALQUIER elemento con data-mce-selected
+                //    sin imagen dentro, lo que borraba <li>, <p>, <a> con texto cuando el
+                //    cursor estaba ahí al hacer save (BeforeGetContent). Ahora se limita
+                //    a wrappers típicos de imagen que realmente quedan huérfanos.
+                const SAFE_WRAPPER_TAGS = ['FIGURE', 'PICTURE'];
                 const selectedElements = doc.querySelectorAll('[data-mce-selected]');
                 selectedElements.forEach(el => {
-                    if (!el.querySelector('img') && el.nodeName !== 'IMG') {
+                    // Solo actuar sobre wrappers conocidos de imagen
+                    if (!SAFE_WRAPPER_TAGS.includes(el.nodeName)) return;
+                    // Y solo si están realmente vacíos (sin img y sin texto real)
+                    const hasImg = !!el.querySelector('img');
+                    const hasText = (el.textContent || '').replace(/[\uFEFF\u200B]/g, '').trim().length > 0;
+                    if (!hasImg && !hasText) {
                         el.remove();
                     }
                 });
@@ -718,20 +931,44 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                     }
                 });
 
-                // 3. Eliminar enlaces vacíos (no solo lightbox)
+                // Helper: texto limpio ignorando marcadores invisibles de TinyMCE
+                // (\uFEFF = bookmark caret, \u200B = zero-width space)
+                const cleanText = (el) => (el.textContent || '')
+                    .replace(/[\uFEFF\u200B]/g, '')
+                    .trim();
+
+                // 3. Eliminar enlaces realmente vacíos (sin hijos)
                 const emptyLinks = doc.querySelectorAll('a:empty');
                 emptyLinks.forEach(a => a.remove());
 
-                // 4. Eliminar enlaces que solo tienen un br o whitespace
+                // 4. Limpiar enlaces sin contenido útil.
+                //    IMPORTANTE: si el enlace tiene nodos hijos (spans bookmark, etc.)
+                //    pero al limpiar marcadores queda texto real, NO borrar.
+                //    Si tiene hijos pero ningún texto real, UNWRAP (preservar hijos)
+                //    en lugar de REMOVE — así nunca se pierde contenido del usuario
+                //    si quedase alguna anomalía no prevista.
                 const allLinks = doc.querySelectorAll('a');
                 allLinks.forEach(a => {
+                    // Saltar anchors internos del TOC (href="#...") aunque tengan
+                    // marcadores temporales de TinyMCE dentro
+                    const href = a.getAttribute('href') || '';
+                    if (href.startsWith('#')) return;
+
                     const hasImg = !!a.querySelector('img');
-                    const hasText = a.textContent.trim().length > 0;
+                    const hasText = cleanText(a).length > 0;
                     const hasOnlyBr = a.children.length === 1 && a.children[0].nodeName === 'BR';
-                    if (!hasImg && !hasText) {
+
+                    if (hasImg || hasText) return;
+
+                    // Sin imagen y sin texto real: si tiene hijos, unwrap; si no, remove
+                    if (a.childNodes.length === 0 || hasOnlyBr) {
                         a.remove();
-                    } else if (!hasImg && hasOnlyBr) {
-                        a.remove();
+                    } else {
+                        const parent = a.parentNode;
+                        if (parent) {
+                            while (a.firstChild) parent.insertBefore(a.firstChild, a);
+                            parent.removeChild(a);
+                        }
                     }
                 });
 
@@ -1055,6 +1292,8 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         return new Promise((resolve, reject) => {
             tinymce.init(config)
                 .then(function(editors) {
+                    ensureTinyAuxLayerOnBody();
+                    startTinyAuxObserver();
                     resolve(editors);
                 })
                 .catch(function(error) {
@@ -1143,6 +1382,10 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                 plugins: 'link image table code',
                 toolbar: 'undo redo | formatselect | bold italic | link image | table | code',
                 setup: function(editor) {
+                    editor.on('init', function() {
+                        ensureTinyAuxLayerOnBody();
+                        startTinyAuxObserver();
+                    });
                     editor.on('init', function() {
                         console.log('TinyMCE inicializado (configuración mínima) para: #' + editor.id);
                         hideSkeleton();

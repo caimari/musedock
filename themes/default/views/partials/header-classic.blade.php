@@ -82,9 +82,11 @@
                     </div>
                     @endif
 
+                    @if(menu_has_items('nav'))
                     <button type="button" class="menu-toggle" id="menu-toggle" aria-label="Abrir menú">
                         <span></span><span></span><span></span>
                     </button>
+                    @endif
                 </div>
             </div>
         </div>

@@ -719,7 +719,8 @@
             "magazine": "Revista (destacado grande + cuadricula)",
             "minimal": "Minimalista (solo texto, sin imagenes)",
             "newspaper": "Periodico (1 grande + 2 laterales + lista)",
-            "fashion": "Fashion (imagenes circulares, estilo elegante)"
+            "fashion": "Fashion (imagenes circulares, estilo elegante)",
+            "mosaic": "Mosaico (cajas cuadradas en cuadricula uniforme)"
           },
           "description": "Selecciona el diseno del listado de entradas del blog en la portada y paginas de archivo"
         },

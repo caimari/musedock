@@ -1,0 +1,99 @@
+{
+    "name": "Festival Directory",
+    "slug": "festival-directory",
+    "description": "Directorio de festivales con sistema de claim para FestivalNews",
+    "version": "1.0.0",
+    "author": "MuseDock Team",
+    "active": true,
+    "autoload": {
+        "psr-4": {
+            "FestivalDirectory\\Controllers\\": "src/Controllers/",
+            "FestivalDirectory\\Models\\": "src/Models/",
+            "FestivalDirectory\\Requests\\": "src/Requests/",
+            "FestivalDirectory\\Services\\": "src/Services/"
+        }
+    },
+    "permissions": [
+        "festivals.view",
+        "festivals.create",
+        "festivals.edit",
+        "festivals.delete",
+        "festivals.claims"
+    ],
+    "admin_menu": {
+        "title": "Festivales",
+        "slug": "plugin-festivals",
+        "icon": "bi-film",
+        "icon_type": "bi",
+        "url": "{admin_path}/festivals",
+        "order": 40,
+        "children": [
+            {
+                "title": "Todos los Festivales",
+                "slug": "plugin-festivals-all",
+                "icon": "bi-grid-3x3-gap",
+                "icon_type": "bi",
+                "url": "{admin_path}/festivals",
+                "order": 1
+            },
+            {
+                "title": "Categorías",
+                "slug": "plugin-festivals-categories",
+                "icon": "bi-folder",
+                "icon_type": "bi",
+                "url": "{admin_path}/festivals/categories",
+                "order": 2
+            },
+            {
+                "title": "Tags",
+                "slug": "plugin-festivals-tags",
+                "icon": "bi-tags",
+                "icon_type": "bi",
+                "url": "{admin_path}/festivals/tags",
+                "order": 3
+            },
+            {
+                "title": "Tipos",
+                "slug": "plugin-festivals-types",
+                "icon": "bi-collection",
+                "icon_type": "bi",
+                "url": "{admin_path}/festivals/types",
+                "order": 4
+            },
+            {
+                "title": "Importar",
+                "slug": "plugin-festivals-scraper",
+                "icon": "bi-cloud-download",
+                "icon_type": "bi",
+                "url": "{admin_path}/festivals/scraper",
+                "order": 5
+            },
+            {
+                "title": "Claims",
+                "slug": "plugin-festivals-claims",
+                "icon": "bi-shield-check",
+                "icon_type": "bi",
+                "url": "{admin_path}/festivals/claims",
+                "order": 6
+            },
+            {
+                "title": "Configuración",
+                "slug": "plugin-festivals-settings",
+                "icon": "bi-gear",
+                "icon_type": "bi",
+                "url": "{admin_path}/festivals/settings",
+                "order": 7
+            }
+        ]
+    },
+    "settings": {},
+    "changelog": [
+        {
+            "version": "1.0.0",
+            "date": "2026-04-07",
+            "changes": [
+                "Initial release: Festival CRUD, categories, tags, claim system, frontend directory"
+            ]
+        }
+    ]
+}

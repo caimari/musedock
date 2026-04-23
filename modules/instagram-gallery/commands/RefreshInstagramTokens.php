@@ -163,26 +163,26 @@ foreach ($connections as $connection) {
     logMessage("  Current expiration: {$expiresAt}");
 
     try {
-        // Get API credentials
-        $stmt = $pdo->prepare("
-            SELECT setting_key, setting_value
-            FROM instagram_settings
-            WHERE setting_key IN ('instagram_app_id', 'instagram_app_secret', 'instagram_redirect_uri')
-            AND (tenant_id = ? OR tenant_id IS NULL OR tenant_id = 0)
-            ORDER BY tenant_id DESC
-        ");
-        $stmt->execute([$tenantId]);
-        $settings = [];
-        while ($row = $stmt->fetch()) {
-            $settings[$row['setting_key']] = $row['setting_value'];
-        }
-
-        $appId = $settings['instagram_app_id'] ?? null;
-        $appSecret = $settings['instagram_app_secret'] ?? null;
-
+        // Credenciales ahora están en la propia conexión (v3+). Mantenemos
+        // compatibilidad con datos antiguos que pudieran estar en settings.
+        $appId = $connection['app_id'] ?? null;
+        $appSecret = $connection['app_secret'] ?? null;
         if (!$appId || !$appSecret) {
-            throw new Exception('Instagram API credentials not configured');
+            $stmt = $pdo->prepare("
+                SELECT setting_key, setting_value
+                FROM instagram_settings
+                WHERE setting_key IN ('instagram_app_id', 'instagram_app_secret')
+                  AND (tenant_id = ? OR tenant_id IS NULL OR tenant_id = 0)
+                ORDER BY tenant_id DESC
+            ");
+            $stmt->execute([$tenantId]);
+            while ($row = $stmt->fetch()) {
+                if ($row['setting_key'] === 'instagram_app_id') $appId = $appId ?: $row['setting_value'];
+                if ($row['setting_key'] === 'instagram_app_secret') $appSecret = $appSecret ?: $row['setting_value'];
+            }
         }
+        // El refresh de token en realidad sólo necesita el token actual, no
+        // app_id/secret. Seguimos sin tirar el proceso si faltan.
 
         // Refresh token via Instagram API
         $url = 'https://graph.instagram.com/refresh_access_token';

@@ -5,6 +5,7 @@ namespace Blog\Controllers\Frontend;
 use Screenart\Musedock\View;
 use Screenart\Musedock\Services\TenantManager;
 use Blog\Models\BlogPost;
+use Blog\Models\BlogComment;
 use Blog\Models\BlogCategory;
 use Blog\Models\BlogTag;
 
@@ -251,6 +252,31 @@ class BlogController
             $post->tags = [];
         }
 
+        // Cargar comentarios aprobados para el post
+        $comments = [];
+        $commentsCaptchaRequired = false;
+        $commentsPrivacyUrl = legal_page_url(
+            ['privacy', 'privacidad', 'politica-de-privacidad', 'politica-privacidad'],
+            'privacy'
+        );
+        $commentsTermsUrl = legal_page_url(
+            ['terms-and-conditions', 'terminos-y-condiciones', 'terminos-y-condiciones-de-uso', 'terminos', 'terms', 'condiciones-de-uso'],
+            'terms-and-conditions'
+        );
+        if ((bool)($post->allow_comments ?? false)) {
+            try {
+                $comments = BlogComment::approvedForPost((int) $post->id, $tenantId, 300);
+            } catch (\Throwable $e) {
+                $comments = [];
+            }
+
+            try {
+                $commentsCaptchaRequired = BlogComment::shouldRequireCaptcha($tenantId);
+            } catch (\Throwable $e) {
+                $commentsCaptchaRequired = false;
+            }
+        }
+
         // Obtener categorías para sidebar
         $categoriesQuery = BlogCategory::query();
         if ($tenantId !== null) {
@@ -379,7 +405,12 @@ class BlogController
             'translation' => $displayData,
             'categories' => $categories,
             'prevPost' => $prevPost,
-            'nextPost' => $nextPost
+            'nextPost' => $nextPost,
+            'comments' => $comments,
+            'commentsCount' => count($comments),
+            'commentsCaptchaRequired' => $commentsCaptchaRequired,
+            'commentsPrivacyUrl' => $commentsPrivacyUrl,
+            'commentsTermsUrl' => $commentsTermsUrl,
         ]);
     }
 

@@ -35,9 +35,9 @@
                     {{-- Icono de info para páginas legales (siempre visible) --}}
                     <a href="#" onclick="showLegalPagesInfo(); return false;"
                        class="ms-2 text-muted" style="font-size: 13px; text-decoration:none;"
-                       title="{{ detectLanguage() === 'en' ? 'Legal pages info' : 'Info sobre páginas legales' }}">
+                       title="{{ __('pages.legal_pages_info_title') }}">
                         <i class="bi bi-info-circle-fill"></i>
-                        <span style="font-size:12px; font-weight:normal;">{{ detectLanguage() === 'en' ? 'Legal pages' : 'Páginas legales' }}</span>
+                        <span style="font-size:12px; font-weight:normal;">{{ __('pages.legal_pages_label') }}</span>
                     </a>
                 </label>
                 <div class="input-group"> {{-- Grupo para añadir botón de bloqueo/desbloqueo si es edición --}}
@@ -63,17 +63,9 @@
                 <div id="legal-slug-notice" class="alert alert-info d-flex align-items-start gap-2 mt-2 mb-0 py-2 px-3" style="display:none !important; font-size: 13px;">
                     <i class="bi bi-shield-check fs-5 mt-1 flex-shrink-0"></i>
                     <div>
-                        @if(detectLanguage() === 'en')
-                            <strong>Legal page detected.</strong>
-                            This slug matches one of the legal pages automatically shown in the footer (<em>Legal Notice, Privacy Policy, Cookie Policy, Terms &amp; Conditions</em>).
-                            Once you publish this page, the footer will automatically link here instead of the default template.
-                            <a href="#" onclick="showLegalPagesInfo(); return false;" class="alert-link ms-1">Learn more</a>
-                        @else
-                            <strong>Página legal detectada.</strong>
-                            Este slug coincide con una de las páginas legales que aparecen automáticamente en el pie de página (<em>Aviso Legal, Política de Privacidad, Política de Cookies, Términos y Condiciones</em>).
-                            Al publicar esta página, el footer enlazará aquí automáticamente en lugar de la plantilla por defecto.
-                            <a href="#" onclick="showLegalPagesInfo(); return false;" class="alert-link ms-1">Más información</a>
-                        @endif
+                        <strong>{{ __('pages.legal_notice_detected_title') }}</strong>
+                        {{ __('pages.legal_notice_detected_text') }}
+                        <a href="#" onclick="showLegalPagesInfo(); return false;" class="alert-link ms-1">{{ __('pages.legal_notice_more_info') }}</a>
                     </div>
                 </div>
               </div>
@@ -204,10 +196,10 @@
                               </option>
                           @endforeach
                       </select>
-                      @if($__isSidebarStruct)
-                      <input type="hidden" name="page_template" value="page.blade.php">
-                      <div class="alert alert-info py-1 px-2 mt-2 mb-0" style="font-size:0.75rem;">
-                          <i class="bi bi-layout-sidebar me-1"></i> La estructura <strong>Sidebar</strong> fuerza ancho completo. La plantilla seleccionada no se aplica.
+                @if($__isSidebarStruct)
+                <input type="hidden" name="page_template" value="page.blade.php">
+                <div class="alert alert-info py-1 px-2 mt-2 mb-0" style="font-size:0.75rem;">
+                          <i class="bi bi-layout-sidebar me-1"></i> {!! __('pages.sidebar_structure_template_notice') !!}
                       </div>
                       @else
                       <small class="text-muted">{{ __('pages.template_help') }}</small>
@@ -244,37 +236,9 @@
 @include('partials._page_scripts', ['isEdit' => isset($Page) && $Page->id]) {{-- Pasamos 'isEdit' al script --}}
 
 <script>
-@if(detectLanguage() === 'en')
-const _legalPagesHtml = `
-<div style="text-align:left">
-  <p>Your site's footer automatically shows links to the main legal pages required by law.</p>
-  <p>By default they point to <strong>auto-generated templates</strong>. When you publish a page with one of these slugs, <strong>the footer links here automatically</strong>:</p>
-  <table style="width:100%;border-collapse:collapse;font-size:13px;">
-    <tr style="background:#f8f9fa"><td style="padding:6px 8px;font-weight:600;white-space:nowrap">Legal Notice</td><td style="padding:6px 8px"><code>aviso-legal</code>, <code>legal</code></td></tr>
-    <tr><td style="padding:6px 8px;font-weight:600;white-space:nowrap">Privacy Policy</td><td style="padding:6px 8px"><code>privacy</code>, <code>privacidad</code>, <code>politica-de-privacidad</code></td></tr>
-    <tr style="background:#f8f9fa"><td style="padding:6px 8px;font-weight:600;white-space:nowrap">Cookie Policy</td><td style="padding:6px 8px"><code>cookie-policy</code>, <code>cookies</code>, <code>politica-de-cookies</code></td></tr>
-    <tr><td style="padding:6px 8px;font-weight:600;white-space:nowrap">Terms &amp; Conditions</td><td style="padding:6px 8px"><code>terms-and-conditions</code>, <code>terms</code>, <code>terminos-y-condiciones</code></td></tr>
-  </table>
-  <p style="margin-top:12px;font-size:12px;color:#6c757d">No setup needed — just publish the page.</p>
-</div>`;
-const _legalPagesTitle = '🛡️ Legal pages & footer';
-const _legalPagesBtn   = 'Got it';
-@else
-const _legalPagesHtml = `
-<div style="text-align:left">
-  <p>El footer de tu sitio muestra automáticamente enlaces a las páginas legales exigidas por ley.</p>
-  <p>Por defecto apuntan a <strong>plantillas autogeneradas</strong>. Cuando publiques una página con uno de estos slugs, <strong>el footer enlazará aquí automáticamente</strong>:</p>
-  <table style="width:100%;border-collapse:collapse;font-size:13px;">
-    <tr style="background:#f8f9fa"><td style="padding:6px 8px;font-weight:600;white-space:nowrap">Aviso Legal</td><td style="padding:6px 8px"><code>aviso-legal</code>, <code>legal</code></td></tr>
-    <tr><td style="padding:6px 8px;font-weight:600;white-space:nowrap">Política de Privacidad</td><td style="padding:6px 8px"><code>privacy</code>, <code>privacidad</code>, <code>politica-de-privacidad</code></td></tr>
-    <tr style="background:#f8f9fa"><td style="padding:6px 8px;font-weight:600;white-space:nowrap">Política de Cookies</td><td style="padding:6px 8px"><code>cookie-policy</code>, <code>cookies</code>, <code>politica-de-cookies</code></td></tr>
-    <tr><td style="padding:6px 8px;font-weight:600;white-space:nowrap">Términos y Condiciones</td><td style="padding:6px 8px"><code>terms-and-conditions</code>, <code>terminos-y-condiciones</code>, <code>terminos</code></td></tr>
-  </table>
-  <p style="margin-top:12px;font-size:12px;color:#6c757d">No necesitas configurar nada — en cuanto publiques la página aparecerá automáticamente.</p>
-</div>`;
-const _legalPagesTitle = '🛡️ Páginas legales y footer';
-const _legalPagesBtn   = 'Entendido';
-@endif
+const _legalPagesHtml = {!! json_encode(__('pages.legal_pages_modal_html')) !!};
+const _legalPagesTitle = {!! json_encode(__('pages.legal_pages_modal_title')) !!};
+const _legalPagesBtn   = {!! json_encode(__('pages.legal_pages_modal_button')) !!};
 
 function showLegalPagesInfo() {
     Swal.fire({

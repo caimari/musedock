@@ -71,7 +71,7 @@
                                 @endif
                             </div>
                         </div>
-                        <div class="card-footer bg-transparent d-flex gap-2">
+                        <div class="card-footer bg-transparent">
                             @php
                                 $pluginJsonPath = APP_ROOT . '/storage/tenants/' . tenant_id() . '/plugins/' . $plugin['slug'] . '/plugin.json';
                                 if (!file_exists($pluginJsonPath)) {
@@ -79,32 +79,44 @@
                                 }
                                 $pluginMeta = file_exists($pluginJsonPath) ? json_decode(file_get_contents($pluginJsonPath), true) : [];
                                 $hasAdminPanel = !empty($pluginMeta['admin_menu']);
+                                // Resolve the main URL for the "Open" button
+                                $pluginMainUrl = '';
+                                if ($hasAdminPanel) {
+                                    $rawUrl = $pluginMeta['admin_menu']['url'] ?? '';
+                                    $pluginMainUrl = str_replace('{admin_path}', '/' . trim(admin_path(), '/'), $rawUrl);
+                                }
                             @endphp
 
                             @if($plugin['active'] && $hasAdminPanel)
-                                <a href="{{ admin_url('/plugins/' . $plugin['slug']) }}" class="btn btn-sm btn-primary flex-fill">
-                                    <i class="bi bi-box-arrow-up-right"></i> Abrir
+                                <a href="{{ $pluginMainUrl }}" class="btn btn-sm btn-primary w-100 mb-2">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i> Abrir Panel
                                 </a>
                             @endif
 
-                            <form action="{{ admin_url('/plugins/' . $plugin['slug'] . '/toggle') }}" method="POST" class="{{ ($plugin['active'] && $hasAdminPanel) ? '' : 'flex-fill' }} plugin-toggle-form" data-plugin-name="{{ $plugin['name'] }}" data-plugin-active="{{ $plugin['active'] ? '1' : '0' }}">
-                                @csrf
-                                <button type="button" class="btn btn-sm {{ $plugin['active'] ? 'btn-warning' : 'btn-success' }} w-100 btn-toggle-plugin">
-                                    @if($plugin['active'])
-                                        <i class="bi bi-pause-circle"></i> Desactivar
-                                    @else
-                                        <i class="bi bi-play-circle"></i> Activar
-                                    @endif
-                                </button>
-                            </form>
+                            <div class="d-flex gap-2">
+                                <form action="{{ admin_url('/plugins/' . $plugin['slug'] . '/toggle') }}" method="POST" class="flex-fill plugin-toggle-form" data-plugin-name="{{ $plugin['name'] }}" data-plugin-active="{{ $plugin['active'] ? '1' : '0' }}">
+                                    @csrf
+                                    <button type="button" class="btn btn-sm {{ $plugin['active'] ? 'btn-warning' : 'btn-success' }} w-100 btn-toggle-plugin">
+                                        @if($plugin['active'])
+                                            <i class="bi bi-pause-circle"></i> Desactivar
+                                        @else
+                                            <i class="bi bi-play-circle"></i> Activar
+                                        @endif
+                                    </button>
+                                </form>
 
-                            <form action="{{ admin_url('/plugins/' . $plugin['slug'] . '/uninstall') }}" method="POST" class="plugin-uninstall-form" data-plugin-name="{{ $plugin['name'] }}">
-                                @csrf
-                                @method('DELETE')
-                                <button type="button" class="btn btn-sm btn-danger btn-uninstall-plugin">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
+                                <a href="{{ admin_url('/plugins/' . $plugin['slug'] . '/download') }}" class="btn btn-sm btn-outline-secondary" title="Descargar backup">
+                                    <i class="bi bi-download"></i>
+                                </a>
+
+                                <form action="{{ admin_url('/plugins/' . $plugin['slug'] . '/uninstall') }}" method="POST" class="plugin-uninstall-form" data-plugin-name="{{ $plugin['name'] }}">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-uninstall-plugin" title="Desinstalar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>

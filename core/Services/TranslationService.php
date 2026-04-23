@@ -22,23 +22,41 @@ class TranslationService
     {
         self::$currentLocale = $locale;
         self::$context = $context;
+        self::$translations[$context] = self::$translations[$context] ?? [];
 
         $translationFile = __DIR__ . "/../../lang/{$context}/{$locale}.json";
 
         if (file_exists($translationFile)) {
             $content = file_get_contents($translationFile);
-            self::$translations[$locale] = json_decode($content, true) ?? [];
-            error_log("TranslationService: Loaded {$locale} for {$context} - " . count(self::$translations[$locale]) . " keys");
+            $translations = json_decode($content, true) ?? [];
+
+            // Aplicar overrides desde BD (global + tenant actual)
+            $overrides = self::loadOverrides($locale, $context);
+            foreach ($overrides as $overrideKey => $overrideValue) {
+                self::setTranslationValue($translations, $overrideKey, $overrideValue);
+            }
+
+            self::$translations[$context][$locale] = $translations;
+            error_log("TranslationService: Loaded {$locale} for {$context} - " . count($translations) . " keys");
         } else {
+            self::$translations[$context][$locale] = [];
+
             // Solo loguear si parece un locale válido (2 caracteres)
             if (strlen($locale) === 2) {
                 error_log("TranslationService: File not found: {$translationFile}");
             }
             // Fallback al español
             $fallbackFile = __DIR__ . "/../../lang/{$context}/" . self::$fallbackLocale . ".json";
-            if (file_exists($fallbackFile) && !isset(self::$translations[self::$fallbackLocale])) {
+            if (file_exists($fallbackFile) && !isset(self::$translations[$context][self::$fallbackLocale])) {
                 $content = file_get_contents($fallbackFile);
-                self::$translations[self::$fallbackLocale] = json_decode($content, true) ?? [];
+                $fallbackTranslations = json_decode($content, true) ?? [];
+
+                $fallbackOverrides = self::loadOverrides(self::$fallbackLocale, $context);
+                foreach ($fallbackOverrides as $overrideKey => $overrideValue) {
+                    self::setTranslationValue($fallbackTranslations, $overrideKey, $overrideValue);
+                }
+
+                self::$translations[$context][self::$fallbackLocale] = $fallbackTranslations;
                 error_log("TranslationService: Loaded fallback {$context}/" . self::$fallbackLocale);
             }
         }
@@ -53,21 +71,22 @@ class TranslationService
         if ($locale === null) {
             $locale = self::$currentLocale ?? self::getCurrentLocale();
         }
+        $context = self::$context;
 
         // Si no está cargado, cargar
-        if (!isset(self::$translations[$locale])) {
-            self::load($locale, self::$context);
+        if (!isset(self::$translations[$context][$locale])) {
+            self::load($locale, $context);
         }
 
         // Buscar en el idioma actual
-        $translation = self::findTranslation($key, $locale);
+        $translation = self::findTranslation($key, $locale, $context);
 
         // Si no existe, buscar en fallback
         if ($translation === null && $locale !== self::$fallbackLocale) {
-            if (!isset(self::$translations[self::$fallbackLocale])) {
-                self::load(self::$fallbackLocale, self::$context);
+            if (!isset(self::$translations[$context][self::$fallbackLocale])) {
+                self::load(self::$fallbackLocale, $context);
             }
-            $translation = self::findTranslation($key, self::$fallbackLocale);
+            $translation = self::findTranslation($key, self::$fallbackLocale, $context);
         }
 
         // Si aún no existe, retornar la clave
@@ -86,10 +105,10 @@ class TranslationService
     /**
      * Buscar traducción en el array cargado (soporta dot notation)
      */
-    private static function findTranslation(string $key, string $locale): ?string
+    private static function findTranslation(string $key, string $locale, string $context): ?string
     {
         $keys = explode('.', $key);
-        $value = self::$translations[$locale] ?? [];
+        $value = self::$translations[$context][$locale] ?? [];
 
         foreach ($keys as $k) {
             if (!isset($value[$k])) {
@@ -99,6 +118,104 @@ class TranslationService
         }
 
         return is_string($value) ? $value : null;
+    }
+
+    /**
+     * Cargar overrides de traducciones desde base de datos.
+     * Orden de prioridad:
+     * 1) Global (tenant_id = 0)
+     * 2) Tenant actual (tenant_id = X), si existe
+     */
+    private static function loadOverrides(string $locale, string $context): array
+    {
+        try {
+            $pdo = \Screenart\Musedock\Database::connect();
+
+            $tenantId = 0;
+            if (function_exists('tenant_id')) {
+                $currentTenantId = tenant_id();
+                if (is_numeric($currentTenantId) && (int) $currentTenantId > 0) {
+                    $tenantId = (int) $currentTenantId;
+                }
+            }
+
+            if ($tenantId > 0) {
+                $stmt = $pdo->prepare("
+                    SELECT translation_key, translation_value
+                    FROM translation_overrides
+                    WHERE context = :context
+                      AND locale = :locale
+                      AND tenant_id IN (0, :tenant_id)
+                    ORDER BY tenant_id ASC, id ASC
+                ");
+                $stmt->execute([
+                    'context' => $context,
+                    'locale' => $locale,
+                    'tenant_id' => $tenantId,
+                ]);
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT translation_key, translation_value
+                    FROM translation_overrides
+                    WHERE context = :context
+                      AND locale = :locale
+                      AND tenant_id = 0
+                    ORDER BY id ASC
+                ");
+                $stmt->execute([
+                    'context' => $context,
+                    'locale' => $locale,
+                ]);
+            }
+
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            if (empty($rows)) {
+                return [];
+            }
+
+            $overrides = [];
+            foreach ($rows as $row) {
+                $key = trim((string) ($row['translation_key'] ?? ''));
+                if ($key === '') {
+                    continue;
+                }
+                $overrides[$key] = (string) ($row['translation_value'] ?? '');
+            }
+
+            return $overrides;
+        } catch (\Throwable $e) {
+            // Si la tabla no existe aún o hay error de BD, continuar con JSON base.
+            return [];
+        }
+    }
+
+    /**
+     * Establece el valor de una clave de traducción usando notación punto.
+     * Ejemplo: "dashboard.title" => ['dashboard' => ['title' => '...']]
+     */
+    private static function setTranslationValue(array &$translations, string $key, string $value): void
+    {
+        $segments = explode('.', $key);
+        $cursor = &$translations;
+        $lastIndex = count($segments) - 1;
+
+        foreach ($segments as $index => $segment) {
+            $segment = trim($segment);
+            if ($segment === '') {
+                return;
+            }
+
+            if ($index === $lastIndex) {
+                $cursor[$segment] = $value;
+                return;
+            }
+
+            if (!isset($cursor[$segment]) || !is_array($cursor[$segment])) {
+                $cursor[$segment] = [];
+            }
+
+            $cursor = &$cursor[$segment];
+        }
     }
 
     /**

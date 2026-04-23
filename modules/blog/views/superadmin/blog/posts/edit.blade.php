@@ -123,23 +123,34 @@
                   @enderror
                 </div>
                 @php
-                  // Get actual prefix from slugs table
-                  $__pdo = \Screenart\Musedock\Database::connect();
-                  $__slugStmt = $__pdo->prepare("SELECT prefix FROM slugs WHERE module = 'blog' AND reference_id = ? LIMIT 1");
-                  $__slugStmt->execute([$post->id]);
-                  $__actualPrefix = $__slugStmt->fetchColumn() ?: 'blog';
-
+                  // Determinar el prefijo correcto según el contexto del post
+                  // $editingTenantPrefix viene del controller: null = sin prefijo, string = prefijo custom
                   if (!empty($editingTenant)) {
-                      $slugDomain = 'https://' . $editingTenant->domain;
-                      $slugUrl = $slugDomain . '/' . $__actualPrefix . '/' . $post->slug;
+                      // Post pertenece a un tenant remoto — usar el prefijo calculado por el controller
+                      $__actualPrefix = $editingTenantPrefix; // null = sin prefijo, string = con prefijo
+                      $__slugBase = 'https://' . $editingTenant->domain;
                   } else {
-                      $slugUrl = config('app.url') . '/' . $__actualPrefix . '/' . $post->slug;
+                      // Post del contexto actual — usar blog_prefix() del helper
+                      $__actualPrefix = function_exists('blog_prefix') ? blog_prefix() : 'blog';
+                      if ($__actualPrefix === '') $__actualPrefix = null;
+                      $__slugBase = rtrim(config('app.url'), '/');
                   }
+
+                  // Si es un post de tipo 'docs', forzar prefijo 'docs' (siempre, independiente del tenant)
+                  if (($post->post_type ?? 'post') === 'docs') {
+                      $__actualPrefix = 'docs';
+                  }
+
+                  // Construir la URL final sin doble slash
+                  $__pathSegment = ($__actualPrefix === null || $__actualPrefix === '') ? '' : '/' . trim($__actualPrefix, '/');
+                  $slugUrl = $__slugBase . $__pathSegment . '/' . $post->slug;
                 @endphp
                 <small class="text-muted mt-1 d-inline-block">
                   URL: <a href="{{ $slugUrl }}" target="_blank">{{ $slugUrl }}</a>
                   @if($__actualPrefix === 'docs')
                     <span class="badge bg-info ms-2">Docs</span>
+                  @elseif($__actualPrefix === null || $__actualPrefix === '')
+                    <span class="badge bg-light text-dark ms-2" title="Sin prefijo de blog configurado para este tenant">sin prefijo</span>
                   @endif
                 </small>
                 <span id="slug-check-result" class="ms-3 fw-bold"></span>

@@ -100,7 +100,7 @@
                     'blog' => '/musedock/blog/posts',
                     'custom-forms' => '/musedock/custom-forms',
                     'image-gallery' => '/musedock/image-gallery',
-                    'instagram-gallery' => '/musedock/instagram',
+                    'instagram-gallery' => '/musedock/social-publisher',
                     'media-manager' => '/musedock/media',
                     'wp-importer' => '/musedock/wp-importer',
                     'ai-writer' => '/musedock/aiwriter/settings',

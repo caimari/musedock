@@ -16,8 +16,14 @@
 	  <link rel="stylesheet" href="/assets/vendor/bootstrap-icons/bootstrap-icons.min.css">
 		<!-- Font Awesome (LOCAL) -->
 		<link rel="stylesheet" href="/assets/vendor/fontawesome/css/all.min.css">
-	  <!-- Sistema de Tickets CSS -->
-  @if(setting('multi_tenant_enabled', config('multi_tenant_enabled', false)))
+  @php
+    $__envMultiTenantEnabled = \Screenart\Musedock\Env::get('MULTI_TENANT_ENABLED', null);
+    $__multiTenantEnabled = $__envMultiTenantEnabled !== null
+      ? (bool)$__envMultiTenantEnabled
+      : (bool)setting('multi_tenant_enabled', config('multi_tenant_enabled', false));
+  @endphp
+  <!-- Sistema de Tickets CSS -->
+  @if($__multiTenantEnabled)
   <link href="/assets/superadmin/css/tickets.css" rel="stylesheet">
   @endif
 
@@ -28,9 +34,11 @@
 
   <!-- Estilos personalizados para layout "unfixed" y ajustes -->
   <style>
-      html, body { overflow-x: hidden !important; }
-      body { min-height: 100vh; overflow-y: auto !important; }
-      .wrapper { display: flex !important; width: 100%; min-height: 100vh; align-items: stretch; }
+      html, body { height: 100%; margin: 0; }
+      .wrapper { display: flex !important; width: 100%; min-height: 100vh; }
+
+      /* TinyMCE popups: ensure z-index above AdminKit modals/overlays */
+      .tox-tinymce-aux { z-index: 100002 !important; }
 
       /* Evitar apariencia de link dentro de botones <a class="btn ..."> */
       a.btn,
@@ -41,11 +49,11 @@
 
       /* Sidebar Base (Dark theme assumed based on AdminKit default) */
       nav#sidebar.sidebar {
-          position: relative !important; z-index: 1 !important; overflow-y: auto !important; overflow-x: hidden !important; flex-shrink: 0 !important; display: flex; flex-direction: column;
+          position: sticky !important; top: 0 !important; z-index: 1 !important; overflow-y: auto !important; overflow-x: hidden !important; flex-shrink: 0 !important; display: flex; flex-direction: column;
           transition: width 0.25s ease-in-out, min-width 0.25s ease-in-out, padding 0.25s ease-in-out, margin 0.25s ease-in-out;
-          height: auto !important; min-height: 100vh; background: #222e3c !important; color: #dee2e6 !important;
+          height: 100vh !important; min-height: 100vh; background: #222e3c !important; color: #dee2e6 !important;
       }
-      nav#sidebar.sidebar .sidebar-content { display: flex; flex-direction: column; flex-grow: 1; min-height: 100%; height: auto; overflow: visible !important; opacity: 1; transition: opacity 0.2s ease-in-out; }
+      nav#sidebar.sidebar .sidebar-content { display: flex; flex-direction: column; flex-grow: 1; min-height: 100%; height: auto; overflow-y: auto; overflow-x: hidden; opacity: 1; transition: opacity 0.2s ease-in-out; }
 
       /* Sidebar Expandido */
       nav#sidebar.sidebar:not(.collapsed) { width: 220px !important; min-width: 220px !important; padding: 0 !important; margin: 0 !important; border-right: 1px solid #405063; } /* Slightly lighter border */
@@ -108,7 +116,7 @@
       nav#sidebar.sidebar .sidebar-link[data-bs-toggle="collapse"][aria-expanded="true"]::after { transform: rotate(-135deg); margin-top: 5px; } /* Point up when open */
 
       /* Main Content Area */
-      .main { flex-grow: 1 !important; width: auto !important; margin-left: 0 !important; padding: 0 !important; display: flex !important; flex-direction: column !important; min-height: 100vh; overflow-x: hidden; background-color: #f5f7fb; }
+      .main { flex-grow: 1 !important; width: auto !important; margin-left: 0 !important; padding: 0 !important; display: flex !important; flex-direction: column !important; min-height: 100vh; background-color: #f5f7fb; }
       .main > .navbar { position: relative !important; width: 100% !important; z-index: 10 !important; flex-shrink: 0; box-shadow: 0 0.1rem 0.2rem rgba(0,0,0,.05) !important; background-color: #ffffff; /* White navbar */ }
       .main > .navbar a.sidebar-toggle { display: flex !important; visibility: visible !important; opacity: 1 !important; color: #6c757d; /* Default icon color */ }
        .main > .navbar a.sidebar-toggle:hover { color: #3b7ddd; } /* Hover color */
@@ -117,7 +125,7 @@
       .language-dropdown .dropdown-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; font-weight: 500; }
       .language-dropdown .language-flag { width: 22px; text-align: center; font-size: 1rem; line-height: 1; }
       .language-dropdown .language-label { flex: 1; }
-      .main > .content { flex-grow: 1; padding: 1.5rem !important; overflow-y: auto; width: 100%; }
+      .main > .content { flex-grow: 1; min-height: 0; padding: 1.5rem !important; width: 100%; }
       .main > footer.footer { width: 100% !important; flex-shrink: 0; padding: 1rem 1.5rem !important; background-color: #fff; border-top: 1px solid #dee2e6; }
 
       /* Quitar foco azul de Bootstrap en todos los elementos de formulario */
@@ -161,7 +169,7 @@
             nav#sidebar.sidebar:not(.collapsed) { transform: translateX(0) !important; }
            .main { width: 100% !important; margin-left: 0 !important; height: auto; min-height: 100vh; display: block !important; padding-top: 56px !important; /* Ajustar si navbar es más alta */ }
            .main > .navbar { position: fixed !important; top: 0; right: 0; left: 0; z-index: 1030 !important; }
-           .main > .content { padding: 1rem !important; overflow-y: visible; }
+           .main > .content { padding: 1rem !important; }
            .main > footer.footer { position: relative; z-index: 1; }
 	           .navbar a.sidebar-toggle { display: flex !important; }
 	      }
@@ -588,7 +596,7 @@
                     </li> --}}
 
                     {{-- Campanilla de Notificaciones --}}
-                    @if(setting('multi_tenant_enabled', config('multi_tenant_enabled', false)))
+                    @if($__multiTenantEnabled)
                         <li class="nav-item dropdown" id="notifications-dropdown">
                             <a class="nav-icon dropdown-toggle" href="#" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                 <div class="position-relative">
@@ -768,7 +776,7 @@
 <!-- SweetAlert2 JS (LOCAL) -->
 <script src="/assets/vendor/sweetalert2/sweetalert2.all.min.js"></script>
 <!-- Sistema de Notificaciones -->
-@if(setting('multi_tenant_enabled', config('multi_tenant_enabled', false)))
+@if($__multiTenantEnabled)
 <script src="/assets/superadmin/js/notifications.js"></script>
 @endif
 <!-- jQuery (LOCAL) -->
@@ -966,20 +974,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.log('Token CSRF actualizado automáticamente');
                 }
 
-                // Mostrar mensaje de error con opción de recargar
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Sesión expirada',
-                        text: 'Tu sesión ha expirado. Haz clic en OK para recargar la página.',
-                        confirmButtonText: 'Recargar página',
-                        allowOutsideClick: false
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            window.location.reload();
-                        }
-                    });
-                }
+                // CSRF mismatch — silently reload instead of showing scary error
+                console.warn('[CSRF] Token mismatch — reloading page silently');
+                window.location.reload();
             } catch (e) {
                 // Si no podemos parsear JSON, solo mostrar error genérico
                 console.error('Error CSRF detectado pero no se pudo procesar la respuesta');

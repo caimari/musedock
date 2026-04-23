@@ -13,11 +13,147 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.17.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.17.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 21 de Abril de 2026</p>
+
+                <h6 class="text-success"><i class="bi bi-check2-circle me-1"></i> Cierre de Fases (i18n)</h6>
+                <ul class="mb-3">
+                    <li><strong>Fase 0 cerrada:</strong> Infraestructura de traducciones (JSON + BD), migracion y editor de overrides en CMS principal</li>
+                    <li><strong>Fase 1 cerrada:</strong> Modulo <code>Pages</code> (CMS + Tenant) traducido en vistas, JS/modales, revisiones, papelera, bulk edit y controladores</li>
+                    <li><strong>Paridad validada:</strong> Claves <code>pages/common</code> sincronizadas en <code>lang/superadmin</code> y <code>lang/tenant</code> para <code>es/en</code></li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-translate me-1"></i> Motor de Traducciones con Overrides</h6>
+                <ul class="mb-3">
+                    <li><strong>Nuevo almacenamiento en base de datos:</strong> Tabla <code>translation_overrides</code> para personalizar textos sin editar archivos JSON</li>
+                    <li><strong>Resolucion hibrida:</strong> El sistema ahora combina <em>JSON base + overrides BD por clave</em>. Solo las claves modificadas en BD reemplazan al JSON</li>
+                    <li><strong>Fallback conservado:</strong> Si falta una clave en el idioma actual, sigue aplicando fallback a <code>es</code></li>
+                    <li><strong>Migracion incluida:</strong> <code>2026_04_21_000001_create_translation_overrides_table</code></li>
+                </ul>
+
+                <h6 class="text-info"><i class="bi bi-sliders me-1"></i> Editor de Traducciones en CMS Principal</h6>
+                <ul class="mb-3">
+                    <li><strong>Nueva pantalla:</strong> <code>/musedock/languages/translations</code> con filtros por contexto, idioma y buscador por clave/texto</li>
+                    <li><strong>Acciones por clave:</strong> Guardar override, restablecer a valor base, y visualizacion del estado (Base / Override activo)</li>
+                    <li><strong>Ayuda en UI:</strong> Bloque <em>Como funciona</em> explicando el flujo de guardado, aplicacion y restauracion</li>
+                </ul>
+
+                <h6 class="text-warning"><i class="bi bi-diagram-3 me-1"></i> Overrides por Tenant desde Superadmin</h6>
+                <ul class="mb-3">
+                    <li><strong>Nuevo ambito:</strong> Selector Global o Tenant especifico en el editor</li>
+                    <li><strong>Guardado por scope:</strong> Los overrides se registran con <code>tenant_id=0</code> (global) o <code>tenant_id=&gt;0</code> (tenant)</li>
+                    <li><strong>Badge contextual:</strong> Indicador visual de ambito activo (Global / Tenant seleccionado)</li>
+                </ul>
+
+                <h6 class="text-secondary"><i class="bi bi-arrow-repeat me-1"></i> Ajustes de Idioma en Tenant</h6>
+                <ul class="mb-0">
+                    <li><strong>Ruta de cambio de idioma corregida:</strong> El switcher tenant ya usa <code>admin_path</code> dinamico y evita hardcode <code>/admin</code></li>
+                    <li><strong>Redirect seguro:</strong> Fallback a <code>admin_url('dashboard')</code> si la redireccion no es valida</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v2.16.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.16.0</h5>
+                <span class="badge bg-secondary">Previous</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 12 de Abril de 2026</p>
+
+                <h6 class="text-danger"><i class="bi bi-megaphone me-1"></i> Social Publisher (ex Instagram Gallery)</h6>
+                <ul class="mb-3">
+                    <li><strong>Renombrado:</strong> Modulo «Instagram Gallery» ahora se llama <strong>Social Publisher</strong>. URLs migradas de <code>/admin/instagram</code> y <code>/musedock/instagram</code> a <code>/admin/social-publisher</code> y <code>/musedock/social-publisher</code>. Los callbacks OAuth legacy (<code>/instagram/callback</code>) siguen funcionando porque son los registrados en Meta</li>
+                    <li><strong>Migracion a la nueva API de Instagram:</strong> Adaptado a «Instagram API con inicio de sesion para empresas de Instagram» (la que sustituyo a la deprecada Basic Display API en dic-2024)</li>
+                    <li><strong>Publicacion en Facebook:</strong> Nueva vinculacion de Pagina de Facebook a cada cuenta IG mediante OAuth separado (scopes <code>pages_show_list</code>, <code>pages_manage_posts</code>, <code>pages_read_engagement</code>). Los posts se publican en ambas redes a la vez si se marcan ambos checkboxes</li>
+                    <li><strong>Caption inteligente:</strong> Si el post no tiene excerpt, se genera un teaser con los H2 del contenido (sin desvelar el cuerpo). Facebook recibe el link como campo aparte (preview automatico); Instagram lo lleva en texto plano con emoji</li>
+                    <li><strong>Hashtags predefinidos por cuenta:</strong> Cada cuenta tiene su propio set de hashtags de marca. Al publicar, se combinan con los dinamicos (categorias + tags del post). Cap a 30 (limite IG) priorizando los preset</li>
+                </ul>
+
+                <h6 class="text-primary"><i class="bi bi-newspaper me-1"></i> Compartir posts del blog</h6>
+                <ul class="mb-3">
+                    <li><strong>Boton «Compartir» en listado de posts:</strong> Aparece en <code>/admin/blog/posts</code> y <code>/musedock/blog/posts</code> cuando el tenant tiene Social Publisher activo, hay conexion valida y el post tiene imagen destacada</li>
+                    <li><strong>Modal SweetAlert2:</strong> Preview de imagen + selector de cuenta + checkboxes IG/FB + caption editable con contador 0/2200. Permite publicar en una red, otra o ambas</li>
+                    <li><strong>Badges de tracking:</strong> IG (gradiente rosa) y FB (azul) junto al titulo del post si se publico en cada red, con link al permalink publicado</li>
+                    <li><strong>URL correcta del tenant:</strong> Al publicar, el link del post usa el dominio real del tenant y su blog_url_prefix configurado (antes metia siempre <code>musedock.com/blog/</code>)</li>
+                </ul>
+
+                <h6 class="text-info"><i class="bi bi-diagram-3 me-1"></i> Superadmin y multi-tenant</h6>
+                <ul class="mb-3">
+                    <li><strong>Seccion Instagram en Domain Manager:</strong> Nueva seccion desplegable en <code>/musedock/domain-manager/{id}/edit</code> con tabla de cuentas conectadas del tenant (IG + Facebook) y link al panel del tenant para la gestion completa</li>
+                    <li><strong>Panel superadmin propio:</strong> <code>/musedock/social-publisher</code> gestiona las cuentas del CMS principal (<code>tenant_id=NULL</code>), separado de las de cada tenant. Misma UI moderna que el panel del tenant</li>
+                    <li><strong>Arquitectura DRY:</strong> El controller Superadmin hereda del Tenant y solo sobreescribe el scope (basePath + tenantId), reutilizando toda la logica OAuth/credenciales/hashtags/Facebook</li>
+                    <li><strong>Modulo activo por defecto:</strong> Los nuevos tenants tienen Social Publisher activado de serie (id=8 en <code>default_modules</code>)</li>
+                </ul>
+
+                <h6 class="text-warning"><i class="bi bi-ui-radios me-1"></i> Blog mosaico y UX</h6>
+                <ul class="mb-3">
+                    <li><strong>Tarjeta hero con categorias:</strong> La card grande del layout mosaico del blog ahora muestra chips de categoria/tag encima del titulo, igual que las pequeñas</li>
+                    <li><strong>Chips clicables:</strong> Las etiquetas del mosaico llevan al listado filtrado de esa categoria/tag. Color blanco forzado en <code>:link/:visited/:hover</code> para que el tema no rompa la estetica</li>
+                    <li><strong>Fallback de categorias:</strong> Si un post no tiene categoria, se usan sus tags (hasta 2) como chips. Evita cards sin etiqueta</li>
+                </ul>
+
+                <h6 class="text-secondary"><i class="bi bi-list me-1"></i> Header y menu</h6>
+                <ul class="mb-0">
+                    <li><strong>Hamburguesa inteligente:</strong> El boton de menu movil deja de aparecer si el menu «nav» esta vacio. Implementado en todos los layouts del tema default</li>
+                    <li><strong>Limpieza de menu lateral:</strong> Eliminado item duplicado «Instagram Gallery» del sidebar, sustituido por «Social Publisher»</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v2.15.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.15.0</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 12 de Abril de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-chat-left-text me-1"></i> Blog Comments System</h6>
+                <ul class="mb-3">
+                    <li><strong>Comentarios publicos en frontend:</strong> Formulario completo en la plantilla default con nombre, email, web opcional y contenido</li>
+                    <li><strong>Moderacion en panel:</strong> Nuevo modulo de comentarios para Superadmin y Tenant con filtros por estado, aprobar, marcar spam y eliminar</li>
+                    <li><strong>Sidebar:</strong> Entrada <code>Comentarios</code> como hijo de <code>Blog</code> en ambos paneles</li>
+                    <li><strong>Contador sincronizado:</strong> El <code>comment_count</code> del post se recalcula automaticamente al aprobar, mover a spam o eliminar</li>
+                </ul>
+
+                <h6 class="text-info"><i class="bi bi-bell me-1"></i> Notifications</h6>
+                <ul class="mb-3">
+                    <li><strong>Campana en header:</strong> Avisos de comentario pendiente visibles en dashboard</li>
+                    <li><strong>Doble destino:</strong> Se notifica al panel principal (superadmins) y al panel del tenant propietario del post</li>
+                    <li><strong>Tipo de notificacion:</strong> Nuevo evento <code>blog_comment_pending</code> con icono y color dedicados</li>
+                </ul>
+
+                <h6 class="text-warning"><i class="bi bi-shield-check me-1"></i> Anti-Spam & Moderation</h6>
+                <ul class="mb-3">
+                    <li><strong>Modo de aprobacion configurable:</strong> Manual, autoaprobar todos, o autoaprobar solo autores ya aprobados (por defecto recomendado)</li>
+                    <li><strong>Ajustes en Lectura:</strong> Nueva seccion de comentarios en <code>/musedock/settings/reading</code> y tenant equivalente</li>
+                    <li><strong>Heuristica de enlaces:</strong> Umbral configurable para marcar comentarios como spam</li>
+                    <li><strong>CAPTCHA adaptativo:</strong> Se activa solo cuando hay picos de spam (toggle + umbral de 24h)</li>
+                </ul>
+
+                <h6 class="text-success"><i class="bi bi-shield-lock me-1"></i> RGPD & Legal</h6>
+                <ul class="mb-0">
+                    <li><strong>Consentimiento explicito:</strong> Checkbox obligatorio en el formulario de comentario con enlaces dinamicos a Privacidad y Terminos</li>
+                    <li><strong>Evidencia legal:</strong> Se registra en BD si acepto y la fecha/hora del consentimiento por comentario</li>
+                    <li><strong>Auditoria en moderacion:</strong> Nueva columna RGPD en listados de comentarios</li>
+                    <li><strong>Textos legales dinamicos:</strong> Privacidad y Terminos actualizados para incluir tratamiento de datos en comentarios y normas de uso</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.14.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.14.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">Previous</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 6 de Abril de 2026</p>

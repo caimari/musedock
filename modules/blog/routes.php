@@ -34,6 +34,23 @@ Route::post('/musedock/blog/posts/bulk', 'Blog\Controllers\Superadmin\BlogPostCo
     ->name('blog.posts.bulk')
     ->middleware('superadmin');
 
+// --- Blog Comments Routes (Superadmin) ---
+Route::get('/musedock/blog/comments', 'Blog\Controllers\Superadmin\BlogCommentController@index')
+    ->name('blog.comments.index')
+    ->middleware('superadmin');
+
+Route::post('/musedock/blog/comments/{id}/approve', 'Blog\Controllers\Superadmin\BlogCommentController@approve')
+    ->name('blog.comments.approve')
+    ->middleware('superadmin');
+
+Route::post('/musedock/blog/comments/{id}/spam', 'Blog\Controllers\Superadmin\BlogCommentController@spam')
+    ->name('blog.comments.spam')
+    ->middleware('superadmin');
+
+Route::delete('/musedock/blog/comments/{id}', 'Blog\Controllers\Superadmin\BlogCommentController@destroy')
+    ->name('blog.comments.destroy')
+    ->middleware('superadmin');
+
 // Traducciones de posts (Superadmin)
 Route::get('/musedock/blog/posts/{id}/translations/{locale}', 'Blog\Controllers\Superadmin\BlogPostController@editTranslation')
     ->name('blog.posts.translation.edit')
@@ -138,6 +155,23 @@ Route::delete("/{$adminPath}/blog/posts/{id}", 'Blog\Controllers\Tenant\BlogPost
 
 Route::post("/{$adminPath}/blog/posts/bulk", 'Blog\Controllers\Tenant\BlogPostController@bulk')
     ->name('tenant.blog.posts.bulk')
+    ->middleware('auth');
+
+// --- Blog Comments Routes (Tenant) ---
+Route::get("/{$adminPath}/blog/comments", 'Blog\Controllers\Tenant\BlogCommentController@index')
+    ->name('tenant.blog.comments.index')
+    ->middleware('auth');
+
+Route::post("/{$adminPath}/blog/comments/{id}/approve", 'Blog\Controllers\Tenant\BlogCommentController@approve')
+    ->name('tenant.blog.comments.approve')
+    ->middleware('auth');
+
+Route::post("/{$adminPath}/blog/comments/{id}/spam", 'Blog\Controllers\Tenant\BlogCommentController@spam')
+    ->name('tenant.blog.comments.spam')
+    ->middleware('auth');
+
+Route::delete("/{$adminPath}/blog/comments/{id}", 'Blog\Controllers\Tenant\BlogCommentController@destroy')
+    ->name('tenant.blog.comments.destroy')
     ->middleware('auth');
 
 // Traducciones de posts (Tenant)
@@ -712,6 +746,13 @@ PROMPT;
         ]);
     }
 });
+
+// ========== FRONTEND BLOG COMMENTS ==========
+Route::get('/blog/comments/captcha', 'Blog\Controllers\Frontend\BlogCommentController@captcha')
+    ->name('blog.comments.captcha');
+
+Route::post('/blog/comments', 'Blog\Controllers\Frontend\BlogCommentController@store')
+    ->name('blog.comments.store');
 
 // ========== FRONTEND PUBLIC BLOG ROUTES ==========
 

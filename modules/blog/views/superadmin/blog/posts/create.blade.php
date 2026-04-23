@@ -112,11 +112,16 @@
                 </div>
                 @php
                   if (!empty($targetTenant)) {
-                      $createSlugBase = 'https://' . $targetTenant->domain . ($targetTenantPrefix ? '/' . $targetTenantPrefix : '') . '/';
+                      // $targetTenantPrefix viene del controller: null/'' = sin prefijo, string = con prefijo
+                      $__prefixSegment = ($targetTenantPrefix === null || $targetTenantPrefix === '') ? '' : '/' . trim($targetTenantPrefix, '/');
+                      $createSlugBase = 'https://' . $targetTenant->domain . $__prefixSegment . '/';
                       $createSlugBaseDocs = 'https://' . $targetTenant->domain . '/docs/';
                   } else {
-                      $createSlugBase = config('app.url') . '/blog/';
-                      $createSlugBaseDocs = config('app.url') . '/docs/';
+                      // Contexto global — usar blog_prefix() del helper
+                      $__globalPrefix = function_exists('blog_prefix') ? blog_prefix() : 'blog';
+                      $__prefixSegment = ($__globalPrefix === '') ? '' : '/' . trim($__globalPrefix, '/');
+                      $createSlugBase = rtrim(config('app.url'), '/') . $__prefixSegment . '/';
+                      $createSlugBaseDocs = rtrim(config('app.url'), '/') . '/docs/';
                   }
                 @endphp
                 <small class="text-muted mt-1 d-inline-block">

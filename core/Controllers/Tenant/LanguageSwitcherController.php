@@ -15,7 +15,7 @@ class LanguageSwitcherController
     public function switch()
     {
         $locale = $_GET['locale'] ?? $_POST['locale'] ?? 'es';
-        $redirect = $_GET['redirect'] ?? $_POST['redirect'] ?? $_SERVER['HTTP_REFERER'] ?? '/admin/dashboard';
+        $redirect = $_GET['redirect'] ?? $_POST['redirect'] ?? $_SERVER['HTTP_REFERER'] ?? admin_url('dashboard');
 
         if (!is_string($locale)) {
             $locale = 'es';
@@ -30,7 +30,7 @@ class LanguageSwitcherController
 
         // Redirigir de vuelta (evitar open redirect: solo paths internos)
         if (!is_string($redirect) || $redirect === '' || $redirect[0] !== '/') {
-            $redirect = '/admin/dashboard';
+            $redirect = admin_url('dashboard');
         }
         header('Location: ' . $redirect);
         exit;

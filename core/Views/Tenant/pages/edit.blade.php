@@ -270,7 +270,7 @@
                 @if($__isSidebarStruct)
                 <input type="hidden" name="page_template" value="page.blade.php">
                 <div class="alert alert-info py-1 px-2 mt-2 mb-0" style="font-size:0.75rem;">
-                    <i class="bi bi-layout-sidebar me-1"></i> La estructura <strong>Sidebar</strong> fuerza ancho completo. La plantilla seleccionada no se aplica.
+                    <i class="bi bi-layout-sidebar me-1"></i> {!! __('pages.sidebar_structure_template_notice') !!}
                 </div>
                 @else
                 <small class="text-muted">{{ __('pages.template_help_edit') }}</small>
@@ -439,21 +439,15 @@
         const pageForm = document.getElementById('pageForm');
         const submitBtn = document.getElementById('page-submit-btn');
 
-        console.log('Spinner setup - pageForm:', pageForm, 'submitBtn:', submitBtn);
-
         if (pageForm && submitBtn) {
           pageForm.addEventListener('submit', function(e) {
-            console.log('Form submit triggered');
             // Mostrar spinner y deshabilitar botón
             const btnText = submitBtn.querySelector('.btn-text');
             const btnSpinner = submitBtn.querySelector('.btn-spinner');
 
-            console.log('btnText:', btnText, 'btnSpinner:', btnSpinner);
-
             if (btnText && btnSpinner) {
               btnText.classList.add('d-none');
               btnSpinner.classList.remove('d-none');
-              console.log('Spinner activado');
             }
 
             submitBtn.disabled = true;

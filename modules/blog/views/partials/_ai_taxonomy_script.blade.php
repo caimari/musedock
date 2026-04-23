@@ -61,80 +61,172 @@ function _applyTaxonomyToSelects(categories, tags) {
         const currentCats = catSelect ? Array.from(catSelect.selectedOptions).map(o => parseInt(o.value)) : [];
         const currentTags = tagSelect ? Array.from(tagSelect.selectedOptions).map(o => parseInt(o.value)) : [];
 
-        const originalHTML = btnAiTaxonomy.innerHTML;
-        btnAiTaxonomy.disabled = true;
-        btnAiTaxonomy.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Analizando...';
+        if (typeof Swal === 'undefined') {
+            alert('SweetAlert2 es necesario para esta función.');
+            return;
+        }
 
         const resultsDiv = document.getElementById('ai-taxonomy-results');
+        if (resultsDiv) {
+            resultsDiv.innerHTML = '';
+            resultsDiv.style.display = 'none';
+        }
 
-        try {
-            const response = await fetch('/api/ai/blog/suggest-taxonomy', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                body: JSON.stringify({
-                    title: title,
-                    content: content,
-                    current_categories: currentCats,
-                    current_tags: currentTags,
-                    tenant_id: document.getElementById('post-tenant-id')?.value || '',
-                    _csrf: document.querySelector('[name="_csrf"]')?.value || '{{ csrf_token() }}'
-                })
-            });
+        const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-            const result = await response.json();
-            if (!result.success) throw new Error(result.message || 'Error al generar taxonomía');
-
-            const cats = result.categories || [];
-            const tags = result.tags || [];
-
-            if (cats.length === 0 && tags.length === 0) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Sin sugerencias', 'La IA no encontró categorías ni tags adicionales para sugerir.', 'info');
-                }
-                return;
-            }
-
-            let html = '<div class="border rounded p-2 bg-light">';
-            html += '<small class="fw-bold d-block mb-2"><i class="bi bi-magic me-1"></i> Sugerencias de IA:</small>';
-            html += '<small class="text-muted d-block mb-2">Se añadirán a las ya seleccionadas (no se pierde nada).</small>';
+        // Helper para construir el HTML del contenido del modal con checkboxes
+        const buildResultsHtml = (cats, tags) => {
+            let html = '<div class="text-start">';
+            html += '<p class="text-muted small mb-3"><i class="bi bi-info-circle me-1"></i> Se añadirán a las ya seleccionadas. Desmarca las que no quieras.</p>';
 
             if (cats.length > 0) {
-                html += '<small class="text-muted d-block mb-1">Categorías:</small>';
+                html += '<div class="mb-3">';
+                html += '<div class="d-flex align-items-center justify-content-between mb-2">';
+                html += `<label class="form-label fw-semibold small mb-0"><i class="bi bi-folder me-1"></i> Categorías (${cats.length})</label>`;
+                html += '<div class="d-flex gap-1">';
+                html += '<button type="button" class="btn btn-sm btn-link p-0 small" onclick="document.querySelectorAll(\'.ai-cat-check\').forEach(c=>c.checked=true)">Todas</button>';
+                html += '<span class="text-muted small">·</span>';
+                html += '<button type="button" class="btn btn-sm btn-link p-0 small text-muted" onclick="document.querySelectorAll(\'.ai-cat-check\').forEach(c=>c.checked=false)">Ninguna</button>';
+                html += '</div></div>';
+                html += '<div class="border rounded p-2" style="max-height:200px;overflow-y:auto;background:#f8f9fa;">';
                 cats.forEach((cat, i) => {
                     const badge = cat.is_new
                         ? '<span class="badge bg-success ms-1" style="font-size:0.65em">nueva</span>'
                         : '<span class="badge bg-secondary ms-1" style="font-size:0.65em">existente</span>';
-                    html += `<div class="form-check form-check-sm">
-                        <input class="form-check-input ai-cat-check" type="checkbox" checked value="${cat.id}" id="ai-cat-${i}" data-name="${cat.name.replace(/"/g, '&quot;')}">
-                        <label class="form-check-label small" for="ai-cat-${i}">${cat.name}${badge}</label>
+                    html += `<div class="form-check mb-1">
+                        <input class="form-check-input ai-cat-check" type="checkbox" checked value="${cat.id}" id="ai-cat-${i}" data-name="${escapeHtml(cat.name)}">
+                        <label class="form-check-label small" for="ai-cat-${i}">${escapeHtml(cat.name)}${badge}</label>
                     </div>`;
                 });
+                html += '</div></div>';
             }
 
             if (tags.length > 0) {
-                html += '<small class="text-muted d-block mb-1 mt-2">Tags:</small>';
+                html += '<div class="mb-2">';
+                html += '<div class="d-flex align-items-center justify-content-between mb-2">';
+                html += `<label class="form-label fw-semibold small mb-0"><i class="bi bi-tags me-1"></i> Tags (${tags.length})</label>`;
+                html += '<div class="d-flex gap-1">';
+                html += '<button type="button" class="btn btn-sm btn-link p-0 small" onclick="document.querySelectorAll(\'.ai-tag-check\').forEach(c=>c.checked=true)">Todos</button>';
+                html += '<span class="text-muted small">·</span>';
+                html += '<button type="button" class="btn btn-sm btn-link p-0 small text-muted" onclick="document.querySelectorAll(\'.ai-tag-check\').forEach(c=>c.checked=false)">Ninguno</button>';
+                html += '</div></div>';
+                html += '<div class="border rounded p-2" style="max-height:240px;overflow-y:auto;background:#f8f9fa;">';
                 tags.forEach((tag, i) => {
                     const badge = tag.is_new
                         ? '<span class="badge bg-success ms-1" style="font-size:0.65em">nuevo</span>'
                         : '<span class="badge bg-secondary ms-1" style="font-size:0.65em">existente</span>';
-                    html += `<div class="form-check form-check-sm">
-                        <input class="form-check-input ai-tag-check" type="checkbox" checked value="${tag.id}" id="ai-tag-${i}" data-name="${tag.name.replace(/"/g, '&quot;')}">
-                        <label class="form-check-label small" for="ai-tag-${i}">${tag.name}${badge}</label>
+                    html += `<div class="form-check mb-1">
+                        <input class="form-check-input ai-tag-check" type="checkbox" checked value="${tag.id}" id="ai-tag-${i}" data-name="${escapeHtml(tag.name)}">
+                        <label class="form-check-label small" for="ai-tag-${i}">${escapeHtml(tag.name)}${badge}</label>
                     </div>`;
                 });
+                html += '</div></div>';
             }
 
-            html += '<div class="mt-2 d-flex gap-2">';
-            html += '<button type="button" class="btn btn-sm btn-primary" id="btn-apply-ai-taxonomy"><i class="bi bi-check-lg me-1"></i> Añadir seleccionados</button>';
-            html += '<button type="button" class="btn btn-sm btn-outline-secondary" id="btn-cancel-ai-taxonomy">Cancelar</button>';
-            html += '</div></div>';
+            html += '</div>';
+            return html;
+        };
 
-            if (resultsDiv) {
-                resultsDiv.innerHTML = html;
-                resultsDiv.style.display = 'block';
+        // === ABRIR MODAL INMEDIATAMENTE CON SPINNER ===
+        const originalHTML = btnAiTaxonomy.innerHTML;
+        btnAiTaxonomy.disabled = true;
+
+        const loadingHtml = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary mb-3" style="width:3rem;height:3rem;" role="status">
+                    <span class="visually-hidden">Analizando...</span>
+                </div>
+                <p class="mb-1 fw-semibold">Analizando contenido con IA...</p>
+                <p class="text-muted small mb-0">Esto puede tardar unos segundos.</p>
+            </div>
+        `;
+
+        // Abrir modal con spinner y lanzar fetch en paralelo
+        let apiResultPromise = fetch('/api/ai/blog/suggest-taxonomy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({
+                title: title,
+                content: content,
+                current_categories: currentCats,
+                current_tags: currentTags,
+                tenant_id: document.getElementById('post-tenant-id')?.value || '',
+                _csrf: document.querySelector('[name="_csrf"]')?.value || '{{ csrf_token() }}'
+            })
+        }).then(async (r) => {
+            // Leer como texto primero para poder manejar respuestas no-JSON (errores 500 con HTML)
+            const text = await r.text();
+            if (!text || text.trim() === '') {
+                return { success: false, message: 'El servidor devolvió una respuesta vacía (HTTP ' + r.status + '). Revisa los logs del servidor.' };
             }
+            try {
+                return JSON.parse(text);
+            } catch (parseErr) {
+                // No es JSON válido — probablemente HTML de error
+                console.error('Respuesta no-JSON del servidor:', text.substring(0, 500));
+                const snippet = text.substring(0, 200).replace(/<[^>]+>/g, '').trim();
+                return {
+                    success: false,
+                    message: 'El servidor devolvió una respuesta inválida (HTTP ' + r.status + ').' + (snippet ? ' Detalle: ' + snippet : '')
+                };
+            }
+        }).catch(e => ({ success: false, message: e.message || 'Error de conexión' }));
 
-            document.getElementById('btn-apply-ai-taxonomy').addEventListener('click', function() {
+        Swal.fire({
+            title: '<i class="bi bi-magic me-1"></i> Sugerencias de IA',
+            html: loadingHtml,
+            width: 550,
+            showConfirmButton: false,
+            showCancelButton: false,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            customClass: { popup: 'swal2-taxonomy-modal' },
+            didOpen: async () => {
+                try {
+                    const result = await apiResultPromise;
+
+                    if (!result.success) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: result.message || 'No se pudo generar la taxonomía con IA.',
+                        });
+                        return;
+                    }
+
+                    const cats = result.categories || [];
+                    const tags = result.tags || [];
+
+                    if (cats.length === 0 && tags.length === 0) {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Sin sugerencias',
+                            text: 'La IA no encontró categorías ni tags adicionales para sugerir.',
+                        });
+                        return;
+                    }
+
+                    // Reemplazar el contenido del modal con los resultados
+                    Swal.update({
+                        html: buildResultsHtml(cats, tags),
+                        showConfirmButton: true,
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="bi bi-check-lg me-1"></i> Añadir seleccionados',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#0d6efd',
+                        allowOutsideClick: true,
+                        allowEscapeKey: true,
+                    });
+                } catch (error) {
+                    console.error('Error AI Taxonomy:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: error.message || 'No se pudo generar la taxonomía con IA.',
+                    });
+                }
+            },
+            preConfirm: () => {
                 const selectedCats = [];
                 document.querySelectorAll('.ai-cat-check:checked').forEach(cb => {
                     selectedCats.push({ id: cb.value, name: cb.dataset.name });
@@ -143,30 +235,27 @@ function _applyTaxonomyToSelects(categories, tags) {
                 document.querySelectorAll('.ai-tag-check:checked').forEach(cb => {
                     selectedTags.push({ id: cb.value, name: cb.dataset.name });
                 });
-                _applyTaxonomyToSelects(selectedCats, selectedTags);
-                resultsDiv.style.display = 'none';
-                resultsDiv.innerHTML = '';
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'success', title: 'Taxonomía aplicada', text: 'Las categorías y tags se han seleccionado.', timer: 2000, showConfirmButton: false });
+                if (selectedCats.length === 0 && selectedTags.length === 0) {
+                    Swal.showValidationMessage('Selecciona al menos una categoría o tag');
+                    return false;
                 }
-            });
-
-            document.getElementById('btn-cancel-ai-taxonomy').addEventListener('click', function() {
-                resultsDiv.style.display = 'none';
-                resultsDiv.innerHTML = '';
-            });
-
-        } catch (error) {
-            console.error('Error AI Taxonomy:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire('Error', error.message || 'No se pudo generar la taxonomía con IA.', 'error');
-            } else {
-                alert('Error: ' + (error.message || 'No se pudo generar la taxonomía'));
+                return { categories: selectedCats, tags: selectedTags };
             }
-        } finally {
+        }).then((swalResult) => {
             btnAiTaxonomy.disabled = false;
             btnAiTaxonomy.innerHTML = originalHTML;
-        }
+
+            if (swalResult.isConfirmed && swalResult.value) {
+                _applyTaxonomyToSelects(swalResult.value.categories, swalResult.value.tags);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Taxonomía aplicada',
+                    text: `${swalResult.value.categories.length} categorías y ${swalResult.value.tags.length} tags añadidos.`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+        });
     });
 })();
 
@@ -186,12 +275,12 @@ function _applyTaxonomyToSelects(categories, tags) {
             html: `
                 <div class="text-start">
                     <div class="mb-3">
-                        <label class="form-label fw-semibold small">Categorías <small class="text-muted">(una por línea)</small></label>
-                        <textarea id="swal-paste-categories" class="form-control form-control-sm" rows="4" placeholder="Modelos de lenguaje&#10;Investigación IA&#10;Open Source&#10;Análisis técnico"></textarea>
+                        <label class="form-label fw-semibold small">Categorías <small class="text-muted">(una por línea o separadas por comas)</small></label>
+                        <textarea id="swal-paste-categories" class="form-control form-control-sm" rows="4" placeholder="Modelos de lenguaje, Investigación IA, Open Source&#10;o una por línea"></textarea>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label fw-semibold small">Tags <small class="text-muted">(una por línea)</small></label>
-                        <textarea id="swal-paste-tags" class="form-control form-control-sm" rows="6" placeholder="Fast-dLLM&#10;NVIDIA Research&#10;LLM Difusión&#10;Qwen2.5&#10;Open Source LLM"></textarea>
+                        <label class="form-label fw-semibold small">Tags <small class="text-muted">(uno por línea o separados por comas)</small></label>
+                        <textarea id="swal-paste-tags" class="form-control form-control-sm" rows="6" placeholder="Fast-dLLM, NVIDIA Research, LLM Difusión, Qwen2.5, Open Source LLM"></textarea>
                     </div>
                     <small class="text-muted">Si no existen, se crearán automáticamente. No se crearán duplicados.</small>
                 </div>
@@ -212,7 +301,8 @@ function _applyTaxonomyToSelects(categories, tags) {
                     return false;
                 }
 
-                const parseLines = (text) => text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                // Acepta líneas y/o comas como separador
+                const parseLines = (text) => text.split(/[\n,]/).map(l => l.trim()).filter(l => l.length > 0);
 
                 return {
                     categories: parseLines(catText),

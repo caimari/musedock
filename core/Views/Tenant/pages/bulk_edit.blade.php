@@ -1,9 +1,9 @@
 @extends('layouts.app')
-@section('title', 'Edición en lote')
+@section('title', __('pages.bulk_edit_title'))
 @section('content')
 <div class="app-content">
   <div class="container">
-    <h2 class="mb-4">Edición en lote</h2>
+    <h2 class="mb-4">{{ __('pages.bulk_edit_title') }}</h2>
     
     <form method="POST" action="{{ route('tenant.pages.bulk.update') }}">
       {!! csrf_field() !!}
@@ -13,49 +13,49 @@
       @endforeach
       
       <div class="card mb-4">
-        <div class="card-header">Opciones comunes</div>
+        <div class="card-header">{{ __('pages.bulk_common_options') }}</div>
         <div class="card-body">
           <div class="mb-3">
-            <label class="form-label">Estado</label>
+            <label class="form-label">{{ __('pages.status') }}</label>
             <select name="status" class="form-select">
-              <option value="">— No cambiar —</option>
-              <option value="published">Publicado</option>
-              <option value="draft">Borrador</option>
+              <option value="">{{ __('pages.bulk_no_change') }}</option>
+              <option value="published">{{ __('pages.published') }}</option>
+              <option value="draft">{{ __('pages.draft') }}</option>
             </select>
           </div>
           
           <div class="mb-3">
-            <label class="form-label">Visibilidad</label>
+            <label class="form-label">{{ __('pages.visibility') }}</label>
             <select name="visibility" class="form-select">
-              <option value="">— No cambiar —</option>
-              <option value="public">Público - Todos los visitantes</option>
-              <option value="private">Privado - Solo el creador</option>
-              <option value="members">Miembros - Usuarios registrados</option>
+              <option value="">{{ __('pages.bulk_no_change') }}</option>
+              <option value="public">{{ __('pages.visibility_public') }}</option>
+              <option value="private">{{ __('pages.visibility_private') }}</option>
+              <option value="members">{{ __('pages.visibility_members') }}</option>
             </select>
-            <small class="form-text text-muted">Controla quién puede ver estas páginas.</small>
+            <small class="form-text text-muted">{{ __('pages.visibility_help') }}</small>
           </div>
           
           <div class="mb-3">
-            <label class="form-label">Fecha de publicación</label>
+            <label class="form-label">{{ __('pages.publish_date') }}</label>
             <input type="datetime-local" name="published_at" class="form-control">
-            <small class="form-text text-muted">Dejar en blanco para no modificar.</small>
+            <small class="form-text text-muted">{{ __('pages.bulk_leave_empty_no_change') }}</small>
           </div>
         </div>
       </div>
       
       <div class="card mb-4">
-        <div class="card-header">Páginas seleccionadas ({{ count($selectedPages) }})</div>
+        <div class="card-header">{{ __('pages.bulk_selected_pages', ['count' => count($selectedPages)]) }}</div>
         <div class="card-body p-0">
           <div class="table-responsive">
             <table class="table table-striped mb-0">
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Título</th>
-                  <th>Estado actual</th>
-                  <th>Visibilidad</th>
-                  <th>Fecha publicación</th>
-                  <th>Actualizado</th>
+                  <th>{{ __('pages.title_field') }}</th>
+                  <th>{{ __('pages.bulk_current_status') }}</th>
+                  <th>{{ __('pages.visibility') }}</th>
+                  <th>{{ __('pages.publish_date') }}</th>
+                  <th>{{ __('pages.updated_at') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -69,18 +69,18 @@
                   </td>
                   <td>
                     @if($page->status === 'published')
-                      <span class="badge bg-success">Publicada</span>
+                      <span class="badge bg-success">{{ __('pages.published') }}</span>
                     @else
-                      <span class="badge bg-secondary">Borrador</span>
+                      <span class="badge bg-secondary">{{ __('pages.draft') }}</span>
                     @endif
                   </td>
                   <td>
                     @if($page->visibility === 'private')
-                      <span class="badge bg-danger">Privada</span>
+                      <span class="badge bg-danger">{{ __('pages.private') }}</span>
                     @elseif($page->visibility === 'members')
-                      <span class="badge bg-info">Miembros</span>
+                      <span class="badge bg-info">{{ __('pages.members') }}</span>
                     @else
-                      <span class="badge bg-light text-dark">Pública</span>
+                      <span class="badge bg-light text-dark">{{ __('pages.public') }}</span>
                     @endif
                   </td>
                   <td>
@@ -91,7 +91,7 @@
                         {{ $page->published_at->format('d/m/Y H:i') }}
                       @endif
                     @else
-                      <span class="text-muted">No definida</span>
+                      <span class="text-muted">{{ __('pages.bulk_not_defined') }}</span>
                     @endif
                   </td>
                   <td>
@@ -113,10 +113,10 @@
       
       <div class="d-flex justify-content-between">
         <button type="submit" class="btn btn-primary">
-          <i class="fas fa-save me-1"></i> Aplicar cambios a todas
+          <i class="fas fa-save me-1"></i> {{ __('pages.bulk_apply_all_changes') }}
         </button>
         <a href="{{ route('tenant.pages.index') }}" class="btn btn-secondary">
-          <i class="fas fa-times me-1"></i> Cancelar
+          <i class="fas fa-times me-1"></i> {{ __('common.cancel') }}
         </a>
       </div>
     </form>

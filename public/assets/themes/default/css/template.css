@@ -409,12 +409,14 @@ article p {
   line-height: var(--content-line-height, 1.7);
 }
 
-/* Eliminar párrafos vacíos completamente */
+/* Párrafos vacíos: preservar como salto de línea visible
+   (antes se ocultaban con display:none lo cual eliminaba saltos que el usuario añadía en el editor) */
 .page-content p:empty,
 .page-body p:empty,
 .content p:empty,
 article p:empty {
-  display: none !important;
+  min-height: 1.5em;
+  margin-bottom: 1rem;
 }
 
 /* === H2 - Títulos principales === */

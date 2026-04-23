@@ -191,8 +191,96 @@
 
                 {{-- Contenido --}}
                 <div class="post-content page-body">
-                    {!! $post->content !!}
+                    {!! \Screenart\Musedock\Helpers\AdHelper::injectInArticle($post->content, tenant_id()) !!}
                 </div>
+
+                {{-- Comentarios --}}
+                @if($post->allow_comments)
+                <div id="comments" class="mt-5 pt-4 border-top">
+                    <h3 class="mb-4">{{ __('blog.comments') }} ({{ (int)($commentsCount ?? 0) }})</h3>
+
+                    @if (session('success'))
+                        <div class="alert alert-success">{{ session('success') }}</div>
+                    @endif
+                    @if (session('error'))
+                        <div class="alert alert-danger">{{ session('error') }}</div>
+                    @endif
+
+                    @if(!empty($comments) && count($comments) > 0)
+                        <div class="d-flex flex-column gap-3 mb-4">
+                            @foreach($comments as $comment)
+                                @php
+                                    $commentDate = $comment->created_at ?? null;
+                                    $commentDateStr = $commentDate ? date('d/m/Y H:i', strtotime((string)$commentDate)) : '';
+                                @endphp
+                                <article class="p-3 border rounded bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <strong>{{ e($comment->author_name ?? 'Anónimo') }}</strong>
+                                        <small class="text-muted">{{ $commentDateStr }}</small>
+                                    </div>
+                                    <div style="white-space: pre-wrap;">{!! nl2br(e($comment->content ?? '')) !!}</div>
+                                </article>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-muted">{{ __('blog.no_comments') }}</p>
+                    @endif
+
+                    <div class="mt-4">
+                        <h4 class="h5 mb-3">{{ __('blog.leave_comment') }}</h4>
+                        <form method="POST" action="/blog/comments" class="row g-3">
+                            @csrf
+                            <input type="hidden" name="post_id" value="{{ (int)$post->id }}">
+                            <div style="position:absolute;left:-9999px;" aria-hidden="true">
+                                <input type="text" name="_comment_hp" tabindex="-1" autocomplete="off">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">{{ __('blog.comment_name') }}</label>
+                                <input type="text" name="author_name" class="form-control" maxlength="120" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ __('blog.comment_email') }}</label>
+                                <input type="email" name="author_email" class="form-control" maxlength="190" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">{{ __('blog.comment_website_optional') }}</label>
+                                <input type="url" name="author_url" class="form-control" maxlength="500" placeholder="https://">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">{{ __('blog.your_comment') }}</label>
+                                <textarea name="content" rows="5" class="form-control" maxlength="3000" required></textarea>
+                            </div>
+                            @if(!empty($commentsCaptchaRequired))
+                            <div class="col-12">
+                                <label class="form-label">{{ __('blog.captcha') }}</label>
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <img src="/blog/comments/captcha?t={{ time() }}" alt="{{ __('blog.captcha') }}" class="border rounded" style="height: 60px;" id="blogCommentCaptchaImage">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="blogCommentCaptchaRefresh">{{ __('blog.captcha_refresh') }}</button>
+                                </div>
+                                <input type="text" name="comment_captcha" class="form-control mt-2" maxlength="10" required autocomplete="off">
+                                <small class="text-muted">{{ __('blog.captcha_help') }}</small>
+                            </div>
+                            @endif
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="1" id="comment_legal_accept" name="comment_legal_accept" required>
+                                    <label class="form-check-label" for="comment_legal_accept">
+                                        {!! __('blog.comment_legal_consent', [
+                                            'privacy_url' => e($commentsPrivacyUrl ?? page_url('privacy')),
+                                            'terms_url' => e($commentsTermsUrl ?? page_url('terms-and-conditions')),
+                                        ]) !!}
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block mt-1">{{ __('blog.comment_email_privacy_notice') }}</small>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">{{ __('blog.post_comment') }}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                @endif
 
                 {{-- Categorías y etiquetas --}}
                 @if(!empty($post->categories) || !empty($post->tags))
@@ -396,6 +484,14 @@
             document.addEventListener('DOMContentLoaded', function() {
                 var container = document.querySelector('.post-content');
                 if (!container) return;
+
+                var captchaRefresh = document.getElementById('blogCommentCaptchaRefresh');
+                var captchaImage = document.getElementById('blogCommentCaptchaImage');
+                if (captchaRefresh && captchaImage) {
+                    captchaRefresh.addEventListener('click', function() {
+                        captchaImage.src = '/blog/comments/captcha?t=' + new Date().getTime();
+                    });
+                }
 
                 // 0. Clean ChatGPT pasted code blocks (CodeMirror divs with token classes)
                 container.querySelectorAll('.cm-content, [id="code-block-viewer"]').forEach(function(cm) {

@@ -88,10 +88,10 @@ if (!function_exists('apply_instagram_shortcodes')) {
 if (function_exists('register_module_admin_menu')) {
     register_module_admin_menu([
         'module_slug' => 'instagram-gallery',
-        'menu_slug' => 'instagram-gallery',
-        'title' => 'Instagram Gallery',
-        'superadmin_url' => '/musedock/instagram',
-        'tenant_url' => '{admin_path}/instagram',
+        'menu_slug' => 'social-publisher',
+        'title' => 'Social Publisher',
+        'superadmin_url' => '/musedock/social-publisher',
+        'tenant_url' => '{admin_path}/social-publisher',
         'parent_slug' => 'modules',
         'icon' => 'bi-instagram',
         'icon_type' => 'bi',

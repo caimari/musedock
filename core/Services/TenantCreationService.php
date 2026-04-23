@@ -842,6 +842,12 @@ class TenantCreationService
             'blog_url_prefix' => 'blog',
             'posts_per_page'  => '9',   // 9 posts = grid simétrico (3x3)
             'posts_per_rss'   => '10',
+            // Moderación estilo WordPress: autoaprobar solo autores ya aprobados
+            'blog_comments_approval_mode' => 'trusted_authors',
+            // Heurísticas anti-spam por defecto
+            'blog_comments_spam_links_threshold' => '3',
+            'blog_comments_captcha_enabled' => '0',
+            'blog_comments_captcha_spam_threshold' => '5',
         ];
 
         foreach ($defaults as $key => $value) {

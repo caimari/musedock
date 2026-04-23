@@ -3,6 +3,7 @@
     @include('blog.layouts._blog-header-ticker', ['tickerPosition' => 'top'])
 
     @foreach($posts as $post)
+    {!! render_ad_slot('in-feed', ['index' => $loop->index]) !!}
     @php $isBrief = (($post->post_type ?? 'post') === 'brief'); @endphp
     <article class="row mb-4 pb-4 {{ !$loop->last ? 'border-bottom' : '' }}">
         @if(!$isBrief)

@@ -22,7 +22,7 @@
 @section('content')
 @php
     $blogLayout = themeOption('blog.blog_layout', 'grid');
-    $allowedLayouts = ['grid', 'list', 'magazine', 'minimal', 'newspaper', 'fashion'];
+    $allowedLayouts = ['grid', 'list', 'magazine', 'minimal', 'newspaper', 'fashion', 'mosaic'];
     if (!in_array($blogLayout, $allowedLayouts)) {
         $blogLayout = 'grid';
     }
@@ -97,4 +97,8 @@
     ])
     @endif
 </div>
+
+{{-- Plugin hook: after blog posts, before footer --}}
+@php if (function_exists('do_action')) { do_action('home_after_posts'); } @endphp
+
 @endsection

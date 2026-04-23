@@ -114,6 +114,7 @@
   .tox-collection__item-label h4 { font-size: 1em !important; margin: 0 !important; }
   .tox-collection__item-label h5 { font-size: 0.83em !important; margin: 0 !important; }
   .tox-collection__item-label h6 { font-size: 0.67em !important; margin: 0 !important; }
+
 </style>
 
 @php
@@ -177,18 +178,35 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         if (tinymceContainer) {
             tinymceContainer.style.display = 'block';
             tinymceContainer.style.visibility = 'visible';
+
+            // Si TinyMCE cargó correctamente, ocultar el textarea fallback y error msg
+            const textarea = document.getElementById('content-editor');
+            if (textarea) {
+                textarea.style.cssText = '';
+                textarea.style.display = 'none';
+            }
+            const errorMsg = document.getElementById('tinymce-error-msg');
+            if (errorMsg) {
+                errorMsg.remove();
+            }
         }
     }
 
     // Función para mostrar el textarea como fallback
+    let fallbackActive = false;
     function showTextareaFallback(showError = false) {
+        // Si TinyMCE ya cargó mientras esperábamos, no mostrar fallback
+        if (typeof tinymce !== 'undefined' && tinymce.get('content-editor')) {
+            hideSkeleton();
+            return;
+        }
+        fallbackActive = true;
         hideSkeleton();
         const textarea = document.getElementById('content-editor');
         if (textarea) {
             textarea.style.cssText = 'display: block !important; width: 100%; height: 400px; min-height: 400px; padding: 15px; border: 1px solid #ced4da; border-radius: 0.25rem; font-family: monospace;';
 
             if (showError) {
-                // Agregar un mensaje sobre el error si no existe ya
                 if (!document.getElementById('tinymce-error-msg')) {
                     const errorDiv = document.createElement('div');
                     errorDiv.id = 'tinymce-error-msg';
@@ -200,13 +218,13 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         }
     }
 
-    // Timeout de seguridad: si TinyMCE no carga en 10 segundos, mostrar textarea
+    // Timeout de seguridad: si TinyMCE no carga en 30 segundos, mostrar textarea
     const safetyTimeout = setTimeout(function() {
-        console.warn('TinyMCE no cargó en 10 segundos. Mostrando textarea como fallback.');
+        console.warn('TinyMCE no cargó en 30 segundos. Mostrando textarea como fallback.');
         if (typeof tinymce === 'undefined' || !tinymce.get('content-editor')) {
             showTextareaFallback(true);
         }
-    }, 10000);
+    }, 30000);
 
     // Verificar si TinyMCE está disponible
     if (typeof tinymce === 'undefined') {
@@ -236,7 +254,8 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
         height: 600,
         menubar: true,
         license_key: 'gpl',
-        
+
+
         // --- Configuración generada ---
         plugins: '{{ $pluginsString }}',
         toolbar: <?php echo json_encode($tinymce_toolbar_lines, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
@@ -602,10 +621,18 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
             function deepCleanOrphanElements(doc) {
                 if (!doc) return;
 
-                // 1. Eliminar cualquier elemento con data-mce-selected que no tenga imagen
+                // 1. Eliminar SOLO wrappers de imagen huérfanos con data-mce-selected.
+                //    IMPORTANTE: antes se eliminaba CUALQUIER elemento con data-mce-selected
+                //    sin imagen dentro, lo que borraba <li>, <p>, <a> con texto cuando el
+                //    cursor estaba ahí al hacer save (BeforeGetContent). Ahora se limita
+                //    a wrappers típicos de imagen que realmente quedan huérfanos.
+                const SAFE_WRAPPER_TAGS = ['FIGURE', 'PICTURE'];
                 const selectedElements = doc.querySelectorAll('[data-mce-selected]');
                 selectedElements.forEach(el => {
-                    if (!el.querySelector('img') && el.nodeName !== 'IMG') {
+                    if (!SAFE_WRAPPER_TAGS.includes(el.nodeName)) return;
+                    const hasImg = !!el.querySelector('img');
+                    const hasText = (el.textContent || '').replace(/[\uFEFF\u200B]/g, '').trim().length > 0;
+                    if (!hasImg && !hasText) {
                         el.remove();
                     }
                 });
@@ -618,20 +645,37 @@ $contextmenuString = implode(' ', $tinymce_context_menu_items);
                     }
                 });
 
-                // 3. Eliminar enlaces vacíos (no solo lightbox)
+                // Helper: texto limpio ignorando marcadores invisibles de TinyMCE
+                const cleanText = (el) => (el.textContent || '')
+                    .replace(/[\uFEFF\u200B]/g, '')
+                    .trim();
+
+                // 3. Eliminar enlaces realmente vacíos (sin hijos)
                 const emptyLinks = doc.querySelectorAll('a:empty');
                 emptyLinks.forEach(a => a.remove());
 
-                // 4. Eliminar enlaces que solo tienen un br o whitespace
+                // 4. Limpiar enlaces sin contenido útil.
+                //    IMPORTANTE: si tiene hijos pero no texto real, UNWRAP en vez de
+                //    REMOVE para no perder contenido. Saltamos anchors internos del TOC.
                 const allLinks = doc.querySelectorAll('a');
                 allLinks.forEach(a => {
+                    const href = a.getAttribute('href') || '';
+                    if (href.startsWith('#')) return;
+
                     const hasImg = !!a.querySelector('img');
-                    const hasText = a.textContent.trim().length > 0;
+                    const hasText = cleanText(a).length > 0;
                     const hasOnlyBr = a.children.length === 1 && a.children[0].nodeName === 'BR';
-                    if (!hasImg && !hasText) {
+
+                    if (hasImg || hasText) return;
+
+                    if (a.childNodes.length === 0 || hasOnlyBr) {
                         a.remove();
-                    } else if (!hasImg && hasOnlyBr) {
-                        a.remove();
+                    } else {
+                        const parent = a.parentNode;
+                        if (parent) {
+                            while (a.firstChild) parent.insertBefore(a.firstChild, a);
+                            parent.removeChild(a);
+                        }
                     }
                 });
 

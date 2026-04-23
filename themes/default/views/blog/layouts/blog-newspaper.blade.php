@@ -92,27 +92,31 @@
             @endphp
             <article class="newspaper-featured {{ $__newspaperOverlay ? 'newspaper-overlay' : '' }}">
                 @if($__newspaperOverlay)
-                <a href="{{ blog_url($featured->slug) }}" class="newspaper-overlay-wrap d-block overflow-hidden rounded" style="height: 400px; background-color: #f0f2f5;">
-                    <img src="{{ $featuredImg }}" alt="{{ $featured->title }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
+                <div class="newspaper-overlay-wrap d-block overflow-hidden rounded" style="height: 400px; background-color: #f0f2f5;">
+                    <a href="{{ blog_url($featured->slug) }}" class="newspaper-overlay-link">
+                        <img src="{{ $featuredImg }}" alt="{{ $featured->title }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
+                    </a>
                     <div class="newspaper-overlay-content">
                         @if(!empty($__featCats))
                         <div class="newspaper-overlay-cats">
                             @foreach($__featCats as $cat)
-                                <span class="newspaper-overlay-cat">{{ $cat->name }}</span>
+                                <a href="{{ blog_url($cat->slug, 'category') }}" class="newspaper-overlay-cat">{{ $cat->name }}</a>
                             @endforeach
                         </div>
                         @endif
-                        <h2>{{ $featured->title }}</h2>
-                        <p class="newspaper-overlay-excerpt">{{ $__excerpt }}</p>
-                        <div class="newspaper-overlay-meta">
-                            @if($postAuthorName)<span>{{ $postAuthorName }}</span>@endif
-                            <span>{{ $dateStr }}</span>
-                        </div>
+                        <a href="{{ blog_url($featured->slug) }}" class="newspaper-overlay-title-link">
+                            <h2>{{ $featured->title }}</h2>
+                            <p class="newspaper-overlay-excerpt">{{ $__excerpt }}</p>
+                            <div class="newspaper-overlay-meta">
+                                @if($postAuthorName)<span>{{ $postAuthorName }}</span>@endif
+                                <span>{{ $dateStr }}</span>
+                            </div>
+                        </a>
                     </div>
-                </a>
+                </div>
                 @else
-                <a href="{{ blog_url($featured->slug) }}" class="d-block overflow-hidden rounded" style="height: 400px; background-color: #f0f2f5;">
-                    <img src="{{ $featuredImg }}" alt="{{ $featured->title }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
+                <a href="{{ blog_url($featured->slug) }}" class="d-block overflow-hidden rounded newspaper-hero-img-wrap" style="max-height: 400px; background-color: #f0f2f5;">
+                    <img src="{{ $featuredImg }}" alt="{{ $featured->title }}" loading="lazy" style="width: 100%; height: auto; display: block;">
                 </a>
                 <div style="padding-top: 10px;">
                     <div class="post-meta mb-1 text-muted small">
@@ -121,7 +125,7 @@
                         <span class="ms-2"><i class="far fa-user"></i> @if($postAuthorUrl)<a href="{{ $postAuthorUrl }}" class="text-muted">{{ $postAuthorName }}</a>@else{{ $postAuthorName }}@endif</span>
                         @endif
                     </div>
-                    <h2 class="mb-1" style="line-height: 1.25; margin-top: 0; font-size: 1.5rem;">
+                    <h2 class="mb-1" style="line-height: 1.25; margin-top: 15px !important; font-size: 1.5rem;">
                         <a href="{{ blog_url($featured->slug) }}" class="text-decoration-none text-dark">{{ $featured->title }}</a>
                     </h2>
                     <p class="text-muted mb-0" style="font-size: 0.9rem; line-height: 1.5;">{{ $__excerpt }}</p>
@@ -190,28 +194,32 @@
                         }
                     }
                 @endphp
-                <article class="newspaper-side mb-3 flex-fill {{ $__newspaperOverlay ? 'newspaper-overlay' : '' }}">
+                <article class="newspaper-side flex-fill {{ $__newspaperOverlay ? 'newspaper-overlay' : 'mb-3' }}">
                     @if($__newspaperOverlay)
-                    <a href="{{ blog_url($sidePost->slug) }}" class="newspaper-overlay-wrap d-block overflow-hidden rounded" style="height: 190px; background-color: #f0f2f5;">
-                        <img src="{{ $sideImg }}" alt="{{ $sidePost->title }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
+                    <div class="newspaper-overlay-wrap d-block overflow-hidden rounded" style="height: 100%; min-height: 190px; background-color: #f0f2f5;">
+                        <a href="{{ blog_url($sidePost->slug) }}" class="newspaper-overlay-link">
+                            <img src="{{ $sideImg }}" alt="{{ $sidePost->title }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
+                        </a>
                         <div class="newspaper-overlay-content">
                             @if(!empty($__sideCats))
-                            <div class="newspaper-overlay-cats mb-1">
+                            <div class="newspaper-overlay-cats">
                                 @foreach($__sideCats as $cat)
-                                    <span class="newspaper-overlay-cat">{{ $cat->name }}</span>
+                                    <a href="{{ blog_url($cat->slug, 'category') }}" class="newspaper-overlay-cat">{{ $cat->name }}</a>
                                 @endforeach
                             </div>
                             @endif
-                            <h3>{{ $sidePost->title }}</h3>
-                            <div class="newspaper-overlay-meta">
-                                @if($sideAuthorName)<span>{{ $sideAuthorName }}</span>@endif
-                                <span>{{ $sideDateStr }}</span>
-                            </div>
+                            <a href="{{ blog_url($sidePost->slug) }}" class="newspaper-overlay-title-link">
+                                <h3>{{ $sidePost->title }}</h3>
+                                <div class="newspaper-overlay-meta">
+                                    @if($sideAuthorName)<span>{{ $sideAuthorName }}</span>@endif
+                                    <span>{{ $sideDateStr }}</span>
+                                </div>
+                            </a>
                         </div>
-                    </a>
+                    </div>
                     @else
-                    <a href="{{ blog_url($sidePost->slug) }}" class="d-block overflow-hidden rounded" style="height: 190px; background-color: #f0f2f5;">
-                        <img src="{{ $sideImg }}" alt="{{ $sidePost->title }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
+                    <a href="{{ blog_url($sidePost->slug) }}" class="d-block overflow-hidden rounded newspaper-side-img-wrap" style="max-height: 190px; background-color: #f0f2f5;">
+                        <img src="{{ $sideImg }}" alt="{{ $sidePost->title }}" loading="lazy" style="width: 100%; height: auto; display: block;">
                     </a>
                     <div style="padding-top: 6px;">
                         <div class="post-meta mb-1 text-muted small">
@@ -220,7 +228,7 @@
                             <span class="ms-2"><i class="far fa-user"></i> @if($sideAuthorUrl)<a href="{{ $sideAuthorUrl }}" class="text-muted">{{ $sideAuthorName }}</a>@else{{ $sideAuthorName }}@endif</span>
                             @endif
                         </div>
-                        <h3 class="mb-1" style="line-height: 1.25; margin-top: 0; font-size: 1rem;">
+                        <h3 class="mb-1" style="line-height: 1.25; margin-top: 15px !important; font-size: 1rem;">
                             <a href="{{ blog_url($sidePost->slug) }}" class="text-decoration-none text-dark">{{ $sidePost->title }}</a>
                         </h3>
                         @php
@@ -241,12 +249,13 @@
     @if(count($rest) > 0)
     <hr style="border-top: 1px solid #ddd; margin: 1.5rem 0;">
     @foreach($rest as $post)
+    {!! render_ad_slot('in-feed', ['index' => $loop->index]) !!}
     @php $post = is_object($post) ? $post : (object)$post; @endphp
     @php $isBrief = (($post->post_type ?? 'post') === 'brief'); @endphp
-    <article class="row mb-4 pb-4 {{ !$loop->last ? 'border-bottom' : '' }}">
+    <article class="row {{ $loop->last ? '' : 'mb-4 pb-4 border-bottom' }}">
         @if(!$isBrief)
-        <div class="col-md-4 mb-3 mb-md-0">
-            <a href="{{ blog_url($post->slug) }}" class="d-block overflow-hidden rounded" style="height: 200px; background-color: #f0f2f5;">
+        <div class="col-md-4 mb-3 mb-md-0 d-flex flex-column">
+            <a href="{{ blog_url($post->slug) }}" class="d-block overflow-hidden rounded newspaper-list-img-wrap" style="background-color: #f0f2f5;">
                 @php
                     if ($post->featured_image && !($post->hide_featured_image ?? false)) {
                         $imageUrl = (str_starts_with($post->featured_image, '/') || str_starts_with($post->featured_image, 'http'))
@@ -257,8 +266,24 @@
                     }
                     $imageUrl = media_thumb_url($imageUrl, 'medium');
                 @endphp
-                <img src="{{ $imageUrl }}" alt="{{ $post->title }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
+                <img src="{{ $imageUrl }}" alt="{{ $post->title }}" loading="lazy" style="width: 100%; height: auto; display: block;">
             </a>
+            @php
+                // Cargar categorías si no están disponibles
+                $__listCats = !empty($post->categories) ? (array)$post->categories : [];
+                if (empty($__listCats) && !empty($post->id)) {
+                    $__pdo = $__pdo ?? \Screenart\Musedock\Database::connect();
+                    $__catStmt = $__pdo->prepare("SELECT c.name, c.slug, c.color FROM blog_categories c INNER JOIN blog_post_categories pc ON pc.category_id = c.id WHERE pc.post_id = ?");
+                    $__catStmt->execute([$post->id]);
+                    $__listCats = $__catStmt->fetchAll(\PDO::FETCH_OBJ);
+                }
+                if (count($__listCats) > 2) {
+                    shuffle($__listCats);
+                    $__listCats = array_slice($__listCats, 0, 2);
+                }
+                $post->categories = $__listCats;
+            @endphp
+            @include('blog.layouts._taxonomy-chips', ['post' => $post, '__maxChips' => 2])
         </div>
         @endif
         <div class="{{ $isBrief ? 'col-12' : 'col-md-8' }} d-flex flex-column">
@@ -302,11 +327,9 @@
                 @endif
             </div>
 
-            <h2 class="h5 mb-1" style="line-height: 1.3; margin-top: 0;">
+            <h2 class="h5 mb-1" style="line-height: 1.3; margin-top: 4px !important;">
                 <a href="{{ blog_url($post->slug) }}" class="text-decoration-none text-dark">{{ $post->title }}</a>
             </h2>
-
-            @include('blog.layouts._taxonomy-chips', ['post' => $post])
             @php
                 $__excerpt = $post->excerpt ?: strip_tags($post->content ?? '');
                 $__excerpt = trim(preg_replace('/\s+/', ' ', $__excerpt));
@@ -314,7 +337,7 @@
             @endphp
             <p class="text-muted mb-0 flex-grow-1">{{ $__excerpt }}</p>
 
-            <div class="mt-2">
+            <div class="mt-3">
                 <a href="{{ blog_url($post->slug) }}" class="btn-read-more">{{ __('blog.read_more') }}</a>
             </div>
         </div>
@@ -339,8 +362,13 @@
 .newspaper-overlay-wrap {
     position: relative;
     display: block;
-    text-decoration: none !important;
     color: #fff !important;
+}
+.newspaper-overlay-link {
+    display: block;
+    width: 100%;
+    height: 100%;
+    text-decoration: none !important;
 }
 .newspaper-overlay-wrap img {
     transition: transform 0.3s ease;
@@ -355,6 +383,30 @@
     background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.25) 50%, transparent 100%);
     border-radius: inherit;
     pointer-events: none;
+}
+.newspaper-overlay-title-link,
+.newspaper-overlay-title-link:visited,
+.newspaper-overlay-title-link:hover,
+.newspaper-overlay-title-link:active {
+    text-decoration: none !important;
+    color: #fff !important;
+    display: block;
+}
+.newspaper-overlay-cat,
+.newspaper-overlay-cat:visited,
+.newspaper-overlay-cat:hover,
+.newspaper-overlay-cat:active {
+    color: #fff !important;
+    text-decoration: none !important;
+}
+.newspaper-overlay-content h2,
+.newspaper-overlay-content h3,
+.newspaper-overlay-content p,
+.newspaper-overlay-content span {
+    color: #fff !important;
+}
+.newspaper-overlay-content a:visited {
+    color: #fff !important;
 }
 .newspaper-overlay-content {
     position: absolute;
@@ -371,6 +423,7 @@
     gap: 6px;
     overflow: hidden;
     max-width: 100%;
+    margin-bottom: 10px !important;
 }
 .newspaper-overlay-cat {
     display: inline-block;
@@ -383,12 +436,22 @@
     letter-spacing: 0.02em;
     white-space: nowrap;
     flex-shrink: 0;
+    text-decoration: none;
+    position: relative;
+    z-index: 3;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+.newspaper-overlay-cat:hover {
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    text-decoration: none;
 }
 .newspaper-featured.newspaper-overlay .newspaper-overlay-content h2 {
     color: #fff;
     font-size: 1.6rem;
     line-height: 1.25;
-    margin: 2px 0 6px;
+    margin: 0 0 6px !important;
     text-shadow: 0 1px 4px rgba(0,0,0,0.4);
 }
 .newspaper-overlay-excerpt {
@@ -406,7 +469,7 @@
     color: #fff;
     font-size: 1rem;
     line-height: 1.25;
-    margin: 2px 0 4px;
+    margin: 0 0 4px !important;
     text-shadow: 0 1px 4px rgba(0,0,0,0.4);
 }
 .newspaper-overlay-meta {
@@ -426,5 +489,87 @@
 }
 .newspaper-side .newspaper-overlay-content {
     padding: 12px 16px;
+}
+/* Simetría side cards: misma altura, distribución equitativa */
+.col-md-4.d-flex.flex-column:has(.newspaper-overlay) {
+    gap: 12px !important;
+}
+.newspaper-side.newspaper-overlay.flex-fill {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    margin-bottom: 0 !important;
+}
+.newspaper-side.newspaper-overlay .newspaper-overlay-wrap {
+    height: 100% !important;
+    min-height: 190px;
+}
+/* Truncar título a 2 líneas en side cards para simetría */
+.newspaper-side.newspaper-overlay .newspaper-overlay-content h3 {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+}
+/* Side cards cats: separación proporcional */
+.newspaper-side .newspaper-overlay-cats {
+    margin-bottom: 8px !important;
+}
+/* Links del listado: sin color visitado morado */
+article.row h2 a,
+article.row h2 a:visited {
+    color: #1a1a1a !important;
+    text-decoration: none !important;
+}
+article.row h2 a:hover {
+    color: #333 !important;
+}
+/* Cards principales (no-overlay): imagen centrada sin crop */
+.newspaper-hero-img-wrap,
+.newspaper-side-img-wrap {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.newspaper-hero-img-wrap img,
+.newspaper-side-img-wrap img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    object-position: center;
+}
+/* Cards horizontales del listado: imagen centrada sin crop */
+.newspaper-list-img-wrap {
+    max-height: 200px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.newspaper-list-img-wrap img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    object-position: center;
+}
+/* Taxonomy chips debajo de imagen en cards secundarias: estilo overlay */
+article.row > .col-md-4 > .post-taxonomy-chips {
+    margin-top: 16px;
+    margin-bottom: 0;
+}
+article.row > .col-md-4 > .post-taxonomy-chips .tx-chip {
+    background: rgba(0,0,0,0.55) !important;
+    color: #fff !important;
+    border: none !important;
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    transition: background 0.2s ease;
+}
+article.row > .col-md-4 > .post-taxonomy-chips .tx-chip:hover {
+    background: rgba(0,0,0,0.75) !important;
+    color: #fff !important;
 }
 </style>

@@ -4,6 +4,7 @@
     @include('blog.layouts._blog-header-ticker', ['tickerPosition' => 'top'])
 
     @foreach($posts as $post)
+    {!! render_ad_slot('in-feed', ['index' => $loop->index]) !!}
     <article class="mb-4 pb-4 {{ !$loop->last ? 'border-bottom' : '' }}">
         <div class="text-muted small mb-1">
             @php

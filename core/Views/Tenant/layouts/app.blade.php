@@ -15,19 +15,37 @@
 	  <link rel="stylesheet" href="/assets/vendor/bootstrap-icons/bootstrap-icons.min.css">
 	  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 	  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-	  <!-- Sistema de Tickets CSS -->
-  @if(setting('multi_tenant_enabled', config('multi_tenant_enabled', false)))
-  <link href="/assets/superadmin/css/tickets.css" rel="stylesheet">
-  @endif
+		  @php
+		    $__envMultiTenantEnabled = \Screenart\Musedock\Env::get('MULTI_TENANT_ENABLED', null);
+		    $__multiTenantEnabled = $__envMultiTenantEnabled !== null
+		      ? (bool)$__envMultiTenantEnabled
+		      : (bool)setting('multi_tenant_enabled', config('multi_tenant_enabled', false));
+		  @endphp
+		  <!-- Sistema de Tickets CSS -->
+	  @if($__multiTenantEnabled)
+	  <link href="/assets/superadmin/css/tickets.css" rel="stylesheet">
+	  @endif
   
   <style>
-      html, body { overflow-x: hidden !important; }
-      body { min-height: 100vh; overflow-y: auto !important; }
-      .wrapper { display: flex !important; width: 100%; min-height: 100vh; align-items: stretch; }
+      html, body {
+          height: 100%;
+          margin: 0;
+      }
+      .wrapper {
+          display: flex !important;
+          width: 100%;
+          min-height: 100vh;
+      }
+
+      /* TinyMCE popups: ensure z-index above AdminKit modals/overlays */
+      .tox-tinymce-aux {
+          z-index: 100002 !important;
+      }
 
       /* Sidebar Base */
       nav#sidebar.sidebar {
-          position: relative !important;
+          position: sticky !important;
+          top: 0 !important;
           z-index: 1 !important;
           overflow-y: auto !important;
           overflow-x: hidden !important;
@@ -35,7 +53,7 @@
           display: flex;
           flex-direction: column;
           transition: width 0.25s ease-in-out, min-width 0.25s ease-in-out, padding 0.25s ease-in-out, margin 0.25s ease-in-out;
-          height: auto !important;
+          height: 100vh !important;
           min-height: 100vh;
           background: #222e3c !important;
           color: #dee2e6 !important;
@@ -47,7 +65,8 @@
           flex-grow: 1;
           min-height: 100%;
           height: auto;
-          overflow: visible !important;
+          overflow-y: auto;
+          overflow-x: hidden;
           opacity: 1;
           transition: opacity 0.2s ease-in-out;
       }
@@ -176,16 +195,15 @@
       }
 
       /* Main Content Area */
-      .main { 
-          flex-grow: 1 !important; 
-          width: auto !important; 
-          margin-left: 0 !important; 
-          padding: 0 !important; 
-          display: flex !important; 
-          flex-direction: column !important; 
-          min-height: 100vh; 
-          overflow-x: hidden; 
-          background-color: #f5f7fb; 
+      .main {
+          flex-grow: 1 !important;
+          width: auto !important;
+          margin-left: 0 !important;
+          padding: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          min-height: 100vh;
+          background-color: #f5f7fb;
       }
       
       .main > .navbar { 
@@ -232,11 +250,11 @@
           flex: 1;
       }
 
-      .main > .content { 
-          flex-grow: 1; 
-          padding: 1.5rem !important; 
-          overflow-y: auto; 
-          width: 100%; 
+      .main > .content {
+          flex-grow: 1;
+          min-height: 0;
+          padding: 1.5rem !important;
+          width: 100%;
       }
       
       .main > footer.footer { 
@@ -319,9 +337,8 @@
               z-index: 1030 !important; 
           }
           
-          .main > .content { 
-              padding: 1rem !important; 
-              overflow-y: visible; 
+          .main > .content {
+              padding: 1rem !important;
           }
           
           .main > footer.footer { 
@@ -622,7 +639,7 @@ function generate_id($prefix = 'menu-') {
             <div class="navbar-collapse collapse">
                 <ul class="navbar-nav navbar-align">
                     {{-- Campanilla de Notificaciones --}}
-                    @if(setting('multi_tenant_enabled', config('multi_tenant_enabled', false)))
+                    @if($__multiTenantEnabled)
                         <li class="nav-item dropdown" id="notifications-dropdown">
                             <a class="nav-icon dropdown-toggle" href="#" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                 <div class="position-relative">
@@ -779,28 +796,35 @@ function generate_id($prefix = 'menu-') {
         <main class="content">
             @php
             // Leer flash messages del sistema nuevo (con TTL)
-            $flashSuccess = function_exists('consume_flash') ? consume_flash('success') : null;
-            $flashError   = function_exists('consume_flash') ? consume_flash('error')   : null;
-            $flashWarning = function_exists('consume_flash') ? consume_flash('warning') : null;
+            $flashSuccessNew = function_exists('consume_flash') ? consume_flash('success') : null;
+            $flashErrorNew   = function_exists('consume_flash') ? consume_flash('error')   : null;
+            $flashWarningNew = function_exists('consume_flash') ? consume_flash('warning') : null;
 
-            // Fallback: también leer de $_SESSION directa (compatibilidad con código legacy)
-            if (empty($flashSuccess) && isset($_SESSION['success'])) {
-                $flashSuccess = $_SESSION['success'];
-                unset($_SESSION['success']); // Consumir
-            }
-            if (empty($flashError) && isset($_SESSION['error'])) {
-                $flashError = $_SESSION['error'];
-                unset($_SESSION['error']); // Consumir
-            }
-            if (empty($flashWarning) && isset($_SESSION['warning'])) {
-                $flashWarning = $_SESSION['warning'];
-                unset($_SESSION['warning']); // Consumir
-            }
+            // Leer y consumir SIEMPRE el sistema legacy para evitar residuos/duplicados
+            $flashSuccessLegacy = $_SESSION['success'] ?? null;
+            $flashErrorLegacy   = $_SESSION['error'] ?? null;
+            $flashWarningLegacy = $_SESSION['warning'] ?? null;
+            unset($_SESSION['success'], $_SESSION['error'], $_SESSION['warning']);
 
-            // Normalizar a arrays
-            $flashSuccess = is_array($flashSuccess) ? $flashSuccess : (!empty($flashSuccess) ? [$flashSuccess] : []);
-            $flashError   = is_array($flashError) ? $flashError : (!empty($flashError) ? [$flashError] : []);
-            $flashWarning = is_array($flashWarning) ? $flashWarning : (!empty($flashWarning) ? [$flashWarning] : []);
+            $normalizeFlashes = function (...$sources) {
+                $out = [];
+                foreach ($sources as $source) {
+                    if (is_array($source)) {
+                        foreach ($source as $msg) {
+                            if ($msg !== null && $msg !== '') {
+                                $out[] = (string) $msg;
+                            }
+                        }
+                    } elseif ($source !== null && $source !== '') {
+                        $out[] = (string) $source;
+                    }
+                }
+                return array_values(array_unique($out));
+            };
+
+            $flashSuccess = $normalizeFlashes($flashSuccessNew, $flashSuccessLegacy);
+            $flashError   = $normalizeFlashes($flashErrorNew, $flashErrorLegacy);
+            $flashWarning = $normalizeFlashes($flashWarningNew, $flashWarningLegacy);
             @endphp
             
             <div class="container-fluid p-0">
@@ -839,7 +863,7 @@ function generate_id($prefix = 'menu-') {
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <!-- Sistema de Notificaciones -->
-@if(setting('multi_tenant_enabled', config('multi_tenant_enabled', false)))
+@if($__multiTenantEnabled)
 <script>
     // Definir admin_path global para el sistema de notificaciones
     window.ADMIN_PATH = '{{ admin_path() }}';
@@ -973,6 +997,10 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 
+{{-- TinyMCE popup fix: position:fixed CSS rule above is all that's needed.
+     .content scrolls internally → window.scrollY stays 0 → TinyMCE's
+     getBoundingClientRect() coords match fixed positioning perfectly. --}}
+
 @stack('media_manager')
 @stack('scripts')
 
@@ -1042,22 +1070,11 @@ document.addEventListener("DOMContentLoaded", function() {
                         });
                     }
                 } else {
-                    // Si no hay nuevo token, puede ser sesión realmente expirada
-                    if (typeof Swal !== 'undefined') {
-                        csrfErrorShown = true;
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Sesión expirada',
-                            text: 'Tu sesión ha expirado. Haz clic en OK para recargar la página.',
-                            confirmButtonText: 'Recargar página',
-                            allowOutsideClick: false
-                        }).then((result) => {
-                            csrfErrorShown = false;
-                            if (result.isConfirmed) {
-                                window.location.reload();
-                            }
-                        });
-                    }
+                    // No new token — likely CSRF mismatch after PHP-FPM restart or cache clear
+                    // Silently reload instead of showing scary "session expired" error
+                    console.warn('[CSRF] Token mismatch without renewal — reloading page silently');
+                    csrfErrorShown = true;
+                    window.location.reload();
                 }
             } catch (e) {
                 console.error('[CSRF] Error procesando respuesta 419:', e);

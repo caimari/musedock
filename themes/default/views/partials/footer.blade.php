@@ -309,7 +309,7 @@
                     $hasFooter3Content = $hasFooter3Menu || $hasContactData || !empty($footer3TextContent);
                 @endphp
 
-                <div class="col-xl-2 col-lg-2 col-md-4 col-sm-6{{ $hasFooter3Content ? '' : ' footer-col-empty' }}">
+                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6{{ $hasFooter3Content ? '' : ' footer-col-empty' }}">
                     @if($hasFooter3Content)
                     <div class="single-footer-caption mb-50" style="padding-top: {{ $__colPadTop }}px;">
                         @if($hasFooter3Menu)
@@ -327,7 +327,7 @@
                         @elseif($hasContactData)
                             <div class="footer-tittle">
                                 <div class="footer-heading" style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--footer-heading-color, #333);">{{ site_setting('footer_col4_title', __('footer.contact')) }}</div>
-                                <ul>
+                                <ul style="word-break: break-word;">
                                     @if(site_setting('contact_phone'))<li><span>{{ site_setting('contact_phone') }}</span></li>@endif
                                     @if(site_setting('contact_email'))<li><span>{{ site_setting('contact_email') }}</span></li>@endif
                                     @if(site_setting('contact_address'))<li><span>{{ site_setting('contact_address') }}</span></li>@endif

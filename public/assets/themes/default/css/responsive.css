@@ -21,14 +21,62 @@
  
 /* small mobile :320px. */
 @media (max-width: 767px) {
-
- 
+  .container, .container-fluid,
+  .film-carousel-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
+  /* Sidebar layout: padding in mobile when sidebar collapses */
+  .sidebar-layout-content main .container,
+  .sidebar-layout-content .footer-sidebar-layout .container {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
+  /* Header and topbar padding */
+  .musedock-header .container-fluid,
+  .musedock-header .container,
+  .header-top .container-fluid,
+  .header-top .container,
+  .musedock-sidebar-mobile-header .container {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
+  /* Footer padding */
+  .footer-area .container,
+  .footer-bottom-area .container,
+  .footer-sidebar-layout .container {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
 }
- 
+
 /* Large Mobile :480px. */
 @media only screen and (min-width: 480px) and (max-width: 767px) {
-.container {width:100%; max-width:100%; padding-left:15px; padding-right:15px;}
+  .container {width:100%; max-width:100%; padding-left:15px; padding-right:15px;}
+}
 
+/* Tablet: sidebar layout responsive padding */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .sidebar-layout-content main .container,
+  .sidebar-layout-content .footer-sidebar-layout .container,
+  .film-carousel-container {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+  .musedock-header .container-fluid,
+  .musedock-header .container,
+  .header-top .container-fluid,
+  .header-top .container {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+  .footer-area .container,
+  .footer-bottom-area .container {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
 }
 
 /* ========== RESPONSIVE IMAGES FIX ========== */

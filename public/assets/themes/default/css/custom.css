@@ -1127,6 +1127,19 @@ body.has-sticky-header {
   }
 }
 
+/* Colapsar columnas vacías del footer en desktop */
+.footer-area .footer-col-empty {
+  flex: 0 0 0 !important;
+  max-width: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+/* Columna de contacto/última con contenido: empujar a la derecha */
+.footer-area .footer-col-empty + [class*="col-"]:not(.footer-col-empty) {
+  margin-left: auto;
+}
+
 /* Reducir espacios entre sliders y contenido en página */
 .page-body .swiper {
   margin-bottom: 8px;

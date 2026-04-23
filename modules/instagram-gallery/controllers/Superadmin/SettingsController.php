@@ -134,6 +134,6 @@ class SettingsController
             $_SESSION['error'] = __instagram('settings.settings_error') . ': ' . $e->getMessage();
         }
 
-        redirect('/musedock/instagram/settings');
+        redirect('/musedock/social-publisher/settings');
     }
 }

@@ -16,7 +16,7 @@
     $pages = array_unique($pages);
     sort($pages);
 @endphp
-<div class="row mt-4">
+<div class="row" style="margin-top: -8px;">
     <div class="col-12">
         <nav aria-label="Navegación de páginas" class="blog-pagination blog-pagination--{{ $paginationStyle }}">
             <div class="bp-wrapper">

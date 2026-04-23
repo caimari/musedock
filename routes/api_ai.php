@@ -247,6 +247,10 @@ Route::post('/api/ai/quick', function() {
 
 // ---------- Blog Auto-Tagger (single post, from editor) ----------
 Route::post('/api/ai/blog/suggest-taxonomy', function() {
+    // Limpiar cualquier output buffer previo para garantizar JSON limpio
+    while (ob_get_level() > 0) { ob_end_clean(); }
+    ob_start();
+
     try {
         $userType = null;
         $userId = null;
@@ -278,7 +282,20 @@ Route::post('/api/ai/blog/suggest-taxonomy', function() {
             throw new \Exception("Se requiere título o contenido del post");
         }
 
-        $tenantId = tenant_id();
+        // Determinar tenant_id: primero del body (el superadmin edita posts de tenants remotos),
+        // luego del contexto actual (tenant_id() en contexto tenant)
+        $tenantId = null;
+        if (!empty($data['tenant_id']) && is_numeric($data['tenant_id'])) {
+            $tenantId = (int) $data['tenant_id'];
+        } else {
+            $tenantId = tenant_id();
+        }
+
+        if (!$tenantId) {
+            throw new \Exception('No se pudo determinar el tenant del post. Asegúrate de que el post pertenece a un tenant.');
+        }
+
+        $tenantId = (int) $tenantId;
         $pdo = \Screenart\Musedock\Database::connect();
 
         // Get existing categories and tags for this tenant
@@ -377,17 +394,87 @@ PROMPT;
             throw new \Exception('La IA no devolvió JSON válido');
         }
 
+        // Helper para normalizar slugs (mismo criterio que BlogAutoTagger::normalizeSlug)
+        $normalizeSlug = function(string $slug): string {
+            $s = mb_strtolower(trim($slug), 'UTF-8');
+            // Quitar acentos
+            $s = iconv('UTF-8', 'ASCII//TRANSLIT', $s) ?: $s;
+            // Reemplazar caracteres no alfanuméricos por guiones
+            $s = preg_replace('/[^a-z0-9]+/i', '-', $s);
+            $s = trim($s, '-');
+            return $s;
+        };
+
+        // Helpers de truncado para respetar los límites varchar de la BD
+        // blog_categories.name varchar(255), blog_categories.slug varchar(300)
+        // blog_tags.name varchar(100), blog_tags.slug varchar(150)
+        $truncateName = function(string $name, int $max): string {
+            return mb_substr(trim($name), 0, $max, 'UTF-8');
+        };
+        $truncateSlug = function(string $slug, int $max): string {
+            return mb_substr($slug, 0, $max, 'UTF-8');
+        };
+
+        // Helper upsert seguro (evita duplicados y race conditions)
+        $safeUpsert = function(string $table, int $tenantId, string $name, string $slug) use ($pdo) {
+            // 1. SELECT primero
+            $sel = $pdo->prepare("SELECT id, name FROM {$table} WHERE tenant_id = ? AND slug = ? LIMIT 1");
+            $sel->execute([$tenantId, $slug]);
+            $existing = $sel->fetch(\PDO::FETCH_ASSOC);
+            if ($existing) {
+                return ['id' => (int)$existing['id'], 'name' => $existing['name'], 'is_new' => false];
+            }
+
+            // 2. INSERT con ON CONFLICT / INSERT IGNORE
+            try {
+                $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+                if ($table === 'blog_categories') {
+                    if ($driver === 'pgsql') {
+                        $ins = $pdo->prepare("INSERT INTO blog_categories (tenant_id, name, slug, post_count, \"order\", created_at, updated_at) VALUES (?, ?, ?, 0, 0, NOW(), NOW()) ON CONFLICT (tenant_id, slug) DO NOTHING RETURNING id");
+                    } else {
+                        $ins = $pdo->prepare("INSERT IGNORE INTO blog_categories (tenant_id, name, slug, post_count, `order`, created_at, updated_at) VALUES (?, ?, ?, 0, 0, NOW(), NOW())");
+                    }
+                } else {
+                    if ($driver === 'pgsql') {
+                        $ins = $pdo->prepare("INSERT INTO blog_tags (tenant_id, name, slug, post_count, created_at, updated_at) VALUES (?, ?, ?, 0, NOW(), NOW()) ON CONFLICT (tenant_id, slug) DO NOTHING RETURNING id");
+                    } else {
+                        $ins = $pdo->prepare("INSERT IGNORE INTO blog_tags (tenant_id, name, slug, post_count, created_at, updated_at) VALUES (?, ?, ?, 0, NOW(), NOW())");
+                    }
+                }
+                $ins->execute([$tenantId, $name, $slug]);
+
+                if ($driver === 'pgsql') {
+                    $newId = $ins->fetchColumn();
+                    if ($newId) {
+                        return ['id' => (int)$newId, 'name' => $name, 'is_new' => true];
+                    }
+                } else {
+                    if ($ins->rowCount() > 0) {
+                        return ['id' => (int)$pdo->lastInsertId(), 'name' => $name, 'is_new' => true];
+                    }
+                }
+            } catch (\Exception $e) {
+                // Fall through
+            }
+
+            // 3. Race condition: otro request creó el registro, re-SELECT
+            $sel->execute([$tenantId, $slug]);
+            $row = $sel->fetch(\PDO::FETCH_ASSOC);
+            return $row ? ['id' => (int)$row['id'], 'name' => $row['name'], 'is_new' => false] : null;
+        };
+
         // Create new categories/tags in DB and return all with IDs
         $resultCategories = [];
         $resultTags = [];
 
+        // Index existentes por slug normalizado
         $catBySlug = [];
         foreach ($existingCategories as $cat) {
-            $catBySlug[$cat['slug']] = $cat;
+            $catBySlug[$normalizeSlug($cat['slug'])] = $cat;
         }
         $tagBySlug = [];
         foreach ($existingTags as $tag) {
-            $tagBySlug[$tag['slug']] = $tag;
+            $tagBySlug[$normalizeSlug($tag['slug'])] = $tag;
         }
 
         foreach ($suggestions['categories'] ?? [] as $catSugg) {
@@ -395,22 +482,24 @@ PROMPT;
             $name = $catSugg['name'] ?? '';
             if (empty($slug) || empty($name)) continue;
 
-            if (isset($catBySlug[$slug])) {
+            // Truncar a límites de BD: blog_categories.name(255), slug(300)
+            $name = $truncateName($name, 255);
+            $slug = $truncateSlug($normalizeSlug($slug), 300);
+            $key = $slug;
+
+            if (isset($catBySlug[$key])) {
                 $resultCategories[] = [
-                    'id' => (int)$catBySlug[$slug]['id'],
-                    'name' => $catBySlug[$slug]['name'],
+                    'id' => (int)$catBySlug[$key]['id'],
+                    'name' => $catBySlug[$key]['name'],
                     'is_new' => false,
                 ];
-            } else {
-                $ins = $pdo->prepare("INSERT INTO blog_categories (tenant_id, name, slug, post_count, \"order\", created_at, updated_at) VALUES (?, ?, ?, 0, 0, NOW(), NOW()) RETURNING id");
-                $ins->execute([$tenantId, $name, $slug]);
-                $newId = (int) $ins->fetchColumn();
-                $catBySlug[$slug] = ['id' => $newId, 'name' => $name, 'slug' => $slug];
-                $resultCategories[] = [
-                    'id' => $newId,
-                    'name' => $name,
-                    'is_new' => true,
-                ];
+                continue;
+            }
+
+            $upserted = $safeUpsert('blog_categories', $tenantId, $name, $slug);
+            if ($upserted) {
+                $catBySlug[$key] = ['id' => $upserted['id'], 'name' => $upserted['name'], 'slug' => $slug];
+                $resultCategories[] = $upserted;
             }
         }
 
@@ -419,26 +508,30 @@ PROMPT;
             $name = $tagSugg['name'] ?? '';
             if (empty($slug) || empty($name)) continue;
 
-            if (isset($tagBySlug[$slug])) {
+            // Truncar a límites de BD: blog_tags.name(100), slug(150)
+            $name = $truncateName($name, 100);
+            $slug = $truncateSlug($normalizeSlug($slug), 150);
+            $key = $slug;
+
+            if (isset($tagBySlug[$key])) {
                 $resultTags[] = [
-                    'id' => (int)$tagBySlug[$slug]['id'],
-                    'name' => $tagBySlug[$slug]['name'],
+                    'id' => (int)$tagBySlug[$key]['id'],
+                    'name' => $tagBySlug[$key]['name'],
                     'is_new' => false,
                 ];
-            } else {
-                $ins = $pdo->prepare("INSERT INTO blog_tags (tenant_id, name, slug, post_count, created_at, updated_at) VALUES (?, ?, ?, 0, NOW(), NOW()) RETURNING id");
-                $ins->execute([$tenantId, $name, $slug]);
-                $newId = (int) $ins->fetchColumn();
-                $tagBySlug[$slug] = ['id' => $newId, 'name' => $name, 'slug' => $slug];
-                $resultTags[] = [
-                    'id' => $newId,
-                    'name' => $name,
-                    'is_new' => true,
-                ];
+                continue;
+            }
+
+            $upserted = $safeUpsert('blog_tags', $tenantId, $name, $slug);
+            if ($upserted) {
+                $tagBySlug[$key] = ['id' => $upserted['id'], 'name' => $upserted['name'], 'slug' => $slug];
+                $resultTags[] = $upserted;
             }
         }
 
-        header('Content-Type: application/json');
+        // Descartar cualquier output accidental (warnings, notices) antes del JSON
+        ob_end_clean();
+        header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
             'success' => true,
             'categories' => $resultCategories,
@@ -446,12 +539,17 @@ PROMPT;
             'tokens_used' => $result['tokens'] ?? 0,
             'model' => $result['model'] ?? '',
         ]);
-    } catch (\Exception $e) {
-        header('Content-Type: application/json');
+    } catch (\Throwable $e) {
+        // Capturar también errores fatales (TypeError, ParseError, etc.)
+        while (ob_get_level() > 0) { ob_end_clean(); }
+        header('Content-Type: application/json; charset=utf-8');
         http_response_code(500);
+        error_log('[suggest-taxonomy] ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
         echo json_encode([
             'success' => false,
-            'message' => $e->getMessage()
+            'message' => $e->getMessage(),
+            'file' => basename($e->getFile()),
+            'line' => $e->getLine(),
         ]);
     }
 });

@@ -100,9 +100,11 @@
                 </div>
 
                 {{-- Mobile hamburger --}}
+                @if(menu_has_items('nav'))
                 <button type="button" class="menu-toggle logo-above-mobile-toggle" id="menu-toggle" aria-label="Abrir menú" style="display:none;">
                     <span></span><span></span><span></span>
                 </button>
+                @endif
             </div>
         </div>
     </div>

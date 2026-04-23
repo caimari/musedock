@@ -222,8 +222,13 @@
         <noscript><link href="https://fonts.googleapis.com/css2?{{ implode('&', array_map(fn($f) => 'family=' . $f, $fontsToLoad)) }}&display=swap" rel="stylesheet"></noscript>
     @endif
 
+    {{-- ====== PRELOAD FUENTES (descargar en paralelo para evitar FOIT) ====== --}}
+    <link rel="preload" href="{{ asset('themes/default/fonts/fa-solid-900.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ asset('themes/default/fonts/fa-brands-400.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ asset('themes/default/fonts/fa-regular-400.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ asset('themes/default/fonts/themify.woff') }}?-fvbane" as="font" type="font/woff" crossorigin>
+
     {{-- ====== CSS CRÍTICO (render-blocking, necesario para first paint) ====== --}}
-    <link rel="preload" href="{{ asset('themes/default/css/fontawesome-all.min.css') }}" as="style">
     <link rel="stylesheet" href="/assets/vendor/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ asset('themes/default/css/fontawesome-all.min.css') }}">
     <link rel="stylesheet" href="{{ asset('themes/default/css/themify-icons.css') }}">
@@ -264,7 +269,7 @@
     <link rel="stylesheet" href="{{ asset('vendor/owl-carousel/owl.carousel.min.css') }}" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="{{ asset('vendor/owl-carousel/owl.theme.default.min.css') }}" media="print" onload="this.media='all'">
     {{-- Cookie consent CSS --}}
-    <link rel="stylesheet" href="{{ asset('themes/default/css/cookie-consent.css') }}" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ asset('themes/default/css/cookie-consent.css') }}?v={{ filemtime(public_path('assets/themes/default/css/cookie-consent.css')) ?: time() }}" media="print" onload="this.media='all'">
     {{-- Nice Select 2 CSS --}}
     <link rel="stylesheet" href="/assets/vendor/nice-select2/nice-select2.min.css" media="print" onload="this.media='all'">
     {{-- Prism.js — syntax highlighting para bloques de código (codesample) --}}
@@ -280,7 +285,7 @@
         <link rel="stylesheet" href="{{ asset('vendor/slick/slick-theme.min.css') }}">
         <link rel="stylesheet" href="{{ asset('vendor/owl-carousel/owl.carousel.min.css') }}">
         <link rel="stylesheet" href="{{ asset('vendor/owl-carousel/owl.theme.default.min.css') }}">
-        <link rel="stylesheet" href="{{ asset('themes/default/css/cookie-consent.css') }}">
+        <link rel="stylesheet" href="{{ asset('themes/default/css/cookie-consent.css') }}?v={{ filemtime(public_path('assets/themes/default/css/cookie-consent.css')) ?: time() }}">
         <link rel="stylesheet" href="/assets/vendor/nice-select2/nice-select2.min.css">
     </noscript>
 
@@ -480,13 +485,14 @@
        =============================================== */
     .page-content p, .page-body p, .content p, article p {
         margin-top: 0;
-        margin-bottom: 0 !important;
-        padding-bottom: 1rem;
+        margin-bottom: 1.2rem;
         line-height: 1.7;
     }
-    /* Only hide truly empty paragraphs (no content at all) */
+    /* Párrafos vacíos: preservar como salto de línea visible
+       (antes se ocultaban con display:none lo cual eliminaba saltos que el usuario añadía en TinyMCE) */
     .page-content p:empty, .page-body p:empty, .content p:empty, article p:empty {
-        display: none !important;
+        min-height: 1.5em;
+        margin-bottom: 1.2rem;
     }
     /* Editor spacing - preserved from TinyMCE (uses div to avoid p nesting issues) */
     .editor-spacing {
@@ -616,6 +622,66 @@
         overflow-y: visible !important;
         overflow-x: visible !important;
         max-height: none !important;
+    }
+
+    /* ====== NICE SELECT DROPDOWN — siempre neutro cuando se abre ====== */
+    /* El dropdown abierto SIEMPRE es blanco con texto negro, independiente del tema */
+    .nice-select .list,
+    .nice-select .nice-select-dropdown,
+    .nice-select-dropdown {
+        background: #ffffff !important;
+        color: #1f2937 !important;
+        border: 1px solid #e5e7eb !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+        border-radius: 6px !important;
+    }
+    .nice-select .option,
+    .nice-select .list li {
+        color: #374151 !important;
+        background: #fff !important;
+    }
+    .nice-select .option:hover,
+    .nice-select .list li:hover {
+        background: #f3f4f6 !important;
+        color: #111827 !important;
+    }
+    .nice-select .option.selected,
+    .nice-select .option.focus,
+    .nice-select .list li.selected {
+        color: #2563eb !important;
+        font-weight: 600;
+        background: #eff6ff !important;
+    }
+
+    /* Nice Select CERRADO en header: adaptar al header */
+    .musedock-header .nice-select {
+        color: var(--header-link-color, #333) !important;
+        border-color: var(--header-link-color, rgba(255,255,255,0.3)) !important;
+        background: transparent !important;
+        border-radius: 6px !important;
+    }
+    .musedock-header .nice-select .current {
+        color: var(--header-link-color, #333) !important;
+    }
+    .musedock-header .nice-select::after {
+        border-color: var(--header-link-color, #333) transparent transparent transparent !important;
+    }
+
+    /* Nice Select CERRADO en footer: adaptar al footer */
+    .footer-area .nice-select,
+    footer .nice-select {
+        color: var(--footer-text-color, #333) !important;
+        border-color: var(--footer-text-color, rgba(0,0,0,0.2)) !important;
+        background: transparent !important;
+        border-radius: 6px !important;
+    }
+    .footer-area .nice-select .current,
+    footer .nice-select .current {
+        color: var(--footer-text-color, #333) !important;
+    }
+    .footer-area .nice-select::after,
+    footer .nice-select::after {
+        border-color: var(--footer-text-color, #333) transparent transparent transparent !important;
     }
 
     /* Forzar todos los divs del header y footer a no tener scroll */
@@ -1442,25 +1508,73 @@ body:has(.header-layout-banner) .header-top { display: none !important; }
 
 /* === LAYOUT BOXED: header/footer contenido alineado al contenido de pagina === */
 /* En boxed, tanto header, footer como contenido comparten el mismo max-width */
-.header-boxed .musedock-header > .container,
-.header-boxed .musedock-header .container,
-.header-boxed .header-top > .container,
-.header-boxed .header-top > .container-fluid {
-    max-width: var(--content-max-width, 1140px);
-    margin: 0 auto;
+body.header-boxed .musedock-header > .container,
+body.header-boxed .musedock-header .container,
+body.header-boxed .header-top > .container,
+body.header-boxed .header-top > .container-fluid {
+    max-width: var(--content-max-width, 1140px) !important;
+    margin: 0 auto !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
 }
-.footer-boxed .footer-area > .container,
-.footer-boxed .footer-bottom-area > .container,
-.footer-boxed .footer-minimal-copyright > .container,
-.footer-boxed .footer-minimal-legal > .container {
-    max-width: var(--content-max-width, 1140px);
-    margin: 0 auto;
+body.footer-boxed .footer-area > .container,
+body.footer-boxed .footer-bottom-area > .container,
+body.footer-boxed .footer-minimal-copyright > .container,
+body.footer-boxed .footer-minimal-legal > .container {
+    max-width: var(--content-max-width, 1140px) !important;
+    margin: 0 auto !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
 }
 /* El contenido de pagina tambien se limita al mismo ancho en modo boxed */
-.header-boxed ~ main > .container,
-.header-boxed ~ main > .container-fluid {
-    max-width: var(--content-max-width, 1140px);
-    margin: 0 auto;
+body.header-boxed main > .container,
+body.header-boxed main > .container-fluid {
+    max-width: var(--content-max-width, 1140px) !important;
+    margin: 0 auto !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* === RESPONSIVE PADDING — prevent content touching edges === */
+@media (max-width: 1199px) {
+    body.header-boxed .musedock-header > .container,
+    body.header-boxed .musedock-header .container,
+    body.header-boxed .header-top > .container,
+    body.header-boxed .header-top > .container-fluid,
+    body.footer-boxed .footer-area > .container,
+    body.footer-boxed .footer-bottom-area > .container,
+    body.footer-boxed .footer-minimal-copyright > .container,
+    body.footer-boxed .footer-minimal-legal > .container,
+    body.header-boxed main > .container,
+    body.header-boxed main > .container-fluid,
+    .sidebar-layout-content main .container,
+    .sidebar-layout-content .footer-sidebar-layout .container,
+    .musedock-sidebar-mobile-header .container,
+    .film-carousel-container {
+        padding-left: 20px !important;
+        padding-right: 20px !important;
+    }
+}
+@media (max-width: 767px) {
+    body.header-boxed .musedock-header > .container,
+    body.header-boxed .musedock-header .container,
+    body.header-boxed .header-top > .container,
+    body.header-boxed .header-top > .container-fluid,
+    body.footer-boxed .footer-area > .container,
+    body.footer-boxed .footer-bottom-area > .container,
+    body.footer-boxed .footer-minimal-copyright > .container,
+    body.footer-boxed .footer-minimal-legal > .container,
+    body.header-boxed main > .container,
+    body.header-boxed main > .container-fluid,
+    .sidebar-layout-content main .container,
+    .sidebar-layout-content .footer-sidebar-layout .container,
+    .musedock-sidebar-mobile-header .container,
+    .footer-sidebar-main,
+    .film-carousel-container,
+    .container, .container-fluid {
+        padding-left: 15px !important;
+        padding-right: 15px !important;
+    }
 }
 
 /* Contenedor principal dentro del header */
@@ -1674,16 +1788,58 @@ body:has(.header-layout-banner) .header-top { display: none !important; }
 
 /* Botón que muestra el idioma actual */
 .lang-btn {
-    border: 1px solid #ddd;
+    border: 1px solid var(--header-link-color, #333);
     background: transparent;
-    padding: 6px 30px 6px 12px; /* Espacio izq, derecha (para flecha), arriba/abajo */
+    padding: 6px 30px 6px 12px;
     border-radius: 4px;
     cursor: pointer;
-    position: relative; /* Para la pseudo-clase ::after */
-    min-width: 65px; /* Ancho mínimo para que quepa el código de idioma */
+    position: relative;
+    min-width: 65px;
     text-align: left;
     font-size: 14px;
-    color: #333;
+    color: var(--header-link-color, #333);
+    opacity: 0.8;
+}
+.lang-btn:hover { opacity: 1; }
+
+/* Header lang selector: adapt to header colors */
+.musedock-header .lang-btn {
+    color: var(--header-link-color, #333);
+    border-color: var(--header-link-color, #333);
+}
+.musedock-header .lang-btn::after {
+    border-color: var(--header-link-color, #333) transparent transparent transparent;
+}
+
+/* Footer lang selector: adapt to footer colors */
+.footer-area .lang-btn,
+footer .lang-btn {
+    color: var(--footer-text-color, #333);
+    border-color: var(--footer-text-color, #333);
+}
+footer .lang-btn::after,
+.footer-area .lang-btn::after {
+    border-color: var(--footer-text-color, #333) transparent transparent transparent;
+}
+
+/* Lang dropdown — siempre neutro */
+.lang-dropdown {
+    background: #fff !important;
+    color: #1f2937 !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+}
+.lang-option {
+    color: #374151 !important;
+}
+.lang-option:hover {
+    background: #f3f4f6 !important;
+    color: #111827 !important;
+}
+.lang-option.active {
+    color: #2563eb !important;
+    font-weight: 600;
+    background: #eff6ff !important;
 }
 
 /* Flecha del dropdown */
@@ -1692,11 +1848,11 @@ body:has(.header-layout-banner) .header-top { display: none !important; }
     position: absolute;
     right: 10px;
     top: 50%;
-    transform: translateY(-50%); /* Centrar verticalmente */
-    border-width: 4px 4px 0 4px; /* Tamaño de la flecha (arriba, izq/der, abajo) */
+    transform: translateY(-50%);
+    border-width: 4px 4px 0 4px;
     border-style: solid;
-    border-color: #666 transparent transparent transparent; /* Color de la flecha */
-    pointer-events: none; /* Para que no interfiera con el click del botón */
+    border-color: currentColor transparent transparent transparent;
+    pointer-events: none;
 }
 
 /* Contenedor del dropdown de idiomas */
@@ -2051,6 +2207,16 @@ body.mobile-menu-open {
     @if(!empty($_customHeadCode))
     {!! $_customHeadCode !!}
     @endif
+<style>
+/* Ads — minimal styling, invisible when empty */
+.musedock-ad { text-align: center; margin: 1rem auto; max-width: 100%; }
+.musedock-ad:empty { display: none; }
+.musedock-ad img { max-width: 100%; height: auto; }
+.musedock-ad--in-feed { margin: 1.5rem 0; width: 100%; }
+.musedock-ad--in-article { margin: 2rem auto; text-align: center; }
+.musedock-ad--sidebar-top,
+.musedock-ad--sidebar-bottom { margin-bottom: 1rem; }
+</style>
 </head>
 @php
     $__ps = themeOption('structure.page_structure', 'classic');
@@ -2610,6 +2776,8 @@ document.querySelectorAll('.footer-area .widget-area').forEach(function(wa) {
 }); // Fin de DOMContentLoaded
 </script>
 
+    {!! render_ad_slot('header-below') !!}
+
     {{-- Contenedor principal para el contenido yield --}}
     @if($headerLayout === 'sidebar')
     <div class="sidebar-layout-content">
@@ -2617,6 +2785,10 @@ document.querySelectorAll('.footer-area .widget-area').forEach(function(wa) {
     <main>
         @yield('content')
     </main>
+
+    {!! render_ad_slot('content-below') !!}
+
+    {!! render_ad_slot('footer-above') !!}
 
     @if($headerLayout === 'sidebar')
         @include('partials.footer-sidebar')
@@ -2715,7 +2887,7 @@ document.querySelectorAll('.footer-area .widget-area').forEach(function(wa) {
     </div>
 
     <!-- ===== Cookie Preferences Modal ===== -->
-    <div id="cookie-preferences-modal" class="cookie-preferences-modal" style="display: none;">
+    <div id="cookie-preferences-modal" class="cookie-preferences-modal" style="display: none; --cookie-bg: {{ $cookieBg }}; --cookie-text: {{ $cookieText }}; --cookie-btn-accept: {{ $cookieBtnAccept }}; --cookie-btn-reject: {{ $cookieBtnReject }};">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>{{ __('cookies.modal_title') }}</h3>
@@ -2749,9 +2921,9 @@ document.querySelectorAll('.footer-area .widget-area').forEach(function(wa) {
                 </div>
             </div>
             <div class="modal-footer">
-                <button id="cookie-modal-reject-all" class="cookie-btn cookie-btn-reject">{{ __('cookies.reject_all') }}</button>
-                <button id="cookie-modal-save" class="cookie-btn cookie-btn-manage">{{ __('cookies.save_preferences') }}</button>
                 <button id="cookie-modal-accept-all" class="cookie-btn cookie-btn-accept">{{ __('cookies.accept_all') }}</button>
+                <button id="cookie-modal-save" class="cookie-btn cookie-btn-manage">{{ __('cookies.save_preferences') }}</button>
+                <button id="cookie-modal-reject-all" class="cookie-btn cookie-btn-reject">{{ __('cookies.reject_all') }}</button>
             </div>
         </div>
     </div>

@@ -19,13 +19,13 @@
                     <p class="text-muted mb-0" style="font-size:0.85rem;">Configuración global del módulo Instagram Gallery</p>
                 </div>
             </div>
-            <a href="/musedock/instagram" style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:#f8f9fa;border:1px solid #e9ecef;color:#6c757d;text-decoration:none;">
+            <a href="/musedock/social-publisher" style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;padding:0.4rem 0.75rem;border-radius:6px;background:#f8f9fa;border:1px solid #e9ecef;color:#6c757d;text-decoration:none;">
                 <i class="bi bi-arrow-left"></i>
                 <span><?php echo __instagram('common.back'); ?></span>
             </a>
         </div>
 
-        <form method="POST" action="/musedock/instagram/settings">
+        <form method="POST" action="/musedock/social-publisher/settings">
             <div class="row">
                 <div class="col-lg-8">
                     <!-- Modo de funcionamiento -->
@@ -108,7 +108,7 @@
                             </div>
 
                             @php
-                                $defaultRedirectUri = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'musedock.com') . '/musedock/instagram/callback';
+                                $defaultRedirectUri = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'musedock.com') . '/musedock/social-publisher/callback';
                                 $redirectUriValue = !empty($settings['instagram_redirect_uri']) ? $settings['instagram_redirect_uri'] : $defaultRedirectUri;
                             @endphp
                             <div class="mb-3">

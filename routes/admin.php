@@ -33,6 +33,9 @@ Route::delete("$adminPath/plugins/{slug}/uninstall", 'tenant.PluginsController@u
 Route::post("$adminPath/plugins/sync", 'tenant.PluginsController@sync')
      ->middleware(['auth'])
      ->name('tenant.plugins.sync');
+Route::get("$adminPath/plugins/{slug}/download", 'tenant.PluginsController@download')
+     ->middleware(['auth'])
+     ->name('tenant.plugins.download');
 
 // Plugin Store (Premium)
 Route::get("$adminPath/plugin-store", 'tenant.PluginStoreController@index')
@@ -253,6 +256,14 @@ Route::post("$adminPath/settings/api-keys/{id}/toggle", function ($id) {
 Route::post("$adminPath/settings/api-keys/{id}/delete", function ($id) {
     (new \Screenart\Musedock\Controllers\Api\V1\ApiKeyController())->destroy((int) $id);
 })->middleware(['auth', 'permission:settings.edit'])->name('tenant.settings.api-keys.delete');
+
+// Settings - Security (CSP overrides por tenant)
+Route::get("$adminPath/settings/security", 'tenant.SettingsController@security')
+     ->middleware(['auth', 'permission:settings.view'])
+     ->name('tenant.settings.security');
+Route::post("$adminPath/settings/security", 'tenant.SettingsController@updateSecurity')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.settings.security.update');
 
 // AI Settings (Configuración de IA del Tenant)
 Route::get("$adminPath/ai/settings", 'tenant.AISettingsController@settings')
@@ -586,3 +597,21 @@ Route::post("$adminPath/clear-flashes", function() {
     echo json_encode(['success' => true]);
     exit;
 })->middleware(['auth'])->name('tenant.settings.clearFlashes');
+
+// ── Ads Management ──────────────────────────────────────────────────────
+Route::get("$adminPath/ads", 'tenant.AdsController@index')
+     ->middleware(['auth'])->name('tenant.ads.index');
+Route::get("$adminPath/ads/create", 'tenant.AdsController@create')
+     ->middleware(['auth'])->name('tenant.ads.create');
+Route::post("$adminPath/ads", 'tenant.AdsController@store')
+     ->middleware(['auth'])->name('tenant.ads.store');
+Route::get("$adminPath/ads/{id}/edit", 'tenant.AdsController@edit')
+     ->middleware(['auth'])->name('tenant.ads.edit');
+Route::post("$adminPath/ads/{id}", 'tenant.AdsController@update')
+     ->middleware(['auth'])->name('tenant.ads.update');
+Route::post("$adminPath/ads/{id}/toggle", 'tenant.AdsController@toggle')
+     ->middleware(['auth'])->name('tenant.ads.toggle');
+Route::post("$adminPath/ads/{id}/delete", 'tenant.AdsController@delete')
+     ->middleware(['auth'])->name('tenant.ads.delete');
+Route::post("$adminPath/ads/ads-txt", 'tenant.AdsController@saveAdsTxt')
+     ->middleware(['auth'])->name('tenant.ads.adstxt');

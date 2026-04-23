@@ -7,10 +7,10 @@
             <h2>{{ $title }}</h2>
             <div>
                 <a href="{{ admin_url('pages') }}/{{ $page->id }}/revisions" class="btn btn-secondary me-2">
-                    <i class="bi bi-arrow-left"></i> Volver a revisiones
+                    <i class="bi bi-arrow-left"></i> {{ __('pages.back_to_revisions') }}
                 </a>
 <button type="button" class="btn btn-primary btn-restore" data-revision-date="{{ date('d/m/Y H:i', strtotime($revision->created_at)) }}">
-                    <i class="bi bi-arrow-counterclockwise"></i> Restaurar esta versión
+                    <i class="bi bi-arrow-counterclockwise"></i> {{ __('pages.restore_this_version') }}
                 </button>
             </div>
         </div>
@@ -27,13 +27,13 @@
 
         <div class="card mt-3">
             <div class="card-body">
-                <h6 class="text-muted">Metadatos de la revisión</h6>
+                <h6 class="text-muted">{{ __('pages.revision_metadata') }}</h6>
                 <ul class="list-unstyled small text-muted mb-0">
-                    <li><strong>Tipo:</strong> {{ ucfirst($revision->revision_type) }}</li>
-                    <li><strong>Resumen:</strong> {{ $revision->summary }}</li>
-                    <li><strong>Fecha:</strong> {{ date('d/m/Y H:i:s', strtotime($revision->created_at)) }}</li>
+                    <li><strong>{{ __('pages.revisions_type') }}:</strong> {{ ucfirst($revision->revision_type) }}</li>
+                    <li><strong>{{ __('pages.revision_summary') }}:</strong> {{ $revision->summary }}</li>
+                    <li><strong>{{ __('pages.revision_date') }}:</strong> {{ date('d/m/Y H:i:s', strtotime($revision->created_at)) }}</li>
                     @if($revision->user_agent)
-                    <li><strong>Navegador:</strong> {{ $revision->user_agent }}</li>
+                    <li><strong>{{ __('pages.revision_browser') }}:</strong> {{ $revision->user_agent }}</li>
                     @endif
                 </ul>
             </div>
@@ -45,16 +45,18 @@
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelector('.btn-restore').addEventListener('click', function() {
         const revisionDate = this.dataset.revisionDate;
+        const restoreHtml = {!! json_encode(__('pages.restore_revision_modal_html')) !!}.replace(':date', revisionDate);
+        const restoreText = {!! json_encode(__('pages.restore_revision')) !!};
 
         Swal.fire({
-            title: '¿Restaurar versión?',
-            html: `<p>La página volverá al estado del <strong>${revisionDate}</strong>.</p><p class="text-muted"><small>Se creará una nueva revisión con el estado actual antes de restaurar.</small></p>`,
+            title: restoreText,
+            html: restoreHtml,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#0d6efd',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: '<i class="bi bi-arrow-counterclockwise me-1"></i> Restaurar',
-            cancelButtonText: 'Cancelar',
+            confirmButtonText: `<i class="bi bi-arrow-counterclockwise me-1"></i> ${restoreText}`,
+            cancelButtonText: {!! json_encode(__('common.cancel')) !!},
             focusCancel: true
         }).then((result) => {
             if (result.isConfirmed) {

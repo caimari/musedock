@@ -127,6 +127,11 @@ class SitemapController
                 ];
             }
 
+            // Hook: allow plugins to add their URLs
+            if (function_exists('apply_filters')) {
+                $urls = apply_filters('musedock_sitemap_urls', $urls, $tenantId, $siteUrl, $pdo);
+            }
+
             // Generar XML
             $xml = $this->generateSitemapXml($urls);
 

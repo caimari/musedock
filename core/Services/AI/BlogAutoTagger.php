@@ -396,14 +396,16 @@ PROMPT;
             'details' => [],
         ];
 
-        // Index existentes por slug
+        // Index existentes por slug normalizado para comparación consistente
         $catBySlug = [];
         foreach ($existingCategories as $cat) {
-            $catBySlug[$cat['slug']] = $cat;
+            $key = self::normalizeSlug($cat['slug']);
+            $catBySlug[$key] = $cat;
         }
         $tagBySlug = [];
         foreach ($existingTags as $tag) {
-            $tagBySlug[$tag['slug']] = $tag;
+            $key = self::normalizeSlug($tag['slug']);
+            $tagBySlug[$key] = $tag;
         }
 
         foreach ($suggestions as $postSuggestion) {
@@ -418,14 +420,29 @@ PROMPT;
                 $name = $catSuggestion['name'] ?? '';
                 if (empty($slug) || empty($name)) continue;
 
+                // Normalizar el slug antes de buscar/crear
+                $slug = self::normalizeSlug($slug);
+                $key = $slug;
+
                 // Crear categoría si no existe
-                if (!isset($catBySlug[$slug])) {
+                if (!isset($catBySlug[$key])) {
                     $catId = self::createCategory($pdo, $tenantId, $name, $slug);
-                    $catBySlug[$slug] = ['id' => $catId, 'name' => $name, 'slug' => $slug];
-                    $applied['categories_created']++;
+                    // Verificar si realmente se creó nueva o era existente
+                    $wasCreated = true;
+                    $selCheck = $pdo->prepare("SELECT slug FROM blog_categories WHERE id = ?");
+                    $selCheck->execute([$catId]);
+                    $existingSlug = $selCheck->fetchColumn();
+                    if ($existingSlug && $existingSlug !== $slug) {
+                        // createCategory devolvió una existente con slug diferente — contar como no-nueva
+                        $wasCreated = false;
+                    }
+                    $catBySlug[$key] = ['id' => $catId, 'name' => $name, 'slug' => $slug];
+                    if ($wasCreated) {
+                        $applied['categories_created']++;
+                    }
                 }
 
-                $catId = $catBySlug[$slug]['id'];
+                $catId = $catBySlug[$key]['id'];
 
                 // Vincular al post si no está ya vinculado
                 if (self::linkCategory($pdo, $postId, $catId)) {
@@ -440,14 +457,18 @@ PROMPT;
                 $name = $tagSuggestion['name'] ?? '';
                 if (empty($slug) || empty($name)) continue;
 
+                // Normalizar el slug
+                $slug = self::normalizeSlug($slug);
+                $key = $slug;
+
                 // Crear tag si no existe
-                if (!isset($tagBySlug[$slug])) {
+                if (!isset($tagBySlug[$key])) {
                     $tagId = self::createTag($pdo, $tenantId, $name, $slug);
-                    $tagBySlug[$slug] = ['id' => $tagId, 'name' => $name, 'slug' => $slug];
+                    $tagBySlug[$key] = ['id' => $tagId, 'name' => $name, 'slug' => $slug];
                     $applied['tags_created']++;
                 }
 
-                $tagId = $tagBySlug[$slug]['id'];
+                $tagId = $tagBySlug[$key]['id'];
 
                 // Vincular al post si no está ya vinculado
                 if (self::linkTag($pdo, $postId, $tagId)) {
@@ -516,18 +537,88 @@ PROMPT;
         return $relations;
     }
 
+    /**
+     * Crea una categoría o devuelve la existente si ya hay una con el mismo slug.
+     * Safe contra duplicados y race conditions.
+     */
     private static function createCategory(\PDO $pdo, int $tenantId, string $name, string $slug): int
     {
-        $stmt = $pdo->prepare("INSERT INTO blog_categories (tenant_id, name, slug, post_count, \"order\", created_at, updated_at) VALUES (?, ?, ?, 0, 0, NOW(), NOW()) RETURNING id");
-        $stmt->execute([$tenantId, $name, $slug]);
-        return (int) $stmt->fetchColumn();
+        // Truncar a límites de BD: blog_categories.name(255), slug(300)
+        $name = mb_substr(trim($name), 0, 255, 'UTF-8');
+        $slug = mb_substr($slug, 0, 300, 'UTF-8');
+
+        // 1. Verificar si ya existe (SELECT-first)
+        $sel = $pdo->prepare("SELECT id FROM blog_categories WHERE tenant_id = ? AND slug = ? LIMIT 1");
+        $sel->execute([$tenantId, $slug]);
+        $existing = $sel->fetchColumn();
+        if ($existing) {
+            return (int) $existing;
+        }
+
+        // 2. Intentar INSERT — si falla por race condition (constraint violation), re-SELECT
+        try {
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            if ($driver === 'pgsql') {
+                $stmt = $pdo->prepare("INSERT INTO blog_categories (tenant_id, name, slug, post_count, \"order\", created_at, updated_at) VALUES (?, ?, ?, 0, 0, NOW(), NOW()) ON CONFLICT (tenant_id, slug) DO NOTHING RETURNING id");
+                $stmt->execute([$tenantId, $name, $slug]);
+                $newId = $stmt->fetchColumn();
+                if ($newId) return (int) $newId;
+            } else {
+                $stmt = $pdo->prepare("INSERT IGNORE INTO blog_categories (tenant_id, name, slug, post_count, `order`, created_at, updated_at) VALUES (?, ?, ?, 0, 0, NOW(), NOW())");
+                $stmt->execute([$tenantId, $name, $slug]);
+                if ($stmt->rowCount() > 0) {
+                    return (int) $pdo->lastInsertId();
+                }
+            }
+        } catch (\Exception $e) {
+            // Constraint violation — otro request creó la categoría, fall through a SELECT
+        }
+
+        // 3. Fallback SELECT si el INSERT no devolvió ID (DO NOTHING o IGNORE)
+        $sel->execute([$tenantId, $slug]);
+        return (int) $sel->fetchColumn();
     }
 
+    /**
+     * Crea un tag o devuelve el existente si ya hay uno con el mismo slug.
+     * Safe contra duplicados y race conditions.
+     */
     private static function createTag(\PDO $pdo, int $tenantId, string $name, string $slug): int
     {
-        $stmt = $pdo->prepare("INSERT INTO blog_tags (tenant_id, name, slug, post_count, created_at, updated_at) VALUES (?, ?, ?, 0, NOW(), NOW()) RETURNING id");
-        $stmt->execute([$tenantId, $name, $slug]);
-        return (int) $stmt->fetchColumn();
+        // Truncar a límites de BD: blog_tags.name(100), slug(150)
+        $name = mb_substr(trim($name), 0, 100, 'UTF-8');
+        $slug = mb_substr($slug, 0, 150, 'UTF-8');
+
+        // 1. Verificar si ya existe
+        $sel = $pdo->prepare("SELECT id FROM blog_tags WHERE tenant_id = ? AND slug = ? LIMIT 1");
+        $sel->execute([$tenantId, $slug]);
+        $existing = $sel->fetchColumn();
+        if ($existing) {
+            return (int) $existing;
+        }
+
+        // 2. INSERT seguro
+        try {
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            if ($driver === 'pgsql') {
+                $stmt = $pdo->prepare("INSERT INTO blog_tags (tenant_id, name, slug, post_count, created_at, updated_at) VALUES (?, ?, ?, 0, NOW(), NOW()) ON CONFLICT (tenant_id, slug) DO NOTHING RETURNING id");
+                $stmt->execute([$tenantId, $name, $slug]);
+                $newId = $stmt->fetchColumn();
+                if ($newId) return (int) $newId;
+            } else {
+                $stmt = $pdo->prepare("INSERT IGNORE INTO blog_tags (tenant_id, name, slug, post_count, created_at, updated_at) VALUES (?, ?, ?, 0, NOW(), NOW())");
+                $stmt->execute([$tenantId, $name, $slug]);
+                if ($stmt->rowCount() > 0) {
+                    return (int) $pdo->lastInsertId();
+                }
+            }
+        } catch (\Exception $e) {
+            // Fall through a SELECT
+        }
+
+        // 3. Fallback SELECT
+        $sel->execute([$tenantId, $slug]);
+        return (int) $sel->fetchColumn();
     }
 
     private static function linkCategory(\PDO $pdo, int $postId, int $catId): bool

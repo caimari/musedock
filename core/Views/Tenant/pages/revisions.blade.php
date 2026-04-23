@@ -17,10 +17,10 @@
       <h2>{{ $title }}</h2>
       <div>
         <a href="{{ admin_url('pages') }}/{{ $page->id }}/edit" class="btn btn-secondary me-2">
-          <i class="bi bi-arrow-left"></i> Volver a editar
+          <i class="bi bi-arrow-left"></i> {{ __('pages.back_to_edit') }}
         </a>
         <a href="{{ admin_url('pages') }}" class="btn btn-outline-secondary">
-          <i class="bi bi-list"></i> Lista de páginas
+          <i class="bi bi-list"></i> {{ __('pages.back_to_pages_list') }}
         </a>
       </div>
     </div>
@@ -63,7 +63,7 @@
     <div class="card mb-3">
       <div class="card-body">
         <h5 class="card-title">{{ e($page->title) }}</h5>
-        <p class="card-text text-muted"><strong>Total de revisiones:</strong> {{ count($revisions) }}</p>
+        <p class="card-text text-muted"><strong>{{ __('pages.total_revisions') }}:</strong> {{ count($revisions) }}</p>
       </div>
     </div>
 
@@ -80,7 +80,7 @@
 
       <div id="compare-button-container" style="display:none;">
         <button type="button" class="btn btn-primary btn-sm" onclick="compareSelected()">
-          <i class="bi bi-arrow-left-right"></i> Comparar revisiones seleccionadas
+          <i class="bi bi-arrow-left-right"></i> {{ __('pages.compare_selected_revisions') }}
         </button>
       </div>
     </div>
@@ -88,7 +88,7 @@
     <div class="card">
       <div class="card-body">
         @if(empty($revisions))
-          <p class="text-muted">No hay revisiones disponibles para esta página.</p>
+          <p class="text-muted">{{ __('pages.no_revisions_available') }}</p>
         @else
           <table class="table table-hover">
             <thead>
@@ -96,11 +96,11 @@
                 <th style="width: 40px;">
                   <input type="checkbox" id="selectAllRevisions" class="form-check-input">
                 </th>
-                <th>Fecha y Hora</th>
-                <th>Tipo</th>
-                <th>Usuario</th>
-                <th>Cambios</th>
-                <th style="width: 200px;">Acciones</th>
+                <th>{{ __('pages.revisions_datetime') }}</th>
+                <th>{{ __('pages.revisions_type') }}</th>
+                <th>{{ __('pages.revisions_user') }}</th>
+                <th>{{ __('pages.revisions_changes') }}</th>
+                <th style="width: 200px;">{{ __('pages.revisions_actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -118,29 +118,29 @@
                   <td>
                     @php
                       $badges = [
-                        'initial' => ['success', 'Inicial'],
-                        'manual' => ['primary', 'Manual'],
-                        'autosave' => ['info', 'Autoguardado'],
-                        'published' => ['warning', 'Publicado'],
-                        'restored' => ['dark', 'Restaurado'],
+                        'initial' => ['success', __('pages.revision_type_initial')],
+                        'manual' => ['primary', __('pages.revision_type_manual')],
+                        'autosave' => ['info', __('pages.revision_type_autosave')],
+                        'published' => ['warning', __('pages.revision_type_published')],
+                        'restored' => ['dark', __('pages.revision_type_restored')],
                       ];
                       [$class, $label] = $badges[$revision->revision_type] ?? ['secondary', $revision->revision_type];
                     @endphp
                     <span class="badge bg-{{ $class }} revision-type-badge">{{ $label }}</span>
                   </td>
                   <td>
-                    {{ e($revision->user_name ?? 'Sistema') }}
+                    {{ e($revision->user_name ?? __('pages.revision_user_system')) }}
                     <small class="text-muted d-block">{{ e($revision->user_type) }}</small>
                   </td>
-                  <td>{!! e($revision->changes_summary) ?: '<span class="text-muted">Sin descripción</span>' !!}</td>
+                  <td>{!! e($revision->changes_summary) ?: '<span class="text-muted">' . e(__('pages.revision_no_description')) . '</span>' !!}</td>
                   <td>
                     <div class="d-inline-flex align-items-center gap-2">
-                      <a href="{{ admin_url('pages') }}/{{ $page->id }}/revisions/{{ $revision->id }}/preview" class="btn btn-outline-secondary btn-sm" title="Vista previa">
+                      <a href="{{ admin_url('pages') }}/{{ $page->id }}/revisions/{{ $revision->id }}/preview" class="btn btn-outline-secondary btn-sm" title="{{ __('pages.preview_revision') }}">
                         <i class="bi bi-eye"></i>
                       </a>
                       <button type="button"
                               class="btn btn-outline-primary btn-sm btn-restore"
-                              title="Restaurar"
+                              title="{{ __('pages.restore_revision') }}"
                               data-revision-id="{{ $revision->id }}"
                               data-revision-date="{{ date('d/m/Y H:i', strtotime($revision->created_at)) }}">
                         <i class="bi bi-arrow-counterclockwise"></i>
@@ -173,6 +173,8 @@ function compareSelected() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+  const restoreModalHtmlTemplate = {!! json_encode(__('pages.restore_revision_modal_html')) !!};
+  const restoreButtonText = {!! json_encode(__('pages.restore_revision')) !!};
   const selectAllCheckbox = document.getElementById('selectAllRevisions');
   const revisionCheckboxes = document.querySelectorAll('.revision-checkbox');
   const bulkForm = document.getElementById('bulkRevisionsForm');
@@ -264,16 +266,17 @@ document.addEventListener('DOMContentLoaded', function () {
     btn.addEventListener('click', function() {
       const revisionId = this.dataset.revisionId;
       const revisionDate = this.dataset.revisionDate;
+      const restoreHtml = restoreModalHtmlTemplate.replace(':date', revisionDate);
 
       Swal.fire({
-        title: '¿Restaurar versión?',
-        html: `<p>La página volverá al estado del <strong>${revisionDate}</strong>.</p><p class="text-muted"><small>Se creará una nueva revisión con el estado actual antes de restaurar.</small></p>`,
+        title: restoreButtonText,
+        html: restoreHtml,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#0d6efd',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="bi bi-arrow-counterclockwise me-1"></i> Restaurar',
-        cancelButtonText: 'Cancelar',
+        confirmButtonText: `<i class="bi bi-arrow-counterclockwise me-1"></i> ${restoreButtonText}`,
+        cancelButtonText: {!! json_encode(__('common.cancel')) !!},
         focusCancel: true
       }).then((result) => {
         if (result.isConfirmed) {

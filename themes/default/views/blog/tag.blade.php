@@ -12,7 +12,7 @@
 @section('content')
 @php
     $blogLayout = themeOption('blog.blog_layout', 'grid');
-    $allowedLayouts = ['grid', 'list', 'magazine', 'minimal', 'newspaper', 'fashion'];
+    $allowedLayouts = ['grid', 'list', 'magazine', 'minimal', 'newspaper', 'fashion', 'mosaic'];
     if (!in_array($blogLayout, $allowedLayouts)) {
         $blogLayout = 'grid';
     }

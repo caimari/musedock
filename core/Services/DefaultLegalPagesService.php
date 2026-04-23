@@ -107,6 +107,21 @@ class DefaultLegalPagesService
         $hasUserRegistration = site_setting('site_has_user_registration', '0') === '1';
         $hasPaidServices = site_setting('site_has_paid_services', '0') === '1';
 
+        // Detect active ads (auto-detect from ad_units table)
+        $hasActiveAds = false;
+        try {
+            $__pdo = \Screenart\Musedock\Database::connect();
+            $__tenantId = function_exists('tenant_id') ? tenant_id() : null;
+            if ($__tenantId) {
+                $__stmt = $__pdo->prepare("SELECT COUNT(*) FROM ad_units WHERE tenant_id = ? AND is_active = true");
+                $__stmt->execute([$__tenantId]);
+            } else {
+                $__stmt = $__pdo->prepare("SELECT COUNT(*) FROM ad_units WHERE tenant_id IS NULL AND is_active = true");
+                $__stmt->execute();
+            }
+            $hasActiveAds = (int)$__stmt->fetchColumn() > 0;
+        } catch (\Exception $e) {}
+
         $pages = self::getPageTemplates($locale);
 
         if (!isset($pages[$slug])) {
@@ -197,6 +212,12 @@ class DefaultLegalPagesService
             $page['content'] = preg_replace('/art\.\s*22\.2\s*LSSI-CE/ui', 'la normativa aplicable', $page['content']);
         }
 
+        // Advertising: conditional sections (auto-detected from ad_units)
+        if (!$hasActiveAds) {
+            $page['content'] = preg_replace('/<!-- advertising-cookies-start -->.*?<!-- advertising-cookies-end -->/s', '', $page['content']);
+            $page['content'] = preg_replace('/<!-- advertising-privacy-start -->.*?<!-- advertising-privacy-end -->/s', '', $page['content']);
+        }
+
         // Terms & Conditions: conditional sections
         if (!$hasUserRegistration) {
             $page['content'] = preg_replace('/<!-- registration-start -->.*?<!-- registration-end -->/s', '', $page['content']);
@@ -280,6 +301,24 @@ class DefaultLegalPagesService
 <p>En caso de que se activen cookies de análisis o rendimiento en el futuro, se informará al usuario y se solicitará su consentimiento previo antes de su instalación. La presente política será actualizada en consecuencia.</p>
 <!-- no-analytics-notice-end -->
 
+<!-- advertising-cookies-start -->
+<h3>Cookies publicitarias (requieren consentimiento)</h3>
+<p>Este sitio web utiliza servicios publicitarios de terceros que pueden instalar cookies en tu dispositivo para mostrar anuncios relevantes basados en tus intereses y visitas anteriores a este y otros sitios web. Solo se instalan si aceptas las cookies no esenciales a través del banner de consentimiento.</p>
+<table>
+<thead>
+<tr><th>Cookie</th><th>Titular</th><th>Finalidad</th><th>Duración</th></tr>
+</thead>
+<tbody>
+<tr><td><code>__gads</code></td><td>Google (tercero)</td><td>Mide las interacciones con los anuncios del sitio web y evita que se muestren los mismos anuncios repetidamente.</td><td>13 meses</td></tr>
+<tr><td><code>__gpi</code></td><td>Google (tercero)</td><td>Almacena información para mostrar anuncios personalizados.</td><td>13 meses</td></tr>
+<tr><td><code>IDE</code></td><td>Google DoubleClick (tercero)</td><td>Utilizada para mostrar anuncios personalizados y medir la eficacia de las campañas publicitarias.</td><td>13 meses</td></tr>
+<tr><td><code>test_cookie</code></td><td>Google DoubleClick (tercero)</td><td>Verifica si el navegador del usuario soporta cookies.</td><td>15 minutos</td></tr>
+</tbody>
+</table>
+<p>Las cookies publicitarias de Google pueden implicar transferencias internacionales de datos a servidores de Google LLC (EE.UU.), amparadas en las cláusulas contractuales tipo de la Comisión Europea. Para más información: <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">Cómo usa Google las cookies en publicidad</a>.</p>
+<p>Puedes optar por no recibir publicidad personalizada visitando la <a href="https://adssettings.google.com/" target="_blank" rel="noopener">Configuración de anuncios de Google</a> o el sitio <a href="https://optout.aboutads.info/" target="_blank" rel="noopener">Your Online Choices</a>.</p>
+<!-- advertising-cookies-end -->
+
 <h2>5. ¿Cómo gestionar las cookies?</h2>
 <p>Puedes gestionar tus preferencias de cookies en cualquier momento:</p>
 <ul>
@@ -316,6 +355,7 @@ HTML
 <li>Intentar acceder a áreas restringidas del sitio web sin autorización.</li>
 <li>Introducir virus, malware o cualquier código malicioso.</li>
 <li>Realizar actividades que puedan dañar, sobrecargar o impedir el funcionamiento normal del sitio web.</li>
+<li>Publicar comentarios con contenido ilícito, difamatorio, ofensivo, spam o que vulnere derechos de terceros.</li>
 </ul>
 
 <h2>Propiedad intelectual e industrial</h2>
@@ -445,6 +485,7 @@ HTML
 <li>Nombre y apellidos</li>
 <li>Dirección de correo electrónico</li>
 <li>Número de teléfono (si se facilita)</li>
+<li>Datos de comentarios en el blog (nombre, email, web opcional y contenido del comentario)</li>
 <li>Cualquier otra información que decidas proporcionarnos voluntariamente</li>
 </ul>
 
@@ -467,6 +508,7 @@ HTML
 <tbody>
 <tr><td>Responder a consultas y solicitudes de contacto</td><td>Consentimiento del interesado (art. 6.1.a)</td></tr>
 <tr><td>Gestión de suscripciones y envío de comunicaciones</td><td>Consentimiento del interesado (art. 6.1.a)</td></tr>
+<tr><td>Gestión y moderación de comentarios en el blog</td><td>Consentimiento del interesado (art. 6.1.a) e interés legítimo para prevenir spam y abuso (art. 6.1.f)</td></tr>
 <tr><td>Análisis de uso del sitio web y mejora del servicio</td><td>Interés legítimo del responsable (art. 6.1.f)</td></tr>
 <tr><td>Cumplimiento de obligaciones fiscales y legales</td><td>Obligación legal (art. 6.1.c)</td></tr>
 <tr><td>Prevención del fraude y seguridad del sitio web</td><td>Interés legítimo del responsable (art. 6.1.f)</td></tr>
@@ -477,6 +519,7 @@ HTML
 <p>Los datos personales se conservarán durante el tiempo necesario para cumplir con la finalidad para la que fueron recabados y, posteriormente, durante los plazos de prescripción legal aplicables:</p>
 <ul>
 <li><strong>Datos de contacto:</strong> mientras se mantenga la relación con el usuario o hasta que solicite su supresión.</li>
+<li><strong>Datos de comentarios:</strong> mientras el comentario permanezca publicado o hasta solicitud de supresión, salvo obligación legal de conservación.</li>
 <li><strong>Datos de navegación:</strong> según la duración de las cookies utilizadas (consulta la Política de Cookies).</li>
 <li><strong>Datos fiscales:</strong> durante los plazos exigidos por la normativa tributaria aplicable.</li>
 </ul>
@@ -487,6 +530,9 @@ HTML
 <li><strong>Proveedores de alojamiento web:</strong> para el almacenamiento y servicio del sitio web.</li>
 <li><strong>Proveedores de servicios de correo electrónico:</strong> para el envío de comunicaciones.</li>
 <li><strong>Herramientas de analítica web:</strong> para el análisis estadístico del uso del sitio (datos anonimizados cuando sea posible).</li>
+<!-- advertising-privacy-start -->
+<li><strong>Redes publicitarias (Google AdSense/DoubleClick):</strong> para la gestión y personalización de anuncios mostrados en el sitio web. Google puede recopilar datos de navegación mediante cookies para ofrecer publicidad basada en intereses. Consulta la <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de Privacidad de Google</a>.</li>
+<!-- advertising-privacy-end -->
 <li><strong>Autoridades públicas:</strong> cuando exista una obligación legal.</li>
 </ul>
 
@@ -539,6 +585,13 @@ HTML
 <h3>Analytics/performance cookies</h3>
 <p>They allow us to recognize and count the number of visitors and see how visitors move around our website when using it. This helps us improve the way our website works, for example, by ensuring that users easily find what they are looking for.</p>
 
+<!-- advertising-cookies-start -->
+<h3>Advertising cookies</h3>
+<p>This website uses third-party advertising services that may place cookies on your device to serve relevant ads based on your interests and previous visits to this and other websites. These cookies are only installed if you accept non-essential cookies through the consent banner.</p>
+<p>Advertising cookies may involve international data transfers to Google LLC (USA) servers, covered by the European Commission's standard contractual clauses. For more information: <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">How Google uses cookies in advertising</a>.</p>
+<p>You can opt out of personalized advertising by visiting <a href="https://adssettings.google.com/" target="_blank" rel="noopener">Google Ads Settings</a> or <a href="https://optout.aboutads.info/" target="_blank" rel="noopener">Your Online Choices</a>.</p>
+<!-- advertising-cookies-end -->
+
 <h2>How to manage cookies?</h2>
 <p>You can manage your cookie preferences at any time by clicking the "Cookie Settings" link in the footer of our website. You can also set your browser to reject all cookies or to notify you when a cookie is sent.</p>
 
@@ -561,6 +614,7 @@ HTML
 <h2>2. Use of the website</h2>
 <p>The content of the pages of this website is for your general information and use only. It is subject to change without notice.</p>
 <p>Neither we nor any third parties provide any warranty as to the accuracy, timeliness, performance, completeness, or suitability of the information and materials found or offered on this website for any particular purpose.</p>
+<p>When comments are enabled, users must not post unlawful, defamatory, offensive, infringing, or spam content.</p>
 
 <h2>3. Intellectual property</h2>
 <p>This website contains material that is owned by or licensed to us. This material includes, but is not limited to, the design, layout, look, appearance, and graphics. Reproduction is prohibited except in accordance with the copyright notice.</p>
@@ -632,6 +686,7 @@ HTML
 <li>First and last name</li>
 <li>Email address</li>
 <li>Phone number</li>
+<li>Blog comment data (name, email, optional website, and comment content)</li>
 <li>Any other information you choose to provide</li>
 </ul>
 
@@ -650,6 +705,7 @@ HTML
 <li>Provide and maintain our services</li>
 <li>Improve and personalize your experience</li>
 <li>Communicate with you about updates or changes</li>
+<li>Manage and moderate blog comments, including anti-spam and abuse prevention</li>
 <li>Comply with legal obligations</li>
 </ul>
 
@@ -659,6 +715,9 @@ HTML
 <li>With your express consent</li>
 <li>To comply with legal obligations</li>
 <li>To protect our rights or those of other users</li>
+<!-- advertising-privacy-start -->
+<li><strong>Advertising networks (Google AdSense/DoubleClick):</strong> for the management and personalization of ads displayed on our website. Google may collect browsing data through cookies to serve interest-based advertising. See <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a>.</li>
+<!-- advertising-privacy-end -->
 </ul>
 
 <h2>4. Data security</h2>

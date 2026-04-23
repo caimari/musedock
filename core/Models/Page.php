@@ -163,10 +163,37 @@ class Page extends Model
     {
         $slug = $this->getSlug();
         if (!$slug) return '#';
-        
-        $host = $_SERVER['HTTP_HOST'] ?? env('APP_URL', 'localhost');
-        $default = function_exists('page_prefix') ? page_prefix() : 'p';
-        $prefix = $slug->prefix ?? $default;
+
+        // Determinar el host correcto según el tenant del post (no el contexto actual)
+        $pageTenantId = $this->attributes['tenant_id'] ?? null;
+        $host = null;
+
+        if ($pageTenantId) {
+            // Buscar el dominio del tenant propietario de la página
+            try {
+                $pdo = \Screenart\Musedock\Database::connect();
+                $stmt = $pdo->prepare("SELECT domain FROM tenants WHERE id = ? LIMIT 1");
+                $stmt->execute([$pageTenantId]);
+                $host = $stmt->fetchColumn() ?: null;
+
+                // Determinar el prefijo correcto leyendo tenant_settings del tenant de la página
+                if ($slug->prefix === null || $slug->prefix === '') {
+                    // Respetar el prefijo que tenga guardado el slug (puede ser null = sin prefijo)
+                    $prefix = $slug->prefix;
+                } else {
+                    $prefix = $slug->prefix;
+                }
+            } catch (\Exception $e) {
+                // Fallback al contexto actual
+            }
+        }
+
+        // Fallback: usar el host actual si no hay tenant (CMS principal) o falló la query
+        if (!$host) {
+            $host = $_SERVER['HTTP_HOST'] ?? env('APP_URL', 'localhost');
+            $default = function_exists('page_prefix') ? page_prefix() : 'p';
+            $prefix = $slug->prefix ?? $default;
+        }
 
         if ($prefix === '' || $prefix === null) {
             return "https://{$host}/{$slug->slug}";

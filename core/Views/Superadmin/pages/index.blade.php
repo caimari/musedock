@@ -39,7 +39,7 @@
         </a>
         @if (!empty($crossPublisherActive) && !empty($currentScope) && str_starts_with($currentScope, 'tenant:'))
           <a href="/musedock/pages/create?tenant_id={{ substr($currentScope, 7) }}" class="btn btn-primary">
-            <i class="bi bi-plus-lg me-1"></i> Crear página en {{ $scope['label'] ?? 'tenant' }}
+            <i class="bi bi-plus-lg me-1"></i> {{ __('pages.create_page_in_scope', ['scope' => $scope['label'] ?? __('pages.scope_tenant_fallback')]) }}
           </a>
         @else
           <a href="{{ route('pages.create') }}" class="btn btn-primary">
@@ -55,13 +55,13 @@
       <div class="card-body py-2">
         <form method="GET" action="/musedock/pages" class="d-flex align-items-center gap-3 flex-wrap">
           @if (!empty($search))<input type="hidden" name="search" value="{{ $search }}">@endif
-          <label class="form-label mb-0 fw-bold text-nowrap"><i class="bi bi-funnel me-1"></i> Filtrar por:</label>
+          <label class="form-label mb-0 fw-bold text-nowrap"><i class="bi bi-funnel me-1"></i> {{ __('pages.filter_by') }}:</label>
           <select name="scope" class="form-select form-select-sm" style="width: auto; min-width: 280px;" onchange="this.form.submit()">
-            <option value="mine" @if(($currentScope ?? 'mine') === 'mine') selected @endif>Mis páginas (Superadmin)</option>
+            <option value="mine" @if(($currentScope ?? 'mine') === 'mine') selected @endif>{{ __('pages.scope_mine_superadmin') }}</option>
             @foreach ($groups as $group)
-              <optgroup label="{{ $group->name }} ({{ $group->member_count }} sitios)">
+              <optgroup label="{{ __('pages.scope_group_sites_label', ['name' => $group->name, 'count' => $group->member_count]) }}">
                 <option value="group:{{ $group->id }}" @if(($currentScope ?? '') === "group:{$group->id}") selected @endif>
-                  Todo el grupo: {{ $group->name }}
+                  {{ __('pages.scope_group_all', ['name' => $group->name]) }}
                 </option>
                 @foreach ($groupedTenants as $tenant)
                   @if ($tenant->group_id == $group->id)
@@ -75,7 +75,7 @@
           </select>
           @if (($currentScope ?? 'mine') !== 'mine')
             <span class="badge bg-info text-dark">{{ $scope['label'] ?? '' }}</span>
-            <a href="/musedock/pages" class="btn btn-sm btn-outline-secondary">Limpiar filtro</a>
+            <a href="/musedock/pages" class="btn btn-sm btn-outline-secondary">{{ __('common.clear_filter') }}</a>
           @endif
         </form>
       </div>
@@ -146,7 +146,7 @@
                 <th style="width: 1%;"><input type="checkbox" class="form-check-input" id="selectAll"></th>
                 <th class="sortable" data-sort-col="1">{{ __('pages.title') }} <i class="fas fa-sort text-muted ms-1"></i></th>
                 @if (!empty($crossPublisherActive) && !empty($scope) && $scope['mode'] !== 'mine')
-                <th>Sitio</th>
+                <th>{{ __('pages.site') }}</th>
                 @endif
                 <th class="sortable" data-sort-col="2">{{ __('pages.author') }} <i class="fas fa-sort text-muted ms-1"></i></th>
                 <th class="sortable" data-sort-col="3">{{ __('pages.base_language') }} <i class="fas fa-sort text-muted ms-1"></i></th>
@@ -397,22 +397,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 action === 'public' || action === 'private' || action === 'members') {
         // Acciones que cambian estados
         const actionLabels = {
-          'published': 'publicar',
-          'draft': 'pasar a borrador',
-          'public': 'hacer públicas',
-          'private': 'hacer privadas',
-          'members': 'restringir a miembros'
+          'published': {!! json_encode(__('pages.action_verb_publish')) !!},
+          'draft': {!! json_encode(__('pages.action_verb_draft')) !!},
+          'public': {!! json_encode(__('pages.action_verb_make_public')) !!},
+          'private': {!! json_encode(__('pages.action_verb_make_private')) !!},
+          'members': {!! json_encode(__('pages.action_verb_members_only')) !!}
         };
         
         Swal.fire({
-          title: '¿Confirmar cambio?',
-          text: `Vas a ${actionLabels[action]} ${selectedCount} página(s).`,
+          title: '{{ __('pages.confirm_change') }}',
+          text: `{{ __('pages.confirm_change_message') }} ${actionLabels[action]} ${selectedCount} {{ __('pages.pages_count') }}`,
           icon: 'question',
           showCancelButton: true,
           confirmButtonColor: '#3085d6',
           cancelButtonColor: '#6c757d',
-          confirmButtonText: 'Sí, continuar',
-          cancelButtonText: 'Cancelar'
+          confirmButtonText: '{{ __('common.yes_continue') }}',
+          cancelButtonText: '{{ __('common.cancel') }}'
         }).then((result) => {
           if (result.isConfirmed) {
             bulkForm.submit();
@@ -435,8 +435,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const pageId = deleteLink.getAttribute('data-page-id');
     const pageTitle = deleteLink.getAttribute('data-page-title');
 
-    console.log('[DELETE] Enlace clickeado. ID:', pageId, 'Título:', pageTitle);
-
     Swal.fire({
       title: '{{ __('pages.confirm_delete_title') }}',
       html: `{{ __('pages.confirm_delete_page_message') }} <strong>"${escapeHtml(pageTitle)}"</strong>`,
@@ -448,8 +446,6 @@ document.addEventListener('DOMContentLoaded', function() {
       cancelButtonText: '{{ __('common.cancel') }}'
     }).then((result) => {
       if (result.isConfirmed) {
-        console.log('[DELETE] Confirmado. Eliminando página ID:', pageId);
-
         // Buscar y enviar el formulario oculto
         const formId = `delete-form-${pageId}`;
         const form = document.getElementById(formId);
@@ -464,7 +460,6 @@ document.addEventListener('DOMContentLoaded', function() {
           return;
         }
 
-        console.log('[DELETE] Formulario encontrado, enviando...');
         form.submit();
       }
     });

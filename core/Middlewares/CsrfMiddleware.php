@@ -172,14 +172,14 @@ class CsrfMiddleware
             $loginUrl = $this->getLoginUrl();
 
             // Guardar mensaje flash para mostrar en el login
-            // Usamos ambos sistemas de flash para compatibilidad
+            // Evitar duplicados: usar flash() si existe, fallback a sesión legacy.
             if (session_status() === PHP_SESSION_ACTIVE) {
-                // Sistema nuevo (función flash)
                 if (function_exists('flash')) {
                     flash('error', 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+                } else {
+                    // Sistema legacy (sesión directa)
+                    $_SESSION['error'] = 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';
                 }
-                // Sistema legacy (sesión directa) para superadmin
-                $_SESSION['error'] = 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';
             }
 
             // Redirigir al login

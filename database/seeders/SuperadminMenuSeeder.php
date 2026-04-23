@@ -207,6 +207,16 @@ class SuperadminMenuSeeder
                 'order_position' => 2,
                 'is_active' => 1
             ]);
+            $this->insertMenu([
+                'parent_id' => $blogId,
+                'title' => 'Comentarios',
+                'slug' => 'blog-comments',
+                'url' => '{admin_path}/blog/comments',
+                'icon' => 'bi-chat-left-text',
+                'icon_type' => 'bi',
+                'order_position' => 3,
+                'is_active' => 1
+            ]);
         }
 
         // Submenús de Gestión de Usuarios

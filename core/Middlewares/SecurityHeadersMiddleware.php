@@ -41,12 +41,12 @@ class SecurityHeadersMiddleware
      * Configuración base - puede ser personalizada según necesidades
      */
     private static string $csp = "default-src 'self'; " .
-                                   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tiny.cloud https://cdn.ckeditor.com; " .
+                                   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tiny.cloud https://cdn.ckeditor.com https://pagead2.googlesyndication.com https://adservice.google.com https://www.googletagservices.com https://tpc.googlesyndication.com https://partner.googleadservices.com; " .
                                    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; " .
                                    "img-src 'self' data: https: blob:; " .
                                    "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; " .
-                                   "connect-src 'self'; " .
-                                   "frame-src 'self'; " .
+                                   "connect-src 'self' https://pagead2.googlesyndication.com https://adservice.google.com; " .
+                                   "frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com; " .
                                    "object-src 'none'; " .
                                    "base-uri 'self'; " .
                                    "form-action 'self'; " .

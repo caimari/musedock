@@ -36,8 +36,16 @@ return [
     'comments' => 'Comentarios',
     'no_comments' => 'No hay comentarios todavía.',
     'leave_comment' => 'Dejar un Comentario',
+    'comment_name' => 'Nombre',
+    'comment_email' => 'Email',
+    'comment_website_optional' => 'Web (opcional)',
     'your_comment' => 'Tu Comentario',
     'post_comment' => 'Publicar Comentario',
+    'comment_legal_consent' => 'He leído y acepto la <a href=":privacy_url" target="_blank" rel="noopener noreferrer">Política de Privacidad</a> y los <a href=":terms_url" target="_blank" rel="noopener noreferrer">Términos y Condiciones</a>.',
+    'comment_email_privacy_notice' => 'Tu email se usa para moderación anti-spam y no se muestra públicamente.',
+    'captcha' => 'Verificación',
+    'captcha_help' => 'Introduce los caracteres de la imagen para enviar el comentario.',
+    'captcha_refresh' => 'Actualizar código',
 
     // Stats
     'views' => 'Vistas',

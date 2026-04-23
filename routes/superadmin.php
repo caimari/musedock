@@ -220,6 +220,9 @@ Route::post('/musedock/languages/{id}/update', 'superadmin.LanguagesController@u
 Route::post('/musedock/languages/{id}/delete', 'superadmin.LanguagesController@delete')->middleware('superadmin')->name('languages.delete');
 Route::post('/musedock/languages/{id}/toggle', 'superadmin.LanguagesController@toggle')->middleware('superadmin')->name('languages.toggle');
 Route::post('/musedock/languages/set-default', 'superadmin.LanguagesController@setDefault')->middleware('superadmin')->name('languages.set-default');
+Route::get('/musedock/languages/translations', 'superadmin.LanguagesController@translations')->middleware('superadmin')->name('languages.translations');
+Route::post('/musedock/languages/translations/save', 'superadmin.LanguagesController@saveTranslationOverride')->middleware('superadmin')->name('languages.translations.save');
+Route::post('/musedock/languages/translations/reset', 'superadmin.LanguagesController@resetTranslationOverride')->middleware('superadmin')->name('languages.translations.reset');
 
 
 // Sesiones
@@ -646,30 +649,7 @@ Route::get('/musedock/analytics/realtime-api', 'superadmin.AnalyticsController@r
 Route::get('/musedock/analytics/pages-api', 'superadmin.AnalyticsController@pagesApi')
     ->name('analytics.pages-api')->middleware('superadmin');
 
-// API endpoint para tracking (público, sin middleware superadmin)
-Route::post('/api/analytics/track', function() {
-    try {
-        $data = json_decode(file_get_contents('php://input'), true);
-
-        if (!$data) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Invalid data']);
-            exit;
-        }
-
-        // Rastrear usando WebAnalytics
-        $tracked = \Screenart\Musedock\Services\WebAnalytics::track($data);
-
-        http_response_code($tracked ? 200 : 204);
-        echo json_encode(['success' => $tracked]);
-        exit;
-
-    } catch (\Exception $e) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Tracking failed']);
-        exit;
-    }
-})->name('analytics.track');
+// NOTA: /api/analytics/track movido a routes/web.php (necesita estar disponible en todos los dominios, no solo superadmin)
 
 // ========== CRON/SCHEDULED TASKS ROUTES ==========
 Route::get('/musedock/cron/status', 'superadmin.CronStatusController@index')
@@ -838,6 +818,22 @@ Route::get('/musedock/login/2fa', 'superadmin.TwoFactorController@verify')
 
 Route::post('/musedock/login/2fa', 'superadmin.TwoFactorController@verifyCode')
     ->name('superadmin.2fa.verify.post');
+
+// ── Ads Management ──────────────────────────────────────────────────────
+Route::get('/musedock/ads', 'superadmin.AdsController@index')
+     ->middleware(['superadmin'])->name('superadmin.ads.index');
+Route::get('/musedock/ads/create', 'superadmin.AdsController@create')
+     ->middleware(['superadmin'])->name('superadmin.ads.create');
+Route::post('/musedock/ads', 'superadmin.AdsController@store')
+     ->middleware(['superadmin'])->name('superadmin.ads.store');
+Route::get('/musedock/ads/{id}/edit', 'superadmin.AdsController@edit')
+     ->middleware(['superadmin'])->name('superadmin.ads.edit');
+Route::post('/musedock/ads/{id}', 'superadmin.AdsController@update')
+     ->middleware(['superadmin'])->name('superadmin.ads.update');
+Route::post('/musedock/ads/{id}/toggle', 'superadmin.AdsController@toggle')
+     ->middleware(['superadmin'])->name('superadmin.ads.toggle');
+Route::post('/musedock/ads/{id}/delete', 'superadmin.AdsController@delete')
+     ->middleware(['superadmin'])->name('superadmin.ads.delete');
 
 // ============================================
 // PLUGIN ROUTES LOADER

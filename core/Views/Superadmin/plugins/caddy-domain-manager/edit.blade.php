@@ -1143,6 +1143,140 @@
                 </div>
 
                 {{-- ============================================ --}}
+                {{-- INSTAGRAM --}}
+                {{-- ============================================ --}}
+                <div class="card mt-3">
+                    <div class="card-header p-0">
+                        <button class="btn btn-link text-decoration-none w-100 text-start p-3 d-flex justify-content-between align-items-center collapsed"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#instagramCollapse"
+                                aria-expanded="false"
+                                aria-controls="instagramCollapse">
+                            <h5 class="mb-0">
+                                <i class="bi bi-instagram" style="background: linear-gradient(45deg,#f09433,#dc2743,#bc1888);-webkit-background-clip:text;-webkit-text-fill-color:transparent;"></i>
+                                Instagram
+                                @if(!empty($instagramConnections) && count($instagramConnections) > 0)
+                                    <span class="badge bg-success ms-2" style="font-size:0.7em;">{{ count($instagramConnections) }} conectada{{ count($instagramConnections) > 1 ? 's' : '' }}</span>
+                                @elseif($instagramModuleActive ?? false)
+                                    <span class="badge bg-warning ms-2" style="font-size:0.7em;">Sin conexiones</span>
+                                @else
+                                    <span class="badge bg-secondary ms-2" style="font-size:0.7em;">Módulo inactivo</span>
+                                @endif
+                            </h5>
+                            <i class="bi bi-chevron-down" style="transition: transform 0.3s;"></i>
+                        </button>
+                    </div>
+                    <div class="collapse" id="instagramCollapse">
+                        <div class="card-body">
+                            @if(!($instagramModuleActive ?? false))
+                                <div class="alert alert-info mb-0">
+                                    <i class="bi bi-info-circle"></i>
+                                    El módulo <strong>Social Publisher</strong> no está activo en este tenant. Actívalo desde
+                                    <a href="/musedock/modules?tenant={{ $tenant->id }}" class="alert-link">Módulos → Social Publisher</a>
+                                    para poder conectar cuentas.
+                                </div>
+                            @else
+                                <p class="text-muted small mb-3">
+                                    Cuentas de Instagram/Facebook de <strong>{{ $tenant->domain }}</strong>. El propio tenant las gestiona desde <code>{{ $tenant->domain }}/admin/social-publisher</code>.
+                                </p>
+
+                                @if(empty($instagramConnections))
+                                    <div class="alert alert-warning mb-3">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                        Este tenant todavía no tiene ninguna cuenta conectada.
+                                    </div>
+                                @else
+                                    <div class="table-responsive mb-3">
+                                        <table class="table table-sm align-middle">
+                                            <thead>
+                                                <tr>
+                                                    <th>Cuenta IG</th>
+                                                    <th>Estado IG</th>
+                                                    <th>Token IG</th>
+                                                    <th>Página Facebook</th>
+                                                    <th>Hashtags</th>
+                                                    <th>Última sync</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($instagramConnections as $c)
+                                                    @php
+                                                        $expTs = !empty($c->token_expires_at) ? strtotime($c->token_expires_at) : 0;
+                                                        $expired = $expTs > 0 && $expTs < time();
+                                                        $days = $expTs > 0 ? max(0, (int)floor(($expTs - time()) / 86400)) : null;
+                                                        $hashtagCount = !empty($c->hashtags_preset) ? count(preg_split('/\s+/', trim($c->hashtags_preset))) : 0;
+                                                        $hasFb = !empty($c->facebook_page_id) && !empty($c->facebook_page_token);
+                                                        $fbEnabled = !empty($c->facebook_enabled);
+                                                    @endphp
+                                                    <tr>
+                                                        <td><strong>{{ '@' . $c->username }}</strong></td>
+                                                        <td>
+                                                            @if($expired)
+                                                                <span class="badge bg-danger">Token caducado</span>
+                                                            @elseif($c->is_active)
+                                                                <span class="badge bg-success">Activa</span>
+                                                            @else
+                                                                <span class="badge bg-warning">Pendiente</span>
+                                                            @endif
+                                                        </td>
+                                                        <td>
+                                                            @if($days !== null)
+                                                                <small class="text-muted">{{ $days }} días</small>
+                                                            @else
+                                                                <small class="text-muted">—</small>
+                                                            @endif
+                                                        </td>
+                                                        <td>
+                                                            @if($hasFb && $fbEnabled)
+                                                                <span class="badge" style="background:#1877f2;">
+                                                                    <i class="bi bi-facebook"></i> {{ $c->facebook_page_name ?: 'Vinculada' }}
+                                                                </span>
+                                                            @elseif($hasFb)
+                                                                <span class="badge bg-secondary" title="Página vinculada pero publicación deshabilitada">
+                                                                    <i class="bi bi-facebook"></i> Desactivada
+                                                                </span>
+                                                            @else
+                                                                <small class="text-muted">Sin vincular</small>
+                                                            @endif
+                                                        </td>
+                                                        <td>
+                                                            @if($hashtagCount > 0)
+                                                                <span class="badge bg-info">{{ $hashtagCount }}</span>
+                                                            @else
+                                                                <small class="text-muted">—</small>
+                                                            @endif
+                                                        </td>
+                                                        <td>
+                                                            <small class="text-muted">
+                                                                {{ $c->last_synced_at ? date('d/m/Y H:i', strtotime($c->last_synced_at)) : 'Nunca' }}
+                                                            </small>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @endif
+
+                                <div class="alert alert-light border mb-0">
+                                    <div class="d-flex align-items-start gap-2">
+                                        <i class="bi bi-box-arrow-up-right mt-1"></i>
+                                        <div class="flex-grow-1" style="font-size: 0.85rem;">
+                                            <strong>Añadir cuentas, vincular Facebook, reautorizar, editar hashtags…</strong><br>
+                                            <span class="text-muted">La gestión completa se hace desde el panel del propio tenant. El OAuth de Meta <strong>tiene que volver al dominio real</strong> ({{ $tenant->domain }}) porque es el registrado en Meta como «Valid OAuth Redirect URI».</span>
+                                        </div>
+                                        <a href="https://{{ $tenant->domain }}/admin/social-publisher" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary text-nowrap">
+                                            <i class="bi bi-box-arrow-up-right"></i> Abrir panel
+                                        </a>
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ============================================ --}}
                 {{-- SCROLL TO TOP --}}
                 {{-- ============================================ --}}
                 <div class="card mt-3">

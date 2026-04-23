@@ -1,0 +1,49 @@
+:root {
+  --topbar-bg-color: #1a1a2e;
+  --topbar-text-color: #ffffff;
+  --hero-title-color: #ffffff;
+  --hero-title-font: 'Playfair Display', serif;
+  --hero-subtitle-color: #e5e5e5;
+  --hero-overlay-color: #000000;
+  --hero-overlay-opacity: 0.5;
+  --header-logo-max-height: 45px;
+  --header-bg-color: #fafafa;
+  --header-logo-text-color: #1a1a2e;
+  --header-logo-font: 'Playfair Display', serif;
+  --header-link-color: #333333;
+  --header-link-hover-color: #b8860b;
+  --header-cta-bg-color: #b8860b;
+  --header-cta-text-color: #ffffff;
+  --content-heading-font: inherit;
+  --content-body-font: inherit;
+  --content-text-color: #334155;
+  --content-heading-color: #0f172a;
+  --content-link-color: #3b82f6;
+  --footer-bg-color: #1a1a2e;
+  --footer-text-color: #b0b0b0;
+  --footer-heading-color: #ffffff;
+  --footer-link-color: #a0a0a0;
+  --footer-link-hover-color: #b8860b;
+  --footer-icon-color: #b8860b;
+  --footer-border-color: #2d2d44;
+  --content-h1-size: 36px;
+  --content-h2-size: 28px;
+  --content-h3-size: 24px;
+  --content-h4-size: 20px;
+  --content-h5-size: 18px;
+  --content-h6-size: 16px;
+  --content-body-size: 16px;
+  --content-line-height: 1.7;
+}
+
+
+/* --- CSS Personalizado --- */
+/* Ejemplos:
+.header-bottom {
+  background-color: #ff0000 !important;
+}
+
+.footer-area h4 {
+  color: #00ff00 !important;
+}
+*/

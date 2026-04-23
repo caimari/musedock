@@ -10,6 +10,25 @@ class MenuHelper
     private static $homepagePageId = null;
     private static $homepageResolved = false;
 
+    /**
+     * Comprueba si un menú renderiza al menos un enlace visible en el locale actual.
+     * Útil para decidir si mostrar el botón hamburguesa en responsive.
+     */
+    public static function hasMenuItems($location, $locale = null): bool
+    {
+        if (!$locale) $locale = setting('language', 'es');
+        $cacheKey = 'has_' . $location . '_' . $locale;
+        if (isset(self::$menuCache[$cacheKey])) {
+            return (bool) self::$menuCache[$cacheKey];
+        }
+        $html = self::renderCustomMenu($location, $locale);
+        // El menú siempre envuelve en <ul>...</ul>; consideramos que tiene items
+        // sólo si hay al menos un <li> (o texto visible) dentro.
+        $has = (bool) preg_match('/<li[\s>]/i', $html);
+        self::$menuCache[$cacheKey] = $has;
+        return $has;
+    }
+
     // --- Mantenemos renderMenu como estaba si aún la usas en otro lugar ---
     /**
      * Renderiza un menú por su ubicación (versión original si es necesaria)

@@ -12,6 +12,15 @@ class InstagramConnection
     public int $id;
     public ?int $tenant_id;
     public ?int $user_id;
+    public ?string $app_id = null;
+    public ?string $app_secret = null;
+    public ?string $redirect_uri = null;
+    public ?string $hashtags_preset = null;
+    public ?string $facebook_page_id = null;
+    public ?string $facebook_page_name = null;
+    public ?string $facebook_page_token = null;
+    public ?string $facebook_user_token = null;
+    public int $facebook_enabled = 0;
     public string $instagram_user_id;
     public string $username;
     public ?string $profile_picture;
@@ -195,15 +204,19 @@ class InstagramConnection
 
         $stmt = $pdo->prepare('
             INSERT INTO instagram_connections (
-                tenant_id, user_id, instagram_user_id, username,
-                profile_picture, access_token, refresh_token,
-                token_expires_at, is_active, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                tenant_id, user_id, app_id, app_secret, redirect_uri,
+                instagram_user_id, username, profile_picture,
+                access_token, refresh_token, token_expires_at, is_active,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ');
 
         $stmt->execute([
             $data['tenant_id'] ?? null,
             $data['user_id'] ?? null,
+            $data['app_id'] ?? null,
+            $data['app_secret'] ?? null,
+            $data['redirect_uri'] ?? null,
             $data['instagram_user_id'],
             $data['username'],
             $data['profile_picture'] ?? null,
@@ -229,7 +242,10 @@ class InstagramConnection
 
         $allowedFields = [
             'username', 'profile_picture', 'access_token', 'refresh_token',
-            'token_expires_at', 'is_active', 'last_synced_at', 'last_error'
+            'token_expires_at', 'is_active', 'last_synced_at', 'last_error',
+            'app_id', 'app_secret', 'redirect_uri', 'hashtags_preset',
+            'facebook_page_id', 'facebook_page_name', 'facebook_page_token',
+            'facebook_user_token', 'facebook_enabled',
         ];
 
         foreach ($allowedFields as $field) {
@@ -330,6 +346,15 @@ class InstagramConnection
         $instance->id = (int) $data['id'];
         $instance->tenant_id = $data['tenant_id'] !== null ? (int) $data['tenant_id'] : null;
         $instance->user_id = $data['user_id'] !== null ? (int) $data['user_id'] : null;
+        $instance->app_id = $data['app_id'] ?? null;
+        $instance->app_secret = $data['app_secret'] ?? null;
+        $instance->redirect_uri = $data['redirect_uri'] ?? null;
+        $instance->hashtags_preset = $data['hashtags_preset'] ?? null;
+        $instance->facebook_page_id = $data['facebook_page_id'] ?? null;
+        $instance->facebook_page_name = $data['facebook_page_name'] ?? null;
+        $instance->facebook_page_token = $data['facebook_page_token'] ?? null;
+        $instance->facebook_user_token = $data['facebook_user_token'] ?? null;
+        $instance->facebook_enabled = (int) ($data['facebook_enabled'] ?? 0);
         $instance->instagram_user_id = $data['instagram_user_id'];
         $instance->username = $data['username'];
         $instance->profile_picture = $data['profile_picture'];

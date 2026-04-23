@@ -395,11 +395,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 action === 'public' || action === 'private' || action === 'members') {
         // Acciones que cambian estados
         const actionLabels = {
-          'published': 'publicar',
-          'draft': 'pasar a borrador',
-          'public': 'hacer públicas',
-          'private': 'hacer privadas',
-          'members': 'restringir a miembros'
+          'published': {!! json_encode(__('pages.action_verb_publish')) !!},
+          'draft': {!! json_encode(__('pages.action_verb_draft')) !!},
+          'public': {!! json_encode(__('pages.action_verb_make_public')) !!},
+          'private': {!! json_encode(__('pages.action_verb_make_private')) !!},
+          'members': {!! json_encode(__('pages.action_verb_members_only')) !!}
         };
 
         Swal.fire({

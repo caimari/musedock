@@ -7,9 +7,14 @@
     {{-- Los mensajes flash se muestran con SweetAlert2 al final del archivo --}}
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <a href="{{ route('languages.create') }}" class="btn btn-success">
-        <i class="bi bi-plus-lg me-1"></i> Añadir nuevo idioma
-      </a>
+      <div class="d-flex gap-2">
+        <a href="{{ route('languages.create') }}" class="btn btn-success">
+          <i class="bi bi-plus-lg me-1"></i> Añadir nuevo idioma
+        </a>
+        <a href="{{ route('languages.translations') }}" class="btn btn-outline-primary">
+          <i class="bi bi-translate me-1"></i> Editor de traducciones
+        </a>
+      </div>
       <small class="text-muted">
         <i class="bi bi-arrows-move me-1"></i> Arrastra las filas para cambiar el orden
       </small>

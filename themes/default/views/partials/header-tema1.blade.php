@@ -46,11 +46,13 @@
                         @include('partials._header-search')
 
                         {{-- Menu toggle para movil --}}
+                        @if(menu_has_items('nav'))
                         <button type="button" class="menu-toggle header-tema1-menu-toggle" id="menu-toggle" aria-label="Abrir menu">
                             <span></span>
                             <span></span>
                             <span></span>
                         </button>
+                        @endif
                     </div>
                 </div>
             </div>

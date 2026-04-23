@@ -145,17 +145,38 @@ class BlogPostController
         // Mapa de tenants para mostrar dominio en la columna "Sitio"
         $tenantMap = ($scope['mode'] !== 'mine') ? $this->buildTenantMap($scope['tenantIds']) : [];
 
+        // Detect which tenants have active Instagram connections
+        // (used to show Instagram publish button in superadmin view)
+        $tenantsWithInstagram = [];
+        if (!empty($scope['tenantIds'])) {
+            try {
+                $pdo = Database::connect();
+                $placeholders = implode(',', array_fill(0, count($scope['tenantIds']), '?'));
+                $stmt = $pdo->prepare("
+                    SELECT DISTINCT tenant_id FROM instagram_connections
+                    WHERE tenant_id IN ({$placeholders})
+                      AND is_active = 1
+                      AND (token_expires_at IS NULL OR token_expires_at > NOW())
+                ");
+                $stmt->execute($scope['tenantIds']);
+                $tenantsWithInstagram = array_map('intval', array_column($stmt->fetchAll(\PDO::FETCH_ASSOC), 'tenant_id'));
+            } catch (\Exception $e) {
+                // Table may not exist; ignore
+            }
+        }
+
         // Renderizamos la vista
         return View::renderSuperadmin('blog.posts.index', array_merge([
-            'title'       => 'Listado de posts del blog',
-            'posts'       => $processedPosts,
-            'authors'     => $authors,
-            'search'      => $search,
-            'pagination'  => $pagination,
-            'orderBy'     => $orderBy,
-            'order'       => $order,
-            'scope'       => $scope,
-            'tenantMap'   => $tenantMap,
+            'title'                => 'Listado de posts del blog',
+            'posts'                => $processedPosts,
+            'authors'              => $authors,
+            'search'               => $search,
+            'pagination'           => $pagination,
+            'orderBy'              => $orderBy,
+            'order'                => $order,
+            'scope'                => $scope,
+            'tenantMap'            => $tenantMap,
+            'tenantsWithInstagram' => $tenantsWithInstagram,
         ], $this->getCrossPublisherFilterData()));
     }
 

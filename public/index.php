@@ -369,9 +369,11 @@ header('Referrer-Policy: strict-origin-when-cross-origin');
 //
 // CSP con unsafe-inline necesario para AdminLTE y otros plugins que usan inline styles/scripts
 // TODO: Migrar a nonces o hashes para mayor seguridad
-$cspScriptSrc = "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://code.jquery.com";
+$cspScriptSrc = "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://code.jquery.com https://pagead2.googlesyndication.com https://*.googlesyndication.com https://adservice.google.com https://*.googletagservices.com https://*.googleadservices.com https://www.googletagmanager.com https://*.adtrafficquality.google https://*.google.com https://*.doubleclick.net";
 $cspStyleSrc = "'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com";
 $cspConnectSrc = "'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com";
+$cspFrameSrc = "'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com https://*.adtrafficquality.google";
+$cspImgSrc = "'self' data: https:";
 
 // CSP dinámica: buscar tenant por HTTP_HOST y añadir dominios de su JS personalizado
 $_cspHost = $_SERVER['HTTP_HOST'] ?? '';
@@ -436,6 +438,38 @@ if ($_cspHost && file_exists(__DIR__ . '/../.env')) {
                     }
                 }
             }
+
+            // CSP overrides desde tenant_settings (configurados en admin > settings > security)
+            if ($_tenantRow) {
+                $_keyCol = ($_dbDriver === 'pgsql') ? '"key"' : '`key`';
+                $_cspStmt = $_pdo->prepare("
+                    SELECT {$_keyCol}, value FROM tenant_settings
+                    WHERE tenant_id = ? AND {$_keyCol} IN ('csp_connect_src', 'csp_script_src', 'csp_frame_src', 'csp_img_src')
+                ");
+                $_cspStmt->execute([$_tenantRow['id']]);
+                $_cspOverrides = $_cspStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+                // Mapa de directiva CSP → variable PHP
+                $_cspMap = [
+                    'csp_connect_src' => &$cspConnectSrc,
+                    'csp_script_src'  => &$cspScriptSrc,
+                    'csp_frame_src'   => &$cspFrameSrc,
+                    'csp_img_src'     => &$cspImgSrc,
+                ];
+                foreach ($_cspMap as $_cspKey => &$_cspVar) {
+                    if (!empty($_cspOverrides[$_cspKey])) {
+                        $_domains = preg_split('/[\r\n]+/', trim($_cspOverrides[$_cspKey]));
+                        foreach ($_domains as $_d) {
+                            $_d = trim($_d);
+                            if ($_d !== '' && !str_contains($_cspVar, $_d)) {
+                                $_cspVar .= ' ' . $_d;
+                            }
+                        }
+                    }
+                }
+                unset($_cspVar);
+            }
+
             $_pdo = null;
         }
     } catch (\Exception $_e) {
@@ -443,7 +477,7 @@ if ($_cspHost && file_exists(__DIR__ . '/../.env')) {
     }
 }
 
-header("Content-Security-Policy: default-src 'self'; script-src {$cspScriptSrc}; style-src {$cspStyleSrc}; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com; connect-src {$cspConnectSrc}; object-src 'none'; base-uri 'self'; form-action 'self';");
+header("Content-Security-Policy: default-src 'self'; script-src {$cspScriptSrc}; style-src {$cspStyleSrc}; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src {$cspImgSrc}; media-src 'self' https:; frame-src {$cspFrameSrc}; connect-src {$cspConnectSrc} https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.adtrafficquality.google; object-src 'none'; base-uri 'self'; form-action 'self';");
 
 // Permissions Policy (antes Feature Policy)
 header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
