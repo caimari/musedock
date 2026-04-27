@@ -22,9 +22,13 @@ define('CRON_JOB', true);
 require_once APP_ROOT . '/vendor/autoload.php';
 require_once APP_ROOT . '/core/bootstrap.php';
 
-// Cargar clases del plugin caddy-domain-manager
+// Cargar clases del plugin caddy-domain-manager (si existe).
+// En producción, este cron debe ser no destructivo por defecto.
 $pluginPath = APP_ROOT . '/plugins/superadmin/caddy-domain-manager';
-require_once $pluginPath . '/Services/CaddyService.php';
+$caddyServiceFile = $pluginPath . '/Services/CaddyService.php';
+if (is_file($caddyServiceFile)) {
+    require_once $caddyServiceFile;
+}
 
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Logger;
@@ -34,7 +38,12 @@ Logger::info("[CRON-CADDY] Starting Caddy status verification job");
 
 try {
     $pdo = Database::connect();
-    $caddyService = new CaddyService();
+    $allowAutoRepair = getenv('MUSEDOCK_CADDY_CRON_AUTOREPAIR') === '1';
+    $canAutoRepair = $allowAutoRepair && class_exists(CaddyService::class);
+    $caddyService = $canAutoRepair ? new CaddyService() : null;
+    if (!$canAutoRepair) {
+        Logger::info("[CRON-CADDY] Auto-repair disabled (set MUSEDOCK_CADDY_CRON_AUTOREPAIR=1 to enable). Running in verify-only mode.");
+    }
 
     // 1. Buscar tenants con Caddy configurado pero sin verificar disponibilidad
     // Caddy maneja los certificados SSL automáticamente, solo verificamos disponibilidad HTTP
@@ -95,58 +104,59 @@ try {
         }
     }
 
-    // 2. Buscar tenants con Caddy en error que necesitan reintento
-    $stmt = $pdo->query("
-        SELECT id, domain, caddy_route_id, caddy_error_log
-        FROM tenants
-        WHERE status = 'active'
-        AND (caddy_route_id IS NULL OR caddy_status = 'error')
-        AND caddy_configured_at IS NULL
-        LIMIT 10
-    ");
+    // 2. Optional auto-repair for error tenants.
+    // Disabled by default to avoid background Caddy rewrites on production nodes.
+    if ($canAutoRepair) {
+        $stmt = $pdo->query("
+            SELECT id, domain, caddy_route_id, caddy_error_log
+            FROM tenants
+            WHERE status = 'active'
+            AND (caddy_route_id IS NULL OR caddy_status = 'error')
+            AND caddy_configured_at IS NULL
+            LIMIT 10
+        ");
 
-    $errorTenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $errorTenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    if (!empty($errorTenants)) {
-        Logger::info("[CRON-CADDY] Found " . count($errorTenants) . " tenants with Caddy errors to retry");
+        if (!empty($errorTenants)) {
+            Logger::info("[CRON-CADDY] Found " . count($errorTenants) . " tenants with Caddy errors to retry");
 
-        foreach ($errorTenants as $tenant) {
-            $tenantId = $tenant['id'];
-            $domain = $tenant['domain'];
+            foreach ($errorTenants as $tenant) {
+                $tenantId = $tenant['id'];
+                $domain = $tenant['domain'];
 
-            Logger::info("[CRON-CADDY] Retrying Caddy configuration for {$domain}");
+                Logger::info("[CRON-CADDY] Retrying Caddy configuration for {$domain}");
 
-            try {
-                // Reintentar configurar Caddy
-                $result = $caddyService->addDomain($domain, true);
+                try {
+                    $result = $caddyService->addDomain($domain, true);
 
-                if ($result['success']) {
-                    Logger::info("[CRON-CADDY] Caddy configured successfully for {$domain}, route: {$result['route_id']}");
+                    if ($result['success']) {
+                        Logger::info("[CRON-CADDY] Caddy configured successfully for {$domain}, route: {$result['route_id']}");
 
-                    $updateStmt = $pdo->prepare("
-                        UPDATE tenants
-                        SET caddy_route_id = ?,
-                            caddy_status = 'active',
-                            caddy_configured_at = NOW(),
-                            caddy_error_log = NULL
-                        WHERE id = ?
-                    ");
-                    $updateStmt->execute([$result['route_id'], $tenantId]);
+                        $updateStmt = $pdo->prepare("
+                            UPDATE tenants
+                            SET caddy_route_id = ?,
+                                caddy_status = 'active',
+                                caddy_configured_at = NOW(),
+                                caddy_error_log = NULL
+                            WHERE id = ?
+                        ");
+                        $updateStmt->execute([$result['route_id'], $tenantId]);
 
-                } else {
-                    Logger::warning("[CRON-CADDY] Retry failed for {$domain}: " . ($result['error'] ?? 'Unknown'));
+                    } else {
+                        Logger::warning("[CRON-CADDY] Retry failed for {$domain}: " . ($result['error'] ?? 'Unknown'));
 
-                    // Actualizar error log
-                    $updateStmt = $pdo->prepare("
-                        UPDATE tenants
-                        SET caddy_error_log = ?
-                        WHERE id = ?
-                    ");
-                    $updateStmt->execute([$result['error'] ?? 'Unknown error', $tenantId]);
+                        $updateStmt = $pdo->prepare("
+                            UPDATE tenants
+                            SET caddy_error_log = ?
+                            WHERE id = ?
+                        ");
+                        $updateStmt->execute([$result['error'] ?? 'Unknown error', $tenantId]);
+                    }
+
+                } catch (Exception $e) {
+                    Logger::error("[CRON-CADDY] Exception retrying {$domain}: " . $e->getMessage());
                 }
-
-            } catch (Exception $e) {
-                Logger::error("[CRON-CADDY] Exception retrying {$domain}: " . $e->getMessage());
             }
         }
     }

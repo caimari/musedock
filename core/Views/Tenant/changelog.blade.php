@@ -13,11 +13,36 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.18.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.18.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 27 de Abril de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-hdd-network me-1"></i> DNS y certificados para dominios</h6>
+                <ul class="mb-3">
+                    <li><strong>Soporte multi-proveedor:</strong> el panel puede guardar proveedor DNS por dominio, alias y redireccion</li>
+                    <li><strong>DNS-01:</strong> preparada la base para emitir certificados cuando el dominio esta detras de proxy o con 80/443 cerrados</li>
+                    <li><strong>Proveedores:</strong> Cloudflare conserva el flujo actual y se añaden cuentas DNS para DigitalOcean, Route53, Hetzner, OVH, Vultr, Linode, Porkbun, Namecheap, Gandi, PowerDNS y RFC2136</li>
+                    <li><strong>Sin cambios automaticos en dominios existentes:</strong> los hostings ya creados mantienen su configuracion</li>
+                </ul>
+
+                <h6 class="text-info"><i class="bi bi-shield-check me-1"></i> Mejoras operativas</h6>
+                <ul class="mb-0">
+                    <li><strong>Diagnostico:</strong> el panel informa mejor cuando faltan credenciales DNS o cuando un proveedor requiere configuracion manual</li>
+                    <li><strong>Version:</strong> Caddy Domain Manager actualizado a <code>1.3.0</code></li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.17.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.17.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">Previous</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 21 de Abril de 2026</p>

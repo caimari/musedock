@@ -92,7 +92,19 @@
                         </div>
 
                         <div class="col-md-6">
-                            <h6 class="text-primary mb-3"><i class="bi bi-cloud"></i> Cloudflare & Caddy</h6>
+                            <h6 class="text-primary mb-3"><i class="bi bi-cloud"></i> DNS & Caddy</h6>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="dns_provider">Proveedor DNS</label>
+                                <select class="form-select" id="dns_provider" name="dns_provider">
+                                    @foreach(($dnsProviders ?? []) as $key => $provider)
+                                        <option value="{{ $key }}" {{ (($defaultDnsProvider ?? 'cloudflare') === $key) ? 'selected' : '' }}>
+                                            {{ $provider['label'] ?? $key }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text">Cloudflare mantiene el flujo gestionado. Otros proveedores se guardan para DNS-01/diagnóstico y DNS externo.</div>
+                            </div>
 
                             <div class="mb-3">
                                 <div class="form-check">
@@ -145,9 +157,23 @@
 
 @push('scripts')
 <script>
-document.getElementById('skip_cloudflare').addEventListener('change', function() {
-    document.getElementById('cloudflareOptions').style.display = this.checked ? 'none' : 'block';
-});
+function syncRedirectDnsProviderUI() {
+    const provider = document.getElementById('dns_provider')?.value || 'cloudflare';
+    const skip = document.getElementById('skip_cloudflare');
+    const cfOptions = document.getElementById('cloudflareOptions');
+
+    if (provider !== 'cloudflare') {
+        skip.checked = true;
+        cfOptions.style.display = 'none';
+        return;
+    }
+
+    cfOptions.style.display = skip.checked ? 'none' : 'block';
+}
+
+document.getElementById('dns_provider')?.addEventListener('change', syncRedirectDnsProviderUI);
+document.getElementById('skip_cloudflare').addEventListener('change', syncRedirectDnsProviderUI);
+syncRedirectDnsProviderUI();
 
 // Live preview
 function updatePreview() {

@@ -253,6 +253,52 @@ tail -f /var/log/musedock-cron.log
 
 ---
 
+## 🔐 Script: `acme-firewall-close.php`
+
+Cierra reglas temporales de firewall creadas por el Asistente ACME.
+
+```bash
+php /ruta/a/musedock/cli/acme-firewall-close.php --ticket=settings-assistant --delay=1800
+```
+
+Parámetros:
+- `--ticket`: identificador del lote temporal.
+- `--delay`: segundos de espera antes de cerrar reglas.
+
+---
+
+## ✅ Script: `smoke-acme-assistant.php`
+
+Ejecuta smoke tests del módulo ACME Assistant:
+- parser de iptables,
+- selector/challenge en dry-run (`auto` -> `dns-01`/`http-01`),
+- validación post-instalación de proveedor (módulo + credenciales),
+- guardado con 80/443 cerrados (requiere apertura temporal),
+- validación de password para apertura temporal,
+- ciclo abrir/cerrar reglas temporales (mock),
+- snapshot de estado ACME runtime.
+
+```bash
+php /ruta/a/musedock/cli/smoke-acme-assistant.php
+```
+
+---
+
+## ✅ Script: `smoke-dns-providers.php`
+
+Ejecuta smoke tests del selector multi-provider del Domain Manager:
+- Cloudflare sigue siendo DNS gestionado,
+- proveedores DNS-01 principales disponibles,
+- proveedor desconocido cae a manual,
+- proveedor externo omite Cloudflare,
+- subdominios de plataforma fuerzan Cloudflare.
+
+```bash
+php /ruta/a/musedock/cli/smoke-dns-providers.php
+```
+
+---
+
 ## 🔗 Ver también
 
 - [Documentación de Cron](https://crontab.guru/) - Generador de expresiones cron

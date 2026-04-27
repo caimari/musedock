@@ -13,11 +13,43 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.18.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.18.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 27 de Abril de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-hdd-network me-1"></i> DNS multi-proveedor</h6>
+                <ul class="mb-3">
+                    <li><strong>Nueva pantalla:</strong> <code>/musedock/plugins/caddy-domain-manager/dns-accounts</code> para guardar cuentas DNS no Cloudflare con credenciales cifradas</li>
+                    <li><strong>Proveedores preparados:</strong> DigitalOcean, Route53, Hetzner, OVH, Vultr, Linode, Porkbun, Namecheap, Gandi, PowerDNS y RFC2136</li>
+                    <li><strong>Aprovisionamiento automatico:</strong> creacion de registros <code>A</code> y <code>CNAME</code> para DigitalOcean, Hetzner, Vultr, Linode, Porkbun y PowerDNS cuando hay cuenta activa por defecto</li>
+                    <li><strong>Por dominio:</strong> tenants, alias y redirecciones guardan su proveedor DNS sin modificar dominios existentes</li>
+                </ul>
+
+                <h6 class="text-warning"><i class="bi bi-cloud-fill me-1"></i> Compatibilidad Cloudflare</h6>
+                <ul class="mb-3">
+                    <li><strong>Sin ruptura:</strong> Cloudflare conserva su pantalla de cuentas, flujo de zonas, proxy, CNAMEs y Email Routing</li>
+                    <li><strong>Selector seguro:</strong> el proveedor por defecto y el proveedor por hosting no cambian configuraciones anteriores</li>
+                    <li><strong>Diagnostico claro:</strong> si un proveedor no tiene cuenta o no soporta creacion de registros en este release, el panel lo guarda y muestra el siguiente paso</li>
+                </ul>
+
+                <h6 class="text-info"><i class="bi bi-check2-circle me-1"></i> Validacion</h6>
+                <ul class="mb-0">
+                    <li><strong>Smoke tests:</strong> ampliada la cobertura para selector multi-provider, campos de credenciales y proveedores con provisioning automatico</li>
+                    <li><strong>Version plugin:</strong> Caddy Domain Manager actualizado a <code>1.3.0</code></li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.17.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.17.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">Previous</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 21 de Abril de 2026</p>

@@ -31,7 +31,7 @@
                 <h5 class="mb-0">Información del Tenant</h5>
             </div>
             <div class="card-body">
-                <form method="POST" action="/musedock/domain-manager">
+                <form method="POST" action="/musedock/domain-manager" id="tenantCreateForm">
                     {!! csrf_field() !!}
 
                     <div class="row">
@@ -91,7 +91,21 @@
 
                             <hr class="my-3">
 
-                            <h6 class="text-success mb-3"><i class="bi bi-cloud"></i> Cloudflare (Opcional)</h6>
+                            <h6 class="text-success mb-3"><i class="bi bi-cloud"></i> DNS del dominio</h6>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="dns_provider">Proveedor DNS</label>
+                                <select class="form-select" id="dns_provider" name="dns_provider">
+                                    @foreach(($dnsProviders ?? []) as $providerKey => $providerInfo)
+                                        <option value="{{ $providerKey }}" {{ ($defaultDnsProvider ?? 'cloudflare') === $providerKey ? 'selected' : '' }}>
+                                            {{ $providerInfo['label'] ?? $providerKey }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text" id="dns-provider-help">
+                                    Cloudflare mantiene el flujo actual. Otros proveedores usan Cuentas DNS si estan configuradas, o quedan guardados para ACME/DNS-01.
+                                </div>
+                            </div>
 
                             <div class="mb-3" id="cloudflare-zone-option">
                                 <div class="form-check">
@@ -207,6 +221,37 @@
                         </ul>
                     </div>
 
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Proveedor DNS para DNS-01 (preflight)</label>
+                            <select class="form-select" id="acme_dns_provider_create">
+                                <option value="">Auto (sin DNS-01 forzado)</option>
+                                @foreach(($dnsProviders ?? []) as $providerKey => $providerInfo)
+                                    @if(($providerInfo['dns01'] ?? false) || $providerKey === 'cloudflare')
+                                        <option value="{{ $providerKey }}">{{ $providerKey }}</option>
+                                    @endif
+                                @endforeach
+                            </select>
+                            <div class="form-text">
+                                Si eliges proveedor, el preflight validará DNS-01 con ese módulo/credenciales.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="acmePreflightBanner" class="alert alert-warning d-none">
+                        <div class="d-flex justify-content-between align-items-start gap-3">
+                            <div>
+                                <strong><i class="bi bi-shield-exclamation me-1"></i>Firewall y Let's Encrypt</strong>
+                                <div class="small mt-1" id="acmePreflightText">
+                                    Detectando estado de puertos 80/443...
+                                </div>
+                            </div>
+                            <a href="/musedock/settings/acme-assistant" class="btn btn-sm btn-outline-dark">
+                                Abrir asistente
+                            </a>
+                        </div>
+                    </div>
+
                     <div class="d-flex justify-content-end gap-2">
                         <a href="/musedock/domain-manager" class="btn btn-outline-secondary">
                             <i class="bi bi-x-lg"></i> Cancelar
@@ -228,6 +273,10 @@
 
 @push('scripts')
 <script>
+const csrfToken = '<?= csrf_token() ?>';
+let acmeCreatePreflight = null;
+let acmeCreateFormValidated = false;
+
 function togglePassword() {
     const input = document.getElementById('admin_password');
     const icon = document.getElementById('togglePasswordIcon');
@@ -280,6 +329,7 @@ function updateDomainUI() {
     const cfCheckbox = document.getElementById('configure_cloudflare');
     const skipCfCheckbox = document.getElementById('skip_cloudflare');
     const cloudflareOptions = document.getElementById('cloudflare-options');
+    const dnsProvider = document.getElementById('dns_provider')?.value || 'cloudflare';
 
     // Reset
     helpDefault.classList.add('d-none');
@@ -288,6 +338,9 @@ function updateDomainUI() {
 
     if (type === 'musedock_sub') {
         helpSubdomain.classList.remove('d-none');
+        if (document.getElementById('dns_provider')) {
+            document.getElementById('dns_provider').value = 'cloudflare';
+        }
         // Ocultar opciones de Cloudflare — CNAME automático
         cfZoneOption.classList.add('d-none');
         skipCfOption.classList.add('d-none');
@@ -307,9 +360,37 @@ function updateDomainUI() {
         cfZoneOption.classList.remove('d-none');
         skipCfOption.classList.remove('d-none');
     }
+
+    if (type !== 'musedock_sub' && dnsProvider !== 'cloudflare') {
+        cfZoneOption.classList.add('d-none');
+        cloudflareOptions.classList.add('d-none');
+        cfCheckbox.checked = false;
+        skipCfCheckbox.checked = true;
+    }
 }
 
 document.getElementById('domain').addEventListener('input', updateDomainUI);
+
+function syncDnsProviderUI() {
+    const provider = document.getElementById('dns_provider')?.value || 'cloudflare';
+    const acmeProvider = document.getElementById('acme_dns_provider_create');
+    if (acmeProvider) {
+        acmeProvider.value = provider === 'manual' ? '' : provider;
+    }
+
+    if (provider !== 'cloudflare') {
+        document.getElementById('configure_cloudflare').checked = false;
+        document.getElementById('skip_cloudflare').checked = true;
+        document.getElementById('cloudflare-options').classList.add('d-none');
+        document.getElementById('enable_email_routing').checked = false;
+        document.getElementById('email-routing-options').classList.add('d-none');
+    }
+
+    updateDomainUI();
+    runCreateAcmePreflight().catch(() => {});
+}
+
+document.getElementById('dns_provider')?.addEventListener('change', syncDnsProviderUI);
 
 // Exclusión mutua: configure_cloudflare vs skip_cloudflare
 document.getElementById('configure_cloudflare').addEventListener('change', function() {
@@ -378,17 +459,217 @@ document.getElementById('admin_email').addEventListener('input', function() {
     }
 });
 
-// Spinner en el botón de submit
-document.querySelector('form').addEventListener('submit', function(e) {
+function setCreateSubmitLoading(loading) {
     const btn = document.getElementById('btnSubmit');
     const btnText = btn.querySelector('.btn-text');
     const btnLoading = btn.querySelector('.btn-loading');
+    if (loading) {
+        btnText.classList.add('d-none');
+        btnLoading.classList.remove('d-none');
+        btn.disabled = true;
+    } else {
+        btnText.classList.remove('d-none');
+        btnLoading.classList.add('d-none');
+        btn.disabled = false;
+    }
+}
 
-    // Mostrar spinner
-    btnText.classList.add('d-none');
-    btnLoading.classList.remove('d-none');
-    btn.disabled = true;
+function getCreateAcmeMethod() {
+    const provider = (document.getElementById('acme_dns_provider_create')?.value || '').trim();
+    if (provider !== '') {
+        return 'dns-01';
+    }
+    const cfChecked = document.getElementById('configure_cloudflare')?.checked;
+    return cfChecked ? 'dns-01' : 'auto';
+}
+
+function getCreateProvider() {
+    const provider = (document.getElementById('acme_dns_provider_create')?.value || '').trim();
+    if (provider !== '') {
+        return provider;
+    }
+    const cfChecked = document.getElementById('configure_cloudflare')?.checked;
+    return cfChecked ? 'cloudflare' : 'cloudflare';
+}
+
+function renderCreateAcmeBanner(preflight) {
+    const banner = document.getElementById('acmePreflightBanner');
+    const text = document.getElementById('acmePreflightText');
+    if (!banner || !text) return;
+
+    const port80Open = !!(preflight?.firewall?.ports?.['80']?.public_open);
+    const port443Open = !!(preflight?.firewall?.ports?.['443']?.public_open);
+    const method = preflight?.challenge || 'auto';
+    const estimate = preflight?.estimate || {};
+
+    if (method === 'dns-01') {
+        const providerReady = !!preflight?.provider_check?.ready;
+        if (!providerReady) {
+            const nextSteps = (preflight?.provider_check?.next_steps || []).join(' ');
+            banner.classList.remove('d-none', 'alert-info', 'alert-warning');
+            banner.classList.add('alert-danger');
+            text.innerHTML = `DNS-01 bloqueado: ${(preflight?.provider_check?.summary || 'proveedor no listo')}. ${nextSteps}`;
+            return;
+        }
+
+        banner.classList.remove('d-none', 'alert-warning', 'alert-danger');
+        banner.classList.add('alert-info');
+        text.innerHTML = `Modo DNS-01 listo. Estimación: ${estimate?.expected_duration || '60-240s'}.`;
+        return;
+    }
+
+    if (!port80Open || !port443Open) {
+        banner.classList.remove('d-none', 'alert-info');
+        banner.classList.add('alert-warning');
+        text.innerHTML = `Firewall detectado: ${preflight?.firewall?.firewall || 'unknown'}. No hay apertura pública para: ${!port80Open ? '80 ' : ''}${!port443Open ? '443' : ''}. Si guardas con HTTP-01/TLS-ALPN-01, el panel pedirá contraseña y abrirá puertos temporalmente.`;
+        return;
+    }
+
+    banner.classList.remove('d-none', 'alert-warning', 'alert-danger');
+    banner.classList.add('alert-info');
+    text.innerHTML = `Puertos 80/443 detectados como públicos para ACME. Estimación: ${estimate?.expected_duration || '60-180s'}.`;
+}
+
+async function runCreateAcmePreflight() {
+    const domain = (document.getElementById('domain')?.value || '').trim();
+    if (!domain) return null;
+
+    const resp = await fetch('/musedock/settings/acme-assistant/dry-run', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            _csrf: csrfToken,
+            domain: domain,
+            challenge: getCreateAcmeMethod(),
+            provider: getCreateProvider()
+        })
+    });
+    const data = await resp.json();
+    if (!data.success) {
+        throw new Error(data.message || 'No se pudo ejecutar preflight ACME');
+    }
+    acmeCreatePreflight = data.result;
+    renderCreateAcmeBanner(acmeCreatePreflight);
+    return acmeCreatePreflight;
+}
+
+async function maybeOpenTemporaryPortsBeforeCreateSubmit() {
+    const preflight = acmeCreatePreflight || await runCreateAcmePreflight();
+    if (!preflight) return true;
+
+    if (!preflight.requires_temporary_ports) {
+        return true;
+    }
+
+    const modal = await Swal.fire({
+        title: 'Asistencia ACME',
+        html: `
+            <div class="text-start">
+                <p><strong>Firewall y Let's Encrypt</strong></p>
+                <p class="mb-2">Firewall detectado: ${preflight.firewall?.firewall || 'unknown'}. No hay apertura publica para 80 y/o 443.</p>
+                <p class="mb-2">Si guardas con HTTP-01/TLS-ALPN-01, el panel puede abrir esos puertos temporalmente durante 30 minutos para emitir certificado.</p>
+                <label class="form-label"><strong>Contraseña de administrador</strong></label>
+                <input type="password" id="acmeAssistAdminPassword" class="form-control" autocomplete="current-password">
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Abrir temporalmente y guardar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#f59f00',
+        preConfirm: () => {
+            const password = document.getElementById('acmeAssistAdminPassword')?.value || '';
+            if (!password) {
+                Swal.showValidationMessage('Debes introducir la contraseña de administrador');
+                return false;
+            }
+            return password;
+        }
+    });
+
+    if (!modal.isConfirmed) {
+        return false;
+    }
+
+    const openResp = await fetch('/musedock/settings/acme-assistant/open-temporary', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            _csrf: csrfToken,
+            ticket_id: 'domain-create',
+            ttl_seconds: 1800,
+            password: modal.value
+        })
+    });
+    const openData = await openResp.json();
+    if (!openData.success) {
+        throw new Error(openData.message || 'No se pudieron abrir puertos temporalmente');
+    }
+
+    await Swal.fire({
+        icon: 'success',
+        title: 'Puertos abiertos temporalmente',
+        text: 'Se abrirán durante 30 minutos para facilitar la emisión del certificado.',
+        timer: 2200,
+        showConfirmButton: false
+    });
+
+    return true;
+}
+
+document.getElementById('tenantCreateForm').addEventListener('submit', async function(e) {
+    if (acmeCreateFormValidated) {
+        setCreateSubmitLoading(true);
+        return;
+    }
+
+    e.preventDefault();
+    setCreateSubmitLoading(true);
+
+    try {
+        await runCreateAcmePreflight();
+        const proceed = await maybeOpenTemporaryPortsBeforeCreateSubmit();
+        if (!proceed) {
+            setCreateSubmitLoading(false);
+            return;
+        }
+        acmeCreateFormValidated = true;
+        this.submit();
+    } catch (error) {
+        setCreateSubmitLoading(false);
+        Swal.fire({
+            icon: 'error',
+            title: 'No se pudo continuar',
+            text: error.message || 'Error en la asistencia ACME.'
+        });
+    }
 });
+
+document.getElementById('domain').addEventListener('blur', function() {
+    runCreateAcmePreflight().catch(() => {});
+});
+
+document.getElementById('configure_cloudflare').addEventListener('change', function() {
+    runCreateAcmePreflight().catch(() => {});
+});
+
+document.getElementById('acme_dns_provider_create')?.addEventListener('change', function() {
+    const provider = this.value;
+    if (provider && document.getElementById('dns_provider')) {
+        document.getElementById('dns_provider').value = provider;
+        updateDomainUI();
+    }
+    runCreateAcmePreflight().catch(() => {});
+});
+
+syncDnsProviderUI();
+runCreateAcmePreflight().catch(() => {});
 </script>
 @endpush
 

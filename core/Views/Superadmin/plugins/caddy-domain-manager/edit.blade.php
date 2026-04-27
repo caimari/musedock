@@ -26,7 +26,7 @@
                         <h5 class="mb-0">Información del Tenant</h5>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="/musedock/domain-manager/{{ $tenant->id }}">
+                        <form method="POST" action="/musedock/domain-manager/{{ $tenant->id }}" id="tenantEditForm">
                             {!! csrf_field() !!}
                             <input type="hidden" name="_method" value="PUT">
 
@@ -95,13 +95,30 @@
                             </div>
                             @endif
 
+                            <hr class="my-3">
+
+                            <h6 class="text-success mb-3"><i class="bi bi-cloud"></i> DNS del dominio</h6>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="dns_provider">Proveedor DNS</label>
+                                <select class="form-select" id="dns_provider" name="dns_provider">
+                                    @php
+                                        $currentDnsProvider = $tenant->dns_provider ?? (!empty($tenant->cloudflare_zone_id) || !empty($tenant->cloudflare_record_id) ? 'cloudflare' : ($defaultDnsProvider ?? 'cloudflare'));
+                                    @endphp
+                                    @foreach(($dnsProviders ?? []) as $providerKey => $providerInfo)
+                                        <option value="{{ $providerKey }}" {{ $currentDnsProvider === $providerKey ? 'selected' : '' }}>
+                                            {{ $providerInfo['label'] ?? $providerKey }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text">
+                                    Cloudflare mantiene el flujo actual. Otros proveedores usan Cuentas DNS si estan configuradas, o quedan guardados para diagnostico ACME/DNS-01.
+                                </div>
+                            </div>
+
                             {{-- Opciones de Cloudflare (solo si NO está configurado) --}}
                             @if(empty($tenant->cloudflare_zone_id))
-                                <hr class="my-3">
-
-                                <h6 class="text-success mb-3"><i class="bi bi-cloud"></i> Cloudflare (Opcional)</h6>
-
-                                <div class="mb-3">
+                                <div class="mb-3" id="cloudflare-zone-option-edit">
                                     <div class="form-check mb-2">
                                         <input type="checkbox" class="form-check-input" id="configure_cloudflare" name="configure_cloudflare">
                                         <label class="form-check-label" for="configure_cloudflare">
@@ -174,6 +191,35 @@
                                     <option value="suspended" {{ ($tenant->caddy_status ?? '') === 'suspended' ? 'selected' : '' }}>Suspendido</option>
                                 </select>
                                 <div class="form-text">Cambiar manualmente el estado (solo afecta la BD, no Caddy)</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Proveedor DNS para DNS-01 (preflight)</label>
+                                <select class="form-select" id="acme_dns_provider_edit">
+                                    <option value="">Auto (sin DNS-01 forzado)</option>
+                                    @foreach(($dnsProviders ?? []) as $providerKey => $providerInfo)
+                                        @if(($providerInfo['dns01'] ?? false) || $providerKey === 'cloudflare')
+                                            <option value="{{ $providerKey }}" {{ $currentDnsProvider === $providerKey ? 'selected' : '' }}>{{ $providerKey }}</option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                                <div class="form-text">
+                                    Si eliges proveedor, el preflight validará DNS-01 con ese módulo/credenciales.
+                                </div>
+                            </div>
+
+                            <div id="acmeEditPreflightBanner" class="alert alert-warning d-none">
+                                <div class="d-flex justify-content-between align-items-start gap-3">
+                                    <div>
+                                        <strong><i class="bi bi-shield-exclamation me-1"></i>Firewall y Let's Encrypt</strong>
+                                        <div class="small mt-1" id="acmeEditPreflightText">
+                                            Detectando estado de puertos 80/443...
+                                        </div>
+                                    </div>
+                                    <a href="/musedock/settings/acme-assistant" class="btn btn-sm btn-outline-dark">
+                                        Abrir asistente
+                                    </a>
+                                </div>
                             </div>
 
                             <div class="d-flex justify-content-end gap-2">
@@ -1419,10 +1465,37 @@
                         @endif
 
                         @if($tenant->caddy_error_log ?? false)
+                            @php
+                                $acmeError = strtolower((string)$tenant->caddy_error_log);
+                                $acmeHint = null;
+                                $acmeNext = null;
+
+                                if (str_contains($acmeError, 'timeout during connect') || str_contains($acmeError, 'firewall')) {
+                                    $acmeHint = 'ACME no pudo conectar al servidor durante el challenge.';
+                                    $acmeNext = 'Abre 80/443 temporalmente desde el asistente para emitir el certificado.';
+                                } elseif (str_contains($acmeError, 'context canceled') || str_contains($acmeError, 'stopping apps')) {
+                                    $acmeHint = 'La emisión ACME fue interrumpida por recargas/cambios de configuración.';
+                                    $acmeNext = 'Evita reinicios de Caddy durante la emisión y reintenta desde "Reconfigurar en Caddy".';
+                                } elseif (str_contains($acmeError, 'no information found to solve challenge')) {
+                                    $acmeHint = 'No había challenge activo cuando se intentó validar.';
+                                    $acmeNext = 'Reconfigura el dominio para lanzar un nuevo ciclo ACME.';
+                                } elseif (str_contains($acmeError, 'dns.providers') || str_contains($acmeError, 'token') || str_contains($acmeError, 'credential')) {
+                                    $acmeHint = 'Problema de proveedor DNS o credenciales para DNS-01.';
+                                    $acmeNext = 'Verifica módulo dns.providers y token/API en el asistente ACME.';
+                                }
+                            @endphp
                             <div class="alert alert-danger small mb-2">
                                 <strong>Último error:</strong><br>
                                 {{ $tenant->caddy_error_log }}
                             </div>
+                            @if($acmeHint && $acmeNext)
+                                <div class="alert alert-warning small mb-2">
+                                    <strong>Diagnóstico ACME:</strong><br>
+                                    {{ $acmeHint }}<br>
+                                    <strong>Siguiente paso:</strong> {{ $acmeNext }}
+                                    <br><a href="/musedock/settings/acme-assistant" class="small">Abrir Asistente ACME</a>
+                                </div>
+                            @endif
                         @endif
 
                         @if($caddyApiAvailable)
@@ -1627,6 +1700,16 @@
                                 <input type="checkbox" class="form-check-input" id="alias-skip-cloudflare">
                                 <label class="form-check-label small" for="alias-skip-cloudflare">No crear zona en Cloudflare</label>
                             </div>
+                        </div>
+                        <div class="mt-2">
+                            <label class="form-label small mb-1" for="alias-dns-provider">Proveedor DNS del alias</label>
+                            <select class="form-select form-select-sm" id="alias-dns-provider">
+                                @foreach(($dnsProviders ?? []) as $key => $provider)
+                                    <option value="{{ $key }}" {{ (($defaultDnsProvider ?? 'cloudflare') === $key) ? 'selected' : '' }}>
+                                        {{ $provider['label'] ?? $key }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="form-text mt-1 small">
                             <i class="bi bi-info-circle text-info"></i>
@@ -2076,6 +2159,8 @@ async function deletePreset(slug, name) {
 
 // Token CSRF para peticiones AJAX
 const csrfToken = '<?= csrf_token() ?>';
+let acmeEditPreflight = null;
+let acmeEditFormValidated = false;
 
 // Helper para toggle de spinner en botones
 function toggleBtnSpinner(btn, loading) {
@@ -2092,10 +2177,217 @@ function toggleBtnSpinner(btn, loading) {
     }
 }
 
-// Spinner en el formulario principal de guardar
-document.querySelector('form[action*="domain-manager"]').addEventListener('submit', function(e) {
+function getEditAcmeMethod() {
+    const provider = (document.getElementById('acme_dns_provider_edit')?.value || '').trim();
+    if (provider !== '') {
+        return 'dns-01';
+    }
+    const cfCreateZone = document.getElementById('configure_cloudflare')?.checked;
+    return cfCreateZone ? 'dns-01' : 'auto';
+}
+
+function getEditAcmeProvider() {
+    const selected = (document.getElementById('acme_dns_provider_edit')?.value || '').trim();
+    if (selected !== '') {
+        return selected;
+    }
+    return 'cloudflare';
+}
+
+function syncEditDnsProviderUI() {
+    const provider = document.getElementById('dns_provider')?.value || 'cloudflare';
+    const acmeProvider = document.getElementById('acme_dns_provider_edit');
+    if (acmeProvider) {
+        acmeProvider.value = provider === 'manual' ? '' : provider;
+    }
+
+    const cfCheckbox = document.getElementById('configure_cloudflare');
+    const cfZoneOption = document.getElementById('cloudflare-zone-option-edit');
+    const cfOptions = document.getElementById('cloudflare-options-edit');
+    const emailRouting = document.getElementById('enable_email_routing_edit');
+    const emailRoutingOptions = document.getElementById('email-routing-options-edit');
+
+    if (provider !== 'cloudflare') {
+        if (cfCheckbox) cfCheckbox.checked = false;
+        if (cfZoneOption) cfZoneOption.classList.add('d-none');
+        if (cfOptions) cfOptions.classList.add('d-none');
+        if (emailRouting) emailRouting.checked = false;
+        if (emailRoutingOptions) emailRoutingOptions.classList.add('d-none');
+    } else if (cfZoneOption) {
+        cfZoneOption.classList.remove('d-none');
+    }
+
+    runEditAcmePreflight().catch(() => {});
+}
+
+function renderEditAcmeBanner(preflight) {
+    const banner = document.getElementById('acmeEditPreflightBanner');
+    const text = document.getElementById('acmeEditPreflightText');
+    if (!banner || !text) return;
+
+    const port80Open = !!(preflight?.firewall?.ports?.['80']?.public_open);
+    const port443Open = !!(preflight?.firewall?.ports?.['443']?.public_open);
+    const method = preflight?.challenge || 'auto';
+    const estimate = preflight?.estimate || {};
+
+    if (method === 'dns-01') {
+        const providerReady = !!preflight?.provider_check?.ready;
+        if (!providerReady) {
+            const nextSteps = (preflight?.provider_check?.next_steps || []).join(' ');
+            banner.classList.remove('d-none', 'alert-info', 'alert-warning');
+            banner.classList.add('alert-danger');
+            text.innerHTML = `DNS-01 bloqueado: ${(preflight?.provider_check?.summary || 'proveedor no listo')}. ${nextSteps}`;
+            return;
+        }
+
+        banner.classList.remove('d-none', 'alert-warning', 'alert-danger');
+        banner.classList.add('alert-info');
+        text.innerHTML = `Modo DNS-01 listo. Estimación: ${estimate?.expected_duration || '60-240s'}.`;
+        return;
+    }
+
+    if (!port80Open || !port443Open) {
+        banner.classList.remove('d-none', 'alert-info');
+        banner.classList.add('alert-warning');
+        text.innerHTML = `Firewall detectado: ${preflight?.firewall?.firewall || 'unknown'}. No hay apertura pública para: ${!port80Open ? '80 ' : ''}${!port443Open ? '443' : ''}. Al guardar, se pedirá contraseña para apertura temporal si es necesario.`;
+        return;
+    }
+
+    banner.classList.remove('d-none', 'alert-warning', 'alert-danger');
+    banner.classList.add('alert-info');
+    text.innerHTML = `Puertos 80/443 detectados como públicos para ACME. Estimación: ${estimate?.expected_duration || '60-180s'}.`;
+}
+
+async function runEditAcmePreflight() {
+    const domain = '{{ $tenant->domain }}';
+    const resp = await fetch('/musedock/settings/acme-assistant/dry-run', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            _csrf: csrfToken,
+            domain: domain,
+            challenge: getEditAcmeMethod(),
+            provider: getEditAcmeProvider()
+        })
+    });
+    const data = await resp.json();
+    if (!data.success) {
+        throw new Error(data.message || 'No se pudo ejecutar preflight ACME');
+    }
+    acmeEditPreflight = data.result;
+    renderEditAcmeBanner(acmeEditPreflight);
+    return acmeEditPreflight;
+}
+
+async function maybeOpenTemporaryPortsBeforeEditSubmit() {
+    const preflight = acmeEditPreflight || await runEditAcmePreflight();
+    if (!preflight) return true;
+
+    if (!preflight.requires_temporary_ports) {
+        return true;
+    }
+
+    const modal = await Swal.fire({
+        title: 'Asistencia ACME',
+        html: `
+            <div class="text-start">
+                <p><strong>Firewall y Let's Encrypt</strong></p>
+                <p class="mb-2">El firewall no expone públicamente 80 y/o 443. Para emitir certificado ahora, se pueden abrir temporalmente durante 30 minutos.</p>
+                <label class="form-label"><strong>Contraseña de administrador</strong></label>
+                <input type="password" id="acmeEditAssistPassword" class="form-control" autocomplete="current-password">
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Abrir temporalmente y guardar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#f59f00',
+        preConfirm: () => {
+            const password = document.getElementById('acmeEditAssistPassword')?.value || '';
+            if (!password) {
+                Swal.showValidationMessage('Debes introducir la contraseña de administrador');
+                return false;
+            }
+            return password;
+        }
+    });
+
+    if (!modal.isConfirmed) return false;
+
+    const openResp = await fetch('/musedock/settings/acme-assistant/open-temporary', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            _csrf: csrfToken,
+            ticket_id: 'domain-edit-{{ $tenant->id }}',
+            ttl_seconds: 1800,
+            password: modal.value
+        })
+    });
+    const openData = await openResp.json();
+    if (!openData.success) {
+        throw new Error(openData.message || 'No se pudieron abrir puertos temporalmente');
+    }
+
+    await Swal.fire({
+        icon: 'success',
+        title: 'Puertos abiertos temporalmente',
+        text: 'Se abrirán durante 30 minutos para facilitar emisión/renovación ACME.',
+        timer: 2200,
+        showConfirmButton: false
+    });
+
+    return true;
+}
+
+document.getElementById('tenantEditForm').addEventListener('submit', async function(e) {
+    if (acmeEditFormValidated) {
+        const btn = document.getElementById('btnSubmit');
+        toggleBtnSpinner(btn, true);
+        return;
+    }
+
+    e.preventDefault();
     const btn = document.getElementById('btnSubmit');
     toggleBtnSpinner(btn, true);
+
+    try {
+        await runEditAcmePreflight();
+        const proceed = await maybeOpenTemporaryPortsBeforeEditSubmit();
+        if (!proceed) {
+            toggleBtnSpinner(btn, false);
+            return;
+        }
+        acmeEditFormValidated = true;
+        this.submit();
+    } catch (error) {
+        toggleBtnSpinner(btn, false);
+        Swal.fire({
+            icon: 'error',
+            title: 'No se pudo continuar',
+            text: error.message || 'Error en la asistencia ACME.'
+        });
+    }
+});
+
+document.getElementById('dns_provider')?.addEventListener('change', syncEditDnsProviderUI);
+syncEditDnsProviderUI();
+runEditAcmePreflight().catch(() => {});
+
+document.getElementById('acme_dns_provider_edit')?.addEventListener('change', function() {
+    const provider = this.value;
+    if (provider && document.getElementById('dns_provider')) {
+        document.getElementById('dns_provider').value = provider;
+        syncEditDnsProviderUI();
+        return;
+    }
+    runEditAcmePreflight().catch(() => {});
 });
 
 async function checkStatus() {
@@ -3248,6 +3540,7 @@ async function addAlias() {
     const domainInput = document.getElementById('new-alias-domain');
     const includeWww = document.getElementById('alias-include-www').checked;
     const skipCloudflare = document.getElementById('alias-skip-cloudflare').checked;
+    const dnsProvider = document.getElementById('alias-dns-provider')?.value || 'cloudflare';
     const domain = domainInput.value.trim().toLowerCase();
     const btn = document.getElementById('btnAddAlias');
 
@@ -3265,7 +3558,7 @@ async function addAlias() {
     const steps = [
         { id: 'validate', label: 'Validando dominio', icon: 'bi-check-circle' },
         { id: 'database', label: 'Registrando alias', icon: 'bi-database' },
-        { id: 'cloudflare', label: skipCloudflare ? 'Cloudflare (omitido)' : 'Configurando Cloudflare', icon: 'bi-cloud' },
+        { id: 'cloudflare', label: (skipCloudflare || dnsProvider !== 'cloudflare') ? 'Cloudflare (omitido)' : 'Configurando Cloudflare', icon: 'bi-cloud' },
         { id: 'caddy', label: 'Configurando servidor web', icon: 'bi-hdd-rack' },
         { id: 'done', label: 'Finalizado', icon: 'bi-check2-all' }
     ];
@@ -3332,7 +3625,7 @@ async function addAlias() {
         const response = await fetch('/musedock/domain-manager/{{ $tenant->id }}/add-alias', {
             method: 'POST',
             headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/json' },
-            body: JSON.stringify({ _csrf: csrfToken, domain: domain, include_www: includeWww, skip_cloudflare: skipCloudflare })
+            body: JSON.stringify({ _csrf: csrfToken, domain: domain, include_www: includeWww, skip_cloudflare: skipCloudflare, dns_provider: dnsProvider })
         });
 
         let data;

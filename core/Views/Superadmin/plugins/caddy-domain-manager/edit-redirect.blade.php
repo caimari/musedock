@@ -90,6 +90,21 @@
                                     </label>
                                 </div>
                             </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="dns_provider">Proveedor DNS</label>
+                                <select class="form-select" id="dns_provider" name="dns_provider">
+                                    @php
+                                        $currentDnsProvider = $redirect->dns_provider ?? (!empty($redirect->cloudflare_zone_id) || !empty($redirect->cloudflare_record_id) ? 'cloudflare' : ($defaultDnsProvider ?? 'cloudflare'));
+                                    @endphp
+                                    @foreach(($dnsProviders ?? []) as $key => $provider)
+                                        <option value="{{ $key }}" {{ $currentDnsProvider === $key ? 'selected' : '' }}>
+                                            {{ $provider['label'] ?? $key }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text">No mueve DNS existente. Solo marca qué proveedor debe usarse para diagnóstico y DNS-01.</div>
+                            </div>
                         </div>
 
                         <div class="col-md-6">
@@ -119,6 +134,16 @@
                                         @else
                                             <span class="text-muted"><i class="bi bi-x-circle"></i> No configurado</span>
                                         @endif
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>DNS</th>
+                                    <td>
+                                        @php
+                                            $dnsLabel = ($dnsProviders[$redirect->dns_provider ?? ''] ?? null)['label'] ?? ($redirect->dns_provider ?? 'Manual / externo');
+                                        @endphp
+                                        <span class="badge {{ ($redirect->dns_provider ?? '') === 'cloudflare' ? 'bg-warning text-dark' : 'bg-secondary' }}">{{ $dnsLabel }}</span>
+                                        <small class="text-muted">{{ $redirect->dns_mode ?? 'manual' }}</small>
                                     </td>
                                 </tr>
                                 <tr>

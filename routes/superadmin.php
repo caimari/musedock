@@ -273,6 +273,32 @@ Route::get('/musedock/settings/backups/download', 'superadmin.SettingsController
 Route::post('/musedock/settings/backups/delete', 'superadmin.SettingsController@deleteBackup')->name('settings.backups.delete')->middleware('superadmin');
 Route::post('/musedock/settings/backups/restore', 'superadmin.SettingsController@restoreBackup')->name('settings.backups.restore')->middleware('superadmin');
 
+// Settings - ACME Assistant (Firewall + Let's Encrypt diagnostics)
+Route::get('/musedock/settings/acme-assistant', 'superadmin.AcmeAssistantController@index')
+    ->name('settings.acme-assistant')
+    ->middleware('superadmin');
+Route::get('/musedock/settings/acme-assistant/status', 'superadmin.AcmeAssistantController@status')
+    ->name('settings.acme-assistant.status')
+    ->middleware('superadmin');
+Route::post('/musedock/settings/acme-assistant/dry-run', 'superadmin.AcmeAssistantController@dryRun')
+    ->name('settings.acme-assistant.dry-run')
+    ->middleware('superadmin');
+Route::post('/musedock/settings/acme-assistant/provider-check', 'superadmin.AcmeAssistantController@providerCheck')
+    ->name('settings.acme-assistant.provider-check')
+    ->middleware('superadmin');
+Route::post('/musedock/settings/acme-assistant/open-temporary', 'superadmin.AcmeAssistantController@openTemporaryPorts')
+    ->name('settings.acme-assistant.open-temporary')
+    ->middleware('superadmin');
+Route::post('/musedock/settings/acme-assistant/close-temporary', 'superadmin.AcmeAssistantController@closeTemporaryPorts')
+    ->name('settings.acme-assistant.close-temporary')
+    ->middleware('superadmin');
+Route::get('/musedock/doc', 'superadmin.AcmeAssistantController@index')
+    ->name('superadmin.doc')
+    ->middleware('superadmin');
+Route::get('/musedock/doc/acme', 'superadmin.AcmeAssistantController@index')
+    ->name('superadmin.doc.acme')
+    ->middleware('superadmin');
+
 // Settings - Tenant Defaults (Configuración por defecto para nuevos tenants)
 Route::get('/musedock/settings/tenant-defaults', 'superadmin.TenantDefaultsController@index')->name('tenant-defaults.index')->middleware('superadmin');
 Route::post('/musedock/settings/tenant-defaults', 'superadmin.TenantDefaultsController@update')->name('tenant-defaults.update')->middleware('superadmin');

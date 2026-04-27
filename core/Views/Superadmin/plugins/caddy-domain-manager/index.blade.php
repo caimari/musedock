@@ -34,8 +34,14 @@
 
         {{-- Toolbar --}}
         <div class="d-flex flex-wrap gap-2 mb-3">
+            <a href="/musedock/settings/acme-assistant" class="btn btn-outline-danger">
+                <i class="bi bi-shield-check"></i> Firewall y Let's Encrypt
+            </a>
             <a href="/musedock/plugins/caddy-domain-manager/cloudflare-accounts" class="btn btn-outline-warning">
                 <i class="bi bi-cloud-fill"></i> Cuentas Cloudflare
+            </a>
+            <a href="/musedock/plugins/caddy-domain-manager/dns-accounts" class="btn btn-outline-info">
+                <i class="bi bi-hdd-network"></i> Cuentas DNS
             </a>
             <a href="/musedock/domain-manager/customers" class="btn btn-outline-primary">
                 <i class="bi bi-people"></i> Clientes
@@ -61,6 +67,59 @@
         </div>
 
         @include('partials.alerts-sweetalert2')
+
+        @php
+            $dnsProviders = $dnsProviders ?? [];
+            $defaultDnsProvider = $defaultDnsProvider ?? 'cloudflare';
+            $dnsBadge = function ($provider, $mode = null, $cloudflareZone = null, $cloudflareRecord = null) use ($dnsProviders) {
+                $provider = $provider ?: (!empty($cloudflareZone) || !empty($cloudflareRecord) ? 'cloudflare' : 'manual');
+                $mode = $mode ?: (!empty($cloudflareRecord) ? 'platform_subdomain' : (!empty($cloudflareZone) ? 'cloudflare_zone' : 'manual'));
+                $label = $dnsProviders[$provider]['label'] ?? ucfirst((string)$provider);
+                $class = match ($provider) {
+                    'cloudflare' => 'bg-warning text-dark',
+                    'manual' => 'bg-secondary',
+                    default => 'bg-primary',
+                };
+                $modeLabel = match ($mode) {
+                    'platform_subdomain' => 'subdominio',
+                    'cloudflare_zone' => 'zona',
+                    'external_provider' => 'externo',
+                    'provider_api' => 'API DNS',
+                    default => 'manual',
+                };
+                return '<span class="badge ' . $class . '" title="Modo DNS: ' . htmlspecialchars($modeLabel, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
+            };
+        @endphp
+
+        <div class="card mb-3">
+            <div class="card-body py-3">
+                <form method="POST" action="/musedock/domain-manager/dns-default-provider" class="row g-3 align-items-end">
+                    {!! csrf_field() !!}
+                    <div class="col-md-5">
+                        <label class="form-label mb-1">Proveedor DNS por defecto para nuevos dominios</label>
+                        <select name="dns_default_provider" class="form-select">
+                            @foreach($dnsProviders as $key => $provider)
+                                <option value="{{ $key }}" {{ $defaultDnsProvider === $key ? 'selected' : '' }}>
+                                    {{ $provider['label'] ?? $key }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">No cambia dominios existentes. Cloudflare mantiene el flujo gestionado actual; otros proveedores pueden usar cuentas DNS propias.</div>
+                    </div>
+                    <div class="col-md-auto">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="bi bi-save"></i> Guardar proveedor por defecto
+                        </button>
+                    </div>
+                    <div class="col-md">
+                        <div class="alert alert-light border mb-0 py-2 small">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Cada hosting puede sobrescribir este valor desde Crear/Editar dominio. Los dominios Cloudflare actuales no se modifican.
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
 
         <!-- Filtros -->
         <div class="card mb-3">
@@ -149,6 +208,7 @@
                                     @if(($aliasCounts[$tenant->id] ?? 0) > 0)
                                         <br><small class="text-info"><i class="bi bi-link-45deg"></i> {{ $aliasCounts[$tenant->id] }} alias</small>
                                     @endif
+                                    <br>{!! $dnsBadge($tenant->dns_provider ?? null, $tenant->dns_mode ?? null, $tenant->cloudflare_zone_id ?? null, $tenant->cloudflare_record_id ?? null) !!}
                                 </td>
                                 <td>
                                     @if(!empty($tenantAdminEmails[$tenant->id]))
@@ -285,7 +345,7 @@
                             <th>Cliente</th>
                             <th>Tipo</th>
                             <th>Estado</th>
-                            <th>Cloudflare</th>
+                            <th>DNS</th>
                             <th>Tenant</th>
                             <th>Creado</th>
                             <th class="text-end">Acciones</th>
@@ -329,11 +389,9 @@
                                     <span class="badge {{ $statusBadge($order->status ?? '') }}">{{ $order->status ?? '—' }}</span>
                                 </td>
                                 <td>
+                                    {!! $dnsBadge($order->dns_provider ?? null, $order->dns_mode ?? null, $order->cloudflare_zone_id ?? null, $order->cloudflare_record_id ?? null) !!}
                                     @if(!empty($order->cloudflare_zone_id))
-                                        <span class="badge bg-warning text-dark"><i class="bi bi-shield-fill-check"></i> Zona</span>
                                         <div class="small text-muted text-truncate" style="max-width: 220px;">{{ $order->cloudflare_zone_id }}</div>
-                                    @else
-                                        <span class="text-muted">—</span>
                                     @endif
                                 </td>
                                 <td>
@@ -422,6 +480,7 @@
                                         {{ $alias->domain }}
                                         <i class="bi bi-box-arrow-up-right small"></i>
                                     </a>
+                                    <br>{!! $dnsBadge($alias->dns_provider ?? null, $alias->dns_mode ?? null, $alias->cloudflare_zone_id ?? null, $alias->cloudflare_record_id ?? null) !!}
                                 </td>
                                 <td>
                                     @if(!empty($alias->tenant_name))
@@ -532,6 +591,7 @@
                                         {{ $redir->domain }}
                                         <i class="bi bi-box-arrow-up-right small"></i>
                                     </a>
+                                    <br>{!! $dnsBadge($redir->dns_provider ?? null, $redir->dns_mode ?? null, $redir->cloudflare_zone_id ?? null, $redir->cloudflare_record_id ?? null) !!}
                                 </td>
                                 <td>
                                     <a href="{{ $redir->redirect_to }}" target="_blank" class="text-decoration-none">

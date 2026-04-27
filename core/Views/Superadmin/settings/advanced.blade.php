@@ -41,6 +41,18 @@
         </div>
       </div>
 
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0"><i class="bi bi-shield-check me-2"></i>Firewall y Let's Encrypt</h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted mb-3">Diagnóstico ACME, validación de proveedores DNS y apertura temporal de puertos 80/443 con confirmación de contraseña.</p>
+          <a href="/musedock/settings/acme-assistant" class="btn btn-outline-primary">
+            <i class="bi bi-tools me-1"></i>Abrir Asistente ACME
+          </a>
+        </div>
+      </div>
+
       {{-- Card Ajustes Avanzados --}}
       <div class="card">
         <div class="card-header">
