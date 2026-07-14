@@ -5,7 +5,7 @@ Version 2.2.0 — CMS multi-tenant estable con panel Superadmin, panel Tenant Ad
 CMS modular con framework MVC propio basado en Blade One. Arquitectura multi-tenant para alojar múltiples dominios desde una sola instalación. Sistema de módulos base (compartidos) y plugins independientes por tenant. Almacenamiento seguro en storage/ (no public/) con soporte S3/R2. Multi-idioma integrado.
 
 ![PHP Version](https://img.shields.io/badge/PHP-8.0+-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+![License](https://img.shields.io/badge/license-Source_Available_(Provider_Use)-blue.svg)
 ![Version](https://img.shields.io/badge/version-2.2.0-orange.svg)
 
 > **IMPORTANTE:** El hosting debe apuntar el document root a la carpeta `public/`
@@ -171,7 +171,15 @@ php cli/migrate.php seed --rollback=NOMBRE
 
 ## Licencia
 
-MIT - [LICENSE](LICENSE)
+MuseDock CMS usa licencia **Source Available (Provider Use)**.
+
+Resumen:
+- Se permite uso comercial operativo (incluido hosting y gestión de sitios de clientes).
+- Se permite modificar el código para operar tu plataforma.
+- No se permite revender/sublicenciar el software del CMS como producto propio.
+- No se permite usar marcas/logos de MuseDock como propios.
+
+Detalles completos en [LICENSE](LICENSE).
 
 ## Autor
 

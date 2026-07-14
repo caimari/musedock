@@ -13,11 +13,47 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.19.0 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.19.0</h5>
+                <span class="badge bg-success">Latest</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 28 de Abril de 2026</p>
+
+                <h6 class="text-primary"><i class="bi bi-book me-1"></i> Sistema de Documentacion (Docs)</h6>
+                <ul class="mb-3">
+                    <li><strong>Navegacion por producto:</strong> la documentacion se separa por CMS, Panel y Portal con sidebar independiente por producto</li>
+                    <li><strong>Slug y rutas docs:</strong> corregida la resolucion de slugs en <code>/docs/{slug}</code> para evitar 404 en articulos existentes</li>
+                    <li><strong>Migas de pan mejoradas:</strong> breadcrumbs clicables en todos los niveles, sin prefijo innecesario, y resaltado visual del producto activo</li>
+                    <li><strong>Entrada al producto:</strong> al abrir una card de docs se redirige al primer articulo de la seccion (priorizando "Getting Started/Presentacion" cuando existe)</li>
+                </ul>
+
+                <h6 class="text-success"><i class="bi bi-envelope me-1"></i> Email, Formularios y Newsletter</h6>
+                <ul class="mb-3">
+                    <li><strong>SMTP centralizado:</strong> formularios publicos migrados para enviar usando el mailer SMTP del sistema (ya no dependen de <code>mail()</code>)</li>
+                    <li><strong>Ajustes de email:</strong> nueva gestion desde <code>/musedock/settings/email</code> para driver, host, puerto, cifrado y remitente</li>
+                    <li><strong>Modelo global/tenant:</strong> soporte para usar SMTP global por defecto y permitir override por tenant cuando se habilita</li>
+                    <li><strong>Newsletter con doble opt-in:</strong> alta con confirmacion por email antes de activar la suscripcion (cumplimiento RGPD)</li>
+                    <li><strong>Seguridad anti abuso:</strong> suscripcion no confirmada no entra en lista activa ni recibe envios de campanas</li>
+                </ul>
+
+                <h6 class="text-warning"><i class="bi bi-shield-check me-1"></i> Estabilidad y Permisos</h6>
+                <ul class="mb-0">
+                    <li><strong>PostgreSQL fix:</strong> corregidas consultas SQL en Custom Forms para compatibilidad completa (eliminando sintaxis no valida)</li>
+                    <li><strong>Errores 500 resueltos:</strong> arregladas pantallas de submissions y edicion de formularios en Custom Forms</li>
+                    <li><strong>ACL de Newsletter:</strong> configurados permisos de acceso para evitar bloqueos por ruta sin permisos definidos</li>
+                    <li><strong>Settings UI unificada:</strong> panel lateral derecho compartido en secciones de ajustes (General, Email, SEO, Lectura, Cookies, Storage, Avanzado, API Keys, Backups)</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- v2.18.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.18.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">Previous</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 27 de Abril de 2026</p>

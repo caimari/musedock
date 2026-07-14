@@ -251,6 +251,8 @@ Route::post('/musedock/settings/reading', 'superadmin.SettingsController@updateR
 // Settings - Advanced
 Route::get('/musedock/settings/advanced', 'superadmin.SettingsController@advanced')->name('settings.advanced')->middleware('superadmin');
 Route::post('/musedock/settings/advanced', 'superadmin.SettingsController@updateAdvanced')->name('settings.advanced.update')->middleware('superadmin');
+Route::post('/musedock/settings/advanced/topbar-versions', 'superadmin.SettingsController@updateTopbarVersions')->name('settings.advanced.topbar-versions.update')->middleware('superadmin');
+Route::post('/musedock/settings/advanced/topbar-versions/refresh', 'superadmin.SettingsController@refreshTopbarVersions')->name('settings.advanced.topbar-versions.refresh')->middleware('superadmin');
 Route::get('/musedock/settings/advanced/clear-blade-cache', 'superadmin.SettingsController@clearBladeCache')->name('settings.clear-blade-cache')->middleware('superadmin');
 Route::get('/musedock/settings/check-updates', 'superadmin.SettingsController@checkUpdates')->name('settings.check-updates')->middleware('superadmin');
 Route::post('/musedock/settings/run-update', 'superadmin.SettingsController@runCmsUpdate')->name('settings.run-update')->middleware('superadmin');
@@ -319,6 +321,29 @@ Route::post('/musedock/settings/api-keys/{id}/delete', function ($id) {
 
 Route::get('/musedock/settings/advanced/clear-blade-cache', 'superadmin.SettingsController@clearBladeCache')->name('settings.advanced.clearBladeCache')->middleware('superadmin');
 Route::get('/musedock/settings/advanced/clear-opcache', 'superadmin.SettingsController@clearOpcache')->name('settings.advanced.clearOpcache')->middleware('superadmin');
+
+// Newsletter
+Route::get('/musedock/newsletter', 'superadmin.NewsletterController@index')
+    ->name('newsletter.index')
+    ->middleware('superadmin');
+Route::get('/musedock/newsletter/campaigns', 'superadmin.NewsletterCampaignController@index')
+    ->name('newsletter.campaigns.index')
+    ->middleware('superadmin');
+Route::get('/musedock/newsletter/campaigns/create', 'superadmin.NewsletterCampaignController@create')
+    ->name('newsletter.campaigns.create')
+    ->middleware('superadmin');
+Route::post('/musedock/newsletter/campaigns', 'superadmin.NewsletterCampaignController@store')
+    ->name('newsletter.campaigns.store')
+    ->middleware('superadmin');
+Route::get('/musedock/newsletter/campaigns/{id}/edit', 'superadmin.NewsletterCampaignController@edit')
+    ->name('newsletter.campaigns.edit')
+    ->middleware('superadmin');
+Route::post('/musedock/newsletter/campaigns/{id}/update', 'superadmin.NewsletterCampaignController@update')
+    ->name('newsletter.campaigns.update')
+    ->middleware('superadmin');
+Route::post('/musedock/newsletter/campaigns/{id}/queue', 'superadmin.NewsletterCampaignController@queue')
+    ->name('newsletter.campaigns.queue')
+    ->middleware('superadmin');
 
 Route::post('/musedock/clear-flashes', function() {
     $auth = SessionSecurity::getAuthenticatedUser();

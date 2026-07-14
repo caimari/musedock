@@ -23,7 +23,10 @@
         {{-- Main card --}}
         <div style="background:#fff; border-radius:12px; box-shadow:0 2px 16px rgba(0,0,0,0.08); border:1px solid #edf0f5; padding:24px;">
 
-          <form id="registerForm" method="POST" action="/register">
+          <form id="registerForm" method="POST" action="/register" autocomplete="off" autocapitalize="off" spellcheck="false">
+            {{-- Anti-autofill decoys: capturan autocompletado agresivo del navegador --}}
+            <input type="text" name="fake_username" autocomplete="username" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;">
+            <input type="password" name="fake_password" autocomplete="current-password" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;">
             <input type="hidden" name="_csrf_token" value="{{ $csrf_token ?? csrf_token() }}">
             <input type="hidden" name="language" value="{{ detectLanguage() }}">
             <input type="hidden" name="domain_type" id="domain_type" value="subdomain">
@@ -73,7 +76,7 @@
               {{-- Subdomain --}}
               <div class="domain-config" id="config_subdomain">
                 <div style="display:flex; gap:0; align-items:stretch;">
-                  <input type="text" id="subdomain" name="subdomain" placeholder="miempresa" pattern="[a-z0-9\-]+"
+                  <input type="text" id="subdomain" name="subdomain" placeholder="miempresa" pattern="[a-z0-9\-]+" autocomplete="off"
                          style="flex:1; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px 0 0 8px; font-size:0.9rem; outline:none; border-right:none;"
                          onfocus="this.style.borderColor='#4e73df'" onblur="this.style.borderColor='#d1d5db'">
                   <span style="padding:10px 14px; background:#f3f4f6; border:1px solid #d1d5db; border-radius:0 8px 8px 0; font-size:0.85rem; color:#6b7280; white-space:nowrap; display:flex; align-items:center;">.{{ $baseDomain }}</span>
@@ -87,7 +90,7 @@
                   <span style="padding:10px 12px; background:#f3f4f6; border:1px solid #d1d5db; border-radius:8px 0 0 8px; color:#6b7280; display:flex; align-items:center;">
                     <i class="bi bi-globe"></i>
                   </span>
-                  <input type="text" id="custom_domain" name="custom_domain" placeholder="tudominio.com"
+                  <input type="text" id="custom_domain" name="custom_domain" placeholder="tudominio.com" autocomplete="off"
                          style="flex:1; padding:10px 12px; border:1px solid #d1d5db; border-radius:0 8px 8px 0; font-size:0.9rem; outline:none; border-left:none;"
                          onfocus="this.style.borderColor='#4e73df'" onblur="this.style.borderColor='#d1d5db'">
                 </div>
@@ -125,20 +128,20 @@
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div>
                   <label style="display:block; font-size:0.8rem; font-weight:600; color:#4a5568; margin-bottom:5px;">{{ __('Nombre') }}</label>
-                  <input type="text" id="name" name="name" required placeholder="{{ __('Tu nombre') }}"
+                  <input type="text" id="name" name="name" required placeholder="{{ __('Tu nombre') }}" autocomplete="off"
                          style="width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:0.9rem; outline:none;"
                          onfocus="this.style.borderColor='#4e73df'" onblur="this.style.borderColor='#d1d5db'">
                 </div>
                 <div>
                   <label style="display:block; font-size:0.8rem; font-weight:600; color:#4a5568; margin-bottom:5px;">{{ __('Email') }}</label>
-                  <input type="email" id="email" name="email" required placeholder="tu@email.com"
+                  <input type="email" id="email" name="email" required placeholder="tu@email.com" autocomplete="off"
                          style="width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:0.9rem; outline:none;"
                          onfocus="this.style.borderColor='#4e73df'" onblur="this.style.borderColor='#d1d5db'">
                 </div>
                 <div>
                   <label style="display:block; font-size:0.8rem; font-weight:600; color:#4a5568; margin-bottom:5px;">{{ __('Contraseña') }}</label>
                   <div style="position:relative;">
-                    <input type="password" id="password" name="password" required minlength="8" placeholder="{{ __('Mínimo 8 caracteres') }}"
+                    <input type="password" id="password" name="password" required minlength="8" placeholder="{{ __('Mínimo 8 caracteres') }}" autocomplete="new-password"
                            style="width:100%; padding:10px 12px; padding-right:40px; border:1px solid #d1d5db; border-radius:8px; font-size:0.9rem; outline:none;"
                            onfocus="this.style.borderColor='#4e73df'" onblur="this.style.borderColor='#d1d5db'">
                     <button type="button" class="toggle-password" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:#9ca3af; cursor:pointer; padding:4px;">
@@ -149,7 +152,7 @@
                 <div>
                   <label style="display:block; font-size:0.8rem; font-weight:600; color:#4a5568; margin-bottom:5px;">{{ __('Confirmar') }}</label>
                   <div style="position:relative;">
-                    <input type="password" id="password_confirm" name="password_confirm" required placeholder="{{ __('Repite contraseña') }}"
+                    <input type="password" id="password_confirm" name="password_confirm" required placeholder="{{ __('Repite contraseña') }}" autocomplete="new-password"
                            style="width:100%; padding:10px 12px; padding-right:40px; border:1px solid #d1d5db; border-radius:8px; font-size:0.9rem; outline:none;"
                            onfocus="this.style.borderColor='#4e73df'" onblur="this.style.borderColor='#d1d5db'">
                     <button type="button" class="toggle-password-confirm" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:#9ca3af; cursor:pointer; padding:4px;">

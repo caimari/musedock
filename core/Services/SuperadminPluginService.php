@@ -141,9 +141,9 @@ class SuperadminPluginService
      */
     public static function install(string $slug): array
     {
-        $pluginPath = self::$pluginsDir . '/' . $slug;
+        $pluginPath = self::resolvePluginPathBySlug($slug);
 
-        if (!is_dir($pluginPath)) {
+        if (!$pluginPath || !is_dir($pluginPath)) {
             return [
                 'success' => false,
                 'message' => 'Plugin no encontrado en el directorio'
@@ -216,6 +216,22 @@ class SuperadminPluginService
             'message' => "Plugin '{$plugin->name}' instalado correctamente",
             'plugin' => $plugin
         ];
+    }
+
+    /**
+     * Resolver la ruta real de un plugin por slug.
+     * Busca tanto en plugins públicos como en PRIVATE_PLUGINS_PATH.
+     */
+    private static function resolvePluginPathBySlug(string $slug): ?string
+    {
+        foreach (self::getPluginsDirs() as $dir) {
+            $path = rtrim($dir, '/') . '/' . $slug;
+            if (is_dir($path)) {
+                return $path;
+            }
+        }
+
+        return null;
     }
 
     /**

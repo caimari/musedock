@@ -152,8 +152,8 @@ class FormSubmission extends Model
                 SUM(CASE WHEN is_read = 0 AND is_spam = 0 THEN 1 ELSE 0 END) as unread,
                 SUM(CASE WHEN is_starred = 1 AND is_spam = 0 THEN 1 ELSE 0 END) as starred,
                 SUM(CASE WHEN is_spam = 1 THEN 1 ELSE 0 END) as spam
-            FROM `custom_form_submissions`
-            WHERE `form_id` = ?
+            FROM custom_form_submissions
+            WHERE form_id = ?
         ");
 
         $stmt->execute([$formId]);

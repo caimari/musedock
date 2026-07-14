@@ -321,96 +321,115 @@ class Form extends Model
         return [
             'text' => [
                 'name' => 'Texto',
+                'label' => 'Texto',
                 'icon' => 'bi-fonts',
                 'category' => 'basic'
             ],
             'email' => [
                 'name' => 'Email',
+                'label' => 'Email',
                 'icon' => 'bi-envelope',
                 'category' => 'basic'
             ],
             'number' => [
                 'name' => 'Número',
+                'label' => 'Número',
                 'icon' => 'bi-123',
                 'category' => 'basic'
             ],
             'phone' => [
                 'name' => 'Teléfono',
+                'label' => 'Teléfono',
                 'icon' => 'bi-telephone',
                 'category' => 'basic'
             ],
             'textarea' => [
                 'name' => 'Área de texto',
+                'label' => 'Área de texto',
                 'icon' => 'bi-text-paragraph',
                 'category' => 'basic'
             ],
             'select' => [
                 'name' => 'Desplegable',
+                'label' => 'Desplegable',
                 'icon' => 'bi-menu-button-wide',
                 'category' => 'choice'
             ],
             'radio' => [
                 'name' => 'Opciones (radio)',
+                'label' => 'Opciones (radio)',
                 'icon' => 'bi-ui-radios',
                 'category' => 'choice'
             ],
             'checkbox' => [
                 'name' => 'Casilla única',
+                'label' => 'Casilla única',
                 'icon' => 'bi-check-square',
                 'category' => 'choice'
             ],
             'checkbox_group' => [
                 'name' => 'Casillas múltiples',
+                'label' => 'Casillas múltiples',
                 'icon' => 'bi-ui-checks',
                 'category' => 'choice'
             ],
             'date' => [
                 'name' => 'Fecha',
+                'label' => 'Fecha',
                 'icon' => 'bi-calendar',
                 'category' => 'datetime'
             ],
             'time' => [
                 'name' => 'Hora',
+                'label' => 'Hora',
                 'icon' => 'bi-clock',
                 'category' => 'datetime'
             ],
             'datetime' => [
                 'name' => 'Fecha y hora',
+                'label' => 'Fecha y hora',
                 'icon' => 'bi-calendar-event',
                 'category' => 'datetime'
             ],
             'file' => [
                 'name' => 'Archivo',
+                'label' => 'Archivo',
                 'icon' => 'bi-paperclip',
                 'category' => 'advanced'
             ],
             'url' => [
                 'name' => 'URL',
+                'label' => 'URL',
                 'icon' => 'bi-link-45deg',
                 'category' => 'advanced'
             ],
             'hidden' => [
                 'name' => 'Campo oculto',
+                'label' => 'Campo oculto',
                 'icon' => 'bi-eye-slash',
                 'category' => 'advanced'
             ],
             'password' => [
                 'name' => 'Contraseña',
+                'label' => 'Contraseña',
                 'icon' => 'bi-key',
                 'category' => 'advanced'
             ],
             'heading' => [
                 'name' => 'Encabezado',
+                'label' => 'Encabezado',
                 'icon' => 'bi-type-h1',
                 'category' => 'layout'
             ],
             'paragraph' => [
                 'name' => 'Párrafo',
+                'label' => 'Párrafo',
                 'icon' => 'bi-text-left',
                 'category' => 'layout'
             ],
             'divider' => [
                 'name' => 'Separador',
+                'label' => 'Separador',
                 'icon' => 'bi-hr',
                 'category' => 'layout'
             ],

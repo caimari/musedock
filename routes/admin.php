@@ -209,6 +209,12 @@ Route::get("$adminPath/settings", 'tenant.SettingsController@index')
      ->middleware(['auth', 'permission:settings.view']);
 Route::post("$adminPath/settings", 'tenant.SettingsController@update')
      ->middleware(['auth', 'permission:settings.edit']);
+Route::get("$adminPath/settings/email", 'tenant.SettingsController@email')
+     ->middleware(['auth', 'permission:settings.view'])
+     ->name('tenant.settings.email');
+Route::post("$adminPath/settings/email", 'tenant.SettingsController@updateEmail')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.settings.email.update');
 Route::get("$adminPath/settings/delete-logo", 'tenant.SettingsController@deleteLogo')
      ->middleware(['auth', 'permission:settings.edit']);
 Route::get("$adminPath/settings/delete-favicon", 'tenant.SettingsController@deleteFavicon')
@@ -264,6 +270,29 @@ Route::get("$adminPath/settings/security", 'tenant.SettingsController@security')
 Route::post("$adminPath/settings/security", 'tenant.SettingsController@updateSecurity')
      ->middleware(['auth', 'permission:settings.edit'])
      ->name('tenant.settings.security.update');
+
+// Newsletter (suscriptores del tenant)
+Route::get("$adminPath/newsletter", 'tenant.NewsletterController@index')
+     ->middleware(['auth', 'permission:settings.view'])
+     ->name('tenant.newsletter.index');
+Route::get("$adminPath/newsletter/campaigns", 'tenant.NewsletterCampaignController@index')
+     ->middleware(['auth', 'permission:settings.view'])
+     ->name('tenant.newsletter.campaigns.index');
+Route::get("$adminPath/newsletter/campaigns/create", 'tenant.NewsletterCampaignController@create')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.newsletter.campaigns.create');
+Route::post("$adminPath/newsletter/campaigns", 'tenant.NewsletterCampaignController@store')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.newsletter.campaigns.store');
+Route::get("$adminPath/newsletter/campaigns/{id}/edit", 'tenant.NewsletterCampaignController@edit')
+     ->middleware(['auth', 'permission:settings.view'])
+     ->name('tenant.newsletter.campaigns.edit');
+Route::post("$adminPath/newsletter/campaigns/{id}/update", 'tenant.NewsletterCampaignController@update')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.newsletter.campaigns.update');
+Route::post("$adminPath/newsletter/campaigns/{id}/queue", 'tenant.NewsletterCampaignController@queue')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.newsletter.campaigns.queue');
 
 // AI Settings (Configuración de IA del Tenant)
 Route::get("$adminPath/ai/settings", 'tenant.AISettingsController@settings')

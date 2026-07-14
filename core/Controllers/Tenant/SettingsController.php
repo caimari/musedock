@@ -436,6 +436,7 @@ class SettingsController
             $pdo = Database::connect();
             $pdo->beginTransaction();
             $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            $currentSettings = $this->getTenantSettings($tenantId);
 
             // Blog URL prefix
             $blogUrlMode = $_POST['blog_url_mode'] ?? 'prefix';
@@ -890,6 +891,7 @@ class SettingsController
         return View::renderTenantAdmin('settings/email', [
             'title' => 'Configuración de Email',
             'settings' => $settings,
+            'smtpRequireTenantOwn' => (string)setting('smtp_require_tenant_own', '0'),
         ]);
     }
 
@@ -912,8 +914,13 @@ class SettingsController
             $pdo = Database::connect();
             $pdo->beginTransaction();
             $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            $currentSettings = $this->getTenantSettings($tenantId);
 
             $emailSettings = [
+                'smtp_use_global'    => isset($_POST['smtp_use_global']) ? '1' : '0',
+                'mail_driver'       => in_array($_POST['mail_driver'] ?? 'smtp', ['smtp', 'mail', 'sendmail'], true)
+                    ? ($_POST['mail_driver'] ?? 'smtp')
+                    : 'smtp',
                 'smtp_host'         => trim($_POST['smtp_host'] ?? ''),
                 'smtp_port'         => (int)($_POST['smtp_port'] ?? 587),
                 'smtp_username'     => trim($_POST['smtp_username'] ?? ''),
@@ -921,6 +928,27 @@ class SettingsController
                 'mail_from_address' => trim($_POST['mail_from_address'] ?? ''),
                 'mail_from_name'    => trim($_POST['mail_from_name'] ?? ''),
             ];
+
+            // Política global: si superadmin obliga SMTP propio, desactivar uso global en tenant
+            $smtpRequireTenantOwn = (string)setting('smtp_require_tenant_own', '0') === '1';
+            if ($smtpRequireTenantOwn) {
+                $emailSettings['smtp_use_global'] = '0';
+            }
+
+            // Si el tenant usa SMTP global, no machacar su configuración propia guardada
+            if ($emailSettings['smtp_use_global'] === '1') {
+                foreach (['mail_driver', 'smtp_host', 'smtp_port', 'smtp_username', 'smtp_encryption', 'mail_from_address', 'mail_from_name'] as $k) {
+                    if (array_key_exists($k, $currentSettings)) {
+                        $emailSettings[$k] = (string)$currentSettings[$k];
+                    }
+                }
+                // Solo mantener contraseña existente
+                if (!empty($currentSettings['smtp_password'])) {
+                    $emailSettings['smtp_password'] = (string)$currentSettings['smtp_password'];
+                } else {
+                    unset($emailSettings['smtp_password']);
+                }
+            }
 
             // Solo actualizar contraseña si se proporcionó una nueva
             if (!empty($_POST['smtp_password'])) {

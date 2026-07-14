@@ -375,59 +375,28 @@
 {{-- Slider initialization script --}}
 @push('scripts')
 <script>
-$(document).ready(function() {
-    // Simple slider functionality
-    let currentSlide = 0;
-    const slides = $('.simple-slide');
-    const totalSlides = slides.length;
-    
-    function showSlide(index) {
-        slides.removeClass('active');
-        slides.eq(index).addClass('active');
-    }
-    
-    function nextSlide() {
-        currentSlide = (currentSlide + 1) % totalSlides;
-        showSlide(currentSlide);
-    }
-    
-    function prevSlide() {
-        currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
-        showSlide(currentSlide);
-    }
-    
-    // Auto-play slider
-    setInterval(nextSlide, 5000);
-    
-    // Keyboard navigation
-    $(document).keydown(function(e) {
-        if (e.key === 'ArrowLeft') {
-            prevSlide();
-        } else if (e.key === 'ArrowRight') {
-            nextSlide();
-        }
+// Teclado y swipe para el slider: delega en las flechas que crea SimpleSlider
+// (autoplay, flechas y pausa al hover ya los gestiona la clase en simple-slider.js)
+document.addEventListener('DOMContentLoaded', function() {
+    const slider = document.getElementById('simple-slider');
+    if (!slider) return;
+    const next = () => slider.querySelector('.simple-slider-next')?.click();
+    const prev = () => slider.querySelector('.simple-slider-prev')?.click();
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft') prev();
+        else if (e.key === 'ArrowRight') next();
     });
-    
-    // Touch/swipe support
+
     let touchStartX = 0;
-    let touchEndX = 0;
-    
-    $('#simple-slider').on('touchstart', function(e) {
-        touchStartX = e.originalEvent.touches[0].clientX;
-    });
-    
-    $('#simple-slider').on('touchend', function(e) {
-        touchEndX = e.originalEvent.changedTouches[0].clientX;
-        handleSwipe();
-    });
-    
-    function handleSwipe() {
-        if (touchEndX < touchStartX - 50) {
-            nextSlide(); // Swipe left
-        } else if (touchEndX > touchStartX + 50) {
-            prevSlide(); // Swipe right
-        }
-    }
+    slider.addEventListener('touchstart', function(e) {
+        touchStartX = e.touches[0].clientX;
+    }, { passive: true });
+    slider.addEventListener('touchend', function(e) {
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        if (dx < -50) next();
+        else if (dx > 50) prev();
+    }, { passive: true });
 });
 </script>
 @endpush

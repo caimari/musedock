@@ -75,6 +75,8 @@ if (file_exists(APP_ROOT . '/config/config.php')) {
 use Screenart\Musedock\Services\CronService;
 use Screenart\Musedock\Services\Tasks\CleanupTrashTask;
 use Screenart\Musedock\Services\Tasks\CleanupRevisionsTask;
+use Screenart\Musedock\Services\Tasks\NewsletterQueueTask;
+use Screenart\Musedock\Services\Tasks\PublicVersionSnapshotTask;
 
 // Banner
 echo "\n";
@@ -142,6 +144,34 @@ try {
             return $result;
         },
         86400 // Intervalo no importa en modo real
+    );
+
+    CronService::register(
+        'newsletter_queue',
+        function() {
+            echo "  ├─ Ejecutando: Cola de newsletter\n";
+            $result = NewsletterQueueTask::run();
+
+            if (!$result['enabled']) {
+                echo "  │  └─ Desactivada en configuración\n";
+                return $result;
+            }
+
+            echo "  │  └─ Procesados: {$result['processed']} (enviados: {$result['sent']}, fallidos: {$result['failed']})\n";
+            return $result;
+        },
+        300
+    );
+
+    CronService::register(
+        'public_versions_snapshot',
+        function() {
+            echo "  ├─ Ejecutando: Snapshot de versiones publicas\n";
+            $result = PublicVersionSnapshotTask::run();
+            echo "  │  └─ CMS: " . ($result['cms_current'] ?? '-') . " | Latest CMS: " . ($result['cms_latest'] ?? '-') . " | Latest Panel: " . ($result['panel_latest'] ?? '-') . "\n";
+            return $result;
+        },
+        21600
     );
 
     echo "✓ Tareas registradas\n";

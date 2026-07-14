@@ -21,6 +21,8 @@
 use Screenart\Musedock\Services\CronService;
 use Screenart\Musedock\Services\Tasks\CleanupTrashTask;
 use Screenart\Musedock\Services\Tasks\CleanupRevisionsTask;
+use Screenart\Musedock\Services\Tasks\NewsletterQueueTask;
+use Screenart\Musedock\Services\Tasks\PublicVersionSnapshotTask;
 
 // Solo ejecutar si el sistema de cron está en modo pseudo
 $cronMode = getenv('CRON_MODE') ?: 'pseudo';
@@ -51,6 +53,24 @@ try {
             return CleanupRevisionsTask::run();
         },
         86400 // 24 horas
+    );
+
+    // Tarea 3: envío de campañas newsletter en cola
+    CronService::register(
+        'newsletter_queue',
+        function() {
+            return NewsletterQueueTask::run();
+        },
+        300 // 5 minutos
+    );
+
+    // Tarea 4: cache de versiones públicas (CMS/Panel) para topbar
+    CronService::register(
+        'public_versions_snapshot',
+        function() {
+            return PublicVersionSnapshotTask::run();
+        },
+        21600 // 6 horas
     );
 
     // Ejecutar tareas (si toca según throttle)

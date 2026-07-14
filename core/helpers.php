@@ -328,11 +328,27 @@ function flash($key, $value = null)
         return null;
     }
 
+    // Purgar flashes caducados (TTL 120s) para que no queden "atascados"
+    // si nadie llega a consumirlos en la petición donde se generaron.
+    $now = time();
+    foreach (($_SESSION['_flash_timestamps'] ?? []) as $fk => $ts) {
+        if ($now - $ts > 120) {
+            unset($_SESSION['_flash'][$fk], $_SESSION['_flash_timestamps'][$fk]);
+        }
+    }
+
     // Si no hay $value, consumir y devolver
     if (isset($_SESSION['_flash'][$key])) {
         $message = $_SESSION['_flash'][$key];
         unset($_SESSION['_flash'][$key]);
         unset($_SESSION['_flash_timestamps'][$key]);
+
+        // Evita que el navegador guarde en bfcache una página con un flash ya
+        // consumido y lo muestre "congelado" al volver con atrás/adelante.
+        if (!headers_sent()) {
+            header('Cache-Control: no-store, no-cache, must-revalidate');
+        }
+
         return $message;
     }
 
@@ -2358,10 +2374,14 @@ if (!function_exists('resolve_page_template')) {
      */
     function resolve_page_template(string $template): string
     {
+        $template = str_replace('.blade.php', '', $template);
+        // Allow special templates to bypass sidebar override
+        if (in_array($template, ['product', 'docs', 'doc'])) {
+            return $template;
+        }
         if (is_sidebar_structure()) {
             return 'page';
         }
-        $template = str_replace('.blade.php', '', $template);
         return $template ?: 'page';
     }
 }

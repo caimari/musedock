@@ -20,13 +20,22 @@ class Mailer
         string $subject,
         string $htmlBody,
         string $textBody = '',
-        string $from = null,
-        string $fromName = null
+        ?string $from = null,
+        ?string $fromName = null,
+        ?int $tenantId = null
     ): bool {
         try {
-            // Configuración por defecto desde .env
-            $from = $from ?? getenv('MAIL_FROM_ADDRESS') ?: 'noreply@' . parse_url(getenv('APP_URL') ?: 'https://musedock.net', PHP_URL_HOST);
-            $fromName = $fromName ?? getenv('MAIL_FROM_NAME') ?: getenv('APP_NAME') ?: 'MuseDock CMS';
+            $tenantId = self::resolveTenantId($tenantId);
+            $config = self::resolveMailConfig($tenantId);
+
+            if (!($config['enabled'] ?? true)) {
+                error_log("Mailer: envío bloqueado por configuración SMTP incompleta para tenant " . ($tenantId ?? 'global'));
+                return false;
+            }
+
+            // Configuración por defecto (global o tenant)
+            $from = $from ?? (string)($config['mail_from_address'] ?? '');
+            $fromName = $fromName ?? (string)($config['mail_from_name'] ?? 'MuseDock CMS');
 
             // Si no hay texto plano, extraerlo del HTML
             if (empty($textBody)) {
@@ -35,11 +44,11 @@ class Mailer
                 $textBody = trim($textBody);
             }
 
-            // Determinar método de envío según .env
-            $driver = strtolower(getenv('MAIL_DRIVER') ?: 'mail');
+            // Determinar método de envío (tenant/global)
+            $driver = strtolower((string)($config['mail_driver'] ?? 'mail'));
 
             if ($driver === 'smtp') {
-                return self::sendViaSMTP($to, $from, $fromName, $subject, $htmlBody, $textBody);
+                return self::sendViaSMTP($to, $from, $fromName, $subject, $htmlBody, $textBody, $config);
             } else {
                 return self::sendViaMail($to, $from, $fromName, $subject, $htmlBody, $textBody);
             }
@@ -108,17 +117,19 @@ class Mailer
         string $fromName,
         string $subject,
         string $htmlBody,
-        string $textBody
+        string $textBody,
+        array $config
     ): bool {
-        // Obtener configuración SMTP desde .env
-        $host = getenv('SMTP_HOST');
-        $port = getenv('SMTP_PORT') ?: 587;
-        $username = getenv('SMTP_USERNAME');
-        $password = getenv('SMTP_PASSWORD');
-        $encryption = strtolower(getenv('SMTP_ENCRYPTION') ?: 'tls');
+        // Obtener configuración SMTP resuelta (tenant o global)
+        $host = (string)($config['smtp_host'] ?? '');
+        $port = (int)($config['smtp_port'] ?? 587);
+        $username = (string)($config['smtp_username'] ?? '');
+        $password = (string)($config['smtp_password'] ?? '');
+        $encryption = strtolower((string)($config['smtp_encryption'] ?? 'tls'));
+        $ehloDomain = (string)($config['ehlo_domain'] ?? parse_url((string)(getenv('APP_URL') ?: 'https://musedock.net'), PHP_URL_HOST));
 
         if (empty($host) || empty($username) || empty($password)) {
-            error_log("SMTP: Configuración incompleta. Verifica SMTP_HOST, SMTP_USERNAME y SMTP_PASSWORD en .env");
+            error_log("SMTP: Configuración incompleta. Verifica host/usuario/contraseña SMTP");
             return false;
         }
 
@@ -149,7 +160,7 @@ class Mailer
             error_log("SMTP: Respuesta inicial: {$response}");
 
             // EHLO
-            self::sendSMTPCommand($socket, "EHLO " . parse_url(getenv('APP_URL') ?: 'localhost', PHP_URL_HOST));
+            self::sendSMTPCommand($socket, "EHLO " . $ehloDomain);
             $response = self::readSMTPResponse($socket);
             error_log("SMTP: Respuesta EHLO: " . substr($response, 0, 100));
 
@@ -174,7 +185,7 @@ class Mailer
                 }
 
                 // EHLO de nuevo después de TLS
-                self::sendSMTPCommand($socket, "EHLO " . parse_url(getenv('APP_URL') ?: 'localhost', PHP_URL_HOST));
+                self::sendSMTPCommand($socket, "EHLO " . $ehloDomain);
                 self::readSMTPResponse($socket);
             }
 
@@ -284,6 +295,134 @@ class Mailer
                 fclose($socket);
             }
             return false;
+        }
+    }
+
+    /**
+     * Resuelve tenant_id del contexto actual o del parámetro explícito.
+     */
+    private static function resolveTenantId(?int $tenantId): ?int
+    {
+        if ($tenantId !== null) {
+            return $tenantId;
+        }
+
+        if (function_exists('tenant_id')) {
+            $resolved = tenant_id();
+            return $resolved !== null ? (int)$resolved : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Determina si el sistema obliga SMTP propio por tenant.
+     */
+    private static function requiresTenantSmtp(): bool
+    {
+        $raw = null;
+        if (function_exists('setting')) {
+            $raw = setting('smtp_require_tenant_own', '0');
+        } else {
+            $raw = getenv('SMTP_REQUIRE_TENANT_OWN') ?: '0';
+        }
+
+        return in_array((string)$raw, ['1', 'true', 'on', 'yes'], true);
+    }
+
+    /**
+     * Carga configuración de correo (global o tenant) con política de herencia.
+     */
+    private static function resolveMailConfig(?int $tenantId): array
+    {
+        $appUrl = (string)(getenv('APP_URL') ?: 'https://musedock.net');
+        $hostFromAppUrl = (string)(parse_url($appUrl, PHP_URL_HOST) ?: 'localhost');
+
+        $global = [
+            'enabled' => true,
+            'source' => 'global',
+            'mail_driver' => (string)(getenv('MAIL_DRIVER') ?: 'smtp'),
+            'smtp_host' => (string)(getenv('SMTP_HOST') ?: ''),
+            'smtp_port' => (int)(getenv('SMTP_PORT') ?: 587),
+            'smtp_username' => (string)(getenv('SMTP_USERNAME') ?: ''),
+            'smtp_password' => (string)(getenv('SMTP_PASSWORD') ?: ''),
+            'smtp_encryption' => (string)(getenv('SMTP_ENCRYPTION') ?: 'tls'),
+            'mail_from_address' => (string)(getenv('MAIL_FROM_ADDRESS') ?: ('noreply@' . $hostFromAppUrl)),
+            'mail_from_name' => (string)(getenv('MAIL_FROM_NAME') ?: (getenv('APP_NAME') ?: 'MuseDock CMS')),
+            'ehlo_domain' => $hostFromAppUrl,
+        ];
+
+        if ($tenantId === null) {
+            // Validación mínima para smtp
+            if (strtolower($global['mail_driver']) === 'smtp' &&
+                (empty($global['smtp_host']) || empty($global['smtp_username']) || empty($global['smtp_password']))) {
+                $global['enabled'] = false;
+            }
+            return $global;
+        }
+
+        try {
+            $pdo = \Screenart\Musedock\Database::connect();
+            $keyCol = \Screenart\Musedock\Database::qi('key');
+            $stmt = $pdo->prepare("
+                SELECT {$keyCol} AS k, value
+                FROM tenant_settings
+                WHERE tenant_id = ?
+                  AND {$keyCol} IN (
+                    'smtp_use_global',
+                    'mail_driver',
+                    'smtp_host',
+                    'smtp_port',
+                    'smtp_username',
+                    'smtp_password',
+                    'smtp_encryption',
+                    'mail_from_address',
+                    'mail_from_name'
+                  )
+            ");
+            $stmt->execute([$tenantId]);
+            $tenantSettings = [];
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $tenantSettings[(string)$row['k']] = (string)($row['value'] ?? '');
+            }
+
+            $forceOwn = self::requiresTenantSmtp();
+            $useGlobal = (($tenantSettings['smtp_use_global'] ?? '1') === '1') && !$forceOwn;
+
+            if ($useGlobal) {
+                $global['source'] = 'global-fallback';
+                return $global;
+            }
+
+            $tenantConfig = [
+                'enabled' => true,
+                'source' => $forceOwn ? 'tenant-required' : 'tenant',
+                'mail_driver' => (string)($tenantSettings['mail_driver'] ?? $global['mail_driver']),
+                'smtp_host' => (string)($tenantSettings['smtp_host'] ?? ''),
+                'smtp_port' => (int)($tenantSettings['smtp_port'] ?? 587),
+                'smtp_username' => (string)($tenantSettings['smtp_username'] ?? ''),
+                'smtp_password' => (string)($tenantSettings['smtp_password'] ?? ''),
+                'smtp_encryption' => (string)($tenantSettings['smtp_encryption'] ?? 'tls'),
+                'mail_from_address' => (string)($tenantSettings['mail_from_address'] ?? ('noreply@' . $hostFromAppUrl)),
+                'mail_from_name' => (string)($tenantSettings['mail_from_name'] ?? ($global['mail_from_name'] ?: 'MuseDock CMS')),
+                'ehlo_domain' => $hostFromAppUrl,
+            ];
+
+            if (strtolower($tenantConfig['mail_driver']) === 'smtp' &&
+                (empty($tenantConfig['smtp_host']) || empty($tenantConfig['smtp_username']) || empty($tenantConfig['smtp_password']))) {
+                $tenantConfig['enabled'] = false;
+            }
+
+            // Si no es obligatorio tenant propio y está incompleto, fallback al global.
+            if (!$forceOwn && !$tenantConfig['enabled']) {
+                $global['source'] = 'global-fallback-incomplete-tenant';
+                return $global;
+            }
+
+            return $tenantConfig;
+        } catch (\Throwable $e) {
+            error_log('Mailer::resolveMailConfig error: ' . $e->getMessage());
+            return $global;
         }
     }
 

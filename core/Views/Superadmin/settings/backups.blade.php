@@ -1,6 +1,8 @@
 @extends('layouts.app')
 @section('title', $title)
 @section('content')
+<div class="row g-4">
+  <div class="col-xl-9 col-lg-8">
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
     <h3 class="card-title mb-0"><i class="bi bi-database-down me-2"></i>{{ $title }}</h3>
@@ -99,6 +101,11 @@
       </div>
     @endif
 
+  </div>
+</div>
+  </div>
+  <div class="col-xl-3 col-lg-4">
+    @include('settings.partials.sidebar', ['active' => 'backups'])
   </div>
 </div>
 

@@ -146,6 +146,53 @@ class SlugRouter
         }
 
         if (!$entry) {
+            // Fallback robusto para docs:
+            // si falta la fila en slugs pero existe blog_post con post_type=docs, resolver igualmente.
+            if ($prefix === 'docs') {
+                try {
+                    $pdo = \Screenart\Musedock\Database::connect();
+                    $baseSql = "SELECT id FROM blog_posts WHERE slug = :slug AND post_type = 'docs' AND status = 'published'";
+                    $params = [':slug' => $slug];
+                    $docId = 0;
+
+                    if ($multiTenant) {
+                        if ($tenantId !== null) {
+                            $sql = $baseSql . " AND tenant_id = :tenant_id ORDER BY id DESC LIMIT 1";
+                            $params[':tenant_id'] = $tenantId;
+                            $stmt = $pdo->prepare($sql);
+                            $stmt->execute($params);
+                            $docId = (int)($stmt->fetchColumn() ?: 0);
+                        } else {
+                            // Prefer global docs first
+                            $sql = $baseSql . " AND tenant_id IS NULL ORDER BY id DESC LIMIT 1";
+                            $stmt = $pdo->prepare($sql);
+                            $stmt->execute($params);
+                            $docId = (int)($stmt->fetchColumn() ?: 0);
+
+                            // If not found globally, fallback to any tenant
+                            if ($docId <= 0) {
+                                $sql = $baseSql . " ORDER BY id DESC LIMIT 1";
+                                $stmt = $pdo->prepare($sql);
+                                $stmt->execute($params);
+                                $docId = (int)($stmt->fetchColumn() ?: 0);
+                            }
+                        }
+                    } else {
+                        $sql = $baseSql . " ORDER BY id DESC LIMIT 1";
+                        $stmt = $pdo->prepare($sql);
+                        $stmt->execute($params);
+                        $docId = (int)($stmt->fetchColumn() ?: 0);
+                    }
+
+                    if ($docId > 0) {
+                        file_put_contents($logPath, date('Y-m-d H:i:s') . " - FALLBACK DOCS: post_type=docs encontrado por slug '{$slug}' (ID {$docId})\n", FILE_APPEND);
+                        return self::resolve_blog($docId);
+                    }
+                } catch (\Exception $e) {
+                    file_put_contents($logPath, date('Y-m-d H:i:s') . " - FALLBACK DOCS ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
+                }
+            }
+
             // === FALLBACK: Verificar si es una página legal por defecto ===
             $pagePrefix = function_exists('page_prefix') ? page_prefix() : 'p';
             if (($prefix === $pagePrefix || $prefix === null) && DefaultLegalPagesService::isLegalPageSlug($slug)) {

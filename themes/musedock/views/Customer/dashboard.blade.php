@@ -2,7 +2,7 @@
 
 @section('panel_content')
 <div style="margin-bottom:20px;">
-  <h2 style="font-size:1.15rem; font-weight:700; color:#243141; margin:0 0 2px;">Dashboard</h2>
+  <h2 style="font-size:1.15rem; font-weight:700; color:#243141; margin:0 0 2px;">Inicio</h2>
   <p style="font-size:0.82rem; color:#8a94a6; margin:0;">Bienvenido a tu panel de control</p>
 </div>
 
@@ -200,7 +200,7 @@
     <i class="bi bi-gift"></i> Solicitar Subdominio FREE
   </a>
   <a href="/customer/request-custom-domain" style="display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border:1px solid #d1d5db; color:#4a5568; border-radius:7px; font-size:0.82rem; font-weight:500; text-decoration:none;">
-    <i class="bi bi-link-45deg"></i> Incorporar Dominio
+    <i class="bi bi-link-45deg"></i> Conectar Dominio
   </a>
   <a href="/customer/register-domain" style="display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border:1px solid #d1d5db; color:#4a5568; border-radius:7px; font-size:0.82rem; font-weight:500; text-decoration:none;">
     <i class="bi bi-cart-plus"></i> Registrar Dominio

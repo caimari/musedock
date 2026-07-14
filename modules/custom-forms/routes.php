@@ -159,3 +159,7 @@ Route::get('/admin/custom-forms/{formId}/export', 'CustomForms\Controllers\Tenan
 
 Route::post('/forms/{formId}/submit', 'CustomForms\Controllers\PublicController@submit')
     ->name('forms.submit');
+
+// Compatibilidad con formulario hardcodeado del footer legacy
+Route::post('/contact', 'CustomForms\Controllers\PublicController@contact')
+    ->name('forms.contact.submit');

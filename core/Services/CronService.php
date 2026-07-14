@@ -44,6 +44,9 @@ class CronService
             'callback' => $callback,
             'interval' => $interval
         ];
+
+        // Asegurar entrada de control en BD para locks/estado.
+        self::ensureTaskRow($name, $interval);
     }
 
     /**
@@ -341,6 +344,36 @@ class CronService
         } catch (\Exception $e) {
             error_log("CronService::getTasksStatus() error: " . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Crea la fila de scheduled_tasks si no existe.
+     */
+    private static function ensureTaskRow(string $name, int $interval): void
+    {
+        try {
+            $pdo = Database::connect();
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM scheduled_tasks WHERE task_name = ?");
+            $stmt->execute([$name]);
+            if ((int)$stmt->fetchColumn() > 0) {
+                return;
+            }
+
+            $nextRunExpr = $driver === 'mysql'
+                ? "DATE_ADD(NOW(), INTERVAL {$interval} SECOND)"
+                : "NOW() + INTERVAL '{$interval} seconds'";
+
+            $ins = $pdo->prepare("
+                INSERT INTO scheduled_tasks
+                    (task_name, next_run, status, run_count, success_count, fail_count, created_at, updated_at)
+                VALUES
+                    (?, {$nextRunExpr}, 'idle', 0, 0, 0, NOW(), NOW())
+            ");
+            $ins->execute([$name]);
+        } catch (\Throwable $e) {
+            error_log("CronService::ensureTaskRow({$name}) error: " . $e->getMessage());
         }
     }
 }

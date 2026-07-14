@@ -1,21 +1,85 @@
-MIT License
+MuseDock CMS — Source Available License (Provider Use)
+Copyright (c) 2026 MuseDock. All rights reserved.
 
-Copyright (c) 2024-2025 Antoni Caimari Caldes
+Version: 1.0 (2026-04-28)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. DEFINITIONS
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+"Software" means the MuseDock CMS source code, documentation, and
+associated files in this repository.
+
+"Operator Use" means running the Software to build and operate your own
+websites and/or your clients' websites, including commercial hosting and
+managed CMS services operated by your organization.
+
+"Software Resale" means selling, sublicensing, relicensing, white-labeling,
+or redistributing the Software itself (source or binaries) as a product.
+
+"Managed CMS SaaS" means offering access to the Software itself as a
+standalone SaaS/CMS product to third parties where the CMS is the core
+commercial product.
+
+2. LICENSE GRANT
+
+Permission is granted, free of charge, to use, copy, run, and modify the
+Software for Operator Use, including commercial use for your own business
+and your clients.
+
+3. WHAT YOU MAY NOT DO WITHOUT A SEPARATE COMMERCIAL AGREEMENT
+
+You may NOT:
+  (a) Sell, sublicense, or relicense the Software itself.
+  (b) Offer the Software as a white-label CMS product.
+  (c) Offer a Managed CMS SaaS where the CMS itself is the product.
+  (d) Distribute paid copies of the Software (source or binary) to third parties.
+  (e) Remove, alter, or hide copyright/license notices.
+  (f) Represent the Software as your own original product.
+
+4. TRADEMARKS AND BRANDING
+
+"MuseDock", its logos, and brand assets are trademarks of their respective
+owner. This license does not grant trademark rights.
+
+You may not present yourself as MuseDock, nor use MuseDock marks in a way
+that suggests affiliation, endorsement, or ownership.
+
+5. MODIFICATIONS
+
+You may modify the Software for Operator Use. If you distribute modified
+copies, you must keep this license and all copyright notices intact.
+
+Distribution does not grant recipients rights beyond this license.
+
+6. PAID ADD-ONS
+
+Some modules, plugins, or services may be offered under separate commercial
+terms. This license applies only to the Software in this repository unless
+explicitly stated otherwise.
+
+7. CONTRIBUTIONS
+
+By submitting contributions (code, docs, translations), you agree those
+contributions are licensed under this same license, and you grant MuseDock
+a perpetual, worldwide, non-exclusive, royalty-free right to use and
+redistribute them as part of the Software.
+
+8. DISCLAIMER OF WARRANTY
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+IMPLIED, INCLUDING BUT NOT LIMITED TO MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+9. TERMINATION
+
+This license terminates automatically if you violate its terms. Upon
+termination, you must stop use and destroy copies in your possession.
+
+10. GOVERNING LAW
+
+This license is governed by the laws of Spain, without regard to conflict
+of law principles.

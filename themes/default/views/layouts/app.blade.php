@@ -3177,5 +3177,17 @@ document.addEventListener('DOMContentLoaded', function() {
 {{-- Scripts adicionales  --}}
 @stack('scripts')
 
+
+  {{-- Refresco de token CSRF: las páginas servidas desde html-cache llevan un token de otra sesión --}}
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var inputs = document.querySelectorAll('input[name="_csrf"], input[name="_token"]');
+    if (!inputs.length) return;
+    fetch('/csrf-token', { credentials: 'same-origin', cache: 'no-store' })
+      .then(function(r) { return r.json(); })
+      .then(function(d) { if (d && d.token) inputs.forEach(function(i) { i.value = d.token; }); })
+      .catch(function() {});
+  });
+  </script>
 </body>
 </html>

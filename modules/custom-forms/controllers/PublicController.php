@@ -6,6 +6,7 @@ use CustomForms\Models\Form;
 use CustomForms\Models\FormField;
 use CustomForms\Models\FormSubmission;
 use CustomForms\Models\FormSetting;
+use Screenart\Musedock\Mail\Mailer;
 
 /**
  * PublicController
@@ -14,6 +15,68 @@ use CustomForms\Models\FormSetting;
  */
 class PublicController
 {
+    /**
+     * Garantiza el formulario contacto-footer en global y todos los tenants.
+     * Útil para bootstrap inicial sin esperar al primer envío.
+     */
+    public static function ensureFooterContactFormsForAllTenants(): array
+    {
+        $self = new self();
+        $created = 0;
+        $failed = 0;
+        $checked = 0;
+
+        try {
+            $global = $self->ensureFooterContactForm(null);
+            $checked++;
+            if ($global) {
+                $created++;
+            } else {
+                $failed++;
+            }
+        } catch (\Throwable $e) {
+            $failed++;
+        }
+
+        try {
+            $pdo = \Screenart\Musedock\Database::connect();
+            $tenants = $pdo->query("SELECT id FROM tenants ORDER BY id ASC")->fetchAll(\PDO::FETCH_COLUMN);
+            foreach ($tenants as $tenantId) {
+                $checked++;
+                $form = $self->ensureFooterContactForm((int)$tenantId);
+                if ($form) {
+                    $created++;
+                } else {
+                    $failed++;
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log('ensureFooterContactFormsForAllTenants list error: ' . $e->getMessage());
+        }
+
+        return [
+            'checked' => $checked,
+            'ok' => $created,
+            'failed' => $failed,
+        ];
+    }
+
+    /**
+     * Endpoint legacy /contact -> usa el formulario dinámico de footer.
+     */
+    public function contact()
+    {
+        $tenantId = function_exists('tenant_id') ? tenant_id() : null;
+        $form = $this->ensureFooterContactForm($tenantId !== null ? (int)$tenantId : null);
+
+        if (!$form) {
+            $isJson = strpos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') !== false;
+            return $this->response(false, 'No se pudo inicializar el formulario de contacto.', null, $isJson);
+        }
+
+        return $this->submit((int)$form->id);
+    }
+
     /**
      * Procesa el envío de un formulario
      */
@@ -189,7 +252,7 @@ class PublicController
      */
     private function sendNotificationEmail(Form $form, array $data, array $fields): bool
     {
-        $to = $form->email_to;
+        $toRaw = (string)($form->email_to ?? '');
         $subject = $form->email_subject ?: __forms('email.new_submission', ['form' => $form->name]);
 
         $fromName = $form->email_from_name ?: FormSetting::get('default_from_name', $form->tenant_id, 'MuseDock');
@@ -222,17 +285,34 @@ class PublicController
         $body .= "IP: " . $this->getClientIp();
         $body .= "</p>";
 
-        $headers = [
-            'MIME-Version: 1.0',
-            'Content-type: text/html; charset=UTF-8',
-            'From: ' . $fromName . ' <' . $fromEmail . '>',
-        ];
-
-        if ($form->email_reply_to) {
-            $headers[] = 'Reply-To: ' . $form->email_reply_to;
+        $textBody = strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $body));
+        $recipients = array_values(array_filter(array_map('trim', explode(',', $toRaw))));
+        if (empty($recipients)) {
+            return false;
         }
 
-        return @mail($to, $subject, $body, implode("\r\n", $headers));
+        $allSent = true;
+        foreach ($recipients as $recipient) {
+            if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
+                continue;
+            }
+
+            $sent = Mailer::send(
+                $recipient,
+                $subject,
+                $body,
+                $textBody,
+                $fromEmail,
+                $fromName,
+                $form->tenant_id !== null ? (int)$form->tenant_id : null
+            );
+
+            if (!$sent) {
+                $allSent = false;
+            }
+        }
+
+        return $allSent;
     }
 
     /**
@@ -254,13 +334,195 @@ class PublicController
         $fromName = $form->email_from_name ?: FormSetting::get('default_from_name', $form->tenant_id, 'MuseDock');
         $fromEmail = $form->email_from_email ?: FormSetting::get('default_from_email', $form->tenant_id, 'noreply@' . ($_SERVER['HTTP_HOST'] ?? 'localhost'));
 
-        $headers = [
-            'MIME-Version: 1.0',
-            'Content-type: text/html; charset=UTF-8',
-            'From: ' . $fromName . ' <' . $fromEmail . '>',
-        ];
+        $htmlBody = nl2br($body);
+        $textBody = strip_tags($body);
 
-        return @mail($to, $subject, nl2br($body), implode("\r\n", $headers));
+        return Mailer::send(
+            $to,
+            $subject,
+            $htmlBody,
+            $textBody,
+            $fromEmail,
+            $fromName,
+            $form->tenant_id !== null ? (int)$form->tenant_id : null
+        );
+    }
+
+    /**
+     * Crea (si no existe) un formulario estándar de contacto para el footer.
+     */
+    private function ensureFooterContactForm(?int $tenantId): ?Form
+    {
+        $slug = 'contacto-footer';
+
+        $form = $this->findExactFooterForm($slug, $tenantId);
+        if ($form && $form->is_active) {
+            return $form;
+        }
+
+        $emailTo = '';
+        if ($tenantId !== null) {
+            if (function_exists('tenant_setting')) {
+                $emailTo = (string)(tenant_setting('contact_email', '') ?: tenant_setting('mail_from_address', ''));
+            }
+            if ($emailTo === '') {
+                try {
+                    $pdo = \Screenart\Musedock\Database::connect();
+                    $stmt = $pdo->prepare("SELECT value FROM tenant_settings WHERE tenant_id = ? AND key = ? LIMIT 1");
+                    $stmt->execute([$tenantId, 'contact_email']);
+                    $emailTo = (string)($stmt->fetchColumn() ?: '');
+                    if ($emailTo === '') {
+                        $stmt->execute([$tenantId, 'mail_from_address']);
+                        $emailTo = (string)($stmt->fetchColumn() ?: '');
+                    }
+                } catch (\Throwable $e) {
+                    error_log('ensureFooterContactForm tenant email lookup error: ' . $e->getMessage());
+                }
+            }
+        } elseif (function_exists('setting')) {
+            $emailTo = (string)(setting('contact_email', '') ?: setting('site_email', ''));
+        } else {
+            try {
+                $pdo = \Screenart\Musedock\Database::connect();
+                $stmt = $pdo->prepare("SELECT value FROM settings WHERE key = ? LIMIT 1");
+                $stmt->execute(['contact_email']);
+                $emailTo = (string)($stmt->fetchColumn() ?: '');
+                if ($emailTo === '') {
+                    $stmt->execute(['site_email']);
+                    $emailTo = (string)($stmt->fetchColumn() ?: '');
+                }
+            } catch (\Throwable $e) {
+                error_log('ensureFooterContactForm global email lookup error: ' . $e->getMessage());
+            }
+        }
+        if ($emailTo === '') {
+            $emailTo = (string)(getenv('MAIL_FROM_ADDRESS') ?: '');
+        }
+
+        try {
+            if (!$form) {
+                $form = Form::create([
+                    'tenant_id' => $tenantId,
+                    'name' => 'Formulario de Contacto (Footer)',
+                    'slug' => $slug,
+                    'description' => 'Formulario de contacto público del footer',
+                    'submit_button_text' => 'Contactar ahora',
+                    'success_message' => 'Gracias, hemos recibido tu mensaje.',
+                    'error_message' => 'No se pudo enviar el formulario.',
+                    'redirect_url' => '',
+                    'email_to' => $emailTo,
+                    'email_subject' => 'Nuevo contacto desde el footer',
+                    'email_from_name' => '',
+                    'email_from_email' => '',
+                    'email_reply_to' => '',
+                    'send_confirmation_email' => 0,
+                    'store_submissions' => 1,
+                    'enable_recaptcha' => 0,
+                    'form_class' => 'wpcf7-form',
+                    'is_active' => 1,
+                ]);
+            } else {
+                $currentEmail = trim((string)($form->email_to ?? ''));
+                $envFrom = trim((string)(getenv('MAIL_FROM_ADDRESS') ?: ''));
+                $resolvedEmail = $currentEmail;
+                if ($currentEmail === '') {
+                    $resolvedEmail = $emailTo;
+                } elseif ($emailTo !== '' && $envFrom !== '' && strcasecmp($currentEmail, $envFrom) === 0 && strcasecmp($emailTo, $envFrom) !== 0) {
+                    // Auto-corrección: reemplaza fallback global por email real del tenant.
+                    $resolvedEmail = $emailTo;
+                }
+
+                $form->update([
+                    'is_active' => 1,
+                    'email_to' => $resolvedEmail,
+                ]);
+            }
+
+            $existingFields = $form->fields();
+            if (empty($existingFields)) {
+                $defaults = [
+                    [
+                        'field_type' => 'text',
+                        'field_name' => 'name',
+                        'field_label' => 'Nombre',
+                        'placeholder' => 'Nombre',
+                        'is_required' => 1,
+                        'sort_order' => 1,
+                        'is_active' => 1,
+                    ],
+                    [
+                        'field_type' => 'email',
+                        'field_name' => 'email',
+                        'field_label' => 'Email',
+                        'placeholder' => 'Email',
+                        'is_required' => 1,
+                        'sort_order' => 2,
+                        'is_active' => 1,
+                    ],
+                    [
+                        'field_type' => 'textarea',
+                        'field_name' => 'message',
+                        'field_label' => 'Mensaje',
+                        'placeholder' => 'Mensaje',
+                        'is_required' => 1,
+                        'sort_order' => 3,
+                        'is_active' => 1,
+                    ],
+                    [
+                        'field_type' => 'checkbox',
+                        'field_name' => 'legal_consent',
+                        'field_label' => 'He leído y acepto la Política de Privacidad',
+                        'placeholder' => '',
+                        'is_required' => 1,
+                        'sort_order' => 4,
+                        'is_active' => 1,
+                    ],
+                ];
+
+                foreach ($defaults as $field) {
+                    FormField::create(array_merge($field, [
+                        'form_id' => $form->id,
+                        'help_text' => null,
+                        'default_value' => null,
+                        'options' => null,
+                        'validation_rules' => null,
+                        'error_message' => null,
+                        'field_class' => null,
+                        'wrapper_class' => null,
+                        'width' => 'full',
+                        'conditional_logic' => null,
+                    ]));
+                }
+            }
+
+            return $form;
+        } catch (\Throwable $e) {
+            error_log('ensureFooterContactForm error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Busca el formulario exacto por tenant (sin fallback cruzado).
+     */
+    private function findExactFooterForm(string $slug, ?int $tenantId): ?Form
+    {
+        try {
+            $pdo = \Screenart\Musedock\Database::connect();
+            if ($tenantId === null) {
+                $stmt = $pdo->prepare("SELECT * FROM custom_forms WHERE slug = ? AND tenant_id IS NULL LIMIT 1");
+                $stmt->execute([$slug]);
+            } else {
+                $stmt = $pdo->prepare("SELECT * FROM custom_forms WHERE slug = ? AND tenant_id = ? LIMIT 1");
+                $stmt->execute([$slug, $tenantId]);
+            }
+
+            $row = $stmt->fetch(\PDO::FETCH_OBJ);
+            return $row ? new Form($row) : null;
+        } catch (\Throwable $e) {
+            error_log('findExactFooterForm error: ' . $e->getMessage());
+            return null;
+        }
     }
 
     /**

@@ -43,6 +43,43 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
 .ziph-footer_bottom a:hover {
     color: #0066cc !important;
 }
+
+/* Evitar checkbox gigante en formularios del footer */
+.ziph-footer_area .ziph-footer_conform input[type="checkbox"] {
+    width: 16px !important;
+    height: 16px !important;
+    min-width: 16px !important;
+    min-height: 16px !important;
+    max-width: 16px !important;
+    max-height: 16px !important;
+    display: inline-block !important;
+    flex: 0 0 16px !important;
+    margin: 2px 0 0 0 !important;
+    accent-color: #2f7bd9;
+}
+
+/* Estética fina newsletter footer */
+.ziph-footer_area .ziph-footer_conform .wpcf7-form-control:not(.wpcf7-submit) {
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
+    background: rgba(10, 16, 48, 0.45) !important;
+    color: #e8efff !important;
+    box-shadow: none !important;
+}
+
+.ziph-footer_area .ziph-footer_conform .wpcf7-form-control::placeholder {
+    color: rgba(215, 226, 252, 0.72) !important;
+}
+
+.ziph-footer_area .ziph-footer_conform .wpcf7-form-control:not(.wpcf7-submit):focus {
+    border-color: rgba(115, 176, 255, 0.95) !important;
+    box-shadow: 0 0 0 2px rgba(75, 145, 245, 0.15) !important;
+}
+
+.ziph-footer_area .ziph-footer_conform .ziph-privacy-link {
+    color: #8ec0ff !important;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
 </style>
 
 <!-- Footer -->
@@ -195,30 +232,41 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
           </div>
         </div>
         
-        <!-- Footer Contact Form -->
+        <!-- Footer Newsletter -->
         <div class="col-md-4">
         <div class="ziph-footer_widget ziph-get-contactform">
             <div class="ziph-footer_conform">
-              <h4 class="ziph-footrwidget_title">
-                {{ __('footer.contact_form') }}
-              </h4>
+              @php
+                $__privacyUrl = function_exists('legal_page_url')
+                  ? legal_page_url(['privacy', 'privacidad', 'politica-de-privacidad', 'politica-privacidad'], 'privacy')
+                  : '/p/privacy';
+              @endphp
+              <h4 class="ziph-footrwidget_title">Newsletter</h4>
               <div class="ziph-ftrform_warp">
-                <form action="{{ url('/contact') }}" method="POST" class="wpcf7-form">
-                  @csrf
-                  <div class="row ziph-input_group ziph-m-0">
-                    <div class="col-md-6 ">
-                      <input size="40" class="wpcf7-form-control wpcf7-text wpcf7-validates-as-required" aria-required="true" aria-invalid="false" placeholder="{{ __('footer.name') }}" value="" type="text" name="name" required>
-                    </div>
-                    <div class="col-md-6 ">
-                      <input size="40" class="wpcf7-form-control wpcf7-email wpcf7-validates-as-required wpcf7-text wpcf7-validates-as-email" aria-required="true" aria-invalid="false" placeholder="{{ __('footer.email') }}" value="" type="email" name="email" required>
-                    </div>
+                <form action="{{ url('/newsletter/subscribe') }}" method="POST" class="wpcf7-form">
+                  {!! csrf_field() !!}
+                  <input type="hidden" name="_page_url" value="{{ $_SERVER['REQUEST_URI'] ?? '/' }}">
+                  <div class="ziph-input_single ziph-m-0">
+                    <input size="40" class="wpcf7-form-control wpcf7-text" placeholder="Tu nombre (opcional)" value="" type="text" name="name">
                   </div>
                   <div class="ziph-input_single ziph-m-0">
-                    <textarea cols="40" rows="10" class="wpcf7-form-control wpcf7-textarea" aria-invalid="false" placeholder="{{ __('footer.message') }}" name="message" required></textarea>
+                    <input size="40" class="wpcf7-form-control wpcf7-email wpcf7-validates-as-required wpcf7-text wpcf7-validates-as-email" aria-required="true" aria-invalid="false" placeholder="Tu email" value="" type="email" name="email" required>
                   </div>
-                  <p><input class="wpcf7-form-control wpcf7-submit has-spinner ziph-submit-btn" type="submit" value="{{ __('footer.contact_now') }}"><span class="wpcf7-spinner"></span></p>
+                  <div class="ziph-input_single ziph-m-0" style="margin-top:10px;">
+                    <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.4;color:#ddd;">
+                      <input type="checkbox" name="newsletter_consent" value="1" required>
+                      <span>Acepto recibir comunicaciones y la <a class="ziph-privacy-link" href="{{ $__privacyUrl }}" target="_blank" rel="noopener noreferrer">Política de Privacidad</a>.</span>
+                    </label>
+                  </div>
+                  <small style="display:block;color:#c9d3ef;line-height:1.4;margin:8px 0 12px;">
+                    Solo quedarás suscrito cuando confirmes el email (doble opt-in).
+                  </small>
+                  <p><input class="wpcf7-form-control wpcf7-submit has-spinner ziph-submit-btn" type="submit" value="Suscribirme"><span class="wpcf7-spinner"></span></p>
                 </form>
               </div>
+              <p style="margin-top:12px;">
+                <a href="{{ url('/contact') }}" style="display:inline-block;color:#fff;text-decoration:underline;">Ir al formulario de contacto</a>
+              </p>
             </div>
             <div class="clear"></div>
           </div>

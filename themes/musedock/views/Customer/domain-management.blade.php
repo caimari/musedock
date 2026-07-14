@@ -172,8 +172,7 @@
     $statusLabel = $statusLabels[$status] ?? ucfirst($status);
 ?>
 
-<div class="row">
-    <div class="col-12">
+<div class="cp-page-wrap">
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
@@ -185,9 +184,9 @@
             </a>
         </div>
 
-        <div class="row">
+        <div class="cp-two-col">
             <!-- Left Column: Domain Overview -->
-            <div class="col-lg-6">
+            <div class="cp-two-col-main">
                 <!-- Domain Information -->
                 <div class="card management-card">
                     <div class="card-header">
@@ -376,7 +375,7 @@
             </div>
 
             <!-- Right Column: Quick Actions & Settings -->
-            <div class="col-lg-6">
+            <div class="cp-two-col-side">
                 <!-- Quick Actions -->
                 <div class="card management-card">
                     <div class="card-header">
@@ -532,7 +531,6 @@
                 </div>
             </div>
         </div>
-    </div>
 </div>
 @endsection
 

@@ -329,13 +329,29 @@
               <div class="mb-3">
                 @php
                     $__docsRootId = null;
-                    foreach ($categories as $c) { if ($c->slug === 'docs') { $__docsRootId = $c->id; break; } }
+                    $__catParentMap = [];
+                    foreach ($categories as $c) {
+                        $__catParentMap[(int)$c->id] = $c->parent_id ? (int)$c->parent_id : null;
+                        if ($c->slug === 'docs') { $__docsRootId = (int)$c->id; }
+                    }
+                    $__isDocsCategory = function (int $__catId) use ($__docsRootId, $__catParentMap) {
+                        if (!$__docsRootId) return false;
+                        $cursor = $__catId;
+                        $guard = 0;
+                        while ($cursor > 0 && isset($__catParentMap[$cursor]) && $guard++ < 50) {
+                            if ($cursor === $__docsRootId) return true;
+                            $parent = $__catParentMap[$cursor];
+                            if (!$parent) break;
+                            $cursor = (int)$parent;
+                        }
+                        return false;
+                    };
                 @endphp
                 <select class="form-select @error('categories') is-invalid @enderror" name="categories[]" id="categories" multiple size="5">
                   @foreach($categories as $category)
                     @php
                         $__catType = 'blog';
-                        if ($category->slug === 'docs' || ($__docsRootId && ($category->parent_id ?? null) == $__docsRootId)) {
+                        if ($__isDocsCategory((int)$category->id)) {
                             $__catType = 'docs';
                         }
                     @endphp

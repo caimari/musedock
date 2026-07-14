@@ -1,6 +1,8 @@
 @extends('layouts.app')
 @section('title', $title)
 @section('content')
+<div class="row g-4">
+  <div class="col-xl-9 col-lg-8">
 <div class="card">
   <div class="card-header">
     <h3 class="card-title"><i class="bi bi-envelope me-2"></i>{{ $title }}</h3>
@@ -84,6 +86,30 @@
       </div>
 
       <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">Política SMTP para tenants</h5>
+        </div>
+        <div class="card-body">
+          <div class="form-check form-switch">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="smtp_require_tenant_own"
+              name="smtp_require_tenant_own"
+              value="1"
+              {{ ($smtpRequireTenantOwn ?? '0') === '1' ? 'checked' : '' }}>
+            <label class="form-check-label" for="smtp_require_tenant_own">
+              Obligar SMTP propio por tenant
+            </label>
+          </div>
+          <small class="text-muted d-block mt-2">
+            Si está activo, los tenants no podrán usar el SMTP global del CMS y deberán configurar su propio proveedor.
+            Si está desactivado, por defecto usarán el SMTP global y podrán cambiar a SMTP propio desde su panel.
+          </small>
+        </div>
+      </div>
+
+      <div class="card mb-4">
         <div class="card-header bg-secondary text-white">
           <h5 class="mb-0">Proveedores populares</h5>
         </div>
@@ -121,6 +147,11 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
+  </div>
+  <div class="col-xl-3 col-lg-4">
+    @include('settings.partials.sidebar', ['active' => 'email'])
   </div>
 </div>
 @endsection

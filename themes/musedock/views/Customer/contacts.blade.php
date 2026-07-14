@@ -52,7 +52,7 @@
 </style>
 
 <div class="ct-header">
-    <h2><i class="bi bi-person-lines-fill"></i>Mis Contactos</h2>
+    <h2><i class="bi bi-person-lines-fill"></i>Contactos</h2>
 </div>
 
 <p class="ct-desc">

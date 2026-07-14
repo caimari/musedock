@@ -1,6 +1,8 @@
 @extends('layouts.app')
 @section('title', $title)
 @section('content')
+<div class="row g-4">
+  <div class="col-xl-9 col-lg-8">
 <div class="card">
   <div class="card-header">
     <h3 class="card-title"><i class="bi bi-hdd me-2"></i>{{ $title }}</h3>
@@ -311,6 +313,11 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
+  </div>
+  <div class="col-xl-3 col-lg-4">
+    @include('settings.partials.sidebar', ['active' => 'storage'])
   </div>
 </div>
 @endsection

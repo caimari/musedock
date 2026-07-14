@@ -574,6 +574,8 @@ class HtmlCache
             '/password/',
             '/install',
             '/search',
+            '/csrf-token',
+            '/newsletter/',
         ];
 
         $uriLower = strtolower($uri);

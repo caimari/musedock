@@ -36,6 +36,8 @@
   $apiBaseUrl = 'https://' . ($_SERVER['HTTP_HOST'] ?? 'musedock.com');
 @endphp
 
+<div class="row g-4">
+  <div class="col-xl-9 col-lg-8">
 <!-- Info cards -->
 <div class="api-info-grid mb-4">
   <div class="api-info-card">
@@ -160,6 +162,11 @@
 <form id="deleteKeyForm" method="POST" style="display:none;">
   {!! csrf_field() !!}
 </form>
+  </div>
+  <div class="col-xl-3 col-lg-4">
+    @include('settings.partials.sidebar', ['active' => 'api-keys'])
+  </div>
+</div>
 
 @push('scripts')
 <script>

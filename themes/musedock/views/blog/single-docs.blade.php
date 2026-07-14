@@ -20,73 +20,190 @@
     $__tf = $tenantId ? "p.tenant_id = $tenantId" : "p.tenant_id IS NULL";
     $__sf = $tenantId ? "s.tenant_id = $tenantId" : "s.tenant_id IS NULL";
 
-    // Build navigation: all published docs posts grouped by product > section
+    // Build navigation: all published docs posts grouped by docs tree
     // Structure: docsNav[product_slug] = { name, sections: { section_slug: { name, posts: [...] } } }
     $docsNav = [];
+    $catTf = $tenantId ? "tenant_id = $tenantId" : "tenant_id IS NULL";
+
+    $docsRootStmt = $pdo->query("SELECT id FROM blog_categories WHERE slug = 'docs' AND $catTf LIMIT 1");
+    $docsRootId = (int)($docsRootStmt->fetchColumn() ?: 0);
+
+    $allCategories = [];
+    $catRowsStmt = $pdo->query("SELECT id, parent_id, name, slug, description, \"order\" FROM blog_categories WHERE $catTf");
+    foreach ($catRowsStmt->fetchAll(\PDO::FETCH_OBJ) as $catRow) {
+        $allCategories[(int)$catRow->id] = $catRow;
+    }
+
     $navStmt = $pdo->query("
         SELECT p.id, p.title, p.slug,
-               c.id as cat_id, c.name as cat_name, c.slug as cat_slug, c.\"order\" as cat_order,
-               c.parent_id as cat_parent_id,
-               pc2.id as parent_cat_id, pc2.name as parent_cat_name, pc2.slug as parent_cat_slug, pc2.\"order\" as parent_cat_order,
+               c.id as cat_id, c.slug as cat_slug,
                COALESCE(s.prefix, 'docs') as url_prefix
         FROM blog_posts p
         LEFT JOIN blog_post_categories bpc ON bpc.post_id = p.id
         LEFT JOIN blog_categories c ON c.id = bpc.category_id
-        LEFT JOIN blog_categories pc2 ON pc2.id = c.parent_id
         LEFT JOIN slugs s ON s.reference_id = p.id AND s.module = 'blog' AND $__sf
         WHERE p.post_type = 'docs'
         AND p.status = 'published'
         AND $__tf
-        ORDER BY pc2.\"order\" ASC, c.\"order\" ASC, p.title ASC
+        ORDER BY p.title ASC
     ");
     $navRows = $navStmt->fetchAll(\PDO::FETCH_OBJ);
 
-    $__seenPostIds = [];
-    foreach ($navRows as $row) {
-        if (isset($__seenPostIds[$row->id])) continue;
-        $__seenPostIds[$row->id] = true;
-
-        // Determine product and section
-        // 3-level: Docs > Product > Section — post is in Section
-        // 2-level: Docs > Section — post is in Section (no product level)
-        // 1-level: post has no category or directly in Docs
-        $productKey = $row->parent_cat_slug ?: ($row->cat_slug ?: '_general');
-        $productName = $row->parent_cat_name ?: ($row->cat_name ?: 'General');
-        $productOrder = $row->parent_cat_order ?? ($row->cat_order ?? 99);
-        $sectionKey = $row->parent_cat_slug ? $row->cat_slug : '_root';
-        $sectionName = $row->parent_cat_slug ? $row->cat_name : '';
-        $sectionOrder = $row->parent_cat_slug ? ($row->cat_order ?? 99) : 0;
-
-        if (!isset($docsNav[$productKey])) {
-            $docsNav[$productKey] = [
-                'name' => $productName,
-                'slug' => $productKey,
-                'order' => $productOrder,
+    $ensureProduct = function (string $key, string $name = '', int $order = 99) use (&$docsNav): void {
+        if (!isset($docsNav[$key])) {
+            $docsNav[$key] = [
+                'name' => $name !== '' ? $name : ucfirst($key),
+                'slug' => $key,
+                'order' => $order,
                 'sections' => []
             ];
         }
-        if (!isset($docsNav[$productKey]['sections'][$sectionKey])) {
-            $docsNav[$productKey]['sections'][$sectionKey] = [
-                'name' => $sectionName,
-                'order' => $sectionOrder,
-                'posts' => []
-            ];
+    };
+
+    $resolveDocsPath = function (int $catId) use ($docsRootId, $allCategories): ?array {
+        if ($docsRootId <= 0 || $catId <= 0 || !isset($allCategories[$catId])) return null;
+
+        $chain = [];
+        $cursor = $catId;
+        $guard = 0;
+        while ($cursor > 0 && isset($allCategories[$cursor]) && $guard++ < 50) {
+            $node = $allCategories[$cursor];
+            $chain[] = $node;
+            if ((int)$node->id === $docsRootId) break;
+            $cursor = (int)($node->parent_id ?? 0);
         }
 
-        $postUrl = '/' . $row->url_prefix . '/' . $row->slug;
-        $docsNav[$productKey]['sections'][$sectionKey]['posts'][] = (object)[
-            'id' => $row->id,
-            'title' => $row->title,
-            'slug' => $row->slug,
-            'url' => $postUrl,
-            'active' => ($row->id == $post->id)
+        if (empty($chain) || (int)end($chain)->id !== $docsRootId) return null;
+        $chain = array_reverse($chain); // docs -> product -> section -> ...
+        $productNode = $chain[1] ?? null;
+        if (!$productNode) return null;
+        return [
+            'product' => $productNode,
+            'section' => $chain[2] ?? null,
         ];
+    };
+
+    $guessProduct = function ($row): ?array {
+        $catSlug = strtolower((string)($row->cat_slug ?? ''));
+        $postSlug = strtolower((string)($row->slug ?? ''));
+        $title = strtolower((string)($row->title ?? ''));
+
+        if ($catSlug === 'cms' || strpos($postSlug, 'cms') !== false || strpos($title, 'cms') !== false) {
+            return ['key' => 'cms', 'name' => 'MuseDock CMS', 'order' => 1];
+        }
+        if ($catSlug === 'panel' || strpos($postSlug, 'panel') !== false || strpos($title, 'panel') !== false) {
+            return ['key' => 'panel', 'name' => 'MuseDock Panel', 'order' => 2];
+        }
+        if ($catSlug === 'portal' || strpos($postSlug, 'portal') !== false || strpos($title, 'portal') !== false) {
+            return ['key' => 'portal', 'name' => 'MuseDock Portal', 'order' => 3];
+        }
+
+        return null;
+    };
+
+    $rowsByPost = [];
+    foreach ($navRows as $row) {
+        $rowsByPost[(int)$row->id][] = $row;
+    }
+
+    foreach ($rowsByPost as $__postId => $__rows) {
+        $__primary = $__rows[0];
+        $__chosenPath = null;
+        foreach ($__rows as $__row) {
+            $__path = $resolveDocsPath((int)($__row->cat_id ?? 0));
+            if (!$__path) continue;
+            $__chosenPath = $__path;
+            if ($__path['section']) break;
+        }
+
+        $assigned = false;
+        if ($__chosenPath) {
+            $__productNode = $__chosenPath['product'];
+            $__sectionNode = $__chosenPath['section'];
+
+            $__productKey = (string)($__productNode->slug ?: ('product-' . (int)$__productNode->id));
+            $ensureProduct($__productKey, (string)$__productNode->name, (int)($__productNode->order ?? 99));
+
+            $__sectionKey = '_root';
+            $__sectionName = '';
+            $__sectionOrder = 0;
+            if ($__sectionNode) {
+                $__sectionKey = (string)($__sectionNode->slug ?: ('section-' . (int)$__sectionNode->id));
+                $__sectionName = (string)$__sectionNode->name;
+                $__sectionOrder = (int)($__sectionNode->order ?? 99);
+            }
+
+            if (!isset($docsNav[$__productKey]['sections'][$__sectionKey])) {
+                $docsNav[$__productKey]['sections'][$__sectionKey] = [
+                    'name' => $__sectionName,
+                    'order' => $__sectionOrder,
+                    'posts' => []
+                ];
+            }
+
+            $docsNav[$__productKey]['sections'][$__sectionKey]['posts'][] = (object)[
+                'id' => $__primary->id,
+                'title' => $__primary->title,
+                'slug' => $__primary->slug,
+                'url' => '/' . $__primary->url_prefix . '/' . $__primary->slug,
+                'active' => ($__primary->id == $post->id)
+            ];
+            $assigned = true;
+        }
+
+        if (!$assigned) {
+            $__guessed = $guessProduct($__primary);
+            if ($__guessed) {
+                $ensureProduct($__guessed['key'], $__guessed['name'], $__guessed['order']);
+                if (!isset($docsNav[$__guessed['key']]['sections']['_root'])) {
+                    $docsNav[$__guessed['key']]['sections']['_root'] = ['name' => '', 'order' => 0, 'posts' => []];
+                }
+                $docsNav[$__guessed['key']]['sections']['_root']['posts'][] = (object)[
+                    'id' => $__primary->id,
+                    'title' => $__primary->title,
+                    'slug' => $__primary->slug,
+                    'url' => '/' . $__primary->url_prefix . '/' . $__primary->slug,
+                    'active' => ($__primary->id == $post->id)
+                ];
+                $assigned = true;
+            }
+        }
+
+        if (!$assigned) {
+            $ensureProduct('_general', 'General', 999);
+            if (!isset($docsNav['_general']['sections']['_root'])) {
+                $docsNav['_general']['sections']['_root'] = ['name' => '', 'order' => 0, 'posts' => []];
+            }
+            $docsNav['_general']['sections']['_root']['posts'][] = (object)[
+                'id' => $__primary->id,
+                'title' => $__primary->title,
+                'slug' => $__primary->slug,
+                'url' => '/' . $__primary->url_prefix . '/' . $__primary->slug,
+                'active' => ($__primary->id == $post->id)
+            ];
+        }
     }
 
     // Sort products and sections by order
     uasort($docsNav, fn($a, $b) => ($a['order'] ?? 0) <=> ($b['order'] ?? 0));
     foreach ($docsNav as &$product) {
         uasort($product['sections'], fn($a, $b) => ($a['order'] ?? 0) <=> ($b['order'] ?? 0));
+        foreach ($product['sections'] as &$section) {
+            if (empty($section['posts']) || !is_array($section['posts'])) {
+                continue;
+            }
+            usort($section['posts'], function ($a, $b) {
+                $aTitle = mb_strtolower(trim((string)($a->title ?? '')));
+                $bTitle = mb_strtolower(trim((string)($b->title ?? '')));
+                $aIsLicense = str_starts_with($aTitle, 'licencia');
+                $bIsLicense = str_starts_with($bTitle, 'licencia');
+                if ($aIsLicense !== $bIsLicense) {
+                    return $aIsLicense ? 1 : -1; // licencia siempre al final
+                }
+                return $aTitle <=> $bTitle;
+            });
+        }
+        unset($section);
     }
     unset($product);
 
@@ -101,20 +218,60 @@
         }
     }
 
-    // If multiple products exist, only show current product's nav (keep sidebar focused)
+    // Resolve sidebar context: requested product from query or current post product.
     $multiProduct = count($docsNav) > 1;
-    $sidebarNav = $multiProduct && $currentProduct ? [$currentProduct => $docsNav[$currentProduct]] : $docsNav;
+    $requestedProduct = isset($_GET['product']) ? (string)$_GET['product'] : '';
+    if ($requestedProduct !== '' && !isset($docsNav[$requestedProduct])) {
+        $requestedProduct = '';
+    }
+    $selectedProduct = $requestedProduct !== '' ? $requestedProduct : $currentProduct;
+    $sidebarNav = ($multiProduct && $selectedProduct && isset($docsNav[$selectedProduct]))
+        ? [$selectedProduct => $docsNav[$selectedProduct]]
+        : $docsNav;
 
-    // Build product switcher URLs (first post of each product)
+    // Build product switcher URLs (first post of each product), preserving context.
     $productSwitcherUrls = [];
     foreach ($docsNav as $pk => $pv) {
         foreach ($pv['sections'] as $sv) {
             if (!empty($sv['posts'])) {
-                $productSwitcherUrls[$pk] = $sv['posts'][0]->url;
+                $productSwitcherUrls[$pk] = $sv['posts'][0]->url . '?product=' . urlencode($pk);
                 break;
             }
         }
-        if (!isset($productSwitcherUrls[$pk])) $productSwitcherUrls[$pk] = '/docs/';
+        if (!isset($productSwitcherUrls[$pk])) $productSwitcherUrls[$pk] = '/docs/?product=' . urlencode($pk);
+    }
+
+    // Breadcrumb links (all clickable)
+    $docsIndexUrl = '/docs/' . (!empty($selectedProduct) ? '?product=' . urlencode($selectedProduct) : '');
+    $productCrumbUrl = null;
+    $sectionCrumbUrl = null;
+    $currentDocUrl = null;
+
+    if (!empty($currentProduct) && isset($docsNav[$currentProduct])) {
+        $productCrumbUrl = $productSwitcherUrls[$currentProduct] ?? ('/docs/?product=' . urlencode($currentProduct));
+
+        if (!empty($currentSection) && $currentSection !== '_root' && isset($docsNav[$currentProduct]['sections'][$currentSection])) {
+            $sectionPosts = $docsNav[$currentProduct]['sections'][$currentSection]['posts'] ?? [];
+            if (!empty($sectionPosts)) {
+                $sectionCrumbUrl = $sectionPosts[0]->url . '?product=' . urlencode($currentProduct);
+            }
+        }
+
+        foreach (($docsNav[$currentProduct]['sections'] ?? []) as $__sec) {
+            foreach (($__sec['posts'] ?? []) as $__p) {
+                if (!empty($__p->active)) {
+                    $currentDocUrl = $__p->url . '?product=' . urlencode($currentProduct);
+                    break 2;
+                }
+            }
+        }
+    }
+
+    if ($currentDocUrl === null) {
+        $currentDocUrl = '/docs/' . ($post->slug ?? '');
+        if (!empty($selectedProduct)) {
+            $currentDocUrl .= '?product=' . urlencode($selectedProduct);
+        }
     }
 
     // Build breadcrumb — use first category of the post
@@ -153,7 +310,7 @@
                         <div class="docs-product-switcher" style="margin-bottom:0.75rem;">
                             <select id="docs-product-select" class="docs-search-input" style="font-weight:600;font-size:0.8rem;" onchange="var urls=@json($productSwitcherUrls); if(urls[this.value]) window.location.href=urls[this.value];">
                                 @foreach($docsNav as $pk => $pv)
-                                <option value="{{ $pk }}" {{ $pk === $currentProduct ? 'selected' : '' }}>{{ $pv['name'] }}</option>
+                                <option value="{{ $pk }}" {{ $pk === $selectedProduct ? 'selected' : '' }}>{{ $pv['name'] }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -165,7 +322,7 @@
                                     {{-- Posts directly under product (no section) --}}
                                     @foreach($section['posts'] as $navPost)
                                     <div class="docs-nav-root-link">
-                                        <a href="{{ $navPost->url }}" class="{{ $navPost->active ? 'active' : '' }}">
+                                        <a href="{{ $navPost->url }}?product={{ urlencode($productSlug) }}" class="{{ $navPost->active ? 'active' : '' }}">
                                             {{ $navPost->title }}
                                         </a>
                                     </div>
@@ -180,7 +337,7 @@
                                     <ul class="docs-nav-links {{ $__hasActive ? 'show' : '' }}">
                                         @foreach($section['posts'] as $navPost)
                                         <li>
-                                            <a href="{{ $navPost->url }}" class="{{ $navPost->active ? 'active' : '' }}">
+                                            <a href="{{ $navPost->url }}?product={{ urlencode($productSlug) }}" class="{{ $navPost->active ? 'active' : '' }}">
                                                 {{ $navPost->title }}
                                             </a>
                                         </li>
@@ -198,19 +355,21 @@
             <div class="col-lg-7 docs-content-col">
                 {{-- Breadcrumbs --}}
                 <nav class="docs-breadcrumb" aria-label="Breadcrumb">
-                    <a href="/">{{ site_setting('site_name', 'Home') }}</a>
-                    <span class="docs-breadcrumb-sep">/</span>
-                    <a href="/docs/">Docs</a>
+                    <a href="{{ $docsIndexUrl }}">Docs</a>
                     @if($currentProduct && isset($docsNav[$currentProduct]))
                     <span class="docs-breadcrumb-sep">/</span>
-                    <span>{{ $docsNav[$currentProduct]['name'] }}</span>
+                    <a href="{{ $productCrumbUrl }}" class="docs-breadcrumb-product" style="font-weight:700;">{{ $docsNav[$currentProduct]['name'] }}</a>
                     @endif
                     @if($currentSection && $currentSection !== '_root' && isset($docsNav[$currentProduct]['sections'][$currentSection]) && !empty($docsNav[$currentProduct]['sections'][$currentSection]['name']))
                     <span class="docs-breadcrumb-sep">/</span>
+                    @if($sectionCrumbUrl)
+                    <a href="{{ $sectionCrumbUrl }}">{{ $docsNav[$currentProduct]['sections'][$currentSection]['name'] }}</a>
+                    @else
                     <span>{{ $docsNav[$currentProduct]['sections'][$currentSection]['name'] }}</span>
                     @endif
+                    @endif
                     <span class="docs-breadcrumb-sep">/</span>
-                    <span class="docs-breadcrumb-current">{{ $post->title }}</span>
+                    <a href="{{ $currentDocUrl }}" class="docs-breadcrumb-current">{{ $post->title }}</a>
                 </nav>
 
                 {{-- Article --}}
@@ -227,9 +386,11 @@
                     @php
                         // Find prev/next within docs nav
                         $allDocsPosts = [];
-                        foreach ($docsNav as $cat) {
-                            foreach ($cat['posts'] as $p) {
-                                $allDocsPosts[] = $p;
+                        foreach ($sidebarNav as $cat) {
+                            foreach (($cat['sections'] ?? []) as $sec) {
+                                foreach (($sec['posts'] ?? []) as $p) {
+                                    $allDocsPosts[] = $p;
+                                }
                             }
                         }
                         $currentIdx = null;
@@ -242,7 +403,7 @@
                     @if($prevDoc || $nextDoc)
                     <nav class="docs-pagination">
                         @if($prevDoc)
-                        <a href="{{ $prevDoc->url }}" class="docs-pagination-prev">
+                        <a href="{{ $prevDoc->url }}{{ !empty($selectedProduct) ? '?product=' . urlencode($selectedProduct) : '' }}" class="docs-pagination-prev">
                             <span class="docs-pagination-label">&larr; Anterior</span>
                             <span class="docs-pagination-title">{{ $prevDoc->title }}</span>
                         </a>
@@ -250,7 +411,7 @@
                         <span></span>
                         @endif
                         @if($nextDoc)
-                        <a href="{{ $nextDoc->url }}" class="docs-pagination-next">
+                        <a href="{{ $nextDoc->url }}{{ !empty($selectedProduct) ? '?product=' . urlencode($selectedProduct) : '' }}" class="docs-pagination-next">
                             <span class="docs-pagination-label">Siguiente &rarr;</span>
                             <span class="docs-pagination-title">{{ $nextDoc->title }}</span>
                         </a>

@@ -1,0 +1,35 @@
+{
+    "slug": "node-orchestrator",
+    "name": "Node Orchestrator",
+    "description": "Orquesta aprovisionamiento multi-nodo para tenants CMS desde el nodo maestro",
+    "version": "0.2.0",
+    "author": "MuseDock",
+    "author_url": "https://musedock.com",
+    "plugin_url": "https://musedock.com/plugins/node-orchestrator",
+    "requires_php": "8.0",
+    "requires_musedock": "2.0.0",
+    "namespace": "NodeOrchestrator",
+    "main_file": "node-orchestrator.php",
+    "auto_activate": false,
+    "dependencies": {},
+    "changelog": {
+        "0.2.0": {
+            "date": "2026-04-28",
+            "changes": [
+                "Added: Superadmin node management UI at /musedock/nodes with SweetAlert2 modals",
+                "Added: Tenant creation override with node selector (auto/manual)",
+                "Added: Remote health check endpoint integration for CMS nodes",
+                "Added: nodes.api_key_encrypted support with transparent plaintext-to-encrypted migration",
+                "Added: install seed for local master node when nodes table is empty"
+            ]
+        },
+        "0.1.0": {
+            "date": "2026-04-28",
+            "changes": [
+                "Initial private release for Phase A multi-node CMS orchestration",
+                "Added: nodes table and tenants.node_id migrations",
+                "Added: local/remote provisioning flow via node-agent API"
+            ]
+        }
+    }
+}

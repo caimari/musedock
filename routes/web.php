@@ -17,6 +17,17 @@ Route::post('/api/analytics/track', function() {
     header('Cache-Control: no-store');
 
     try {
+        // Defensa en profundidad RGPD: no registrar nada sin consentimiento de
+        // analítica. El cliente (analytics.js) ya lo respeta, pero el servidor
+        // no debe confiar en el cliente.
+        $analyticsConsent = ($_COOKIE['musedock_cookies_accepted'] ?? '') === 'true'
+            && ($_COOKIE['musedock_cookie_analytics'] ?? '') === 'true';
+        if (!$analyticsConsent) {
+            http_response_code(200);
+            echo json_encode(['success' => false, 'reason' => 'no_consent']);
+            exit;
+        }
+
         $raw = file_get_contents('php://input');
         $data = $raw ? json_decode($raw, true) : null;
 
@@ -98,6 +109,19 @@ Route::get('/', 'Frontend.HomeController@index')->name('home');
 
 // Ruta de búsqueda
 Route::get('/search', 'Frontend.SearchController@index')->name('search');
+
+// Página de contacto (formulario real)
+Route::get('/contact', 'Frontend.ContactController@index')->name('contact.page');
+
+// Token CSRF fresco para formularios en páginas servidas desde html-cache
+Route::get('/csrf-token', 'Frontend.CsrfController@token')->name('csrf.token');
+
+// Newsletter (RGPD + doble opt-in)
+Route::post('/newsletter/subscribe', 'Frontend.NewsletterController@subscribe')->name('newsletter.subscribe');
+Route::get('/newsletter/confirm/{token}', 'Frontend.NewsletterController@confirm')->name('newsletter.confirm');
+Route::get('/newsletter/unsubscribe/{token}', 'Frontend.NewsletterController@unsubscribe')->name('newsletter.unsubscribe');
+Route::get('/newsletter/track/open/{token}', 'Frontend.NewsletterController@trackOpen')->name('newsletter.track.open');
+Route::get('/newsletter/track/click/{token}', 'Frontend.NewsletterController@trackClick')->name('newsletter.track.click');
 
 // ============================================================================
 // RUTAS DE STORAGE (archivos seguros fuera de public/)

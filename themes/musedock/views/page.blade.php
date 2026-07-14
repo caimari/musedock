@@ -3,6 +3,13 @@
 @php
   // Evitar warnings si este template se renderiza sin $page (ej: mal mapeo o reuse)
   $page = $page ?? null;
+  $translation = $translation ?? null;
+  $__requestPath = strtolower(trim((string) (parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? ''), '/'));
+  $__pageSlug = strtolower(trim((string) ($page->slug ?? '')));
+  $__translationSlug = strtolower(trim((string) ($translation->slug ?? '')));
+  $__showSupportContactForm = in_array($__requestPath, ['soporte', 'support'], true)
+    || in_array($__pageSlug, ['soporte', 'support'], true)
+    || in_array($__translationSlug, ['soporte', 'support'], true);
 @endphp
 
 @section('title') 
@@ -82,6 +89,10 @@
               <div class="ziph-page_content_body">
                 {!! apply_filters('the_content', $translation->content) !!}
               </div>
+
+              @if($__showSupportContactForm)
+                @include('partials.support-contact-form')
+              @endif
               
               {{-- Custom Fields --}}
               @if(isset($page->custom_fields) && $page->custom_fields)
@@ -154,6 +165,10 @@
               <div class="ziph-page_content_body">
                 {!! apply_filters('the_content', $translation->content) !!}
               </div>
+
+              @if($__showSupportContactForm)
+                @include('partials.support-contact-form')
+              @endif
               
               {{-- Custom Fields --}}
               @if(isset($page->custom_fields) && $page->custom_fields)

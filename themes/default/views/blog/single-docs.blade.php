@@ -87,6 +87,22 @@
     uasort($docsNav, fn($a, $b) => ($a['order'] ?? 0) <=> ($b['order'] ?? 0));
     foreach ($docsNav as &$product) {
         uasort($product['sections'], fn($a, $b) => ($a['order'] ?? 0) <=> ($b['order'] ?? 0));
+        foreach ($product['sections'] as &$section) {
+            if (empty($section['posts']) || !is_array($section['posts'])) {
+                continue;
+            }
+            usort($section['posts'], function ($a, $b) {
+                $aTitle = mb_strtolower(trim((string)($a->title ?? '')));
+                $bTitle = mb_strtolower(trim((string)($b->title ?? '')));
+                $aIsLicense = str_starts_with($aTitle, 'licencia');
+                $bIsLicense = str_starts_with($bTitle, 'licencia');
+                if ($aIsLicense !== $bIsLicense) {
+                    return $aIsLicense ? 1 : -1; // licencia siempre al final
+                }
+                return $aTitle <=> $bTitle;
+            });
+        }
+        unset($section);
     }
     unset($product);
 
@@ -101,20 +117,60 @@
         }
     }
 
-    // If multiple products exist, only show current product's nav (keep sidebar focused)
+    // Resolve sidebar context: requested product from query or current post product.
     $multiProduct = count($docsNav) > 1;
-    $sidebarNav = $multiProduct && $currentProduct ? [$currentProduct => $docsNav[$currentProduct]] : $docsNav;
+    $requestedProduct = isset($_GET['product']) ? (string)$_GET['product'] : '';
+    if ($requestedProduct !== '' && !isset($docsNav[$requestedProduct])) {
+        $requestedProduct = '';
+    }
+    $selectedProduct = $requestedProduct !== '' ? $requestedProduct : $currentProduct;
+    $sidebarNav = ($multiProduct && $selectedProduct && isset($docsNav[$selectedProduct]))
+        ? [$selectedProduct => $docsNav[$selectedProduct]]
+        : $docsNav;
 
-    // Build product switcher URLs (first post of each product)
+    // Build product switcher URLs (first post of each product), preserving context.
     $productSwitcherUrls = [];
     foreach ($docsNav as $pk => $pv) {
         foreach ($pv['sections'] as $sv) {
             if (!empty($sv['posts'])) {
-                $productSwitcherUrls[$pk] = $sv['posts'][0]->url;
+                $productSwitcherUrls[$pk] = $sv['posts'][0]->url . '?product=' . urlencode($pk);
                 break;
             }
         }
-        if (!isset($productSwitcherUrls[$pk])) $productSwitcherUrls[$pk] = '/docs/';
+        if (!isset($productSwitcherUrls[$pk])) $productSwitcherUrls[$pk] = '/docs/?product=' . urlencode($pk);
+    }
+
+    // Breadcrumb links (all clickable)
+    $docsIndexUrl = '/docs/' . (!empty($selectedProduct) ? '?product=' . urlencode($selectedProduct) : '');
+    $productCrumbUrl = null;
+    $sectionCrumbUrl = null;
+    $currentDocUrl = null;
+
+    if (!empty($currentProduct) && isset($docsNav[$currentProduct])) {
+        $productCrumbUrl = $productSwitcherUrls[$currentProduct] ?? ('/docs/?product=' . urlencode($currentProduct));
+
+        if (!empty($currentSection) && $currentSection !== '_root' && isset($docsNav[$currentProduct]['sections'][$currentSection])) {
+            $sectionPosts = $docsNav[$currentProduct]['sections'][$currentSection]['posts'] ?? [];
+            if (!empty($sectionPosts)) {
+                $sectionCrumbUrl = $sectionPosts[0]->url . '?product=' . urlencode($currentProduct);
+            }
+        }
+
+        foreach (($docsNav[$currentProduct]['sections'] ?? []) as $__sec) {
+            foreach (($__sec['posts'] ?? []) as $__p) {
+                if (!empty($__p->active)) {
+                    $currentDocUrl = $__p->url . '?product=' . urlencode($currentProduct);
+                    break 2;
+                }
+            }
+        }
+    }
+
+    if ($currentDocUrl === null) {
+        $currentDocUrl = '/docs/' . ($post->slug ?? '');
+        if (!empty($selectedProduct)) {
+            $currentDocUrl .= '?product=' . urlencode($selectedProduct);
+        }
     }
 
     // Build breadcrumb — use first category of the post
@@ -153,7 +209,7 @@
                         <div class="docs-product-switcher" style="margin-bottom:0.75rem;">
                             <select id="docs-product-select" class="docs-search-input" style="font-weight:600;font-size:0.8rem;" onchange="var urls=@json($productSwitcherUrls); if(urls[this.value]) window.location.href=urls[this.value];">
                                 @foreach($docsNav as $pk => $pv)
-                                <option value="{{ $pk }}" {{ $pk === $currentProduct ? 'selected' : '' }}>{{ $pv['name'] }}</option>
+                                <option value="{{ $pk }}" {{ $pk === $selectedProduct ? 'selected' : '' }}>{{ $pv['name'] }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -165,7 +221,7 @@
                                     {{-- Posts directly under product (no section) --}}
                                     @foreach($section['posts'] as $navPost)
                                     <div class="docs-nav-root-link">
-                                        <a href="{{ $navPost->url }}" class="{{ $navPost->active ? 'active' : '' }}">
+                                        <a href="{{ $navPost->url }}?product={{ urlencode($productSlug) }}" class="{{ $navPost->active ? 'active' : '' }}">
                                             {{ $navPost->title }}
                                         </a>
                                     </div>
@@ -180,7 +236,7 @@
                                     <ul class="docs-nav-links {{ $__hasActive ? 'show' : '' }}">
                                         @foreach($section['posts'] as $navPost)
                                         <li>
-                                            <a href="{{ $navPost->url }}" class="{{ $navPost->active ? 'active' : '' }}">
+                                            <a href="{{ $navPost->url }}?product={{ urlencode($productSlug) }}" class="{{ $navPost->active ? 'active' : '' }}">
                                                 {{ $navPost->title }}
                                             </a>
                                         </li>
@@ -197,20 +253,21 @@
             {{-- Main Content --}}
             <div class="col-lg-7 docs-content-col">
                 {{-- Breadcrumbs --}}
-                <nav class="docs-breadcrumb" aria-label="Breadcrumb">
-                    <a href="/">{{ site_setting('site_name', 'Home') }}</a>
-                    <span class="docs-breadcrumb-sep">/</span>
-                    <a href="/docs/">Docs</a>
+                <nav class="docs-breadcrumb" aria-label="Breadcrumb">                    <a href="{{  }}">Docs</a>
                     @if($currentProduct && isset($docsNav[$currentProduct]))
                     <span class="docs-breadcrumb-sep">/</span>
-                    <span>{{ $docsNav[$currentProduct]['name'] }}</span>
+                    <a href="{{ $productCrumbUrl }}" class="docs-breadcrumb-product" style="font-weight:700;">{{ $docsNav[$currentProduct]['name'] }}</a>
                     @endif
                     @if($currentSection && $currentSection !== '_root' && isset($docsNav[$currentProduct]['sections'][$currentSection]) && !empty($docsNav[$currentProduct]['sections'][$currentSection]['name']))
                     <span class="docs-breadcrumb-sep">/</span>
+                    @if($sectionCrumbUrl)
+                    <a href="{{ $sectionCrumbUrl }}">{{ $docsNav[$currentProduct]['sections'][$currentSection]['name'] }}</a>
+                    @else
                     <span>{{ $docsNav[$currentProduct]['sections'][$currentSection]['name'] }}</span>
                     @endif
+                    @endif
                     <span class="docs-breadcrumb-sep">/</span>
-                    <span class="docs-breadcrumb-current">{{ $post->title }}</span>
+                    <a href="{{ $currentDocUrl }}" class="docs-breadcrumb-current">{{ $post->title }}</a>
                 </nav>
 
                 {{-- Article --}}
@@ -227,9 +284,11 @@
                     @php
                         // Find prev/next within docs nav
                         $allDocsPosts = [];
-                        foreach ($docsNav as $cat) {
-                            foreach ($cat['posts'] as $p) {
-                                $allDocsPosts[] = $p;
+                        foreach ($sidebarNav as $cat) {
+                            foreach (($cat['sections'] ?? []) as $sec) {
+                                foreach (($sec['posts'] ?? []) as $p) {
+                                    $allDocsPosts[] = $p;
+                                }
                             }
                         }
                         $currentIdx = null;
@@ -242,7 +301,7 @@
                     @if($prevDoc || $nextDoc)
                     <nav class="docs-pagination">
                         @if($prevDoc)
-                        <a href="{{ $prevDoc->url }}" class="docs-pagination-prev">
+                        <a href="{{ $prevDoc->url }}{{ !empty($selectedProduct) ? '?product=' . urlencode($selectedProduct) : '' }}" class="docs-pagination-prev">
                             <span class="docs-pagination-label">&larr; Anterior</span>
                             <span class="docs-pagination-title">{{ $prevDoc->title }}</span>
                         </a>
@@ -250,7 +309,7 @@
                         <span></span>
                         @endif
                         @if($nextDoc)
-                        <a href="{{ $nextDoc->url }}" class="docs-pagination-next">
+                        <a href="{{ $nextDoc->url }}{{ !empty($selectedProduct) ? '?product=' . urlencode($selectedProduct) : '' }}" class="docs-pagination-next">
                             <span class="docs-pagination-label">Siguiente &rarr;</span>
                             <span class="docs-pagination-title">{{ $nextDoc->title }}</span>
                         </a>

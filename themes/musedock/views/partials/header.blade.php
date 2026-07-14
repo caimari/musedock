@@ -14,12 +14,82 @@ $topbarShowEmail = themeOption('topbar.topbar_show_email', true);
 $topbarShowWhatsapp = themeOption('topbar.topbar_show_whatsapp', true);
 
 $headerSticky = themeOption('header.header_sticky', false);
+$topbarVersionsEnabled = site_setting('topbar_versions_enabled', '1') === '1';
+$topbarVersionData = \Screenart\Musedock\Services\PublicVersionBadgeService::getTopbarData();
+$cmsCurrentVersion = trim((string)($topbarVersionData['cms_current'] ?? ''));
+$cmsLatestVersion = trim((string)($topbarVersionData['cms_latest'] ?? ''));
+$panelLatestVersion = trim((string)($topbarVersionData['panel_latest'] ?? ''));
+$cmsBadgeVersion = $cmsCurrentVersion;
+if ($cmsLatestVersion !== '' && $cmsCurrentVersion !== '' && version_compare($cmsLatestVersion, $cmsCurrentVersion, '>')) {
+  $cmsBadgeVersion = $cmsLatestVersion;
+}
+if ($cmsBadgeVersion === '') {
+  $cmsBadgeVersion = $cmsLatestVersion;
+}
+$cmsRepoUrl = trim((string)($topbarVersionData['cms_repo_url'] ?? 'https://github.com/caimari/musedock'));
+$panelRepoUrl = trim((string)($topbarVersionData['panel_repo_url'] ?? 'https://github.com/caimari/musedock-panel'));
+$cmsHasUpdate = !empty($topbarVersionData['cms_has_update']);
 
 // Selector de idiomas
 // (selector de idioma eliminado)
 @endphp
 
 <style>
+.ziph-head_versions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 0;
+  line-height: 1;
+}
+
+.ziph-version-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(36, 49, 65, 0.16);
+  background: #f3f6fa;
+  color: #2f3f52 !important;
+  border-radius: 4px;
+  padding: 1px 8px;
+  height: 28px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+
+.ziph-version-chip .fa {
+  font-size: 11px;
+}
+
+.ziph-version-license-text {
+  margin-left: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #4e5f73;
+  letter-spacing: 0.02em;
+}
+
+.ziph-version-chip:hover {
+  background: #e8eef6;
+  color: #1e2c3a !important;
+}
+
+.ziph-version-chip.ziph-version-has-update {
+  border-color: #80b900;
+  background: #eef8dc;
+}
+
+.ziph-version-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #80b900;
+  display: inline-block;
+}
+
 @media (max-width: 767px) {
   /* Flex row to align logo and hamburger vertically */
   .ziph-header_navigation .container > .row {
@@ -69,6 +139,12 @@ $headerSticky = themeOption('header.header_sticky', false);
     display: block !important;
   }
 }
+
+@media (max-width: 1199px) {
+  .ziph-head_versions {
+    display: none !important;
+  }
+}
 </style>
 <!-- Header -->
 <header class="ziph-header_area @if($headerSticky) ziph-is-sticky @endif">
@@ -78,7 +154,23 @@ $headerSticky = themeOption('header.header_sticky', false);
     <div class="container">
       <div class="row">
         <div class="col-sm-4">
-          @if($contactPhone)
+          @if($topbarVersionsEnabled)
+          <div class="ziph-head_info ziph-head_versions">
+            <a href="{{ $cmsRepoUrl }}" target="_blank" rel="noopener noreferrer" class="ziph-version-chip @if($cmsHasUpdate) ziph-version-has-update @endif" title="MuseDock CMS en GitHub @if($cmsCurrentVersion !== '') · Instalada: v{{ $cmsCurrentVersion }} @endif @if($cmsLatestVersion !== '') · Última: v{{ $cmsLatestVersion }} @endif · Licencia: Source Available (Provider Use)">
+              <i class="fa fa-github"></i>
+              <span>CMS {{ $cmsBadgeVersion !== '' ? 'v' . $cmsBadgeVersion : 'n/d' }}</span>
+              <span class="ziph-version-license-text">SAL</span>
+              @if($cmsHasUpdate)
+              <span class="ziph-version-dot" title="Hay actualización disponible"></span>
+              @endif
+            </a>
+            <a href="{{ $panelRepoUrl }}" target="_blank" rel="noopener noreferrer" class="ziph-version-chip" title="MuseDock Panel en GitHub · Licencia: Source Available (Provider Use)">
+              <i class="fa fa-github"></i>
+              <span>Panel {{ $panelLatestVersion !== '' ? 'v' . $panelLatestVersion : 'n/d' }}</span>
+              <span class="ziph-version-license-text">SAL</span>
+            </a>
+          </div>
+          @elseif($contactPhone)
           <div class="ziph-head_info ziph-head_phnum">
             <a href="tel:{{ $contactPhone }}">
               <i class="fa fa-phone"></i>T:{{ $contactPhone }}

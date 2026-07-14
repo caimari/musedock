@@ -1,0 +1,33 @@
+{
+    "slug": "node-agent",
+    "name": "Node Agent",
+    "description": "API privada para aprovisionamiento de tenants en nodos CMS remotos",
+    "version": "0.2.0",
+    "author": "MuseDock",
+    "author_url": "https://musedock.com",
+    "plugin_url": "https://musedock.com/plugins/node-agent",
+    "requires_php": "8.0",
+    "requires_musedock": "2.0.0",
+    "namespace": "NodeAgent",
+    "main_file": "node-agent.php",
+    "auto_activate": false,
+    "dependencies": {},
+    "changelog": {
+        "0.2.0": {
+            "date": "2026-04-28",
+            "changes": [
+                "Added: node_agent_tokens table for DB-based authentication",
+                "Added: token hash authentication (SHA-256) with last_used tracking",
+                "Added: bootstrap from NODE_AGENT_MASTER_TOKEN into DB when table is empty",
+                "Added: fallback to .env token for backward compatibility"
+            ]
+        },
+        "0.1.0": {
+            "date": "2026-04-28",
+            "changes": [
+                "Initial private release of remote tenant provisioning API",
+                "Endpoints: /api/v1/node/health and /api/v1/node/tenants"
+            ]
+        }
+    }
+}

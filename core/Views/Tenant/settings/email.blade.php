@@ -19,6 +19,47 @@
 
             <div class="row">
                 <div class="col-lg-8">
+                    @php
+                        $smtpRequireTenantOwn = ($smtpRequireTenantOwn ?? '0') === '1';
+                        $smtpUseGlobal = ($settings['smtp_use_global'] ?? '1') === '1';
+                        if ($smtpRequireTenantOwn) {
+                            $smtpUseGlobal = false;
+                        }
+                    @endphp
+
+                    <!-- Política tenant/global -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Origen del SMTP</h5>
+                        </div>
+                        <div class="card-body">
+                            @if($smtpRequireTenantOwn)
+                                <div class="alert alert-warning mb-3">
+                                    El superadmin ha configurado este entorno para requerir SMTP propio por tenant.
+                                </div>
+                            @endif
+                            <div class="form-check form-switch">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    id="smtp_use_global"
+                                    name="smtp_use_global"
+                                    value="1"
+                                    {{ $smtpUseGlobal ? 'checked' : '' }}
+                                    {{ $smtpRequireTenantOwn ? 'disabled' : '' }}>
+                                <label class="form-check-label" for="smtp_use_global">
+                                    Usar SMTP global del CMS
+                                </label>
+                            </div>
+                            @if($smtpRequireTenantOwn)
+                                <input type="hidden" name="smtp_use_global" value="0">
+                            @endif
+                            <small class="text-muted d-block mt-2">
+                                Si lo desactivas, este tenant enviará con su propia configuración SMTP.
+                            </small>
+                        </div>
+                    </div>
+
                     <!-- SMTP -->
                     <div class="card mb-4">
                         <div class="card-header">
@@ -26,18 +67,35 @@
                         </div>
                         <div class="card-body">
                             <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Driver de Email</label>
+                                    <select name="mail_driver" class="form-select" {{ $smtpUseGlobal ? 'disabled' : '' }}>
+                                        @php $mailDriver = $settings['mail_driver'] ?? 'smtp'; @endphp
+                                        <option value="smtp" {{ $mailDriver === 'smtp' ? 'selected' : '' }}>SMTP</option>
+                                        <option value="sendmail" {{ $mailDriver === 'sendmail' ? 'selected' : '' }}>Sendmail</option>
+                                        <option value="mail" {{ $mailDriver === 'mail' ? 'selected' : '' }}>PHP Mail</option>
+                                    </select>
+                                    @if($smtpUseGlobal)
+                                        <input type="hidden" name="mail_driver" value="{{ $mailDriver }}">
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
                                 <div class="col-md-8">
                                     <label class="form-label">Servidor SMTP</label>
                                     <input type="text" name="smtp_host" class="form-control"
                                            value="{{ $settings['smtp_host'] ?? '' }}"
-                                           placeholder="smtp.gmail.com">
+                                           placeholder="smtp.gmail.com"
+                                           {{ $smtpUseGlobal ? 'disabled' : '' }}>
                                     <small class="text-muted">Ejemplos: smtp.gmail.com, smtp.office365.com, smtp.mailgun.org</small>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Puerto</label>
                                     <input type="number" name="smtp_port" class="form-control"
                                            value="{{ $settings['smtp_port'] ?? '587' }}"
-                                           placeholder="587">
+                                           placeholder="587"
+                                           {{ $smtpUseGlobal ? 'disabled' : '' }}>
                                     <small class="text-muted">TLS: 587, SSL: 465</small>
                                 </div>
                             </div>
@@ -45,7 +103,7 @@
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Encriptación</label>
-                                    <select name="smtp_encryption" class="form-select">
+                                    <select name="smtp_encryption" class="form-select" {{ $smtpUseGlobal ? 'disabled' : '' }}>
                                         <option value="tls" {{ ($settings['smtp_encryption'] ?? 'tls') === 'tls' ? 'selected' : '' }}>TLS (Recomendado)</option>
                                         <option value="ssl" {{ ($settings['smtp_encryption'] ?? '') === 'ssl' ? 'selected' : '' }}>SSL</option>
                                         <option value="" {{ ($settings['smtp_encryption'] ?? 'tls') === '' ? 'selected' : '' }}>Sin encriptación</option>
@@ -58,12 +116,14 @@
                                     <label class="form-label">Usuario SMTP</label>
                                     <input type="text" name="smtp_username" class="form-control"
                                            value="{{ $settings['smtp_username'] ?? '' }}"
-                                           placeholder="tu-email@gmail.com" autocomplete="off">
+                                           placeholder="tu-email@gmail.com" autocomplete="off"
+                                           {{ $smtpUseGlobal ? 'disabled' : '' }}>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Contraseña SMTP</label>
                                     <input type="password" name="smtp_password" class="form-control"
-                                           placeholder="Dejar vacío para mantener actual" autocomplete="new-password">
+                                           placeholder="Dejar vacío para mantener actual" autocomplete="new-password"
+                                           {{ $smtpUseGlobal ? 'disabled' : '' }}>
                                     <small class="text-muted">
                                         {{ !empty($settings['smtp_password']) ? 'Contraseña configurada (dejar vacío para mantener)' : 'No configurada' }}
                                     </small>
@@ -83,13 +143,15 @@
                                     <label class="form-label">Email del remitente</label>
                                     <input type="email" name="mail_from_address" class="form-control"
                                            value="{{ $settings['mail_from_address'] ?? '' }}"
-                                           placeholder="noreply@tudominio.com">
+                                           placeholder="noreply@tudominio.com"
+                                           {{ $smtpUseGlobal ? 'disabled' : '' }}>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Nombre del remitente</label>
                                     <input type="text" name="mail_from_name" class="form-control"
                                            value="{{ $settings['mail_from_name'] ?? '' }}"
-                                           placeholder="{{ $settings['site_name'] ?? 'Mi Sitio' }}">
+                                           placeholder="{{ $settings['site_name'] ?? 'Mi Sitio' }}"
+                                           {{ $smtpUseGlobal ? 'disabled' : '' }}>
                                 </div>
                             </div>
                         </div>

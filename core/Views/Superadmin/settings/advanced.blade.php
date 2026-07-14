@@ -3,6 +3,8 @@
 @section('title', $title)
 
 @section('content')
+<div class="row g-4">
+  <div class="col-xl-9 col-lg-8">
 <div class="container">
   <div class="row justify-content-center">
     <div class="col-md-6">
@@ -37,6 +39,54 @@
             <a href="{{ $versionInfo['repository'] ?? '#' }}" target="_blank" class="btn btn-outline-secondary">
               <i class="bi bi-github me-1"></i> GitHub
             </a>
+          </div>
+        </div>
+      </div>
+
+      {{-- Card Versiones públicas del topbar --}}
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0"><i class="bi bi-broadcast me-2"></i>Versiones públicas (Topbar)</h5>
+        </div>
+        <div class="card-body">
+          @php
+            $topbarVersionData = $topbarVersionData ?? [];
+            $cmsRepoUrl = $topbarVersionData['cms_repo_url'] ?? 'https://github.com/caimari/musedock';
+            $panelRepoUrl = $topbarVersionData['panel_repo_url'] ?? 'https://github.com/caimari/musedock-panel';
+            $cmsCurrent = $topbarVersionData['cms_current'] ?? 'n/d';
+            $cmsLatest = $topbarVersionData['cms_latest'] ?? '';
+            $panelLatest = $topbarVersionData['panel_latest'] ?? '';
+            $lastCheck = $topbarVersionData['last_check_human'] ?? null;
+          @endphp
+
+          <form method="POST" action="{{ route('settings.advanced.topbar-versions.update') }}" class="mb-3">
+            {!! csrf_field() !!}
+            <div class="mb-3">
+              <label class="form-label">Repositorio CMS</label>
+              <input type="url" class="form-control" name="topbar_versions_cms_repo_url" value="{{ $cmsRepoUrl }}" placeholder="https://github.com/owner/repo">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Repositorio Panel</label>
+              <input type="url" class="form-control" name="topbar_versions_panel_repo_url" value="{{ $panelRepoUrl }}" placeholder="https://github.com/owner/repo">
+            </div>
+            <button class="btn btn-outline-primary">
+              <i class="bi bi-save me-1"></i>Guardar repos
+            </button>
+          </form>
+
+          <form method="POST" action="{{ route('settings.advanced.topbar-versions.refresh') }}" class="mb-3">
+            {!! csrf_field() !!}
+            <button class="btn btn-success">
+              <i class="bi bi-arrow-repeat me-1"></i>Refrescar versiones ahora
+            </button>
+          </form>
+
+          <div class="small text-muted">
+            <div>CMS instalado: <code>{{ $cmsCurrent ?: 'n/d' }}</code></div>
+            <div>CMS remoto: <code>{{ $cmsLatest !== '' ? $cmsLatest : 'n/d' }}</code></div>
+            <div>Panel remoto: <code>{{ $panelLatest !== '' ? $panelLatest : 'n/d' }}</code></div>
+            <div>Último refresh: <code>{{ $lastCheck ?: 'Nunca' }}</code></div>
+            <div class="mt-1">El frontend solo lee estos valores cacheados en BD. No consulta GitHub en cada carga.</div>
           </div>
         </div>
       </div>
@@ -173,6 +223,11 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+  </div>
+  <div class="col-xl-3 col-lg-4">
+    @include('settings.partials.sidebar', ['active' => 'advanced'])
   </div>
 </div>
 @endsection

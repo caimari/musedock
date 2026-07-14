@@ -453,31 +453,41 @@ class BlogController
         $tf = $tenantId ? "p.tenant_id = $tenantId" : "p.tenant_id IS NULL";
         $sf = $tenantId ? "s.tenant_id = $tenantId" : "s.tenant_id IS NULL";
 
-        // 1. Load all product-level categories (direct children of "docs" root)
+        // 1. Load docs category tree (docs -> product -> section)
         $docsRootStmt = $pdo->query("SELECT id FROM blog_categories WHERE slug = 'docs' AND $catTf LIMIT 1");
-        $docsRootId = $docsRootStmt->fetchColumn();
+        $docsRootId = (int)($docsRootStmt->fetchColumn() ?: 0);
+
+        $allCategories = [];
+        $catRowsStmt = $pdo->query("SELECT id, parent_id, name, slug, description, \"order\" FROM blog_categories WHERE $catTf");
+        foreach ($catRowsStmt->fetchAll(\PDO::FETCH_OBJ) as $catRow) {
+            $allCategories[(int)$catRow->id] = $catRow;
+        }
 
         $products = [];
-        if ($docsRootId) {
-            // Get product categories (children of docs root)
-            $productStmt = $pdo->prepare("SELECT id, name, slug, description, \"order\" FROM blog_categories WHERE parent_id = ? AND $catTf ORDER BY \"order\" ASC");
-            $productStmt->execute([$docsRootId]);
-            $productRows = $productStmt->fetchAll(\PDO::FETCH_OBJ);
+        if ($docsRootId > 0) {
+            $productRows = array_values(array_filter($allCategories, function ($c) use ($docsRootId) {
+                return (int)($c->parent_id ?? 0) === $docsRootId;
+            }));
+            usort($productRows, function ($a, $b) {
+                return (($a->order ?? 0) <=> ($b->order ?? 0));
+            });
 
             foreach ($productRows as $prod) {
                 $products[$prod->slug] = (object)[
                     'name' => $prod->name,
                     'description' => $prod->description ?: '',
                     'order' => $prod->order ?? 99,
-                    'id' => $prod->id,
+                    'id' => (int)$prod->id,
                     'sections' => [],
                     'postCount' => 0
                 ];
 
-                // Get sections (children of this product)
-                $sectionStmt = $pdo->prepare("SELECT id, name, slug, description, \"order\" FROM blog_categories WHERE parent_id = ? AND $catTf ORDER BY \"order\" ASC");
-                $sectionStmt->execute([$prod->id]);
-                $sectionRows = $sectionStmt->fetchAll(\PDO::FETCH_OBJ);
+                $sectionRows = array_values(array_filter($allCategories, function ($c) use ($prod) {
+                    return (int)($c->parent_id ?? 0) === (int)$prod->id;
+                }));
+                usort($sectionRows, function ($a, $b) {
+                    return (($a->order ?? 0) <=> ($b->order ?? 0));
+                });
 
                 foreach ($sectionRows as $sec) {
                     $products[$prod->slug]->sections[$sec->slug] = (object)[
@@ -492,6 +502,7 @@ class BlogController
         // 2. Load all published docs posts and assign to products/sections
         $postStmt = $pdo->query("
             SELECT p.id, p.title, p.slug, p.excerpt,
+                   c.id as cat_id,
                    c.slug as cat_slug, c.parent_id as cat_parent_id,
                    COALESCE(s.prefix, 'docs') as url_prefix
             FROM blog_posts p
@@ -503,41 +514,122 @@ class BlogController
         ");
         $postRows = $postStmt->fetchAll(\PDO::FETCH_OBJ);
 
-        $seen = [];
-        foreach ($postRows as $row) {
-            if (isset($seen[$row->id])) continue;
-            $seen[$row->id] = true;
+        $ensureProduct = function (string $key, string $name = '', int $order = 99) use (&$products): void {
+            if (!isset($products[$key])) {
+                $products[$key] = (object)[
+                    'name' => $name !== '' ? $name : ucfirst($key),
+                    'description' => '',
+                    'order' => $order,
+                    'id' => 0,
+                    'sections' => [],
+                    'postCount' => 0
+                ];
+            }
+        };
 
-            $postObj = (object)[
-                'title' => $row->title,
-                'url' => '/' . $row->url_prefix . '/' . $row->slug
-            ];
+        $guessProduct = function ($row): ?array {
+            $catSlug = strtolower((string)($row->cat_slug ?? ''));
+            $postSlug = strtolower((string)($row->slug ?? ''));
+            $title = strtolower((string)($row->title ?? ''));
 
-            // Find which product/section this post belongs to
-            $assigned = false;
-            foreach ($products as $prodSlug => $prod) {
-                // Check if post's category is a section of this product
-                if (isset($prod->sections[$row->cat_slug])) {
-                    $prod->sections[$row->cat_slug]->posts[] = $postObj;
-                    $prod->postCount++;
-                    $assigned = true;
+            if ($catSlug === 'cms' || strpos($postSlug, 'cms') !== false || strpos($title, 'cms') !== false) {
+                return ['key' => 'cms', 'name' => 'MuseDock CMS', 'order' => 1];
+            }
+            if ($catSlug === 'panel' || strpos($postSlug, 'panel') !== false || strpos($title, 'panel') !== false) {
+                return ['key' => 'panel', 'name' => 'MuseDock Panel', 'order' => 2];
+            }
+            if ($catSlug === 'portal' || strpos($postSlug, 'portal') !== false || strpos($title, 'portal') !== false) {
+                return ['key' => 'portal', 'name' => 'MuseDock Portal', 'order' => 3];
+            }
+
+            return null;
+        };
+
+        $resolveDocsPath = function (int $catId) use ($docsRootId, $allCategories): ?array {
+            if ($docsRootId <= 0 || $catId <= 0 || !isset($allCategories[$catId])) return null;
+
+            $chain = [];
+            $cursor = $catId;
+            $guard = 0;
+            while ($cursor > 0 && isset($allCategories[$cursor]) && $guard++ < 50) {
+                $node = $allCategories[$cursor];
+                $chain[] = $node;
+                if ((int)$node->id === $docsRootId) {
                     break;
                 }
-                // Check if post's category parent is this product
-                if ($row->cat_parent_id == $prod->id) {
-                    if (isset($prod->sections[$row->cat_slug])) {
-                        $prod->sections[$row->cat_slug]->posts[] = $postObj;
-                    } else {
-                        $prod->sections['_root'] = $prod->sections['_root'] ?? (object)['name' => '', 'description' => '', 'posts' => []];
-                        $prod->sections['_root']->posts[] = $postObj;
-                    }
-                    $prod->postCount++;
+                $cursor = (int)($node->parent_id ?? 0);
+            }
+
+            if (empty($chain) || (int)end($chain)->id !== $docsRootId) return null;
+            $chain = array_reverse($chain); // docs -> product -> section -> ...
+            $productNode = $chain[1] ?? null;
+            if (!$productNode) return null;
+
+            return [
+                'product' => $productNode,
+                'section' => $chain[2] ?? null,
+            ];
+        };
+
+        $rowsByPost = [];
+        foreach ($postRows as $row) {
+            $rowsByPost[(int)$row->id][] = $row;
+        }
+
+        foreach ($rowsByPost as $postId => $rows) {
+            $primary = $rows[0];
+            $postObj = (object)[
+                'title' => $primary->title,
+                'slug' => $primary->slug,
+                'url' => '/' . $primary->url_prefix . '/' . $primary->slug
+            ];
+
+            $chosenPath = null;
+            foreach ($rows as $r) {
+                $path = $resolveDocsPath((int)($r->cat_id ?? 0));
+                if (!$path) continue;
+                $chosenPath = $path;
+                // Prefer a path with explicit section when available.
+                if ($path['section']) break;
+            }
+
+            $assigned = false;
+            if ($chosenPath) {
+                $productNode = $chosenPath['product'];
+                $sectionNode = $chosenPath['section'];
+
+                $productKey = (string)($productNode->slug ?: ('product-' . (int)$productNode->id));
+                $ensureProduct($productKey, (string)$productNode->name, (int)($productNode->order ?? 99));
+
+                $sectionKey = '_root';
+                if ($sectionNode) {
+                    $sectionKey = (string)($sectionNode->slug ?: ('section-' . (int)$sectionNode->id));
+                }
+                if (!isset($products[$productKey]->sections[$sectionKey])) {
+                    $products[$productKey]->sections[$sectionKey] = (object)[
+                        'name' => $sectionNode ? (string)$sectionNode->name : '',
+                        'description' => $sectionNode ? (string)($sectionNode->description ?? '') : '',
+                        'posts' => []
+                    ];
+                }
+                $products[$productKey]->sections[$sectionKey]->posts[] = $postObj;
+                $products[$productKey]->postCount++;
+                $assigned = true;
+            }
+
+            // Fallback by slug/title to recover old seeded docs with wrong categories.
+            if (!$assigned) {
+                $guessed = $guessProduct($primary);
+                if ($guessed) {
+                    $ensureProduct($guessed['key'], $guessed['name'], $guessed['order']);
+                    $products[$guessed['key']]->sections['_root'] = $products[$guessed['key']]->sections['_root']
+                        ?? (object)['name' => '', 'description' => '', 'posts' => []];
+                    $products[$guessed['key']]->sections['_root']->posts[] = $postObj;
+                    $products[$guessed['key']]->postCount++;
                     $assigned = true;
-                    break;
                 }
             }
 
-            // Post not in any product — add to general
             if (!$assigned) {
                 if (!isset($products['_general'])) {
                     $products['_general'] = (object)['name' => 'General', 'description' => '', 'order' => 999, 'id' => 0, 'sections' => [], 'postCount' => 0];
@@ -548,9 +640,59 @@ class BlogController
             }
         }
 
+        // 3. Normalize section post ordering for deterministic entry links.
+        // Priority: explicit intro doc first, license docs always last.
+        foreach ($products as $productSlug => $product) {
+            foreach ($product->sections as $sectionSlug => $section) {
+                if (empty($section->posts) || !is_array($section->posts)) {
+                    continue;
+                }
+                usort($section->posts, function ($a, $b) use ($productSlug) {
+                    $aTitle = mb_strtolower(trim((string)($a->title ?? '')));
+                    $bTitle = mb_strtolower(trim((string)($b->title ?? '')));
+                    $aSlug = mb_strtolower(trim((string)($a->slug ?? '')));
+                    $bSlug = mb_strtolower(trim((string)($b->slug ?? '')));
+
+                    $rank = static function (string $title, string $slug, string $product): int {
+                        // Product explicit intro has top priority.
+                        if ($product === 'cms' && $slug === 'introduccion-musedock-cms') return -1000;
+                        if ($product === 'panel' && $slug === 'introduccion-musedock-panel') return -1000;
+                        if ($product === 'portal' && $slug === 'musedock-portal-proximamente') return -1000;
+
+                        // Generic intro/start docs.
+                        if (
+                            str_starts_with($title, 'introducción') ||
+                            str_starts_with($title, 'introduccion') ||
+                            str_contains($slug, 'introduccion') ||
+                            str_contains($slug, 'getting-started') ||
+                            str_contains($slug, 'primeros-pasos') ||
+                            str_contains($title, 'primeros pasos')
+                        ) {
+                            return -100;
+                        }
+
+                        // Keep license docs at the bottom.
+                        if (str_starts_with($title, 'licencia') || str_starts_with($slug, 'licencia-')) {
+                            return 100;
+                        }
+
+                        return 0;
+                    };
+
+                    $aRank = $rank($aTitle, $aSlug, (string)$productSlug);
+                    $bRank = $rank($bTitle, $bSlug, (string)$productSlug);
+                    if ($aRank !== $bRank) {
+                        return $aRank <=> $bRank;
+                    }
+
+                    return $aTitle <=> $bTitle;
+                });
+            }
+        }
+
         return View::renderTheme('blog/docs-index', [
             'products' => $products,
-            'totalDocs' => count($seen)
+            'totalDocs' => count($rowsByPost)
         ]);
     }
 

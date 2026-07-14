@@ -187,8 +187,7 @@
     $handles = $handles ?? [];
     $opMode = $openprovider_mode ?? 'live';
 ?>
-<div class="row justify-content-center">
-    <div class="col-lg-10">
+<div class="cp-page-wrap">
         <!-- Step Indicator -->
         <div class="step-indicator">
             <div class="step completed">
@@ -225,9 +224,9 @@
             </div>
             <div class="card-body p-4">
 
-                <div class="row">
+                <div class="cp-two-col">
                     <!-- Resumen del pedido -->
-                    <div class="col-lg-7">
+                    <div class="cp-two-col-main">
                         <div class="summary-section">
                             <h6><i class="bi bi-receipt me-2"></i>Resumen del Pedido</h6>
 
@@ -354,7 +353,7 @@
                     </div>
 
                     <!-- Que incluye -->
-                    <div class="col-lg-5">
+                    <div class="cp-two-col-side">
                         <div class="summary-section">
                             <h6><i class="bi bi-gift me-2"></i>Tu Registro Incluye</h6>
                             <ul class="feature-list">
@@ -428,7 +427,6 @@
                 </div>
             </div>
         </div>
-    </div>
 </div>
 @endsection
 

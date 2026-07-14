@@ -99,8 +99,7 @@
         }
     }
 ?>
-<div class="row">
-    <div class="col-12">
+<div class="cp-page-wrap">
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
@@ -160,9 +159,9 @@
         </div>
         <?php endif; ?>
 
-        <div class="row">
+        <div class="cp-two-col">
             <!-- Nameservers Section -->
-            <div class="col-lg-4 mb-4">
+            <div class="cp-two-col-side mb-4">
                 <div class="card dns-card h-100">
                     <div class="card-header">
                         <h5 class="mb-0"><i class="bi bi-server me-2"></i>Nameservers</h5>
@@ -208,7 +207,7 @@
             </div>
 
             <!-- DNS Records Section -->
-            <div class="col-lg-8 mb-4">
+            <div class="cp-two-col-main mb-4">
                 <div class="card dns-card <?= (!$useCloudflareNs ? 'position-relative' : '') ?>">
                     <?php if (!$useCloudflareNs): ?>
                     <!-- Overlay para deshabilitar cuando no está activo -->
@@ -314,7 +313,6 @@
             </div>
         </div>
         <?php endif; ?>
-    </div>
 </div>
 
 <!-- Modal: Añadir Registro -->

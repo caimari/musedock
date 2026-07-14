@@ -5,7 +5,7 @@
   {{-- Header --}}
   <div style="text-align:center; margin-bottom:20px; padding:20px; background:linear-gradient(135deg,#eef2ff,#dbeafe); border-radius:10px;">
     <h2 style="font-size:1.1rem; font-weight:700; color:#243141; margin:0 0 4px;">
-      <i class="bi bi-link-45deg" style="margin-right:6px; color:#4e73df;"></i> Vincular Dominio Existente
+      <i class="bi bi-link-45deg" style="margin-right:6px; color:#4e73df;"></i> Conectar Dominio Existente
     </h2>
     <p style="font-size:0.82rem; color:#6b7280; margin:0;">Conecta tu dominio a MuseDock cambiando solo los nameservers</p>
   </div>
@@ -35,7 +35,11 @@
   </div>
 
   {{-- Form --}}
-  <form id="customDomainForm" onsubmit="submitRequest(event)">
+  <form id="customDomainForm" onsubmit="submitRequest(event)" autocomplete="off" autocapitalize="off" spellcheck="false">
+    {{-- Anti-autofill decoys para navegadores agresivos --}}
+    <input type="text" name="fake_username" autocomplete="username" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;">
+    <input type="password" name="fake_password" autocomplete="current-password" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;">
+
     <input type="hidden" name="_csrf_token" value="<?= $csrf_token ?? csrf_token() ?>">
 
     {{-- Domain input --}}
@@ -47,6 +51,7 @@
         </span>
         <input type="text" name="domain" id="domainInput" placeholder="tudominio.com"
                pattern="^[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,}$" required
+               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="url"
                style="flex:1; padding:10px 12px; border:1px solid #d1d5db; border-radius:0 8px 8px 0; font-size:0.88rem; outline:none;"
                onfocus="this.style.borderColor='#4e73df'" onblur="this.style.borderColor='#d1d5db'">
       </div>
@@ -82,13 +87,13 @@
       <div id="customAdminFields" style="display:none; margin-top:12px; background:#f8fafc; border-radius:8px; padding:14px;">
         <div style="margin-bottom:10px;">
           <label style="display:block; font-size:0.78rem; font-weight:600; color:#4a5568; margin-bottom:4px;">Email del Admin</label>
-          <input type="email" name="admin_email" id="adminEmailInput" placeholder="admin@ejemplo.com"
+          <input type="email" name="admin_email" id="adminEmailInput" placeholder="admin@ejemplo.com" autocomplete="off" autocapitalize="off" spellcheck="false"
                  style="width:100%; padding:8px 12px; border:1px solid #d1d5db; border-radius:6px; font-size:0.85rem; outline:none;">
         </div>
         <div>
           <label style="display:block; font-size:0.78rem; font-weight:600; color:#4a5568; margin-bottom:4px;">Password del Admin</label>
           <div style="position:relative;">
-            <input type="password" name="admin_password" id="adminPasswordInput" placeholder="Minimo 8 caracteres" minlength="8"
+            <input type="password" name="admin_password" id="adminPasswordInput" placeholder="Minimo 8 caracteres" minlength="8" autocomplete="new-password"
                    style="width:100%; padding:8px 12px; padding-right:36px; border:1px solid #d1d5db; border-radius:6px; font-size:0.85rem; outline:none;">
             <button type="button" onclick="togglePasswordVisibility()" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:#9ca3af; cursor:pointer;">
               <i class="bi bi-eye" id="passwordToggleIcon"></i>
@@ -101,16 +106,26 @@
     {{-- Buttons --}}
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
       <button type="submit" style="display:inline-flex; align-items:center; gap:6px; padding:10px 20px; background:#4e73df; color:#fff; border:none; border-radius:7px; font-size:0.85rem; font-weight:600; cursor:pointer;">
-        <i class="bi bi-link-45deg"></i> Vincular Dominio
+        <i class="bi bi-link-45deg"></i> Conectar Dominio
       </button>
       <a href="/customer/dashboard" style="display:inline-flex; align-items:center; gap:6px; padding:10px 20px; border:1px solid #d1d5db; color:#4a5568; border-radius:7px; font-size:0.85rem; font-weight:500; text-decoration:none;">
-        <i class="bi bi-arrow-left"></i> Volver al Dashboard
+        <i class="bi bi-arrow-left"></i> Volver al inicio
       </a>
     </div>
   </form>
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+  var domainInput = document.getElementById('domainInput');
+  if (!domainInput) return;
+
+  // Si el navegador mete un email, vaciamos para evitar errores de usuario.
+  if ((domainInput.value || '').includes('@')) {
+    domainInput.value = '';
+  }
+});
+
 function toggleCustomAdmin() {
   var f = document.getElementById('customAdminFields');
   var c = document.getElementById('customAdminToggle');

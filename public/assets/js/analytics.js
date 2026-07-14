@@ -55,6 +55,28 @@
 
             // Rastrear eventos de interacción
             this.setupInteractionTracking();
+
+            this.active = true;
+        },
+
+        /**
+         * Detener el tracking y borrar las cookies de analítica.
+         * Se llama cuando el usuario revoca el consentimiento de analítica.
+         */
+        stop: function() {
+            this.active = false;
+            this.deleteCookie(this.config.cookieName);   // musedock_visitor
+            this.deleteCookie(this.config.sessionName);  // musedock_session
+            this.visitorId = null;
+            this.sessionId = null;
+        },
+
+        /**
+         * Borrar una cookie por nombre
+         */
+        deleteCookie: function(name) {
+            document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax' +
+                (location.protocol === 'https:' ? ';Secure' : '');
         },
 
         /**
@@ -184,6 +206,10 @@
          * Enviar datos al servidor
          */
         sendData: function(data) {
+            // No enviar nada si el tracking está inactivo (consentimiento revocado)
+            if (this.active === false) {
+                return;
+            }
             // Usar sendBeacon si está disponible (más confiable)
             if (navigator.sendBeacon) {
                 navigator.sendBeacon(this.config.endpoint, JSON.stringify(data));

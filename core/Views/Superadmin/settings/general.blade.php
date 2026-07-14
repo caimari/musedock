@@ -17,6 +17,8 @@ textarea::placeholder {
 @endpush
 
 @section('content')
+<div class="row g-4">
+  <div class="col-xl-9 col-lg-8">
 <div class="card">
   <div class="card-header">
     <h3 class="card-title">Ajustes generales</h3>
@@ -508,6 +510,11 @@ textarea::placeholder {
         </button>
       </div>
     </form>
+  </div>
+</div>
+  </div>
+  <div class="col-xl-3 col-lg-4">
+    @include('settings.partials.sidebar', ['active' => 'general'])
   </div>
 </div>
 

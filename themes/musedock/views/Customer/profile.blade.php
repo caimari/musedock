@@ -2,16 +2,24 @@
 
 @section('panel_content')
 <style>
-    .cp-profile-wrap { }
+    .cp-profile-wrap {
+        max-width: 1380px;
+        margin: 0 auto;
+    }
     .cp-profile-wrap h2 {
         font-size: 1.1rem; font-weight: 700; color: #243141;
         margin: 0 0 16px 0;
     }
     .cp-grid {
         display: grid;
-        grid-template-columns: 1fr 220px;
+        grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.95fr);
         gap: 18px;
         align-items: start;
+    }
+    @media (max-width: 1200px) {
+        .cp-grid {
+            grid-template-columns: minmax(0, 1fr) minmax(280px, 0.9fr);
+        }
     }
     @media (max-width: 700px) {
         .cp-grid { grid-template-columns: 1fr; }
@@ -186,7 +194,7 @@
 </style>
 
 <div class="cp-profile-wrap">
-    <h2><i class="bi bi-person-circle" style="margin-right:6px"></i> Mi Perfil</h2>
+    <h2><i class="bi bi-person-circle" style="margin-right:6px"></i> Perfil</h2>
 
     <div class="cp-grid">
         {{-- Left column: forms --}}

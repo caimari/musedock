@@ -20,12 +20,34 @@
                 @if($productSlug === '_general') @continue @endif
                 @php
                     $firstPostUrl = '#';
-                    foreach ($product->sections as $sec) {
-                        if (!empty($sec->posts)) { $firstPostUrl = $sec->posts[0]->url; break; }
+                    $entrySectionSlugs = ['getting-started', 'panel-getting-started', 'portal-getting-started', 'presentacion', 'presentation', 'overview'];
+                    foreach ($entrySectionSlugs as $__entrySlug) {
+                        if (!empty($product->sections[$__entrySlug]->posts ?? [])) {
+                            $firstPostUrl = $product->sections[$__entrySlug]->posts[0]->url;
+                            break;
+                        }
+                    }
+                    if ($firstPostUrl === '#') {
+                        foreach ($product->sections as $sec) {
+                            if (empty($sec->posts)) continue;
+                            foreach ($sec->posts as $__p) {
+                                $t = function_exists('mb_strtolower') ? mb_strtolower((string)$__p->title) : strtolower((string)$__p->title);
+                                if (strpos($t, 'introducción') !== false || strpos($t, 'introduccion') !== false || strpos($t, 'getting started') !== false || strpos($t, 'primeros pasos') !== false || strpos($t, 'presentación') !== false || strpos($t, 'presentacion') !== false) {
+                                    $firstPostUrl = $__p->url;
+                                    break 2;
+                                }
+                            }
+                        }
+                    }
+                    if ($firstPostUrl === '#') {
+                        foreach ($product->sections as $sec) {
+                            if (!empty($sec->posts)) { $firstPostUrl = $sec->posts[0]->url; break; }
+                        }
                     }
                     $hasContent = $product->postCount > 0;
+                    $targetUrl = $hasContent ? ($firstPostUrl . '?product=' . urlencode($productSlug)) : '#';
                 @endphp
-                <a href="{{ $hasContent ? $firstPostUrl : '#' }}" class="docs-product-card" style="display:block; border:1px solid {{ $hasContent ? '#e5e7eb' : '#f3f4f6' }}; border-radius:12px; overflow:hidden; transition:all 0.2s; text-decoration:none; color:inherit; {{ $hasContent ? 'cursor:pointer;' : 'opacity:0.7; pointer-events:none;' }}">
+                <a href="{{ $targetUrl }}" class="docs-product-card" style="display:block; border:1px solid {{ $hasContent ? '#e5e7eb' : '#f3f4f6' }}; border-radius:12px; overflow:hidden; transition:all 0.2s; text-decoration:none; color:inherit; {{ $hasContent ? 'cursor:pointer;' : 'opacity:0.7; pointer-events:none;' }}">
                     <div style="padding:1.5rem 1.75rem;">
                         <h2 style="font-size:1.25rem; font-weight:700; color:#111827; margin:0 0 0.4rem;">{{ $product->name }}</h2>
                         @if($product->description)

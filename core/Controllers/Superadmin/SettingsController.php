@@ -7,6 +7,7 @@ use Screenart\Musedock\Models\Language;
 use Screenart\Musedock\Helpers\SiteHelper;
 use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Traits\RequiresPermission;
+use Screenart\Musedock\Services\PublicVersionBadgeService;
 
 class SettingsController
 {
@@ -219,12 +220,46 @@ class SettingsController
 
         $settings = $this->getSettings();
         $versionInfo = $this->getVersionInfo();
+        $topbarVersionData = PublicVersionBadgeService::getTopbarData();
 
         return View::renderSuperadmin('settings.advanced', [
             'title' => 'Ajustes avanzados',
             'settings' => $settings,
             'versionInfo' => $versionInfo,
+            'topbarVersionData' => $topbarVersionData,
         ]);
+    }
+
+    public function updateTopbarVersions()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.edit');
+
+        $cmsRepo = trim((string)($_POST['topbar_versions_cms_repo_url'] ?? ''));
+        $panelRepo = trim((string)($_POST['topbar_versions_panel_repo_url'] ?? ''));
+
+        PublicVersionBadgeService::updateRepoUrls($cmsRepo, $panelRepo);
+
+        flash('success', 'Repositorios de versiones guardados correctamente.');
+        header("Location: /musedock/settings/advanced");
+        exit;
+    }
+
+    public function refreshTopbarVersions()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.edit');
+
+        $result = PublicVersionBadgeService::refreshCache(true);
+
+        $cms = (string)($result['cms_latest'] ?? '');
+        $panel = (string)($result['panel_latest'] ?? '');
+        $cmsLabel = $cms !== '' ? $cms : 'n/d';
+        $panelLabel = $panel !== '' ? $panel : 'n/d';
+
+        flash('success', "Versiones refrescadas. CMS: {$cmsLabel} · Panel: {$panelLabel}");
+        header("Location: /musedock/settings/advanced");
+        exit;
     }
 
     /**
@@ -988,6 +1023,7 @@ public function deleteFavicon()
         return View::renderSuperadmin('settings.email', [
             'title' => 'Configuración de Email',
             'envConfig' => $envConfig,
+            'smtpRequireTenantOwn' => (string)setting('smtp_require_tenant_own', '0'),
         ]);
     }
 
@@ -1019,6 +1055,23 @@ public function deleteFavicon()
         }
 
         $this->updateEnvFile($envPath, $emailSettings);
+
+        // Política global SMTP para tenants
+        try {
+            $pdo = \Screenart\Musedock\Database::connect();
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            $smtpRequireTenantOwn = isset($_POST['smtp_require_tenant_own']) ? '1' : '0';
+            if ($driver === 'mysql') {
+                $stmt = $pdo->prepare("INSERT INTO settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)");
+                $stmt->execute(['smtp_require_tenant_own', $smtpRequireTenantOwn]);
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO settings (\"key\", value) VALUES (?, ?) ON CONFLICT (\"key\") DO UPDATE SET value = EXCLUDED.value");
+                $stmt->execute(['smtp_require_tenant_own', $smtpRequireTenantOwn]);
+            }
+            clear_settings_cache();
+        } catch (\Throwable $e) {
+            error_log('Error guardando smtp_require_tenant_own: ' . $e->getMessage());
+        }
 
         flash('success', 'Configuración de email guardada correctamente.');
         header('Location: ' . route('settings.email'));

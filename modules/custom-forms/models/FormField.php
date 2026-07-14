@@ -97,9 +97,9 @@ class FormField extends Model
             $pdo->beginTransaction();
 
             $stmt = $pdo->prepare("
-                UPDATE `custom_form_fields`
-                SET `sort_order` = ?
-                WHERE `id` = ? AND `form_id` = ?
+                UPDATE custom_form_fields
+                SET sort_order = ?
+                WHERE id = ? AND form_id = ?
             ");
 
             foreach ($fieldIds as $order => $fieldId) {
@@ -183,6 +183,38 @@ class FormField extends Model
     public function hasOptions(): bool
     {
         return in_array($this->field_type, ['select', 'radio', 'checkbox_group']);
+    }
+
+    /**
+     * Etiqueta legible del tipo de campo.
+     */
+    public function getTypeLabel(): string
+    {
+        $types = Form::getFieldTypes();
+        $type = $types[$this->field_type] ?? null;
+
+        if (!$type) {
+            return ucfirst(str_replace('_', ' ', (string) $this->field_type));
+        }
+
+        // Compatibilidad: algunos lugares usan "name" y otros "label".
+        return (string) ($type['label'] ?? $type['name'] ?? ucfirst($this->field_type));
+    }
+
+    /**
+     * Color del badge para UI del builder.
+     */
+    public function getTypeBadgeColor(): string
+    {
+        $category = Form::getFieldTypes()[$this->field_type]['category'] ?? 'basic';
+
+        return match ($category) {
+            'choice' => 'info',
+            'datetime' => 'warning',
+            'advanced' => 'secondary',
+            'layout' => 'dark',
+            default => 'primary',
+        };
     }
 
     /**
