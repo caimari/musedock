@@ -43,8 +43,12 @@ try {
     $pdo = new PDO("pgsql:host={$dbHost};port={$dbPort};dbname={$dbName}", $dbUser, $dbPass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    echo "ERROR: No se pudo conectar a la BD: {$e->getMessage()}\n";
-    exit(1);
+    // exit 0 on purpose: as an ExecStartPost hook, exiting non-zero makes
+    // systemd kill Caddy. A database that is down must never take the web
+    // server down with it — Caddy keeps serving its resumed config.
+    echo "AVISO: No se pudo conectar a la BD: {$e->getMessage()}\n";
+    echo "       No se reparan rutas en este arranque. Caddy NO se detiene por esto.\n";
+    exit(0);
 }
 
 // Caddy API
@@ -93,11 +97,26 @@ function buildMergedRoutesJson(string $existingRoutesJson, array $newRoutes): st
     return "[{$inner},{$newInner}]";
 }
 
-// Check Caddy API
-$check = caddyRequest('GET', '/config/');
+// Check Caddy API — wait for it to come up instead of giving up immediately.
+// This script runs as an ExecStartPost hook, so it can start before Caddy has
+// finished binding its admin endpoint. Retry for a bounded window first.
+$check = ['code' => 0];
+$maxWaitSeconds = 30;
+for ($i = 0; $i < $maxWaitSeconds; $i++) {
+    $check = caddyRequest('GET', '/config/');
+    if ($check['code'] >= 200 && $check['code'] < 400) break;
+    sleep(1);
+}
+
 if ($check['code'] < 200 || $check['code'] >= 400) {
-    echo "ERROR: Caddy API no disponible en {$caddyApi} (HTTP {$check['code']})\n";
-    exit(1);
+    // IMPORTANT: exit 0, not 1.
+    // systemd kills the whole service when a non-prefixed ExecStartPost fails.
+    // A missing admin API means Caddy is not up — that is not this script's
+    // fault, and killing Caddy over it creates a restart loop that takes every
+    // site down (exactly what happened on 2026-07-17). Report and step aside.
+    echo "AVISO: Caddy API no disponible en {$caddyApi} tras {$maxWaitSeconds}s (HTTP {$check['code']}).\n";
+    echo "       No se reparan rutas en este arranque. Caddy NO se detiene por esto.\n";
+    exit(0);
 }
 echo "Caddy API: OK ({$caddyApi})\n";
 
