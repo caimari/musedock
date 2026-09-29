@@ -42,25 +42,35 @@ function api_v1_auth(string $toolName = ''): void
     )) {
         $limit = \Screenart\Musedock\Services\ApiToolLogger::getToolRateLimit($toolName, (int)$key->rate_limit);
         $retryAfter = 60 - (int)date('s');
-        header("Retry-After: {$retryAfter}");
-        http_response_code(429);
-        echo json_encode([
+        $payload = [
             'success'     => false,
             'error'       => ['code' => 'TOOL_RATE_LIMITED', 'message' => "Rate limit for '{$toolName}': max {$limit}/min."],
             'retry_after' => $retryAfter,
             'tool'        => $toolName,
             'limit'       => $limit,
-        ], JSON_UNESCAPED_UNICODE);
+        ];
+        if (ApiKeyAuth::isInternal()) {
+            throw new \Screenart\Musedock\Services\Mcp\ApiAbort(429, $payload);
+        }
+        header("Retry-After: {$retryAfter}");
+        http_response_code(429);
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE);
         exit;
     }
 
     // Confirmation for dangerous actions
     $confirmation = \Screenart\Musedock\Services\ApiToolLogger::requiresConfirmation($toolName);
     if ($confirmation !== null) {
+        if (ApiKeyAuth::isInternal()) {
+            throw new \Screenart\Musedock\Services\Mcp\ApiAbort(428, array_merge(['success' => false], $confirmation));
+        }
         http_response_code(428);
         echo json_encode(array_merge(['success' => false], $confirmation), JSON_UNESCAPED_UNICODE);
         exit;
     }
+
+    // In internal (MCP) mode the MCP server logs the call itself
+    if (ApiKeyAuth::isInternal()) return;
 
     // Logging (via shutdown so it captures the final status code)
     $GLOBALS['_api_tool_start'] = microtime(true);

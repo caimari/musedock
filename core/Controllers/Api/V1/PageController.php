@@ -109,32 +109,40 @@ class PageController
         }
 
         $pdo = Database::connect();
-        $slug = $this->slugify($input['title']);
+        $slug = $this->slugify(ContentPolicy::plain($input['title']));
         $slug = $this->ensureUniqueSlug($slug, $tenantId, $pdo);
 
         $status = $input['status'] ?? 'draft';
         if (!in_array($status, ['draft', 'published'])) $status = 'draft';
 
+        [$status, $publishNotice] = ContentPolicy::resolveStatus('pages', $status);
+
         $publishedAt = $input['published_at'] ?? null;
         if ($status === 'published' && !$publishedAt) {
             $publishedAt = date('Y-m-d H:i:s');
         }
+        if ($status === 'draft') {
+            $publishedAt = null;
+        }
+
+        // Convertir una página en portada cambia el sitio en vivo
+        $isHomepage = !empty($input['is_homepage']) && ContentPolicy::canPublish('pages') ? 1 : 0;
 
         $pageData = [
             'tenant_id'       => $tenantId,
             'user_id'         => 0,
             'user_type'       => 'admin',
-            'title'           => $input['title'],
+            'title'           => ContentPolicy::plain($input['title']),
             'slug'            => $slug,
-            'content'         => $input['content'] ?? '',
+            'content'         => ContentPolicy::html($input['content'] ?? ''),
             'status'          => $status,
-            'visibility'      => $input['visibility'] ?? 'public',
+            'visibility'      => in_array($input['visibility'] ?? 'public', ['public', 'private'], true) ? ($input['visibility'] ?? 'public') : 'public',
             'published_at'    => $publishedAt,
             'base_locale'     => $input['base_locale'] ?? 'es',
-            'is_homepage'     => !empty($input['is_homepage']) ? 1 : 0,
+            'is_homepage'     => $isHomepage,
             'hide_title'      => !empty($input['hide_title']) ? 1 : 0,
-            'seo_title'       => $input['seo_title'] ?? null,
-            'seo_description' => $input['seo_description'] ?? null,
+            'seo_title'       => ContentPolicy::plain($input['seo_title'] ?? null),
+            'seo_description' => ContentPolicy::plain($input['seo_description'] ?? null),
         ];
 
         $page = Page::create($pageData);
@@ -159,7 +167,7 @@ class PageController
         $pageArray['url'] = $this->buildPageUrl($pageArray);
 
         http_response_code(201);
-        echo json_encode(['success' => true, 'page' => $pageArray], JSON_UNESCAPED_UNICODE);
+        echo json_encode(array_filter(['success' => true, 'page' => $pageArray, 'notice' => $publishNotice], fn($v) => $v !== null), JSON_UNESCAPED_UNICODE);
     }
 
     // =========================================================================
@@ -191,13 +199,36 @@ class PageController
             }
         }
 
-        if (isset($updateData['status']) && !in_array($updateData['status'], ['draft', 'published'])) {
-            $updateData['status'] = 'draft';
+        ContentPolicy::assertCanModifyLive('pages', $pageRow['status'] ?? null);
+
+        $publishNotice = null;
+        if (isset($updateData['status'])) {
+            if (!in_array($updateData['status'], ['draft', 'published'])) {
+                $updateData['status'] = 'draft';
+            }
+            [$updateData['status'], $publishNotice] = ContentPolicy::resolveStatus('pages', $updateData['status']);
+            if ($updateData['status'] === 'published' && empty($pageRow['published_at']) && !array_key_exists('published_at', $updateData)) {
+                $updateData['published_at'] = date('Y-m-d H:i:s');
+            }
+        }
+        foreach (['title', 'seo_title', 'seo_description'] as $plainField) {
+            if (array_key_exists($plainField, $updateData)) {
+                $updateData[$plainField] = ContentPolicy::plain($updateData[$plainField]);
+            }
+        }
+        if (array_key_exists('content', $updateData)) {
+            $updateData['content'] = ContentPolicy::html($updateData['content']);
+        }
+        if (isset($updateData['visibility']) && !in_array($updateData['visibility'], ['public', 'private'], true)) {
+            unset($updateData['visibility']);
         }
         if (isset($updateData['hide_title'])) {
             $updateData['hide_title'] = $updateData['hide_title'] ? 1 : 0;
         }
         if (isset($updateData['is_homepage'])) {
+            if ($updateData['is_homepage'] && !ContentPolicy::canPublish('pages')) {
+                ApiKeyAuth::respond(403, 'PUBLISH_PERMISSION_REQUIRED', "Setting the homepage requires the 'pages.publish' permission.");
+            }
             $updateData['is_homepage'] = $updateData['is_homepage'] ? 1 : 0;
         }
 
@@ -205,10 +236,11 @@ class PageController
             $page->update($updateData);
         }
 
-        echo json_encode([
+        echo json_encode(array_filter([
             'success' => true,
             'page'    => ['id' => (int) $page->id, 'title' => $page->title, 'slug' => $page->slug, 'status' => $page->status],
-        ], JSON_UNESCAPED_UNICODE);
+            'notice'  => $publishNotice,
+        ], fn($v) => $v !== null), JSON_UNESCAPED_UNICODE);
     }
 
     // =========================================================================

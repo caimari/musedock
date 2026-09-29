@@ -223,6 +223,7 @@ class ApiKeyController
             'posts.read'        => 'Leer posts',
             'posts.create'      => 'Crear posts',
             'posts.update'      => 'Editar posts',
+            'posts.publish'     => 'Publicar posts',
             'posts.delete'      => 'Eliminar posts',
             // Categories
             'categories.read'   => 'Leer categorias',
@@ -238,6 +239,7 @@ class ApiKeyController
             'pages.read'        => 'Leer paginas',
             'pages.create'      => 'Crear paginas',
             'pages.update'      => 'Editar paginas',
+            'pages.publish'     => 'Publicar paginas',
             'pages.delete'      => 'Eliminar paginas',
             // System
             'tenants.read'      => 'Listar tenants (superadmin)',
@@ -252,12 +254,12 @@ class ApiKeyController
     public static function permissionGroups(): array
     {
         $groups = [
-            'Paginas' => ['pages.read', 'pages.create', 'pages.update', 'pages.delete'],
+            'Paginas' => ['pages.read', 'pages.create', 'pages.update', 'pages.publish', 'pages.delete'],
         ];
 
         // Blog permissions only if blog module is active
         if (function_exists('is_module_active') && is_module_active('blog')) {
-            $groups['Posts']      = ['posts.read', 'posts.create', 'posts.update', 'posts.delete'];
+            $groups['Posts']      = ['posts.read', 'posts.create', 'posts.update', 'posts.publish', 'posts.delete'];
             $groups['Categorias'] = ['categories.read', 'categories.create', 'categories.update', 'categories.delete'];
             $groups['Tags']       = ['tags.read', 'tags.create', 'tags.update', 'tags.delete'];
         }

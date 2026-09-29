@@ -74,9 +74,9 @@ class CategoryController
             ApiKeyAuth::respond(422, 'VALIDATION_ERROR', 'name is required.');
         }
 
-        $name = trim($input['name']);
-        $slug = $input['slug'] ?? $this->slugify($name);
-        $description = $input['description'] ?? null;
+        $name = ContentPolicy::plain($input['name']);
+        $slug = $this->slugify(!empty($input['slug']) ? $input['slug'] : $name);
+        $description = ContentPolicy::plain($input['description'] ?? null);
         $parentId = !empty($input['parent_id']) ? (int)$input['parent_id'] : null;
 
         $pdo = Database::connect();
@@ -130,15 +130,15 @@ class CategoryController
 
         if (isset($input['name'])) {
             $sets[] = "name = ?";
-            $params[] = trim($input['name']);
+            $params[] = ContentPolicy::plain($input['name']);
         }
         if (isset($input['slug'])) {
             $sets[] = "slug = ?";
-            $params[] = $input['slug'];
+            $params[] = $this->slugify($input['slug']);
         }
         if (array_key_exists('description', $input)) {
             $sets[] = "description = ?";
-            $params[] = $input['description'];
+            $params[] = ContentPolicy::plain($input['description']);
         }
         if (array_key_exists('parent_id', $input)) {
             $sets[] = "parent_id = ?";

@@ -41,6 +41,15 @@ class SessionSecurity
     {
         static $sessionStarted = false;
 
+        // Peticiones sin estado (MCP / OAuth máquina-a-máquina): sesión solo en memoria,
+        // sin parámetros de cookie (ver MUSEDOCK_STATELESS_REQUEST en public/index.php)
+        if (defined('MUSEDOCK_STATELESS_REQUEST') && MUSEDOCK_STATELESS_REQUEST) {
+            if (session_status() !== PHP_SESSION_ACTIVE) {
+                session_start();
+            }
+            return;
+        }
+
         if (session_status() !== PHP_SESSION_ACTIVE) {
             // Cargar configuración de seguridad
             $config = require __DIR__ . '/../../config/config.php';

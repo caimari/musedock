@@ -18,11 +18,38 @@ class ApiKeyAuth
     private static ?ApiKey $authenticatedKey = null;
 
     /**
+     * Internal mode: the API is being executed in-process by the MCP server.
+     * respond() throws ApiAbort instead of echo + exit.
+     */
+    private static bool $internal = false;
+
+    public static function beginInternal(ApiKey $key): void
+    {
+        self::$authenticatedKey = $key;
+        self::$internal = true;
+    }
+
+    public static function endInternal(): void
+    {
+        self::$internal = false;
+    }
+
+    public static function isInternal(): bool
+    {
+        return self::$internal;
+    }
+
+    /**
      * Handle the authentication check.
      * Sends JSON error response and exits on failure.
      */
     public function handle(): bool
     {
+        // MCP already authenticated and rate-limited this request
+        if (self::$internal && self::$authenticatedKey) {
+            return true;
+        }
+
         // Set JSON content type for all API responses
         header('Content-Type: application/json; charset=utf-8');
 
@@ -171,14 +198,20 @@ class ApiKeyAuth
      */
     public static function respond(int $httpCode, string $errorCode, string $message): void
     {
-        http_response_code($httpCode);
-        echo json_encode([
+        $payload = [
             'success' => false,
             'error'   => [
                 'code'    => $errorCode,
                 'message' => $message,
             ],
-        ], JSON_UNESCAPED_UNICODE);
+        ];
+
+        if (self::$internal) {
+            throw new \Screenart\Musedock\Services\Mcp\ApiAbort($httpCode, $payload);
+        }
+
+        http_response_code($httpCode);
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE);
         exit;
     }
 }

@@ -17,7 +17,7 @@ class AuthController
 
         // Si el usuario ya está autenticado, redirigir al dashboard
         if (isset($_SESSION['admin']) || isset($_SESSION['user'])) {
-            header("Location: /" . admin_path() . "/dashboard");
+            header("Location: " . self::consumeReturnTo("/" . admin_path() . "/dashboard"));
             exit;
         }
 
@@ -34,6 +34,21 @@ class AuthController
             'title' => __('login_title'),
             'flash' => consume_flash('logout_success'),
         ]);
+    }
+
+    /**
+     * Destino tras el login: solo rutas internas permitidas (hoy, la autorización
+     * OAuth de una conexión MCP). Evita open redirects.
+     */
+    private static function consumeReturnTo(string $default): string
+    {
+        $target = $_SESSION['auth_return_to'] ?? null;
+        unset($_SESSION['auth_return_to']);
+
+        if (is_string($target) && str_starts_with($target, '/oauth/authorize?') && !preg_match('/[\r\n]/', $target)) {
+            return $target;
+        }
+        return $default;
     }
 
     public function login()
@@ -133,7 +148,7 @@ class AuthController
                     // 🔒 SECURITY: No loguear contenido de sesión
                     error_log("Login exitoso de admin, redirigiendo a dashboard");
 
-                    header("Location: {$adminPath}/dashboard");
+                    header("Location: " . self::consumeReturnTo("{$adminPath}/dashboard"));
                     exit;
                 }
             } else {
@@ -197,7 +212,7 @@ class AuthController
                     // 🔒 SECURITY: No loguear contenido de sesión
                     error_log("Login exitoso de usuario, redirigiendo a dashboard");
 
-                    header("Location: {$adminPath}/dashboard");
+                    header("Location: " . self::consumeReturnTo("{$adminPath}/dashboard"));
                     exit;
                 }
             }

@@ -263,6 +263,23 @@ Route::post("$adminPath/settings/api-keys/{id}/delete", function ($id) {
     (new \Screenart\Musedock\Controllers\Api\V1\ApiKeyController())->destroy((int) $id);
 })->middleware(['auth', 'permission:settings.edit'])->name('tenant.settings.api-keys.delete');
 
+// Conexiones IA (MCP): tokens por sección × nivel, activación y actividad
+Route::get("$adminPath/mcp", 'tenant.McpController@index')
+     ->middleware(['auth', 'permission:settings.view'])
+     ->name('tenant.mcp.index');
+Route::post("$adminPath/mcp/toggle", 'tenant.McpController@toggle')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.mcp.toggle');
+Route::post("$adminPath/mcp/keys", 'tenant.McpController@store')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.mcp.store');
+Route::post("$adminPath/mcp/keys/{id}", 'tenant.McpController@update')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.mcp.update');
+Route::post("$adminPath/mcp/keys/{id}/revoke", 'tenant.McpController@revoke')
+     ->middleware(['auth', 'permission:settings.edit'])
+     ->name('tenant.mcp.revoke');
+
 // Settings - Security (CSP overrides por tenant)
 Route::get("$adminPath/settings/security", 'tenant.SettingsController@security')
      ->middleware(['auth', 'permission:settings.view'])

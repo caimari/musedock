@@ -190,9 +190,36 @@ if (!file_exists(__DIR__ . '/../install.lock')) {
 // =========== CONFIG Y RUTAS ===========
 // require_once __DIR__ . '/../config/config.php'; // config.php parece no ser necesario si no se usa aquí
 
+// Peticiones sin estado (servidor MCP): autenticadas por Bearer token, sin
+// sesión PHP ni cookie. Evita crear un fichero de sesión por cada llamada de un agente.
+if (!defined('MUSEDOCK_STATELESS_REQUEST')) {
+    $__statelessPath = rtrim(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/', '/');
+    define('MUSEDOCK_STATELESS_REQUEST',
+        in_array($__statelessPath, ['/mcp', '/oauth/register', '/oauth/token', '/oauth/revoke', '/.well-known/openid-configuration'], true)
+        || str_starts_with($__statelessPath, '/.well-known/oauth-')
+        // Primer paso de /oauth/authorize (rebote same-site): no debe tocar la cookie de sesión
+        || ($__statelessPath === '/oauth/authorize' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && !isset($_GET['_ss']))
+    );
+}
+if (MUSEDOCK_STATELESS_REQUEST) {
+    // Cualquier session_start() perezoso (helpers, middlewares) funciona en memoria:
+    // sin cookie y sin fichero de sesión.
+    ini_set('session.use_cookies', '0');
+    ini_set('session.use_trans_sid', '0');
+    ini_set('session.cache_limiter', '');
+    session_set_save_handler(new class implements \SessionHandlerInterface {
+        public function open(string $path, string $name): bool { return true; }
+        public function close(): bool { return true; }
+        public function read(string $id): string|false { return ''; }
+        public function write(string $id, string $data): bool { return true; }
+        public function destroy(string $id): bool { return true; }
+        public function gc(int $max_lifetime): int|false { return 0; }
+    }, true);
+}
+
 // 1. Iniciar sesión ANTES de resolver tenant y cargar módulos
 // Esto permite que los bootstrap de módulos puedan verificar $_SESSION
-if (session_status() !== PHP_SESSION_ACTIVE) {
+if (!MUSEDOCK_STATELESS_REQUEST && session_status() !== PHP_SESSION_ACTIVE) {
     // Configurar sesión de forma segura
     ini_set('session.cookie_httponly', 1);
     ini_set('session.cookie_secure', isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 1 : 0);
@@ -253,6 +280,7 @@ require_once __DIR__ . '/../routes/superadmin.php';
 require_once __DIR__ . '/../routes/admin.php';
 require_once __DIR__ . '/../routes/api_ai.php';
 require_once __DIR__ . '/../routes/api_v1.php';
+require_once __DIR__ . '/../routes/mcp.php';
 require_once __DIR__ . '/../routes/tenant.php';
 require_once __DIR__ . '/../routes/web.php';
 Logger::debug("Archivos de rutas cargados.");
@@ -261,11 +289,11 @@ Logger::debug("Archivos de rutas cargados.");
 try {
     $__uri = strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
     $__method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-    $__skip_prefixes = ['/musedock/', '/admin/', '/api/', '/assets/', '/vendor/', '/uploads/', '/media/'];
+    $__skip_prefixes = ['/musedock/', '/admin/', '/api/', '/assets/', '/vendor/', '/uploads/', '/media/', '/oauth/', '/.well-known/'];
     $__skip_ext = ['.css','.js','.jpg','.jpeg','.png','.gif','.svg','.webp','.ico','.woff','.woff2','.ttf','.pdf','.zip','.xml','.json','.php','.php7','.env','.log','.yml'];
     $__attack = ['/.env','/.git','/wp-','/phpmyadmin','/xmlrpc','/shell','/webshell','/passwd','/setup-config'];
     $__should_skip = false;
-    if ($__method !== 'GET') $__should_skip = true;
+    if ($__method !== 'GET' || MUSEDOCK_STATELESS_REQUEST) $__should_skip = true;
     foreach ($__skip_prefixes as $p) { if (str_starts_with($__uri, $p)) { $__should_skip = true; break; } }
     if (!$__should_skip) foreach ($__skip_ext as $e) { if (str_ends_with($__uri, $e)) { $__should_skip = true; break; } }
     if (!$__should_skip) foreach ($__attack as $a) { if (stripos($__uri, $a) !== false) { $__should_skip = true; break; } }

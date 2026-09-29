@@ -33,8 +33,8 @@ class ApiToolLogger
      * Returns a human-readable warning message if confirmation is needed.
      */
     private const DANGEROUS_TOOLS = [
-        'delete_post'     => 'This will permanently delete the post.',
-        'delete_page'     => 'This will permanently delete the page.',
+        'delete_post'     => 'This will move the post to the trash and remove it from the website.',
+        'delete_page'     => 'This will move the page to the trash and remove it from the website.',
         'delete_category' => 'This will delete the category and unlink it from all posts.',
         'delete_tag'      => 'This will delete the tag and unlink it from all posts.',
         'cross_publish'   => 'This will publish content to other websites.',
@@ -117,6 +117,7 @@ class ApiToolLogger
      * @param int         $statusCode HTTP status code
      * @param bool        $success
      * @param float|null  $startTime  microtime(true) from request start
+     * @param string      $source     'rest' or 'mcp'
      */
     public static function log(
         int $apiKeyId,
@@ -127,7 +128,8 @@ class ApiToolLogger
         array $input = [],
         int $statusCode = 200,
         bool $success = true,
-        ?float $startTime = null
+        ?float $startTime = null,
+        string $source = 'rest'
     ): void {
         $durationMs = $startTime ? (int)((microtime(true) - $startTime) * 1000) : null;
 
@@ -137,26 +139,37 @@ class ApiToolLogger
             $inputSummary = substr($inputSummary, 0, 2000) . '...(truncated)';
         }
 
-        $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+        $ip = \Screenart\Musedock\Security\IPHelper::getRealIP() ?: ($_SERVER['REMOTE_ADDR'] ?? null);
+
+        $params = [
+            $apiKeyId,
+            $tenantId,
+            $toolName,
+            $method,
+            substr($path, 0, 500),
+            $inputSummary,
+            $statusCode,
+            $success ? 1 : 0,
+            $durationMs,
+            $ip,
+        ];
 
         try {
             $pdo = Database::connect();
-            $pdo->prepare("
-                INSERT INTO api_tool_logs
-                (api_key_id, tenant_id, tool_name, http_method, path, input_summary, status_code, success, duration_ms, ip_address, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-            ")->execute([
-                $apiKeyId,
-                $tenantId,
-                $toolName,
-                $method,
-                $path,
-                $inputSummary,
-                $statusCode,
-                $success ? 1 : 0,
-                $durationMs,
-                $ip,
-            ]);
+            try {
+                $pdo->prepare("
+                    INSERT INTO api_tool_logs
+                    (api_key_id, tenant_id, tool_name, http_method, path, input_summary, status_code, success, duration_ms, ip_address, source, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                ")->execute(array_merge($params, [$source]));
+            } catch (\PDOException $e) {
+                // "source" column not migrated yet
+                $pdo->prepare("
+                    INSERT INTO api_tool_logs
+                    (api_key_id, tenant_id, tool_name, http_method, path, input_summary, status_code, success, duration_ms, ip_address, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                ")->execute($params);
+            }
         } catch (\Throwable $e) {
             error_log("ApiToolLogger: Failed to log: " . $e->getMessage());
         }

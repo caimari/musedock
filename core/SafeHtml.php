@@ -7,8 +7,12 @@ namespace Screenart\Musedock;
  *
  * Esta clase previene XSS (Cross-Site Scripting) mediante:
  * - Escape completo de HTML (método escape)
- * - Sanitización permitiendo solo tags seguros (método sanitize)
+ * - Sanitización por lista blanca de tags/atributos (método sanitize)
+ * - Lista blanca de esquemas de URL (http, https, mailto, tel y rutas relativas)
+ * - Iframes solo de proveedores de embeds conocidos
  * - Conversión automática a string seguro
+ *
+ * Se usa para contenido que llega desde fuentes no confiables (API REST, MCP/IA).
  *
  * @package Screenart\Musedock
  */
@@ -17,29 +21,64 @@ class SafeHtml
     protected $html;
     protected $sanitized;
     protected $allowedTags = [
-        'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'strike',
+        'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'strike', 'del', 'ins', 'mark',
+        'small', 'sub', 'sup', 'abbr', 'cite', 'q', 'kbd', 'time',
         'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
-        'a', 'img', 'table', 'thead', 'tbody', 'tr', 'td', 'th',
-        'div', 'span', 'hr',
-        'iframe', 'video', 'source', 'embed', 'figure', 'figcaption'
+        'ul', 'ol', 'li', 'dl', 'dt', 'dd', 'blockquote', 'code', 'pre',
+        'a', 'img', 'picture', 'table', 'caption', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'colgroup', 'col',
+        'div', 'span', 'hr', 'section', 'article', 'aside', 'header', 'footer',
+        'details', 'summary',
+        'iframe', 'video', 'audio', 'source', 'figure', 'figcaption'
     ];
 
     protected $allowedAttributes = [
-        'a' => ['href', 'title', 'target', 'rel'],
-        'img' => ['src', 'alt', 'title', 'width', 'height', 'loading'],
-        'table' => ['class'],
-        'td' => ['colspan', 'rowspan'],
-        'th' => ['colspan', 'rowspan'],
-        'div' => ['class', 'style'],
-        'span' => ['class', 'style'],
-        'iframe' => ['src', 'width', 'height', 'frameborder', 'allowfullscreen', 'allow', 'title', 'loading', 'referrerpolicy', 'style'],
-        'video' => ['src', 'width', 'height', 'controls', 'autoplay', 'loop', 'muted', 'poster', 'preload', 'style'],
-        'source' => ['src', 'type'],
-        'embed' => ['src', 'type', 'width', 'height', 'style'],
-        'figure' => ['class', 'style'],
-        'figcaption' => ['class'],
+        '*' => ['class', 'title', 'lang', 'dir'],
+        'a' => ['href', 'target', 'rel', 'id', 'name'],
+        'img' => ['src', 'alt', 'width', 'height', 'loading', 'srcset', 'sizes', 'style'],
+        'td' => ['colspan', 'rowspan', 'style'],
+        'th' => ['colspan', 'rowspan', 'scope', 'style'],
+        'col' => ['span'],
+        'colgroup' => ['span'],
+        'ol' => ['start', 'reversed', 'type'],
+        'p' => ['style'],
+        'h1' => ['id', 'style'], 'h2' => ['id', 'style'], 'h3' => ['id', 'style'],
+        'h4' => ['id', 'style'], 'h5' => ['id', 'style'], 'h6' => ['id', 'style'],
+        'div' => ['style', 'id'],
+        'span' => ['style'],
+        'section' => ['id'],
+        'blockquote' => ['cite'],
+        'q' => ['cite'],
+        'time' => ['datetime'],
+        'details' => ['open'],
+        'iframe' => ['src', 'width', 'height', 'frameborder', 'allowfullscreen', 'allow', 'loading', 'referrerpolicy', 'style'],
+        'video' => ['src', 'width', 'height', 'controls', 'autoplay', 'loop', 'muted', 'poster', 'preload', 'playsinline', 'style'],
+        'audio' => ['src', 'controls', 'loop', 'muted', 'preload'],
+        'source' => ['src', 'type', 'srcset', 'media', 'sizes'],
+        'figure' => ['style'],
     ];
+
+    /**
+     * Tags que se eliminan junto con todo su contenido (no se "desenvuelven").
+     */
+    protected $dropWithContent = [
+        'script', 'style', 'object', 'embed', 'applet', 'svg', 'math', 'template', 'noscript',
+        'form', 'input', 'button', 'textarea', 'select', 'option', 'meta', 'link', 'base',
+        'frame', 'frameset', 'head', 'title', 'xml',
+    ];
+
+    /**
+     * Hosts permitidos en <iframe src> (se aceptan también sus subdominios).
+     */
+    protected $allowedIframeHosts = [
+        'youtube.com', 'youtube-nocookie.com', 'player.vimeo.com', 'dailymotion.com',
+        'open.spotify.com', 'w.soundcloud.com', 'google.com', 'maps.google.com',
+        'docs.google.com', 'calendar.google.com', 'facebook.com', 'instagram.com',
+        'platform.twitter.com', 'tiktok.com', 'loom.com', 'canva.com', 'codepen.io',
+    ];
+
+    protected $urlAttributes = ['href', 'src', 'poster', 'cite'];
+
+    protected $allowedSchemes = ['http', 'https', 'mailto', 'tel'];
 
     /**
      * Constructor
@@ -67,7 +106,7 @@ class SafeHtml
      */
     public function escape($html)
     {
-        return htmlspecialchars($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        return htmlspecialchars((string)$html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
 
     /**
@@ -78,33 +117,27 @@ class SafeHtml
      */
     public function sanitize($html)
     {
-        if (empty($html)) {
+        $html = (string)$html;
+        if ($html === '') {
             return '';
         }
 
         // Prevenir ataques nulos
         $html = str_replace("\0", '', $html);
 
-        // Remover scripts y estilos inline peligrosos
-        $html = $this->removeScripts($html);
-
-        // Usar DOMDocument para parsear HTML de forma segura
-        if (class_exists('DOMDocument')) {
-            return $this->sanitizeWithDOM($html);
+        // Sin DOMDocument no hay forma fiable de sanitizar: escapar todo
+        if (!class_exists('DOMDocument')) {
+            return $this->escape($html);
         }
 
-        // Fallback: strip_tags con tags permitidos
-        $allowedTagsString = '<' . implode('><', $this->allowedTags) . '>';
-        $cleaned = strip_tags($html, $allowedTagsString);
-
-        // Sanitizar atributos peligrosos
-        $cleaned = $this->sanitizeAttributes($cleaned);
-
-        return $cleaned;
+        return $this->sanitizeWithDOM($html);
     }
 
     /**
-     * Sanitiza HTML usando DOMDocument (método más seguro)
+     * Sanitiza HTML usando DOMDocument.
+     *
+     * El fragmento se envuelve en un contenedor propio para conservar TODOS los
+     * nodos raíz (con LIBXML_HTML_NOIMPLIED solo sobrevivía el primero).
      *
      * @param string $html
      * @return string
@@ -114,21 +147,29 @@ class SafeHtml
         $dom = new \DOMDocument();
 
         // Suprimir errores de HTML malformado
-        libxml_use_internal_errors(true);
+        $previous = libxml_use_internal_errors(true);
 
-        // Cargar HTML con codificación UTF-8
-        $dom->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        $dom->loadHTML(
+            '<?xml encoding="UTF-8"><!DOCTYPE html><html><body><div id="__safehtml_root">' . $html . '</div></body></html>',
+            LIBXML_NONET
+        );
 
         libxml_clear_errors();
+        libxml_use_internal_errors($previous);
 
-        // Recorrer todos los nodos y eliminar los no permitidos
-        $this->cleanNode($dom->documentElement);
+        $root = $dom->getElementById('__safehtml_root');
+        if (!$root) {
+            return $this->escape($html);
+        }
 
-        // Obtener HTML limpio
-        $cleaned = $dom->saveHTML($dom->documentElement);
+        foreach (iterator_to_array($root->childNodes) as $child) {
+            $this->cleanNode($child);
+        }
 
-        // Remover el wrapper XML
-        $cleaned = preg_replace('/^<\?xml[^>]*>/', '', $cleaned);
+        $cleaned = '';
+        foreach ($root->childNodes as $child) {
+            $cleaned .= $dom->saveHTML($child);
+        }
 
         return $cleaned;
     }
@@ -144,112 +185,161 @@ class SafeHtml
             return;
         }
 
-        // Si es un elemento
-        if ($node->nodeType === XML_ELEMENT_NODE) {
-            $tagName = strtolower($node->nodeName);
-
-            // Si el tag no está permitido, reemplazarlo con su contenido de texto
-            if (!in_array($tagName, $this->allowedTags)) {
-                $textNode = $node->ownerDocument->createTextNode($node->textContent);
-                $node->parentNode->replaceChild($textNode, $node);
-                return;
-            }
-
-            // Limpiar atributos
-            if ($node->hasAttributes()) {
-                $attributesToRemove = [];
-
-                foreach ($node->attributes as $attr) {
-                    $attrName = strtolower($attr->name);
-
-                    // Verificar si el atributo está permitido para este tag
-                    $allowed = isset($this->allowedAttributes[$tagName]) &&
-                               in_array($attrName, $this->allowedAttributes[$tagName]);
-
-                    if (!$allowed) {
-                        $attributesToRemove[] = $attrName;
-                    } else {
-                        // Sanitizar el valor del atributo
-                        $attrValue = $attr->value;
-
-                        // Prevenir javascript: y data: en href/src
-                        if (in_array($attrName, ['href', 'src'])) {
-                            if (preg_match('/^(javascript|data|vbscript):/i', $attrValue)) {
-                                $attributesToRemove[] = $attrName;
-                            }
-                        }
-
-                        // Prevenir event handlers (onclick, onerror, etc.)
-                        if (preg_match('/^on/i', $attrName)) {
-                            $attributesToRemove[] = $attrName;
-                        }
-                    }
-                }
-
-                // Remover atributos no permitidos
-                foreach ($attributesToRemove as $attrName) {
-                    $node->removeAttribute($attrName);
-                }
-            }
+        // Comentarios, PIs, CDATA: fuera (pueden esconder condicionales de IE, etc.)
+        if (in_array($node->nodeType, [XML_COMMENT_NODE, XML_PI_NODE, XML_CDATA_SECTION_NODE], true)) {
+            $node->parentNode->removeChild($node);
+            return;
         }
 
-        // Procesar hijos recursivamente
-        if ($node->hasChildNodes()) {
-            $children = [];
-            foreach ($node->childNodes as $child) {
-                $children[] = $child;
-            }
+        if ($node->nodeType !== XML_ELEMENT_NODE) {
+            return;
+        }
 
-            foreach ($children as $child) {
+        $tagName = strtolower($node->nodeName);
+
+        // Tags peligrosos: eliminar con su contenido
+        if (in_array($tagName, $this->dropWithContent, true)) {
+            $node->parentNode->removeChild($node);
+            return;
+        }
+
+        // Tags no permitidos: desenvolver (conservar hijos ya limpios)
+        if (!in_array($tagName, $this->allowedTags, true)) {
+            foreach (iterator_to_array($node->childNodes) as $child) {
                 $this->cleanNode($child);
             }
+            $parent = $node->parentNode;
+            while ($node->firstChild) {
+                $parent->insertBefore($node->firstChild, $node);
+            }
+            $parent->removeChild($node);
+            return;
+        }
+
+        // Iframes solo de proveedores conocidos
+        if ($tagName === 'iframe' && !$this->isAllowedIframeSrc($node->getAttribute('src'))) {
+            $node->parentNode->removeChild($node);
+            return;
+        }
+
+        $this->cleanAttributes($node, $tagName);
+
+        // Enlaces que abren ventana nueva: evitar reverse tabnabbing
+        if ($tagName === 'a' && strtolower($node->getAttribute('target')) === '_blank') {
+            $rel = array_filter(preg_split('/\s+/', strtolower($node->getAttribute('rel'))));
+            $rel = array_unique(array_merge($rel, ['noopener', 'noreferrer']));
+            $node->setAttribute('rel', implode(' ', $rel));
+        }
+
+        foreach (iterator_to_array($node->childNodes) as $child) {
+            $this->cleanNode($child);
         }
     }
 
     /**
-     * Remueve scripts y estilos inline peligrosos
-     *
-     * @param string $html
-     * @return string
+     * Elimina atributos no permitidos y valida URLs/estilos de los permitidos.
      */
-    protected function removeScripts($html)
+    protected function cleanAttributes(\DOMElement $node, string $tagName): void
     {
-        // Remover <script>
-        $html = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $html);
+        if (!$node->hasAttributes()) {
+            return;
+        }
 
-        // Remover <style>
-        $html = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $html);
+        $allowed = array_merge(
+            $this->allowedAttributes['*'] ?? [],
+            $this->allowedAttributes[$tagName] ?? []
+        );
 
-        // Remover event handlers inline
-        $html = preg_replace('/\s*on\w+\s*=\s*["\'][^"\']*["\']/i', '', $html);
+        $toRemove = [];
+        foreach ($node->attributes as $attr) {
+            $name = strtolower($attr->name);
+            $value = $attr->value;
 
-        // Remover javascript: en atributos
-        $html = preg_replace('/href\s*=\s*["\']javascript:[^"\']*["\']/i', '', $html);
+            if (!in_array($name, $allowed, true) || str_starts_with($name, 'on')) {
+                $toRemove[] = $attr->name;
+                continue;
+            }
 
-        // Remover expresiones CSS peligrosas
-        $html = preg_replace('/expression\s*\(/i', '', $html);
+            if (in_array($name, $this->urlAttributes, true) && !$this->isSafeUrl($value)) {
+                $toRemove[] = $attr->name;
+                continue;
+            }
 
-        return $html;
+            if (in_array($name, ['srcset'], true) && !$this->isSafeSrcset($value)) {
+                $toRemove[] = $attr->name;
+                continue;
+            }
+
+            if ($name === 'style' && !$this->isSafeStyle($value)) {
+                $toRemove[] = $attr->name;
+                continue;
+            }
+
+            if ($name === 'id' && !preg_match('/^[A-Za-z][A-Za-z0-9_\-:.]{0,99}$/', $value)) {
+                $toRemove[] = $attr->name;
+            }
+        }
+
+        foreach ($toRemove as $name) {
+            $node->removeAttribute($name);
+        }
     }
 
     /**
-     * Sanitiza atributos peligrosos (fallback cuando no hay DOMDocument)
-     *
-     * @param string $html
-     * @return string
+     * URL segura: relativa o con esquema en lista blanca.
+     * Normaliza como lo hacen los navegadores (ignoran espacios/controles),
+     * así " javascript:" o "java\tscript:" no se cuelan.
      */
-    protected function sanitizeAttributes($html)
+    protected function isSafeUrl(string $url): bool
     {
-        // Remover event handlers
-        $html = preg_replace('/\s*on\w+\s*=\s*["\'][^"\']*["\']/i', '', $html);
+        $normalized = preg_replace('/[\x00-\x20\x7f]+/', '', $url);
 
-        // Remover javascript: y data: URLs
-        $html = preg_replace('/(href|src)\s*=\s*["\']?(javascript|data|vbscript):[^"\'\s>]*/i', '', $html);
+        if (preg_match('/^([a-z][a-z0-9+.\-]*):/i', $normalized, $m)) {
+            return in_array(strtolower($m[1]), $this->allowedSchemes, true);
+        }
 
-        // Remover style con expresiones CSS peligrosas
-        $html = preg_replace('/style\s*=\s*["\'][^"\']*expression\s*\([^"\']*["\']/i', '', $html);
+        return true; // relativa: /ruta, #ancla, ?q=, ruta/relativa
+    }
 
-        return $html;
+    protected function isSafeSrcset(string $srcset): bool
+    {
+        foreach (explode(',', $srcset) as $candidate) {
+            $url = preg_split('/\s+/', trim($candidate))[0] ?? '';
+            if ($url !== '' && !$this->isSafeUrl($url)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Estilo inline seguro: sin url(), expresiones, bindings, imports ni escapes
+     * CSS (que podrían ocultar lo anterior) y sin overlays position:fixed.
+     */
+    protected function isSafeStyle(string $style): bool
+    {
+        return !preg_match('/url\s*\(|expression|javascript|vbscript|behavior|binding|@import|\\\\|position\s*:\s*(fixed|sticky)/i', $style);
+    }
+
+    protected function isAllowedIframeSrc(string $src): bool
+    {
+        $src = trim($src);
+        if (!preg_match('#^https://#i', $src)) {
+            return false;
+        }
+
+        $host = strtolower((string)parse_url($src, PHP_URL_HOST));
+        if ($host === '') {
+            return false;
+        }
+
+        foreach ($this->allowedIframeHosts as $allowedHost) {
+            if ($host === $allowedHost || str_ends_with($host, '.' . $allowedHost)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -303,7 +393,7 @@ class SafeHtml
      */
     public function __toString()
     {
-        return $this->sanitized;
+        return (string)$this->sanitized;
     }
 
     /**
@@ -320,6 +410,16 @@ class SafeHtml
     }
 
     /**
+     * Texto plano: elimina todo el HTML y decodifica entidades.
+     * Para campos como excerpt, títulos o meta descripciones.
+     */
+    public static function plain($text): string
+    {
+        $text = strip_tags(str_replace("\0", '', (string)$text));
+        return trim(html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    }
+
+    /**
      * Método estático para escapar completamente
      *
      * @param string $html
@@ -327,6 +427,6 @@ class SafeHtml
      */
     public static function escapeAll($html)
     {
-        return htmlspecialchars($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        return htmlspecialchars((string)$html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
 }

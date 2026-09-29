@@ -145,7 +145,7 @@ class PostController
         $pdo = Database::connect();
 
         // Generate slug from title
-        $slug = $this->slugify($input['title']);
+        $slug = $this->slugify(ContentPolicy::plain($input['title']));
         $slug = $this->ensureUniqueSlug($slug, $tenantId, $pdo);
 
         // Status logic
@@ -161,6 +161,10 @@ class PostController
         if ($status === 'published' && !$publishedAt) {
             $publishedAt = date('Y-m-d H:i:s');
         }
+        [$status, $publishNotice] = ContentPolicy::resolveStatus('posts', $status);
+        if ($status === 'draft') {
+            $publishedAt = null;
+        }
 
         // Download featured image if URL provided
         $featuredImage = null;
@@ -173,10 +177,10 @@ class PostController
             'tenant_id'            => $tenantId,
             'user_id'              => 0, // API-created
             'user_type'            => 'admin',
-            'title'                => $input['title'],
+            'title'                => ContentPolicy::plain($input['title']),
             'slug'                 => $slug,
-            'excerpt'              => $input['excerpt'] ?? null,
-            'content'              => $input['content'],
+            'excerpt'              => ContentPolicy::plain($input['excerpt'] ?? null),
+            'content'              => ContentPolicy::html($input['content']),
             'featured_image'       => $featuredImage,
             'hide_featured_image'  => 0,
             'hide_title'           => !empty($input['hide_title']) ? 1 : 0,
@@ -186,8 +190,8 @@ class PostController
             'base_locale'          => $input['base_locale'] ?? 'es',
             'allow_comments'       => 1,
             'featured'             => 0,
-            'seo_title'            => $input['seo_title'] ?? null,
-            'seo_description'      => $input['seo_description'] ?? null,
+            'seo_title'            => ContentPolicy::plain($input['seo_title'] ?? null),
+            'seo_description'      => ContentPolicy::plain($input['seo_description'] ?? null),
             'post_type'            => in_array($input['post_type'] ?? 'post', ['post', 'brief']) ? ($input['post_type'] ?? 'post') : 'post',
         ];
 
@@ -247,10 +251,11 @@ class PostController
         $postArray['url'] = $this->buildPostUrl($postArray);
 
         http_response_code(201);
-        echo json_encode([
+        echo json_encode(array_filter([
             'success' => true,
             'post'    => $postArray,
-        ], JSON_UNESCAPED_UNICODE);
+            'notice'  => $publishNotice,
+        ], fn($v) => $v !== null), JSON_UNESCAPED_UNICODE);
     }
 
     // =========================================================================
@@ -289,17 +294,40 @@ class PostController
             }
         }
 
-        if (isset($updateData['status']) && !in_array($updateData['status'], ['draft', 'published'])) {
-            $updateData['status'] = 'draft';
+        ContentPolicy::assertCanModifyLive('posts', $postRow['status'] ?? null);
+
+        $publishNotice = null;
+        if (isset($updateData['status'])) {
+            if (!in_array($updateData['status'], ['draft', 'published'])) {
+                $updateData['status'] = 'draft';
+            }
+            [$updateData['status'], $publishNotice] = ContentPolicy::resolveStatus('posts', $updateData['status']);
+            if ($updateData['status'] === 'published' && empty($postRow['published_at']) && !array_key_exists('published_at', $updateData)) {
+                $updateData['published_at'] = date('Y-m-d H:i:s');
+            }
+        }
+
+        foreach (['title', 'excerpt', 'seo_title', 'seo_description'] as $plainField) {
+            if (array_key_exists($plainField, $updateData)) {
+                $updateData[$plainField] = ContentPolicy::plain($updateData[$plainField]);
+            }
+        }
+        if (array_key_exists('content', $updateData)) {
+            $updateData['content'] = ContentPolicy::html($updateData['content']);
         }
 
         if (isset($updateData['hide_title'])) {
             $updateData['hide_title'] = $updateData['hide_title'] ? 1 : 0;
         }
 
-        // Handle featured image URL
+        // Handle featured image URL (si la descarga falla se conserva la imagen actual)
         if (!empty($input['featured_image_url'])) {
-            $updateData['featured_image'] = $this->downloadImage($input['featured_image_url'], $tenantId, $pdo);
+            $featuredImage = $this->downloadImage($input['featured_image_url'], $tenantId, $pdo);
+            if ($featuredImage !== null) {
+                $updateData['featured_image'] = $featuredImage;
+            } else {
+                $publishNotice = trim(($publishNotice ?? '') . ' Featured image not updated: the URL could not be downloaded or is not a public image.');
+            }
         }
 
         if (!empty($updateData)) {
@@ -328,7 +356,7 @@ class PostController
             }
         }
 
-        echo json_encode([
+        echo json_encode(array_filter([
             'success' => true,
             'post'    => [
                 'id'     => (int) $post->id,
@@ -336,7 +364,8 @@ class PostController
                 'slug'   => $post->slug,
                 'status' => $post->status,
             ],
-        ], JSON_UNESCAPED_UNICODE);
+            'notice'  => $publishNotice,
+        ], fn($v) => $v !== null), JSON_UNESCAPED_UNICODE);
     }
 
     // =========================================================================
@@ -380,6 +409,9 @@ class PostController
         $input = ApiKeyAuth::getJsonInput();
         $targetTenantIds = $input['target_tenant_ids'] ?? [];
         $targetStatus = $input['target_status'] ?? 'draft';
+        if ($targetStatus !== 'draft') {
+            [$targetStatus] = ContentPolicy::resolveStatus('posts', $targetStatus);
+        }
 
         if (empty($targetTenantIds)) {
             ApiKeyAuth::respond(422, 'VALIDATION_ERROR', 'target_tenant_ids is required.');
@@ -588,7 +620,7 @@ class PostController
      */
     private function downloadImage(string $url, int $tenantId, \PDO $pdo): ?string
     {
-        // Validate URL
+        // Validate URL (solo http/https hacia IPs públicas — anti SSRF)
         if (!filter_var($url, FILTER_VALIDATE_URL)) return null;
 
         $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
@@ -597,18 +629,7 @@ class PostController
         if (!in_array($ext, $allowedExts)) $ext = 'jpg';
 
         // Download
-        $ctx = stream_context_create([
-            'http' => [
-                'timeout'       => 15,
-                'user_agent'    => 'MuseDock CMS/2.10',
-                'max_redirects' => 3,
-            ],
-            'ssl' => [
-                'verify_peer' => false,
-            ],
-        ]);
-
-        $imageData = @file_get_contents($url, false, $ctx);
+        $imageData = \Screenart\Musedock\Security\UrlGuard::fetch($url, 10 * 1024 * 1024, 15);
         if (!$imageData) return null;
 
         // Verify it's actually an image

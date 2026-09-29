@@ -218,7 +218,9 @@ class Route {
 public static function resolve() {
     // Usar SessionSecurity para iniciar sesión correctamente
     // Esto maneja expiración, regeneración de ID, y restauración desde "remember me"
-    \Screenart\Musedock\Security\SessionSecurity::startSession();
+    if (!(defined('MUSEDOCK_STATELESS_REQUEST') && MUSEDOCK_STATELESS_REQUEST)) {
+        \Screenart\Musedock\Security\SessionSecurity::startSession();
+    }
 
     // DEBUG: Log estado de sesión para diagnóstico de AJAX
     $uri = $_SERVER['REQUEST_URI'] ?? '';
@@ -267,7 +269,9 @@ public static function resolve() {
         ];
 
         $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';
-        $skipCsrf = false;
+        // Servidor MCP y endpoints OAuth máquina-a-máquina: autenticación por token/cliente,
+        // sin sesión (coincidencia exacta). /oauth/authorize (consentimiento) SÍ lleva CSRF.
+        $skipCsrf = in_array(rtrim($currentUri, '/'), ['/mcp', '/oauth/register', '/oauth/token', '/oauth/revoke'], true);
 
         foreach ($csrfExcludedRoutes as $excludedRoute) {
             // Verificar si la ruta comienza con el patrón O si termina con el patrón
@@ -919,6 +923,56 @@ public static function getPathByName(string $name, array $params = []): ?string
     $path = rtrim($path, '/');
 
     return $path ?: '/';
+}
+
+/**
+ * Ejecuta una ruta registrada dentro del proceso actual (sin HTTP) y devuelve
+ * lo que haya impreso. Solo para rutas de /api/v1/, que se autentican dentro
+ * de su handler; la usa el servidor MCP para reutilizar la API REST.
+ *
+ * @return string|null Salida capturada, o null si no hay ruta que coincida
+ */
+public static function dispatchInternal(string $method, string $uri): ?string
+{
+    $method = strtoupper($method);
+    $uri = rtrim($uri, '/');
+
+    if (!str_starts_with($uri, '/api/v1/')) {
+        throw new \InvalidArgumentException('dispatchInternal solo admite rutas /api/v1/');
+    }
+
+    $handler = null;
+    $params = [];
+
+    if (isset(self::$routes[$method][$uri])) {
+        $handler = self::$routes[$method][$uri];
+    } else {
+        foreach (self::$routes[$method] ?? [] as $route => $candidate) {
+            $routePattern = preg_replace_callback('#\{([^\}:]+)(:([^\}]+))?\}#', function ($matches) {
+                return isset($matches[3]) ? '(' . $matches[3] . ')' : '([^/]+)';
+            }, $route);
+
+            if (preg_match('#^' . $routePattern . '$#', $uri, $matches)) {
+                array_shift($matches);
+                $handler = $candidate;
+                $params = $matches;
+                break;
+            }
+        }
+    }
+
+    if ($handler === null) {
+        return null;
+    }
+
+    ob_start();
+    try {
+        self::callHandler($handler, $params);
+    } finally {
+        $output = ob_get_clean();
+    }
+
+    return $output;
 }
 
 private static function runMiddlewares(array $middlewares): bool

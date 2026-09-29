@@ -73,8 +73,8 @@ class TagController
             ApiKeyAuth::respond(422, 'VALIDATION_ERROR', 'name is required.');
         }
 
-        $name = trim($input['name']);
-        $slug = $input['slug'] ?? $this->slugify($name);
+        $name = ContentPolicy::plain($input['name']);
+        $slug = $this->slugify(!empty($input['slug']) ? $input['slug'] : $name);
 
         $pdo = Database::connect();
 
@@ -127,11 +127,11 @@ class TagController
 
         if (isset($input['name'])) {
             $sets[] = "name = ?";
-            $params[] = trim($input['name']);
+            $params[] = ContentPolicy::plain($input['name']);
         }
         if (isset($input['slug'])) {
             $sets[] = "slug = ?";
-            $params[] = $input['slug'];
+            $params[] = $this->slugify($input['slug']);
         }
 
         if (empty($sets)) {

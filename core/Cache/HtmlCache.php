@@ -576,6 +576,9 @@ class HtmlCache
             '/search',
             '/csrf-token',
             '/newsletter/',
+            '/oauth/',
+            '/.well-known/',
+            '/mcp',
         ];
 
         $uriLower = strtolower($uri);

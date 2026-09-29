@@ -22,6 +22,10 @@ class ApiKey extends Model
         'last_used_at',
         'expires_at',
         'is_active',
+        'allowed_ips',
+        'auth_type',
+        'oauth_client_id',
+        'user_id',
     ];
 
     protected array $casts = [
