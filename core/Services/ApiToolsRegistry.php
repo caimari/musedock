@@ -125,6 +125,11 @@ class ApiToolsRegistry
             self::registerBlogTools();
         }
 
+        // Media tools only if the media library is active
+        if (function_exists('is_module_active') && is_module_active('media-manager')) {
+            self::registerMediaTools();
+        }
+
         self::discoverPluginTools();
     }
 
@@ -273,12 +278,13 @@ class ApiToolsRegistry
         self::register('create_post', ['description' => 'Create a new blog post. Categories and tags are auto-created if they don\'t exist.', 'method' => 'POST', 'path' => '/api/v1/posts', 'permission' => 'posts.create', 'parameters' => [
             ['name' => 'tenant_id', 'type' => 'number', 'required' => true, 'in' => 'body', 'description' => 'Target website ID'],
             ['name' => 'title', 'type' => 'string', 'required' => true, 'in' => 'body', 'description' => 'Post title'],
-            ['name' => 'content', 'type' => 'string', 'required' => true, 'in' => 'body', 'description' => 'HTML content'],
+            ['name' => 'content', 'type' => 'string', 'required' => true, 'in' => 'body', 'description' => 'HTML content. Images: insert <img> tags returned by generate_image/upload_image.'],
             ['name' => 'excerpt', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'Summary/excerpt'],
             ['name' => 'categories', 'type' => 'array', 'items' => 'string', 'required' => false, 'in' => 'body', 'description' => 'Category names/slugs (created if missing)'],
             ['name' => 'tags', 'type' => 'array', 'items' => 'string', 'required' => false, 'in' => 'body', 'description' => 'Tag names/slugs (created if missing)'],
             ['name' => 'status', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'Post status', 'default' => 'draft', 'enum' => ['draft', 'published']],
-            ['name' => 'featured_image_url', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'URL of image to download as featured image'],
+            ['name' => 'featured_image_url', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'URL of image to use as featured image (media library URLs are reused, others are downloaded)'],
+            ['name' => 'featured_image_id', 'type' => 'number', 'required' => false, 'in' => 'body', 'description' => 'Media library image id (e.g. returned by generate_image or upload_image) to use as featured image'],
             ['name' => 'seo_title', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'Custom SEO title'],
             ['name' => 'seo_description', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'Custom SEO meta description'],
             ['name' => 'published_at', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'Publication date (ISO 8601). Future dates auto-schedule.'],
@@ -294,7 +300,8 @@ class ApiToolsRegistry
             ['name' => 'tags', 'type' => 'array', 'items' => 'string', 'required' => false, 'in' => 'body', 'description' => 'Replace tags'],
             ['name' => 'seo_title', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'New SEO title'],
             ['name' => 'seo_description', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'New SEO description'],
-            ['name' => 'featured_image_url', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'New featured image URL'],
+            ['name' => 'featured_image_url', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'New featured image URL (media library URLs are reused, others are downloaded)'],
+            ['name' => 'featured_image_id', 'type' => 'number', 'required' => false, 'in' => 'body', 'description' => 'Media library image id to use as featured image'],
         ]]);
         self::register('delete_post', ['description' => 'Delete a blog post (moves to trash)', 'method' => 'DELETE', 'path' => '/api/v1/posts/{id}', 'permission' => 'posts.delete', 'parameters' => [
             ['name' => 'id', 'type' => 'number', 'required' => true, 'in' => 'path', 'description' => 'Post ID'],
@@ -303,6 +310,32 @@ class ApiToolsRegistry
             ['name' => 'id', 'type' => 'number', 'required' => true, 'in' => 'path', 'description' => 'Source post ID'],
             ['name' => 'target_tenant_ids', 'type' => 'array', 'items' => 'number', 'required' => true, 'in' => 'body', 'description' => 'Target tenant IDs'],
             ['name' => 'target_status', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'Status for copies', 'default' => 'draft', 'enum' => ['draft', 'published']],
+        ]]);
+    }
+
+    /**
+     * Register media library tools (list, AI generation, upload by URL).
+     */
+    private static function registerMediaTools(): void
+    {
+        self::register('list_media', ['description' => 'List images in the website media library (newest first). Each item includes url and a ready-to-insert <img> html.', 'method' => 'GET', 'path' => '/api/v1/media', 'permission' => 'media.read', 'parameters' => [
+            ['name' => 'tenant_id', 'type' => 'number', 'required' => true, 'in' => 'query', 'description' => 'Website/tenant ID'],
+            ['name' => 'search', 'type' => 'string', 'required' => false, 'in' => 'query', 'description' => 'Filter by file name or alt text'],
+            ['name' => 'page', 'type' => 'number', 'required' => false, 'in' => 'query', 'description' => 'Page number', 'default' => 1],
+            ['name' => 'per_page', 'type' => 'number', 'required' => false, 'in' => 'query', 'description' => 'Items per page (max 100)', 'default' => 20],
+        ]]);
+        self::register('generate_image', ['description' => 'Generate an image with the website AI image provider and save it to the media library. Returns id, url and an <img> html snippet: insert the html inside post/page content, or pass the id as featured_image_id. Uses the site AI quota; generate only the images the user asked for.', 'method' => 'POST', 'path' => '/api/v1/media/generate', 'permission' => 'media.create', 'parameters' => [
+            ['name' => 'tenant_id', 'type' => 'number', 'required' => true, 'in' => 'body', 'description' => 'Website/tenant ID'],
+            ['name' => 'prompt', 'type' => 'string', 'required' => true, 'in' => 'body', 'description' => 'Detailed description of the image to generate'],
+            ['name' => 'alt_text', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'Accessible alt text (defaults to the prompt)'],
+            ['name' => 'size', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'Image size', 'default' => '1024x1024', 'enum' => ['1024x1024', '1792x1024', '1024x1792', '1536x1024', '1024x1536']],
+            ['name' => 'quality', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'Image quality', 'enum' => ['standard', 'hd']],
+        ]]);
+        self::register('upload_image', ['description' => 'Download a public image by URL (JPEG, PNG, WebP or GIF, max 10 MB) into the media library. Returns id, url and an <img> html snippet to insert in content or use as featured_image_id.', 'method' => 'POST', 'path' => '/api/v1/media/upload', 'permission' => 'media.create', 'parameters' => [
+            ['name' => 'tenant_id', 'type' => 'number', 'required' => true, 'in' => 'body', 'description' => 'Website/tenant ID'],
+            ['name' => 'url', 'type' => 'string', 'required' => true, 'in' => 'body', 'description' => 'Public http(s) URL of the image'],
+            ['name' => 'alt_text', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'Accessible alt text'],
+            ['name' => 'filename', 'type' => 'string', 'required' => false, 'in' => 'body', 'description' => 'File name without extension (SEO friendly)'],
         ]]);
     }
 

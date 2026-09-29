@@ -82,8 +82,10 @@
                       <td>{{ $section['label'] }}</td>
                       @foreach($levels as $lvl => $lvlLabel)
                         <td>
-                          @if(in_array($lvl, $section['levels'], true))
+                          @if(in_array($lvl, $section['levels'], true) && in_array($lvl, $grantable[$sKey] ?? [], true))
                             <input type="checkbox" class="form-check-input perm-box" name="perm[{{ $sKey }}][]" value="{{ $lvl }}" data-section="{{ $sKey }}" data-level="{{ $lvl }}">
+                          @elseif(in_array($lvl, $section['levels'], true))
+                            <i class="bi bi-lock text-muted" title="Tu usuario no tiene este permiso en el panel"></i>
                           @else
                             <span class="text-muted">—</span>
                           @endif
@@ -95,6 +97,16 @@
               </table>
             </div>
           </details>
+
+          @php
+            $limited = false;
+            foreach ($sections as $sKey => $section) {
+              if (array_diff($section['levels'], $grantable[$sKey] ?? [])) { $limited = true; break; }
+            }
+          @endphp
+          @if($limited)
+            <p class="small text-muted mb-2"><i class="bi bi-lock"></i> Algunas opciones están bloqueadas porque tu usuario no tiene esos permisos en el panel. La conexión nunca podrá hacer más que tú.</p>
+          @endif
 
           <ul class="small text-muted ps-3 mb-4">
             <li>Sin <em>Publicar</em>, todo lo que cree queda en borrador para que lo revises.</li>

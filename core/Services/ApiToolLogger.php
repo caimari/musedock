@@ -25,6 +25,9 @@ class ApiToolLogger
         'update_post'     => 20,
         'update_page'     => 20,
         'cross_publish'   => 5,
+        // Media — la generación consume cuota de IA del sitio
+        'generate_image'  => 5,
+        'upload_image'    => 20,
         // Read actions — generous (inherits global limit)
     ];
 

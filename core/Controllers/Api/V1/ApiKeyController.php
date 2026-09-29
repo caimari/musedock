@@ -240,6 +240,9 @@ class ApiKeyController
             'pages.create'      => 'Crear paginas',
             'pages.update'      => 'Editar paginas',
             'pages.publish'     => 'Publicar paginas',
+            // Media
+            'media.read'        => 'Ver medios',
+            'media.create'      => 'Subir / generar imagenes con IA',
             'pages.delete'      => 'Eliminar paginas',
             // System
             'tenants.read'      => 'Listar tenants (superadmin)',
@@ -262,6 +265,10 @@ class ApiKeyController
             $groups['Posts']      = ['posts.read', 'posts.create', 'posts.update', 'posts.publish', 'posts.delete'];
             $groups['Categorias'] = ['categories.read', 'categories.create', 'categories.update', 'categories.delete'];
             $groups['Tags']       = ['tags.read', 'tags.create', 'tags.update', 'tags.delete'];
+        }
+
+        if (function_exists('is_module_active') && is_module_active('media-manager')) {
+            $groups['Medios'] = ['media.read', 'media.create'];
         }
 
         // System permissions

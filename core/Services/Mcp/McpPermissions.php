@@ -33,6 +33,41 @@ class McpPermissions
         'posts'      => ['Blog (posts)', 'bi-journal-richtext'],
         'categories' => ['Categorías', 'bi-folder'],
         'tags'       => ['Tags', 'bi-tags'],
+        'media'      => ['Medios (imágenes)', 'bi-images'],
+    ];
+
+    /**
+     * Permisos del CMS que necesita la persona que autoriza para conceder cada
+     * nivel (todos los de la lista). El CMS no distingue "publicar": se exige el
+     * permiso de edición más amplio. Secciones de plugins sin mapear → settings.edit.
+     */
+    private const CMS_REQUIREMENTS = [
+        'pages' => [
+            'read'    => ['pages.view'],
+            'write'   => ['pages.create', 'pages.edit'],
+            'publish' => ['pages.edit'],
+            'delete'  => ['pages.delete'],
+        ],
+        'posts' => [
+            'read'    => ['blog.view'],
+            'write'   => ['blog.create', 'blog.edit'],
+            'publish' => ['blog.edit.all'],
+            'delete'  => ['blog.delete'],
+        ],
+        'categories' => [
+            'read'    => ['blog.categories.view'],
+            'write'   => ['blog.categories.create', 'blog.categories.edit'],
+            'delete'  => ['blog.categories.delete'],
+        ],
+        'tags' => [
+            'read'    => ['blog.tags.view'],
+            'write'   => ['blog.tags.create', 'blog.tags.edit'],
+            'delete'  => ['blog.tags.delete'],
+        ],
+        'media' => [
+            'read'    => ['media.manage'],
+            'write'   => ['media.manage'],
+        ],
     ];
 
     /** Secciones con estado borrador/publicado. */
@@ -175,6 +210,69 @@ class McpPermissions
             }
         }
         return null;
+    }
+
+    // =========================================================================
+    // Límite por los permisos de la persona que autoriza
+    // =========================================================================
+
+    /**
+     * ¿Puede este usuario del panel conceder ese nivel en esa sección?
+     *
+     * @param int $userId positivo = admins, negativo = users (como en api_keys.user_id)
+     */
+    public static function userCanGrant(int $userId, int $tenantId, string $section, string $level): bool
+    {
+        static $cache = [];
+        $cacheKey = "{$userId}:{$tenantId}:{$section}:{$level}";
+        if (isset($cache[$cacheKey])) {
+            return $cache[$cacheKey];
+        }
+
+        $realId = abs($userId);
+        if ($userId > 0 && \Screenart\Musedock\Helpers\PermissionHelper::isTenantRootAdmin($realId, $tenantId)) {
+            return $cache[$cacheKey] = true;
+        }
+
+        $required = self::CMS_REQUIREMENTS[$section][$level] ?? ['settings.edit'];
+        foreach ($required as $slug) {
+            if (!\Screenart\Musedock\Helpers\PermissionHelper::userCan($realId, $slug, $tenantId)) {
+                return $cache[$cacheKey] = false;
+            }
+        }
+        return $cache[$cacheKey] = true;
+    }
+
+    /**
+     * Matriz (section => [levels]) que este usuario puede conceder.
+     */
+    public static function grantableMatrix(int $userId, int $tenantId): array
+    {
+        $matrix = [];
+        foreach (self::sections() as $key => $section) {
+            $matrix[$key] = array_values(array_filter(
+                $section['levels'],
+                fn($level) => self::userCanGrant($userId, $tenantId, $key, $level)
+            ));
+        }
+        return $matrix;
+    }
+
+    /**
+     * Recorta una lista de permisos a lo que el usuario puede conceder.
+     * Si pierde "leer" en una sección, pierde la sección entera.
+     */
+    public static function capToUser(array $permissions, int $userId, int $tenantId): array
+    {
+        $summary = self::summarize($permissions);
+        $capped = [];
+        foreach ($summary as $section => $levels) {
+            $allowed = array_values(array_filter($levels, fn($l) => self::userCanGrant($userId, $tenantId, $section, $l)));
+            if (in_array('read', $allowed, true)) {
+                $capped[$section] = $allowed;
+            }
+        }
+        return self::toPermissions($capped);
     }
 
     public static function sectionLabel(string $section): string

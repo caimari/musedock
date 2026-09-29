@@ -166,11 +166,8 @@ class PostController
             $publishedAt = null;
         }
 
-        // Download featured image if URL provided
-        $featuredImage = null;
-        if (!empty($input['featured_image_url'])) {
-            $featuredImage = $this->downloadImage($input['featured_image_url'], $tenantId, $pdo);
-        }
+        // Imagen destacada: de la biblioteca (id o URL propia) o descargada de una URL pública
+        $featuredImage = $this->resolveFeaturedImage($input, $tenantId, $pdo);
 
         // Build post data
         $postData = [
@@ -320,9 +317,9 @@ class PostController
             $updateData['hide_title'] = $updateData['hide_title'] ? 1 : 0;
         }
 
-        // Handle featured image URL (si la descarga falla se conserva la imagen actual)
-        if (!empty($input['featured_image_url'])) {
-            $featuredImage = $this->downloadImage($input['featured_image_url'], $tenantId, $pdo);
+        // Handle featured image (si falla se conserva la imagen actual)
+        if (!empty($input['featured_image_url']) || !empty($input['featured_image_id'])) {
+            $featuredImage = $this->resolveFeaturedImage($input, $tenantId, $pdo);
             if ($featuredImage !== null) {
                 $updateData['featured_image'] = $featuredImage;
             } else {
@@ -612,6 +609,49 @@ class PostController
             }
         }
         return array_unique($ids);
+    }
+
+    /**
+     * Imagen destacada a partir de featured_image_id (biblioteca del tenant) o
+     * featured_image_url. Las URLs de la propia biblioteca se reutilizan sin
+     * volver a descargarlas. Devuelve la ruta pública o null.
+     */
+    private function resolveFeaturedImage(array $input, int $tenantId, \PDO $pdo): ?string
+    {
+        if (!empty($input['featured_image_id'])) {
+            return $this->ownMediaUrl($pdo, $tenantId, 'id', (int) $input['featured_image_id']);
+        }
+
+        $url = trim((string) ($input['featured_image_url'] ?? ''));
+        if ($url === '') {
+            return null;
+        }
+
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $ownHosts = array_filter([strtolower($_SERVER['HTTP_HOST'] ?? ''), strtolower($GLOBALS['tenant']['domain'] ?? '')]);
+        if (str_starts_with($path, '/media/') && ($host === '' || in_array(preg_replace('/^www\./', '', $host), array_map(fn($h) => preg_replace('/^www\./', '', $h), $ownHosts), true))) {
+            if (preg_match('#/media/t/([A-Za-z0-9]+)#', $path, $m) || preg_match('#-([A-Za-z0-9]{16})(?:/[a-z0-9]+|\.[a-z0-9]+)?$#', $path, $m)) {
+                $own = $this->ownMediaUrl($pdo, $tenantId, 'public_token', $m[1]);
+                if ($own) {
+                    return $own;
+                }
+            }
+        }
+
+        return $this->downloadImage($url, $tenantId, $pdo);
+    }
+
+    private function ownMediaUrl(\PDO $pdo, int $tenantId, string $column, $value): ?string
+    {
+        $stmt = $pdo->prepare("SELECT id FROM media WHERE tenant_id = ? AND {$column} = ? AND mime_type LIKE 'image/%' LIMIT 1");
+        $stmt->execute([$tenantId, $value]);
+        $id = $stmt->fetchColumn();
+        if (!$id || !class_exists(\MediaManager\Models\Media::class)) {
+            return null;
+        }
+        $media = \MediaManager\Models\Media::find((int) $id);
+        return $media ? $media->getPublicUrl() : null;
     }
 
     /**

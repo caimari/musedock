@@ -185,7 +185,16 @@
   <div class="card-header d-flex justify-content-between align-items-center">
     <h5 class="card-title mb-0">Conexiones</h5>
     @if($canEdit)
-      <button type="button" class="btn btn-primary btn-sm" id="btnNewConnection"><i class="bi bi-plus-lg"></i> Nueva conexión</button>
+      <div class="d-flex gap-2">
+        @if(!empty($keys))
+          <form method="POST" action="{{ $adminBase }}/mcp/revoke-all" id="formRevokeAll" class="d-inline">
+            {!! csrf_field() !!}
+            <input type="hidden" name="confirm" value="">
+            <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-octagon"></i> Revocar todas</button>
+          </form>
+        @endif
+        <button type="button" class="btn btn-primary btn-sm" id="btnNewConnection"><i class="bi bi-plus-lg"></i> Nueva conexión</button>
+      </div>
     @endif
   </div>
   <div class="card-body p-0">
@@ -435,6 +444,28 @@
       }
     });
   });
+
+  // Revocar todas: confirmación escribiendo REVOCAR
+  var revokeAll = document.getElementById('formRevokeAll');
+  if (revokeAll) {
+    revokeAll.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var send = function (value) {
+        if (value !== 'REVOCAR') return;
+        revokeAll.querySelector('input[name="confirm"]').value = value;
+        revokeAll.submit();
+      };
+      var text = 'Todos los asistentes de IA y tokens perderán el acceso al sitio inmediatamente. Escribe REVOCAR para confirmar.';
+      if (window.Swal) {
+        Swal.fire({ title: '¿Revocar todas las conexiones?', text: text, icon: 'warning', input: 'text', inputPlaceholder: 'REVOCAR',
+          showCancelButton: true, confirmButtonText: 'Revocar todas', cancelButtonText: 'Cancelar', confirmButtonColor: '#dc3545',
+          preConfirm: function (v) { if (v !== 'REVOCAR') { Swal.showValidationMessage('Escribe REVOCAR'); return false; } return v; }
+        }).then(function (r) { if (r.isConfirmed) send(r.value); });
+      } else {
+        send(prompt(text));
+      }
+    });
+  }
 
   var modalEl = document.getElementById('connectionModal');
   if (!modalEl) return;

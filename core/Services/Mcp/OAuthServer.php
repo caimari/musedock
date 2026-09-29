@@ -301,8 +301,15 @@ class OAuthServer
             exit;
         }
 
-        if (!userCan('settings.edit')) {
-            $this->errorPage('Tu usuario no tiene permiso para autorizar conexiones de IA en este sitio. Pide a un administrador que lo haga.', 403);
+        if (!self::canAuthorize()) {
+            $this->errorPage('Tu usuario no tiene permiso para conectar asistentes de IA en este sitio. Pide a un administrador el permiso "Conectar asistentes de IA".', 403);
+            return;
+        }
+
+        // Solo se ofrece lo que esta persona puede hacer en el panel
+        $grantable = McpPermissions::grantableMatrix((int) $user['id'], (int) self::tenant()['id']);
+        if (!array_filter($grantable, fn($levels) => in_array('read', $levels, true))) {
+            $this->errorPage('Tu usuario no tiene permisos sobre ningún contenido que se pueda compartir con un asistente de IA.', 403);
             return;
         }
 
@@ -351,7 +358,8 @@ class OAuthServer
             'sections'       => McpPermissions::sections(),
             'levels'         => McpPermissions::LEVELS,
             'templates'      => McpPermissions::TEMPLATES,
-            'templateMatrix' => array_map(fn($t) => McpPermissions::templateMatrix($t), array_combine($templates, $templates)),
+            'templateMatrix' => array_map(fn($t) => self::intersectMatrix(McpPermissions::templateMatrix($t), $grantable), array_combine($templates, $templates)),
+            'grantable'      => $grantable,
             'selected'       => self::templateFromScope((string) ($params['scope'] ?? '')),
             'existing'       => $existing ? McpPermissions::summarize(json_decode($existing['permissions'] ?? '[]', true) ?: []) : null,
         ]);
@@ -369,7 +377,7 @@ class OAuthServer
         }
 
         $user = $this->sessionUser();
-        if (!$user || !userCan('settings.edit')) {
+        if (!$user || !self::canAuthorize()) {
             $this->errorPage('Tu sesión ha caducado o no tienes permiso para autorizar conexiones.', 403);
             return;
         }
@@ -390,6 +398,9 @@ class OAuthServer
             ? McpPermissions::toPermissions(McpPermissions::templateMatrix($template))
             : McpPermissions::toPermissions(is_array($_POST['perm'] ?? null) ? $_POST['perm'] : []);
 
+        // Nunca más de lo que la persona que autoriza puede hacer en el panel
+        $permissions = McpPermissions::capToUser($permissions, (int) $user['id'], (int) self::tenant()['id']);
+
         if (!$permissions) {
             $this->redirectError($pending['redirect_uri'], 'access_denied', 'No permissions were granted.', $pending['state']);
             return;
@@ -398,6 +409,8 @@ class OAuthServer
         $tenantId = (int) self::tenant()['id'];
         $name = $client['client_name'] ?: 'Aplicación OAuth';
         $grant = $this->findGrant($tenantId, $client['client_id'], (int) $user['id']);
+
+        $previousPermissions = $grant ? (json_decode($grant['permissions'] ?? '[]', true) ?: []) : null;
 
         if ($grant) {
             $key = ApiKey::find((int) $grant['id']);
@@ -432,6 +445,16 @@ class OAuthServer
         AuditLogger::log('mcp.oauth_authorized', 'api_key', (int) $key->id, [
             'client_id' => $client['client_id'], 'client_name' => $name, 'permissions' => $permissions,
         ]);
+
+        // Aviso por email: conexión nueva, o re-autorización que cambia permisos
+        $sortedPrev = $previousPermissions;
+        $sortedNew = $permissions;
+        if (is_array($sortedPrev)) { sort($sortedPrev); }
+        sort($sortedNew);
+        if ($previousPermissions === null || $sortedPrev !== $sortedNew) {
+            McpNotifier::connectionChanged($tenantId, $previousPermissions === null ? 'created' : 'updated', $name, 'oauth', $permissions,
+                $user['name'] ?? null, $user['email'] ?? null, (string) parse_url($pending['redirect_uri'], PHP_URL_HOST));
+        }
 
         $this->redirectTo($pending['redirect_uri'], array_filter([
             'code'  => $code,
@@ -678,6 +701,9 @@ class OAuthServer
         if (!$key || (int) $key->tenant_id !== (int) $tenant['id'] || ($key->auth_type ?? '') !== 'oauth') {
             return null;
         }
+        if (!self::grantOwnerActive($key->user_id !== null ? (int) $key->user_id : null, (int) $tenant['id'])) {
+            return null;
+        }
 
         return $key;
     }
@@ -836,7 +862,44 @@ class OAuthServer
     {
         $stmt = Database::connect()->prepare("SELECT * FROM api_keys WHERE id = ? AND tenant_id = ? AND auth_type = 'oauth' AND is_active = 1 LIMIT 1");
         $stmt->execute([$apiKeyId, $tenantId]);
-        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+        $grant = $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+
+        if ($grant && !self::grantOwnerActive($grant['user_id'] !== null ? (int) $grant['user_id'] : null, $tenantId)) {
+            return null;
+        }
+        return $grant;
+    }
+
+    /**
+     * La persona que autorizó la conexión sigue existiendo en este tenant
+     * (si se borra el usuario, sus conexiones dejan de funcionar).
+     */
+    public static function grantOwnerActive(?int $userId, int $tenantId): bool
+    {
+        if (!$userId) {
+            return true; // conexiones antiguas sin propietario registrado
+        }
+        $table = $userId > 0 ? 'admins' : 'users';
+        $stmt = Database::connect()->prepare("SELECT 1 FROM {$table} WHERE id = ? AND tenant_id = ? LIMIT 1");
+        $stmt->execute([abs($userId), $tenantId]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /**
+     * Puede conectar asistentes de IA: permiso específico o gestión de ajustes.
+     */
+    private static function canAuthorize(): bool
+    {
+        return userCan('mcp.connect') || userCan('settings.edit');
+    }
+
+    private static function intersectMatrix(array $matrix, array $allowed): array
+    {
+        $out = [];
+        foreach ($matrix as $section => $levels) {
+            $out[$section] = array_values(array_intersect($levels, $allowed[$section] ?? []));
+        }
+        return $out;
     }
 
     private function revokeFamily(string $familyId): void

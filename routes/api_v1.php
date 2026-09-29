@@ -319,3 +319,24 @@ if (function_exists('is_module_active') && is_module_active('blog')) {
     });
 
 } // end blog module check
+
+// ============================================================================
+// MEDIA ROUTES — biblioteca de imágenes (requiere el módulo media-manager)
+// ============================================================================
+if (function_exists('is_module_active') && is_module_active('media-manager')) {
+
+    Route::get('/api/v1/media', function () {
+        api_v1_auth('list_media');
+        (new \Screenart\Musedock\Controllers\Api\V1\MediaApiController())->index();
+    });
+
+    Route::post('/api/v1/media/generate', function () {
+        api_v1_auth('generate_image');
+        (new \Screenart\Musedock\Controllers\Api\V1\MediaApiController())->generate();
+    });
+
+    Route::post('/api/v1/media/upload', function () {
+        api_v1_auth('upload_image');
+        (new \Screenart\Musedock\Controllers\Api\V1\MediaApiController())->upload();
+    });
+}

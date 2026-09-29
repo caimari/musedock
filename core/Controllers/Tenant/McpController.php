@@ -151,6 +151,8 @@ class McpController
         $_SESSION['_new_mcp_key'] = ['raw' => $keyData['raw'], 'name' => $name];
 
         AuditLogger::log('mcp.token_created', 'api_key', (int) $key->id, ['name' => $name, 'permissions' => $permissions, 'expires_at' => $expiresAt]);
+        \Screenart\Musedock\Services\Mcp\McpNotifier::connectionChanged($tenantId, 'created', $name, 'token', $permissions,
+            $_SESSION['admin']['name'] ?? null, $_SESSION['admin']['email'] ?? null);
         flash('success', 'Conexión creada. Copia el token ahora: no se volverá a mostrar.');
         $this->back();
     }
@@ -182,6 +184,9 @@ class McpController
         ]);
 
         AuditLogger::log('mcp.token_updated', 'api_key', $id, ['permissions' => $permissions]);
+        \Screenart\Musedock\Services\Mcp\McpNotifier::connectionChanged((int) tenant_id(), 'updated', (string) $key->name,
+            ($key->auth_type ?? 'token') === 'oauth' ? 'oauth' : 'token', $permissions,
+            $_SESSION['admin']['name'] ?? null, $_SESSION['admin']['email'] ?? null);
         flash('success', 'Permisos actualizados. Se aplican en la siguiente petición de la conexión.');
         $this->back();
     }
@@ -200,6 +205,35 @@ class McpController
 
         AuditLogger::log('mcp.token_revoked', 'api_key', $id, ['name' => $name]);
         flash('success', "Conexión \"{$name}\" revocada. El token ha dejado de funcionar.");
+        $this->back();
+    }
+
+    /**
+     * Revoca de golpe todas las conexiones del sitio (tokens y OAuth).
+     */
+    public function revokeAll()
+    {
+        SessionSecurity::startSession();
+        $this->checkPermission('settings.edit');
+        $tenantId = $this->tenantIdOrRedirect();
+
+        if (($_POST['confirm'] ?? '') !== 'REVOCAR') {
+            flash('error', 'Escribe REVOCAR para confirmar.');
+            $this->back();
+        }
+
+        $pdo = Database::connect();
+        $ids = $pdo->prepare("SELECT id FROM api_keys WHERE tenant_id = ?");
+        $ids->execute([$tenantId]);
+        $ids = array_map('intval', $ids->fetchAll(\PDO::FETCH_COLUMN));
+
+        foreach ($ids as $id) {
+            \Screenart\Musedock\Services\Mcp\OAuthServer::revokeGrantTokens($id);
+        }
+        $pdo->prepare("DELETE FROM api_keys WHERE tenant_id = ?")->execute([$tenantId]);
+
+        AuditLogger::log('mcp.all_revoked', 'tenant', $tenantId, ['count' => count($ids)]);
+        flash('success', count($ids) . ' conexión(es) revocada(s). Ningún asistente ni token tiene ya acceso al sitio.');
         $this->back();
     }
 
