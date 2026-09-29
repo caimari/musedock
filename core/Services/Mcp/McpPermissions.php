@@ -236,7 +236,7 @@ class McpPermissions
 
         $required = self::CMS_REQUIREMENTS[$section][$level] ?? ['settings.edit'];
         foreach ($required as $slug) {
-            if (!\Screenart\Musedock\Helpers\PermissionHelper::userCan($realId, $slug, $tenantId)) {
+            if (!\Screenart\Musedock\Helpers\PermissionHelper::userCan($realId, $slug, $tenantId, $userId > 0 ? 'admin' : 'user')) {
                 return $cache[$cacheKey] = false;
             }
         }

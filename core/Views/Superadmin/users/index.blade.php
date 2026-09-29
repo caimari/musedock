@@ -33,7 +33,7 @@
             }
         @endphp
 
-        @if ($isSuperadmin || ($userId && PermissionManager::userHasPermission($userId, 'users.create', $tenantId)))
+        @if ($isSuperadmin || ($userId && PermissionManager::userHasPermission($userId, 'users.create', $tenantId, \Screenart\Musedock\Security\SessionSecurity::getAuthenticatedUser()['type'] ?? null)))
             <a href="/musedock/users/create" class="btn btn-success">
                 <i class="bi bi-plus-lg me-1"></i> Nuevo Usuario
             </a>

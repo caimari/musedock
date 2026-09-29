@@ -28,7 +28,7 @@ class UsersController
         $tenantId = $auth['tenant_id'];
         $isSuperadmin = $auth['type'] === 'super_admin' && ($_SESSION['super_admin']['role'] ?? '') === 'superadmin';
 
-        if (!$isSuperadmin && !PermissionManager::userHasPermission($userId, 'users.view', $tenantId)) {
+        if (!$isSuperadmin && !PermissionManager::userHasPermission($userId, 'users.view', $tenantId, $auth['type'] ?? null)) {
             flash('error', 'No tienes permisos para ver usuarios.');
             header('Location: /musedock/dashboard');
             exit;
@@ -98,7 +98,7 @@ class UsersController
         $tenantId = $auth['tenant_id'];
         $isSuperadmin = $auth['type'] === 'super_admin' && ($_SESSION['super_admin']['role'] ?? '') === 'superadmin';
 
-        if (!$isSuperadmin && !PermissionManager::userHasPermission($userId, 'users.edit', $tenantId)) {
+        if (!$isSuperadmin && !PermissionManager::userHasPermission($userId, 'users.edit', $tenantId, $auth['type'] ?? null)) {
             flash('error', 'No tienes permisos para editar usuarios.');
             header('Location: /musedock/dashboard');
             exit;
@@ -203,7 +203,7 @@ class UsersController
         default      => 'admins'
     };
 
-    if (!$isSuperadmin && !PermissionManager::userHasPermission($userId, 'users.edit', $tenantId)) {
+    if (!$isSuperadmin && !PermissionManager::userHasPermission($userId, 'users.edit', $tenantId, $auth['type'] ?? null)) {
         flash('error', 'No tienes permisos para actualizar usuarios.');
         header('Location: /musedock/dashboard');
         exit;

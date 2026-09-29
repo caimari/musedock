@@ -32,12 +32,16 @@ class PermissionHelper
      * @param int $userId ID del usuario
      * @param string $permissionSlug Slug del permiso (ej: 'pages.edit')
      * @param int|null $tenantId ID del tenant (null = global)
+     * @param string $userType 'admin' o 'user': admins, users y super_admins son tablas
+     *                         distintas y sus IDs se repiten, así que el tipo es obligatorio
+     *                         para no mezclar identidades. Los super admins se resuelven
+     *                         por tipo de sesión en currentUserCan(), nunca por ID.
      * @return bool
      */
-    public static function userCan(int $userId, string $permissionSlug, ?int $tenantId = null): bool
+    public static function userCan(int $userId, string $permissionSlug, ?int $tenantId = null, string $userType = 'admin'): bool
     {
         // Cache key
-        $cacheKey = "{$userId}:{$permissionSlug}:{$tenantId}";
+        $cacheKey = "{$userType}:{$userId}:{$permissionSlug}:{$tenantId}";
         if (isset(self::$permissionCache[$cacheKey])) {
             return self::$permissionCache[$cacheKey];
         }
@@ -45,23 +49,12 @@ class PermissionHelper
         try {
             $pdo = Database::connect();
 
-            // 1. Verificar si es super admin buscando solo en super_admins
-            // La tabla users NO tiene columna 'type'
-            $stmt = $pdo->prepare("
-                SELECT id FROM super_admins WHERE id = ? LIMIT 1
-            ");
-            $stmt->execute([$userId]);
-            $isSuperAdmin = $stmt->fetch(\PDO::FETCH_ASSOC);
+            // SEGURIDAD: antes se buscaba "SELECT id FROM super_admins WHERE id = ?", lo que
+            // daba todos los permisos a cualquier admin/user cuyo ID coincidiera con el de un
+            // super admin (p. ej. el admin id=1 de un tenant). Eliminado.
 
-            if ($isSuperAdmin) {
-                self::$permissionCache[$cacheKey] = true;
-                return true;
-            }
-
-            // 2. Verificar permisos directos (user_permissions)
-            // La tabla user_permissions almacena permisos para admins, no para users
-            // Compatible con MySQL y PostgreSQL
-            if ($tenantId === null) {
+            // 1. Permisos directos (user_permissions): solo existen para admins
+            if ($userType === 'admin' && $tenantId === null) {
                 $stmt = $pdo->prepare("
                     SELECT id FROM user_permissions
                     WHERE user_id = ?
@@ -70,7 +63,7 @@ class PermissionHelper
                     LIMIT 1
                 ");
                 $stmt->execute([$userId, $permissionSlug]);
-            } else {
+            } elseif ($userType === 'admin') {
                 $stmt = $pdo->prepare("
                     SELECT id FROM user_permissions
                     WHERE user_id = ?
@@ -81,12 +74,12 @@ class PermissionHelper
                 $stmt->execute([$userId, $permissionSlug, $tenantId]);
             }
 
-            if ($stmt->fetch()) {
+            if ($userType === 'admin' && $stmt->fetch()) {
                 self::$permissionCache[$cacheKey] = true;
                 return true;
             }
 
-            // 3. Verificar permisos heredados de roles (compatibilidad)
+            // 2. Permisos heredados de roles (del mismo tipo de usuario)
             // Compatible con MySQL y PostgreSQL
             if ($tenantId === null) {
                 $stmt = $pdo->prepare("
@@ -95,11 +88,12 @@ class PermissionHelper
                     INNER JOIN role_permissions rp ON rp.permission_id = p.id
                     INNER JOIN user_roles ur ON ur.role_id = rp.role_id
                     WHERE ur.user_id = ?
+                    AND (ur.user_type = ? OR ur.user_type IS NULL)
                     AND p.slug = ?
                     AND p.tenant_id IS NULL
                     LIMIT 1
                 ");
-                $stmt->execute([$userId, $permissionSlug]);
+                $stmt->execute([$userId, $userType, $permissionSlug]);
             } else {
                 $stmt = $pdo->prepare("
                     SELECT p.id
@@ -107,11 +101,12 @@ class PermissionHelper
                     INNER JOIN role_permissions rp ON rp.permission_id = p.id
                     INNER JOIN user_roles ur ON ur.role_id = rp.role_id
                     WHERE ur.user_id = ?
+                    AND (ur.user_type = ? OR ur.user_type IS NULL)
                     AND p.slug = ?
                     AND (p.tenant_id = ? OR p.tenant_id IS NULL)
                     LIMIT 1
                 ");
-                $stmt->execute([$userId, $permissionSlug, $tenantId]);
+                $stmt->execute([$userId, $userType, $permissionSlug, $tenantId]);
             }
 
             $result = (bool) $stmt->fetch();
@@ -162,7 +157,12 @@ class PermissionHelper
             }
         }
 
-        return self::userCan($userId, $permissionSlug, $tenantId);
+        $type = $auth['type'] ?? '';
+        if (!in_array($type, ['admin', 'user'], true)) {
+            return false; // tipos de sesión sin permisos de panel
+        }
+
+        return self::userCan((int) $userId, $permissionSlug, $tenantId, $type);
     }
 
     /**

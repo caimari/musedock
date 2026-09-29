@@ -613,7 +613,7 @@ if (!function_exists('has_permission')) {
         // Asegúrate que PermissionManager exista y el namespace sea correcto
         try {
              // Pasar el userType también podría ser útil para PermissionManager
-             return \Screenart\Musedock\Security\PermissionManager::userHasPermission($userId, $permissionName, $tenantId /*, $userType */);
+             return \Screenart\Musedock\Security\PermissionManager::userHasPermission((int) $userId, $permissionName, $tenantId, $userType);
         } catch (\Throwable $e) {
              // Loguear error si PermissionManager falla
              Logger::exception($e, 'ERROR', ['helper' => 'has_permission', 'userId' => $userId, 'permission' => $permissionName]);

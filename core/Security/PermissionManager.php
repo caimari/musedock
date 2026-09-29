@@ -25,11 +25,17 @@ class PermissionManager
         return (int)$stmt->fetchColumn() > 0;
     }
 
-public static function userHasPermission(?int $userId, string $permissionSlug, ?int $tenantId): bool
+public static function userHasPermission(?int $userId, string $permissionSlug, ?int $tenantId, ?string $userType = null): bool
 {
     if (is_null($userId)) {
         error_log("userHasPermission() llamado con userId = null");
         return false;
+    }
+
+    // Con tipo conocido, la comprobación correcta (los IDs se repiten entre
+    // super_admins, admins y users)
+    if ($userType !== null) {
+        return self::userHasPermissionWithType($userId, $userType, $permissionSlug, $tenantId);
     }
 
     $db = Database::connect();
@@ -346,6 +352,27 @@ public static function getUserPermissionsWithType(int $userId, string $userType,
 }
 public static function userHasPermissionWithType(int $userId, string $userType, string $permissionSlug, ?int $tenantId): bool
 {
+    // Super admins: sus propios permisos (nunca buscar su ID en tablas de admins/users)
+    if ($userType === 'super_admin' || $userType === 'superadmin') {
+        return \Screenart\Musedock\Helpers\PermissionHelper::isSuperAdminRoot($userId)
+            || \Screenart\Musedock\Helpers\PermissionHelper::superAdminCan($userId, $permissionSlug);
+    }
+
+    if (!in_array($userType, ['admin', 'user'], true)) {
+        return false;
+    }
+
+    // Admin root del tenant: acceso total a su tenant (igual que userCan())
+    if ($userType === 'admin' && $tenantId !== null
+        && \Screenart\Musedock\Helpers\PermissionHelper::isTenantRootAdmin($userId, (int) $tenantId)) {
+        return true;
+    }
+
+    // Los permisos directos (user_permissions) solo existen para admins
+    if ($userType === 'user') {
+        return self::roleGrants($userId, $userType, $permissionSlug, $tenantId);
+    }
+
     $db = Database::connect();
 
     // 1. Verificar permisos directos del usuario (user_permissions)
@@ -378,7 +405,15 @@ public static function userHasPermissionWithType(int $userId, string $userType, 
         return true;
     }
 
-    // 2. Verificar permisos heredados de roles (buscar por SLUG, no por name)
+    return self::roleGrants($userId, $userType, $permissionSlug, $tenantId);
+}
+
+/**
+ * Permiso heredado de roles asignados a ese usuario y ese tipo de usuario.
+ */
+private static function roleGrants(int $userId, string $userType, string $permissionSlug, ?int $tenantId): bool
+{
+    $db = Database::connect();
     $stmt = $db->prepare("
         SELECT COUNT(*)
         FROM user_roles ur
