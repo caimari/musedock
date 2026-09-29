@@ -5,6 +5,7 @@ namespace Screenart\Musedock\Controllers\Tenant;
 use Screenart\Musedock\View;
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Security\SessionSecurity;
+use Screenart\Musedock\Security\TwoFactorAuth;
 use Screenart\Musedock\Models\User;
 use Screenart\Musedock\Models\Admin;
 use Screenart\Musedock\Mail\Mailer;
@@ -49,6 +50,121 @@ class AuthController
             return $target;
         }
         return $default;
+    }
+
+    // =========================================================================
+    // Verificación en dos pasos (TOTP) en el login del panel
+    // =========================================================================
+
+    private const TWO_FACTOR_TTL = 300;
+    private const TWO_FACTOR_MAX_ATTEMPTS = 5;
+
+    /**
+     * Contraseña correcta y 2FA activo: se guarda un reto pendiente (sin iniciar
+     * sesión) y se pide el código.
+     */
+    private function startTwoFactorChallenge(string $type, int $id, array $sessionData, bool $remember, string $adminPath): never
+    {
+        unset($_SESSION['admin'], $_SESSION['user']);
+        $_SESSION['tenant_2fa_pending'] = [
+            'type'      => $type,
+            'id'        => $id,
+            'data'      => $sessionData,
+            'tenant_id' => tenant_id(),
+            'remember'  => $remember,
+            'expires'   => time() + self::TWO_FACTOR_TTL,
+            'attempts'  => 0,
+        ];
+        SessionSecurity::regenerate();
+
+        header("Location: {$adminPath}/login/2fa");
+        exit;
+    }
+
+    private function pendingTwoFactor(): ?array
+    {
+        $pending = $_SESSION['tenant_2fa_pending'] ?? null;
+        if (!is_array($pending) || ($pending['expires'] ?? 0) < time() || (int) ($pending['tenant_id'] ?? 0) !== (int) tenant_id()) {
+            unset($_SESSION['tenant_2fa_pending']);
+            return null;
+        }
+        return $pending;
+    }
+
+    public function twoFactorForm()
+    {
+        SessionSecurity::startSession();
+
+        if (!$this->pendingTwoFactor()) {
+            flash('error', 'La verificación ha caducado. Vuelve a iniciar sesión.');
+            header("Location: /" . admin_path() . "/login");
+            exit;
+        }
+
+        return View::renderTenantAdmin('auth.two-factor', [
+            'title' => 'Verificación en dos pasos',
+        ]);
+    }
+
+    public function twoFactorVerify()
+    {
+        SessionSecurity::startSession();
+        $adminPath = '/' . admin_path();
+
+        $pending = $this->pendingTwoFactor();
+        if (!$pending) {
+            flash('error', 'La verificación ha caducado. Vuelve a iniciar sesión.');
+            header("Location: {$adminPath}/login");
+            exit;
+        }
+
+        $_SESSION['tenant_2fa_pending']['attempts'] = ++$pending['attempts'];
+        if ($pending['attempts'] > self::TWO_FACTOR_MAX_ATTEMPTS) {
+            unset($_SESSION['tenant_2fa_pending']);
+            error_log("2FA: demasiados intentos para {$pending['type']} {$pending['id']} (tenant " . tenant_id() . ")");
+            flash('error', 'Demasiados códigos incorrectos. Vuelve a iniciar sesión.');
+            header("Location: {$adminPath}/login");
+            exit;
+        }
+
+        $code = preg_replace('/\s+/', '', (string) ($_POST['code'] ?? ''));
+        $useRecovery = ($_POST['use_recovery'] ?? '') === '1';
+
+        $verified = false;
+        if ($useRecovery) {
+            $verified = $code !== '' && TwoFactorAuth::verifyRecoveryCode($pending['id'], $code, $pending['type']);
+        } elseif (preg_match('/^\d{6}$/', $code)) {
+            $secret = TwoFactorAuth::getSecret($pending['id'], $pending['type']);
+            $verified = $secret && TwoFactorAuth::verifyCode($secret, $code);
+        }
+
+        if (!$verified) {
+            $left = self::TWO_FACTOR_MAX_ATTEMPTS - $pending['attempts'];
+            flash('error', "Código incorrecto. Te quedan {$left} intentos.");
+            header("Location: {$adminPath}/login/2fa");
+            exit;
+        }
+
+        unset($_SESSION['tenant_2fa_pending']);
+        $_SESSION[$pending['type']] = $pending['data'];
+        $_SESSION['last_active'] = time();
+        SessionSecurity::regenerate();
+
+        if (!empty($pending['remember'])) {
+            $this->removeOldTokens($pending['id'], $pending['type']);
+            SessionSecurity::rememberMe($pending['id'], $pending['type']);
+        }
+        $this->updateUserActivity($pending['id'], $pending['type']);
+
+        try {
+            $table = $pending['type'] === 'admin' ? 'admins' : 'users';
+            Database::connect()->prepare("UPDATE {$table} SET two_factor_last_used_at = NOW() WHERE id = ?")->execute([$pending['id']]);
+        } catch (\Throwable $e) {
+            error_log('2FA last_used update: ' . $e->getMessage());
+        }
+
+        header("Location: " . self::consumeReturnTo("{$adminPath}/dashboard"));
+        exit;
     }
 
     public function login()
@@ -108,8 +224,7 @@ class AuthController
                 if ($passwordValid) {
                     // Limpiar intentos fallidos (específico + global)
                     \Screenart\Musedock\Security\RateLimiter::clearDual($identifier, $email);
-                    // Guardar datos en sesión antes de regenerar
-                    $_SESSION['admin'] = [
+                    $adminSession = [
                         'id'         => $admin['id'],
                         'email'      => $admin['email'],
                         'name'       => $admin['name'] ?? 'Admin',
@@ -117,6 +232,14 @@ class AuthController
                         'role'       => $admin['role'] ?? 'admin',
                         'avatar'     => $admin['avatar'] ?? null
                     ];
+
+                    // Segundo factor: la sesión no se completa hasta verificar el código
+                    if (!empty($admin['two_factor_enabled'])) {
+                        $this->startTwoFactorChallenge('admin', (int) $admin['id'], $adminSession, !empty($_POST['remember']), $adminPath);
+                    }
+
+                    // Guardar datos en sesión antes de regenerar
+                    $_SESSION['admin'] = $adminSession;
                     
                     // Actualizar tiempo de actividad
                     $_SESSION['last_active'] = time();
@@ -173,14 +296,21 @@ class AuthController
                 if ($passwordValid) {
                     // Limpiar intentos fallidos (específico + global)
                     \Screenart\Musedock\Security\RateLimiter::clearDual($identifier, $email);
-                    // Guardar datos en sesión antes de regenerar
-                    $_SESSION['user'] = [
+                    $userSession = [
                         'id'         => $user['id'],
                         'email'      => $user['email'],
                         'name'       => $user['name'] ?? 'Usuario',
                         'tenant_id'  => $tenantId,
                         'role'       => $user['role'] ?? 'user'
                     ];
+
+                    // Segundo factor: la sesión no se completa hasta verificar el código
+                    if (!empty($user['two_factor_enabled'])) {
+                        $this->startTwoFactorChallenge('user', (int) $user['id'], $userSession, !empty($_POST['remember']), $adminPath);
+                    }
+
+                    // Guardar datos en sesión antes de regenerar
+                    $_SESSION['user'] = $userSession;
 
                     // Actualizar tiempo de actividad
                     $_SESSION['last_active'] = time();

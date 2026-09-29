@@ -59,6 +59,8 @@ Route::get("$adminPath/changelog", 'tenant.DashboardController@changelog')
 // Login/logout/Password Reset
 Route::get("$adminPath/login", 'tenant.AuthController@loginForm');
 Route::post("$adminPath/login", 'tenant.AuthController@login');
+Route::get("$adminPath/login/2fa", 'tenant.AuthController@twoFactorForm');
+Route::post("$adminPath/login/2fa", 'tenant.AuthController@twoFactorVerify');
 Route::get("$adminPath/logout", 'tenant.AuthController@logout')
      ->middleware(['auth']);
 Route::get("$adminPath/password/forgot", 'tenant.AuthController@forgotPasswordForm');
@@ -84,6 +86,16 @@ Route::post("$adminPath/profile/update-author", 'tenant.ProfileController@update
 Route::post("$adminPath/profile/toggle-author-page", 'tenant.ProfileController@toggleAuthorPage')
      ->middleware(['auth']);
 Route::get("$adminPath/avatar/{filename}", 'tenant.ProfileController@serveAvatar')
+     ->middleware(['auth']);
+
+// Verificación en dos pasos (TOTP) de la cuenta del admin
+Route::get("$adminPath/profile/2fa", 'tenant.TwoFactorController@index')
+     ->middleware(['auth']);
+Route::post("$adminPath/profile/2fa/enable", 'tenant.TwoFactorController@enable')
+     ->middleware(['auth']);
+Route::post("$adminPath/profile/2fa/disable", 'tenant.TwoFactorController@disable')
+     ->middleware(['auth']);
+Route::post("$adminPath/profile/2fa/recovery-codes", 'tenant.TwoFactorController@regenerateCodes')
      ->middleware(['auth']);
 
 // Registro de usuarios - DESHABILITADO (solo admins creados por superadmin)

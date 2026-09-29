@@ -24,13 +24,7 @@ class AuditLogger
         try {
             $pdo = Database::connect();
 
-            // Verificar si la tabla existe
-            $tableExists = $pdo->query("SHOW TABLES LIKE 'audit_logs'")->rowCount() > 0;
-
-            if (!$tableExists) {
-                // Crear tabla si no existe
-                self::createAuditTable($pdo);
-            }
+            // La tabla la crea la migración 2026_09_29_160000_create_audit_logs_table
 
             $userId = null;
             $userType = null;
@@ -74,9 +68,9 @@ class AuditLogger
                 $action,
                 $resourceType,
                 $resourceId,
-                json_encode($data),
-                $_SERVER['REMOTE_ADDR'] ?? null,
-                $_SERVER['HTTP_USER_AGENT'] ?? null
+                json_encode($data, JSON_UNESCAPED_UNICODE),
+                \Screenart\Musedock\Security\IPHelper::getRealIP() ?: ($_SERVER['REMOTE_ADDR'] ?? null),
+                mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255) ?: null,
             ]);
 
             return $result;
@@ -85,37 +79,6 @@ class AuditLogger
             error_log("Error al registrar en audit log: " . $e->getMessage());
             return false;
         }
-    }
-
-    /**
-     * Crea la tabla de audit_logs si no existe
-     */
-    private static function createAuditTable(\PDO $pdo): void
-    {
-        $sql = "
-            CREATE TABLE IF NOT EXISTS audit_logs (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NULL,
-                user_type VARCHAR(50) NULL COMMENT 'super_admin, admin, user',
-                tenant_id INT NULL,
-                action VARCHAR(100) NOT NULL COMMENT 'create_post, delete_user, login_attempt, etc',
-                resource_type VARCHAR(100) NOT NULL COMMENT 'blog_post, user, category, etc',
-                resource_id INT NULL,
-                data TEXT NULL COMMENT 'JSON con datos adicionales',
-                ip_address VARCHAR(45) NULL,
-                user_agent VARCHAR(255) NULL,
-                created_at DATETIME NOT NULL,
-                INDEX idx_user (user_id, user_type),
-                INDEX idx_tenant (tenant_id),
-                INDEX idx_action (action),
-                INDEX idx_resource (resource_type, resource_id),
-                INDEX idx_created (created_at)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            COMMENT='Registro de auditoría de acciones críticas';
-        ";
-
-        $pdo->exec($sql);
-        error_log("✅ Tabla audit_logs creada exitosamente");
     }
 
     /**
@@ -203,12 +166,8 @@ class AuditLogger
         try {
             $pdo = Database::connect();
 
-            $stmt = $pdo->prepare("
-                DELETE FROM audit_logs
-                WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)
-            ");
-
-            $stmt->execute([$daysToKeep]);
+            $stmt = $pdo->prepare("DELETE FROM audit_logs WHERE created_at < ?");
+            $stmt->execute([date('Y-m-d H:i:s', time() - $daysToKeep * 86400)]);
 
             $deletedCount = $stmt->rowCount();
 

@@ -192,6 +192,9 @@
             <button type="button" class="btn btn-primary" id="change-password-btn">
               <i class="bi bi-shield-lock"></i> Cambiar Contraseña
             </button>
+            <a href="/{{ admin_path() }}/profile/2fa" class="btn btn-outline-secondary">
+              <i class="bi bi-phone"></i> Verificación en dos pasos
+            </a>
           </div>
         </div>
 

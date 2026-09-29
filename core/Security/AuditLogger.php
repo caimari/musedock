@@ -330,20 +330,18 @@ class AuditLogger
         try {
             $pdo = Database::connect();
 
-            // Verificar si la tabla existe
-            $stmt = $pdo->query("SHOW TABLES LIKE 'audit_logs'");
-            if ($stmt->rowCount() === 0) {
-                // La tabla no existe, solo loguear en archivos
-                Logger::warning("Tabla audit_logs no existe. Cree la tabla usando el script SQL proporcionado.");
-                return false;
-            }
+            // Tabla creada por la migración 2026_09_29_160000_create_audit_logs_table.
+            // action/resource_type se rellenan para que el visor del superadmin muestre también estos eventos.
+            $eventData['action'] = $eventData['event_type'];
+            $eventData['resource_type'] = 'security';
+            $eventData['user_agent'] = mb_substr((string) ($eventData['user_agent'] ?? ''), 0, 255) ?: null;
+            $eventData['uri'] = mb_substr((string) ($eventData['uri'] ?? ''), 0, 500) ?: null;
 
-            // Insertar evento
             $sql = "INSERT INTO audit_logs (
-                event_type, severity, user_id, user_type, tenant_id,
+                event_type, severity, action, resource_type, user_id, user_type, tenant_id,
                 ip_address, user_agent, uri, method, data, created_at
             ) VALUES (
-                :event_type, :severity, :user_id, :user_type, :tenant_id,
+                :event_type, :severity, :action, :resource_type, :user_id, :user_type, :tenant_id,
                 :ip_address, :user_agent, :uri, :method, :data, :created_at
             )";
 
@@ -425,9 +423,8 @@ class AuditLogger
         try {
             $pdo = Database::connect();
 
-            $sql = "DELETE FROM audit_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL :days DAY)";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([':days' => $days]);
+            $stmt = $pdo->prepare("DELETE FROM audit_logs WHERE created_at < :cutoff");
+            $stmt->execute([':cutoff' => date('Y-m-d H:i:s', time() - $days * 86400)]);
 
             $deletedCount = $stmt->rowCount();
             Logger::info("AuditLogger cleanup: eliminados {$deletedCount} registros antiguos");

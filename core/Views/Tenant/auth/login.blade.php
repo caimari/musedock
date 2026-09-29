@@ -19,6 +19,7 @@
         @php
           $error = consume_flash('error');
           $success = consume_flash('success');
+          $warning = consume_flash('warning');
           $logoutSuccess = consume_flash('logout_success');
         @endphp
 
@@ -26,6 +27,12 @@
           <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ $error }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        @endif
+
+        @if($warning)
+          <div class="alert alert-warning" role="alert">
+            <i class="bi bi-info-circle-fill me-2"></i>{{ $warning }}
           </div>
         @endif
 
