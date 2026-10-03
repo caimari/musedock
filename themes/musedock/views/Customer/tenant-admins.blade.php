@@ -248,8 +248,10 @@
 @if(empty($tenants))
 <div class="ta-empty">
     <i class="bi bi-inbox"></i>
-    No tienes sitios web creados todavia.<br>
-    <a href="/customer/request-free-subdomain">Solicita tu primer subdominio FREE</a>.
+    No tienes sitios web creados todavia.
+    @if((class_exists(\Cloud\Services\SignupGate::class) && \Cloud\Services\SignupGate::allows('free_subdomain')))
+    <br><a href="/customer/request-free-subdomain">Solicita tu primer subdominio FREE</a>.
+    @endif
 </div>
 @else
 

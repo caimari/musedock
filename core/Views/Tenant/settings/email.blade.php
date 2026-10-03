@@ -154,6 +154,15 @@
                                            {{ $smtpUseGlobal ? 'disabled' : '' }}>
                                 </div>
                             </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Responder a <span class="text-muted">(opcional)</span></label>
+                                    <input type="email" name="mail_reply_to" class="form-control"
+                                           value="{{ $settings['mail_reply_to'] ?? '' }}"
+                                           placeholder="hola@tudominio.com">
+                                    <small class="text-muted">Si alguien contesta a un email del sitio, la respuesta llega aquí. Vacío = al email del remitente.</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

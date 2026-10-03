@@ -29,7 +29,31 @@
             <input type="password" name="fake_password" autocomplete="current-password" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;">
             <input type="hidden" name="_csrf_token" value="{{ $csrf_token ?? csrf_token() }}">
             <input type="hidden" name="language" value="{{ detectLanguage() }}">
-            <input type="hidden" name="domain_type" id="domain_type" value="subdomain">
+            @php
+              // Canales de alta controlados por Cloud\Services\SignupGate (.env), cerrados por defecto
+              $gate = class_exists(\Cloud\Services\SignupGate::class) ? \Cloud\Services\SignupGate::class : null;
+              $freeSubdomainEnabled = $gate ? $gate::allows('free_subdomain') : false;
+              $connectEnabled = $gate ? $gate::allows('connect_domain') : false;
+              $domainOptions = [
+                ['type' => 'subdomain', 'icon' => 'gift-fill', 'title' => 'Subdominio', 'badge' => $freeSubdomainEnabled ? 'GRATIS' : 'PRONTO', 'badgeColor' => $freeSubdomainEnabled ? '#28a745' : '#6c757d', 'enabled' => $freeSubdomainEnabled],
+                ['type' => 'register', 'icon' => 'cart-plus', 'title' => 'Registrar', 'badge' => 'PRONTO', 'badgeColor' => '#6c757d', 'enabled' => false],
+                ['type' => 'transfer', 'icon' => 'arrow-left-right', 'title' => 'Transferir', 'badge' => 'PRONTO', 'badgeColor' => '#6c757d', 'enabled' => false],
+                ['type' => 'connect', 'icon' => 'link-45deg', 'title' => 'Vincular', 'badge' => $connectEnabled ? 'OK' : 'PRONTO', 'badgeColor' => $connectEnabled ? '#4e73df' : '#6c757d', 'enabled' => $connectEnabled],
+              ];
+              // Opción seleccionada al cargar: la primera activa (null = alta cerrada)
+              $defaultDomainType = null;
+              foreach ($domainOptions as $o) { if ($o['enabled']) { $defaultDomainType = $o['type']; break; } }
+              $signupClosed = $defaultDomainType === null;
+            @endphp
+            <input type="hidden" name="domain_type" id="domain_type" value="{{ $defaultDomainType === 'connect' ? 'custom' : ($defaultDomainType ?? '') }}">
+
+            @if($signupClosed)
+              <div style="background:#fff8e6; border:1px solid #ffe2a8; color:#7a5b00; border-radius:8px; padding:12px 14px; margin-bottom:18px; font-size:0.88rem;">
+                <i class="bi bi-hourglass-split" style="margin-right:6px;"></i>
+                <strong>{{ __('El alta de nuevos sitios está cerrada temporalmente.') }}</strong>
+                {{ __('Estamos preparando la plataforma; vuelve pronto.') }}
+              </div>
+            @endif
 
             {{-- STEP 1: Domain type --}}
             <div style="margin-bottom:20px;">
@@ -39,22 +63,13 @@
               </div>
 
               <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;">
-                @php
-                  $domainOptions = [
-                    ['type' => 'subdomain', 'icon' => 'gift-fill', 'title' => 'Subdominio', 'badge' => 'GRATIS', 'badgeColor' => '#28a745', 'enabled' => true],
-                    ['type' => 'register', 'icon' => 'cart-plus', 'title' => 'Registrar', 'badge' => 'PRONTO', 'badgeColor' => '#6c757d', 'enabled' => false],
-                    ['type' => 'transfer', 'icon' => 'arrow-left-right', 'title' => 'Transferir', 'badge' => 'PRONTO', 'badgeColor' => '#6c757d', 'enabled' => false],
-                    ['type' => 'connect', 'icon' => 'link-45deg', 'title' => 'Vincular', 'badge' => 'OK', 'badgeColor' => '#4e73df', 'enabled' => true],
-                  ];
-                @endphp
-
                 @foreach($domainOptions as $opt)
-                <div class="reg-domain-opt {{ !$opt['enabled'] ? 'disabled' : '' }} {{ $opt['type'] === 'subdomain' ? 'selected' : '' }}"
+                <div class="reg-domain-opt {{ !$opt['enabled'] ? 'disabled' : '' }} {{ $opt['type'] === $defaultDomainType ? 'selected' : '' }}"
                      data-type="{{ $opt['type'] }}"
                      style="
                        padding:12px 8px; border-radius:8px; text-align:center; cursor:{{ $opt['enabled'] ? 'pointer' : 'not-allowed' }};
-                       border:2px solid {{ $opt['type'] === 'subdomain' ? '#4e73df' : '#e5e7eb' }};
-                       background:{{ $opt['type'] === 'subdomain' ? '#f0f4ff' : ($opt['enabled'] ? '#fff' : '#f9fafb') }};
+                       border:2px solid {{ $opt['type'] === $defaultDomainType ? '#4e73df' : '#e5e7eb' }};
+                       background:{{ $opt['type'] === $defaultDomainType ? '#f0f4ff' : ($opt['enabled'] ? '#fff' : '#f9fafb') }};
                        opacity:{{ $opt['enabled'] ? '1' : '0.5' }};
                        transition:all 0.15s;
                      ">
@@ -74,7 +89,7 @@
               </div>
 
               {{-- Subdomain --}}
-              <div class="domain-config" id="config_subdomain">
+              <div class="domain-config {{ $defaultDomainType === 'subdomain' ? '' : 'd-none' }}" id="config_subdomain">
                 <div style="display:flex; gap:0; align-items:stretch;">
                   <input type="text" id="subdomain" name="subdomain" placeholder="miempresa" pattern="[a-z0-9\-]+" autocomplete="off"
                          style="flex:1; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px 0 0 8px; font-size:0.9rem; outline:none; border-right:none;"
@@ -85,7 +100,7 @@
               </div>
 
               {{-- Custom domain --}}
-              <div class="domain-config d-none" id="config_connect">
+              <div class="domain-config {{ $defaultDomainType === 'connect' ? '' : 'd-none' }}" id="config_connect">
                 <div style="display:flex; gap:0; align-items:stretch;">
                   <span style="padding:10px 12px; background:#f3f4f6; border:1px solid #d1d5db; border-radius:8px 0 0 8px; color:#6b7280; display:flex; align-items:center;">
                     <i class="bi bi-globe"></i>
@@ -171,7 +186,7 @@
             <input type="checkbox" id="terms" name="accept_terms" value="1" form="registerForm" required style="width:16px; height:16px; accent-color:#4e73df;">
             <span>{{ __('Acepto los') }} <a href="/p/terms-and-conditions" target="_blank" style="color:#4e73df; font-weight:600;">{{ __('términos') }}</a> {{ __('y') }} <a href="/p/privacy" target="_blank" style="color:#4e73df; font-weight:600;">{{ __('privacidad') }}</a></span>
           </label>
-          <button type="submit" id="submitBtn" form="registerForm" disabled style="
+          <button type="submit" id="submitBtn" form="registerForm" disabled {{ $signupClosed ? 'data-closed=1' : '' }} style="
             padding:11px 28px; background:#4e73df; color:#fff; border:none; border-radius:8px;
             font-size:0.9rem; font-weight:600; cursor:pointer; transition:all 0.2s; opacity:0.5;
           " onmouseenter="if(!this.disabled)this.style.background='#3d5fc4'" onmouseleave="this.style.background='#4e73df'">
@@ -215,14 +230,23 @@
 <script>
 let subdomainAvailable = false;
 let customDomainValid = false;
-let currentDomainType = 'subdomain';
+let currentDomainType = @json($defaultDomainType);
 let checkTimeout;
+
+// Alta cerrada: campos atenuados y botón "Próximamente"
+if (!currentDomainType) {
+  document.addEventListener('DOMContentLoaded', function () {
+    const acct = document.getElementById('account_section');
+    if (acct) { acct.style.opacity = '0.4'; acct.style.pointerEvents = 'none'; }
+    updateSubmitButton();
+  });
+}
 
 // Domain type selection
 document.querySelectorAll('.reg-domain-opt:not(.disabled)').forEach(opt => {
   opt.addEventListener('click', function() {
     const type = this.dataset.type;
-    document.querySelectorAll('.reg-domain-opt').forEach(o => {
+    document.querySelectorAll('.reg-domain-opt:not(.disabled)').forEach(o => {
       o.style.borderColor = '#e5e7eb';
       o.style.background = '#fff';
     });
@@ -282,7 +306,7 @@ document.getElementById('custom_domain')?.addEventListener('input', function(e) 
 function updateSubmitButton() {
   const btn = document.getElementById('submitBtn');
   const terms = document.getElementById('terms')?.checked;
-  if (currentDomainType === 'transfer' || currentDomainType === 'register') {
+  if (!currentDomainType || currentDomainType === 'transfer' || currentDomainType === 'register') {
     btn.disabled = true; btn.style.opacity = '0.5';
     btn.innerHTML = '<i class="bi bi-clock" style="margin-right:6px;"></i>{{ __("Próximamente") }}';
     return;

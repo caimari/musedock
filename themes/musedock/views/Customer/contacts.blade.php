@@ -64,9 +64,11 @@
     <i class="bi bi-person-x"></i>
     <h4>No tienes contactos guardados</h4>
     <p>Los contactos se crean automaticamente cuando registras un dominio.</p>
+<?php if (class_exists(\Cloud\Services\SignupGate::class) && \Cloud\Services\SignupGate::allows('register_domain')): ?>
     <a href="/customer/register-domain" class="ct-empty-btn">
         <i class="bi bi-globe"></i>Registrar un Dominio
     </a>
+<?php endif; ?>
 </div>
 <?php else: ?>
 

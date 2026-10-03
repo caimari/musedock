@@ -15,7 +15,7 @@ require_once APP_ROOT . '/vendor/autoload.php';
 
 // Bootstrap env
 $envFile = APP_ROOT . '/.env';
-if (file_exists($envFile)) {
+if (is_readable($envFile)) {
     foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
         $line = trim($line);
         if ($line === '' || $line[0] === '#') continue;
@@ -23,6 +23,25 @@ if (file_exists($envFile)) {
             [$key, $value] = explode('=', $line, 2);
             $_ENV[trim($key)] = trim($value);
             putenv(trim($key) . '=' . trim($value));
+        }
+    }
+}
+
+// Corriendo como el usuario caddy (ExecStartPost de Caddy, o el hook de relevo
+// de MuseDock Panel), el .env de la app no es legible (640 del hosting), y con
+// razón: lleva todas sus credenciales. Para ese caso, un fichero aparte solo con
+// la conexión de un usuario de PostgreSQL de SOLO LECTURA sobre las tablas que
+// este script consulta (tenants, domain_aliases, domain_redirects).
+if (($_ENV['DB_USER'] ?? '') === '') {
+    $repairEnv = getenv('CADDY_REPAIR_ENV') ?: '/etc/musedock/cms-caddy-repair.env';
+    if (is_readable($repairEnv)) {
+        foreach (file($repairEnv, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+            $line = trim($line);
+            if ($line === '' || $line[0] === '#' || !str_contains($line, '=')) continue;
+            [$key, $value] = explode('=', $line, 2);
+            if (preg_match('/^DB_(HOST|PORT|NAME|USER|PASS)$/', trim($key))) {
+                $_ENV[trim($key)] = trim($value);
+            }
         }
     }
 }
@@ -55,6 +74,22 @@ try {
 $caddyApi = $_ENV['CADDY_API_URL'] ?? 'http://localhost:2019';
 
 // Helper: Caddy API request
+/**
+ * www.$d solo si se pide y tiene sentido: raíz del dominio (ejemplo.com, ejemplo.org.es)
+ * o subdominio cuyo www existe en el DNS (misma regla que CaddyService::wwwAllowed y el
+ * panel). Antes se añadía a subdominios sin DNS y Caddy intentaba sacarles certificado.
+ */
+function wwwOk(string $d, $requested = true): bool {
+    if (!$requested) return false;
+    $d = strtolower(rtrim($d, '.'));
+    if ($d === '' || str_starts_with($d, 'www.')) return false;
+    $parts = explode('.', $d);
+    $second = ['com', 'org', 'net', 'edu', 'gob', 'gov', 'nom', 'co', 'ac', 'or', 'ne', 'go', 'ltd', 'plc', 'me'];
+    if (count($parts) <= 2 || (count($parts) === 3 && in_array($parts[1], $second, true) && strlen($parts[2]) === 2)) return true;
+    static $dns = [];
+    return $dns[$d] ??= (bool)(@dns_get_record("www.{$d}", DNS_A) ?: @dns_get_record("www.{$d}", DNS_CNAME));
+}
+
 function caddyRequest(string $method, string $path, $body = null): array {
     global $caddyApi;
     $ch = curl_init("{$caddyApi}{$path}");
@@ -171,10 +206,10 @@ foreach ($tenants as $tenant) {
 
     // Build host list
     $hosts = [$domain];
-    if ($tenant['include_www']) $hosts[] = 'www.' . $domain;
+    if (wwwOk($domain, $tenant['include_www'])) $hosts[] = 'www.' . $domain;
     foreach ($aliases as $alias) {
         $hosts[] = $alias['domain'];
-        if ($alias['include_www']) $hosts[] = 'www.' . $alias['domain'];
+        if (wwwOk($alias['domain'], $alias['include_www'])) $hosts[] = 'www.' . $alias['domain'];
     }
 
     // Build route config (same as CaddyService::generateCaddyConfig)
@@ -254,10 +289,10 @@ try {
 
         // Build host list: tenant domain + www + all aliases + www
         $hosts = [$st['tenant_domain']];
-        if ($st['include_www']) $hosts[] = 'www.' . $st['tenant_domain'];
+        if (wwwOk($st['tenant_domain'], $st['include_www'])) $hosts[] = 'www.' . $st['tenant_domain'];
         foreach ($aliases as $alias) {
             $hosts[] = $alias['domain'];
-            if ($alias['include_www']) $hosts[] = 'www.' . $alias['domain'];
+            if (wwwOk($alias['domain'], $alias['include_www'])) $hosts[] = 'www.' . $alias['domain'];
         }
 
         $aliasNames = array_map(fn($a) => $a['domain'], $aliases);
@@ -329,7 +364,7 @@ try {
         echo "  [MISS] {$rDomain} → {$redir['redirect_to']}\n";
 
         $rHosts = [$rDomain];
-        if ($redir['include_www']) $rHosts[] = 'www.' . $rDomain;
+        if (wwwOk($rDomain, $redir['include_www'])) $rHosts[] = 'www.' . $rDomain;
 
         $redirectTo = rtrim($redir['redirect_to'], '/');
         $redirectUri = $redir['preserve_path'] ? $redirectTo . '{http.request.uri}' : $redirectTo . '/';
@@ -390,7 +425,7 @@ if (file_exists($panelDbFile)) {
 
             $missingRoutes[] = [
                 '@id' => $hRouteId,
-                'match' => [['host' => [$hosting['domain'], 'www.' . $hosting['domain']]]],
+                'match' => [['host' => wwwOk($hosting['domain']) ? [$hosting['domain'], 'www.' . $hosting['domain']] : [$hosting['domain']]]],
                 'handle' => [['handler' => 'subroute', 'routes' => [
                     ['handle' => [['handler' => 'vars', 'root' => $docRoot]]],
                     ['match' => [['path' => ['*.jpg','*.jpeg','*.png','*.gif','*.webp','*.svg','*.ico','*.css','*.js','*.woff','*.woff2']]], 'handle' => [['handler' => 'headers', 'response' => ['set' => ['Cache-Control' => ['public, max-age=2592000']]]]]],
@@ -424,7 +459,7 @@ if (file_exists($panelDbFile)) {
 
             $missingRoutes[] = [
                 '@id' => $paRouteId,
-                'match' => [['host' => [$pa['domain'], 'www.' . $pa['domain']]]],
+                'match' => [['host' => wwwOk($pa['domain']) ? [$pa['domain'], 'www.' . $pa['domain']] : [$pa['domain']]]],
                 'handle' => [['handler' => 'static_response', 'status_code' => (string)$redirectCode, 'headers' => ['Location' => [$target]]]],
                 'terminal' => true,
             ];

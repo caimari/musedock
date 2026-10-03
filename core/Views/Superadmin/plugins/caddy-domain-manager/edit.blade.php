@@ -54,8 +54,8 @@
                                 </select>
                                 <div class="form-text">
                                     <i class="bi bi-info-circle text-info"></i>
-                                    <strong>Solo afecta al CMS:</strong> Desactivar el tenant impide el acceso al panel /admin/, pero <strong>NO</strong> afecta a Caddy.
-                                    El dominio seguira respondiendo si esta configurado en Caddy.
+                                    <strong>Inactivo o Suspendido:</strong> se quita su ruta de Caddy (el dominio y sus alias dejan de responder y Caddy deja de pedir sus certificados, p. ej. si el dominio ha caducado).
+                                    <strong>No se borra nada</strong> (contenido, alias, configuración); al volver a <strong>Activo</strong> se restaura la ruta y se pide el certificado.
                                 </div>
                             </div>
 

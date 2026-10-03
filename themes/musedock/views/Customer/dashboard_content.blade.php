@@ -317,18 +317,26 @@
 
 <!-- Botones de acción -->
 <div class="text-center mt-4 mb-4">
+<?php if (class_exists(\Cloud\Services\SignupGate::class) && \Cloud\Services\SignupGate::allows('free_subdomain')): ?>
     <a href="/customer/request-free-subdomain" class="btn btn-success btn-lg me-2 mb-2">
         <i class="bi bi-gift"></i> Subdominio FREE
     </a>
+<?php endif; ?>
+<?php if (class_exists(\Cloud\Services\SignupGate::class) && \Cloud\Services\SignupGate::allows('connect_domain')): ?>
     <a href="/customer/request-custom-domain" class="btn btn-primary btn-lg me-2 mb-2">
         <i class="bi bi-plus-circle"></i> Dominio Personalizado
     </a>
+<?php endif; ?>
+<?php if (class_exists(\Cloud\Services\SignupGate::class) && \Cloud\Services\SignupGate::allows('register_domain')): ?>
     <a href="/customer/register-domain" class="btn btn-info btn-lg me-2 mb-2">
         <i class="bi bi-cart-plus"></i> Registrar Dominio
     </a>
+<?php endif; ?>
+<?php if (class_exists(\Cloud\Services\SignupGate::class) && \Cloud\Services\SignupGate::allows('transfer_domain')): ?>
     <a href="/customer/transfer-domain" class="btn btn-warning btn-lg me-2 mb-2">
         <i class="bi bi-arrow-left-right"></i> Transferir Dominio
     </a>
+<?php endif; ?>
     <a href="/customer/tenant-admins" class="btn btn-secondary btn-lg mb-2">
         <i class="bi bi-person-gear"></i> Gestionar Accesos
     </a>

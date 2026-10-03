@@ -68,6 +68,15 @@
                             </div>
 
                             <div class="mb-3">
+                                <label class="form-label" for="alias_status">Estado</label>
+                                <select class="form-select" id="alias_status" name="status">
+                                    <option value="active" {{ in_array($alias->status ?? '', ['active', 'pending', 'error']) ? 'selected' : '' }}>Activo</option>
+                                    <option value="suspended" {{ ($alias->status ?? '') === 'suspended' ? 'selected' : '' }}>Suspendido</option>
+                                </select>
+                                <div class="form-text">Suspendido: deja de servirse y Caddy deja de pedir su certificado (p. ej. dominio caducado). No se borra nada; al volver a Activo se restaura.</div>
+                            </div>
+
+                            <div class="mb-3">
                                 <label class="form-label" for="dns_provider">Proveedor DNS</label>
                                 <select class="form-select" id="dns_provider" name="dns_provider">
                                     @php

@@ -927,6 +927,8 @@ class SettingsController
                 'smtp_encryption'   => in_array($_POST['smtp_encryption'] ?? 'tls', ['tls', 'ssl', '']) ? ($_POST['smtp_encryption'] ?? 'tls') : 'tls',
                 'mail_from_address' => trim($_POST['mail_from_address'] ?? ''),
                 'mail_from_name'    => trim($_POST['mail_from_name'] ?? ''),
+                // A dónde van las respuestas (vacío = al remitente). Se aplica también con el SMTP global.
+                'mail_reply_to'     => filter_var(trim($_POST['mail_reply_to'] ?? ''), FILTER_VALIDATE_EMAIL) ?: '',
             ];
 
             // Política global: si superadmin obliga SMTP propio, desactivar uso global en tenant

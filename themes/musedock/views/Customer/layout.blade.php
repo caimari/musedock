@@ -573,13 +573,16 @@
         @php
           $navItems = [
             ['page' => 'dashboard', 'url' => '/customer/dashboard', 'icon' => 'bi-speedometer2', 'label' => 'Inicio'],
-            ['page' => 'free-subdomain', 'url' => '/customer/request-free-subdomain', 'icon' => 'bi-globe', 'label' => 'Crear sitio'],
-            ['page' => 'custom-domain', 'url' => '/customer/request-custom-domain', 'icon' => 'bi-link-45deg', 'label' => 'Conectar dominio'],
-            ['page' => 'register-domain', 'url' => '/customer/register-domain', 'icon' => 'bi-cart-plus', 'label' => 'Registrar dominio'],
+            ['page' => 'free-subdomain', 'url' => '/customer/request-free-subdomain', 'icon' => 'bi-globe', 'label' => 'Crear sitio', 'channel' => 'free_subdomain'],
+            ['page' => 'custom-domain', 'url' => '/customer/request-custom-domain', 'icon' => 'bi-link-45deg', 'label' => 'Conectar dominio', 'channel' => 'connect_domain'],
+            ['page' => 'register-domain', 'url' => '/customer/register-domain', 'icon' => 'bi-cart-plus', 'label' => 'Registrar dominio', 'channel' => 'register_domain'],
             ['page' => 'contacts', 'url' => '/customer/contacts', 'icon' => 'bi-person-lines-fill', 'label' => 'Contactos'],
             ['page' => 'tenant-admins', 'url' => '/customer/tenant-admins', 'icon' => 'bi-people', 'label' => 'Administradores'],
             ['page' => 'profile', 'url' => '/customer/profile', 'icon' => 'bi-person', 'label' => 'Perfil'],
           ];
+          // Ocultar las acciones de alta cerradas (Cloud\Services\SignupGate)
+          $navItems = array_values(array_filter($navItems, fn($i) => empty($i['channel'])
+              || (class_exists(\Cloud\Services\SignupGate::class) && \Cloud\Services\SignupGate::allows($i['channel']))));
         @endphp
         @foreach($navItems as $item)
           @php $isActive = $currentPage === $item['page'] || str_contains($currentUri, $item['url']); @endphp
@@ -592,6 +595,12 @@
 
     {{-- Main --}}
     <div class="customer-main">
+      @php $gateWarning = consume_flash('warning'); @endphp
+      @if($gateWarning)
+        <div style="background:#fff8e6; border:1px solid #ffe2a8; color:#7a5b00; border-radius:8px; padding:10px 14px; margin-bottom:16px; font-size:0.88rem;">
+          <i class="bi bi-info-circle" style="margin-right:6px;"></i>{{ $gateWarning }}
+        </div>
+      @endif
       @yield('panel_content')
     </div>
   </div>

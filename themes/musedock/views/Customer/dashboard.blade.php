@@ -196,15 +196,21 @@
 
 {{-- Action buttons --}}
 <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:16px;">
+  @if((class_exists(\Cloud\Services\SignupGate::class) && \Cloud\Services\SignupGate::allows('free_subdomain')))
   <a href="/customer/request-free-subdomain" style="display:inline-flex; align-items:center; gap:6px; padding:9px 18px; background:#4e73df; color:#fff; border-radius:7px; font-size:0.82rem; font-weight:600; text-decoration:none;">
     <i class="bi bi-gift"></i> Solicitar Subdominio FREE
   </a>
+  @endif
+  @if((class_exists(\Cloud\Services\SignupGate::class) && \Cloud\Services\SignupGate::allows('connect_domain')))
   <a href="/customer/request-custom-domain" style="display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border:1px solid #d1d5db; color:#4a5568; border-radius:7px; font-size:0.82rem; font-weight:500; text-decoration:none;">
     <i class="bi bi-link-45deg"></i> Conectar Dominio
   </a>
+  @endif
+  @if((class_exists(\Cloud\Services\SignupGate::class) && \Cloud\Services\SignupGate::allows('register_domain')))
   <a href="/customer/register-domain" style="display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border:1px solid #d1d5db; color:#4a5568; border-radius:7px; font-size:0.82rem; font-weight:500; text-decoration:none;">
     <i class="bi bi-cart-plus"></i> Registrar Dominio
   </a>
+  @endif
 </div>
 
 <script>

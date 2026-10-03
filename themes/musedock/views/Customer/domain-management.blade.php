@@ -466,6 +466,7 @@
                         </div>
 
                         <?php if ($hostingType === 'dns_only'): ?>
+                        <?php if (class_exists(\Cloud\Services\SignupGate::class) && \Cloud\Services\SignupGate::allows('upgrade_to_cms')): ?>
                         <!-- Upgrade to CMS/Hosting -->
                         <div class="alert alert-info mt-3 mb-0">
                             <h6 class="mb-2"><i class="bi bi-info-circle me-1"></i>Activar MuseDock CMS</h6>
@@ -484,6 +485,7 @@
                                 <i class="bi bi-arrow-up-circle me-1"></i>Activar CMS + Hosting
                             </button>
                         </div>
+                        <?php endif; ?>
                         <?php else: ?>
                         <!-- Downgrade to DNS Only -->
                         <div class="alert alert-warning mt-3 mb-0">

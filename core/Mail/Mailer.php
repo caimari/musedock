@@ -44,20 +44,113 @@ class Mailer
                 $textBody = trim($textBody);
             }
 
+            // "Responder a": del tenant o global (MAIL_REPLY_TO_ADDRESS); si no hay, el propio remitente
+            $replyTo = (string)($config['mail_reply_to'] ?? '');
+            if (!filter_var($replyTo, FILTER_VALIDATE_EMAIL)) {
+                $replyTo = $from;
+            }
+
             // Determinar método de envío (tenant/global)
             $driver = strtolower((string)($config['mail_driver'] ?? 'mail'));
 
-            if ($driver === 'smtp') {
-                return self::sendViaSMTP($to, $from, $fromName, $subject, $htmlBody, $textBody, $config);
-            } else {
-                return self::sendViaMail($to, $from, $fromName, $subject, $htmlBody, $textBody);
+            if ($driver !== 'smtp') {
+                return self::sendViaMail($to, $from, $fromName, $subject, $htmlBody, $textBody, $replyTo);
             }
+
+            // Failover: se prueba el SMTP configurado y, si falla (conexión, cuota, autenticación…),
+            // los servidores globales en orden (SMTP_* y SMTP_FALLBACK_*).
+            $tried = [];
+            foreach (self::smtpCandidates($config) as $i => $smtp) {
+                $id = strtolower($smtp['smtp_host'] . '|' . $smtp['smtp_username']);
+                if (isset($tried[$id])) {
+                    continue;
+                }
+                $tried[$id] = true;
+
+                // Un servidor de respaldo envía con su propia identidad si el dominio del remitente no es el suyo
+                // (SPF/DKIM/DMARC alineados); el remitente original pasa a "Responder a".
+                $candFrom = $from;
+                $candReplyTo = $replyTo;
+                if ($i > 0 && self::domainOf($from) !== self::domainOf($smtp['mail_from_address'])) {
+                    $candFrom = $smtp['mail_from_address'];
+                    $candReplyTo = $replyTo !== '' ? $replyTo : $from;
+                }
+
+                if (self::sendViaSMTP($to, $candFrom, $fromName, $subject, $htmlBody, $textBody, $smtp, $candReplyTo)) {
+                    if ($i > 0) {
+                        error_log("Mailer: enviado por el servidor de respaldo {$smtp['smtp_host']} ({$smtp['source']}) a {$to}");
+                    }
+                    return true;
+                }
+                error_log("Mailer: fallo con {$smtp['smtp_host']} ({$smtp['source']}), probando el siguiente servidor");
+            }
+
+            error_log("Mailer: ningún servidor SMTP pudo enviar el email a {$to}");
+            return false;
 
         } catch (\Exception $e) {
             error_log("Excepción al enviar email: " . $e->getMessage());
             error_log("Traza: " . $e->getTraceAsString());
             return false;
         }
+    }
+
+    /**
+     * Servidores SMTP a probar en orden: el configurado (tenant o global) y después
+     * los globales (SMTP_* y SMTP_FALLBACK_*) como respaldo.
+     */
+    private static function smtpCandidates(array $config): array
+    {
+        $list = [$config];
+
+        $global = self::globalMailConfig();
+        if ($global['smtp_host'] !== '' && $global['smtp_username'] !== '' && $global['smtp_password'] !== '') {
+            $list[] = $global;
+        }
+
+        $fallback = [
+            'source' => 'fallback',
+            'smtp_host' => (string)(getenv('SMTP_FALLBACK_HOST') ?: ''),
+            'smtp_port' => (int)(getenv('SMTP_FALLBACK_PORT') ?: 587),
+            'smtp_username' => (string)(getenv('SMTP_FALLBACK_USERNAME') ?: ''),
+            'smtp_password' => (string)(getenv('SMTP_FALLBACK_PASSWORD') ?: ''),
+            'smtp_encryption' => (string)(getenv('SMTP_FALLBACK_ENCRYPTION') ?: 'tls'),
+            'ehlo_domain' => $global['ehlo_domain'],
+        ];
+        // El servidor propio solo deja enviar como el buzón autenticado
+        $fallback['mail_from_address'] = (string)(getenv('SMTP_FALLBACK_FROM_ADDRESS') ?: $fallback['smtp_username']);
+        if ($fallback['smtp_host'] !== '' && $fallback['smtp_username'] !== '' && $fallback['smtp_password'] !== '') {
+            $list[] = $fallback;
+        }
+
+        return $list;
+    }
+
+    private static function domainOf(string $email): string
+    {
+        $at = strrpos($email, '@');
+        return $at === false ? '' : strtolower(substr($email, $at + 1));
+    }
+
+    /**
+     * Cabecera con texto no ASCII codificada (RFC 2047).
+     */
+    private static function encodeHeader(string $text): string
+    {
+        if (!preg_match('/[^\x20-\x7E]/', $text)) {
+            return $text;
+        }
+        return mb_encode_mimeheader($text, 'UTF-8', 'B', "\r\n");
+    }
+
+    private static function formatAddress(string $email, string $name = ''): string
+    {
+        $name = trim(str_replace(["\r", "\n", '"'], '', $name));
+        if ($name === '') {
+            return "<{$email}>";
+        }
+        $encoded = self::encodeHeader($name);
+        return ($encoded === $name ? '"' . $name . '"' : $encoded) . " <{$email}>";
     }
 
     /**
@@ -69,7 +162,8 @@ class Mailer
         string $fromName,
         string $subject,
         string $htmlBody,
-        string $textBody
+        string $textBody,
+        string $replyTo = ''
     ): bool {
         // Boundary para separar partes del email
         $boundary = md5(uniqid(time()));
@@ -77,7 +171,7 @@ class Mailer
         // Headers
         $headers = [
             "From: {$fromName} <{$from}>",
-            "Reply-To: {$from}",
+            "Reply-To: " . ($replyTo !== '' ? $replyTo : $from),
             "MIME-Version: 1.0",
             "Content-Type: multipart/alternative; boundary=\"{$boundary}\"",
             "X-Mailer: MuseDock CMS Mailer"
@@ -118,7 +212,8 @@ class Mailer
         string $subject,
         string $htmlBody,
         string $textBody,
-        array $config
+        array $config,
+        string $replyTo = ''
     ): bool {
         // Obtener configuración SMTP resuelta (tenant o global)
         $host = (string)($config['smtp_host'] ?? '');
@@ -247,27 +342,33 @@ class Mailer
 
             // Construir mensaje completo
             $boundary = md5(uniqid(time()));
-            $message = "From: {$fromName} <{$from}>\r\n";
-            $message .= "To: <{$to}>\r\n";
-            $message .= "Subject: {$subject}\r\n";
-            $message .= "MIME-Version: 1.0\r\n";
-            $message .= "Content-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n";
-            $message .= "X-Mailer: MuseDock CMS SMTP Mailer\r\n";
-            $message .= "\r\n";
+            $fromDomain = self::domainOf($from) ?: $ehloDomain;
+            $headers = "Date: " . date('r') . "\r\n";
+            $headers .= "Message-ID: <" . bin2hex(random_bytes(16)) . "@{$fromDomain}>\r\n";
+            $headers .= "From: " . self::formatAddress($from, $fromName) . "\r\n";
+            if ($replyTo !== '' && strcasecmp($replyTo, $from) !== 0) {
+                $headers .= "Reply-To: <{$replyTo}>\r\n";
+            }
+            $headers .= "To: <{$to}>\r\n";
+            $headers .= "Subject: " . self::encodeHeader(str_replace(["\r", "\n"], ' ', $subject)) . "\r\n";
+            $headers .= "MIME-Version: 1.0\r\n";
+            $headers .= "Content-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n";
+            $headers .= "X-Mailer: MuseDock CMS SMTP Mailer\r\n";
 
-            // Parte texto plano
-            $message .= "--{$boundary}\r\n";
-            $message .= "Content-Type: text/plain; charset=UTF-8\r\n";
-            $message .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
-            $message .= $textBody . "\r\n\r\n";
+            // Cuerpo en quoted-printable: UTF-8 seguro y líneas de menos de 998 caracteres
+            $body = "--{$boundary}\r\n";
+            $body .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $body .= "Content-Transfer-Encoding: quoted-printable\r\n\r\n";
+            $body .= quoted_printable_encode($textBody) . "\r\n\r\n";
+            $body .= "--{$boundary}\r\n";
+            $body .= "Content-Type: text/html; charset=UTF-8\r\n";
+            $body .= "Content-Transfer-Encoding: quoted-printable\r\n\r\n";
+            $body .= quoted_printable_encode($htmlBody) . "\r\n\r\n";
+            $body .= "--{$boundary}--\r\n";
 
-            // Parte HTML
-            $message .= "--{$boundary}\r\n";
-            $message .= "Content-Type: text/html; charset=UTF-8\r\n";
-            $message .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
-            $message .= $htmlBody . "\r\n\r\n";
-
-            $message .= "--{$boundary}--\r\n";
+            // Normalizar saltos de línea y "dot-stuffing" (una línea que empieza por "." cortaría el DATA)
+            $message = preg_replace("/\r?\n/", "\r\n", $headers . "\r\n" . $body);
+            $message = preg_replace('/^\./m', '..', $message);
             $message .= ".\r\n";
 
             // Enviar mensaje
@@ -331,14 +432,14 @@ class Mailer
     }
 
     /**
-     * Carga configuración de correo (global o tenant) con política de herencia.
+     * Configuración global de correo (.env).
      */
-    private static function resolveMailConfig(?int $tenantId): array
+    private static function globalMailConfig(): array
     {
         $appUrl = (string)(getenv('APP_URL') ?: 'https://musedock.net');
         $hostFromAppUrl = (string)(parse_url($appUrl, PHP_URL_HOST) ?: 'localhost');
 
-        $global = [
+        return [
             'enabled' => true,
             'source' => 'global',
             'mail_driver' => (string)(getenv('MAIL_DRIVER') ?: 'smtp'),
@@ -349,8 +450,19 @@ class Mailer
             'smtp_encryption' => (string)(getenv('SMTP_ENCRYPTION') ?: 'tls'),
             'mail_from_address' => (string)(getenv('MAIL_FROM_ADDRESS') ?: ('noreply@' . $hostFromAppUrl)),
             'mail_from_name' => (string)(getenv('MAIL_FROM_NAME') ?: (getenv('APP_NAME') ?: 'MuseDock CMS')),
+            'mail_reply_to' => (string)(getenv('MAIL_REPLY_TO_ADDRESS') ?: ''),
             'ehlo_domain' => $hostFromAppUrl,
         ];
+    }
+
+    /**
+     * Carga configuración de correo (global o tenant) con política de herencia.
+     */
+    private static function resolveMailConfig(?int $tenantId): array
+    {
+        $appUrl = (string)(getenv('APP_URL') ?: 'https://musedock.net');
+        $hostFromAppUrl = (string)(parse_url($appUrl, PHP_URL_HOST) ?: 'localhost');
+        $global = self::globalMailConfig();
 
         if ($tenantId === null) {
             // Validación mínima para smtp
@@ -377,7 +489,8 @@ class Mailer
                     'smtp_password',
                     'smtp_encryption',
                     'mail_from_address',
-                    'mail_from_name'
+                    'mail_from_name',
+                    'mail_reply_to'
                   )
             ");
             $stmt->execute([$tenantId]);
@@ -391,6 +504,9 @@ class Mailer
 
             if ($useGlobal) {
                 $global['source'] = 'global-fallback';
+                if (!empty($tenantSettings['mail_reply_to'])) {
+                    $global['mail_reply_to'] = $tenantSettings['mail_reply_to'];
+                }
                 return $global;
             }
 
@@ -405,6 +521,7 @@ class Mailer
                 'smtp_encryption' => (string)($tenantSettings['smtp_encryption'] ?? 'tls'),
                 'mail_from_address' => (string)($tenantSettings['mail_from_address'] ?? ('noreply@' . $hostFromAppUrl)),
                 'mail_from_name' => (string)($tenantSettings['mail_from_name'] ?? ($global['mail_from_name'] ?: 'MuseDock CMS')),
+                'mail_reply_to' => (string)($tenantSettings['mail_reply_to'] ?? ''),
                 'ehlo_domain' => $hostFromAppUrl,
             ];
 

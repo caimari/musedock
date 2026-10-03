@@ -577,6 +577,8 @@ class HtmlCache
             '/csrf-token',
             '/newsletter/',
             '/oauth/',
+            '/register',   // formulario con token CSRF por sesión
+            '/customer/',
             '/.well-known/',
             '/mcp',
         ];

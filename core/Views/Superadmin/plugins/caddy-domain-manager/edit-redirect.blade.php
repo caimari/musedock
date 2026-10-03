@@ -92,6 +92,15 @@
                             </div>
 
                             <div class="mb-3">
+                                <label class="form-label" for="redirect_status">Estado</label>
+                                <select class="form-select" id="redirect_status" name="status">
+                                    <option value="active" {{ ($redirect->status ?? '') !== 'suspended' ? 'selected' : '' }}>Activa</option>
+                                    <option value="suspended" {{ ($redirect->status ?? '') === 'suspended' ? 'selected' : '' }}>Suspendida</option>
+                                </select>
+                                <div class="form-text">Suspendida: deja de servirse y Caddy deja de pedir su certificado (p. ej. dominio caducado). No se borra nada; al volver a Activa se restaura.</div>
+                            </div>
+
+                            <div class="mb-3">
                                 <label class="form-label" for="dns_provider">Proveedor DNS</label>
                                 <select class="form-select" id="dns_provider" name="dns_provider">
                                     @php
