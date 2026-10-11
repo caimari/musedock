@@ -26,7 +26,10 @@ try {
             'grants'=>[['id'=>'g','client'=>'test-client','active'=>true,'resource_revision'=>1]],
             'requests'=>[['id'=>'req','expires'=>time()+600,'payload'=>['plan'=>['content'=>'<script>evil</script>']]]],
             'events'=>[['created'=>time(),'action'=>'request.created','detail'=>'{}']]];
+        $data['imageOptions']=['provider_name'=>'MiniMax','model'=>'image-01','qualities'=>['standard'],'sizes'=>['1792x1024'],'custom_size_constraints'=>['minimum'=>512,'maximum'=>2048,'multiple_of'=>8]];
+        $data['imagePrompts']=[['filename'=>'test.png','url'=>'/media/p/test/png','generation'=>['prompt'=>'<script>evil</script>','provider_name'=>'MiniMax','model'=>'image-01','requested_size'=>'1792x1024'],'resolution'=>['width'=>1792,'height'=>1024]]];
         $html=$blade->runString($source,$data);
+        if (!str_contains($html,'data-mcp-tab="access"') || !str_contains($html,'id="mcp-create-access"') || !str_contains($html,'list_image_prompts')) throw new RuntimeException('Falta la navegación de accesos o el historial de imágenes.');
         if (!str_contains($html,'Opciones de Ajustes')) throw new RuntimeException('Falta navegación de ajustes.');
         if (!str_contains($html,'name="_csrf"') || str_contains($html,'<script>evil</script>') || !str_contains($html,'&lt;script&gt;evil&lt;/script&gt;') || !str_contains($html,'type="password"')) throw new RuntimeException('Fallo de render o escape de la vista '.$mode);
         if (!str_contains($html,'Paso 1') || !str_contains($html,'Paso 2') || !str_contains($html,'data-mcp-site-group="10"')) throw new RuntimeException('Faltan pasos o grupo del sitio.');

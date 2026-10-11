@@ -14,7 +14,7 @@ final class Editor
         'create_category'=>Policy::TAXONOMY,'update_category'=>Policy::TAXONOMY,'create_tag'=>Policy::TAXONOMY,'update_tag'=>Policy::TAXONOMY,
         'list_comments'=>Policy::COMMENTS,'moderate_comment'=>Policy::COMMENTS,
         'list_translations'=>Policy::TRANSLATIONS,'save_translation'=>Policy::TRANSLATIONS,
-        'list_media'=>Policy::MEDIA,'list_image_options'=>Policy::MEDIA,'upload_image'=>Policy::MEDIA,'generate_image'=>Policy::MEDIA,
+        'list_media'=>Policy::MEDIA,'list_image_options'=>Policy::MEDIA,'list_image_prompts'=>Policy::MEDIA,'upload_image'=>Policy::MEDIA,'generate_image'=>Policy::MEDIA,
     ];
     public function __construct(private Content $content) {}
     public static function schema(string $tool): array
@@ -40,9 +40,9 @@ final class Editor
         if ($tool==='moderate_comment') { $p['comment_id']=$id; $p['status']=['type'=>'string','enum'=>['pending','approved','spam','delete']]; }
         if ($tool==='list_comments') { $p['post_id']=$id; $p['status']=['type'=>'string','enum'=>['pending','approved','spam']]; }
         if ($tool==='save_translation') { foreach (['locale','title','content','excerpt','seo_title','seo_description','seo_keywords','seo_image','canonical_url','robots_directive','twitter_title','twitter_description','twitter_image'] as $f) $p[$f]=$s; }
-        if (in_array($tool,['list_comments','list_media'],true)) { $p['limit']=['type'=>'integer','minimum'=>1,'maximum'=>50]; $p['offset']=['type'=>'integer','minimum'=>0,'maximum'=>1000000]; }
+        if (in_array($tool,['list_comments','list_media','list_image_prompts'],true)) { $p['limit']=['type'=>'integer','minimum'=>1,'maximum'=>50]; $p['offset']=['type'=>'integer','minimum'=>0,'maximum'=>1000000]; }
         if ($tool==='upload_image') { $p['url']=$s; $p['base64']=['type'=>'string','maxLength'=>2800000]; $p['filename']=['type'=>'string','maxLength'=>100]; $p['alt_text']=['type'=>'string','maxLength'=>250]; }
-        if ($tool==='generate_image') { $p['prompt']=['type'=>'string','minLength'=>1,'maxLength'=>4000]; $p['size']=['type'=>'string','description'=>'Consulta list_image_options para los tamaños admitidos por el proveedor del sitio. No todos admiten todas las medidas.','enum'=>['512x512','1024x1024','1792x1024','1024x1792','1536x1024','1024x1536','1280x720','720x1280','1152x864','864x1152','1248x832','832x1248','1344x576']]; $p['quality']=['type'=>'string','enum'=>['standard','hd']]; $p['alt_text']=['type'=>'string','maxLength'=>250]; }
+        if ($tool==='generate_image') { $p['prompt']=['type'=>'string','minLength'=>1,'maxLength'=>4000]; $p['size']=['type'=>'string','maxLength'=>9,'pattern'=>'^[0-9]{3,4}x[0-9]{3,4}$','description'=>'Consulta list_image_options. MiniMax admite dimensiones explícitas entre 512 y 2048 px, múltiplos de 8. Otros proveedores tienen sus propios límites.']; $p['quality']=['type'=>'string','enum'=>['standard','hd']]; $p['alt_text']=['type'=>'string','maxLength'=>250]; }
         return $p;
     }
     public static function required(string $tool): array
@@ -84,6 +84,7 @@ final class Editor
             return $this->q("SELECT id,post_id,author_name,content,status,created_at,updated_at FROM blog_comments WHERE {$where} ORDER BY id DESC LIMIT {$limit} OFFSET {$offset}",$p);
         }
         if ($tool==='list_image_options') return (new Media($this->content))->options($site);
+        if ($tool==='list_image_prompts') return (new Media($this->content))->prompts($site,$limit,$offset);
         if ($tool==='list_media') return (new Media($this->content))->listing($site,$limit,$offset);
         throw new RuntimeException('Consulta no autorizada.');
     }

@@ -10,7 +10,7 @@ final class Tools
         'create_draft'=>Policy::CREATE,'update_draft'=>Policy::UPDATE,
         'get_post_details'=>Policy::READ,'list_comments'=>Policy::COMMENTS,'moderate_comment'=>Policy::COMMENTS,
         'list_translations'=>Policy::TRANSLATIONS,'save_translation'=>Policy::TRANSLATIONS,
-        'list_media'=>Policy::MEDIA,'list_image_options'=>Policy::MEDIA,'upload_image'=>Policy::MEDIA,'generate_image'=>Policy::MEDIA,
+        'list_media'=>Policy::MEDIA,'list_image_options'=>Policy::MEDIA,'list_image_prompts'=>Policy::MEDIA,'upload_image'=>Policy::MEDIA,'generate_image'=>Policy::MEDIA,
         'create_category'=>Policy::TAXONOMY,'update_category'=>Policy::TAXONOMY,'create_tag'=>Policy::TAXONOMY,'update_tag'=>Policy::TAXONOMY,
         'create_post'=>Policy::EDITOR,'update_post'=>Policy::EDITOR,'publish_post'=>Policy::POSTS,'schedule_post'=>Policy::POSTS,
         'get_request_status'=>Policy::READ,'list_requests'=>Policy::APPROVE,'approve_request'=>Policy::APPROVE,'reject_request'=>Policy::APPROVE,
@@ -45,7 +45,7 @@ final class Tools
                 foreach (in_array($tool,['create_draft','update_draft','copy_draft','import_news_draft','create_post','update_post'],true)?['category_ids','tag_ids']:[] as $f) $properties[$f]=['type'=>'array','items'=>['type'=>'integer','minimum'=>1],'maxItems'=>50];
                 $properties['apply']=['type'=>'boolean','default'=>false,'description'=>'false: preparar plan; true: solicitar aprobación en el CMS, sin ejecutar.'];
             }
-            $out[]=['name'=>$tool,'description'=>in_array($tool,['approve_request','reject_request'],true)?'Aprueba o rechaza una solicitud propia. Requiere autorización explícita del CMS; aprobar ejecuta cambios.':($write?'Prepara cambios. apply=true crea una solicitud; aprueba después en el CMS o con approve_request si tienes permiso.':'Consulta exclusivamente el alcance y permisos autorizados.'),
+            $out[]=['name'=>$tool,'description'=>$tool==='generate_image'?'Consulta primero list_image_options para el sitio. quality=hd no es universal: MiniMax usa standard. La aprobación crea una imagen en medios; para mostrarla en un artículo, asigna featured_image_id mediante update_post.':($tool==='list_image_prompts'?'Consulta prompts originales, proveedor, parámetros y resolución real de las imágenes del sitio autorizado para mantener un estilo coherente.':(in_array($tool,['approve_request','reject_request'],true)?'Aprueba o rechaza una solicitud propia. Requiere autorización explícita del CMS; aprobar ejecuta cambios.':($write?'Prepara cambios. apply=true crea una solicitud; aprueba después en el CMS o con approve_request si tienes permiso.':'Consulta exclusivamente el alcance y permisos autorizados.'))),
                 'inputSchema'=>['type'=>'object','properties'=>(object)$properties,'required'=>$required,'additionalProperties'=>false],
                 'annotations'=>['readOnlyHint'=>self::readOnly($tool),'destructiveHint'=>in_array($tool,['approve_request','moderate_comment'],true),'openWorldHint'=>false,'idempotentHint'=>self::readOnly($tool)],
                 '_meta'=>['securitySchemes'=>[['type'=>'oauth2','scopes'=>array_values(array_unique([Policy::READ,$scope]))]]]];

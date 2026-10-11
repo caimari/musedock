@@ -12,9 +12,13 @@ final class Media
     public function __construct(private Content $content) {}
     public function one(int $id,int $site): array
     {
-        $row=$this->content->query("SELECT id,tenant_id,filename,mime_type,alt_text,public_token,slug,seo_filename,created_at FROM media WHERE id=? AND COALESCE(tenant_id,0)=? AND mime_type LIKE 'image/%'",[$id,$site])[0]??null;
+        $row=$this->content->query("SELECT id,tenant_id,filename,mime_type,alt_text,public_token,slug,seo_filename,metadata,created_at FROM media WHERE id=? AND COALESCE(tenant_id,0)=? AND mime_type LIKE 'image/%'",[$id,$site])[0]??null;
         if (!$row) throw new RuntimeException('Imagen no disponible en este sitio.');
-        $row['url']=$this->publicUrl($row); unset($row['public_token']); return $row;
+        $row['url']=$this->publicUrl($row);
+        $metadata=json_decode($row['metadata']??'{}',true)?:[];
+        $row['generation']=$metadata['ai_generation']??null;
+        $row['resolution']=$metadata['ai_generation']['actual_resolution']??($metadata['original_resolution']??null);
+        unset($row['public_token'],$row['metadata']); return $row;
     }
     private function publicUrl(array $row): string
     {
@@ -26,6 +30,18 @@ final class Media
     {
         $rows=$this->content->query("SELECT id FROM media WHERE COALESCE(tenant_id,0)=? AND mime_type LIKE 'image/%' AND public_token IS NOT NULL AND public_token<>'' ORDER BY id DESC LIMIT {$limit} OFFSET {$offset}",[$site]);
         return array_map(fn($r)=>$this->one((int)$r['id'],$site),$rows);
+    }
+    public function prompts(int $site,int $limit,int $offset): array
+    {
+        $driver=$this->content->db->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        $needle='%'.chr(34).'ai_generation'.chr(34).'%';
+        $filter=match($driver) {
+            'pgsql'=>"metadata::text LIKE ?",
+            'mysql'=>"CAST(metadata AS CHAR) LIKE ?",
+            default=>"metadata LIKE ?",
+        };
+        $rows=$this->content->query("SELECT id FROM media WHERE COALESCE(tenant_id,0)=? AND public_token IS NOT NULL AND public_token<>'' AND {$filter} ORDER BY id DESC LIMIT {$limit} OFFSET {$offset}",[$site,$needle]);
+        return array_map(fn($row)=>$this->one((int)$row['id'],$site),$rows);
     }
     public function options(int $site): array
     {
@@ -39,8 +55,10 @@ final class Media
         };
         return ['provider_id'=>(int)$provider['id'],'provider_name'=>$provider['name'],'provider_type'=>$provider['provider_type'],'model'=>$model,'sizes'=>$sizes,
             'qualities'=>$provider['provider_type']==='openai' && $model==='dall-e-3'?['standard','hd']:['standard'],
-            'size_mode'=>$provider['provider_type']==='minimax'?'aspect_ratio':'pixels',
-            'note'=>'Opciones compatibles con el adaptador instalado del CMS. MiniMax convierte las medidas a proporciones; la resolución final la decide el proveedor. Generar una imagen no la asigna al post: usa update_post con featured_image_id.',
+            'size_mode'=>'pixels',
+            'custom_size_constraints'=>$provider['provider_type']==='minimax'?['minimum'=>512,'maximum'=>2048,'multiple_of'=>8]:null,
+            'max_prompt_length'=>$provider['provider_type']==='minimax'?1500:4000,
+            'note'=>'Opciones compatibles con el adaptador instalado del CMS. MiniMax recibe ancho y alto explícitos. El historial informa de las dimensiones reales de la imagen recibida. Generar una imagen no la asigna al post: usa update_post con featured_image_id.',
             'uses_site_ai_quota'=>true];
     }
     public function plan(string $tool,int $site,array $args): array
@@ -50,7 +68,14 @@ final class Media
             $provider=AIImageService::getDefaultProvider($site?:null);
             if (!$provider) throw new RuntimeException('Configura un proveedor de imágenes en IA → AI Image para este sitio.');
             $options=$this->options($site);
-            if (!in_array($args['size']??'1024x1024',$options['sizes'],true) || !in_array($args['quality']??'standard',$options['qualities'],true)) throw new RuntimeException('Tamaño o calidad no admitidos por el adaptador de este proveedor. Consulta list_image_options.');
+            $size=$args['size']??'1024x1024';
+            $validSize=in_array($size,$options['sizes'],true);
+            if ($provider['provider_type']==='minimax') {
+                $validSize=(bool)preg_match('/^([0-9]{3,4})x([0-9]{3,4})$/D',$size,$dimensions);
+                if ($validSize) foreach ([(int)$dimensions[1],(int)$dimensions[2]] as $n) if ($n<512 || $n>2048 || $n%8!==0) $validSize=false;
+            }
+            if (!$validSize || !in_array($args['quality']??'standard',$options['qualities'],true)) throw new RuntimeException('Parámetros no admitidos. '.$options['provider_name'].' admite quality='.implode('|',$options['qualities']).'. Consulta list_image_options para tamaños.');
+            if (mb_strlen($args['prompt'])>$options['max_prompt_length']) throw new RuntimeException('El prompt supera el límite del proveedor: '.$options['max_prompt_length'].' caracteres.');
             return $f+['prompt'=>SafeHtml::plain($args['prompt']),'size'=>$args['size']??'1024x1024','quality'=>$args['quality']??'standard','provider_id'=>(int)$provider['id'],'provider_name'=>$provider['name'],'model'=>$provider['model']??null,'uses_site_ai_quota'=>true];
         }
         if (isset($args['url'])===isset($args['base64'])) throw new RuntimeException('Indica una URL pública o una imagen base64, solo una.');

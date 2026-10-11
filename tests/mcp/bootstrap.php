@@ -42,7 +42,7 @@ function fixture(): PDO
     CREATE TABLE blog_comments(id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id INTEGER,post_id INTEGER,author_name TEXT,author_email TEXT,content TEXT,status TEXT,ip_address TEXT,user_agent TEXT,approved_at TEXT,approved_by INTEGER,approved_by_type TEXT,created_at TEXT,updated_at TEXT);
     INSERT INTO blog_comments(tenant_id,post_id,author_name,author_email,content,status) VALUES(1,2,'Autor','private@example.com','Hola','pending'),(3,3,'Cliente','client@example.com','Secreto','pending');
     CREATE TABLE blog_post_translations(id INTEGER PRIMARY KEY AUTOINCREMENT,post_id INTEGER,tenant_id INTEGER,locale TEXT,title TEXT,content TEXT,excerpt TEXT,seo_title TEXT,seo_description TEXT,seo_keywords TEXT,seo_image TEXT,canonical_url TEXT,robots_directive TEXT,twitter_title TEXT,twitter_description TEXT,twitter_image TEXT,created_at TEXT,updated_at TEXT,UNIQUE(post_id,locale));
-    CREATE TABLE media(id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id INTEGER,filename TEXT,mime_type TEXT,alt_text TEXT,public_token TEXT,slug TEXT,seo_filename TEXT,created_at TEXT);
+    CREATE TABLE media(id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id INTEGER,filename TEXT,mime_type TEXT,alt_text TEXT,public_token TEXT,slug TEXT,seo_filename TEXT,metadata TEXT,created_at TEXT);
     INSERT INTO media(tenant_id,filename,mime_type,public_token,slug,seo_filename) VALUES(1,'own.png','image/png','own-token','own','own-token.png'),(3,'client.png','image/png','client-token','client','client-token.png');
     CREATE TABLE ai_image_providers(id INTEGER PRIMARY KEY,tenant_id INTEGER,system_wide INTEGER,active INTEGER,name TEXT,model TEXT,provider_type TEXT);
     INSERT INTO ai_image_providers VALUES(1,NULL,1,1,'Test image provider','test-model','openai');";

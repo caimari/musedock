@@ -122,6 +122,14 @@ final class Admin
             $sites=Database::connect()->query("SELECT t.id,t.name,t.domain,t.group_id FROM tenants t INNER JOIN domain_groups g ON g.id=t.group_id WHERE t.status='active' ORDER BY g.name,t.name")->fetchAll(\PDO::FETCH_ASSOC);
             $groups=Database::connect()->query('SELECT id,name FROM domain_groups ORDER BY name')->fetchAll(\PDO::FETCH_ASSOC);
         }
+        $fixedSite=Policy::site($id);
+        $imageSites=$fixedSite!==null?[['id'=>$fixedSite,'name'=>$r['name'],'domain'=>$parts['host']]]:array_values(array_filter($sites,fn($site)=>in_array((int)$site['id'],$r['owned_sites']??[],true)));
+        $imageSite=(int)($_GET['image_site']??($imageSites[0]['id']??0));
+        $imageOptions=null; $imagePrompts=[]; $imageError=null;
+        if ($imageSites && in_array($imageSite,array_map(fn($site)=>(int)$site['id'],$imageSites),true)) {
+            try { $media=new Media($content); $imageOptions=$media->options($imageSite); $imagePrompts=$media->prompts($imageSite,20,0); }
+            catch (\Throwable $e) { $imageError=$e instanceof \PDOException?'No se pudo consultar el historial de imágenes.':$e->getMessage(); }
+        } else $imageError='Primero autoriza los sitios disponibles en Servicio y sitios.';
         $imageDiagnostics=[];
         foreach (\Screenart\Musedock\Services\AI\ImageTrace::recent() as $trace) {
             if (empty($trace['request_id'])) continue;
@@ -132,7 +140,7 @@ final class Admin
         $resourceOptions=['main'=>'Dominio principal'];
         foreach (['cross-publisher'=>'Cross Publisher','news-aggregator'=>'News Aggregator'] as $slug=>$label) if (Endpoint::installed('plugin:'.$slug)) $resourceOptions['plugin:'.$slug]=$label;
         (new Scheduler($ep->store,$content));
-        $data=['imageDiagnostics'=>$imageDiagnostics,'recentOperations'=>$recentOperations,'resourceOptions'=>$resourceOptions,'schedules'=>$ep->store->all("SELECT * FROM schedules WHERE resource=? AND status='scheduled' ORDER BY due",[$id]),'title'=>'(MCP) Conexiones IA','resource'=>$r,'clients'=>$clients,'grants'=>$grants,'requests'=>$requests,'newClient'=>$new,'error'=>$error,
+        $data=['imageSites'=>$imageSites,'imageSite'=>$imageSite,'imageOptions'=>$imageOptions,'imagePrompts'=>$imagePrompts,'imageError'=>$imageError,'imageDiagnostics'=>$imageDiagnostics,'recentOperations'=>$recentOperations,'resourceOptions'=>$resourceOptions,'schedules'=>$ep->store->all("SELECT * FROM schedules WHERE resource=? AND status='scheduled' ORDER BY due",[$id]),'title'=>'(MCP) Conexiones IA','resource'=>$r,'clients'=>$clients,'grants'=>$grants,'requests'=>$requests,'newClient'=>$new,'error'=>$error,
             'base'=>$base,'back'=>$back,'tenantMode'=>$tenant,'scopes'=>Policy::scopes($id),'sites'=>$sites,'groups'=>$groups,
             'canManageDeployment'=>!$tenant && \Screenart\Musedock\Helpers\PermissionHelper::isSuperAdminRoot($actor),
             'deploymentEnabled'=>filter_var(Env::get('MCP_CMS_DIRECT_ENABLED',false),FILTER_VALIDATE_BOOLEAN) && filter_var(Env::get('MCP_ENABLED',true),FILTER_VALIDATE_BOOLEAN),'pluginInstalled'=>Endpoint::installed($id),

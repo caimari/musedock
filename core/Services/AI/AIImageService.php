@@ -61,6 +61,9 @@ class AIImageService
 
         ImageTrace::record('provider_response_received');
         // Download and save image locally
+        $metadata['ai_generation']=['prompt'=>$prompt,'provider_id'=>$providerId,'provider_type'=>$provider['provider_type'],'provider_name'=>$provider['name'],'model'=>$result['model'],
+            'requested_size'=>$options['size']??'1024x1024','quality'=>$options['quality']??'standard','created_at'=>gmdate('c'),'prompt_optimizer'=>$provider['provider_type']==='minimax',
+            'request_id'=>$GLOBALS['mcp_request_id']??null];
         $localPath = self::downloadAndSave($result['url'], $tenantId, $metadata);
         ImageTrace::record('image_saved',['duration_ms'=>(int)((microtime(true)-$started)*1000)]);
         } catch (\Throwable $e) {
@@ -73,6 +76,7 @@ class AIImageService
             $usage = new Usage();
             $usage->log([
                 'provider_id' => $providerId,
+                'prompt' => $prompt,
                 'provider_type' => $provider['provider_type'],
                 'model' => $result['model'],
                 'prompt_tokens' => mb_strlen($prompt),
@@ -158,37 +162,31 @@ class AIImageService
      * Aspect ratios: 1:1, 16:9, 4:3, 3:2, 2:3, 3:4, 9:16, 21:9
      * Cost: ~$0.01 per generation
      */
-    private static function generateMiniMax(string $apiKey, string $prompt, array $provider, array $options): array
+    private static function miniMaxPayload(string $prompt,array $provider,array $options): array
     {
         $model = $options['model'] ?? $provider['model'] ?? 'image-01';
         $size = $options['size'] ?? '1024x1024';
 
-        // Convert WxH size to MiniMax aspect_ratio format
-        $aspectRatioMap = [
-            '1024x1024' => '1:1',
-            '1280x720'  => '16:9',
-            '720x1280'  => '9:16',
-            '1152x864'  => '4:3',
-            '864x1152'  => '3:4',
-            '1248x832'  => '3:2',
-            '832x1248'  => '2:3',
-            '1344x576'  => '21:9',
-            '1792x1024' => '16:9',
-            '1024x1792' => '9:16',
-            '512x512'   => '1:1',
-        ];
-        $aspectRatio = $aspectRatioMap[$size] ?? '1:1';
+        if (!preg_match('/^([0-9]{3,4})x([0-9]{3,4})$/D',$size,$dimensions) || (int)$dimensions[1]<512 || (int)$dimensions[1]>2048 || (int)$dimensions[2]<512 || (int)$dimensions[2]>2048 || (int)$dimensions[1]%8 || (int)$dimensions[2]%8) throw new \InvalidArgumentException('MiniMax requiere dimensiones entre 512 y 2048, múltiplos de 8.');
+        if (($options['quality']??'standard')!=='standard') throw new \InvalidArgumentException('El adaptador MiniMax admite quality=standard.');
+        if (mb_strlen($prompt)>1500) throw new \InvalidArgumentException('MiniMax admite prompts de hasta 1500 caracteres.');
 
-        $endpoint = $provider['endpoint'] ?? 'https://api.minimax.io/v1/image_generation';
-
-        $payload = [
+        return [
             'model' => $model,
             'prompt' => $prompt,
-            'aspect_ratio' => $aspectRatio,
+            'width' => (int)explode('x',$size)[0],
+            'height' => (int)explode('x',$size)[1],
             'response_format' => 'url',
             'n' => 1,
             'prompt_optimizer' => true,
         ];
+
+    }
+    private static function generateMiniMax(string $apiKey, string $prompt, array $provider, array $options): array
+    {
+        $payload=self::miniMaxPayload($prompt,$provider,$options);
+        $model=$payload['model'];
+        $endpoint=$provider['endpoint']??'https://api.minimax.io/v1/image_generation';
 
         $response = self::httpPost($endpoint, $payload, [
             'Authorization: Bearer ' . $apiKey,
@@ -329,7 +327,28 @@ class AIImageService
             throw new \Exception("Error al registrar la imagen IA en el Media Manager");
         }
 
+        if (empty($result['id'])) throw new \RuntimeException('La imagen guardada no devolvió su ID de medios.');
+        self::saveGenerationMetadata((int)$result['id'],$tenantId,$imageData,$metadata);
         return $result['url'];
+    }
+
+    private static function saveGenerationMetadata(int $mediaId,?int $tenantId,string $imageData,array $metadata): void
+    {
+        $db=Database::connect();
+        $s=$db->prepare('SELECT metadata FROM media WHERE id=? AND COALESCE(tenant_id,0)=?');
+        $s->execute([$mediaId,$tenantId??0]);$existing=$s->fetchColumn();
+        if ($existing===false) throw new \RuntimeException('La imagen no pertenece al sitio de generación.');
+        $saved=json_decode($existing?:'{}',true)?:[];
+        $dimensions=getimagesizefromstring($imageData);
+        $saved['original_resolution']=['width'=>$dimensions[0],'height'=>$dimensions[1]];
+        if (isset($metadata['ai_generation'])) {
+            $generation=$metadata['ai_generation'];
+            if (!filter_var(Usage::getSetting('ai_log_all_prompts',true,$tenantId),FILTER_VALIDATE_BOOLEAN)) { $generation['prompt']=mb_substr($generation['prompt'],0,100); $generation['prompt_truncated']=true; }
+            $generation['actual_resolution']=$saved['original_resolution'];
+            $saved['ai_generation']=$generation;
+        }
+        $s=$db->prepare('UPDATE media SET metadata=? WHERE id=? AND COALESCE(tenant_id,0)=?');
+        $s->execute([json_encode($saved,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$mediaId,$tenantId??0]);
     }
 
     /**

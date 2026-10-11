@@ -65,6 +65,15 @@
   @endif
   <p>Conecta un asistente para gestionar el blog con los permisos que autorices en <strong>{{ $resource['name'] }}</strong>.</p>
   @if($error)<div class="alert alert-danger">{{ $error }}</div>@endif
+  <p class="small text-muted">Servicio global: <strong>{{ $deploymentEnabled ? 'Activo' : 'Desactivado' }}</strong> · Esta conexión: <strong>{{ $resource['enabled'] ? 'Habilitada' : 'Desactivada' }}</strong>. Cada acceso conserva sus propios grupos, dominios y permisos.</p>
+  <nav class="nav nav-pills gap-2 mb-3" aria-label="Secciones de esta conexión">
+    <button type="button" class="nav-link active" data-mcp-tab="access" aria-pressed="true">Accesos ({{ count($clients) }})</button>
+    <button type="button" class="nav-link" data-mcp-tab="connection" aria-pressed="false">Servicio y sitios</button>
+    <button type="button" class="nav-link" data-mcp-tab="requests" aria-pressed="false">Solicitudes ({{ count($requests) }})</button>
+    <button type="button" class="nav-link" data-mcp-tab="images" aria-pressed="false">Imágenes</button>
+    <button type="button" class="nav-link" data-mcp-tab="help" aria-pressed="false">Ayuda</button>
+  </nav>
+  <section data-mcp-panel="connection">
   @if(!empty($canManageDeployment))
   <div class="card mb-3"><div class="card-body">
     <h2 class="h5">Servicio global MCP</h2>
@@ -103,6 +112,9 @@
       <button class="btn btn-primary">{{ $isPluginConnection ? 'Guardar conexión y sitios disponibles' : 'Guardar' }}</button>
     </form>
   </div></div>
+  </section>
+  <section data-mcp-panel="access">
+  <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h5 mb-0">Accesos independientes</h2><button type="button" class="btn btn-primary" id="mcp-new-access">+ Nuevo acceso MCP</button></div>
   @if($newClient)
     @if(!empty($newClient['rotated']))<div class="alert alert-info">Secreto renovado. Copia el nuevo valor y actualízalo en ChatGPT. El secreto anterior seguirá funcionando durante 24 horas o hasta que pulses «Finalizar renovación». Se conservan el ID, los permisos, los consentimientos y los tokens existentes.</div>@endif
   <div id="new-credentials" class="card border-success mb-3"><div class="card-body">
@@ -112,16 +124,19 @@
     <button type="button" class="btn btn-success" id="dismiss-credentials">Ya las he guardado</button>
   </div></div>
   @endif
-  <details class="card mb-3"><summary class="card-header">{{ $isPluginConnection ? 'Paso 2 · Dar acceso a un asistente' : 'Crear cliente para ChatGPT, Claude u otro asistente' }}</summary><div class="card-body">
+  <dialog id="mcp-create-access" class="mcp-info-dialog" aria-labelledby="mcp-create-title"><div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h5" id="mcp-create-title">{{ $isPluginConnection ? 'Paso 2 · Crear un acceso independiente' : 'Crear cliente para ChatGPT, Claude u otro asistente' }}</h2><button type="button" class="btn-close" data-mcp-close aria-label="Cerrar"></button></div>
+
     @if($isPluginConnection)<p class="text-muted">Crea credenciales independientes para ChatGPT, Claude u otro asistente. Aquí decides qué puede hacer y a cuáles de los sitios guardados en el paso 1 podrá acceder.</p>@endif
     <form method="post" action="{{ $back }}">
       {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="action" value="create_client">
-      <label class="form-label">Nombre</label><input name="name" class="form-control mb-2" required maxlength="100" placeholder="ChatGPT editorial">
+      <label class="form-label">Nombre del acceso</label><input name="name" class="form-control mb-2" required maxlength="100" placeholder="ChatGPT · Tech / Claude · Festivales">
       <label for="mcp-provider" class="form-label">Asistente</label>
       <select id="mcp-provider" name="provider" class="form-select mb-2"><option value="chatgpt">ChatGPT — dirección de retorno automática</option><option value="claude">Claude — dirección de retorno automática</option><option value="custom">Personalizado — otro asistente o callback distinto</option></select>
       <label for="mcp-callback" class="form-label">Dirección de retorno OAuth (callback)</label><input id="mcp-callback" name="callback" type="url" class="form-control mb-2" readonly maxlength="500" value="https://chatgpt.com/connector_platform_oauth_redirect" placeholder="Pega la URL HTTPS exacta del asistente">
       <p class="small text-muted mb-3">Es la dirección del asistente a la que volverás después de autorizar el acceso en este CMS. ChatGPT y Claude se rellenan automáticamente. Si el asistente muestra otra URL, elige Personalizado y copia esa dirección exacta; en ese modo no puede quedar vacía. Cada asistente necesita sus propias credenciales.</p>
-      <fieldset class="mb-3"><legend class="h6">Permisos</legend>
+      <fieldset class="mb-3"><legend class="h6">Permisos de este acceso</legend>
+      <div class="d-flex flex-wrap gap-2 mb-2"><button type="button" class="btn btn-sm btn-outline-secondary" data-mcp-permission-preset="read">Solo lectura</button><button type="button" class="btn btn-sm btn-outline-secondary" data-mcp-permission-preset="all">Todos los disponibles</button></div><p class="small text-muted">La selección solo se aplica al crear este acceso; el servicio mantiene sus límites y sitios autorizados.</p>
       @foreach($scopes as $scope)
         <label class="form-check"><input class="form-check-input" type="checkbox" name="scopes[]" value="{{ $scope }}" {{ $loop->first ? 'checked' : '' }}> {{ \Screenart\Musedock\Services\Mcp\Direct\Policy::label($scope) }} <small class="text-muted">({{ $scope }})</small></label>
       @endforeach
@@ -145,7 +160,7 @@
       <details class="mt-3"><summary>Redes permitidas (opcional)</summary><label class="form-label">IPs o CIDR de salida fiables del cliente</label><textarea name="networks" class="form-control" rows="3"></textarea><p class="small text-muted">Por defecto, déjalo vacío: se exige OAuth válido desde cualquier IP. No desactiva el firewall ni abre puertos nuevos; esta conexión utiliza el HTTPS de tu web (443). Rellénalo únicamente si conoces las IPs o rangos de salida del asistente: una lista incorrecta impedirá conectar. Se aplica a MCP y al intercambio de tokens, no al consentimiento del navegador.</p></details>
       <button class="btn btn-primary mt-3" {{ $isPluginConnection && !count($clientSites) ? 'disabled' : '' }}>Crear credenciales del asistente</button>
     </form>
-  </div></details>
+  </div></dialog>
   <div class="card mb-3"><div class="card-body"><h2 class="h5">Clientes y permisos</h2>
     @if($isPluginConnection)<p class="text-muted">Puedes crear varios accesos independientes con esta misma URL: por ejemplo, «ChatGPT · Tech» y «Claude · Festivales». Selecciona los grupos y dominios de cada cliente al crearlo; sus credenciales solo permiten acceder a esa selección.</p>@endif
     @forelse($clients as $client)
@@ -169,11 +184,13 @@
         @endif
       </form>
       @endif
+      <details class="mb-3"><summary>Editar permisos de este acceso</summary>
       <form method="post" action="{{ $back }}" class="mb-2">
         {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="client" value="{{ $client['id'] }}"><input type="hidden" name="action" value="client_permissions">
         @foreach($scopes as $scope)<label class="form-check"><input class="form-check-input" type="checkbox" name="scopes[]" value="{{ $scope }}" {{ in_array($scope,$client['scopes'],true) ? 'checked' : '' }}> {{ \Screenart\Musedock\Services\Mcp\Direct\Policy::label($scope) }} <small class="text-muted">({{ $scope }})</small></label>@endforeach
         <button class="btn btn-sm btn-outline-primary mt-2">Guardar permisos y exigir nuevo consentimiento</button>
       </form>
+      </details>
       <form method="post" action="{{ $back }}">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="client" value="{{ $client['id'] }}"><button class="btn btn-sm btn-outline-danger" name="action" value="revoke_client">Revocar cliente</button></form>
     </div>
     @empty <p class="text-muted">Aún no hay clientes registrados.</p>@endforelse
@@ -185,6 +202,8 @@
       </form>
     @empty <p class="text-muted">Ningún asistente ha completado la autorización.</p>@endforelse
   </div></div>
+  </section>
+  <section data-mcp-panel="requests">
   <div class="card mb-3"><div class="card-body"><h2 class="h5">Cambios pendientes</h2>
     @if(count($requests))<button type="button" class="btn btn-success mb-3" id="mcp-approve-all">Aprobar todas en cola ({{ count($requests) }})</button><p class="small text-muted">Las aprobaciones se guardan en una cola interna y se ejecutan en segundo plano. El procesamiento puede tardar hasta un minuto en empezar.</p>@endif
     @forelse($requests as $request)
@@ -201,11 +220,35 @@
     <p class="small text-muted">Si una operación permanece en ejecución, comprueba el gestor de medios y el artículo antes de solicitar otra generación. No se reintenta automáticamente.</p>
   </div></div>
   @endif
+  </section>
+  <section data-mcp-panel="images">
+  <div class="card mb-3"><div class="card-body"><h2 class="h5">Generador e historial por sitio</h2>
+    <form method="get" action="{{ $base }}#mcp-images" class="d-flex flex-wrap gap-2 align-items-end mb-3">
+      <input type="hidden" name="resource" value="{{ $resource['id'] }}">
+      <div><label class="form-label" for="mcp-image-site">Sitio</label><select id="mcp-image-site" name="image_site" class="form-select">@foreach(($imageSites ?? []) as $site)<option value="{{ $site['id'] }}" {{ (int)$site['id']===($imageSite ?? -1) ? 'selected' : '' }}>{{ $site['domain'] }}</option>@endforeach</select></div>
+      <button class="btn btn-outline-primary">Consultar imágenes</button>
+    </form>
+    @if(!empty($imageError))<p class="text-muted">{{ $imageError }}</p>@endif
+    @if(!empty($imageOptions))
+      <p><strong>{{ $imageOptions['provider_name'] }}</strong> · {{ $imageOptions['model'] }}</p>
+      <p class="small">Calidades: <strong>{{ implode(', ', $imageOptions['qualities']) }}</strong>. Tamaños habituales: {{ implode(', ', $imageOptions['sizes']) }}.</p>
+      @if(!empty($imageOptions['custom_size_constraints']))<p class="small">También admite dimensiones entre {{ $imageOptions['custom_size_constraints']['minimum'] }} y {{ $imageOptions['custom_size_constraints']['maximum'] }} px, múltiplos de {{ $imageOptions['custom_size_constraints']['multiple_of'] }}.</p>@endif
+      <p class="small text-muted">En ChatGPT, actualiza la conexión para descubrir las herramientas nuevas y abre una conversación nueva. Consulta <code>list_image_options</code> antes de generar y <code>list_image_prompts</code> para revisar estilos anteriores.</p>
+    @endif
+    @forelse(($imagePrompts ?? []) as $image)
+      <div class="border rounded p-3 mb-2"><a href="{{ $image['url'] }}" target="_blank" rel="noopener noreferrer">{{ $image['filename'] }}</a>
+        <p class="small mb-2">{{ $image['generation']['provider_name'] ?? '' }} · {{ $image['generation']['model'] ?? '' }} · Solicitado: {{ $image['generation']['requested_size'] ?? 'Sin dato' }} · Resolución real: {{ $image['resolution']['width'] ?? '?' }} × {{ $image['resolution']['height'] ?? '?' }} px</p>
+        <details><summary>Ver prompt original</summary><p class="text-wrap mt-2">{{ $image['generation']['prompt'] ?? 'No guardado' }}</p>@if(!empty($image['generation']['prompt_truncated']))<p class="small text-muted">Prompt truncado por la configuración de registros IA del sitio.</p>@endif</details>
+      </div>
+    @empty<p class="text-muted">No hay imágenes con prompt guardado en este sitio. Los nuevos registros se guardan con cada imagen generada; los prompts antiguos que no se conservaron no se pueden recuperar.</p>@endforelse
+  </div></div>
   <details class="card mb-3"><summary class="card-header">Diagnóstico de generación de imágenes</summary><div class="card-body">
     <p class="small text-muted">Registro privado desde esta actualización: proveedor, etapa, duración y códigos de respuesta. No guarda claves, secretos, prompts ni las URL del proveedor. Una generación interrumpida anterior no tiene un diagnóstico retroactivo.</p>
     @forelse(($imageDiagnostics ?? []) as $trace)<pre class="text-wrap border p-2 small">{{ json_encode($trace,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</pre>
     @empty<p class="text-muted">Todavía no hay llamadas registradas para esta conexión.</p>@endforelse
   </div></details>
+  </section>
+  <section data-mcp-panel="requests">
   @if(count($schedules))
   <div class="card mb-3"><div class="card-body"><h2 class="h5">Publicaciones programadas</h2>
     @foreach($schedules as $schedule)
@@ -213,6 +256,8 @@
     @endforeach
   </div></div>
   @endif
+  </section>
+  <section data-mcp-panel="help">
   <details class="card mb-3"><summary class="card-header">Instrucciones de conexión</summary><div class="card-body">
     <ol><li>En el asistente, añade una conexión MCP remota usando la URL de esta página.</li><li>Selecciona OAuth y tu propio cliente; copia su ID y secreto.</li><li>Usa <code>client_secret_basic</code> y los ámbitos que hayas habilitado, separados por espacios.</li><li>Inicia sesión en este CMS y revisa el consentimiento.</li><li>Prueba una consulta. Para escribir, prepara una solicitud y apruébala en esta página o desde MCP si has habilitado ese permiso.</li></ol>
     <p>El asistente debe admitir Authorization Code con PKCE S256 y enviar el recurso MCP exacto. Cada asistente utiliza credenciales independientes.</p>
@@ -220,6 +265,7 @@
   </div></details>
   <details class="card mb-3"><summary class="card-header">Modalidad túnel</summary><div class="card-body"><p>Esta entrega utiliza HTTPS directo por 443. El túnel OpenAI no está configurado ni se reutiliza el del Panel. Su incorporación requiere una configuración independiente.</p></div></details>
   <details class="card mb-3"><summary class="card-header">Actividad reciente</summary><div class="card-body"><ul>@foreach($events as $event)<li>{{ gmdate('Y-m-d H:i:s',$event['created']) }} UTC — {{ $event['action'] }} — {{ $event['detail'] }}</li>@endforeach</ul></div></details>
+  </section>
 </div>
   </div>
   <aside class="col-xl-3 d-none d-xl-block" aria-label="Opciones de Ajustes">
@@ -236,6 +282,7 @@
 @endsection
 @push('scripts')
 <script src="/assets/superadmin/js/mcp-progress.js?v=2"></script>
+<script src="/assets/superadmin/js/mcp-access-tabs.js?v=1"></script>
 <script>
 document.querySelectorAll('[data-mcp-info]').forEach(button=>button.addEventListener('click',()=>document.getElementById('mcp-info-'+button.dataset.mcpInfo).showModal()));
 document.querySelectorAll('[data-mcp-close]').forEach(button=>button.addEventListener('click',()=>button.closest('dialog').close()));
