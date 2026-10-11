@@ -12,6 +12,8 @@
     async function run(jobs) {
         if (running) return;
         running = true;
+        spinner.hidden = false;
+        close.disabled = true;
         dialog.showModal();
         list.replaceChildren();
         const rows = jobs.map(job => {
@@ -28,8 +30,11 @@
             summary.textContent = 'Solicitud ' + (i + 1) + ' de ' + jobs.length + '. Finalizadas: ' + completed + '.';
             const data = new FormData(form);
             data.set('action', action);
+            // Controls named "action" shadow the form.action DOM property.
+            const endpoint = new URL(form.getAttribute('action') || location.href, location.href);
+            endpoint.hash = '';
             try {
-                const response = await fetch(form.action, { method: 'POST', body: data, credentials: 'same-origin', headers: { 'X-MCP-Progress': '1', 'Accept': 'application/json' } });
+                const response = await fetch(endpoint.href, { method: 'POST', body: data, credentials: 'same-origin', headers: { 'X-MCP-Progress': '1', 'Accept': 'application/json' } });
                 if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('Respuesta no verificable. Revisa el estado antes de volver a aprobar.');
                 let result = await response.json();
                 if (!response.ok || !result.ok) throw new Error(result.error || 'No se pudo completar la solicitud.');
@@ -39,7 +44,7 @@
                         await new Promise(resolve => setTimeout(resolve, 3000));
                         const poll = new FormData(form);
                         poll.set('action', 'operation_status');
-                        const response = await fetch(form.action, { method: 'POST', body: poll, credentials: 'same-origin', headers: { 'X-MCP-Progress': '1', 'Accept': 'application/json' } });
+                        const response = await fetch(endpoint.href, { method: 'POST', body: poll, credentials: 'same-origin', headers: { 'X-MCP-Progress': '1', 'Accept': 'application/json' } });
                         if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('No se pudo consultar el estado. La cola permanece en el servidor; recarga para revisarla.');
                         result = await response.json();
                         if (!response.ok || !result.ok) throw new Error(result.error || 'No se pudo consultar el estado.');
