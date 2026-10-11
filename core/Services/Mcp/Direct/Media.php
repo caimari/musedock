@@ -26,6 +26,14 @@ final class Media
         if (!empty($row['slug']) && !empty($row['seo_filename'])) return '/media/p/'.rawurlencode($row['slug'].'-'.$row['public_token']).'/'.rawurlencode(pathinfo($row['seo_filename'],PATHINFO_EXTENSION));
         return '/media/t/'.rawurlencode($row['public_token']);
     }
+    public function assertPublicationImage(int $site,?string $url): void
+    {
+        $path=$url ? parse_url($url,PHP_URL_PATH) : null;
+        if ($path && str_starts_with($url,'/media/') && !str_starts_with($url,'//')) foreach ($this->content->query("SELECT public_token,slug,seo_filename FROM media WHERE COALESCE(tenant_id,0)=? AND mime_type LIKE 'image/%' AND public_token IS NOT NULL AND public_token<>''",[$site]) as $row) {
+            if ($this->publicUrl($row)===$path) return;
+        }
+        throw new RuntimeException('Publicación bloqueada: primero crea o sube la imagen al gestor de medios de este sitio y asígnala con featured_image_id. Puedes guardar el artículo como borrador.');
+    }
     public function listing(int $site,int $limit,int $offset): array
     {
         $rows=$this->content->query("SELECT id FROM media WHERE COALESCE(tenant_id,0)=? AND mime_type LIKE 'image/%' AND public_token IS NOT NULL AND public_token<>'' ORDER BY id DESC LIMIT {$limit} OFFSET {$offset}",[$site]);
@@ -49,11 +57,11 @@ final class Media
         if (!$provider) throw new RuntimeException('Configura un proveedor de imágenes en IA → AI Image para este sitio.');
         $model=$provider['model']??null;
         $sizes=match ($provider['provider_type']) {
-            'minimax'=>['1024x1024','1280x720','720x1280','1152x864','864x1152','1248x832','832x1248','1344x576','1792x1024','1024x1792','512x512'],
+            'minimax'=>['1280x720','1024x576','1024x1024','720x1280','1152x864','864x1152','1248x832','832x1248','1344x576','1792x1024','1024x1792','512x512'],
             'openai'=>($model==='dall-e-3'||!$model)?['1024x1024','1792x1024','1024x1792']:['1024x1024'],
             default=>['1024x1024','1792x1024','1024x1792','1536x1024','1024x1536'],
         };
-        return ['provider_id'=>(int)$provider['id'],'provider_name'=>$provider['name'],'provider_type'=>$provider['provider_type'],'model'=>$model,'sizes'=>$sizes,
+        return ['default_size'=>$provider['provider_type']==='minimax'?'1280x720':'1024x1024','provider_id'=>(int)$provider['id'],'provider_name'=>$provider['name'],'provider_type'=>$provider['provider_type'],'model'=>$model,'sizes'=>$sizes,
             'qualities'=>$provider['provider_type']==='openai' && $model==='dall-e-3'?['standard','hd']:['standard'],
             'size_mode'=>'pixels',
             'custom_size_constraints'=>$provider['provider_type']==='minimax'?['minimum'=>512,'maximum'=>2048,'multiple_of'=>8]:null,
@@ -68,7 +76,7 @@ final class Media
             $provider=AIImageService::getDefaultProvider($site?:null);
             if (!$provider) throw new RuntimeException('Configura un proveedor de imágenes en IA → AI Image para este sitio.');
             $options=$this->options($site);
-            $size=$args['size']??'1024x1024';
+            $size=$args['size']??($provider['provider_type']==='minimax'?'1280x720':'1024x1024');
             $validSize=in_array($size,$options['sizes'],true);
             if ($provider['provider_type']==='minimax') {
                 $validSize=(bool)preg_match('/^([0-9]{3,4})x([0-9]{3,4})$/D',$size,$dimensions);
@@ -76,7 +84,7 @@ final class Media
             }
             if (!$validSize || !in_array($args['quality']??'standard',$options['qualities'],true)) throw new RuntimeException('Parámetros no admitidos. '.$options['provider_name'].' admite quality='.implode('|',$options['qualities']).'. Consulta list_image_options para tamaños.');
             if (mb_strlen($args['prompt'])>$options['max_prompt_length']) throw new RuntimeException('El prompt supera el límite del proveedor: '.$options['max_prompt_length'].' caracteres.');
-            return $f+['prompt'=>SafeHtml::plain($args['prompt']),'size'=>$args['size']??'1024x1024','quality'=>$args['quality']??'standard','provider_id'=>(int)$provider['id'],'provider_name'=>$provider['name'],'model'=>$provider['model']??null,'uses_site_ai_quota'=>true];
+            return $f+['prompt'=>SafeHtml::plain($args['prompt']),'size'=>$size,'quality'=>$args['quality']??'standard','provider_id'=>(int)$provider['id'],'provider_name'=>$provider['name'],'model'=>$provider['model']??null,'uses_site_ai_quota'=>true];
         }
         if (isset($args['url'])===isset($args['base64'])) throw new RuntimeException('Indica una URL pública o una imagen base64, solo una.');
         $f['filename']=$args['filename']??'imagen';
@@ -118,7 +126,8 @@ final class Media
         if (!class_exists(\MediaManager\Controllers\MediaController::class)) throw new RuntimeException('El gestor de medios no está disponible.');
         return $this->context($site,function () use($tool,$site,$actor,$args) {
             if ($tool==='generate_image') {
-                $result=AIImageService::generateWithDefault(SafeHtml::plain($args['prompt']),['size'=>$args['size']??'1024x1024','quality'=>$args['quality']??'standard'],['tenant_id'=>$site?:null,'user_id'=>null,'user_type'=>'mcp','module'=>'mcp','action'=>'generate_image']);
+                $generation=$this->plan('generate_image',$site,$args);
+                $result=AIImageService::generateWithDefault(SafeHtml::plain($args['prompt']),['size'=>$generation['size'],'quality'=>$generation['quality']],['tenant_id'=>$site?:null,'user_id'=>null,'user_type'=>'mcp','module'=>'mcp','action'=>'generate_image']);
                 $row=$this->content->query('SELECT id,public_token,slug,seo_filename FROM media WHERE COALESCE(tenant_id,0)=? ORDER BY id DESC LIMIT 5',[$site]);
                 $id=0;foreach($row as $m) if(!empty($m['public_token']) && $this->publicUrl($m)===$result['local_path']) $id=(int)$m['id'];
                 if (!$id) throw new RuntimeException('No se pudo localizar la imagen generada en el sitio autorizado.');

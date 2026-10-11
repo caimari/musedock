@@ -47,7 +47,7 @@ final class Admin
                 }
                 if ($action==='configure') {
                     $r['managed']=$r['managed']??false;
-                    $r['url']=$url; $r['enabled']=isset($_POST['enabled']); $r['allow_drafts']=isset($_POST['allow_drafts']); $r['allow_publishing']=isset($_POST['allow_publishing']); $r['allow_mcp_approval']=isset($_POST['allow_mcp_approval']); $r['revision']++;
+                    $r['url']=$url; $r['enabled']=isset($_POST['enabled']); $r['allow_drafts']=isset($_POST['allow_drafts']); $r['allow_publishing']=isset($_POST['allow_publishing']); $r['require_featured_image']=isset($_POST['require_featured_image']); $r['allow_mcp_approval']=isset($_POST['allow_mcp_approval']); $r['revision']++;
                     if (str_starts_with($id,'plugin:')) {
                         $ids=array_values(array_unique(array_filter(array_map('intval',(array)($_POST['owned_sites']??[])),fn($n)=>$n>0)));
                         foreach ($ids as $site) {
@@ -127,7 +127,7 @@ final class Admin
         $imageSite=(int)($_GET['image_site']??($imageSites[0]['id']??0));
         $imageOptions=null; $imagePrompts=[]; $imageError=null;
         if ($imageSites && in_array($imageSite,array_map(fn($site)=>(int)$site['id'],$imageSites),true)) {
-            try { $media=new Media($content); $imageOptions=$media->options($imageSite); $imagePrompts=$media->prompts($imageSite,20,0); }
+            try { $media=new Media($content); $imageOptions=$media->options($imageSite); $imagePrompts=$media->listing($imageSite,20,0); }
             catch (\Throwable $e) { $imageError=$e instanceof \PDOException?'No se pudo consultar el historial de imágenes.':$e->getMessage(); }
         } else $imageError='Primero autoriza los sitios disponibles en Servicio y sitios.';
         $imageDiagnostics=[];

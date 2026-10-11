@@ -27,3 +27,11 @@ $metadata['ai_generation']['prompt']=str_repeat('a',200);$persist->invoke(null,1
 $images=$media->prompts(1,20,0);
 if(strlen($images[0]['generation']['prompt'])!==100||!$images[0]['generation']['prompt_truncated'])throw new RuntimeException('Prompt retention setting ignored.');
 echo "PASS: exact MiniMax dimensions, invalid quality/size rejection, saved prompt and actual resolution, metadata preservation, tenant isolation and retention setting. No provider calls.\n";
+
+$media=new Media(new Content($db));
+foreach ([null,'/media/t/missing','https://foreign.test/media/p/own-own-token/png','/media/p/foreign-foreign-token/png'] as $url) {
+    try { $media->assertPublicationImage(1,$url); } catch (RuntimeException $e) { continue; }
+    throw new RuntimeException('Publication accepted a missing or foreign featured image.');
+}
+$media->assertPublicationImage(1,'/media/p/own-own-token/png');
+echo "PASS: publication requires an assigned image belonging to the post site.\n";

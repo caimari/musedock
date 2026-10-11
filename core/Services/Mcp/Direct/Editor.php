@@ -159,6 +159,7 @@ final class Editor
                 if (strtotime($fields['published_at'])<=time()+60) throw new RuntimeException('La programación debe ser al menos un minuto en el futuro.');
                 if ($source['status']==='published') throw new RuntimeException('No puedes reprogramar un artículo ya publicado.');
             }
+            if (($r['require_featured_image']??true) && ($tool==='schedule_post' || (($fields['status']??$source['status']??'draft')==='published' && ($source['status']??'draft')!=='published'))) (new Media($this->content))->assertPublicationImage($site,$fields['featured_image']??$source['featured_image']??null);
             if ($tool==='update_post' && !$fields && !$tax) throw new RuntimeException('No hay cambios.');
             if (isset($fields['slug']) && $this->q('SELECT id FROM blog_posts WHERE COALESCE(tenant_id,0)=? AND slug=? AND id<>?',[$site,$fields['slug'],$source['id']??0])) throw new RuntimeException('El slug ya está en uso.');
         } elseif (str_contains($tool,'category') || str_contains($tool,'tag')) {
@@ -261,8 +262,8 @@ final class Editor
                 else $this->insert('blog_post_translations',$f+['post_id'=>$id,'tenant_id'=>$site?:null,'created_at'=>$now]);
             } else {
                 // External work cannot be retried and is consumed before execution by Tools.
-                $result=(new Media($this->content))->execute($tool,$site,$actor,$args);
-                $db->commit(); return $result;
+                $db->commit();
+                return (new Media($this->content))->execute($tool,$site,$actor,$args);
             }
             $db->commit();
             $cache=\Screenart\Musedock\Cache\HtmlCache::class;

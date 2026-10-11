@@ -97,6 +97,8 @@
       <label class="form-check"><input class="form-check-input" type="checkbox" name="enabled" {{ $resource['enabled'] ? 'checked' : '' }}> Habilitar esta conexión</label>
       <label class="form-check mb-3"><input class="form-check-input" type="checkbox" name="allow_drafts" {{ $resource['allow_drafts'] ? 'checked' : '' }}> Permitir solicitudes de cambios (borradores, taxonomías, medios y otras operaciones)</label>
       <label class="form-check"><input class="form-check-input" type="checkbox" name="allow_publishing" {{ !empty($resource['allow_publishing']) ? 'checked' : '' }}> Permitir publicar, programar y editar artículos publicados</label>
+      <label class="form-check"><input class="form-check-input" type="checkbox" name="require_featured_image" {{ ($resource['require_featured_image'] ?? true) ? 'checked' : '' }}> Exigir imagen destacada creada y asignada antes de publicar por MCP</label>
+      <p class="small text-muted">Activado por defecto. Permite guardar borradores; bloquea publicar o programar hasta que tengan una imagen del gestor de medios de su sitio. No publica automáticamente al terminar la generación.</p>
       <label class="form-check"><input class="form-check-input" type="checkbox" name="allow_mcp_approval" {{ !empty($resource['allow_mcp_approval']) ? 'checked' : '' }}> Permitir aprobar solicitudes desde MCP</label>
       <p class="small text-muted mb-3">La aprobación desde MCP permite ejecutar cambios desde el asistente. Cada cliente necesita además el permiso «Aprobar solicitudes propias desde MCP». Si está desmarcado, apruebas en esta pantalla.</p>
       @if(count($sites))
@@ -236,11 +238,11 @@
       <p class="small text-muted">En ChatGPT, actualiza la conexión para descubrir las herramientas nuevas y abre una conversación nueva. Consulta <code>list_image_options</code> antes de generar y <code>list_image_prompts</code> para revisar estilos anteriores.</p>
     @endif
     @forelse(($imagePrompts ?? []) as $image)
-      <div class="border rounded p-3 mb-2"><a href="{{ $image['url'] }}" target="_blank" rel="noopener noreferrer">{{ $image['filename'] }}</a>
+      <div class="border rounded p-3 mb-2"><a href="{{ $image['url'] }}" target="_blank" rel="noopener noreferrer"><img src="{{ $image['url'] }}" alt="{{ $image['alt_text'] ?? $image['filename'] }}" loading="lazy" style="max-width:240px;width:100%;max-height:160px;object-fit:contain" class="d-block mb-2"></a><a href="{{ $image['url'] }}" target="_blank" rel="noopener noreferrer">{{ $image['filename'] }}</a>
         <p class="small mb-2">{{ $image['generation']['provider_name'] ?? '' }} · {{ $image['generation']['model'] ?? '' }} · Solicitado: {{ $image['generation']['requested_size'] ?? 'Sin dato' }} · Resolución real: {{ $image['resolution']['width'] ?? '?' }} × {{ $image['resolution']['height'] ?? '?' }} px</p>
         <details><summary>Ver prompt original</summary><p class="text-wrap mt-2">{{ $image['generation']['prompt'] ?? 'No guardado' }}</p>@if(!empty($image['generation']['prompt_truncated']))<p class="small text-muted">Prompt truncado por la configuración de registros IA del sitio.</p>@endif</details>
       </div>
-    @empty<p class="text-muted">No hay imágenes con prompt guardado en este sitio. Los nuevos registros se guardan con cada imagen generada; los prompts antiguos que no se conservaron no se pueden recuperar.</p>@endforelse
+    @empty<p class="text-muted">No hay imágenes disponibles en el gestor de medios de este sitio.</p>@endforelse
   </div></div>
   <details class="card mb-3"><summary class="card-header">Diagnóstico de generación de imágenes</summary><div class="card-body">
     <p class="small text-muted">Registro privado desde esta actualización: proveedor, etapa, duración y códigos de respuesta. No guarda claves, secretos, prompts ni las URL del proveedor. Una generación interrumpida anterior no tiene un diagnóstico retroactivo.</p>
