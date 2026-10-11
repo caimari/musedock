@@ -394,7 +394,7 @@ class BlogController
         $breadcrumbs['itemListElement'][] = ['@type' => 'ListItem', 'position' => $pos, 'name' => $seoTitle];
 
         View::addGlobalData([
-            '__jsonld_article' => json_encode(['@context' => 'https://schema.org', '@graph' => [$articleLd, $breadcrumbs]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            '__jsonld_article' => json_encode(['@context' => 'https://schema.org', '@graph' => [$articleLd, $breadcrumbs]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP),
         ]);
 
         // Use docs template if post_type is 'docs'

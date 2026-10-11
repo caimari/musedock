@@ -340,7 +340,10 @@ class WpGalleryImporter
 
     private function fetchUrl(string $url): ?string
     {
+        // Auditoría 2026-10-05: solo http(s) hacia IPs públicas (nada de red interna ni file://)
+        if (!preg_match('#^https?://#i', (string) $url) || \Screenart\Musedock\Security\UrlGuard::resolvePublicIp((string) $url) === null) { return null; }
         $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); // Auditoría 2026-10-05
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,

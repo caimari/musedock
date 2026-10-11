@@ -234,18 +234,8 @@ class NewsletterController
 
     private function clientIp(): string
     {
-        foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'REMOTE_ADDR'] as $key) {
-            if (!empty($_SERVER[$key])) {
-                $ip = (string)$_SERVER[$key];
-                if (strpos($ip, ',') !== false) {
-                    $ip = trim(explode(',', $ip)[0]);
-                }
-                if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                    return $ip;
-                }
-            }
-        }
-        return '0.0.0.0';
+        // Auditoría 2026-10-05: IP real solo vía IPHelper (cabeceras de proxy únicamente desde Cloudflare/proxies de confianza)
+        return \Screenart\Musedock\Security\IPHelper::getRealIP();
     }
 
     /**

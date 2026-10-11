@@ -31,12 +31,12 @@ class SuperAdminMiddleware
 
         // Debug: Log estado de sesión para AJAX
         if (strpos($requestUri, $adminBase . '/run-seeders') !== false) {
-            error_log("SuperAdminMiddleware [run-seeders] - Session ID: " . session_id());
+            error_log("SuperAdminMiddleware [run-seeders] - Session ID: " . '[oculto]'); /* Auditoría 2026-10-05: sin secretos de sesión en logs */
             error_log("SuperAdminMiddleware [run-seeders] - super_admin isset: " . (isset($_SESSION['super_admin']) ? 'YES' : 'NO'));
             if (isset($_SESSION['super_admin'])) {
                 error_log("SuperAdminMiddleware [run-seeders] - role: " . ($_SESSION['super_admin']['role'] ?? 'NOT SET'));
             }
-            error_log("SuperAdminMiddleware [run-seeders] - COOKIE: " . json_encode($_COOKIE));
+            error_log("SuperAdminMiddleware [run-seeders] - COOKIE: " . json_encode(array_keys($_COOKIE))); /* Auditoría 2026-10-05: sin secretos de sesión en logs */
         }
 
         // SOLO super_admins con rol 'superadmin' pueden acceder

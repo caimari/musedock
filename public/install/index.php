@@ -77,7 +77,8 @@ if (!isset($_SESSION['csrf_token'])) {
 // If .env exists, the system is already configured and installer should not be accessible
 $envExists = file_exists(ROOT_PATH . '/.env');
 
-if ($envExists) {
+// Auditoría 2026-10-05: segunda condición, por si algún día faltara el .env
+if ($envExists || file_exists(ROOT_PATH . '/install.lock')) {
     // Return 404 - do not disclose installer existence
     http_response_code(404);
     echo '<!DOCTYPE html><html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL was not found on this server.</p></body></html>';

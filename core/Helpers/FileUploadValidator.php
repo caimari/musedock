@@ -53,10 +53,20 @@ class FileUploadValidator
             return ['valid' => false, 'error' => 'Tipo de archivo no permitido.'];
         }
 
-        // Si es SVG, validación adicional (no puede contener scripts)
+        // Auditoría 2026-10-05: la extensión debe corresponder al tipo real del contenido
+        $mimeExtensions = [
+            'image/jpeg' => ['jpg', 'jpeg'], 'image/png' => ['png'], 'image/gif' => ['gif'],
+            'image/webp' => ['webp'], 'image/svg+xml' => ['svg'],
+        ];
+        if (!in_array($extension, $mimeExtensions[$mimeType] ?? [], true)) {
+            $extension = $mimeExtensions[$mimeType][0]; // se corrige en vez de rechazar (p. ej. un PNG llamado .jpg)
+        }
+
+        // Si es SVG, validación adicional (no puede contener scripts ni contenido activo)
         if ($extension === 'svg') {
             $content = file_get_contents($file['tmp_name']);
-            if (preg_match('/<script/i', $content) || preg_match('/on\w+\s*=/i', $content)) {
+            if (preg_match('/<script/i', $content) || preg_match('/on\w+\s*=/i', $content)
+                || preg_match('/javascript\s*:|<foreignObject|<iframe|<embed|<object|<!ENTITY|<\?xml-stylesheet/i', $content)) {
                 return ['valid' => false, 'error' => 'El archivo SVG contiene código no permitido.'];
             }
         }

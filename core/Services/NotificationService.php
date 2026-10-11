@@ -291,11 +291,16 @@ class NotificationService
     /**
      * Marcar notificación como leída
      */
-    public static function markAsRead(int $notificationId): bool
+    public static function markAsRead(int $notificationId, ?int $ownerId = null, ?string $ownerType = null): bool
     {
         $notification = Notification::find($notificationId);
 
         if (!$notification) {
+            return false;
+        }
+
+        // Auditoría 2026-10-05: si se indica el dueño, la notificación debe ser suya
+        if ($ownerId !== null && ((int) ($notification->user_id ?? 0) !== $ownerId || ($ownerType !== null && (string) ($notification->user_type ?? '') !== $ownerType))) {
             return false;
         }
 

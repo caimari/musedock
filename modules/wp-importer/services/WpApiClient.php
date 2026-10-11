@@ -738,7 +738,10 @@ class WpApiClient
             $url = preg_replace('#' . preg_quote($path, '#') . '#', $encodedPath, $url, 1);
         }
 
+        // Auditoría 2026-10-05: solo http(s) hacia IPs públicas (nada de red interna ni file://)
+        if (!preg_match('#^https?://#i', (string) $url) || \Screenart\Musedock\Security\UrlGuard::resolvePublicIp((string) $url) === null) { return false; }
         $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); // Auditoría 2026-10-05
         $fp = fopen($destPath, 'wb');
 
         if (!$fp) {
@@ -777,7 +780,10 @@ class WpApiClient
      */
     public function fetchHomepageHtml(): ?string
     {
+        // Auditoría 2026-10-05: solo http(s) hacia IPs públicas (nada de red interna ni file://)
+        if (!preg_match('#^https?://#i', (string) $this->siteUrl) || \Screenart\Musedock\Security\UrlGuard::resolvePublicIp((string) $this->siteUrl) === null) { return null; }
         $ch = curl_init($this->siteUrl);
+        curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); // Auditoría 2026-10-05
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
@@ -845,7 +851,10 @@ class WpApiClient
                 continue;
             }
 
+            // Auditoría 2026-10-05: solo http(s) hacia IPs públicas (nada de red interna ni file://)
+            if (!preg_match('#^https?://#i', (string) $url) || \Screenart\Musedock\Security\UrlGuard::resolvePublicIp((string) $url) === null) { continue; }
             $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); // Auditoría 2026-10-05
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_FOLLOWLOCATION => true,
@@ -888,7 +897,10 @@ class WpApiClient
             $url .= (strpos($url, '?') !== false ? '&' : '?') . http_build_query($params);
         }
 
+        // Auditoría 2026-10-05: solo http(s) hacia IPs públicas (nada de red interna ni file://)
+        if (!preg_match('#^https?://#i', (string) $url) || \Screenart\Musedock\Security\UrlGuard::resolvePublicIp((string) $url) === null) { return ['data' => null, 'error' => 'URL no permitida', 'headers' => []]; }
         $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); // Auditoría 2026-10-05
 
         $headers = ['Accept: application/json'];
 

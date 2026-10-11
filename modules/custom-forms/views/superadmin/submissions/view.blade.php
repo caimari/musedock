@@ -78,13 +78,13 @@
                                                 <span class="badge bg-secondary">{{ __forms('email.no') }}</span>
                                             @endif
                                         @elseif($field->field_type === 'file' && $value)
-                                            <a href="{{ $value }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <a href="{{ preg_match('#^(https?:)?//|^/#i', (string) $value) ? $value : '#' }}" rel="noopener" target="_blank" class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-file-earmark me-1"></i> {{ __forms('submission.download_file') }}
                                             </a>
                                         @elseif($field->field_type === 'email' && $value)
                                             <a href="mailto:{{ $value }}">{{ $value }}</a>
                                         @elseif($field->field_type === 'url' && $value)
-                                            <a href="{{ $value }}" target="_blank">{{ $value }}</a>
+                                            <a href="{{ preg_match('#^(https?:)?//|^/#i', (string) $value) ? $value : '#' }}" rel="noopener" target="_blank">{{ $value }}</a>
                                         @elseif($field->field_type === 'textarea')
                                             <div class="text-pre-wrap">{{ $value ?: '-' }}</div>
                                         @else
@@ -139,13 +139,13 @@
                             @if($submission->page_url)
                             <tr>
                                 <th class="text-muted">{{ __forms('submission.page') }}</th>
-                                <td><a href="{{ $submission->page_url }}" target="_blank">{{ $submission->page_url }}</a></td>
+                                <td><a href="{{ preg_match('#^(https?:)?//|^/#i', (string) $submission->page_url) ? $submission->page_url : '#' }}" rel="noopener" target="_blank">{{ $submission->page_url }}</a></td>
                             </tr>
                             @endif
                             @if($submission->referrer_url)
                             <tr>
                                 <th class="text-muted">{{ __forms('submission.referrer') }}</th>
-                                <td><a href="{{ $submission->referrer_url }}" target="_blank">{{ $submission->referrer_url }}</a></td>
+                                <td><a href="{{ preg_match('#^(https?:)?//|^/#i', (string) $submission->referrer_url) ? $submission->referrer_url : '#' }}" rel="noopener" target="_blank">{{ $submission->referrer_url }}</a></td>
                             </tr>
                             @endif
                         </table>

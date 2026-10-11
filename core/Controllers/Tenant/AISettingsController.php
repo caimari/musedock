@@ -89,6 +89,14 @@ class AISettingsController
             $apiKey = 'none';
         }
 
+        // Auditoría 2026-10-05: el endpoint de un tenant debe ser https y público (no la red interna ni la API de Caddy)
+        $endpoint = trim($_POST['endpoint'] ?? '');
+        if ($endpoint !== '' && (!preg_match('#^https://#i', $endpoint) || \Screenart\Musedock\Security\UrlGuard::resolvePublicIp($endpoint) === null)) {
+            $_SESSION['flash_error'] = 'El endpoint debe ser una URL https pública.';
+            header('Location: /' . admin_path() . '/ai/settings');
+            exit;
+        }
+
         try {
             TenantProvider::save($tenantId, [
                 'provider_type' => $_POST['provider_type'] ?? 'openai',
@@ -96,7 +104,7 @@ class AISettingsController
                 'model' => $_POST['model'] ?? 'gpt-4',
                 'max_tokens' => (int) ($_POST['max_tokens'] ?? 1500),
                 'temperature' => (float) ($_POST['temperature'] ?? 0.7),
-                'endpoint' => trim($_POST['endpoint'] ?? ''),
+                'endpoint' => $endpoint,
             ]);
 
             $_SESSION['flash_success'] = 'API Key propia configurada correctamente. Tus llamadas a IA ya no consumirán la cuota del sistema.';

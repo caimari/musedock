@@ -235,8 +235,8 @@ function loadAliases(tenantId) {
       }
       list.innerHTML = data.aliases.map(a =>
         '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.8rem;">' +
-          '<span>' + a.alias_domain + '</span>' +
-          '<button onclick="removeAlias(' + tenantId + ',\'' + a.alias_domain + '\')" style="background:none;border:none;color:#dc3545;cursor:pointer;font-size:0.75rem;"><i class="bi bi-x-circle"></i></button>' +
+          '<span>' + (a.domain || a.alias_domain) + '</span>' +
+          '<button onclick="removeAlias(' + tenantId + ',\'' + (a.domain || a.alias_domain) + '\',' + parseInt(a.id, 10) + ')" style="background:none;border:none;color:#dc3545;cursor:pointer;font-size:0.75rem;"><i class="bi bi-x-circle"></i></button>' +
         '</div>'
       ).join('');
     })
@@ -247,23 +247,24 @@ function submitAlias(tenantId) {
   var input = document.getElementById('alias-input-' + tenantId);
   var www = document.getElementById('alias-www-' + tenantId);
   if (!input.value.trim()) return;
+  // Auditoría 2026-10-05: el servidor lee $_POST; con JSON no llegaban ni el dominio ni el token
   fetch('/customer/tenant/' + tenantId + '/aliases/add', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-    body: JSON.stringify({ domain: input.value.trim(), include_www: www.checked ? 1 : 0, _csrf_token: '<?= csrf_token() ?>' })
+    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    body: new URLSearchParams({ domain: input.value.trim(), include_www: www.checked ? '1' : '', _csrf_token: '<?= csrf_token() ?>' })
   }).then(r => r.json()).then(data => {
     if (data.success) { input.value = ''; loadAliases(tenantId); Swal.fire({icon:'success',title:'Alias añadido',toast:true,position:'top-end',timer:2000,showConfirmButton:false}); }
     else Swal.fire({icon:'error',title:'Error',text:data.error||'No se pudo añadir'});
   });
 }
 
-function removeAlias(tenantId, domain) {
+function removeAlias(tenantId, domain, aliasId) {
   Swal.fire({title:'¿Eliminar alias?',text:domain,icon:'warning',showCancelButton:true,confirmButtonColor:'#dc3545',confirmButtonText:'Eliminar',cancelButtonText:'Cancelar'}).then(r => {
     if (r.isConfirmed) {
       fetch('/customer/tenant/' + tenantId + '/aliases/remove', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        body: JSON.stringify({ domain: domain, _csrf_token: '<?= csrf_token() ?>' })
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: new URLSearchParams({ alias_id: String(aliasId || ''), _csrf_token: '<?= csrf_token() ?>' })
       }).then(r => r.json()).then(data => {
         if (data.success) loadAliases(tenantId);
         else Swal.fire({icon:'error',title:'Error',text:data.error||'No se pudo eliminar'});

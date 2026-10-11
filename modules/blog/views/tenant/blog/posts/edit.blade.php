@@ -633,6 +633,6 @@
 @include('Blog::partials._slug_scripts')
 
 @if(function_exists('aiimage_is_active') && aiimage_is_active())
-<script src="/assets/modules/aiimage/js/ai-image-generator.js"></script>
+<script src="/assets/modules/aiimage/js/ai-image-generator.js?v=20261005"></script>
 @endif
 @endsection

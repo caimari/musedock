@@ -224,6 +224,7 @@ class ProfileController
             // Actualizar contraseña
             $stmt = $pdo->prepare("UPDATE admins SET password = ? WHERE id = ?");
             $stmt->execute([$hashedPassword, $user['id']]);
+            \Screenart\Musedock\Security\SessionSecurity::forgetRememberTokens('admin', 'id = ?', [$user['id']]); // Auditoría 2026-10-05
 
             flash('success', 'Contraseña actualizada correctamente.');
             header('Location: ' . admin_url('/profile'));

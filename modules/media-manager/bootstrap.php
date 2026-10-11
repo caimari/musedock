@@ -46,7 +46,12 @@ if (!function_exists('mediamanager_is_active')) {
 if (!function_exists('mediamanager_table_exists')) {
     function mediamanager_table_exists(\PDO $pdo, string $table): bool
     {
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+        // Auditoría 2026-10-05: DATABASE() es de MySQL y fallaba en cada visita con PostgreSQL
+        if ($pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'pgsql') {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = ?");
+        } else {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+        }
         $stmt->execute([$table]);
         return (bool) $stmt->fetchColumn();
     }

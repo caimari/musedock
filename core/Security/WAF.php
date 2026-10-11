@@ -266,8 +266,7 @@ class WAF
      */
     private static function logViolation(string $type, string $source, string $pattern): void
     {
-        $ip = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-        $ip = trim(explode(',', $ip)[0]);
+        $ip = \Screenart\Musedock\Security\IPHelper::getRealIP(); // Auditoría 2026-10-05: IP real solo vía IPHelper (cabeceras de proxy únicamente desde Cloudflare/proxies de confianza)
 
         $violation = [
             'type' => $type,

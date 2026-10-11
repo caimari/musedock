@@ -21,13 +21,13 @@ class SlugRouter
     {
         // Log inicial para debugging detallado
         $logPath = __DIR__ . '/../../storage/logs/debug.log';
-        file_put_contents($logPath, date('Y-m-d H:i:s') . " - ENTRADA RESOLVE - prefix: " . 
+        filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents($logPath, date('Y-m-d H:i:s') . " - ENTRADA RESOLVE - prefix: " . 
             json_encode($prefix) . ", slug: " . json_encode($slug) . "\n", FILE_APPEND);
         
         // Si solo tenemos prefijo sin slug (o slug vacío)
         // Nota: empty() considera null, '', 0, false como vacíos
         if ($prefix && (empty($slug) || $slug === '')) {
-            file_put_contents($logPath, date('Y-m-d H:i:s') . " - DETECTADO SOLO PREFIJO: " . $prefix . "\n", FILE_APPEND);
+            filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents($logPath, date('Y-m-d H:i:s') . " - DETECTADO SOLO PREFIJO: " . $prefix . "\n", FILE_APPEND);
             return self::showListByPrefix($prefix);
         }
 
@@ -44,8 +44,8 @@ class SlugRouter
         $currentLang = detectLanguage(); // Detectar el idioma activo
         
         // Log de información básica
-        file_put_contents($logPath, date('Y-m-d H:i:s') . " - RESOLVIENDO SLUG:\n", FILE_APPEND);
-        file_put_contents($logPath, "- slug: $slug\n- prefix: " . json_encode($prefix) . "\n- tenant_id: " . json_encode($tenantId) . "\n- multiTenant: " . ($multiTenant ? 'true' : 'false') . "\n- locale: " . $currentLang . "\n", FILE_APPEND);
+        filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents($logPath, date('Y-m-d H:i:s') . " - RESOLVIENDO SLUG:\n", FILE_APPEND);
+        filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents($logPath, "- slug: $slug\n- prefix: " . json_encode($prefix) . "\n- tenant_id: " . json_encode($tenantId) . "\n- multiTenant: " . ($multiTenant ? 'true' : 'false') . "\n- locale: " . $currentLang . "\n", FILE_APPEND);
         
         // Query Eloquent - Con todos los filtros (buscar en pages y blog)
         $query = Slug::where('slug', '=', $slug)
@@ -97,13 +97,13 @@ class SlugRouter
             $sql .= " LIMIT 1";
             
             // Log de la consulta
-            file_put_contents($logPath, date('Y-m-d H:i:s') . " - SQL DIRECTO: " . $sql . "\n", FILE_APPEND);
-            file_put_contents($logPath, date('Y-m-d H:i:s') . " - PARÁMETROS: " . json_encode($params) . "\n", FILE_APPEND);
+            filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents($logPath, date('Y-m-d H:i:s') . " - SQL DIRECTO: " . $sql . "\n", FILE_APPEND);
+            filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents($logPath, date('Y-m-d H:i:s') . " - PARÁMETROS: " . json_encode($params) . "\n", FILE_APPEND);
             
             try {
                 $entry = \Screenart\Musedock\Database::query($sql, $params)->fetch(\PDO::FETCH_ASSOC);
             } catch (\Exception $e) {
-                file_put_contents($logPath, date('Y-m-d H:i:s') . " - ERROR SQL: " . $e->getMessage() . "\n", FILE_APPEND);
+                filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents($logPath, date('Y-m-d H:i:s') . " - ERROR SQL: " . $e->getMessage() . "\n", FILE_APPEND);
             }
         }
         
@@ -111,7 +111,7 @@ class SlugRouter
             $entry = (object) $entry;
         }
 
-        file_put_contents($logPath, "- Resultado encontrado: " . json_encode($entry) . "\n", FILE_APPEND);
+        filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents($logPath, "- Resultado encontrado: " . json_encode($entry) . "\n", FILE_APPEND);
 
         // If not found with given prefix, check if slug exists with a different prefix (cross-prefix redirect)
         if (!$entry && $prefix !== null) {
@@ -139,7 +139,7 @@ class SlugRouter
         if ($entry && $entry->module === 'pages') {
             $homepageId = self::getHomepagePageId($tenantId);
             if ($homepageId && (int)$entry->reference_id === $homepageId) {
-                file_put_contents($logPath, date('Y-m-d H:i:s') . " - 301 REDIRECT: slug de homepage '{$slug}' -> /\n", FILE_APPEND);
+                filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents($logPath, date('Y-m-d H:i:s') . " - 301 REDIRECT: slug de homepage '{$slug}' -> /\n", FILE_APPEND);
                 header('Location: /', true, 301);
                 exit;
             }
@@ -185,23 +185,23 @@ class SlugRouter
                     }
 
                     if ($docId > 0) {
-                        file_put_contents($logPath, date('Y-m-d H:i:s') . " - FALLBACK DOCS: post_type=docs encontrado por slug '{$slug}' (ID {$docId})\n", FILE_APPEND);
+                        filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents($logPath, date('Y-m-d H:i:s') . " - FALLBACK DOCS: post_type=docs encontrado por slug '{$slug}' (ID {$docId})\n", FILE_APPEND);
                         return self::resolve_blog($docId);
                     }
                 } catch (\Exception $e) {
-                    file_put_contents($logPath, date('Y-m-d H:i:s') . " - FALLBACK DOCS ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
+                    filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents($logPath, date('Y-m-d H:i:s') . " - FALLBACK DOCS ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
                 }
             }
 
             // === FALLBACK: Verificar si es una página legal por defecto ===
             $pagePrefix = function_exists('page_prefix') ? page_prefix() : 'p';
             if (($prefix === $pagePrefix || $prefix === null) && DefaultLegalPagesService::isLegalPageSlug($slug)) {
-                file_put_contents($logPath, date('Y-m-d H:i:s') . " - FALLBACK: Página legal por defecto - $slug\n", FILE_APPEND);
+                filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents($logPath, date('Y-m-d H:i:s') . " - FALLBACK: Página legal por defecto - $slug\n", FILE_APPEND);
                 $controller = new \Screenart\Musedock\Controllers\Frontend\PageController();
                 return $controller->showDefaultLegalPage($slug);
             }
 
-            file_put_contents($logPath, date('Y-m-d H:i:s') . " - 404 NOT FOUND: Renderizando página 404\n", FILE_APPEND);
+            filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents($logPath, date('Y-m-d H:i:s') . " - 404 NOT FOUND: Renderizando página 404\n", FILE_APPEND);
             self::render404();
         }
 
@@ -211,7 +211,7 @@ class SlugRouter
         }
 
         // Módulo no soportado
-        file_put_contents($logPath, date('Y-m-d H:i:s') . " - 404 NOT FOUND: Módulo '{$entry->module}' no soportado\n", FILE_APPEND);
+        filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents($logPath, date('Y-m-d H:i:s') . " - 404 NOT FOUND: Módulo '{$entry->module}' no soportado\n", FILE_APPEND);
         self::render404();
     }
 
@@ -225,7 +225,7 @@ class SlugRouter
     {
         // Log para debugging
         $logPath = __DIR__ . '/../../storage/logs/debug.log';
-        file_put_contents($logPath, date('Y-m-d H:i:s') . " - MOSTRANDO LISTADO POR PREFIJO: $prefix\n", FILE_APPEND);
+        filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents($logPath, date('Y-m-d H:i:s') . " - MOSTRANDO LISTADO POR PREFIJO: $prefix\n", FILE_APPEND);
         
         // Determinar qué controlador y método llamar según el prefijo
         // Obtener prefijo de páginas configurable
@@ -244,7 +244,7 @@ class SlugRouter
             default:
                 // Prefijo no reconocido: intentar resolver como slug sin prefijo
                 // Esto permite que URLs como /slug-del-post funcionen cuando blog_prefix es vacío
-                file_put_contents($logPath, date('Y-m-d H:i:s') . " - Prefijo no reconocido, intentando como slug sin prefijo: $prefix\n", FILE_APPEND);
+                filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents($logPath, date('Y-m-d H:i:s') . " - Prefijo no reconocido, intentando como slug sin prefijo: $prefix\n", FILE_APPEND);
                 return self::resolve(null, $prefix);
         }
     }

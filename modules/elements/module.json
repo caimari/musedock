@@ -51,5 +51,11 @@
         "allowed_faq_layouts": ["accordion", "simple", "two-columns"],
         "default_cta_layout": "horizontal",
         "allowed_cta_layouts": ["horizontal", "centered", "box"]
+    },
+    "changelog": {
+        "pendiente (auditoría 2026-10-05)": [
+            "Logs: la comprobación de tablas funciona en PostgreSQL (SHOW TABLES fallaba en cada visita) y el mensaje de carga solo sale con APP_DEBUG.",
+            "Seguridad: la imagen de cabecera guarda la extensión del tipo real, no la del nombre del fichero."
+        ]
     }
 }

@@ -37,7 +37,7 @@ class WidgetInstance extends Model
     {
         try {
             // Log para depuración
-            error_log("WidgetInstance::getInstancesForArea - Consultando instancias para Tema: {$themeSlug}, Área: {$areaSlug}, Tenant: " . ($tenantId ?? 'NULL'));
+            if (filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN)) { error_log("WidgetInstance::getInstancesForArea - Consultando instancias para Tema: {$themeSlug}, Área: {$areaSlug}, Tenant: " . ($tenantId ?? 'NULL')); } // Auditoría 2026-10-05
             
             // Construir consulta SQL directa para mejor control y depuración
             $sql = "SELECT * FROM widget_instances 
@@ -69,7 +69,7 @@ class WidgetInstance extends Model
             $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             
             // Log para depuración
-            error_log("WidgetInstance::getInstancesForArea - Encontradas " . count($results) . " instancias");
+            if (filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN)) { error_log("WidgetInstance::getInstancesForArea - Encontradas " . count($results) . " instancias"); } // Auditoría 2026-10-05
             
             // Convertir a objetos WidgetInstance
             $instances = [];

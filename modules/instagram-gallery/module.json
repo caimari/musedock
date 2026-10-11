@@ -4,6 +4,14 @@
   "version": "3.2.0",
   "changelog": [
     {
+      "version": "pendiente (auditoría 2026-10-05)",
+      "date": "2026-10-05",
+      "changes": [
+        "Seguridad: un tenant solo puede modificar sus propias conexiones (no las globales compartidas).",
+        "Logs: el mensaje de arranque solo sale con APP_DEBUG."
+      ]
+    },
+    {
       "version": "3.2.0",
       "date": "2026-04-12",
       "changes": [

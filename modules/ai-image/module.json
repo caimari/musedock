@@ -12,5 +12,12 @@
         "psr-4": {
             "AIImage\\": "controllers/"
         }
+    },
+    "changelog": {
+        "pendiente (auditoría 2026-10-05)": [
+            "Seguridad: update/delete de proveedores limitados al propio ámbito (tenant o global).",
+            "Seguridad: en tenants el endpoint del proveedor debe ser https y resolver a IP pública.",
+            "Seguridad: el generador de imágenes envía el token CSRF (las rutas /api/ai/ ya no están exentas de CSRF)."
+        ]
     }
 }

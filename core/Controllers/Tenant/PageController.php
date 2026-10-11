@@ -1111,7 +1111,8 @@ class PageController
                 ];
 
                 foreach ($data as $key => $value) {
-                    if (in_array($key, $allowedColumns)) {
+                    // Auditoría 2026-10-05: page_id, locale, tenant_id y fechas los fija el servidor, no el formulario
+                    if (in_array($key, $allowedColumns) && !in_array($key, ['page_id', 'locale', 'tenant_id', 'created_at', 'updated_at'], true)) {
                         $insertData[$key] = $value;
                     }
                 }
@@ -1652,7 +1653,18 @@ class PageController
         }
 
         // Generar nombre único
-        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        // Auditoría 2026-10-05: la extensión sale del tipo real de imagen, nunca del nombre del cliente
+        $imageTypeExt = [
+            IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_GIF => 'gif', IMAGETYPE_WEBP => 'webp',
+            IMAGETYPE_BMP => 'bmp',
+        ];
+        if (defined('IMAGETYPE_AVIF')) {
+            $imageTypeExt[IMAGETYPE_AVIF] = 'avif';
+        }
+        $extension = $imageTypeExt[$fileInfo[2] ?? 0] ?? null;
+        if ($extension === null) {
+            return ['error' => __('pages.error_image_invalid_file')];
+        }
         $filename = uniqid('header_') . '.' . $extension;
         $fullPath = $uploadDir . $filename;
 

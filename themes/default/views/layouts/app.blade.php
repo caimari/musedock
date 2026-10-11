@@ -145,7 +145,7 @@
     @if(!empty($__jsonld_article))
     <script type="application/ld+json">{!! $__jsonld_article !!}</script>
     @else
-    <script type="application/ld+json">{!! json_encode($__websiteJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
+    <script type="application/ld+json">{!! json_encode($__websiteJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
     @endif
 
     {{-- hreflang for multilingual tenants --}}
@@ -2279,7 +2279,7 @@ body.mobile-menu-open {
     }
     $__hasTopbarTicker = !empty($__topbarPosts);
 @endphp
-@if($topbarEnabled && $headerLayout !== 'sidebar')
+@if($topbarEnabled && ($headerLayout ?? null) !== 'sidebar'){{-- Auditoría 2026-10-05: misma lógica, sin aviso de variable indefinida --}}
     <div class="header-top top-bg d-none d-lg-block">
    <div class="container">
        <div class="topbar-flex">

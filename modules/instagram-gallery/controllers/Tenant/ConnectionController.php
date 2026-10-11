@@ -59,6 +59,15 @@ class ConnectionController
      * - Tenant: la conexión es suya (tenant_id === $this->tenantId) O global (null).
      * - Superadmin: la conexión es global (tenant_id === null) EXCLUSIVAMENTE.
      */
+    /**
+     * Auditoría 2026-10-05: para MODIFICAR una conexión, debe ser del propio ámbito
+     * (un tenant ya no puede sobrescribir las conexiones globales compartidas).
+     */
+    protected function connectionOwnedForWrite(InstagramConnection $conn): bool
+    {
+        return $this->tenantId === null ? $conn->tenant_id === null : $conn->tenant_id === $this->tenantId;
+    }
+
     protected function connectionBelongsToScope(InstagramConnection $conn): bool
     {
         if ($this->tenantId === null) {
@@ -132,7 +141,7 @@ class ConnectionController
 
         if ($connectionId > 0) {
             $conn = InstagramConnection::find($connectionId);
-            if (!$conn || !$this->connectionBelongsToScope($conn)) {
+            if (!$conn || !$this->connectionOwnedForWrite($conn)) {
                 echo json_encode(['ok' => false, 'message' => 'Conexión no encontrada']);
                 return;
             }
@@ -182,7 +191,7 @@ class ConnectionController
         }
 
         $conn = InstagramConnection::find($connectionId);
-        if (!$conn || !$this->connectionBelongsToScope($conn)) {
+        if (!$conn || !$this->connectionOwnedForWrite($conn)) {
             $_SESSION['error'] = 'Conexión no encontrada';
             redirect('/' . $this->basePath . '/social-publisher');
             return;
@@ -300,7 +309,7 @@ class ConnectionController
         $raw = (string)($_POST['hashtags'] ?? '');
 
         $conn = InstagramConnection::find($connectionId);
-        if (!$conn || !$this->connectionBelongsToScope($conn)) {
+        if (!$conn || !$this->connectionOwnedForWrite($conn)) {
             echo json_encode(['ok' => false, 'message' => 'Conexión no encontrada']);
             return;
         }
@@ -593,7 +602,7 @@ class ConnectionController
 
         $connectionId = (int)($_GET['connection_id'] ?? 0);
         $conn = $connectionId > 0 ? InstagramConnection::find($connectionId) : null;
-        if (!$conn || !$this->connectionBelongsToScope($conn)) {
+        if (!$conn || !$this->connectionOwnedForWrite($conn)) {
             $_SESSION['error'] = 'Conexión no válida';
             redirect('/' . $this->basePath . '/social-publisher');
             return;
@@ -711,7 +720,7 @@ class ConnectionController
         }
 
         $conn = InstagramConnection::find($connectionId);
-        if (!$conn || !$this->connectionBelongsToScope($conn)) {
+        if (!$conn || !$this->connectionOwnedForWrite($conn)) {
             echo json_encode(['ok' => false, 'message' => 'Conexión no válida']);
             return;
         }
@@ -738,7 +747,7 @@ class ConnectionController
     {
         $this->checkPermission('instagram.delete');
         $conn = InstagramConnection::find((int)$id);
-        if (!$conn || !$this->connectionBelongsToScope($conn)) {
+        if (!$conn || !$this->connectionOwnedForWrite($conn)) {
             $_SESSION['error'] = 'Conexión no válida';
             redirect('/' . $this->basePath . '/social-publisher');
             return;

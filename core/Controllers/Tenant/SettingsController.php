@@ -329,15 +329,16 @@ class SettingsController
             return null;
         }
 
-        $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
-        if ($ext === '') {
-            $ext = $kind === 'favicon' ? 'ico' : 'png';
+        // Auditoría 2026-10-05: el tipo se comprueba en el contenido y la extensión se deduce de él
+        $realType = (new \finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']) ?: '';
+        $typeExt = [
+            'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp',
+            'image/svg+xml' => 'svg', 'image/x-icon' => 'ico', 'image/vnd.microsoft.icon' => 'ico',
+        ];
+        if (!isset($typeExt[$realType]) || !in_array($realType, $allowedTypes, true)) {
+            return null;
         }
-
-        $safeExt = preg_replace('/[^a-z0-9]+/', '', $ext);
-        if ($safeExt === '') {
-            $safeExt = $kind === 'favicon' ? 'ico' : 'png';
-        }
+        $safeExt = $typeExt[$realType];
 
         $filename = "{$kind}-" . time() . '-' . bin2hex(random_bytes(4)) . ".{$safeExt}";
         $relative = self::BRANDING_DIR . '/' . $scope . '/' . $filename;
@@ -844,11 +845,14 @@ class SettingsController
         $file = $_FILES['og_image'];
         $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-        if (!in_array($file['type'], $allowedTypes)) {
+        // Auditoría 2026-10-05: tipo comprobado en el contenido y extensión deducida de él
+        $realType = (new \finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']) ?: '';
+        $typeExt = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
+        if (!in_array($file['type'], $allowedTypes) || !isset($typeExt[$realType]) || @getimagesize($file['tmp_name']) === false) {
             throw new \Exception('Tipo de archivo no permitido para la imagen OG');
         }
 
-        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $ext = $typeExt[$realType];
         $filename = 'tenant_' . $tenantId . '_og_' . time() . '.' . $ext;
         $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/public/uploads/tenants/';
 

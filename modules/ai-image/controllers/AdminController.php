@@ -65,6 +65,10 @@ class AdminController
                 $apiKey = trim($_POST['api_key'] ?? '');
                 $model = trim($_POST['model'] ?? '');
                 $endpoint = trim($_POST['endpoint'] ?? '');
+                // Auditoría 2026-10-05: en un tenant el endpoint debe ser https y público
+                if ($this->tenantId !== null && $endpoint !== '' && (!preg_match('#^https://#i', $endpoint) || \Screenart\Musedock\Security\UrlGuard::resolvePublicIp($endpoint) === null)) {
+                    throw new \Exception('El endpoint debe ser una URL https pública');
+                }
                 $active = isset($_POST['active']) ? 1 : 0;
                 $systemWide = isset($_POST['system_wide']) ? 1 : 0;
 
@@ -89,14 +93,20 @@ class AdminController
                 $apiKey = trim($_POST['api_key'] ?? '');
                 $model = trim($_POST['model'] ?? '');
                 $endpoint = trim($_POST['endpoint'] ?? '');
+                // Auditoría 2026-10-05: en un tenant el endpoint debe ser https y público
+                if ($this->tenantId !== null && $endpoint !== '' && (!preg_match('#^https://#i', $endpoint) || \Screenart\Musedock\Security\UrlGuard::resolvePublicIp($endpoint) === null)) {
+                    throw new \Exception('El endpoint debe ser una URL https pública');
+                }
                 $active = isset($_POST['active']) ? 1 : 0;
                 $systemWide = isset($_POST['system_wide']) ? 1 : 0;
 
-                $stmt = $pdo->prepare("UPDATE ai_image_providers SET name = ?, provider_type = ?, api_key = ?, model = ?, endpoint = ?, active = ?, system_wide = ? WHERE id = ?");
-                $stmt->execute([
+                // Auditoría 2026-10-05: solo proveedores del propio ámbito (antes un tenant podía editar los globales)
+                $scopeSql = $this->tenantId !== null ? 'tenant_id = ?' : 'tenant_id IS NULL';
+                $stmt = $pdo->prepare("UPDATE ai_image_providers SET name = ?, provider_type = ?, api_key = ?, model = ?, endpoint = ?, active = ?, system_wide = ? WHERE id = ? AND {$scopeSql}");
+                $stmt->execute(array_merge([
                     $name, $type, $apiKey ?: null, $model ?: null, $endpoint ?: null,
                     $active, $systemWide, $id
-                ]);
+                ], $this->tenantId !== null ? [$this->tenantId] : []));
 
                 if (function_exists('flash')) {
                     flash('success', 'Proveedor de imagen actualizado correctamente');
@@ -104,8 +114,10 @@ class AdminController
 
             } elseif ($action === 'delete_provider') {
                 $id = (int)($_POST['provider_id'] ?? 0);
-                $stmt = $pdo->prepare("DELETE FROM ai_image_providers WHERE id = ?");
-                $stmt->execute([$id]);
+                // Auditoría 2026-10-05: solo proveedores del propio ámbito
+                $scopeSql = $this->tenantId !== null ? 'tenant_id = ?' : 'tenant_id IS NULL';
+                $stmt = $pdo->prepare("DELETE FROM ai_image_providers WHERE id = ? AND {$scopeSql}");
+                $stmt->execute(array_merge([$id], $this->tenantId !== null ? [$this->tenantId] : []));
 
                 if (function_exists('flash')) {
                     flash('success', 'Proveedor de imagen eliminado');

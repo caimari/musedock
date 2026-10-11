@@ -86,7 +86,7 @@ class NotificationsController
             exit;
         }
 
-        $result = NotificationService::markAsRead($id);
+        $result = NotificationService::markAsRead($id, (int) $admin['id'], 'admin'); // Auditoría 2026-10-05: solo las propias
 
         header('Content-Type: application/json');
         echo json_encode([

@@ -226,12 +226,12 @@ public static function resolve() {
     $uri = $_SERVER['REQUEST_URI'] ?? '';
     if (strpos($uri, '/musedock/run-seeders') !== false) {
         error_log("=== DEBUG run-seeders ===");
-        error_log("Session ID: " . session_id());
-        error_log("PHPSESSID cookie: " . ($_COOKIE['PHPSESSID'] ?? 'NOT SET'));
+        error_log("Session ID: " . '[oculto]'); /* Auditoría 2026-10-05: sin secretos de sesión en logs */
+        error_log("PHPSESSID cookie: " . (isset($_COOKIE['PHPSESSID']) ? 'SET' : 'NOT SET')); /* Auditoría 2026-10-05: sin secretos de sesión en logs */
         error_log("Session keys: " . json_encode(array_keys($_SESSION)));
         error_log("Has _csrf_token: " . (isset($_SESSION['_csrf_token']) ? 'YES' : 'NO'));
         error_log("Has super_admin: " . (isset($_SESSION['super_admin']) ? 'YES' : 'NO'));
-        error_log("POST _token: " . ($_POST['_token'] ?? 'NOT SET'));
+        error_log("POST _token: " . (isset($_POST['_token']) ? 'SET' : 'NOT SET')); /* Auditoría 2026-10-05: sin secretos de sesión en logs */
         error_log("=========================");
     }
 
@@ -255,13 +255,13 @@ public static function resolve() {
         }
     }
 
-    error_log("ROUTE: Método final para routing: {$method}");
+    if (filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN)) { error_log("ROUTE: Método final para routing: {$method}"); } // Auditoría 2026-10-05: solo en depuración
 
     if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'])) {
         // Rutas excluidas de CSRF (APIs públicas y rutas internas seguras)
         $csrfExcludedRoutes = [
             '/api/analytics/track',
-            '/api/ai/',         // API de IA (verifica sesión internamente)
+            // '/api/ai/' quitado (Auditoría 2026-10-05): usa la sesión del admin, así que necesita CSRF; los JS envían X-CSRF-TOKEN
             '/api/v1/',         // API REST v1 (autenticación por API key, no sesión)
             '/api/webhooks/',   // Para futuros webhooks
             '/clear-flashes',   // Limpieza de flash messages (ya verifica sesión admin internamente)

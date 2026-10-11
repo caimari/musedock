@@ -97,7 +97,7 @@ if ($multiTenant) {
     if ($tenantResolved && isset($GLOBALS['tenant'])) {
         require_once __DIR__ . '/../core/modules_loader.php';
     } else {
-        file_put_contents(__DIR__ . '/../storage/logs/debug.log', "[WARNING] Multitenant activo pero sin tenant asignado al dominio actual.\n", FILE_APPEND);
+        filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN) && file_put_contents(__DIR__ . '/../storage/logs/debug.log', "[WARNING] Multitenant activo pero sin tenant asignado al dominio actual.\n", FILE_APPEND);
     }
 } else {
     // Si no hay multitenencia, cargar módulos clásicos
@@ -127,18 +127,19 @@ Route::get('/newsletter/track/click/{token}', 'Frontend.NewsletterController@tra
 // RUTAS DE STORAGE (archivos seguros fuera de public/)
 // ============================================================================
 // Archivos públicos (avatars, headers, gallery)
-Route::get('/storage/avatars/{filename}', 'StorageController@serve')->name('storage.avatars');
-Route::get('/storage/headers/{filename}', 'StorageController@serve')->name('storage.headers');
-Route::get('/storage/gallery/{filename}', 'StorageController@serve')->name('storage.gallery');
-Route::get('/storage/posts/{filename}', 'StorageController@serve')->name('storage.posts');
-Route::get('/storage/thumbnails/{filename}', 'StorageController@serve')->name('storage.thumbnails');
+// Auditoría 2026-10-05: nombre completo de la clase; con 'StorageController@serve' el enrutador no la encontraba (error 500)
+Route::get('/storage/avatars/{filename}', 'Screenart\\Musedock\\Controllers\\StorageController@serve')->name('storage.avatars');
+Route::get('/storage/headers/{filename}', 'Screenart\\Musedock\\Controllers\\StorageController@serve')->name('storage.headers');
+Route::get('/storage/gallery/{filename}', 'Screenart\\Musedock\\Controllers\\StorageController@serve')->name('storage.gallery');
+Route::get('/storage/posts/{filename}', 'Screenart\\Musedock\\Controllers\\StorageController@serve')->name('storage.posts');
+Route::get('/storage/thumbnails/{filename}', 'Screenart\\Musedock\\Controllers\\StorageController@serve')->name('storage.thumbnails');
 
 // Archivos privados (requieren autenticación)
-Route::get('/storage/private/documents/{filename}', 'StorageController@serve')->name('storage.private.documents');
-Route::get('/storage/private/images/{filename}', 'StorageController@serve')->name('storage.private.images');
+Route::get('/storage/private/documents/{filename}', 'Screenart\\Musedock\\Controllers\\StorageController@serve')->name('storage.private.documents');
+Route::get('/storage/private/images/{filename}', 'Screenart\\Musedock\\Controllers\\StorageController@serve')->name('storage.private.images');
 
 // Ruta genérica de storage (fallback)
-Route::get('/storage/{type}/{filename}', 'StorageController@serve')->name('storage.generic');
+Route::get('/storage/{type}/{filename}', 'Screenart\\Musedock\\Controllers\\StorageController@serve')->name('storage.generic');
 // ============================================================================
 
 // ============================================================================

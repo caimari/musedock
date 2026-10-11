@@ -30,6 +30,11 @@ class TenantManager
      */
     public static function setTenantId(?int $id): void
     {
+        // Auditoría 2026-10-05: la sesión de un usuario (miembro) solo vale en su tenant
+        if (isset($_SESSION['user']) && (int) ($_SESSION['user']['tenant_id'] ?? 0) !== (int) $id) {
+            unset($_SESSION['user']);
+        }
+
         // Si ya hay sesión activa de admin, validar que coincida
         if (isset($_SESSION['admin']['tenant_id']) && $_SESSION['admin']['tenant_id'] !== $id) {
             error_log("⚠️ ALERTA DE SEGURIDAD: Intento de cambiar tenant_id de sesión activa. Admin: {$_SESSION['admin']['id']}, Tenant actual: {$_SESSION['admin']['tenant_id']}, Tenant solicitado: {$id}");

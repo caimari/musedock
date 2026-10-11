@@ -223,7 +223,11 @@ class PublicController
 
             // Validar extensión
             $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-            if (!in_array($ext, $allowedTypes)) {
+            // Auditoría 2026-10-05: los adjuntos van a public/ y los sube cualquier visitante;
+            // aunque el tenant configure otra cosa, solo se aceptan tipos de esta lista fija
+            $safeExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp', 'rtf', 'txt', 'csv',
+                'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'avif', 'mp3', 'wav', 'ogg', 'm4a', 'mp4', 'mov', 'webm', 'zip'];
+            if (!in_array($ext, $allowedTypes) || !in_array($ext, $safeExtensions, true)) {
                 continue;
             }
 
@@ -563,20 +567,7 @@ class PublicController
      */
     private function getClientIp(): string
     {
-        $ipKeys = ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'REMOTE_ADDR'];
-
-        foreach ($ipKeys as $key) {
-            if (!empty($_SERVER[$key])) {
-                $ip = $_SERVER[$key];
-                if (strpos($ip, ',') !== false) {
-                    $ip = trim(explode(',', $ip)[0]);
-                }
-                if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                    return $ip;
-                }
-            }
-        }
-
-        return '0.0.0.0';
+        // Auditoría 2026-10-05: IP real solo vía IPHelper (cabeceras de proxy únicamente desde Cloudflare/proxies de confianza)
+        return \Screenart\Musedock\Security\IPHelper::getRealIP();
     }
 }

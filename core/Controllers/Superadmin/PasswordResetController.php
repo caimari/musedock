@@ -223,6 +223,7 @@ class PasswordResetController
                 ':password' => $hashedPassword,
                 ':email' => $email
             ]);
+            \Screenart\Musedock\Security\SessionSecurity::forgetRememberTokens('super_admin', 'email = ?', [$email]); // Auditoría 2026-10-05
 
             // Eliminar el token usado
             $stmt = $pdo->prepare("DELETE FROM password_resets WHERE email = :email");

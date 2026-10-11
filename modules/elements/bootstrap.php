@@ -27,8 +27,13 @@ try {
     $pdo = \Screenart\Musedock\Database::connect();
 
     // Check if tables exist
-    $stmt = $pdo->query("SHOW TABLES LIKE 'elements'");
-    $tableExists = $stmt->fetch();
+    // Auditoría 2026-10-05: SHOW TABLES es solo de MySQL y fallaba en cada visita con PostgreSQL
+    try {
+        $pdo->query("SELECT 1 FROM elements LIMIT 1");
+        $tableExists = true;
+    } catch (\Throwable $e) {
+        $tableExists = false;
+    }
 
     if (!$tableExists) {
         // Run auto-migration
@@ -128,7 +133,7 @@ foreach ($publicDirs as $dir) {
 // REGISTER MODULE MENU
 // ============================================================================
 
-error_log("Elements: Module loaded successfully (v" . ELEMENTS_VERSION . ")");
+if (filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN)) { error_log("Elements: Module loaded successfully (v" . ELEMENTS_VERSION . ")"); }
 
 \register_module_admin_menu([
     'module_slug'    => 'elements',

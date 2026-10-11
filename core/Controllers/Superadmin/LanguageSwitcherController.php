@@ -55,7 +55,7 @@ class LanguageSwitcherController
         }
 
         // Redirigir de vuelta (evitar open redirect: solo paths internos)
-        if (!is_string($redirect) || $redirect === '' || $redirect[0] !== '/') {
+        if (!is_string($redirect) || !preg_match('#^/(?![/\\\\])#', (string) $redirect)) { // Auditoría 2026-10-05: también rechaza //otro-dominio
             $redirect = '/musedock/dashboard';
         }
         header('Location: ' . $redirect);

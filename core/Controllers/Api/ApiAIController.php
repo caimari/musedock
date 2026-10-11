@@ -37,6 +37,14 @@ class ApiAIController
                 $providers = Database::query($sql)->fetchAll();
             }
             
+            // Auditoría 2026-10-05: no devolver nunca api_key/endpoint
+            $providers = array_map(static fn($p) => [
+                'id' => $p['id'] ?? null,
+                'name' => $p['name'] ?? null,
+                'provider_type' => $p['provider_type'] ?? null,
+                'model' => $p['model'] ?? null,
+            ], $providers ?: []);
+
             $this->jsonResponse([
                 'success' => true,
                 'providers' => $providers

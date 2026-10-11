@@ -4,7 +4,15 @@
     "type": "project",
     "license": "proprietary",
     "version": "2.19.0",
-    "keywords": ["cms", "content-management", "multi-tenant", "modular", "ai", "blog", "php"],
+    "keywords": [
+        "cms",
+        "content-management",
+        "multi-tenant",
+        "modular",
+        "ai",
+        "blog",
+        "php"
+    ],
     "homepage": "https://musedock.org",
     "support": {
         "issues": "https://github.com/caimari/musedock/issues",
@@ -84,5 +92,10 @@
         "branch-alias": {
             "dev-main": "1.0.x-dev"
         }
+    },
+    "conflict": {
+        "guzzlehttp/guzzle": ">=8.0",
+        "guzzlehttp/psr7": ">=3.0",
+        "guzzlehttp/promises": ">=3.0"
     }
 }

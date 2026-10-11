@@ -40,14 +40,14 @@ class WidgetManager
                     if (property_exists($className, 'slug') && !empty($className::$slug)) {
                         self::$registeredWidgets[$className::$slug] = $className;
                         // Debug log
-                        error_log("Widget registrado: [{$className::$slug}] => {$className}");
+                        if (filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN)) { error_log("Widget registrado: [{$className::$slug}] => {$className}"); } // Auditoría 2026-10-05: solo en depuración
                     } else {
                         error_log("Widget sin slug definido: {$className}");
                     }
                 }
             }
         }
-        error_log("Total Widgets Registrados: " . count(self::$registeredWidgets));
+        if (filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN)) { error_log("Total Widgets Registrados: " . count(self::$registeredWidgets)); }
     }
 
     /**
@@ -137,7 +137,7 @@ class WidgetManager
         }
 
         // Log para depuración
-        error_log("WidgetManager::renderArea - Renderizando área: {$areaSlug}, Tema: {$themeSlug}, Tenant: " . ($tenantId ?? 'NULL'));
+        if (filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN)) { error_log("WidgetManager::renderArea - Renderizando área: {$areaSlug}, Tema: {$themeSlug}, Tenant: " . ($tenantId ?? 'NULL')); } // Auditoría 2026-10-05
 
         // Obtener instancias de la BD para esta área, tema y tenant (o global)
         // Priorizar tenant específico, luego global

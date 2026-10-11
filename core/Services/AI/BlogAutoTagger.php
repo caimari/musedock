@@ -408,9 +408,13 @@ PROMPT;
             $tagBySlug[$key] = $tag;
         }
 
+        // Auditoría 2026-10-05: solo entradas de este tenant (el post_id viene de la petición)
+        $ownPost = $pdo->prepare("SELECT 1 FROM blog_posts WHERE id = ? AND tenant_id = ?");
         foreach ($suggestions as $postSuggestion) {
             $postId = (int) ($postSuggestion['post_id'] ?? 0);
             if ($postId <= 0) continue;
+            $ownPost->execute([$postId, $tenantId]);
+            if (!$ownPost->fetchColumn()) continue;
 
             $postDetail = ['post_id' => $postId, 'post_title' => $postSuggestion['post_title'] ?? '', 'categories_added' => [], 'tags_added' => []];
 

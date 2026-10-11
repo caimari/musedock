@@ -147,7 +147,9 @@ public function index()
     $permissions = $db->query("SELECT * FROM permissions ORDER BY category, name")->fetchAll(\PDO::FETCH_ASSOC);
 
     // Obtener todos los role_permissions
-    $rolePermsStmt = $db->query("SELECT * FROM role_permissions");
+    // Auditoría 2026-10-05: solo los permisos de los roles de este tenant
+    $rolePermsStmt = $db->prepare("SELECT rp.* FROM role_permissions rp JOIN roles r ON r.id = rp.role_id WHERE r.tenant_id = :tenant_id");
+    $rolePermsStmt->execute(['tenant_id' => $tenantId]);
     $rolePermsRaw = $rolePermsStmt->fetchAll(\PDO::FETCH_ASSOC);
 
     // Agrupar permisos por rol_id
@@ -192,7 +194,13 @@ public function index()
     try {
         $db->beginTransaction();
 
+        // Auditoría 2026-10-05: solo se pueden tocar roles de este tenant (antes, cualquier role_id, incluidos los globales y los de otros tenants)
+        $ownRole = $db->prepare("SELECT COUNT(*) FROM roles WHERE id = :id AND tenant_id = :tenant_id");
         foreach ($submitted as $roleId => $permIds) {
+            $ownRole->execute(['id' => (int) $roleId, 'tenant_id' => $tenantId]);
+            if ((int) $ownRole->fetchColumn() === 0 || !is_array($permIds)) {
+                continue;
+            }
             // Limpiar anteriores
             $stmt = $db->prepare("DELETE FROM role_permissions WHERE role_id = :role_id");
             $stmt->execute(['role_id' => $roleId]);

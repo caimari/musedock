@@ -297,29 +297,8 @@ class AuditLogger
      */
     private static function getClientIp(): string
     {
-        $ipKeys = [
-            'HTTP_CF_CONNECTING_IP',  // Cloudflare
-            'HTTP_X_FORWARDED_FOR',   // Proxies estándar
-            'HTTP_X_REAL_IP',          // Nginx
-            'REMOTE_ADDR'              // Directo
-        ];
-
-        foreach ($ipKeys as $key) {
-            if (isset($_SERVER[$key]) && filter_var($_SERVER[$key], FILTER_VALIDATE_IP)) {
-                // Si es X-Forwarded-For, puede tener múltiples IPs
-                if ($key === 'HTTP_X_FORWARDED_FOR') {
-                    $ips = explode(',', $_SERVER[$key]);
-                    $ip = trim($ips[0]);
-                    if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                        return $ip;
-                    }
-                } else {
-                    return $_SERVER[$key];
-                }
-            }
-        }
-
-        return 'unknown';
+        // Auditoría 2026-10-05: IP real solo vía IPHelper (cabeceras de proxy únicamente desde Cloudflare/proxies de confianza)
+        return \Screenart\Musedock\Security\IPHelper::getRealIP();
     }
 
     /**

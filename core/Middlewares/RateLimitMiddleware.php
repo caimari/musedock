@@ -143,13 +143,8 @@ class RateLimitMiddleware
 
     private function getClientIP(): string
     {
-        foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'REMOTE_ADDR'] as $header) {
-            if (!empty($_SERVER[$header])) {
-                $ip = trim(explode(',', $_SERVER[$header])[0]);
-                if (filter_var($ip, FILTER_VALIDATE_IP)) return $ip;
-            }
-        }
-        return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        // Auditoría 2026-10-05: IP real solo vía IPHelper (cabeceras de proxy únicamente desde Cloudflare/proxies de confianza)
+        return \Screenart\Musedock\Security\IPHelper::getRealIP();
     }
 
     private function isAjaxRequest(): bool

@@ -101,4 +101,4 @@ if (function_exists('register_module_admin_menu')) {
 }
 
 // Log module initialization
-error_log('InstagramGallery: Module bootstrapped successfully');
+if (filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN)) { error_log('InstagramGallery: Module bootstrapped successfully'); } // Auditoría 2026-10-05

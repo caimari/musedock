@@ -383,7 +383,8 @@ class SessionSecurity
         session_regenerate_id(true);
         $newSessionId = session_id();
         
-        error_log("SessionSecurity - Sesión regenerada: {$oldSessionId} -> {$newSessionId}");
+        // Auditoría 2026-10-05: no escribir ids de sesión en los registros
+        error_log("SessionSecurity - Sesión regenerada");
     }
 
     /**
@@ -674,6 +675,32 @@ class SessionSecurity
     }
 
     /**
+     * Auditoría 2026-10-05: borra los tokens "recordarme" de las cuentas que cumplan $where
+     * (se llama tras cambiar o restablecer la contraseña, para cerrar sesiones robadas).
+     * $where es siempre una condición fija del código; los valores van en $params.
+     */
+    public static function forgetRememberTokens(string $kind, string $where, array $params): void
+    {
+        $map = [
+            'super_admin' => ['super_admin_session_tokens', 'super_admin_id', 'super_admins'],
+            'admin'       => ['admin_session_tokens', 'admin_id', 'admins'],
+            'user'        => ['user_session_tokens', 'user_id', 'users'],
+            'customer'    => ['customer_session_tokens', 'customer_id', 'customers'],
+        ];
+        if (!isset($map[$kind])) {
+            return;
+        }
+        [$tokens, $fk, $owner] = $map[$kind];
+        try {
+            \Screenart\Musedock\Database::connect()
+                ->prepare("DELETE FROM {$tokens} WHERE {$fk} IN (SELECT id FROM {$owner} WHERE {$where})")
+                ->execute(array_values($params));
+        } catch (\Throwable $e) {
+            error_log('forgetRememberTokens: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Verifica si hay un token "recordarme" válido y restaura la sesión para cualquier tipo de usuario
      *
      * @param bool $skipSessionStart Si es true, no llama a startSession() (usado internamente)
@@ -747,6 +774,12 @@ class SessionSecurity
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);
             
             if ($result) {
+                // Auditoría 2026-10-05: el token "recordarme" solo vale en el tenant de su dueño
+                $currentTenantId = function_exists('tenant_id') ? (int) (tenant_id() ?? 0) : 0;
+                if ((int) ($result['tenant_id'] ?? 0) !== $currentTenantId) {
+                    return false;
+                }
+
                 // Es un admin
                 if (!$skipSessionStart) {
                     self::startSession();
@@ -792,6 +825,12 @@ class SessionSecurity
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);
             
             if ($result) {
+                // Auditoría 2026-10-05: el token "recordarme" solo vale en el tenant de su dueño
+                $currentTenantId = function_exists('tenant_id') ? (int) (tenant_id() ?? 0) : 0;
+                if ((int) ($result['tenant_id'] ?? 0) !== $currentTenantId) {
+                    return false;
+                }
+
                 // Es un usuario normal
                 if (!$skipSessionStart) {
                     self::startSession();

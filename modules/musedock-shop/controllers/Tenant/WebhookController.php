@@ -52,6 +52,11 @@ class WebhookController
     private function handleCheckoutCompleted($session): void
     {
         $order = Order::findByCheckoutSession($session->id);
+        // Auditoría 2026-10-05: el objeto debe ser del tenant cuyo secreto firmó el aviso
+        if ($order && !$this->belongsToCurrentTenant($order)) {
+            Logger::warning("Shop Webhook: object from another tenant ignored");
+            return;
+        }
         if (!$order) {
             Logger::warning("Shop Webhook: Order not found for session {$session->id}");
             return;
@@ -79,6 +84,11 @@ class WebhookController
     private function handlePaymentSucceeded($paymentIntent): void
     {
         $order = Order::findByPaymentIntent($paymentIntent->id);
+        // Auditoría 2026-10-05: el objeto debe ser del tenant cuyo secreto firmó el aviso
+        if ($order && !$this->belongsToCurrentTenant($order)) {
+            Logger::warning("Shop Webhook: object from another tenant ignored");
+            return;
+        }
         if (!$order || $order->isCompleted()) return;
 
         CheckoutService::completeOrder($order);
@@ -91,6 +101,11 @@ class WebhookController
         if (!$stripeSubId) return;
 
         $subscription = Subscription::findByStripeId($stripeSubId);
+        // Auditoría 2026-10-05: el objeto debe ser del tenant cuyo secreto firmó el aviso
+        if ($subscription && !$this->belongsToCurrentTenant($subscription)) {
+            Logger::warning("Shop Webhook: object from another tenant ignored");
+            return;
+        }
         if (!$subscription) return;
 
         $periodEnd = $invoice->lines?->data[0]?->period?->end ?? null;
@@ -111,6 +126,11 @@ class WebhookController
         if (!$stripeSubId) return;
 
         $subscription = Subscription::findByStripeId($stripeSubId);
+        // Auditoría 2026-10-05: el objeto debe ser del tenant cuyo secreto firmó el aviso
+        if ($subscription && !$this->belongsToCurrentTenant($subscription)) {
+            Logger::warning("Shop Webhook: object from another tenant ignored");
+            return;
+        }
         if (!$subscription) return;
 
         $subscription->update(['status' => 'past_due']);
@@ -121,6 +141,11 @@ class WebhookController
     private function handleSubscriptionUpdated($stripeSubscription): void
     {
         $subscription = Subscription::findByStripeId($stripeSubscription->id);
+        // Auditoría 2026-10-05: el objeto debe ser del tenant cuyo secreto firmó el aviso
+        if ($subscription && !$this->belongsToCurrentTenant($subscription)) {
+            Logger::warning("Shop Webhook: object from another tenant ignored");
+            return;
+        }
         if (!$subscription) return;
 
         $subscription->update([
@@ -142,6 +167,11 @@ class WebhookController
     private function handleSubscriptionDeleted($stripeSubscription): void
     {
         $subscription = Subscription::findByStripeId($stripeSubscription->id);
+        // Auditoría 2026-10-05: el objeto debe ser del tenant cuyo secreto firmó el aviso
+        if ($subscription && !$this->belongsToCurrentTenant($subscription)) {
+            Logger::warning("Shop Webhook: object from another tenant ignored");
+            return;
+        }
         if (!$subscription) return;
 
         $subscription->update([
@@ -151,5 +181,12 @@ class WebhookController
 
         ShopEvents::subscriptionCancelled($subscription);
         Logger::info("Shop Webhook: Subscription {$subscription->id} cancelled");
+    }
+
+    /** Auditoría 2026-10-05: ¿pertenece el pedido/suscripción al tenant actual? */
+    private function belongsToCurrentTenant($obj): bool
+    {
+        $current = function_exists('tenant_id') ? tenant_id() : null;
+        return (int) ($obj->tenant_id ?? 0) === (int) ($current ?? 0);
     }
 }

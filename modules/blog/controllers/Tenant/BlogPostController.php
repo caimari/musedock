@@ -1111,7 +1111,7 @@ class BlogPostController
                 ];
 
                 foreach ($data as $key => $value) {
-                    if (in_array($key, $allowedColumns)) {
+                    if (in_array($key, $allowedColumns) && !in_array($key, ['post_id', 'locale', 'tenant_id', 'created_at', 'updated_at'], true)) /* Auditoría 2026-10-05 */ {
                         $insertData[$key] = $value;
                     }
                 }

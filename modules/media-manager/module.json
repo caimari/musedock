@@ -12,5 +12,13 @@
             "MediaManager\\Controllers\\": "controllers/",
             "MediaManager\\Models\\": "models/"
         }
+    },
+    "changelog": {
+        "pendiente (auditoría 2026-10-05)": [
+            "Seguridad: /media/id/{id} solo sirve medios del tenant actual o globales.",
+            "Logs: mediamanager_table_exists usa la consulta de PostgreSQL (DATABASE() fallaba en cada visita).",
+            "Seguridad: uploadFromFile (importadores/IA) toma el tipo del contenido y rechaza formatos de código/página y SVG con contenido activo.",
+            "Seguridad: la subida de medios rechaza extensiones de código y de página web (html/js) aunque el contenido parezca texto."
+        ]
     }
 }

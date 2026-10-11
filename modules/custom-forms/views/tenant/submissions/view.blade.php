@@ -63,7 +63,7 @@
                                                 <span class="badge bg-secondary">{{ __forms('email.no') }}</span>
                                             @endif
                                         @elseif($field->field_type === 'file' && $value)
-                                            <a href="{{ $value }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <a href="{{ preg_match('#^(https?:)?//|^/#i', (string) $value) ? $value : '#' }}" rel="noopener" target="_blank" class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-file-earmark me-1"></i> {{ __forms('submission.download_file') }}
                                             </a>
                                         @elseif($field->field_type === 'email' && $value)
@@ -98,7 +98,7 @@
                             @if($submission->page_url)
                             <tr>
                                 <th class="text-muted">{{ __forms('submission.page') }}</th>
-                                <td><a href="{{ $submission->page_url }}" target="_blank">{{ parse_url($submission->page_url, PHP_URL_PATH) }}</a></td>
+                                <td><a href="{{ preg_match('#^(https?:)?//|^/#i', (string) $submission->page_url) ? $submission->page_url : '#' }}" rel="noopener" target="_blank">{{ parse_url($submission->page_url, PHP_URL_PATH) }}</a></td>
                             </tr>
                             @endif
                         </table>

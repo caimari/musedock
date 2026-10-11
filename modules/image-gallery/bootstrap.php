@@ -27,8 +27,13 @@ try {
     $pdo = \Screenart\Musedock\Database::connect();
 
     // Verificar si las tablas existen
-    $stmt = $pdo->query("SHOW TABLES LIKE 'image_galleries'");
-    $tableExists = $stmt->fetch();
+    // Auditoría 2026-10-05: SHOW TABLES es solo de MySQL y fallaba en cada visita con PostgreSQL
+    try {
+        $pdo->query("SELECT 1 FROM image_galleries LIMIT 1");
+        $tableExists = true;
+    } catch (\Throwable $e) {
+        $tableExists = false;
+    }
 
     if (!$tableExists) {
         // Ejecutar migración automática
@@ -132,7 +137,7 @@ foreach ($uploadDirs as $dir) {
 // REGISTRO COMPLETADO
 // ============================================================================
 
-error_log("ImageGallery: Module loaded successfully (v" . IMAGE_GALLERY_VERSION . ")");
+if (filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN)) { error_log("ImageGallery: Module loaded successfully (v" . IMAGE_GALLERY_VERSION . ")"); }
 
 \register_module_admin_menu([
     'module_slug'    => 'image-gallery',

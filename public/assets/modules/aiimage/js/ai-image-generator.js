@@ -169,7 +169,7 @@
 
                         fetch('/api/ai/generate', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') || {}).content || '' }, // Auditoría 2026-10-05
                             body: JSON.stringify({
                                 prompt: aiPrompt,
                                 module: 'aiimage',
@@ -270,7 +270,7 @@
 
             fetch('/api/ai/image/generate', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') || {}).content || '' }, // Auditoría 2026-10-05
                 body: JSON.stringify(payload)
             })
             .then(function(res) { return res.json(); })
@@ -390,7 +390,7 @@
         if (!imagePath) return;
         fetch('/api/ai/image/delete', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') || {}).content || '' }, // Auditoría 2026-10-05
             body: JSON.stringify({ path: imagePath })
         }).catch(function() {});
     }

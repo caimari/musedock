@@ -181,6 +181,10 @@ class StorageController
 
         // Content-Type
         header('Content-Type: ' . $mimeType);
+        // Auditoría 2026-10-05: solo imágenes, vídeo, audio y PDF se muestran en el navegador; lo demás se descarga
+        if (!preg_match('#^(image/(jpeg|png|gif|webp|avif)|video/|audio/|application/pdf$)#', (string) $mimeType)) {
+            header('Content-Disposition: attachment; filename="' . preg_replace('/[^A-Za-z0-9._-]/', '_', basename($filePath)) . '"');
+        }
         header('Content-Length: ' . $fileSize);
 
         // Hotlink protection (opcional)

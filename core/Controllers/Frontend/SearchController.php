@@ -112,6 +112,8 @@ class SearchController
         foreach ($pages as &$page) {
             $page['url'] = function_exists('page_url') ? url(page_url($page['slug'])) : url('/p/' . $page['slug']);
             $page['excerpt'] = $this->createExcerpt($page['content'] ?? '', $query, 200);
+            // Auditoría 2026-10-05: las vistas imprimen título y extracto sin escapar: se escapan aquí
+            $page['title'] = htmlspecialchars((string) ($page['title'] ?? ''), ENT_QUOTES, 'UTF-8', false);
             $page['type'] = 'page';
         }
 
@@ -178,7 +180,11 @@ class SearchController
             $post['url'] = function_exists('blog_url') ? blog_url($post['slug']) : url('/b/' . $post['slug']);
             if (empty($post['excerpt'])) {
                 $post['excerpt'] = $this->createExcerpt($post['content'] ?? '', $query, 200);
+            } else {
+                // Auditoría 2026-10-05: extracto guardado → texto escapado
+                $post['excerpt'] = htmlspecialchars(strip_tags((string) $post['excerpt']), ENT_QUOTES, 'UTF-8', false);
             }
+            $post['title'] = htmlspecialchars((string) ($post['title'] ?? ''), ENT_QUOTES, 'UTF-8', false);
             $post['type'] = 'post';
         }
 
@@ -216,8 +222,12 @@ class SearchController
             }
         }
 
+        // Auditoría 2026-10-05: escapar el texto ANTES de añadir el <mark> del resaltado
+        $excerpt = htmlspecialchars($excerpt, ENT_QUOTES, 'UTF-8', false);
+        $safeQuery = htmlspecialchars((string) $query, ENT_QUOTES, 'UTF-8', false);
+
         // Resaltar el término de búsqueda
-        $excerpt = preg_replace('/(' . preg_quote($query, '/') . ')/i', '<mark>$1</mark>', $excerpt);
+        $excerpt = preg_replace('/(' . preg_quote($safeQuery, '/') . ')/i', '<mark>$1</mark>', $excerpt);
 
         return $excerpt;
     }

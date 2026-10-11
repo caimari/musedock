@@ -37,7 +37,7 @@ class TranslationService
             }
 
             self::$translations[$context][$locale] = $translations;
-            error_log("TranslationService: Loaded {$locale} for {$context} - " . count($translations) . " keys");
+            if (filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN)) { error_log("TranslationService: Loaded {$locale} for {$context} - " . count($translations) . " keys"); } // Auditoría 2026-10-05: solo en depuración
         } else {
             self::$translations[$context][$locale] = [];
 
@@ -57,7 +57,7 @@ class TranslationService
                 }
 
                 self::$translations[$context][self::$fallbackLocale] = $fallbackTranslations;
-                error_log("TranslationService: Loaded fallback {$context}/" . self::$fallbackLocale);
+                if (filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN)) { error_log("TranslationService: Loaded fallback {$context}/" . self::$fallbackLocale); } // Auditoría 2026-10-05: solo en depuración
             }
         }
     }

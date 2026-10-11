@@ -467,7 +467,12 @@ class ElementController
             [$filesystem, $localRoot] = $this->createFilesystemForDisk($diskName);
 
             $safeBase = $this->slugifyFileBase(pathinfo($file['name'], PATHINFO_FILENAME));
-            $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            // Auditoría 2026-10-05: extensión deducida del tipo real (antes, del nombre del fichero)
+            $mimeExt = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp', 'image/avif' => 'avif', 'image/svg+xml' => 'svg'];
+            $extension = $mimeExt[$mimeType] ?? strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            if (!in_array($extension, array_values($mimeExt), true)) {
+                $extension = 'jpg';
+            }
             $safeFilename = $safeBase . '_' . uniqid() . '.' . $extension;
 
             $subPath = "tenant_{$tenantId}/elements/hero";

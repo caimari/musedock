@@ -71,6 +71,14 @@ class ThemesController
         SessionSecurity::startSession();
         $this->checkPermission('appearance.themes');
 
+        // Auditoría 2026-10-05: un tema contiene código PHP que se ejecuta en el servidor compartido.
+        // Los tenants no pueden subir ni activar temas propios salvo que el superadmin lo habilite
+        // (TENANT_THEME_UPLOAD_ENABLED=true en .env); los temas nuevos se instalan como globales.
+        if (!filter_var(\Screenart\Musedock\Env::get('TENANT_THEME_UPLOAD_ENABLED', false), FILTER_VALIDATE_BOOLEAN)) {
+            flash('error', 'La subida de temas propios está desactivada. Pide al administrador de la plataforma que instale el tema.');
+            return redirect('/' . admin_path() . '/themes');
+        }
+
         $tenantId = tenant_id();
 
         if (!isset($_FILES['theme_zip'])) {
@@ -131,6 +139,14 @@ class ThemesController
     public function activateCustom($slug) {
         SessionSecurity::startSession();
         $this->checkPermission('appearance.themes');
+
+        // Auditoría 2026-10-05: un tema contiene código PHP que se ejecuta en el servidor compartido.
+        // Los tenants no pueden subir ni activar temas propios salvo que el superadmin lo habilite
+        // (TENANT_THEME_UPLOAD_ENABLED=true en .env); los temas nuevos se instalan como globales.
+        if (!filter_var(\Screenart\Musedock\Env::get('TENANT_THEME_UPLOAD_ENABLED', false), FILTER_VALIDATE_BOOLEAN)) {
+            flash('error', 'La subida de temas propios está desactivada. Pide al administrador de la plataforma que instale el tema.');
+            return redirect('/' . admin_path() . '/themes');
+        }
 
         $tenantId = tenant_id();
 

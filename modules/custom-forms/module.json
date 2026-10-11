@@ -108,5 +108,12 @@
         "heading",
         "paragraph",
         "divider"
-    ]
+    ],
+    "changelog": {
+        "pendiente (auditoría 2026-10-05)": [
+            "Seguridad: los enlaces de envíos (archivo, URL, página de origen, referrer) solo aceptan http(s) o rutas; antes podían llevar javascript:",
+            "Seguridad: los adjuntos de formularios públicos solo admiten extensiones de una lista fija (documentos, imágenes, audio, vídeo, zip), sea cual sea la configuración del tenant.",
+            "Seguridad: la IP del visitante se obtiene con IPHelper (las cabeceras de proxy solo cuentan si vienen de Cloudflare o de un proxy de confianza)."
+        ]
+    }
 }

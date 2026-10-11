@@ -53,7 +53,7 @@
                 <hr>
 
                 <div class="revision-content">
-                    {!! $revision->content !!}
+                    {!! \Screenart\Musedock\SafeHtml::clean($revision->content) !!} {{-- Auditoría 2026-10-05: contenido de tenant saneado en el panel superadmin --}}
                 </div>
             </div>
         </div>

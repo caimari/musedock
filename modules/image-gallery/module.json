@@ -54,5 +54,10 @@
             "large": {"width": 600, "height": 600}
         },
         "image_quality": 85
+    },
+    "changelog": {
+        "pendiente (auditoría 2026-10-05)": [
+            "Logs: la comprobación de tablas funciona en PostgreSQL (SHOW TABLES fallaba en cada visita) y el mensaje de carga solo sale con APP_DEBUG."
+        ]
     }
 }

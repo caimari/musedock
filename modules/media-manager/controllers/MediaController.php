@@ -1103,6 +1103,16 @@ public function upload()
             continue;
         }
 
+        // Auditoría 2026-10-05: la extensión del nombre se conserva al guardar; nunca extensiones
+        // de código o de página web, aunque el contenido parezca texto plano
+        $uploadExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (in_array($uploadExt, ['php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'phar', 'pht', 'phps', 'inc',
+            'html', 'htm', 'xhtml', 'shtml', 'js', 'mjs', 'cgi', 'pl', 'py', 'sh', 'htaccess'], true)
+            || in_array($realMimeType, ['text/html', 'text/javascript'], true)) {
+            $errors[] = "Tipo de archivo no permitido: {$file['name']}";
+            continue;
+        }
+
         // Para imágenes, validación adicional con getimagesize
         if (strpos($realMimeType, 'image/') === 0) {
             $imageInfo = @getimagesize($file['tmp_name']);
@@ -1386,6 +1396,28 @@ public function uploadFromFile(string $filePath, string $mimeType, ?int $tenantI
 
     $fileSize = filesize($filePath);
     $originalName = $options['original_name'] ?? basename($filePath);
+
+    // Auditoría 2026-10-05: los ficheros que llegan por aquí vienen de fuera (importadores, IA):
+    // el tipo se toma del contenido y no se aceptan formatos de código ni de página web
+    $realMime = (string) (@mime_content_type($filePath) ?: '');
+    $originalExt = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+    $blockedExt = ['php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'phar', 'pht', 'phps', 'inc', 'html', 'htm',
+        'xhtml', 'shtml', 'js', 'mjs', 'cgi', 'pl', 'py', 'sh', 'htaccess', 'user.ini'];
+    $blockedMime = ['text/html', 'application/xhtml+xml', 'text/javascript', 'application/javascript',
+        'text/x-php', 'application/x-php', 'application/x-httpd-php', 'text/x-shellscript'];
+    if (in_array($originalExt, $blockedExt, true) || in_array($realMime, $blockedMime, true)) {
+        return null;
+    }
+    if ($originalExt === 'svg' || $realMime === 'image/svg+xml') {
+        $svg = (string) @file_get_contents($filePath, false, null, 0, 2 * 1024 * 1024);
+        if (preg_match('/<script|on\w+\s*=|javascript\s*:|<foreignObject|<iframe|<embed|<object|<!ENTITY/i', $svg)) {
+            return null;
+        }
+    }
+    if ($realMime !== '' && $realMime !== 'application/octet-stream') {
+        $mimeType = $realMime;
+    }
+
     $diskName = $options['disk'] ?? 'media';
     $userId = $options['user_id'] ?? null;
     $folderId = $options['folder_id'] ?? null;

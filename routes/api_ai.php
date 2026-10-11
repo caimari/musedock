@@ -7,9 +7,22 @@ use Screenart\Musedock\Services\AI\Models\Usage;
 // Ruta para obtener proveedores disponibles
 Route::get('/api/ai/providers', function() {
     try {
+        // Auditoría 2026-10-05: exigir sesión y no devolver nunca api_key/endpoint
+        if (!isset($_SESSION['super_admin']) && !isset($_SESSION['admin']) && !isset($_SESSION['user'])) {
+            header('Content-Type: application/json');
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'No has iniciado sesión']);
+            return;
+        }
+
         $tenantId = tenant_id();
-        $providers = Provider::getAll($tenantId, true);
-        
+        $providers = array_map(static fn($p) => [
+            'id' => $p['id'] ?? null,
+            'name' => $p['name'] ?? null,
+            'provider_type' => $p['provider_type'] ?? null,
+            'model' => $p['model'] ?? null,
+        ], Provider::getAll($tenantId, true));
+
         header('Content-Type: application/json');
         echo json_encode([
             'success' => true,
@@ -285,7 +298,7 @@ Route::post('/api/ai/blog/suggest-taxonomy', function() {
         // Determinar tenant_id: primero del body (el superadmin edita posts de tenants remotos),
         // luego del contexto actual (tenant_id() en contexto tenant)
         $tenantId = null;
-        if (!empty($data['tenant_id']) && is_numeric($data['tenant_id'])) {
+        if (isset($_SESSION['super_admin']) && !empty($data['tenant_id']) && is_numeric($data['tenant_id'])) { // Auditoría 2026-10-05: solo el superadmin elige tenant
             $tenantId = (int) $data['tenant_id'];
         } else {
             $tenantId = tenant_id();

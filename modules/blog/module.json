@@ -14,5 +14,14 @@
             "Blog\\Requests\\": "requests/",
             "Blog\\Traits\\": "traits/"
         }
+    },
+    "changelog": {
+        "pendiente (auditoría 2026-10-05)": [
+            "Seguridad: suggest/batch-taxonomy solo aceptan tenant_id del cuerpo si es superadmin.",
+            "Seguridad: la vista previa de revisiones del superadmin sanea el contenido con SafeHtml.",
+            "Seguridad: el JSON-LD del artículo se codifica con JSON_HEX_TAG|JSON_HEX_AMP (no se podía cerrar el <script>).",
+            "Seguridad: la IP del visitante se obtiene con IPHelper (las cabeceras de proxy solo cuentan si vienen de Cloudflare o de un proxy de confianza).",
+            "Seguridad: al crear una traducción de entrada, post_id/locale/tenant_id no se toman del formulario."
+        ]
     }
 }

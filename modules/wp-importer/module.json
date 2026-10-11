@@ -12,5 +12,10 @@
             "WpImporter\\Controllers\\": "controllers/",
             "WpImporter\\Services\\": "services/"
         }
+    },
+    "changelog": {
+        "pendiente (auditoría 2026-10-05)": [
+            "Seguridad: todas las descargas del importador solo van a http(s) hacia IPs públicas (nada de red interna ni file://), también en redirecciones de protocolo."
+        ]
     }
 }

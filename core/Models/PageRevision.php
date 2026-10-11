@@ -141,16 +141,8 @@ class PageRevision extends Model
      */
     private static function getClientIP(): ?string
     {
-        $ipKeys = ['HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED',
-                   'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR'];
-
-        foreach ($ipKeys as $key) {
-            if (isset($_SERVER[$key]) && filter_var($_SERVER[$key], FILTER_VALIDATE_IP)) {
-                return substr($_SERVER[$key], 0, 45); // IPv6 max length
-            }
-        }
-
-        return $_SERVER['REMOTE_ADDR'] ?? null;
+        // Auditoría 2026-10-05: IP real solo vía IPHelper (cabeceras de proxy únicamente desde Cloudflare/proxies de confianza)
+        return \Screenart\Musedock\Security\IPHelper::getRealIP();
     }
 
     /**

@@ -416,7 +416,9 @@ class SafeHtml
     public static function plain($text): string
     {
         $text = strip_tags(str_replace("\0", '', (string)$text));
-        return trim(html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // Auditoría 2026-10-05: decodificar entidades podía volver a crear etiquetas (&lt;img ...&gt;)
+        return trim(preg_replace('#<[a-zA-Z/!?][^>]*>?#', '', $text));
     }
 
     /**

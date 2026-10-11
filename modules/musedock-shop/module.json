@@ -15,5 +15,11 @@
             "Shop\\Events\\": "events/",
             "Shop\\Contracts\\": "contracts/"
         }
+    },
+    "changelog": {
+        "pendiente (auditoría 2026-10-05)": [
+            "Seguridad: el webhook de Stripe ignora pedidos/suscripciones de otro tenant; la página de pedido terminado solo muestra pedidos del tenant actual.",
+            "Seguridad: la redirección tras el carrito solo admite rutas internas o el mismo dominio."
+        ]
     }
 }

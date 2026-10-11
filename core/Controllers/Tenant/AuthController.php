@@ -171,7 +171,7 @@ class AuthController
     {
         SessionSecurity::startSession();
 
-        error_log("Estado inicial de sesión: " . json_encode($_SESSION));
+        error_log("Estado inicial de sesión: " . json_encode(array_keys($_SESSION))); /* Auditoría 2026-10-05: sin secretos de sesión en logs */
 
         $email = trim($_POST['email'] ?? '');
         $password = trim($_POST['password'] ?? '');
@@ -245,13 +245,13 @@ class AuthController
                     $_SESSION['last_active'] = time();
 
                     // 🔒 SECURITY: Solo loguear session ID, no el contenido completo
-                    error_log("Sesión antes de regenerar (admin): " . session_id());
+                    error_log("Sesión antes de regenerar (admin): " . '[oculto]'); /* Auditoría 2026-10-05: sin secretos de sesión en logs */
 
                     // Regenerar ID de sesión para mayor seguridad
                     SessionSecurity::regenerate();
 
                     // 🔒 SECURITY: Solo loguear session ID, no el contenido completo
-                    error_log("Sesión después de regenerar (admin): " . session_id());
+                    error_log("Sesión después de regenerar (admin): " . '[oculto]'); /* Auditoría 2026-10-05: sin secretos de sesión en logs */
 
                     if (!empty($_POST['remember'])) {
                         // Eliminar tokens antiguos para prevenir duplicados
@@ -316,13 +316,13 @@ class AuthController
                     $_SESSION['last_active'] = time();
 
                     // 🔒 SECURITY: Solo loguear session ID, no el contenido completo
-                    error_log("Sesión antes de regenerar (usuario): " . session_id());
+                    error_log("Sesión antes de regenerar (usuario): " . '[oculto]'); /* Auditoría 2026-10-05: sin secretos de sesión en logs */
 
                     // Regenerar ID de sesión para mayor seguridad
                     SessionSecurity::regenerate();
 
                     // 🔒 SECURITY: Solo loguear session ID, no el contenido completo
-                    error_log("Sesión después de regenerar (usuario): " . session_id());
+                    error_log("Sesión después de regenerar (usuario): " . '[oculto]'); /* Auditoría 2026-10-05: sin secretos de sesión en logs */
 
                     if (!empty($_POST['remember'])) {
                         // Eliminar tokens antiguos para prevenir duplicados
@@ -431,7 +431,7 @@ class AuthController
    private function updateUserActivity($userId, $type)
 {
     try {
-        error_log("Actualizando actividad de usuario - Usuario ID: $userId, Tipo: $type, Session ID: " . session_id());
+        error_log("Actualizando actividad de usuario - Usuario ID: $userId, Tipo: $type, Session ID: " . '[oculto]'); /* Auditoría 2026-10-05: sin secretos de sesión en logs */
 
         $db = Database::connect();
 
@@ -704,11 +704,13 @@ class AuthController
             if ($isAdmin) {
                 $db->prepare("UPDATE admins SET password = :password WHERE email = :email AND tenant_id = :tenant_id")
                    ->execute(['password' => $newHash, 'email' => $email, 'tenant_id' => $tenantId]);
+                \Screenart\Musedock\Security\SessionSecurity::forgetRememberTokens('admin', 'email = ? AND tenant_id = ?', [$email, $tenantId]); // Auditoría 2026-10-05
                 // 🔒 SECURITY: No loguear email completo
                 error_log("Contraseña actualizada para admin (hash: {$emailHash})");
             } else {
                 $db->prepare("UPDATE users SET password = :password WHERE email = :email AND tenant_id = :tenant_id")
                    ->execute(['password' => $newHash, 'email' => $email, 'tenant_id' => $tenantId]);
+                \Screenart\Musedock\Security\SessionSecurity::forgetRememberTokens('user', 'email = ? AND tenant_id = ?', [$email, $tenantId]); // Auditoría 2026-10-05
                 // 🔒 SECURITY: No loguear email completo
                 error_log("Contraseña actualizada para user (hash: {$emailHash})");
             }

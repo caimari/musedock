@@ -919,7 +919,10 @@ class WpImporterController
                 try {
                     $wpApiUrl = 'https://' . $domain . '/wp-json/wp/v2/media?search=' .
                         urlencode(str_replace('-', ' ', $baseName)) . '&per_page=10';
+                    // Auditoría 2026-10-05: solo http(s) hacia IPs públicas (nada de red interna ni file://)
+                    if (!preg_match('#^https?://#i', (string) $wpApiUrl) || \Screenart\Musedock\Security\UrlGuard::resolvePublicIp((string) $wpApiUrl) === null) { continue; }
                     $ch = curl_init($wpApiUrl);
+                    curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); // Auditoría 2026-10-05
                     curl_setopt_array($ch, [
                         CURLOPT_RETURNTRANSFER => true,
                         CURLOPT_USERAGENT => 'MuseDock WP Importer/1.0',

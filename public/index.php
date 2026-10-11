@@ -349,8 +349,7 @@ try {
         elseif (stripos($__ua_raw, 'Linux') !== false) $__os = 'Linux';
         $__device = preg_match('/(ipad|tablet)/i', $__ua_raw ?? '') ? 'tablet' : (preg_match('/(android|iphone|mobile)/i', $__ua_raw ?? '') ? 'mobile' : 'desktop');
         // IP hash
-        $__ip = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '';
-        $__ip = explode(',', $__ip)[0];
+        $__ip = \Screenart\Musedock\Security\IPHelper::getRealIP(); // Auditoría 2026-10-05: IP real solo vía IPHelper (cabeceras de proxy únicamente desde Cloudflare/proxies de confianza)
         $__ip_hash = hash('sha256', trim($__ip) . date('Y-m-d'));
         // INSERT
         try {

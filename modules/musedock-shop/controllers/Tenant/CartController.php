@@ -36,6 +36,15 @@ class CartController
 
         // Redirect back or to cart
         $redirect = $_POST['redirect'] ?? $_SERVER['HTTP_REFERER'] ?? '/shop/cart';
+        // Auditoría 2026-10-05: solo rutas internas (antes, cualquier URL)
+        if (!preg_match('#^/(?![/\\\\])#', (string) $redirect)) {
+            $refParts = parse_url((string) $redirect);
+            $sameHost = !empty($refParts['host']) && strcasecmp($refParts['host'], (string) ($_SERVER['HTTP_HOST'] ?? '')) === 0;
+            $redirect = $sameHost ? (($refParts['path'] ?? '/shop/cart') . (isset($refParts['query']) ? '?' . $refParts['query'] : '')) : '/shop/cart';
+            if (!preg_match('#^/(?![/\\\\])#', $redirect)) {
+                $redirect = '/shop/cart';
+            }
+        }
         header("Location: {$redirect}");
         exit;
     }
@@ -172,6 +181,10 @@ class CartController
             $order = \Shop\Models\Order::findByCheckoutSession($sessionId);
         } elseif ($orderNumber) {
             $order = \Shop\Models\Order::findByOrderNumber($orderNumber);
+        }
+        // Auditoría 2026-10-05: solo pedidos del tenant actual
+        if ($order && (int) ($order->tenant_id ?? 0) !== (int) (tenant_id() ?? 0)) {
+            $order = null;
         }
 
         CheckoutService::clearCart();

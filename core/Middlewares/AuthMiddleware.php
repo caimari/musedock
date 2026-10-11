@@ -165,7 +165,7 @@ class AuthMiddleware {
             }
 
             error_log("AuthMiddleware - Sesión restaurada con token remember");
-            error_log("AuthMiddleware - Nueva sesión: " . json_encode($_SESSION));
+            error_log("AuthMiddleware - Nueva sesión: " . json_encode(array_keys($_SESSION))); /* Auditoría 2026-10-05: sin secretos de sesión en logs */
             error_log("==================== FIN AUTHMIDDLEWARE (SESIÓN RESTAURADA) ====================");
             return true;
         }
@@ -195,7 +195,7 @@ class AuthMiddleware {
         SessionSecurity::destroy();
         
         // Verificar si la sesión se destruyó correctamente
-        error_log("AuthMiddleware - Sesión después de destroy(): " . json_encode($_SESSION));
+        error_log("AuthMiddleware - Sesión después de destroy(): " . json_encode(array_keys($_SESSION))); /* Auditoría 2026-10-05: sin secretos de sesión en logs */
         
         // Asegurarse de que la cookie de remember me también se elimina
         if (isset($_COOKIE['remember_token'])) {

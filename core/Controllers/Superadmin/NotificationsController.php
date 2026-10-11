@@ -105,7 +105,7 @@ class NotificationsController
             exit;
         }
 
-        $result = NotificationService::markAsRead($id);
+        $result = NotificationService::markAsRead($id, (int) ($auth['id'] ?? 0), 'super_admin'); // Auditoría 2026-10-05: solo las propias
 
         echo json_encode([
             'success' => $result,

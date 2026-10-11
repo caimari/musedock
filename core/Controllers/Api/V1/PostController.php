@@ -114,6 +114,9 @@ class PostController
         // Build public URL
         $post['url'] = $this->buildPostUrl($post);
 
+        // Auditoría 2026-10-05: nunca devolver la contraseña de las entradas protegidas
+        unset($post['password']);
+
         echo json_encode([
             'success' => true,
             'post'    => $post,
@@ -515,7 +518,12 @@ class PostController
         $ids = [];
         foreach ($items as $item) {
             if (is_numeric($item)) {
-                $ids[] = (int) $item;
+                // Auditoría 2026-10-05: el id debe ser de este tenant (antes se enlazaban ids de otros tenants)
+                $own = $pdo->prepare("SELECT id FROM blog_categories WHERE id = ? AND tenant_id = ? LIMIT 1");
+                $own->execute([(int) $item, $tenantId]);
+                if ($own->fetchColumn()) {
+                    $ids[] = (int) $item;
+                }
                 continue;
             }
 
@@ -567,7 +575,12 @@ class PostController
         $ids = [];
         foreach ($items as $item) {
             if (is_numeric($item)) {
-                $ids[] = (int) $item;
+                // Auditoría 2026-10-05: el id debe ser de este tenant (antes se enlazaban ids de otros tenants)
+                $own = $pdo->prepare("SELECT id FROM blog_tags WHERE id = ? AND tenant_id = ? LIMIT 1");
+                $own->execute([(int) $item, $tenantId]);
+                if ($own->fetchColumn()) {
+                    $ids[] = (int) $item;
+                }
                 continue;
             }
 

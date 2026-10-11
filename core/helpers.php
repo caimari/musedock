@@ -55,7 +55,8 @@ if (!function_exists('csrf_token')) {
 
             if (empty($_SESSION['_csrf_token'])) {
                 $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
-                error_log("csrf_token(): Token CSRF generado: " . substr($_SESSION['_csrf_token'], 0, 10) . "...");
+                // Auditoría 2026-10-05: nunca escribir el token (ni parte) en los logs; solo aviso en depuración
+                if (filter_var(\Screenart\Musedock\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN)) { error_log("csrf_token(): Token CSRF generado"); }
             }
 
             $token = $_SESSION['_csrf_token'] ?? '';

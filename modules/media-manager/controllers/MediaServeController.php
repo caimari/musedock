@@ -359,7 +359,9 @@ class MediaServeController
         try {
             $media = Media::find((int)$id);
 
-            if (!$media) {
+            // Auditoría 2026-10-05: en un tenant solo se sirven sus medios o los globales
+            $currentTenantId = function_exists('tenant_id') ? tenant_id() : null;
+            if (!$media || ($currentTenantId !== null && $media->tenant_id !== null && (int) $media->tenant_id !== (int) $currentTenantId)) {
                 return $this->notFound('Archivo no encontrado');
             }
 

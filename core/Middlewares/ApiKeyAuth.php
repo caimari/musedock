@@ -95,6 +95,12 @@ class ApiKeyAuth
             return false;
         }
 
+        // Auditoría 2026-10-05: respetar también aquí las "IPs permitidas" de la clave (antes solo en MCP)
+        if (!\Screenart\Musedock\Services\Mcp\McpServer::ipAllowed($apiKey->allowed_ips ?? null, \Screenart\Musedock\Security\IPHelper::getRealIP())) {
+            self::respond(403, 'IP_NOT_ALLOWED', 'Requests from this IP address are not allowed for this key.');
+            return false;
+        }
+
         // Check rate limit
         if (!$apiKey->checkRateLimit()) {
             $retryAfter = 60 - (int)date('s');

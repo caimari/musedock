@@ -262,7 +262,7 @@ class OAuthServer
         if ($redirectUri === '' && count($registered) === 1) {
             $redirectUri = $registered[0];
         }
-        if (!self::redirectUriMatches($redirectUri, $registered)) {
+        if (!self::isValidRedirectUri($redirectUri) || !self::redirectUriMatches($redirectUri, $registered)) {
             $this->errorPage('La dirección de retorno (redirect_uri) no coincide con la registrada por la aplicación.');
             return;
         }
@@ -972,11 +972,16 @@ class OAuthServer
 
     public static function isValidRedirectUri(string $uri): bool
     {
-        if (strlen($uri) > 500 || str_contains($uri, '#')) {
+        // Auditoría 2026-10-05: parse_url y los navegadores no interpretan igual "\\", "@" o espacios;
+        // se rechazan para que el host mostrado en el consentimiento sea el host real
+        if (strlen($uri) > 500 || str_contains($uri, '#') || preg_match('/[\\\\\s\x00-\x1f\x7f]/', $uri)) {
             return false;
         }
 
         $parts = parse_url($uri);
+        if ($parts === false || isset($parts['user']) || isset($parts['pass'])) {
+            return false;
+        }
         $scheme = strtolower($parts['scheme'] ?? '');
 
         if ($scheme === 'https') {

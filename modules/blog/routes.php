@@ -355,7 +355,7 @@ Route::post('/api/blog/batch-taxonomy', function() {
 
         // Resolve tenant: from session (tenant context) or from request (superadmin context)
         $tenantId = tenant_id();
-        if (!$tenantId && !empty($data['tenant_id'])) {
+        if (!$tenantId && isset($_SESSION['super_admin']) && !empty($data['tenant_id'])) { // Auditoría 2026-10-05: solo el superadmin elige tenant
             $tenantId = (int) $data['tenant_id'];
         }
         if (!$tenantId) {
@@ -502,7 +502,7 @@ Route::post('/api/ai/blog/suggest-taxonomy', function() {
 
         // Resolve tenant: from session (tenant context) or from request (superadmin context)
         $tenantId = tenant_id();
-        if (!$tenantId && !empty($data['tenant_id'])) {
+        if (!$tenantId && isset($_SESSION['super_admin']) && !empty($data['tenant_id'])) { // Auditoría 2026-10-05: solo el superadmin elige tenant
             $tenantId = (int) $data['tenant_id'];
         }
         if (!$tenantId) {
