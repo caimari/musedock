@@ -157,7 +157,7 @@
             <div class="d-flex align-items-start gap-2"><div class="flex-grow-1"><label class="form-check"><input class="form-check-input" type="checkbox" name="sites[]" value="{{ $site['id'] }}" data-mcp-site-group="{{ $site['group_id'] }}"> {{ $site['domain'] }} <small class="d-block text-muted">Grupo: {{ $groupNames[(int)$site['group_id']] }}</small></label></div><a class="btn btn-sm btn-outline-secondary" href="https://{{ $site['domain'] }}" target="_blank" rel="noopener noreferrer" title="Abrir {{ $site['domain'] }} en otra pestaña" aria-label="Abrir {{ $site['domain'] }} en otra pestaña"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a></div>
           @endforeach
         @else
-          <div class="alert alert-info mb-0" role="status"><strong>Todavía no hay sitios disponibles para este asistente.</strong><br>En el paso 1, marca al menos un sitio propio de tus grupos editoriales y pulsa «Guardar conexión y sitios disponibles». Después vuelve aquí para seleccionar el grupo y los sitios del asistente.</div>
+          <div class="alert alert-info mb-0" role="status"><strong>Todavía no hay sitios disponibles para este asistente.</strong><br>En el paso 1, marca al menos un sitio propio de tus grupos editoriales y pulsa «Guardar conexión y sitios disponibles». Después vuelve aquí para seleccionar el grupo y los sitios del asistente.<br><button type="button" class="btn btn-outline-primary mt-3" data-mcp-go-connection>Ir a Servicio y sitios</button></div>
         @endif
       </fieldset>
       @endif
@@ -298,7 +298,7 @@
 @endsection
 @push('scripts')
 <script src="/assets/superadmin/js/mcp-progress.js?v=4"></script>
-<script src="/assets/superadmin/js/mcp-access-tabs.js?v=1"></script>
+<script src="/assets/superadmin/js/mcp-access-tabs.js?v=2"></script>
 <script>
 document.querySelectorAll('[data-mcp-info]').forEach(button=>button.addEventListener('click',()=>document.getElementById('mcp-info-'+button.dataset.mcpInfo).showModal()));
 document.querySelectorAll('[data-mcp-close]').forEach(button=>button.addEventListener('click',()=>button.closest('dialog').close()));

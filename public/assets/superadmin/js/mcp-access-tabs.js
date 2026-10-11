@@ -17,5 +17,10 @@
     document.querySelectorAll('[data-mcp-permission-preset]').forEach(button => button.addEventListener('click', () => {
         button.closest('form').querySelectorAll('input[name="scopes[]"]').forEach(input => input.checked = button.dataset.mcpPermissionPreset === 'all' || input.value === 'musedock-cms:read');
     }));
+    document.querySelectorAll('[data-mcp-go-connection]').forEach(button => button.addEventListener('click', () => {
+        document.getElementById('mcp-create-access')?.close();
+        select('connection');
+        document.querySelector('[data-mcp-panel="connection"]')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }));
     document.getElementById('mcp-new-access')?.addEventListener('click', () => document.getElementById('mcp-create-access').showModal());
 })();

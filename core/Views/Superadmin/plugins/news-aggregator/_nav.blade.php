@@ -1,9 +1,10 @@
 {{-- News Aggregator Superadmin - Navigation --}}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
     <div>
         <h2><i class="bi bi-newspaper"></i> News Aggregator</h2>
         <p class="text-muted mb-0">Panel centralizado de gestión multi-tenant</p>
     </div>
+    <a class="btn btn-outline-primary" href="/musedock/settings/mcp?resource=plugin%3Anews-aggregator"><i class="bi bi-robot me-1"></i>Conexiones MCP</a>
 </div>
 
 @if(!empty($tenantId))

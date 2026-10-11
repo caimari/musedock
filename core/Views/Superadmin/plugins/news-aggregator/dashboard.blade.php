@@ -3,7 +3,6 @@
 @section('title', 'News Aggregator')
 
 @section('content')
-<div class="px-4 pt-3"><a class="btn btn-outline-primary" href="/musedock/settings/mcp?resource=plugin%3Anews-aggregator"><i class="bi bi-robot me-1"></i>Conexiones MCP</a></div>
 <div class="app-content">
     <div class="container-fluid">
 
@@ -13,6 +12,10 @@
 
         @if($isGlobal ?? true)
             {{-- Vista global: listado de tenants --}}
+            <div class="alert alert-light border mb-3">
+                <strong>¿Quieres añadir otro dominio?</strong> Activa News Aggregator en la administración de ese tenant, en Plugins. Cuando el plugin esté instalado y activo, el dominio aparecerá en este listado. Después configura sus fuentes y autoriza su acceso MCP por separado.
+                <a class="btn btn-sm btn-outline-primary ms-2" href="/musedock/tenants">Gestionar tenants</a>
+            </div>
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white">
                     <h5 class="mb-0">Tenants con News Aggregator activo</h5>
