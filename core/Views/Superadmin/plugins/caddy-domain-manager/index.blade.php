@@ -4,6 +4,14 @@
 
 @section('content')
 <style>
+.dns-default-card { border-radius:12px; }
+.dns-default-controls { display:flex;align-items:center;gap:16px;flex-wrap:wrap; }
+.dns-default-controls .form-select { flex:1 1 320px;min-width:0;max-width:600px; }
+.dns-default-controls .btn { display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:7px; }
+.dns-default-help { display:flex;gap:10px;align-items:flex-start;color:#66758a;font-size:.875rem;line-height:1.5;margin-top:16px;padding:12px 14px;background:#f5f8fc;border-radius:8px; }
+.dns-default-help > i { flex-shrink:0;margin-top:2px; }
+@media (max-width:600px) { .dns-default-controls .form-select,.dns-default-controls .btn { flex:1 1 100%;max-width:none;width:100%; } }
+
 .domain-tenants-table { width:100%;table-layout:fixed; }
 .domain-tenants-table th,.domain-tenants-table td { padding:12px 10px;white-space:normal!important;overflow-wrap:anywhere; }
 .domain-tenants-table th:nth-child(1) { width:16%; }
@@ -117,31 +125,22 @@
             };
         @endphp
 
-        <div class="card mb-3">
-            <div class="card-body py-3">
-                <form method="POST" action="/musedock/domain-manager/dns-default-provider" class="row g-3 align-items-end">
+        <div class="card mb-3 dns-default-card">
+            <div class="card-body">
+                <form method="POST" action="/musedock/domain-manager/dns-default-provider">
                     {!! csrf_field() !!}
-                    <div class="col-md-5">
-                        <label class="form-label mb-1">Proveedor DNS por defecto para nuevos dominios</label>
-                        <select name="dns_default_provider" class="form-select">
+                    <label for="dns-default-provider" class="form-label fw-semibold">Proveedor DNS por defecto para nuevos dominios</label>
+                    <div class="dns-default-controls">
+                        <select id="dns-default-provider" name="dns_default_provider" class="form-select" aria-describedby="dns-default-help">
                             @foreach($dnsProviders as $key => $provider)
-                                <option value="{{ $key }}" {{ $defaultDnsProvider === $key ? 'selected' : '' }}>
-                                    {{ $provider['label'] ?? $key }}
-                                </option>
+                                <option value="{{ $key }}" {{ $defaultDnsProvider === $key ? 'selected' : '' }}>{{ $provider['label'] ?? $key }}</option>
                             @endforeach
                         </select>
-                        <div class="form-text">No cambia dominios existentes. Cloudflare mantiene el flujo gestionado actual; otros proveedores pueden usar cuentas DNS propias.</div>
+                        <button type="submit" class="btn btn-outline-primary"><i class="bi bi-save"></i> Guardar proveedor</button>
                     </div>
-                    <div class="col-md-auto">
-                        <button type="submit" class="btn btn-outline-primary">
-                            <i class="bi bi-save"></i> Guardar proveedor por defecto
-                        </button>
-                    </div>
-                    <div class="col-md">
-                        <div class="alert alert-light border mb-0 py-2 small">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Cada hosting puede sobrescribir este valor desde Crear/Editar dominio. Los dominios Cloudflare actuales no se modifican.
-                        </div>
+                    <div id="dns-default-help" class="dns-default-help">
+                        <i class="bi bi-info-circle" aria-hidden="true"></i>
+                        <div>Se aplica a nuevos dominios; los existentes conservan su configuración. Puedes elegir otro proveedor al crear o editar cada dominio. Cloudflare mantiene el flujo gestionado y los demás proveedores pueden usar cuentas DNS propias.</div>
                     </div>
                 </form>
             </div>
