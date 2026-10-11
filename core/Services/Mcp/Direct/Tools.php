@@ -87,7 +87,7 @@ final class Tools
             $this->store->run("INSERT INTO requests(id,resource,client,status,expires,data) VALUES(?,?,?,'pending',?,?)",[$id,$r['id'],$c['id'],time()+600,Store::json($payload)]);
             $this->store->event($r['id'],'request.created',$g['actor'],['client'=>$c['id'],'request'=>$id,'tool'=>$payload['plan']['tool']]);
         });
-        return ['status'=>'pending_approval','request_id'=>$id,'expires_in'=>600,'plan'=>$plan,'next'=>'Aprueba o rechaza en Conexiones IA (MCP) del CMS.'];
+        return ['status'=>'pending_approval','request_id'=>$id,'expires_in'=>600,'plan'=>$plan,'next'=>'Aprueba o rechaza en (MCP) Conexiones IA del CMS.'];
     }
     public function decide(string $resource,string $id,int $actor,bool $approve): array
     {

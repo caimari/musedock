@@ -23,7 +23,7 @@
 @media (max-width: 576px) { .mcp-settings.container-fluid { padding: 16px !important; } .mcp-settings .card-body, .mcp-settings .card-header { padding: 18px; } .mcp-settings .nav-link { padding: 10px 12px; } }
 </style>
 <div class="container-fluid p-4 mcp-settings">
-  <h1 class="h3"><i class="bi bi-robot me-2"></i>Conexiones IA (MCP)</h1>
+  <h1 class="h3"><i class="bi bi-robot me-2"></i>(MCP) Conexiones IA</h1>
   @if(!$tenantMode)
   <nav class="nav nav-pills mb-3">
     @foreach(['main'=>'Dominio principal','plugin:cross-publisher'=>'Cross Publisher','plugin:news-aggregator'=>'News Aggregator'] as $key=>$label)

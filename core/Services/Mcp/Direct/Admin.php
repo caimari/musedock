@@ -88,7 +88,7 @@ final class Admin
             $sites=Database::connect()->query("SELECT id,name,domain,group_id FROM tenants WHERE status='active' ORDER BY name")->fetchAll(\PDO::FETCH_ASSOC);
             $groups=Database::connect()->query('SELECT id,name FROM domain_groups ORDER BY name')->fetchAll(\PDO::FETCH_ASSOC);
         }
-        $data=['title'=>'Conexiones IA (MCP)','resource'=>$r,'clients'=>$clients,'grants'=>$grants,'requests'=>$requests,'newClient'=>$new,'error'=>$error,
+        $data=['title'=>'(MCP) Conexiones IA','resource'=>$r,'clients'=>$clients,'grants'=>$grants,'requests'=>$requests,'newClient'=>$new,'error'=>$error,
             'base'=>$base,'back'=>$back,'tenantMode'=>$tenant,'scopes'=>Policy::scopes($id),'sites'=>$sites,'groups'=>$groups,
             'deploymentEnabled'=>filter_var(Env::get('MCP_CMS_DIRECT_ENABLED',false),FILTER_VALIDATE_BOOLEAN),'pluginInstalled'=>Endpoint::installed($id),
             'events'=>$ep->store->all('SELECT * FROM events WHERE resource=? ORDER BY id DESC LIMIT 30',[$id])];

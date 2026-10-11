@@ -3,7 +3,7 @@
  * Migration: Conexiones MCP por tenant
  * - api_keys.allowed_ips: lista opcional de IPs/CIDR permitidas
  * - api_tool_logs.source: 'rest' | 'mcp'
- * - Menú "Ajustes → Conexiones IA (MCP)" en admin_menus y tenant_menus
+ * - Menú "Ajustes → (MCP) Conexiones IA" en admin_menus y tenant_menus
  * Generated at: 2026_09_29_120000
  * Compatible with: MySQL/MariaDB + PostgreSQL
  */
@@ -13,7 +13,7 @@ use Screenart\Musedock\Database;
 class AddMcpConnections_2026_09_29_120000
 {
     private const SLUG = 'mcp-connections';
-    private const TITLE = 'Conexiones IA (MCP)';
+    private const TITLE = '(MCP) Conexiones IA';
     private const URL = '{admin_path}/mcp';
     private const ICON = 'bi-robot';
     private const ORDER = 11;
