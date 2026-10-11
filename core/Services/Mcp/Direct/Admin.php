@@ -31,6 +31,12 @@ final class Admin
                 if ($tenant && !userCan('settings.edit')) throw new \RuntimeException('No tienes permiso para modificar ajustes.');
                 if (empty($_SESSION['_csrf_token']) || !hash_equals($_SESSION['_csrf_token'],(string)($_POST['_token']??$_POST['_csrf']??''))) throw new \RuntimeException('CSRF no válido.');
                 $action=$_POST['action']??'';
+                if ($action==='deployment') {
+                    if ($tenant || !\Screenart\Musedock\Helpers\PermissionHelper::isSuperAdminRoot($actor)) throw new \RuntimeException('Solo el administrador principal puede activar el servicio global.');
+                    Deployment::setEnabled(isset($_POST['deployment_enabled']));
+                    $ep->store->event($id,'deployment.configured',$actor,['enabled'=>isset($_POST['deployment_enabled'])]);
+                    flash('success','Servicio global MCP actualizado.'); header('Location: '.$back); return;
+                }
                 if ($action==='configure') {
                     $r['managed']=$r['managed']??false;
                     $r['url']=$url; $r['enabled']=isset($_POST['enabled']); $r['allow_drafts']=isset($_POST['allow_drafts']); $r['allow_publishing']=isset($_POST['allow_publishing']); $r['allow_mcp_approval']=isset($_POST['allow_mcp_approval']); $r['revision']++;
@@ -101,6 +107,7 @@ final class Admin
         (new Scheduler($ep->store,$content));
         $data=['resourceOptions'=>$resourceOptions,'schedules'=>$ep->store->all("SELECT * FROM schedules WHERE resource=? AND status='scheduled' ORDER BY due",[$id]),'title'=>'(MCP) Conexiones IA','resource'=>$r,'clients'=>$clients,'grants'=>$grants,'requests'=>$requests,'newClient'=>$new,'error'=>$error,
             'base'=>$base,'back'=>$back,'tenantMode'=>$tenant,'scopes'=>Policy::scopes($id),'sites'=>$sites,'groups'=>$groups,
+            'canManageDeployment'=>!$tenant && \Screenart\Musedock\Helpers\PermissionHelper::isSuperAdminRoot($actor),
             'deploymentEnabled'=>filter_var(Env::get('MCP_CMS_DIRECT_ENABLED',false),FILTER_VALIDATE_BOOLEAN) && filter_var(Env::get('MCP_ENABLED',true),FILTER_VALIDATE_BOOLEAN),'pluginInstalled'=>Endpoint::installed($id),
             'events'=>$ep->store->all('SELECT * FROM events WHERE resource=? ORDER BY id DESC LIMIT 30',[$id])];
         echo $tenant?View::renderTenantAdmin('mcp.direct',$data):View::renderSuperadmin('mcp.direct',$data);

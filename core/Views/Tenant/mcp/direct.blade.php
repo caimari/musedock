@@ -65,7 +65,18 @@
   @endif
   <p>Conecta un asistente para gestionar el blog con los permisos que autorices en <strong>{{ $resource['name'] }}</strong>.</p>
   @if($error)<div class="alert alert-danger">{{ $error }}</div>@endif
-  @if(!$deploymentEnabled)<div class="mcp-activation-notice" role="status"><strong>La conexión pública está pendiente de activación por el operador del CMS.</strong><span>Puedes preparar sus clientes y permisos.</span></div>@endif
+  @if(!empty($canManageDeployment))
+  <div class="card mb-3"><div class="card-body">
+    <h2 class="h5">Servicio global MCP</h2>
+    <p>Estado: <strong>{{ $deploymentEnabled ? 'Activo' : 'Desactivado' }}</strong>. Este interruptor permite las conexiones públicas HTTPS del CMS. Cada conexión mantiene sus propios sitios, clientes y permisos.</p>
+    <form method="post" action="{{ $back }}">
+      {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="action" value="deployment">
+      <label class="form-check mb-3"><input class="form-check-input" type="checkbox" name="deployment_enabled" {{ $deploymentEnabled ? 'checked' : '' }}> Activar el servicio global MCP</label>
+      <button class="btn btn-primary" type="submit">Guardar servicio global</button>
+    </form>
+  </div></div>
+  @endif
+  @if(!$deploymentEnabled)<div class="mcp-activation-notice" role="status"><strong>El servicio global MCP está desactivado.</strong><span>Habilitar esta conexión guarda sus ajustes, pero no activa el servicio global. El administrador principal debe activarlo en esta página.</span></div>@endif
   @if(!$pluginInstalled)<div class="alert alert-warning">Este plugin debe estar instalado y activo para abrir su conexión MCP.</div>@endif
   <div class="card mb-3"><div class="card-body">
     <h2 class="h5">{{ $isPluginConnection ? 'Paso 1 · Configurar la conexión y sus sitios disponibles' : 'Conexión directa HTTPS' }}</h2>
