@@ -67,9 +67,12 @@
                 <button class="btn btn-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button><a class="btn btn-outline-secondary" href="/musedock/tenants">Restablecer</a>
             </div>
         </form>
-        @include('partials.alerts')
+        @if (!empty($noticeSuccess) || !empty($noticeError))
+            <div id="tenant-result" hidden data-message="{{ $noticeError ?: $noticeSuccess }}" data-icon="{{ $noticeError ? 'warning' : 'success' }}"></div>
+        @endif
         <form id="tenant-bulk" method="post" action="/musedock/tenants/bulk" class="card mb-3">
             {!! csrf_field() !!}
+            <input type="hidden" name="return_query" value="{{ parse_url($listUrl(), PHP_URL_QUERY) }}">
             <div class="card-body d-flex flex-wrap gap-3 align-items-end">
                 <div><label for="bulk-action" class="form-label">Acción masiva</label><select id="bulk-action" name="bulk_action" class="form-select"><option value="color">Cambiar color</option><option value="client">Marcar como cliente</option><option value="not_client">Desmarcar como cliente</option><option value="plugin">Instalar / activar plugin compartido</option></select></div>
                 <div id="bulk-color"><label class="form-label" for="bulk-color-select">Color</label><select id="bulk-color-select" name="label_color" class="form-select">
@@ -107,6 +110,7 @@
 							<td>{{ $tenant->domain }} @if (!empty($tenant->is_client_domain))<span class="badge bg-secondary ms-2">Cliente</span>@endif
                                 <form method="post" action="/musedock/tenants/{{ $tenant->id }}/classification" class="d-flex gap-2 mt-2" aria-label="Color de {{ $tenant->domain }}">
                                     {!! csrf_field() !!}
+                                    <input type="hidden" name="return_query" value="{{ parse_url($listUrl(), PHP_URL_QUERY) }}">
                                     @foreach ($labelColors as $value => $label)<button type="submit" name="label_color" value="{{ $value }}" class="tenant-color tenant-color-{{ $value ?: 'none' }} {{ ($tenant->label_color ?? '') === $value ? 'selected' : '' }}" title="{{ $label }}" aria-label="{{ $label }}" aria-pressed="{{ ($tenant->label_color ?? '') === $value ? 'true' : 'false' }}"></button>@endforeach
                                 </form>
                             </td>
@@ -149,6 +153,8 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const notice = document.getElementById('tenant-result');
+    if (notice) Swal.fire({title: 'Resultado de la operación', text: notice.dataset.message, icon: notice.dataset.icon, confirmButtonText: 'Aceptar'});
     const bulkForm = document.getElementById('tenant-bulk');
     const choices = Array.from(document.querySelectorAll('.tenant-select'));
     const selectAll = document.getElementById('tenant-select-all');

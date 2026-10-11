@@ -70,7 +70,7 @@ class TenantsController
         $this->saveClassification((int)$id, $data);
         \Screenart\Musedock\Security\AuditLogger::log('tenant.classification.updated', 'INFO', ['tenant_id' => (int)$id, 'classification' => $data]);
         flash('success', 'Clasificación del dominio guardada.');
-        $back = isset($_POST['edit_client']) ? '/musedock/tenants/'.(int)$id.'/edit#tenant-classification' : '/musedock/tenants';
+        $back = isset($_POST['edit_client']) ? '/musedock/tenants/'.(int)$id.'/edit#tenant-classification' : $this->listReturnUrl();
         header('Location: '.$back);
     }
 
@@ -87,6 +87,18 @@ class TenantsController
         $statement->execute($parameters);
     }
 
+    private function listReturnUrl(): string
+    {
+        $query = $_POST['return_query'] ?? '';
+        if (!is_string($query) || strlen($query) > 4000) return '/musedock/tenants';
+        parse_str($query, $values);
+        $filters = [];
+        foreach (['q', 'type', 'sort', 'direction', 'per_page', 'ownership', 'color', 'page'] as $key) {
+            if (isset($values[$key]) && is_scalar($values[$key])) $filters[$key] = mb_substr((string)$values[$key], 0, 200);
+        }
+        return '/musedock/tenants' . ($filters ? '?' . http_build_query($filters) : '');
+    }
+
     public function bulk()
     {
         $this->checkMultitenancyEnabled();
@@ -97,7 +109,7 @@ class TenantsController
         $action = $_POST['bulk_action'] ?? '';
         if (!is_array($ids) || count($ids) > 200 || !in_array($action, ['color', 'client', 'not_client', 'plugin'], true)) { http_response_code(400); return; }
         $ids = array_values(array_unique(array_filter($ids, static fn($id) => is_scalar($id) && ctype_digit((string)$id) && (int)$id > 0)));
-        if (!$ids) { flash('error', 'Selecciona al menos un tenant.'); header('Location: /musedock/tenants'); return; }
+        if (!$ids) { flash('error', 'Selecciona al menos un tenant.'); header('Location: '.$this->listReturnUrl()); return; }
         $color = $_POST['label_color'] ?? '';
         $slug = $_POST['plugin_slug'] ?? '';
         $manager = \Screenart\Musedock\TenantPluginManager::class;
@@ -125,7 +137,7 @@ class TenantsController
         }
         \Screenart\Musedock\Security\AuditLogger::log('tenant.bulk.updated', 'INFO', ['action' => $action, 'tenant_ids' => $ids, 'completed' => $done, 'failed' => $failed]);
         flash($failed ? 'error' : 'success', $done.' tenants actualizados.'.($failed ? ' No completados: '.implode(', ', $failed).'. Consulta los registros.' : ''));
-        header('Location: /musedock/tenants');
+        header('Location: '.$this->listReturnUrl());
     }
 
     public function index()
@@ -172,6 +184,7 @@ class TenantsController
             'search' => $search, 'type' => $type, 'sort' => $sort, 'direction' => $direction,
             'perPage' => $perPage, 'page' => $page, 'pages' => $pages, 'total' => $total,
             'mainDomain' => $mainDomain, 'listUrl' => $listUrl,
+            'noticeSuccess' => consume_flash('success'), 'noticeError' => consume_flash('error'),
             'ownership' => $ownership, 'color' => $color, 'labelColors' => self::LABEL_COLORS,
             'sharedPlugins' => \Screenart\Musedock\TenantPluginManager::getAvailableSharedPlugins()
         ]);
