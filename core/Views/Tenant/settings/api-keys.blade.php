@@ -16,6 +16,8 @@
 @endpush
 
 @section('content')
+<div class="row g-4">
+  <div class="col-xl-9 col-lg-8">
 @php
   $allPerms = \Screenart\Musedock\Controllers\Api\V1\ApiKeyController::availablePermissions();
   $permGroups = \Screenart\Musedock\Controllers\Api\V1\ApiKeyController::permissionGroups();
@@ -52,9 +54,9 @@
     <span class="icon">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6f42c1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
     </span>
-    <h6>Claude Code / Desktop</h6>
-    <p>URL para MCP Server:</p>
-    <code style="font-size:0.72rem;word-break:break-all;">{{ $apiBaseUrl }}</code>
+    <h6>ChatGPT / Claude por MCP</h6>
+    <p>El nuevo MCP usa OAuth y sus propios clientes y permisos.</p>
+    <a class="d-inline-block mt-2" href="{{ '/' . admin_path() . '/mcp/direct' }}">Configurar (MCP) Conexiones IA →</a>
   </div>
   <div class="api-info-card">
     <span class="icon">
@@ -281,4 +283,10 @@ document.getElementById('btnCreateKey').addEventListener('click', function() {
 });
 </script>
 @endpush
+
+  </div>
+  <aside class="col-xl-3 col-lg-4" aria-label="Opciones de Ajustes">
+    @include('settings.partials.sidebar', ['active' => 'api-keys'])
+  </aside>
+</div>
 @endsection

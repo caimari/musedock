@@ -10,6 +10,8 @@
     ['key' => 'advanced', 'label' => 'Avanzado', 'icon' => 'bi-sliders', 'url' => route('settings.advanced')],
     ['key' => 'mcp', 'label' => '(MCP) Conexiones IA', 'icon' => 'bi-robot', 'url' => route('settings.mcp')],
     ['key' => 'api-keys', 'label' => 'API Keys', 'icon' => 'bi-key', 'url' => route('settings.api-keys')],
+    ['key' => 'tenant-defaults', 'label' => 'Ajustes predeterminados de tenants', 'icon' => 'bi-building-gear', 'url' => route('tenant-defaults.index')],
+    ['key' => 'acme-assistant', 'label' => 'Certificados (ACME)', 'icon' => 'bi-patch-check', 'url' => route('settings.acme-assistant')],
     ['key' => 'backups', 'label' => 'Backups', 'icon' => 'bi-database', 'url' => route('settings.backups')],
   ];
 @endphp

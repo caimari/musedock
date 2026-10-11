@@ -5,10 +5,16 @@ if (!is_file($bladeFile)) throw new RuntimeException('Instala BladeOne o indica 
 require $bladeFile;
 function csrf_field(){return '<input type="hidden" name="_csrf" value="test-csrf">';}
 function admin_path(){return 'admin';}
+function route($name){
+    if ($name==='settings') return '/musedock/settings';
+    if ($name==='tenant-defaults.index') return '/musedock/settings/tenant-defaults';
+    if (str_starts_with($name,'settings.')) return '/musedock/settings/'.substr($name,9);
+    throw new RuntimeException('Unexpected route '.$name);
+}
 $directory=sys_get_temp_dir().'/cms-mcp-views-'.bin2hex(random_bytes(8)); mkdir($directory,0700);
 try {
-    $blade=new eftec\bladeone\BladeOne($directory,$directory,eftec\bladeone\BladeOne::MODE_SLOW);
     foreach (['Superadmin','Tenant'] as $mode) {
+        $blade=new eftec\bladeone\BladeOne(APP_ROOT.'/core/Views/'.$mode,$directory,eftec\bladeone\BladeOne::MODE_SLOW);
         $source=file_get_contents(APP_ROOT.'/core/Views/'.$mode.'/mcp/direct.blade.php');
         $source=str_replace("@extends('layouts.app')",'', $source);
         $source=str_replace(["@section('title', $".'title)',"@section('content')","@endsection","@push('scripts')","@endpush"],'',$source);
@@ -21,6 +27,7 @@ try {
             'requests'=>[['id'=>'req','expires'=>time()+600,'payload'=>['plan'=>['content'=>'<script>evil</script>']]]],
             'events'=>[['created'=>time(),'action'=>'request.created','detail'=>'{}']]];
         $html=$blade->runString($source,$data);
+        if (!str_contains($html,'Opciones de Ajustes')) throw new RuntimeException('Falta navegación de ajustes.');
         if (!str_contains($html,'name="_csrf"') || str_contains($html,'<script>evil</script>') || !str_contains($html,'&lt;script&gt;evil&lt;/script&gt;') || !str_contains($html,'type="password"')) throw new RuntimeException('Fallo de render o escape de la vista '.$mode);
         if (!str_contains($html,'Paso 1') || !str_contains($html,'Paso 2') || !str_contains($html,'data-mcp-site-group="10"')) throw new RuntimeException('Faltan pasos o grupo del sitio.');
         if (substr_count($html,'href="https://a.example" target="_blank" rel="noopener noreferrer"')!==2) throw new RuntimeException('Faltan enlaces seguros al dominio en ambos pasos.');

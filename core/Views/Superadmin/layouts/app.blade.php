@@ -56,7 +56,7 @@
       nav#sidebar.sidebar .sidebar-content { display: flex; flex-direction: column; flex-grow: 1; min-height: 100%; height: auto; overflow-y: auto; overflow-x: hidden; opacity: 1; transition: opacity 0.2s ease-in-out; }
 
       /* Sidebar Expandido */
-      nav#sidebar.sidebar:not(.collapsed) { width: 220px !important; min-width: 220px !important; padding: 0 !important; margin: 0 !important; border-right: 1px solid #405063; } /* Slightly lighter border */
+      nav#sidebar.sidebar:not(.collapsed) { width: 260px !important; min-width: 260px !important; padding: 0 !important; margin: 0 !important; border-right: 1px solid #405063; } /* Slightly lighter border */
 
       /* Sidebar Colapsado */
       nav#sidebar.sidebar.collapsed { width: 0px !important; min-width: 0px !important; overflow: hidden !important; padding: 0 !important; margin: 0 !important; border-right: none !important; }
@@ -231,8 +231,8 @@
 	  </style>
 @stack('styles')
 @stack('meta')
-<link rel="stylesheet" href="/assets/superadmin/css/sidebar-resize.css?v=1">
-<script src="/assets/superadmin/js/sidebar-resize.js?v=1"></script>
+<link rel="stylesheet" href="/assets/superadmin/css/sidebar-resize.css?v=2">
+<script src="/assets/superadmin/js/sidebar-resize.js?v=2"></script>
 </head>
 
 <body>
@@ -582,7 +582,7 @@
 	</nav>
 
 	{{-- Contenedor Principal --}}
-    <div id="sidebar-resizer" class="sidebar-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Cambiar ancho del menú lateral" aria-controls="sidebar" aria-valuemin="200" aria-valuemax="480" aria-valuenow="220" title="Arrastra para cambiar el ancho. Doble clic para restablecer. También puedes usar las flechas del teclado."></div>
+    <div id="sidebar-resizer" class="sidebar-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Cambiar ancho del menú lateral" aria-controls="sidebar" aria-valuemin="200" aria-valuemax="480" aria-valuenow="260" title="Arrastra para cambiar el ancho. Doble clic para restablecer. También puedes usar las flechas del teclado."></div>
 
 	<div class="main">
 		{{-- Navbar Adaptada --}}

@@ -14,9 +14,9 @@
 .sidebar-resizer { display: none; }
 @media (min-width: 768px) {
     nav#sidebar.sidebar:not(.collapsed) {
-        width: var(--musedock-sidebar-width, 220px) !important;
-        min-width: var(--musedock-sidebar-width, 220px) !important;
-        max-width: var(--musedock-sidebar-width, 220px) !important;
+        width: var(--musedock-sidebar-width, 260px) !important;
+        min-width: var(--musedock-sidebar-width, 260px) !important;
+        max-width: var(--musedock-sidebar-width, 260px) !important;
     }
     .sidebar-resizer {
         display: block;

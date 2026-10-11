@@ -33,7 +33,9 @@
       return in_array((int)$site['id'], $resource['owned_sites'], true) && isset($groupNames[(int)$site['group_id']]);
   }));
 @endphp
-<div class="container-fluid p-4 mcp-settings">
+<div class="row g-4">
+  <div class="col-xl-9 col-lg-8">
+<div class="mcp-settings">
   <h1 class="h3"><i class="bi bi-robot me-2"></i>(MCP) Conexiones IA</h1>
   @if(!$tenantMode)
   <nav class="nav nav-pills mb-3">
@@ -172,6 +174,11 @@
   </div></details>
   <details class="card mb-3"><summary class="card-header">Modalidad túnel</summary><div class="card-body"><p>Esta entrega utiliza HTTPS directo por 443. El túnel OpenAI no está configurado ni se reutiliza el del Panel. Su incorporación requiere una configuración independiente.</p></div></details>
   <details class="card mb-3"><summary class="card-header">Actividad reciente</summary><div class="card-body"><ul>@foreach($events as $event)<li>{{ gmdate('Y-m-d H:i:s',$event['created']) }} UTC — {{ $event['action'] }} — {{ $event['detail'] }}</li>@endforeach</ul></div></details>
+</div>
+  </div>
+  <aside class="col-xl-3 col-lg-4" aria-label="Opciones de Ajustes">
+    @include('settings.partials.sidebar', ['active' => 'mcp'])
+  </aside>
 </div>
 @endsection
 @push('scripts')

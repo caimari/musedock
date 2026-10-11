@@ -2,7 +2,7 @@
     'use strict';
     const root = document.documentElement;
     const storageKey = 'musedock:sidebar-width:' + location.pathname.split('/')[1];
-    const defaultWidth = 220;
+    const defaultWidth = 260;
     const minimum = 200;
     let width = defaultWidth;
     let handle;
@@ -22,7 +22,7 @@
     }
     try {
         const saved = Number(localStorage.getItem(storageKey));
-        if (Number.isFinite(saved) && saved >= minimum) width = saved;
+        if (Number.isFinite(saved) && saved >= minimum && saved !== 220) width = saved;
     } catch (_) {}
     apply(width);
 

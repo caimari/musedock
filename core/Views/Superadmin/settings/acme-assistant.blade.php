@@ -3,6 +3,8 @@
 @section('title', $title)
 
 @section('content')
+<div class="row g-4">
+  <div class="col-xl-9 col-lg-8">
 @php
     $port80Open = (bool)($firewall['ports']['80']['public_open'] ?? false);
     $port443Open = (bool)($firewall['ports']['443']['public_open'] ?? false);
@@ -301,6 +303,12 @@
             </div>
         </div>
     </div>
+</div>
+
+  </div>
+  <aside class="col-xl-3 col-lg-4" aria-label="Opciones de Ajustes">
+    @include('settings.partials.sidebar', ['active' => 'acme-assistant'])
+  </aside>
 </div>
 @endsection
 

@@ -73,8 +73,8 @@
 
       /* Sidebar Expandido */
       nav#sidebar.sidebar:not(.collapsed) { 
-          width: 220px !important; 
-          min-width: 220px !important; 
+          width: 260px !important;
+          min-width: 260px !important;
           padding: 0 !important; 
           margin: 0 !important; 
           border-right: 1px solid #405063; 
@@ -305,8 +305,8 @@
               top: 0; 
               bottom: 0; 
               height: 100vh !important;
-              width: 260px !important; 
-              min-width: 260px !important; 
+              width: 260px !important;
+              min-width: 260px !important;
               max-width: 260px !important;
               margin-left: 0 !important; 
               transform: translateX(-100%) !important; 
@@ -381,8 +381,8 @@
   
   @stack('styles')
   @stack('meta')
-<link rel="stylesheet" href="/assets/superadmin/css/sidebar-resize.css?v=1">
-<script src="/assets/superadmin/js/sidebar-resize.js?v=1"></script>
+<link rel="stylesheet" href="/assets/superadmin/css/sidebar-resize.css?v=2">
+<script src="/assets/superadmin/js/sidebar-resize.js?v=2"></script>
 </head>
 <body>
 
@@ -632,7 +632,7 @@ function generate_id($prefix = 'menu-') {
         </div>
     </nav>
 
-    <div id="sidebar-resizer" class="sidebar-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Cambiar ancho del menú lateral" aria-controls="sidebar" aria-valuemin="200" aria-valuemax="480" aria-valuenow="220" title="Arrastra para cambiar el ancho. Doble clic para restablecer. También puedes usar las flechas del teclado."></div>
+    <div id="sidebar-resizer" class="sidebar-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Cambiar ancho del menú lateral" aria-controls="sidebar" aria-valuemin="200" aria-valuemax="480" aria-valuenow="260" title="Arrastra para cambiar el ancho. Doble clic para restablecer. También puedes usar las flechas del teclado."></div>
 
     <div class="main">
         <nav class="navbar navbar-expand navbar-light navbar-bg">
