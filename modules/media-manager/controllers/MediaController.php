@@ -1395,6 +1395,7 @@ public function uploadFromFile(string $filePath, string $mimeType, ?int $tenantI
     }
 
     $fileSize = filesize($filePath);
+    if (!$this->checkStorageQuota((int)$fileSize * 3)['allowed']) return null;
     $originalName = $options['original_name'] ?? basename($filePath);
 
     // Auditoría 2026-10-05: los ficheros que llegan por aquí vienen de fuera (importadores, IA):

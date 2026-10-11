@@ -10,7 +10,7 @@ use Screenart\Musedock\Services\Mcp\McpPermissions;
 final class Content
 {
     public function __construct(public PDO $db) {}
-    private function query(string $sql, array $params=[]): array
+    public function query(string $sql, array $params=[]): array
     {
         if ($this->db->inTransaction() && $this->db->getAttribute(PDO::ATTR_DRIVER_NAME)!=='sqlite' && str_starts_with(ltrim($sql),'SELECT') && !str_ends_with($sql,' FOR UPDATE')) $sql.=' FOR UPDATE';
         $s=$this->db->prepare($sql);
@@ -27,7 +27,8 @@ final class Content
         if (!($actor>0 && $permissions::isTenantRootAdmin($actor,$site))
             && !$permissions::userCan(abs($actor),'mcp.connect',$site,$actor>0?'admin':'user')
             && !$permissions::userCan(abs($actor),'settings.edit',$site,$actor>0?'admin':'user')) return false;
-        return McpPermissions::userCanGrant($actor,$site,'posts',$scope===Policy::READ?'read':'write');
+        [$section,$level]=match($scope) { Policy::POSTS=>['posts','publish'], Policy::TAXONOMY=>['categories','write'], Policy::COMMENTS=>['posts','write'], Policy::TRANSLATIONS=>['posts','write'], Policy::MEDIA=>['media','write'], default=>['posts',$scope===Policy::READ?'read':'write'] };
+        return McpPermissions::userCanGrant($actor,$site,$section,$level) && ($scope!==Policy::TAXONOMY || McpPermissions::userCanGrant($actor,$site,'tags','write'));
     }
     public function sites(array $r, array $c): array
     {
@@ -67,6 +68,7 @@ final class Content
     }
     public function read(string $tool, array $r, array $c, array $args): array
     {
+        if (isset(Editor::MAP[$tool])) return (new Editor($this))->read($tool,$r,$c,$args);
         if ($tool==='list_sites') return $this->listSites($r,$c);
         if ($tool==='get_post') return $this->post($r,$c,(int)$args['post_id']);
         $site=$this->siteArg($r,$c,$args);
@@ -113,6 +115,7 @@ final class Content
     }
     public function plan(string $tool,array $r,array $c,array $args): array
     {
+        if (isset(Editor::MAP[$tool])) return (new Editor($this))->plan($tool,$r,$c,$args);
         $site=$this->siteArg($r,$c,$args); $fields=$this->fields($args); $snapshot=null;
         if ($tool==='update_draft') {
             $snapshot=$this->post($r,$c,$args['post_id']);
@@ -134,6 +137,7 @@ final class Content
     }
     public function execute(array $plan,int $actor,?array $auth=null, array $args=[]): array
     {
+        if (isset(Editor::MAP[$plan['tool']])) return (new Editor($this))->execute($plan,$actor,$auth,$args);
         $site=$plan['site_id']; $now=gmdate('Y-m-d H:i:s'); $f=$plan['fields'];
         $this->db->beginTransaction();
         try {

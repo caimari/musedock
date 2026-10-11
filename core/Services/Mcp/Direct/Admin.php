@@ -14,6 +14,7 @@ final class Admin
         $tenant=!empty($GLOBALS['tenant']['id']);
         $id=$tenant?'tenant:'.(int)$GLOBALS['tenant']['id']:(string)($_GET['resource']??$_POST['resource']??'main');
         if (!$tenant && !in_array($id,['main','plugin:cross-publisher','plugin:news-aggregator'],true)) { http_response_code(404); return; }
+        if (str_starts_with($id,'plugin:') && !Endpoint::installed($id)) { http_response_code(404); echo 'La conexión de este plugin no está disponible.'; return; }
         $ep=new Endpoint($id); $actor=$ep->actor(); $content=new Content(Database::connect());
         if (!$actor || !$content->actorActive($id,$actor) || ($tenant && !userCan('settings.view'))) { http_response_code(403); echo 'Acceso denegado.'; return; }
         $origin=$tenant?'https://'.$GLOBALS['tenant']['domain']:rtrim((string)Env::get('APP_URL',''),'/');
@@ -32,7 +33,7 @@ final class Admin
                 $action=$_POST['action']??'';
                 if ($action==='configure') {
                     $r['managed']=$r['managed']??false;
-                    $r['url']=$url; $r['enabled']=isset($_POST['enabled']); $r['allow_drafts']=isset($_POST['allow_drafts']); $r['revision']++;
+                    $r['url']=$url; $r['enabled']=isset($_POST['enabled']); $r['allow_drafts']=isset($_POST['allow_drafts']); $r['allow_publishing']=isset($_POST['allow_publishing']); $r['allow_mcp_approval']=isset($_POST['allow_mcp_approval']); $r['revision']++;
                     if (str_starts_with($id,'plugin:')) {
                         $ids=array_values(array_unique(array_filter(array_map('intval',(array)($_POST['owned_sites']??[])),fn($n)=>$n>0)));
                         foreach ($ids as $site) {
@@ -69,6 +70,11 @@ final class Admin
                     $g=$ep->store->grant((string)($_POST['grant']??''));
                     if (!$g || $g['resource']!==$id) throw new \RuntimeException('Consentimiento no encontrado.');
                     $g['active']=false; $ep->store->putGrant($g); $ep->store->event($id,'grant.revoked',$actor,['client'=>$g['client']]);
+                } elseif ($action==='cancel_schedule') {
+                    if (!$content->actorActive($id,$actor,Policy::POSTS)) throw new \RuntimeException('No tienes permiso para cancelar publicaciones.');
+                    (new Scheduler($ep->store,$content));
+                    $ep->store->run("UPDATE schedules SET status='cancelled' WHERE id=? AND resource=? AND status='scheduled'",[(string)($_POST['schedule']??''),$id]);
+                    $ep->store->event($id,'publication.cancelled',$actor);
                 } elseif ($action==='approve' || $action==='reject') {
                     (new Tools($ep->store,$content))->decide($id,(string)($_POST['request']??''),$actor,$action==='approve');
                 } else throw new \RuntimeException('Acción desconocida.');
@@ -88,9 +94,12 @@ final class Admin
             $sites=Database::connect()->query("SELECT id,name,domain,group_id FROM tenants WHERE status='active' ORDER BY name")->fetchAll(\PDO::FETCH_ASSOC);
             $groups=Database::connect()->query('SELECT id,name FROM domain_groups ORDER BY name')->fetchAll(\PDO::FETCH_ASSOC);
         }
-        $data=['title'=>'Conexiones IA (MCP)','resource'=>$r,'clients'=>$clients,'grants'=>$grants,'requests'=>$requests,'newClient'=>$new,'error'=>$error,
+        $resourceOptions=['main'=>'Dominio principal'];
+        foreach (['cross-publisher'=>'Cross Publisher','news-aggregator'=>'News Aggregator'] as $slug=>$label) if (Endpoint::installed('plugin:'.$slug)) $resourceOptions['plugin:'.$slug]=$label;
+        (new Scheduler($ep->store,$content));
+        $data=['resourceOptions'=>$resourceOptions,'schedules'=>$ep->store->all("SELECT * FROM schedules WHERE resource=? AND status='scheduled' ORDER BY due",[$id]),'title'=>'(MCP) Conexiones IA','resource'=>$r,'clients'=>$clients,'grants'=>$grants,'requests'=>$requests,'newClient'=>$new,'error'=>$error,
             'base'=>$base,'back'=>$back,'tenantMode'=>$tenant,'scopes'=>Policy::scopes($id),'sites'=>$sites,'groups'=>$groups,
-            'deploymentEnabled'=>filter_var(Env::get('MCP_CMS_DIRECT_ENABLED',false),FILTER_VALIDATE_BOOLEAN),'pluginInstalled'=>Endpoint::installed($id),
+            'deploymentEnabled'=>filter_var(Env::get('MCP_CMS_DIRECT_ENABLED',false),FILTER_VALIDATE_BOOLEAN) && filter_var(Env::get('MCP_ENABLED',true),FILTER_VALIDATE_BOOLEAN),'pluginInstalled'=>Endpoint::installed($id),
             'events'=>$ep->store->all('SELECT * FROM events WHERE resource=? ORDER BY id DESC LIMIT 30',[$id])];
         echo $tenant?View::renderTenantAdmin('mcp.direct',$data):View::renderSuperadmin('mcp.direct',$data);
     }

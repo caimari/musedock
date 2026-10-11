@@ -1,6 +1,8 @@
-# MuseDock CMS MCP — versión 2.20.0
+# MuseDock CMS MCP — base 2.20.0 y ampliación 2.21.0
 
 Estado: desplegada en producción el 11 de octubre de 2026 con autorización del usuario. La conexión externa permanece desactivada hasta configurar clientes y habilitar los recursos.
+
+La ampliación actual del editor, publicación y aprobación remota se documenta en [EDITOR-2.21.md](EDITOR-2.21.md). Las limitaciones siguientes describen la entrega inicial 2.20.0.
 
 ## Independencia
 
@@ -41,7 +43,7 @@ Cross Publisher copia texto sin IA y registra la relación con sincronización d
 
 ## Interfaz
 
-Dominio principal: Ajustes → Conexiones IA (MCP), `/musedock/settings/mcp`. Las pestañas separan CMS principal y ambos plugins. Cada plugin tiene un acceso desde su dashboard. Tenant: su pantalla existente enlaza a `/{admin_path}/mcp/direct`; tras adoptar la modalidad gestionada, el acceso habitual `/mcp` del panel redirige a ella.
+Dominio principal: Ajustes → (MCP) Conexiones IA, `/musedock/settings/mcp`. Las pestañas separan CMS principal y ambos plugins. Cada plugin tiene un acceso desde su dashboard. Tenant: su pantalla existente enlaza a `/{admin_path}/mcp/direct`; tras adoptar la modalidad gestionada, el acceso habitual `/mcp` del panel redirige a ella.
 
 La pantalla separa estado del servicio, clientes y consentimientos. Permite crear credenciales (secreto inicialmente oculto, copia y retirada del DOM), cambiar ámbitos con revocación de consentimientos, revocar cliente o consentimiento, revisar solicitudes y actividad. El secreto nuevo se retira de la sesión tras una visualización. Mostrar de nuevo un secreto anterior no está permitido.
 

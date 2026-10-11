@@ -275,7 +275,7 @@ Route::post("$adminPath/settings/api-keys/{id}/delete", function ($id) {
     (new \Screenart\Musedock\Controllers\Api\V1\ApiKeyController())->destroy((int) $id);
 })->middleware(['auth', 'permission:settings.edit'])->name('tenant.settings.api-keys.delete');
 
-// Conexiones IA (MCP): tokens por sección × nivel, activación y actividad
+// (MCP) Conexiones IA: tokens por sección × nivel, activación y actividad
 Route::get("$adminPath/mcp", 'tenant.McpController@index')
      ->middleware(['auth', 'permission:settings.view'])
      ->name('tenant.mcp.index');

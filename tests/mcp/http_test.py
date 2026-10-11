@@ -37,7 +37,7 @@ with tempfile.TemporaryDirectory(prefix='cms-mcp-http-') as directory:
         for path in ['/mcp-auth/cms/token','/mcp-auth/cms/revoke']:
             status,_,_=request(path,'POST',{'grant_type':'authorization_code'});check(status==400,'OAuth machine endpoint without CSRF but authenticates client')
         verifier='V'*43;challenge=base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip('=')
-        params={'client_id':credentials['client'],'redirect_uri':'https://client.example/callback','response_type':'code','code_challenge':challenge,'code_challenge_method':'S256','resource':'https://cms.example/mcp','scope':'musedock-cms:read musedock-cms:drafts:create','state':'csrf-state'}
+        params={'client_id':credentials['client'],'redirect_uri':'https://client.example/callback','response_type':'code','code_challenge':challenge,'code_challenge_method':'S256','resource':'https://cms.example/mcp','scope':'musedock-cms:read musedock-cms:drafts:create musedock-cms:requests:approve','state':'csrf-state'}
         path='/mcp-auth/cms/authorize?'+urllib.parse.urlencode(params)
         status,headers,body=request(path);check(status==200 and 'Set-Cookie' not in headers and '_ss=1' in body,'same-site bounce does not touch session')
         request('/__test/login')
@@ -63,6 +63,9 @@ with tempfile.TemporaryDirectory(prefix='cms-mcp-http-') as directory:
         status,_,body=rpc('tools/list');catalog=json.loads(body)['result']['tools'];check('create_draft' in [t['name'] for t in catalog],'authorized explicit tools')
         status,_,body=rpc('tools/call',{'name':'get_post','arguments':{'post_id':3}});check(json.loads(body)['result']['isError'],'HTTP foreign post denied')
         status,_,body=rpc('tools/call',{'name':'create_draft','arguments':{'title':'HTTP borrador','content':'Texto sin IA','apply':True}});check('pending_approval' in body,'HTTP write only creates approval request')
+        pending=json.loads(json.loads(body)['result']['content'][0]['text'])
+        status,_,body=rpc('tools/call',{'name':'approve_request','arguments':{'request_id':pending['request_id']}});check(not json.loads(body)['result']['isError'] and json.loads(json.loads(body)['result']['content'][0]['text'])['status']=='draft','HTTP explicit remote approval creates real draft')
+        status,_,body=rpc('tools/call',{'name':'approve_request','arguments':{'request_id':pending['request_id']}});check(json.loads(body)['result']['isError'],'HTTP remote approval cannot replay')
         status,_,_=request('/mcp','GET',headers=auth);check(status==405,'authenticated GET has no SSE stream')
         status,_,_=request('/mcp','POST','not json',auth);check(status==400,'invalid JSON denied')
         status,_,_=request('/mcp','POST',json.dumps({'jsonrpc':'2.0','method':'notifications/initialized'}),auth);check(status==202,'MCP notification')

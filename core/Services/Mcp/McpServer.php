@@ -71,7 +71,7 @@ class McpServer
         }
 
         if ((string) tenant_setting('mcp_enabled', '0') !== '1') {
-            $this->httpError(403, 'MCP is not enabled for this website. Enable it in the admin panel (Ajustes → Conexiones IA (MCP)).');
+            $this->httpError(403, 'MCP is not enabled for this website. Enable it in the admin panel (Ajustes → (MCP) Conexiones IA).');
             return;
         }
 
@@ -122,7 +122,7 @@ class McpServer
 
         if (!preg_match('/^Bearer\s+((mdk_[a-f0-9]{40})|(mdo_[a-f0-9]{64}))$/i', trim($header), $m)) {
             header('WWW-Authenticate: ' . $challenge . ', scope="' . implode(' ', OAuthServer::SCOPES) . '"');
-            $this->httpError(401, 'Authentication required. Connect with OAuth, or use Authorization: Bearer mdk_... (create a token in the admin panel: Ajustes → Conexiones IA (MCP)).');
+            $this->httpError(401, 'Authentication required. Connect with OAuth, or use Authorization: Bearer mdk_... (create a token in the admin panel: Ajustes → (MCP) Conexiones IA).');
             return false;
         }
 

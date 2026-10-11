@@ -8,14 +8,25 @@ final class Policy
     public const READ = 'musedock-cms:read';
     public const CREATE = 'musedock-cms:drafts:create';
     public const UPDATE = 'musedock-cms:drafts:update';
+    public const EDITOR = 'musedock-cms:posts:edit';
+    public const POSTS = 'musedock-cms:posts:manage';
+    public const TAXONOMY = 'musedock-cms:taxonomy:manage';
+    public const COMMENTS = 'musedock-cms:comments:manage';
+    public const TRANSLATIONS = 'musedock-cms:translations:manage';
+    public const MEDIA = 'musedock-cms:media:manage';
+    public const APPROVE = 'musedock-cms:requests:approve';
     public const COPY = 'musedock-cross-publisher:drafts:copy';
     public const IMPORT = 'musedock-news-aggregator:drafts:import';
     public static function scopes(string $resource): array
     {
-        $scopes = [self::READ, self::CREATE, self::UPDATE];
+        $scopes = [self::READ, self::CREATE, self::UPDATE, self::EDITOR, self::POSTS, self::TAXONOMY, self::COMMENTS, self::TRANSLATIONS, self::MEDIA, self::APPROVE];
         if ($resource === 'plugin:cross-publisher') $scopes[] = self::COPY;
         if ($resource === 'plugin:news-aggregator') $scopes[] = self::IMPORT;
         return $scopes;
+    }
+    public static function label(string $scope): string
+    {
+        return match($scope) { self::READ=>'Consultar artículos, categorías y etiquetas', self::CREATE=>'Crear borradores', self::UPDATE=>'Editar borradores', self::EDITOR=>'Editar todas las opciones de borradores', self::POSTS=>'Publicar, programar y editar artículos publicados', self::TAXONOMY=>'Crear y editar categorías y etiquetas', self::COMMENTS=>'Consultar y moderar comentarios', self::TRANSLATIONS=>'Consultar y guardar traducciones', self::MEDIA=>'Consultar, subir y generar imágenes', self::APPROVE=>'Aprobar solicitudes propias desde MCP', self::COPY=>'Copiar artículos a otros sitios como borradores', self::IMPORT=>'Importar noticias como borradores', default=>$scope };
     }
     public static function site(string $resource): ?int
     {

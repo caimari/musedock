@@ -154,4 +154,5 @@ $endpoint=new \Screenart\Musedock\Services\Mcp\Direct\Endpoint('main',$store);
 check($endpoint->configuration()===null,'deployment gate blocks prepared resources');
 $_ENV['MCP_CMS_DIRECT_ENABLED']=true;
 check($endpoint->configuration()!==null,'operator gate and enabled resource both required');
+require __DIR__.'/editor_checks.php';
 echo "PASS: {$count} checks; isolated fixtures, no production changes.\n";

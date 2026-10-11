@@ -12,7 +12,7 @@ try {
         $source=file_get_contents(APP_ROOT.'/core/Views/'.$mode.'/mcp/direct.blade.php');
         $source=str_replace("@extends('layouts.app')",'', $source);
         $source=str_replace(["@section('title', $".'title)',"@section('content')","@endsection","@push('scripts')","@endpush"],'',$source);
-        $data=['title'=>'MCP','resource'=>['id'=>'plugin:cross-publisher','name'=>'Plugin','url'=>'https://cms.example/mcp/cross-publisher','enabled'=>false,'allow_drafts'=>false,'owned_sites'=>[1],'revision'=>1],
+        $data=['resourceOptions'=>['main'=>'Dominio principal','plugin:cross-publisher'=>'Cross Publisher'],'schedules'=>[],'title'=>'MCP','resource'=>['id'=>'plugin:cross-publisher','name'=>'Plugin','url'=>'https://cms.example/mcp/cross-publisher','enabled'=>false,'allow_drafts'=>false,'owned_sites'=>[1],'revision'=>1],
             'tenantMode'=>$mode==='Tenant','base'=>'/musedock/settings/mcp','back'=>'/musedock/settings/mcp?resource=plugin%3Across-publisher','deploymentEnabled'=>false,'pluginInstalled'=>true,'error'=>null,
             'newClient'=>['id'=>'test-client','secret'=>'<secret&test>'],'scopes'=>['musedock-cms:read','musedock-cms:drafts:create'],
             'sites'=>[['id'=>1,'name'=>'Site','domain'=>'a.example','group_id'=>10]],'groups'=>[['id'=>10,'name'=>'Grupo']],

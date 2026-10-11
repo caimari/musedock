@@ -111,7 +111,7 @@
           <ul class="small text-muted ps-3 mb-4">
             <li>Sin <em>Publicar</em>, todo lo que cree queda en borrador para que lo revises.</li>
             <li>Borrar siempre le pide confirmación y manda a la papelera.</li>
-            <li>Puedes cambiar los permisos o revocar el acceso en <strong>Ajustes → Conexiones IA (MCP)</strong>.</li>
+            <li>Puedes cambiar los permisos o revocar el acceso en <strong>Ajustes → (MCP) Conexiones IA</strong>.</li>
           </ul>
 
           <div class="d-flex gap-2">

@@ -125,7 +125,10 @@ class HtmlCacheMiddleware
 
         self::$capturing = false;
 
-        $html = ob_get_flush(); // Send output to browser AND capture it
+        $privateResponse=false;
+        foreach (headers_list() as $header) if (preg_match('/^Cache-Control:.*(?:private|no-store)/i',$header)) $privateResponse=true;
+        $html = ob_get_flush();
+        if ($privateResponse) return; // Send output to browser AND capture it
 
         if (empty($html)) {
             return;

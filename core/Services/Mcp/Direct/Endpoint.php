@@ -110,9 +110,11 @@ final class Endpoint
             $callbackOrigin='https://'.parse_url($p['callback'],PHP_URL_HOST).(parse_url($p['callback'],PHP_URL_PORT)?':'.parse_url($p['callback'],PHP_URL_PORT):'');
             header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'; form-action 'self' ".$callbackOrigin);
             header('Content-Type: text/html; charset=utf-8');
-            echo '<!doctype html><html lang="es"><meta charset="utf-8"><title>Autorizar MCP</title><body style="font-family:system-ui;max-width:720px;margin:3rem auto;padding:1rem"><h1>Conectar '.$e($c['name']).'</h1><p>Recurso: '.$e($r['name']).' — '.$e($r['url']).'</p><p>Permisos: '.$e(implode(', ',$p['scopes'])).'</p><p>Retorno: '.$e($p['callback']).'</p>';
+            echo '<!doctype html><html lang="es"><meta charset="utf-8"><title>Autorizar MCP</title><body style="font-family:system-ui;max-width:720px;margin:3rem auto;padding:1rem"><h1>Conectar '.$e($c['name']).'</h1><p>Recurso: '.$e($r['name']).' — '.$e($r['url']).'</p><p>Permisos: '.$e(implode(', ',array_map([Policy::class,'label'],$p['scopes']))).'</p><p>Retorno: '.$e($p['callback']).'</p>';
             if (Policy::site($r['id'])===null) echo '<p>Sitios autorizados: '.$e(implode(', ',array_column($content->listSites($r,$c),'domain'))).'</p>';
-            echo '<p>Las operaciones de escritura requieren aprobación desde el CMS y crean borradores.</p><form method="post"><input type="hidden" name="rid" value="'.$e($rid).'"><input type="hidden" name="_token" value="'.$e($_SESSION['_csrf_token']).'"><button name="decision" value="approve">Autorizar</button> <button name="decision" value="reject">Rechazar</button></form></body></html>';
+            if (!empty($r['allow_mcp_approval']) && in_array(Policy::APPROVE,$p['scopes'],true)) echo '<p><strong>Este cliente podrá aprobar y ejecutar sus propias solicitudes desde MCP, incluidos los cambios de publicación que hayas autorizado.</strong></p>';
+            else echo '<p>Las solicitudes de cambios deben aprobarse en el CMS. Publicar requiere además el permiso de publicación.</p>';
+            echo '<form method="post"><input type="hidden" name="rid" value="'.$e($rid).'"><input type="hidden" name="_token" value="'.$e($_SESSION['_csrf_token']).'"><button name="decision" value="approve">Autorizar</button> <button name="decision" value="reject">Rechazar</button></form></body></html>';
         } catch (\Throwable $e) { $this->json(400,['error'=>'invalid_request','error_description'=>$e->getMessage()]); }
     }
     public function actor(): int
@@ -148,14 +150,14 @@ final class Endpoint
         if (($_SERVER['REQUEST_METHOD']??'GET')!=='POST') { header('Allow: POST, OPTIONS'); $this->json(405,['error'=>'method_not_allowed']); return; }
         try { $this->store->limit('mcp:'.$auth['client']['id']); }
         catch (\Throwable $e) { header('Retry-After: 60'); $this->json(429,['error'=>'rate_limited']); return; }
-        $raw=file_get_contents('php://input',false,null,0,262145);
-        $msg=strlen($raw)>262144?null:json_decode($raw,true,32);
+        $raw=file_get_contents('php://input',false,null,0,3000001);
+        $msg=strlen($raw)>3000000?null:json_decode($raw,true,32);
         if (!is_array($msg) || array_is_list($msg) || ($msg['jsonrpc']??'')!=='2.0' || !is_string($msg['method']??null) || (isset($msg['id']) && !is_string($msg['id']) && !is_int($msg['id']))) { $this->json(400,['jsonrpc'=>'2.0','id'=>null,'error'=>['code'=>-32600,'message'=>'Invalid Request']]); return; }
         if (!array_key_exists('id',$msg)) { $this->json(202,null); return; }
         $tools=new Tools($this->store,$content); $id=$msg['id'];
         try {
             $result=match($msg['method']) {
-                'initialize'=>['protocolVersion'=>$this->protocol($msg['params']['protocolVersion']??''),'capabilities'=>['tools'=>(object)[]],'serverInfo'=>['name'=>'MuseDock CMS — '.$r['name'],'version'=>'2.20.0']],
+                'initialize'=>['protocolVersion'=>$this->protocol($msg['params']['protocolVersion']??''),'capabilities'=>['tools'=>(object)[]],'serverInfo'=>['name'=>'MuseDock CMS — '.$r['name'],'version'=>'2.21.0']],
                 'ping'=>(object)[],
                 'tools/list'=>['tools'=>$tools->catalog($auth)],
                 'tools/call'=>$this->callTool($tools,$auth,$msg['params']??[]),

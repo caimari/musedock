@@ -11,7 +11,7 @@ use Screenart\Musedock\Services\Mcp\McpPermissions;
 use Screenart\Musedock\Traits\RequiresPermission;
 
 /**
- * Panel del tenant: Ajustes → Conexiones IA (MCP).
+ * Panel del tenant: Ajustes → (MCP) Conexiones IA.
  *
  * Activar/desactivar el servidor MCP del sitio, crear tokens con permisos
  * por sección × nivel, editarlos, revocarlos y ver la actividad reciente.
@@ -78,7 +78,7 @@ class McpController
         $domain = $GLOBALS['tenant']['domain'] ?? ($_SERVER['HTTP_HOST'] ?? 'localhost');
 
         return View::renderTenantAdmin('mcp.index', [
-            'title'          => 'Conexiones IA (MCP)',
+            'title'          => '(MCP) Conexiones IA',
             'enabled'        => (string) tenant_setting('mcp_enabled', '0') === '1',
             'globalEnabled'  => filter_var(\Screenart\Musedock\Env::get('MCP_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
             'keys'           => $keys,

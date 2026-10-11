@@ -281,25 +281,9 @@ class AIImageService
      */
     private static function downloadAndSave(string $url, ?int $tenantId, array $metadata): string
     {
-        // Download image via cURL
-        // Auditoría 2026-10-05: solo http(s) hacia IPs públicas (nada de red interna ni file://)
-        if (!preg_match('#^https?://#i', (string) $url) || \Screenart\Musedock\Security\UrlGuard::resolvePublicIp((string) $url) === null) { throw new \Exception('URL de imagen no permitida'); }
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS); // Auditoría 2026-10-05
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 60,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_SSL_VERIFYPEER => true,
-        ]);
-        $imageData = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
-        curl_close($ch);
-
-        if ($imageData === false || $httpCode >= 400) {
-            throw new \Exception("No se pudo descargar la imagen generada" . ($curlError ? ": {$curlError}" : " (HTTP {$httpCode})"));
-        }
+        $imageData = \Screenart\Musedock\Security\UrlGuard::fetch($url, 10485760, 60);
+        if ($imageData === null) throw new \Exception('No se pudo descargar una imagen pública válida');
+        \Screenart\Musedock\Services\Mcp\Direct\Media::validateImage($imageData,10485760);
 
         // Detect MIME type from content
         $finfo = new \finfo(FILEINFO_MIME_TYPE);

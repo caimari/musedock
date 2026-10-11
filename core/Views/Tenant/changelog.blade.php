@@ -13,6 +13,17 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.21.0 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.21.0 — Editor completo por MCP</h5></div><div class="card-body">
+            <p class="text-muted">11 de octubre de 2026</p>
+            <ul><li>Editor de artículos con visibilidad, imágenes, plantilla, SEO y opciones de publicación.</li>
+            <li>Publicación y programación reales, con permiso específico. Los artículos programados permanecen en borrador hasta su fecha.</li>
+            <li>Categorías, etiquetas, comentarios, traducciones e imágenes desde conexiones autorizadas.</li>
+            <li>Aprobación desde MCP opcional, desactivada por defecto y limitada a las solicitudes del propio cliente.</li>
+            <li>Información de cada conexión en un modal; los plugins inactivos no aparecen como pestañas.</li>
+            <li>Nombre actualizado a (MCP) Conexiones IA. Protección de artículos privados y con contraseña, sin caché pública.</li></ul>
+        </div></div>
+
         <!-- v2.20.0 -->
         <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.20.0 — MCP autónomo del CMS</h5></div><div class="card-body">
             <p class="text-muted">11 de octubre de 2026</p>

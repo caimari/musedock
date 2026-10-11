@@ -8,7 +8,7 @@
     ['key' => 'cookies', 'label' => 'Cookies', 'icon' => 'bi-shield-check', 'url' => route('settings.cookies')],
     ['key' => 'storage', 'label' => 'Storage', 'icon' => 'bi-hdd', 'url' => route('settings.storage')],
     ['key' => 'advanced', 'label' => 'Avanzado', 'icon' => 'bi-sliders', 'url' => route('settings.advanced')],
-    ['key' => 'mcp', 'label' => 'Conexiones IA (MCP)', 'icon' => 'bi-robot', 'url' => route('settings.mcp')],
+    ['key' => 'mcp', 'label' => '(MCP) Conexiones IA', 'icon' => 'bi-robot', 'url' => route('settings.mcp')],
     ['key' => 'api-keys', 'label' => 'API Keys', 'icon' => 'bi-key', 'url' => route('settings.api-keys')],
     ['key' => 'backups', 'label' => 'Backups', 'icon' => 'bi-database', 'url' => route('settings.backups')],
   ];

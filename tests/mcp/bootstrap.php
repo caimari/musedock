@@ -21,10 +21,10 @@ function fixture(): PDO
         CREATE TABLE admins(id INTEGER PRIMARY KEY,tenant_id INTEGER,role TEXT,is_root_admin INTEGER); INSERT INTO admins VALUES(11,1,'admin',1);
         CREATE TABLE users(id INTEGER PRIMARY KEY,tenant_id INTEGER);
         CREATE TABLE tenant_settings(tenant_id INTEGER,key TEXT,value TEXT);
-        CREATE TABLE blog_posts(id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id INTEGER,user_id INTEGER,user_type TEXT,title TEXT,slug TEXT,content TEXT,excerpt TEXT,status TEXT,base_locale TEXT DEFAULT 'es',seo_title TEXT,seo_description TEXT,updated_at TEXT,created_at TEXT,deleted_at TEXT,visibility TEXT,published_at TEXT,allow_comments INTEGER);
+        CREATE TABLE blog_posts(id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id INTEGER,user_id INTEGER,user_type TEXT,title TEXT,slug TEXT,content TEXT,excerpt TEXT,status TEXT,base_locale TEXT DEFAULT 'es',seo_title TEXT,seo_description TEXT,updated_at TEXT,created_at TEXT,deleted_at TEXT,visibility TEXT,published_at TEXT,allow_comments INTEGER, password TEXT, featured_image TEXT, hide_featured_image INTEGER DEFAULT 0, template TEXT DEFAULT 'template-sidebar-right', featured INTEGER DEFAULT 0, hide_title INTEGER DEFAULT 0, post_type TEXT DEFAULT 'post', seo_keywords TEXT, canonical_url TEXT, robots_directive TEXT, seo_image TEXT, twitter_title TEXT, twitter_description TEXT, twitter_image TEXT, show_hero INTEGER DEFAULT 0, hero_image TEXT, comment_count INTEGER DEFAULT 0);
         INSERT INTO blog_posts(id,tenant_id,title,slug,content,excerpt,status,updated_at) VALUES(1,NULL,'Principal','principal','Contenido principal','','draft','2026-01-01'),(2,1,'Propio','propio','Contenido propio','','draft','2026-01-01'),(3,3,'Cliente privado','cliente','Secreto cliente','','draft','2026-01-01'),(4,1,'Publicado','publicado','Contenido público','','published','2026-01-01');
-        CREATE TABLE blog_categories(id INTEGER PRIMARY KEY,tenant_id INTEGER,name TEXT,slug TEXT,post_count INTEGER DEFAULT 0); INSERT INTO blog_categories(id,tenant_id,name,slug) VALUES(1,NULL,'Principal','principal'),(2,1,'Propio','propio'),(3,3,'Cliente','cliente');
-        CREATE TABLE blog_tags(id INTEGER PRIMARY KEY,tenant_id INTEGER,name TEXT,slug TEXT,post_count INTEGER DEFAULT 0);
+        CREATE TABLE blog_categories(id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id INTEGER,name TEXT,slug TEXT,post_count INTEGER DEFAULT 0,parent_id INTEGER,description TEXT,image TEXT,color TEXT,\"order\" INTEGER DEFAULT 0,seo_title TEXT,seo_description TEXT,seo_keywords TEXT,created_at TEXT,updated_at TEXT,deleted_at TEXT); INSERT INTO blog_categories(id,tenant_id,name,slug) VALUES(1,NULL,'Principal','principal'),(2,1,'Propio','propio'),(3,3,'Cliente','cliente');
+        CREATE TABLE blog_tags(id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id INTEGER,name TEXT,slug TEXT,post_count INTEGER DEFAULT 0,description TEXT,color TEXT,created_at TEXT,updated_at TEXT,deleted_at TEXT);
         CREATE TABLE cross_publish_relations(id INTEGER PRIMARY KEY AUTOINCREMENT,source_post_id INTEGER,source_tenant_id INTEGER,target_post_id INTEGER,target_tenant_id INTEGER,sync_enabled INTEGER,created_at TEXT,UNIQUE(source_post_id,source_tenant_id,target_tenant_id));
         CREATE TABLE blog_post_categories(post_id INTEGER,category_id INTEGER); CREATE TABLE blog_post_tags(post_id INTEGER,tag_id INTEGER);
         CREATE TABLE slugs(id INTEGER PRIMARY KEY AUTOINCREMENT,module TEXT,reference_id INTEGER,slug TEXT,tenant_id INTEGER,prefix TEXT);
@@ -37,8 +37,19 @@ function fixture(): PDO
     } elseif ($dsn) {
         $schema=str_replace(['INTEGER PRIMARY KEY AUTOINCREMENT','INTEGER PRIMARY KEY','key TEXT'],['INT PRIMARY KEY AUTO_INCREMENT','INT PRIMARY KEY','`key` VARCHAR(100)'],$schema);
     }
+    $schema.="CREATE TABLE superadmin_plugins(id INTEGER PRIMARY KEY,slug TEXT,is_active INTEGER,is_installed INTEGER); INSERT INTO superadmin_plugins VALUES(1,'cross-publisher',1,1),(2,'news-aggregator',1,1);
+    CREATE TABLE blog_comments(id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id INTEGER,post_id INTEGER,author_name TEXT,author_email TEXT,content TEXT,status TEXT,ip_address TEXT,user_agent TEXT,approved_at TEXT,approved_by INTEGER,approved_by_type TEXT,created_at TEXT,updated_at TEXT);
+    INSERT INTO blog_comments(tenant_id,post_id,author_name,author_email,content,status) VALUES(1,2,'Autor','private@example.com','Hola','pending'),(3,3,'Cliente','client@example.com','Secreto','pending');
+    CREATE TABLE blog_post_translations(id INTEGER PRIMARY KEY AUTOINCREMENT,post_id INTEGER,tenant_id INTEGER,locale TEXT,title TEXT,content TEXT,excerpt TEXT,seo_title TEXT,seo_description TEXT,seo_keywords TEXT,seo_image TEXT,canonical_url TEXT,robots_directive TEXT,twitter_title TEXT,twitter_description TEXT,twitter_image TEXT,created_at TEXT,updated_at TEXT,UNIQUE(post_id,locale));
+    CREATE TABLE media(id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id INTEGER,filename TEXT,mime_type TEXT,alt_text TEXT,public_token TEXT,slug TEXT,seo_filename TEXT,created_at TEXT);
+    INSERT INTO media(tenant_id,filename,mime_type,public_token,slug,seo_filename) VALUES(1,'own.png','image/png','own-token','own','own-token.png'),(3,'client.png','image/png','client-token','client','client-token.png');
+    CREATE TABLE ai_image_providers(id INTEGER PRIMARY KEY,tenant_id INTEGER,system_wide INTEGER,active INTEGER,name TEXT,model TEXT,provider_type TEXT);
+    INSERT INTO ai_image_providers VALUES(1,NULL,1,1,'Test image provider','test-model','openai');";
+    if ($pg) $schema=str_replace('INTEGER PRIMARY KEY AUTOINCREMENT','SERIAL PRIMARY KEY',$schema);
+    elseif ($dsn) $schema=str_replace('INTEGER PRIMARY KEY AUTOINCREMENT','INT PRIMARY KEY AUTO_INCREMENT',$schema);
+    if ($dsn && !$pg) $schema=str_replace('"order"','`order`',$schema);
     $p->exec($schema);
-    if ($pg) $p->exec("SELECT setval('blog_posts_id_seq',4)");
+    if ($pg) { $p->exec("SELECT setval('blog_posts_id_seq',4)");$p->exec("SELECT setval('blog_categories_id_seq',3)"); }
     if (!$dsn) { $p->exec('ALTER TABLE cross_publish_queue ADD COLUMN origin_api_key_id INTEGER NULL'); $p->sqliteCreateFunction('NOW',fn()=>gmdate('Y-m-d H:i:s')); }
     else { require_once APP_ROOT.'/database/migrations/2026_10_11_130000_add_cross_publish_api_origin.php'; }
     $property=new ReflectionProperty(\Screenart\Musedock\Database::class,'connection'); $property->setAccessible(true); $property->setValue(null,$p);

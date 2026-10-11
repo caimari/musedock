@@ -84,7 +84,7 @@ class BlogController
         $offset = ($currentPage - 1) * $postsPerPage;
 
         // Contar total de posts (excluir briefs y docs del listado principal)
-        $countQuery = BlogPost::where('status', 'published')
+        $countQuery = BlogPost::where('status', 'published')->whereRaw("(visibility = 'public' OR visibility IS NULL)")
             ->where('post_type', '!=', 'brief')
             ->where('post_type', '!=', 'docs');
         if ($tenantId !== null) {
@@ -96,7 +96,7 @@ class BlogController
         $totalPages = ceil($totalPosts / $postsPerPage);
 
         // Obtener posts publicados con paginación (excluir briefs y docs)
-        $query = BlogPost::where('status', 'published')
+        $query = BlogPost::where('status', 'published')->whereRaw("(visibility = 'public' OR visibility IS NULL)")
             ->where('post_type', '!=', 'brief')
             ->where('post_type', '!=', 'docs')
             ->orderBy('published_at', 'DESC');
@@ -135,7 +135,7 @@ class BlogController
         $showBriefs = themeOption('blog.blog_show_briefs', false);
         if ($showBriefs && $showBriefs !== '0') {
             $briefsCount = (int) themeOption('blog.blog_briefs_count', 10);
-            $briefsQuery = BlogPost::where('status', 'published')
+            $briefsQuery = BlogPost::where('status', 'published')->whereRaw("(visibility = 'public' OR visibility IS NULL)")
                 ->where('post_type', 'brief')
                 ->orderBy('published_at', 'DESC');
             if ($tenantId !== null) {
@@ -148,7 +148,7 @@ class BlogController
 
         // Cargar posts destacados (featured) para layouts con hero/carousel
         $featuredPosts = [];
-        $featuredQuery = BlogPost::where('status', 'published')
+        $featuredQuery = BlogPost::where('status', 'published')->whereRaw("(visibility = 'public' OR visibility IS NULL)")
             ->where('featured', 1)
             ->where('post_type', '!=', 'brief')
             ->where('post_type', '!=', 'docs')
@@ -209,6 +209,8 @@ class BlogController
             http_response_code(404);
             return View::renderTheme('404', []);
         }
+
+        if (!\Screenart\Musedock\Services\BlogAccess::guard(['id'=>(int)$post->id,'tenant_id'=>$post->tenant_id,'visibility'=>$post->visibility,'password'=>$post->password,'user_id'=>$post->user_id,'user_type'=>$post->user_type])) return;
 
         // Track unique view per IP (GDPR-compliant)
         try {
@@ -310,7 +312,7 @@ class BlogController
             $stmt = $pdo->prepare("
                 SELECT id, title, slug, featured_image, post_type
                 FROM blog_posts
-                WHERE status = 'published'
+                WHERE status = 'published' AND (visibility = 'public' OR visibility IS NULL)
                   AND published_at < ?
                   {$tenantCondition}
                   {$typeCondition}
@@ -324,7 +326,7 @@ class BlogController
             $stmt = $pdo->prepare("
                 SELECT id, title, slug, featured_image, post_type
                 FROM blog_posts
-                WHERE status = 'published'
+                WHERE status = 'published' AND (visibility = 'public' OR visibility IS NULL)
                   AND published_at > ?
                   {$tenantCondition}
                   {$typeCondition}
@@ -509,7 +511,7 @@ class BlogController
             LEFT JOIN blog_post_categories bpc ON bpc.post_id = p.id
             LEFT JOIN blog_categories c ON c.id = bpc.category_id
             LEFT JOIN slugs s ON s.reference_id = p.id AND s.module = 'blog' AND $sf
-            WHERE p.post_type = 'docs' AND p.status = 'published' AND $tf
+            WHERE p.post_type = 'docs' AND p.status = 'published' AND (p.visibility = 'public' OR p.visibility IS NULL) AND $tf
             ORDER BY p.title ASC
         ");
         $postRows = $postStmt->fetchAll(\PDO::FETCH_OBJ);
@@ -729,7 +731,7 @@ class BlogController
         $countSql = "SELECT COUNT(DISTINCT p.id) as total
                      FROM blog_posts p
                      INNER JOIN blog_post_categories pc ON p.id = pc.post_id
-                     WHERE pc.category_id = ? AND p.status = 'published' AND p.deleted_at IS NULL";
+                     WHERE pc.category_id = ? AND p.status = 'published' AND (p.visibility = 'public' OR p.visibility IS NULL) AND p.deleted_at IS NULL";
         if ($tenantId !== null) {
             $countSql .= " AND p.tenant_id = ?";
             $countStmt = $pdo->prepare($countSql);
@@ -750,7 +752,7 @@ class BlogController
                 FROM blog_posts p
                 INNER JOIN blog_post_categories pc ON p.id = pc.post_id
                 LEFT JOIN blog_post_translations pt ON p.id = pt.post_id AND pt.locale = ?
-                WHERE pc.category_id = ? AND p.status = 'published' AND p.deleted_at IS NULL";
+                WHERE pc.category_id = ? AND p.status = 'published' AND (p.visibility = 'public' OR p.visibility IS NULL) AND p.deleted_at IS NULL";
         if ($tenantId !== null) {
             $sql .= " AND p.tenant_id = ?";
         } else {
@@ -818,7 +820,7 @@ class BlogController
         $countSql = "SELECT COUNT(DISTINCT p.id) as total
                      FROM blog_posts p
                      INNER JOIN blog_post_tags pt ON p.id = pt.post_id
-                     WHERE pt.tag_id = ? AND p.status = 'published' AND p.deleted_at IS NULL";
+                     WHERE pt.tag_id = ? AND p.status = 'published' AND (p.visibility = 'public' OR p.visibility IS NULL) AND p.deleted_at IS NULL";
         if ($tenantId !== null) {
             $countSql .= " AND p.tenant_id = ?";
             $countStmt = $pdo->prepare($countSql);
@@ -839,7 +841,7 @@ class BlogController
                 FROM blog_posts p
                 INNER JOIN blog_post_tags ppt ON p.id = ppt.post_id
                 LEFT JOIN blog_post_translations ptr ON p.id = ptr.post_id AND ptr.locale = ?
-                WHERE ppt.tag_id = ? AND p.status = 'published' AND p.deleted_at IS NULL";
+                WHERE ppt.tag_id = ? AND p.status = 'published' AND (p.visibility = 'public' OR p.visibility IS NULL) AND p.deleted_at IS NULL";
         if ($tenantId !== null) {
             $sql .= " AND p.tenant_id = ?";
         } else {
@@ -907,7 +909,7 @@ class BlogController
         $offset = ($currentPage - 1) * $postsPerPage;
 
         // Contar posts del autor
-        $countSql = "SELECT COUNT(*) as total FROM blog_posts WHERE user_id = ? AND user_type = 'admin' AND status = 'published' AND deleted_at IS NULL";
+        $countSql = "SELECT COUNT(*) as total FROM blog_posts WHERE user_id = ? AND user_type = 'admin' AND status = 'published' AND (visibility = 'public' OR visibility IS NULL) AND deleted_at IS NULL";
         if ($tenantId !== null) {
             $countSql .= " AND tenant_id = ?";
             $countStmt = $pdo->prepare($countSql);
@@ -928,7 +930,7 @@ class BlogController
                        COALESCE(pt.content, p.content) as content
                 FROM blog_posts p
                 LEFT JOIN blog_post_translations pt ON p.id = pt.post_id AND pt.locale = ?
-                WHERE p.user_id = ? AND p.user_type = 'admin' AND p.status = 'published' AND p.deleted_at IS NULL";
+                WHERE p.user_id = ? AND p.user_type = 'admin' AND p.status = 'published' AND (p.visibility = 'public' OR p.visibility IS NULL) AND p.deleted_at IS NULL";
         if ($tenantId !== null) {
             $sql .= " AND p.tenant_id = ?";
         } else {
@@ -970,7 +972,7 @@ class BlogController
         $sql = "SELECT c.*, COUNT(DISTINCT p.id) as post_count
                 FROM blog_categories c
                 LEFT JOIN blog_post_categories pc ON c.id = pc.category_id
-                LEFT JOIN blog_posts p ON pc.post_id = p.id AND p.status = 'published' AND p.deleted_at IS NULL";
+                LEFT JOIN blog_posts p ON pc.post_id = p.id AND p.status = 'published' AND (p.visibility = 'public' OR p.visibility IS NULL) AND p.deleted_at IS NULL";
         if ($tenantId !== null) {
             $sql .= " WHERE c.tenant_id = ?";
         } else {
@@ -1003,7 +1005,7 @@ class BlogController
         $sql = "SELECT t.*, COUNT(DISTINCT p.id) as post_count
                 FROM blog_tags t
                 LEFT JOIN blog_post_tags pt ON t.id = pt.tag_id
-                LEFT JOIN blog_posts p ON pt.post_id = p.id AND p.status = 'published' AND p.deleted_at IS NULL";
+                LEFT JOIN blog_posts p ON pt.post_id = p.id AND p.status = 'published' AND (p.visibility = 'public' OR p.visibility IS NULL) AND p.deleted_at IS NULL";
         if ($tenantId !== null) {
             $sql .= " WHERE t.tenant_id = ?";
         } else {

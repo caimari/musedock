@@ -19,15 +19,32 @@
 .mcp-settings .mcp-activation-notice span { display: block; margin-top: 4px; }
 .mcp-settings .mcp-status { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: .85em; font-weight: 600; background: #eef1f5; color: #596579; }
 .mcp-settings .mcp-status.is-enabled { background: #e7f5ec; color: #247445; }
+.mcp-info-dialog { border: 0; border-radius: 14px; padding: 26px; width: min(560px, calc(100vw - 32px)); color: #40536d; box-shadow: 0 16px 60px rgba(20,35,60,.25); }
+.mcp-info-dialog::backdrop { background: rgba(20,35,60,.45); }
+.mcp-info-dialog p { line-height: 1.65; }
 .mcp-settings .mcp-consents-heading { margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5eaf1; }
 @media (max-width: 576px) { .mcp-settings.container-fluid { padding: 16px !important; } .mcp-settings .card-body, .mcp-settings .card-header { padding: 18px; } .mcp-settings .nav-link { padding: 10px 12px; } }
 </style>
 <div class="container-fluid p-4 mcp-settings">
-  <h1 class="h3"><i class="bi bi-robot me-2"></i>Conexiones IA (MCP)</h1>
+  <h1 class="h3"><i class="bi bi-robot me-2"></i>(MCP) Conexiones IA</h1>
   @if(!$tenantMode)
   <nav class="nav nav-pills mb-3">
-    @foreach(['main'=>'Dominio principal','plugin:cross-publisher'=>'Cross Publisher','plugin:news-aggregator'=>'News Aggregator'] as $key=>$label)
-      <a class="nav-link {{ $resource['id']===$key ? 'active' : '' }}" href="{{ $base }}?resource={{ urlencode($key) }}">{{ $label }}</a>
+    @foreach($resourceOptions as $key=>$label)
+      <div class="d-flex align-items-center"><a class="nav-link {{ $resource['id']===$key ? 'active' : '' }}" href="{{ $base }}?resource={{ urlencode($key) }}">{{ $label }}</a><button type="button" class="btn btn-link px-2" data-mcp-info="{{ str_replace(':','-',$key) }}" aria-label="Información sobre {{ $label }}" title="Qué permite esta conexión"><i class="bi bi-info-circle" aria-hidden="true"></i></button></div>
+      <dialog id="mcp-info-{{ str_replace(':','-',$key) }}" class="mcp-info-dialog" aria-labelledby="mcp-info-title-{{ str_replace(':','-',$key) }}">
+        <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h5 mb-0" id="mcp-info-title-{{ str_replace(':','-',$key) }}">{{ $label }}</h2><button type="button" class="btn-close" data-mcp-close aria-label="Cerrar"></button></div>
+        @if($key==='main')
+          <p>Gestiona exclusivamente el blog del dominio principal: artículos, categorías, etiquetas, medios, comentarios y traducciones. No accede al contenido de otros tenants.</p>
+        @elseif($key==='plugin:cross-publisher')
+          <p>Es la conexión recomendada para vuestro grupo editorial. Gestiona el blog de los sitios propios que marques y que estén en los grupos autorizados para cada cliente.</p>
+          <p>También copia artículos entre esos sitios como borradores. La copia no activa sincronización ni traducción automática; puedes preparar las traducciones desde el asistente y guardarlas con sus herramientas.</p>
+        @else
+          <p>Gestiona los blogs de los sitios propios autorizados y consulta las noticias que ya haya capturado News Aggregator. Permite convertir esas noticias en borradores.</p>
+          <p>La conexión no ejecuta la captura de fuentes ni la reescritura automática del plugin.</p>
+        @endif
+        <p>Las herramientas dependen de los permisos del cliente. Publicar y aprobar desde MCP requieren habilitación explícita. Sin aprobación remota, los cambios se revisan y aprueban en el CMS.</p>
+        <button type="button" class="btn btn-primary" data-mcp-close>Entendido</button>
+      </dialog>
     @endforeach
   </nav>
   @else
@@ -36,7 +53,7 @@
   @if($tenantMode)
     <p class="text-muted">Al activar esta modalidad, las conexiones anteriores de este sitio deberán reconectarse con sus nuevos clientes OAuth.</p>
   @endif
-  <p>Conecta un asistente para consultar artículos y preparar borradores en <strong>{{ $resource['name'] }}</strong>.</p>
+  <p>Conecta un asistente para gestionar el blog con los permisos que autorices en <strong>{{ $resource['name'] }}</strong>.</p>
   @if($error)<div class="alert alert-danger">{{ $error }}</div>@endif
   @if(!$deploymentEnabled)<div class="mcp-activation-notice" role="status"><strong>La conexión pública está pendiente de activación por el operador del CMS.</strong><span>Puedes preparar sus clientes y permisos.</span></div>@endif
   @if(!$pluginInstalled)<div class="alert alert-warning">Este plugin debe estar instalado y activo para abrir su conexión MCP.</div>@endif
@@ -47,7 +64,10 @@
     <form method="post" action="{{ $back }}">
       {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="action" value="configure">
       <label class="form-check"><input class="form-check-input" type="checkbox" name="enabled" {{ $resource['enabled'] ? 'checked' : '' }}> Habilitar esta conexión</label>
-      <label class="form-check mb-3"><input class="form-check-input" type="checkbox" name="allow_drafts" {{ $resource['allow_drafts'] ? 'checked' : '' }}> Permitir solicitudes de borradores con aprobación en el CMS</label>
+      <label class="form-check mb-3"><input class="form-check-input" type="checkbox" name="allow_drafts" {{ $resource['allow_drafts'] ? 'checked' : '' }}> Permitir solicitudes de cambios (borradores, taxonomías, medios y otras operaciones)</label>
+      <label class="form-check"><input class="form-check-input" type="checkbox" name="allow_publishing" {{ !empty($resource['allow_publishing']) ? 'checked' : '' }}> Permitir publicar, programar y editar artículos publicados</label>
+      <label class="form-check"><input class="form-check-input" type="checkbox" name="allow_mcp_approval" {{ !empty($resource['allow_mcp_approval']) ? 'checked' : '' }}> Permitir aprobar solicitudes desde MCP</label>
+      <p class="small text-muted mb-3">La aprobación desde MCP permite ejecutar cambios desde el asistente. Cada cliente necesita además el permiso «Aprobar solicitudes propias desde MCP». Si está desmarcado, apruebas en esta pantalla.</p>
       @if(count($sites))
       <fieldset class="border rounded p-3 mb-3"><legend class="float-none w-auto h6 px-2">Sitios propios autorizados para este plugin</legend>
         <p class="small text-muted">Marca únicamente sitios de tu organización. Los clientes también quedarán limitados por grupo editorial.</p>
@@ -75,7 +95,7 @@
       <label class="form-label">Callback HTTPS exacto que muestra el asistente</label><input name="callback" type="url" class="form-control mb-3" required maxlength="500" placeholder="https://…">
       <fieldset class="mb-3"><legend class="h6">Permisos</legend>
       @foreach($scopes as $scope)
-        <label class="form-check"><input class="form-check-input" type="checkbox" name="scopes[]" value="{{ $scope }}" {{ $loop->first ? 'checked' : '' }}> {{ $scope }}</label>
+        <label class="form-check"><input class="form-check-input" type="checkbox" name="scopes[]" value="{{ $scope }}" {{ $loop->first ? 'checked' : '' }}> {{ \Screenart\Musedock\Services\Mcp\Direct\Policy::label($scope) }} <small class="text-muted">({{ $scope }})</small></label>
       @endforeach
       </fieldset>
       @if(count($sites))
@@ -97,7 +117,7 @@
     <div class="border rounded p-3 mb-3"><h3 class="h6">{{ $client['name'] }} — {{ $client['enabled'] ? 'Habilitado' : 'Revocado' }}</h3><p class="small">ID: <code>{{ $client['id'] }}</code><br>Callback: {{ $client['callback'] }}</p>
       <form method="post" action="{{ $back }}" class="mb-2">
         {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="client" value="{{ $client['id'] }}"><input type="hidden" name="action" value="client_permissions">
-        @foreach($scopes as $scope)<label class="form-check"><input class="form-check-input" type="checkbox" name="scopes[]" value="{{ $scope }}" {{ in_array($scope,$client['scopes'],true) ? 'checked' : '' }}> {{ $scope }}</label>@endforeach
+        @foreach($scopes as $scope)<label class="form-check"><input class="form-check-input" type="checkbox" name="scopes[]" value="{{ $scope }}" {{ in_array($scope,$client['scopes'],true) ? 'checked' : '' }}> {{ \Screenart\Musedock\Services\Mcp\Direct\Policy::label($scope) }} <small class="text-muted">({{ $scope }})</small></label>@endforeach
         <button class="btn btn-sm btn-outline-primary mt-2">Guardar permisos y exigir nuevo consentimiento</button>
       </form>
       <form method="post" action="{{ $back }}">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="client" value="{{ $client['id'] }}"><button class="btn btn-sm btn-outline-danger" name="action" value="revoke_client">Revocar cliente</button></form>
@@ -115,11 +135,18 @@
     @forelse($requests as $request)
       <div class="border rounded p-3 mb-3"><p>Solicitud {{ $request['id'] }} · caduca en {{ max(0,$request['expires']-time()) }} segundos</p>
       <details><summary>Revisar el plan y el contenido</summary><pre class="text-wrap border p-2">{{ json_encode($request['payload']['plan'],JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</pre></details>
-      <form method="post" action="{{ $back }}" class="mt-2">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="request" value="{{ $request['id'] }}"><button class="btn btn-success" name="action" value="approve">Aprobar borrador</button> <button class="btn btn-outline-danger" name="action" value="reject">Rechazar</button></form></div>
+      <form method="post" action="{{ $back }}" class="mt-2">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="request" value="{{ $request['id'] }}"><button class="btn btn-success" name="action" value="approve">Aprobar cambios</button> <button class="btn btn-outline-danger" name="action" value="reject">Rechazar</button></form></div>
     @empty <p class="text-muted">No hay cambios pendientes.</p>@endforelse
   </div></div>
+  @if(count($schedules))
+  <div class="card mb-3"><div class="card-body"><h2 class="h5">Publicaciones programadas</h2>
+    @foreach($schedules as $schedule)
+      <form method="post" action="{{ $back }}" class="d-flex gap-3 align-items-center mb-2">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="schedule" value="{{ $schedule['id'] }}"><span>Artículo #{{ $schedule['post_id'] }} · {{ gmdate('Y-m-d H:i',$schedule['due']) }} UTC</span><button class="btn btn-sm btn-outline-danger" name="action" value="cancel_schedule">Cancelar programación</button></form>
+    @endforeach
+  </div></div>
+  @endif
   <details class="card mb-3"><summary class="card-header">Instrucciones de conexión</summary><div class="card-body">
-    <ol><li>En el asistente, añade una conexión MCP remota usando la URL de esta página.</li><li>Selecciona OAuth y tu propio cliente; copia su ID y secreto.</li><li>Usa <code>client_secret_basic</code> y los ámbitos que hayas habilitado, separados por espacios.</li><li>Inicia sesión en este CMS y revisa el consentimiento.</li><li>Prueba una consulta. Para escribir, solicita un borrador y apruébalo en esta página.</li></ol>
+    <ol><li>En el asistente, añade una conexión MCP remota usando la URL de esta página.</li><li>Selecciona OAuth y tu propio cliente; copia su ID y secreto.</li><li>Usa <code>client_secret_basic</code> y los ámbitos que hayas habilitado, separados por espacios.</li><li>Inicia sesión en este CMS y revisa el consentimiento.</li><li>Prueba una consulta. Para escribir, prepara una solicitud y apruébala en esta página o desde MCP si has habilitado ese permiso.</li></ol>
     <p>El asistente debe admitir Authorization Code con PKCE S256 y enviar el recurso MCP exacto. Cada asistente utiliza credenciales independientes.</p>
     <p><a href="https://developers.openai.com/plugins/build/auth" target="_blank" rel="noopener">Autenticación en ChatGPT</a> · <a href="https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp" target="_blank" rel="noopener">Conectores de Claude</a></p>
   </div></details>
@@ -129,6 +156,9 @@
 @endsection
 @push('scripts')
 <script>
+document.querySelectorAll('[data-mcp-info]').forEach(button=>button.addEventListener('click',()=>document.getElementById('mcp-info-'+button.dataset.mcpInfo).showModal()));
+document.querySelectorAll('[data-mcp-close]').forEach(button=>button.addEventListener('click',()=>button.closest('dialog').close()));
+document.querySelectorAll('.mcp-info-dialog').forEach(dialog=>dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}}));
 document.querySelectorAll('[data-copy]').forEach(button=>button.addEventListener('click',async()=>{const input=document.getElementById(button.dataset.copy);try{await navigator.clipboard.writeText(input.value);button.textContent='Copiado';}catch(e){input.focus();input.select();}}));
 document.getElementById('show-secret')?.addEventListener('click',()=>{const input=document.getElementById('client-secret');input.type=input.type==='password'?'text':'password';});
 document.getElementById('dismiss-credentials')?.addEventListener('click',()=>{document.getElementById('client-secret').value='';document.getElementById('new-credentials').remove();});

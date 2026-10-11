@@ -3,6 +3,8 @@
 use Screenart\Musedock\Route;
 use Screenart\Musedock\Env;
 
+Route::post('/blog/unlock/{id}', fn($id) => \Screenart\Musedock\Services\BlogAccess::unlock((int)$id));
+
 // ========== SUPERADMIN BLOG ROUTES ==========
 
 // --- Blog Posts Routes (Superadmin) ---
