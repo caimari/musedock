@@ -12,7 +12,7 @@ final class Tools
         'list_translations'=>Policy::TRANSLATIONS,'save_translation'=>Policy::TRANSLATIONS,
         'list_media'=>Policy::MEDIA,'list_image_options'=>Policy::MEDIA,'list_image_prompts'=>Policy::MEDIA,'upload_image'=>Policy::MEDIA,'generate_image'=>Policy::MEDIA,
         'create_category'=>Policy::TAXONOMY,'update_category'=>Policy::TAXONOMY,'create_tag'=>Policy::TAXONOMY,'update_tag'=>Policy::TAXONOMY,
-        'create_post'=>Policy::EDITOR,'update_post'=>Policy::EDITOR,'publish_post'=>Policy::POSTS,'schedule_post'=>Policy::POSTS,
+        'create_post'=>Policy::EDITOR,'update_post'=>Policy::EDITOR,'set_featured_image'=>Policy::EDITOR,'publish_post'=>Policy::POSTS,'schedule_post'=>Policy::POSTS,
         'get_request_status'=>Policy::READ,'list_requests'=>Policy::APPROVE,'approve_request'=>Policy::APPROVE,'reject_request'=>Policy::APPROVE,
         'list_sites'=>Policy::READ,'copy_draft'=>Policy::COPY,'list_news_items'=>Policy::READ,'import_news_draft'=>Policy::IMPORT,
     ];
@@ -45,7 +45,8 @@ final class Tools
                 foreach (in_array($tool,['create_draft','update_draft','copy_draft','import_news_draft','create_post','update_post'],true)?['category_ids','tag_ids']:[] as $f) $properties[$f]=['type'=>'array','items'=>['type'=>'integer','minimum'=>1],'maxItems'=>50];
                 $properties['apply']=['type'=>'boolean','default'=>false,'description'=>'false: preparar plan; true: solicitar aprobación en el CMS, sin ejecutar.'];
             }
-            $out[]=['name'=>$tool,'description'=>$tool==='generate_image'?'Consulta primero list_image_options para el sitio. quality=hd no es universal: MiniMax usa standard. La aprobación crea una imagen en medios; para mostrarla en un artículo, asigna featured_image_id mediante update_post.':($tool==='list_image_prompts'?'Consulta prompts originales, proveedor, parámetros y resolución real de las imágenes del sitio autorizado para mantener un estilo coherente.':(in_array($tool,['approve_request','reject_request'],true)?'Aprueba o rechaza una solicitud propia. Requiere autorización explícita del CMS; aprobar ejecuta cambios.':($write?'Prepara cambios. apply=true crea una solicitud; aprueba después en el CMS o con approve_request si tienes permiso.':'Consulta exclusivamente el alcance y permisos autorizados.'))),
+            $description=$tool==='set_featured_image'?'Asigna únicamente la imagen destacada de un artículo usando media_id del mismo sitio. apply=false prepara; apply=true solicita aprobación. Artículos publicados requieren permiso de publicación.':null;
+            $out[]=['name'=>$tool,'description'=>$description ?? ($tool==='generate_image'?'Consulta primero list_image_options para el sitio. quality=hd no es universal: MiniMax usa standard. La aprobación crea una imagen en medios; para mostrarla en un artículo, consulta get_request_status con request_id hasta completed; result.media.id devuelve el medio. Asígnalo con set_featured_image.':($tool==='list_image_prompts'?'Consulta prompts originales, proveedor, parámetros y resolución real de las imágenes del sitio autorizado para mantener un estilo coherente.':(in_array($tool,['approve_request','reject_request'],true)?'Aprueba o rechaza una solicitud propia. Requiere autorización explícita del CMS; aprobar ejecuta cambios.':($write?'Prepara cambios. apply=true crea una solicitud; aprueba después en el CMS o con approve_request si tienes permiso.':'Consulta exclusivamente el alcance y permisos autorizados.')))),
                 'inputSchema'=>['type'=>'object','properties'=>(object)$properties,'required'=>$required,'additionalProperties'=>false],
                 'annotations'=>['readOnlyHint'=>self::readOnly($tool),'destructiveHint'=>in_array($tool,['approve_request','moderate_comment'],true),'openWorldHint'=>false,'idempotentHint'=>self::readOnly($tool)],
                 '_meta'=>['securitySchemes'=>[['type'=>'oauth2','scopes'=>array_values(array_unique([Policy::READ,$scope]))]]]];
@@ -90,7 +91,7 @@ final class Tools
             $payload=$this->store->decode($row);
             if (!$row || ($payload['grant']??'')!==$g['id']) throw new RuntimeException('Solicitud ajena o no disponible.');
             $job=$this->store->one('SELECT status,error FROM approval_jobs WHERE request_id=?',[$row['id']]);
-            return ['request_id'=>$row['id'],'status'=>$job['status']??$row['status'],'result'=>$payload['result']??null,'error'=>$job['error']??null];
+            return ['request_id'=>$row['id'],'status'=>$job['status']??$row['status'],'result'=>$payload['result']??null,'media_id'=>$payload['result']['media']['id']??null,'error'=>$job['error']??null];
         }
         if (self::MAP[$tool]===Policy::APPROVE) return $this->remoteDecision($tool,$auth,$args);
         if (self::readOnly($tool)) {
@@ -114,7 +115,7 @@ final class Tools
     }
     private function assertPublishing(string $tool,array $plan,array $auth,int $actor): void
     {
-        $live=in_array($tool,['publish_post','schedule_post'],true) || (in_array($tool,['create_post','update_post'],true) && (($plan['fields']['status']??'')==='published' || ($plan['source']['status']??'')==='published')) || ($tool==='save_translation' && ($plan['source']['post']['status']??'')==='published');
+        $live=in_array($tool,['publish_post','schedule_post'],true) || (in_array($tool,['create_post','update_post','set_featured_image'],true) && (($plan['fields']['status']??'')==='published' || ($plan['source']['status']??'')==='published')) || ($tool==='save_translation' && ($plan['source']['post']['status']??'')==='published');
         if ($live && (empty($auth['resource']['allow_publishing']) || !Policy::allows($auth['client'],$auth['grant'],Policy::POSTS) || !$this->content->actorActive($auth['resource']['id'],$actor,Policy::POSTS))) throw new RuntimeException('Publicación no autorizada. Habilita el recurso y concede el permiso de publicación al cliente.');
     }
     private function remoteDecision(string $tool,array $auth,array $args): array

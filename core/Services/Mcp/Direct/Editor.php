@@ -10,7 +10,7 @@ final class Editor
 {
     public const MAP = [
         'get_post_details'=>Policy::READ,
-        'create_post'=>Policy::EDITOR,'update_post'=>Policy::EDITOR,'publish_post'=>Policy::POSTS,'schedule_post'=>Policy::POSTS,
+        'create_post'=>Policy::EDITOR,'update_post'=>Policy::EDITOR,'set_featured_image'=>Policy::EDITOR,'publish_post'=>Policy::POSTS,'schedule_post'=>Policy::POSTS,
         'create_category'=>Policy::TAXONOMY,'update_category'=>Policy::TAXONOMY,'create_tag'=>Policy::TAXONOMY,'update_tag'=>Policy::TAXONOMY,
         'list_comments'=>Policy::COMMENTS,'moderate_comment'=>Policy::COMMENTS,
         'list_translations'=>Policy::TRANSLATIONS,'save_translation'=>Policy::TRANSLATIONS,
@@ -31,6 +31,7 @@ final class Editor
             $p['template']['enum']=['template-sidebar-right','page','template-sidebar-left'];
             $p['robots_directive']['enum']=['index,follow','noindex,follow','index,nofollow','noindex,nofollow'];
         }
+        if ($tool==='set_featured_image') { $p['post_id']=$id; $p['media_id']=$id; }
         if (in_array($tool,['publish_post','schedule_post'],true)) $p['published_at']=$s;
         if (str_contains($tool,'category') || str_contains($tool,'tag')) {
             foreach (['name','slug','description','color'] as $f) $p[$f]=$s;
@@ -49,6 +50,7 @@ final class Editor
     {
         return match($tool) {
             'create_post'=>['title','content'],
+            'set_featured_image'=>['post_id','media_id'],
             'get_post_details','update_post','publish_post','list_translations'=>['post_id'],
             'schedule_post'=>['post_id','published_at'],
             'create_category','create_tag'=>['name'],
@@ -149,9 +151,9 @@ final class Editor
     public function plan(string $tool,array $r,array $c,array $args): array
     {
         $site=$this->content->siteArg($r,$c,$args); $source=null; $fields=[]; $tax=[];
-        if (in_array($tool,['create_post','update_post','publish_post','schedule_post'],true)) {
+        if (in_array($tool,['create_post','update_post','set_featured_image','publish_post','schedule_post'],true)) {
             if ($tool!=='create_post') $source=$this->post($args['post_id'],$site);
-            $fields=$this->postFields($args,$site,$source); $tax=$this->taxonomy($site,$args);
+            $fields=$tool==='set_featured_image'?['featured_image'=>(new Media($this->content))->one($args['media_id'],$site)['url']]:$this->postFields($args,$site,$source); $tax=$this->taxonomy($site,$args);
             if ($tool==='create_post' && (empty($fields['title']) || empty($fields['content']))) throw new RuntimeException('Indica título y contenido.');
             if ($tool==='publish_post') { $fields['status']='published'; $fields['published_at']=$fields['published_at']??$source['published_at']??null; if (!empty($fields['published_at']) && strtotime($fields['published_at'])>time()) throw new RuntimeException('Usa schedule_post.'); }
             if ($tool==='schedule_post') {
@@ -217,13 +219,13 @@ final class Editor
         $db->beginTransaction();
         try {
             if (!$this->content->actorActive($auth['resource']['id'],$actor,self::MAP[$tool])) throw new RuntimeException('Permiso revocado.');
-            $live=in_array($plan['tool'],['publish_post','schedule_post'],true) || (in_array($plan['tool'],['create_post','update_post'],true) && (($plan['fields']['status']??'')==='published' || ($plan['source']['status']??'')==='published'));
+            $live=in_array($plan['tool'],['publish_post','schedule_post'],true) || (in_array($plan['tool'],['create_post','update_post','set_featured_image'],true) && (($plan['fields']['status']??'')==='published' || ($plan['source']['status']??'')==='published'));
             if ($live && (empty($auth['resource']['allow_publishing']) || !Policy::allows($auth['client'],$auth['grant'],Policy::POSTS) || !$this->content->actorActive($auth['resource']['id'],$actor,Policy::POSTS))) throw new RuntimeException('Publicación no autorizada.');
             if ($plan['tool']==='save_translation' && ($plan['source']['post']['status']??'')==='published' && (!Policy::allows($auth['client'],$auth['grant'],Policy::POSTS) || !$this->content->actorActive($auth['resource']['id'],$actor,Policy::POSTS))) throw new RuntimeException('Consentimiento de publicación requerido.');
             $current=$this->plan($tool,$auth['resource'],$auth['client'],$args);
             if (!hash_equals(Policy::fingerprint($plan),Policy::fingerprint($current))) throw new RuntimeException('El contenido ha cambiado; prepara otra solicitud.');
             $f=$plan['fields']; $source=$plan['source']; $id=0;
-            if (in_array($tool,['create_post','update_post','publish_post','schedule_post'],true)) {
+            if (in_array($tool,['create_post','update_post','set_featured_image','publish_post','schedule_post'],true)) {
                 if (isset($f['password_change'])) { unset($f['password_change']);$f['password']=$args['password_hash']??password_hash($args['password'],PASSWORD_DEFAULT); }
                 if (($f['visibility']??$source['visibility']??'public')!=='password') $f['password']=null;
                 $f['updated_at']=$now;
@@ -269,9 +271,9 @@ final class Editor
             $cache=\Screenart\Musedock\Cache\HtmlCache::class;
             {
                 $cache::invalidateByTag('blog',$site?:null);$cache::invalidateByTag('blog-list',$site?:null);$cache::invalidate('/',$site?:null);
-                if (in_array($tool,['create_post','update_post','publish_post','schedule_post'],true)) { if ($source) $cache::onPostSaved($source,$site?:null,false); $cache::onPostSaved($this->post($id,$site),$site?:null,false); }
+                if (in_array($tool,['create_post','update_post','set_featured_image','publish_post','schedule_post'],true)) { if ($source) $cache::onPostSaved($source,$site?:null,false); $cache::onPostSaved($this->post($id,$site),$site?:null,false); }
             }
-            return ['id'=>$id,'post_id'=>in_array($tool,['create_post','update_post','publish_post','schedule_post','save_translation'],true)?$id:null,'site_id'=>$site,'status'=>$tool==='schedule_post'?'scheduled':($f['status']??$source['status']??'saved')];
+            return ['id'=>$id,'post_id'=>in_array($tool,['create_post','update_post','set_featured_image','publish_post','schedule_post','save_translation'],true)?$id:null,'site_id'=>$site,'status'=>$tool==='schedule_post'?'scheduled':($f['status']??$source['status']??'saved')];
         } catch (\Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
     }
 }

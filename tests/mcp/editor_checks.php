@@ -22,6 +22,11 @@ check(password_verify('StrongPassword!',$row['password']),'protected post stores
 check((int)$row['allow_comments']===0&&(int)$row['featured']===1&&$row['template']==='page'&&$row['post_type']==='docs','post options persisted');
 check($row['seo_keywords']==='cms, php'&&$row['robots_directive']==='noindex,follow'&&$row['twitter_title']==='Para X','SEO and social fields persisted');
 check($row['featured_image']==='/media/p/own-own-token/png','featured image resolved within own media');
+$featured=$prepare('set_featured_image',['site_id'=>1,'post_id'=>$id,'media_id'=>1]);
+check(array_keys($featured['plan']['fields'])===['featured_image'],'dedicated featured image plan only changes image');
+$featuredResult=$approve($featured);check($featuredResult['post_id']===$id,'dedicated image assignment returns post ID');
+denied(fn()=>$prepare('set_featured_image',['site_id'=>1,'post_id'=>$id,'media_id'=>2]),'dedicated image rejects foreign media');
+denied(fn()=>$prepare('set_featured_image',['site_id'=>1,'post_id'=>$id,'media_id'=>1,'title'=>'Unexpected']), 'dedicated image rejects unrelated fields');
 $details=$tools->call('get_post_details',$full,['site_id'=>1,'post_id'=>$id]);check(!array_key_exists('password',$details)&&$details['password_set'],'read does not leak password hash');
 denied(fn()=>$approve($pending),'remote approval exactly once');
 denied(fn()=>$prepare('create_post',$article+['unknown'=>true]),'unknown field denied');
