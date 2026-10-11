@@ -28,20 +28,28 @@ try {
             'events'=>[['created'=>time(),'action'=>'request.created','detail'=>'{}']]];
         $data['imageOptions']=['provider_name'=>'MiniMax','model'=>'image-01','qualities'=>['standard'],'sizes'=>['1792x1024'],'custom_size_constraints'=>['minimum'=>512,'maximum'=>2048,'multiple_of'=>8]];
         $data['imagePrompts']=[['filename'=>'test.png','url'=>'/media/p/test/png','generation'=>['prompt'=>'<script>evil</script>','provider_name'=>'MiniMax','model'=>'image-01','requested_size'=>'1792x1024'],'resolution'=>['width'=>1792,'height'=>1024]]];
+        $data['clients'][]=['id'=>'revoked-client','name'=>'Acceso anterior','callback'=>'https://client.example/old','enabled'=>false,'scopes'=>['musedock-cms:read']];
         $html=$blade->runString($source,$data);
+        if (!str_contains($html,'Accesos (1)') || !str_contains($html,'Historial de accesos revocados (1)') || substr_count($html,'name="client" value="revoked-client"')!==0 || str_contains($html,'Festivales')) throw new RuntimeException('Incorrect active count, editable revoked access or personalized example.');
         if (!str_contains($html,'data-mcp-tab="access"') || !str_contains($html,'id="mcp-create-access"') || !str_contains($html,'list_image_prompts')) throw new RuntimeException('Falta la navegación de accesos o el historial de imágenes.');
         if (!str_contains($html,'Opciones de Ajustes')) throw new RuntimeException('Falta navegación de ajustes.');
         if (!str_contains($html,'name="_csrf"') || str_contains($html,'<script>evil</script>') || !str_contains($html,'&lt;script&gt;evil&lt;/script&gt;') || !str_contains($html,'type="password"')) throw new RuntimeException('Fallo de render o escape de la vista '.$mode);
         if (!str_contains($html,'Paso 1') || !str_contains($html,'Paso 2') || !str_contains($html,'data-mcp-site-group="10"')) throw new RuntimeException('Faltan pasos o grupo del sitio.');
         if (substr_count($html,'href="https://a.example" target="_blank" rel="noopener noreferrer"')!==2) throw new RuntimeException('Faltan enlaces seguros al dominio en ambos pasos.');
         $data['resource']['owned_sites']=[];
+        $data['clients'][]=['id'=>'revoked-client','name'=>'Acceso anterior','callback'=>'https://client.example/old','enabled'=>false,'scopes'=>['musedock-cms:read']];
         $html=$blade->runString($source,$data);
+        if (!str_contains($html,'Accesos (1)') || !str_contains($html,'Historial de accesos revocados (1)') || substr_count($html,'name="client" value="revoked-client"')!==0 || str_contains($html,'Festivales')) throw new RuntimeException('Incorrect active count, editable revoked access or personalized example.');
         if (!str_contains($html,'Todavía no hay sitios disponibles') || str_contains($html,'name="sites[]"')) throw new RuntimeException('No se explica la falta de sitios guardados.');
         $data['resource']['owned_sites']=[1]; $data['sites'][0]['group_id']=null;
+        $data['clients'][]=['id'=>'revoked-client','name'=>'Acceso anterior','callback'=>'https://client.example/old','enabled'=>false,'scopes'=>['musedock-cms:read']];
         $html=$blade->runString($source,$data);
+        if (!str_contains($html,'Accesos (1)') || !str_contains($html,'Historial de accesos revocados (1)') || substr_count($html,'name="client" value="revoked-client"')!==0 || str_contains($html,'Festivales')) throw new RuntimeException('Incorrect active count, editable revoked access or personalized example.');
         if (!str_contains($html,'Sin grupo editorial') || str_contains($html,'name="sites[]"')) throw new RuntimeException('Un sitio sin grupo aparece disponible para el asistente.');
         $data['resource']['id']='main'; $data['sites']=[]; $data['groups']=[];
+        $data['clients'][]=['id'=>'revoked-client','name'=>'Acceso anterior','callback'=>'https://client.example/old','enabled'=>false,'scopes'=>['musedock-cms:read']];
         $html=$blade->runString($source,$data);
+        if (!str_contains($html,'Accesos (1)') || !str_contains($html,'Historial de accesos revocados (1)') || substr_count($html,'name="client" value="revoked-client"')!==0 || str_contains($html,'Festivales')) throw new RuntimeException('Incorrect active count, editable revoked access or personalized example.');
         if (str_contains($html,'Paso 1') || str_contains($html,'Acceso de este asistente')) throw new RuntimeException('El dominio principal muestra selección de otros sitios.');
     }
     echo "PASS: 2 Blade views rendered, CSRF fields, HTML escaping and hidden secrets.\n";

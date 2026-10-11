@@ -26,6 +26,8 @@
 @media (max-width: 576px) { .mcp-settings.container-fluid { padding: 16px !important; } .mcp-settings .card-body, .mcp-settings .card-header { padding: 18px; } .mcp-settings .nav-link { padding: 10px 12px; } }
 </style>
 @php
+  $revokedClients = array_values(array_filter($clients, fn($client) => empty($client["enabled"])));
+  $clients = array_values(array_filter($clients, fn($client) => !empty($client["enabled"])));
   $isPluginConnection = str_starts_with($resource['id'], 'plugin:');
   $groupNames = [];
   foreach ($groups as $editorialGroup) $groupNames[(int)$editorialGroup['id']] = $editorialGroup['name'];
@@ -132,7 +134,7 @@
     @if($isPluginConnection)<p class="text-muted">Crea credenciales independientes para ChatGPT, Claude u otro asistente. Aquí decides qué puede hacer y a cuáles de los sitios guardados en el paso 1 podrá acceder.</p>@endif
     <form method="post" action="{{ $back }}">
       {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="action" value="create_client">
-      <label class="form-label">Nombre del acceso</label><input name="name" class="form-control mb-2" required maxlength="100" placeholder="ChatGPT · Tech / Claude · Festivales">
+      <label class="form-label">Nombre del acceso</label><input name="name" class="form-control mb-2" required maxlength="100" placeholder="ChatGPT · Grupo A / Claude · Grupo B">
       <label for="mcp-provider" class="form-label">Asistente</label>
       <select id="mcp-provider" name="provider" class="form-select mb-2"><option value="chatgpt">ChatGPT — dirección de retorno automática</option><option value="claude">Claude — dirección de retorno automática</option><option value="custom">Personalizado — otro asistente o callback distinto</option></select>
       <label for="mcp-callback" class="form-label">Dirección de retorno OAuth (callback)</label><input id="mcp-callback" name="callback" type="url" class="form-control mb-2" readonly maxlength="500" value="https://chatgpt.com/connector_platform_oauth_redirect" placeholder="Pega la URL HTTPS exacta del asistente">
@@ -164,7 +166,7 @@
     </form>
   </div></dialog>
   <div class="card mb-3"><div class="card-body"><h2 class="h5">Clientes y permisos</h2>
-    @if($isPluginConnection)<p class="text-muted">Puedes crear varios accesos independientes con esta misma URL: por ejemplo, «ChatGPT · Tech» y «Claude · Festivales». Selecciona los grupos y dominios de cada cliente al crearlo; sus credenciales solo permiten acceder a esa selección.</p>@endif
+    @if($isPluginConnection)<p class="text-muted">Puedes crear varios accesos independientes con esta misma URL: por ejemplo, «ChatGPT · Grupo A» y «Claude · Grupo B». Selecciona los grupos y dominios de cada cliente al crearlo; sus credenciales solo permiten acceder a esa selección.</p>@endif
     @forelse($clients as $client)
     <div class="border rounded p-3 mb-3"><h3 class="h6">{{ $client['name'] }} — {{ $client['enabled'] ? 'Habilitado' : 'Revocado' }}</h3><p class="small">ID: <code>{{ $client['id'] }}</code><br>Callback: {{ $client['callback'] }}</p>
       @if($isPluginConnection)
@@ -195,7 +197,19 @@
       </details>
       <form method="post" action="{{ $back }}">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="client" value="{{ $client['id'] }}"><button class="btn btn-sm btn-outline-danger" name="action" value="revoke_client">Revocar cliente</button></form>
     </div>
-    @empty <p class="text-muted">Aún no hay clientes registrados.</p>@endforelse
+    @empty <p class="text-muted">No hay accesos activos.</p>@endforelse
+    @if(count($revokedClients))
+    <details class="mt-3 mb-3"><summary>Historial de accesos revocados ({{ count($revokedClients) }})</summary>
+      <p class="small text-muted mt-2">Estos accesos ya no pueden conectarse. Se conservan para consulta y auditoría.</p>
+      @foreach($revokedClients as $client)
+        <div class="border rounded p-3 mb-2"><h3 class="h6">{{ $client['name'] }} — Revocado</h3>
+          <p class="small mb-2">ID: <code>{{ $client['id'] }}</code><br>Callback: {{ $client['callback'] }}</p>
+          @if($isPluginConnection)<p class="small mb-2"><strong>Grupos:</strong> @foreach(($client['groups'] ?? []) as $groupId)<span class="badge bg-light text-dark">{{ $groupNames[(int)$groupId] ?? 'Grupo no disponible' }}</span> @endforeach<br><strong>Dominios:</strong> @foreach($sites as $site)@if(in_array((int)$site['id'], $client['sites'] ?? [], true))<span class="badge bg-light text-dark">{{ $site['domain'] }}</span> @endif @endforeach</p>@endif
+          <details><summary>Consultar permisos anteriores</summary><ul class="small mt-2">@foreach($client['scopes'] as $scope)<li>{{ \Screenart\Musedock\Services\Mcp\Direct\Policy::label($scope) }}</li>@endforeach</ul></details>
+        </div>
+      @endforeach
+    </details>
+    @endif
     <h3 class="h6 mcp-consents-heading">Consentimientos</h3>
     @forelse($grants as $grant)
       <form method="post" action="{{ $back }}" class="mb-2">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="grant" value="{{ $grant['id'] }}">
