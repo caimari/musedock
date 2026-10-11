@@ -771,6 +771,7 @@
 
 <!-- AdminKit JS (incluye Bootstrap 5 JS y Popper) -->
 <script src="/assets/superadmin/js/app.js"></script>
+<script src="/assets/superadmin/js/sidebar-position.js?v=1" defer></script>
 <!-- Feather Icons JS (LOCAL) -->
 <script src="/assets/vendor/feather-icons/feather.min.js"></script>
 <!-- SweetAlert2 JS (LOCAL) -->
@@ -871,21 +872,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof feather !== 'undefined') {
         try { feather.replace(); } catch (e) { console.error("Feather icon error:", e); }
     } else { console.warn("Feather Icons library not found."); }
-
-    // Auto-scroll: centrar la página en el item activo del sidebar
-    window.addEventListener('load', () => {
-        setTimeout(() => {
-            const allActive = document.querySelectorAll('#sidebar .sidebar-item.active');
-            if (!allActive.length) return;
-            const el = allActive[allActive.length - 1];
-            const rect = el.getBoundingClientRect();
-            // Si el item activo no está en la parte visible de la ventana
-            if (rect.top > window.innerHeight * 0.6 || rect.top < 0) {
-                const targetY = window.scrollY + rect.top - (window.innerHeight * 0.3);
-                window.scrollTo({ top: Math.max(0, targetY), behavior: 'auto' });
-            }
-        }, 50);
-    });
 
     const sidebarToggler = document.querySelector('.js-sidebar-toggle');
     const sidebar = document.getElementById('sidebar');
