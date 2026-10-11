@@ -19,6 +19,12 @@ class BlogPostTranslation extends Model
         'seo_title',
         'seo_description',
         'seo_keywords',
+        'seo_image',
+        'canonical_url',
+        'robots_directive',
+        'twitter_title',
+        'twitter_description',
+        'twitter_image',
     ];
 
     protected array $casts = [

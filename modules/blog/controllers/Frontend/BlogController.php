@@ -242,6 +242,12 @@ class BlogController
         $displayData->seo_title = $translation->seo_title ?? $post->seo_title;
         $displayData->seo_description = $translation->seo_description ?? $post->seo_description;
         $displayData->seo_keywords = $translation->seo_keywords ?? $post->seo_keywords;
+        // The theme reads social/canonical fields from the post object.
+        // Overlay the linked translation in memory without modifying the base article.
+        foreach (['seo_image', 'canonical_url', 'robots_directive', 'twitter_title', 'twitter_description', 'twitter_image'] as $field) {
+            $displayData->$field = $translation->$field ?? $post->$field;
+            $post->$field = $displayData->$field;
+        }
         $displayData->featured_image = $post->featured_image;
         $displayData->published_at = $post->published_at;
 
