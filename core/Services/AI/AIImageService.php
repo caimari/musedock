@@ -336,7 +336,10 @@ class AIImageService
     {
         $db=Database::connect();
         $s=$db->prepare('SELECT metadata FROM media WHERE id=? AND COALESCE(tenant_id,0)=?');
-        $s->execute([$mediaId,$tenantId??0]);$existing=$s->fetchColumn();
+        $s->bindValue(1,$mediaId,\PDO::PARAM_INT);
+        $s->bindValue(2,$tenantId??0,\PDO::PARAM_INT);
+        $s->execute();
+        $existing=$s->fetchColumn();
         if ($existing===false) throw new \RuntimeException('La imagen no pertenece al sitio de generación.');
         $saved=json_decode($existing?:'{}',true)?:[];
         $dimensions=getimagesizefromstring($imageData);
@@ -348,7 +351,10 @@ class AIImageService
             $saved['ai_generation']=$generation;
         }
         $s=$db->prepare('UPDATE media SET metadata=? WHERE id=? AND COALESCE(tenant_id,0)=?');
-        $s->execute([json_encode($saved,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$mediaId,$tenantId??0]);
+        $s->bindValue(1,json_encode($saved,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+        $s->bindValue(2,$mediaId,\PDO::PARAM_INT);
+        $s->bindValue(3,$tenantId??0,\PDO::PARAM_INT);
+        $s->execute();
     }
 
     /**
