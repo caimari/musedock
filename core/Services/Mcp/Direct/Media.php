@@ -27,12 +27,30 @@ final class Media
         $rows=$this->content->query("SELECT id FROM media WHERE COALESCE(tenant_id,0)=? AND mime_type LIKE 'image/%' AND public_token IS NOT NULL AND public_token<>'' ORDER BY id DESC LIMIT {$limit} OFFSET {$offset}",[$site]);
         return array_map(fn($r)=>$this->one((int)$r['id'],$site),$rows);
     }
+    public function options(int $site): array
+    {
+        $provider=AIImageService::getDefaultProvider($site?:null);
+        if (!$provider) throw new RuntimeException('Configura un proveedor de imágenes en IA → AI Image para este sitio.');
+        $model=$provider['model']??null;
+        $sizes=match ($provider['provider_type']) {
+            'minimax'=>['1024x1024','1280x720','720x1280','1152x864','864x1152','1248x832','832x1248','1344x576','1792x1024','1024x1792','512x512'],
+            'openai'=>($model==='dall-e-3'||!$model)?['1024x1024','1792x1024','1024x1792']:['1024x1024'],
+            default=>['1024x1024','1792x1024','1024x1792','1536x1024','1024x1536'],
+        };
+        return ['provider_id'=>(int)$provider['id'],'provider_name'=>$provider['name'],'provider_type'=>$provider['provider_type'],'model'=>$model,'sizes'=>$sizes,
+            'qualities'=>$provider['provider_type']==='openai' && $model==='dall-e-3'?['standard','hd']:['standard'],
+            'size_mode'=>$provider['provider_type']==='minimax'?'aspect_ratio':'pixels',
+            'note'=>'Opciones compatibles con el adaptador instalado del CMS. MiniMax convierte las medidas a proporciones; la resolución final la decide el proveedor. Generar una imagen no la asigna al post: usa update_post con featured_image_id.',
+            'uses_site_ai_quota'=>true];
+    }
     public function plan(string $tool,int $site,array $args): array
     {
         $f=['alt_text'=>SafeHtml::plain($args['alt_text']??'')];
         if ($tool==='generate_image') {
             $provider=AIImageService::getDefaultProvider($site?:null);
             if (!$provider) throw new RuntimeException('Configura un proveedor de imágenes en IA → AI Image para este sitio.');
+            $options=$this->options($site);
+            if (!in_array($args['size']??'1024x1024',$options['sizes'],true) || !in_array($args['quality']??'standard',$options['qualities'],true)) throw new RuntimeException('Tamaño o calidad no admitidos por el adaptador de este proveedor. Consulta list_image_options.');
             return $f+['prompt'=>SafeHtml::plain($args['prompt']),'size'=>$args['size']??'1024x1024','quality'=>$args['quality']??'standard','provider_id'=>(int)$provider['id'],'provider_name'=>$provider['name'],'model'=>$provider['model']??null,'uses_site_ai_quota'=>true];
         }
         if (isset($args['url'])===isset($args['base64'])) throw new RuntimeException('Indica una URL pública o una imagen base64, solo una.');

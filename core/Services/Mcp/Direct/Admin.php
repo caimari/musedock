@@ -25,7 +25,7 @@ final class Admin
         $r=$ep->store->resource($id)??['id'=>$id,'name'=>$id==='main'?'MuseDock — dominio principal':($tenant?$GLOBALS['tenant']['name']:substr($id,7)),
             'url'=>$url,'enabled'=>false,'allow_drafts'=>false,'owned_sites'=>[],'revision'=>1];
         $base=$ep->adminBase().($tenant?'/mcp/direct':'/settings/mcp');
-        $back=$base.($tenant?'':'?resource='.urlencode($id)); $error=null;
+        $back=$base.($tenant?'':'?resource='.urlencode($id)); $error=null; $ajax=($_SERVER['HTTP_X_MCP_PROGRESS']??'')==='1';
         if (($_SERVER['REQUEST_METHOD']??'GET')==='POST') {
             try {
                 if ($tenant && !userCan('settings.edit')) throw new \RuntimeException('No tienes permiso para modificar ajustes.');
@@ -91,10 +91,13 @@ final class Admin
                     $ep->store->run("UPDATE schedules SET status='cancelled' WHERE id=? AND resource=? AND status='scheduled'",[(string)($_POST['schedule']??''),$id]);
                     $ep->store->event($id,'publication.cancelled',$actor);
                 } elseif ($action==='approve' || $action==='reject') {
-                    (new Tools($ep->store,$content))->decide($id,(string)($_POST['request']??''),$actor,$action==='approve');
+                    if (function_exists('set_time_limit')) set_time_limit(240);
+                    $result=(new Tools($ep->store,$content))->decide($id,(string)($_POST['request']??''),$actor,$action==='approve');
+                    if ($ajax) { header('Content-Type: application/json'); header('Cache-Control: no-store'); echo json_encode(['ok'=>true,'result'=>$result]); return; }
                 } else throw new \RuntimeException('Acción desconocida.');
                 flash('success','Configuración MCP actualizada.'); header('Location: '.$back); return;
-            } catch (\Throwable $e) { $error=$e instanceof \PDOException?'No se pudo completar la operación.':$e->getMessage(); }
+            } catch (\Throwable $e) { $error=$e instanceof \PDOException?'No se pudo completar la operación.':$e->getMessage();
+                if ($ajax) { http_response_code(400); header('Content-Type: application/json'); header('Cache-Control: no-store'); echo json_encode(['ok'=>false,'error'=>$error]); return; } }
         }
         $clients=[];
         foreach ($ep->store->all('SELECT data FROM clients WHERE resource=?',[$id]) as $row) {
@@ -103,6 +106,8 @@ final class Admin
         $grants=[]; foreach ($ep->store->all('SELECT data FROM grants WHERE resource=?',[$id]) as $row) $grants[]=$ep->store->decode($row);
         $requests=$ep->store->all("SELECT * FROM requests WHERE resource=? AND status='pending' AND expires>? ORDER BY expires DESC",[$id,time()]);
         foreach ($requests as &$request) $request['payload']=$ep->store->decode($request); unset($request);
+        $recentOperations=$ep->store->all("SELECT id,status,data FROM requests WHERE resource=? AND status IN ('executing','failed','completed') ORDER BY rowid DESC LIMIT 15",[$id]);
+        foreach ($recentOperations as &$operation) { $payload=$ep->store->decode($operation); $operation['tool']=$payload['plan']['tool']??''; unset($operation['data']); } unset($operation);
         $new=$_SESSION['cms_mcp_new'][$id]??null; unset($_SESSION['cms_mcp_new'][$id]);
         $sites=[]; $groups=[];
         if (Policy::site($id)===null) {
@@ -112,7 +117,7 @@ final class Admin
         $resourceOptions=['main'=>'Dominio principal'];
         foreach (['cross-publisher'=>'Cross Publisher','news-aggregator'=>'News Aggregator'] as $slug=>$label) if (Endpoint::installed('plugin:'.$slug)) $resourceOptions['plugin:'.$slug]=$label;
         (new Scheduler($ep->store,$content));
-        $data=['resourceOptions'=>$resourceOptions,'schedules'=>$ep->store->all("SELECT * FROM schedules WHERE resource=? AND status='scheduled' ORDER BY due",[$id]),'title'=>'(MCP) Conexiones IA','resource'=>$r,'clients'=>$clients,'grants'=>$grants,'requests'=>$requests,'newClient'=>$new,'error'=>$error,
+        $data=['recentOperations'=>$recentOperations,'resourceOptions'=>$resourceOptions,'schedules'=>$ep->store->all("SELECT * FROM schedules WHERE resource=? AND status='scheduled' ORDER BY due",[$id]),'title'=>'(MCP) Conexiones IA','resource'=>$r,'clients'=>$clients,'grants'=>$grants,'requests'=>$requests,'newClient'=>$new,'error'=>$error,
             'base'=>$base,'back'=>$back,'tenantMode'=>$tenant,'scopes'=>Policy::scopes($id),'sites'=>$sites,'groups'=>$groups,
             'canManageDeployment'=>!$tenant && \Screenart\Musedock\Helpers\PermissionHelper::isSuperAdminRoot($actor),
             'deploymentEnabled'=>filter_var(Env::get('MCP_CMS_DIRECT_ENABLED',false),FILTER_VALIDATE_BOOLEAN) && filter_var(Env::get('MCP_ENABLED',true),FILTER_VALIDATE_BOOLEAN),'pluginInstalled'=>Endpoint::installed($id),

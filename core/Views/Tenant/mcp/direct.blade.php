@@ -178,12 +178,21 @@
     @empty <p class="text-muted">Ningún asistente ha completado la autorización.</p>@endforelse
   </div></div>
   <div class="card mb-3"><div class="card-body"><h2 class="h5">Cambios pendientes</h2>
+    @if(count($requests))<button type="button" class="btn btn-success mb-3" id="mcp-approve-all">Aprobar todas en cola ({{ count($requests) }})</button><p class="small text-muted">Las solicitudes se ejecutan una a una. Mantén esta página abierta hasta que termine la cola.</p>@endif
     @forelse($requests as $request)
       <div class="border rounded p-3 mb-3"><p>Solicitud {{ $request['id'] }} · caduca en {{ max(0,$request['expires']-time()) }} segundos</p>
       <details><summary>Revisar el plan y el contenido</summary><pre class="text-wrap border p-2">{{ json_encode($request['payload']['plan'],JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</pre></details>
-      <form method="post" action="{{ $back }}" class="mt-2">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="request" value="{{ $request['id'] }}"><button class="btn btn-success" name="action" value="approve">Aprobar cambios</button> <button class="btn btn-outline-danger" name="action" value="reject">Rechazar</button></form></div>
+      <form method="post" action="{{ $back }}" class="mt-2" data-mcp-request-form>{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="request" value="{{ $request['id'] }}"><button class="btn btn-success" name="action" value="approve">Aprobar cambios</button> <button class="btn btn-outline-danger" name="action" value="reject">Rechazar</button></form></div>
     @empty <p class="text-muted">No hay cambios pendientes.</p>@endforelse
   </div></div>
+  @if(!empty($recentOperations))
+  <div class="card mb-3"><div class="card-body"><h2 class="h5">Estado de operaciones recientes</h2>
+    @foreach($recentOperations as $operation)
+      <p class="small"><code>{{ $operation['id'] }}</code> · {{ $operation['tool'] }} · <strong>{{ ['executing'=>'En ejecución o pendiente de verificar', 'failed'=>'Fallida', 'completed'=>'Completada'][$operation['status']] }}</strong></p>
+    @endforeach
+    <p class="small text-muted">Si una operación permanece en ejecución, comprueba el gestor de medios y el artículo antes de solicitar otra generación. No se reintenta automáticamente.</p>
+  </div></div>
+  @endif
   @if(count($schedules))
   <div class="card mb-3"><div class="card-body"><h2 class="h5">Publicaciones programadas</h2>
     @foreach($schedules as $schedule)
@@ -204,12 +213,20 @@
     @include('settings.partials.sidebar', ['active' => 'mcp'])
   </aside>
 </div>
+<dialog id="mcp-progress" class="mcp-info-dialog" aria-labelledby="mcp-progress-title">
+  <h2 id="mcp-progress-title" class="h5">Progreso de solicitudes MCP</h2>
+  <p id="mcp-progress-summary" role="status" aria-live="polite"></p>
+  <div id="mcp-progress-spinner" class="spinner-border text-primary" role="status"><span class="visually-hidden">Procesando</span></div>
+  <ol id="mcp-progress-list" class="mt-3"></ol>
+  <button type="button" id="mcp-progress-close" class="btn btn-primary" disabled>Cerrar y actualizar</button>
+</dialog>
 @endsection
 @push('scripts')
+<script src="/assets/superadmin/js/mcp-progress.js?v=1"></script>
 <script>
 document.querySelectorAll('[data-mcp-info]').forEach(button=>button.addEventListener('click',()=>document.getElementById('mcp-info-'+button.dataset.mcpInfo).showModal()));
 document.querySelectorAll('[data-mcp-close]').forEach(button=>button.addEventListener('click',()=>button.closest('dialog').close()));
-document.querySelectorAll('.mcp-info-dialog').forEach(dialog=>dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}}));
+document.querySelectorAll('.mcp-info-dialog:not(#mcp-progress)').forEach(dialog=>dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}}));
 const groupInputs=Array.from(document.querySelectorAll('[data-mcp-group]'));
 function updateAssistantSites(){
   const selected=new Set(groupInputs.filter(input=>input.checked).map(input=>input.value));

@@ -10,7 +10,7 @@ final class Tools
         'create_draft'=>Policy::CREATE,'update_draft'=>Policy::UPDATE,
         'get_post_details'=>Policy::READ,'list_comments'=>Policy::COMMENTS,'moderate_comment'=>Policy::COMMENTS,
         'list_translations'=>Policy::TRANSLATIONS,'save_translation'=>Policy::TRANSLATIONS,
-        'list_media'=>Policy::MEDIA,'upload_image'=>Policy::MEDIA,'generate_image'=>Policy::MEDIA,
+        'list_media'=>Policy::MEDIA,'list_image_options'=>Policy::MEDIA,'upload_image'=>Policy::MEDIA,'generate_image'=>Policy::MEDIA,
         'create_category'=>Policy::TAXONOMY,'update_category'=>Policy::TAXONOMY,'create_tag'=>Policy::TAXONOMY,'update_tag'=>Policy::TAXONOMY,
         'create_post'=>Policy::EDITOR,'update_post'=>Policy::EDITOR,'publish_post'=>Policy::POSTS,'schedule_post'=>Policy::POSTS,
         'list_requests'=>Policy::APPROVE,'approve_request'=>Policy::APPROVE,'reject_request'=>Policy::APPROVE,
@@ -140,6 +140,15 @@ final class Tools
         // Durable consumption before any CMS mutation. No retry after partial failure.
         $n=$this->store->run("UPDATE requests SET status='executing' WHERE id=? AND resource=? AND status='pending' AND expires>?",[$id,$resource,time()]);
         if ($n!==1) throw new RuntimeException('Solicitud caducada o ya procesada.');
+        register_shutdown_function(function () use ($id, $resource) {
+            $error=error_get_last();
+            if (!$error || !in_array($error['type'],[E_ERROR,E_PARSE,E_CORE_ERROR,E_COMPILE_ERROR],true)) return;
+            try {
+                // Recover from an open transaction before recording the interrupted operation.
+                try { $this->store->db->exec('ROLLBACK'); } catch (\Throwable $ignored) {}
+                $this->store->run("UPDATE requests SET status='failed' WHERE id=? AND resource=? AND status='executing'",[$id,$resource]);
+            } catch (\Throwable $ignored) {}
+        });
         $this->store->event($resource,'request.approved',$actor,['request'=>$id]);
         try {
             $result=$this->store->atomic(function () use ($resource,$row,$p,$tool,$plan,$actor) {
