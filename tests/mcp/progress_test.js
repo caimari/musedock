@@ -22,6 +22,7 @@ const assert = require('node:assert/strict');
         URL, FormData: class { set(key, value) { this[key] = value; } },
         setTimeout: callback => callback(),
         fetch: async (url, options) => {
+            assert.equal(nodes['mcp-progress-close'].disabled, false, 'The modal must remain closable during processing');
             calls.push({ url, action: options.body.action });
             return { ok: true, headers: { get: () => 'application/json' }, json: async () => calls.length === 1 ? { ok: true, result: { status: 'queued' } } : { ok: true, status: 'completed' } };
         }

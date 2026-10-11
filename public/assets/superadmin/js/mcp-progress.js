@@ -7,13 +7,13 @@
     const spinner = document.getElementById('mcp-progress-spinner');
     const close = document.getElementById('mcp-progress-close');
     let running = false;
-    dialog.addEventListener('cancel', event => { if (running) event.preventDefault(); });
     close.addEventListener('click', () => location.reload());
     async function run(jobs) {
         if (running) return;
         running = true;
         spinner.hidden = false;
-        close.disabled = true;
+        close.disabled = false;
+        close.textContent = 'Cerrar y actualizar (continúa en el servidor)';
         dialog.showModal();
         list.replaceChildren();
         const rows = jobs.map(job => {

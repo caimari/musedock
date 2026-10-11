@@ -277,11 +277,11 @@
   <p id="mcp-progress-summary" role="status" aria-live="polite"></p>
   <div id="mcp-progress-spinner" class="spinner-border text-primary" role="status"><span class="visually-hidden">Procesando</span></div>
   <ol id="mcp-progress-list" class="mt-3"></ol>
-  <button type="button" id="mcp-progress-close" class="btn btn-primary" disabled>Cerrar y actualizar</button>
+  <button type="button" id="mcp-progress-close" class="btn btn-primary">Cerrar y actualizar</button>
 </dialog>
 @endsection
 @push('scripts')
-<script src="/assets/superadmin/js/mcp-progress.js?v=3"></script>
+<script src="/assets/superadmin/js/mcp-progress.js?v=4"></script>
 <script src="/assets/superadmin/js/mcp-access-tabs.js?v=1"></script>
 <script>
 document.querySelectorAll('[data-mcp-info]').forEach(button=>button.addEventListener('click',()=>document.getElementById('mcp-info-'+button.dataset.mcpInfo).showModal()));
