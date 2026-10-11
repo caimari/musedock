@@ -76,12 +76,14 @@ final class Media
     private function context(int $site,callable $fn): array
     {
         $old=$GLOBALS['tenant']??null; $oldSession=$_SESSION['tenant_id']??null;
+        $oldUri=$_SERVER['REQUEST_URI']??null;
         $hasGlobal=array_key_exists('tenant',$GLOBALS); $hasSession=isset($_SESSION)&&array_key_exists('tenant_id',$_SESSION);
         try {
-            if ($site) { $row=$this->content->query("SELECT * FROM tenants WHERE id=? AND status='active'",[$site])[0]??null; if (!$row) throw new RuntimeException('Sitio no disponible.'); $GLOBALS['tenant']=$row; $_SESSION['tenant_id']=$site; }
-            else { unset($GLOBALS['tenant'],$_SESSION['tenant_id']); }
+            if ($site) { $row=$this->content->query("SELECT * FROM tenants WHERE id=? AND status='active'",[$site])[0]??null; if (!$row) throw new RuntimeException('Sitio no disponible.'); $GLOBALS['tenant']=$row; $_SESSION['tenant_id']=$site; $_SERVER['REQUEST_URI']='/'.trim(function_exists('admin_path')?admin_path():'admin','/').'/mcp/internal'; }
+            else { unset($GLOBALS['tenant'],$_SESSION['tenant_id']); $_SERVER['REQUEST_URI']='/musedock/mcp/internal'; }
             return $fn();
         } finally {
+            if ($oldUri===null) unset($_SERVER['REQUEST_URI']); else $_SERVER['REQUEST_URI']=$oldUri;
             if ($hasGlobal) $GLOBALS['tenant']=$old; else unset($GLOBALS['tenant']);
             if ($hasSession) $_SESSION['tenant_id']=$oldSession; else unset($_SESSION['tenant_id']);
         }

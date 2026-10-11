@@ -31,6 +31,14 @@ final class Admin
                 if ($tenant && !userCan('settings.edit')) throw new \RuntimeException('No tienes permiso para modificar ajustes.');
                 if (empty($_SESSION['_csrf_token']) || !hash_equals($_SESSION['_csrf_token'],(string)($_POST['_token']??$_POST['_csrf']??''))) throw new \RuntimeException('CSRF no válido.');
                 $action=$_POST['action']??'';
+                if ($action==='operation_status') {
+                    $row=$ep->store->one('SELECT id,status,data FROM requests WHERE id=? AND resource=?',[(string)($_POST['request']??''),$id]);
+                    if (!$row) throw new \RuntimeException('Solicitud no encontrada.');
+                    $job=$ep->store->one('SELECT status,error FROM approval_jobs WHERE request_id=? AND resource=?',[$row['id'],$id]);
+                    $payload=$ep->store->decode($row);
+                    header('Content-Type: application/json'); header('Cache-Control: no-store');
+                    echo json_encode(['ok'=>true,'status'=>$job['status']??$row['status'],'error'=>$job['error']??null,'result'=>$payload['result']??null]); return;
+                }
                 if ($action==='deployment') {
                     if ($tenant || !\Screenart\Musedock\Helpers\PermissionHelper::isSuperAdminRoot($actor)) throw new \RuntimeException('Solo el administrador principal puede activar el servicio global.');
                     Deployment::setEnabled(isset($_POST['deployment_enabled']));
@@ -92,7 +100,7 @@ final class Admin
                     $ep->store->event($id,'publication.cancelled',$actor);
                 } elseif ($action==='approve' || $action==='reject') {
                     if (function_exists('set_time_limit')) set_time_limit(240);
-                    $result=(new Tools($ep->store,$content))->decide($id,(string)($_POST['request']??''),$actor,$action==='approve');
+                    $result=(new Tools($ep->store,$content))->decide($id,(string)($_POST['request']??''),$actor,$action==='approve',$action==='approve');
                     if ($ajax) { header('Content-Type: application/json'); header('Cache-Control: no-store'); echo json_encode(['ok'=>true,'result'=>$result]); return; }
                 } else throw new \RuntimeException('Acción desconocida.');
                 flash('success','Configuración MCP actualizada.'); header('Location: '.$back); return;
@@ -104,20 +112,27 @@ final class Admin
             $c=$ep->store->decode($row); unset($c['secret_hash'],$c['previous_secret_hash']); $clients[]=$c;
         }
         $grants=[]; foreach ($ep->store->all('SELECT data FROM grants WHERE resource=?',[$id]) as $row) $grants[]=$ep->store->decode($row);
-        $requests=$ep->store->all("SELECT * FROM requests WHERE resource=? AND status='pending' AND expires>? ORDER BY expires DESC",[$id,time()]);
+        $requests=$ep->store->all("SELECT * FROM requests WHERE resource=? AND status='pending' AND expires>? AND NOT EXISTS (SELECT 1 FROM approval_jobs j WHERE j.request_id=requests.id) ORDER BY expires DESC",[$id,time()]);
         foreach ($requests as &$request) $request['payload']=$ep->store->decode($request); unset($request);
-        $recentOperations=$ep->store->all("SELECT id,status,data FROM requests WHERE resource=? AND status IN ('executing','failed','completed') ORDER BY rowid DESC LIMIT 15",[$id]);
-        foreach ($recentOperations as &$operation) { $payload=$ep->store->decode($operation); $operation['tool']=$payload['plan']['tool']??''; unset($operation['data']); } unset($operation);
+        $recentOperations=$ep->store->all("SELECT id,status,data FROM requests WHERE resource=? AND (status IN ('executing','failed','completed') OR EXISTS (SELECT 1 FROM approval_jobs j WHERE j.request_id=requests.id)) ORDER BY rowid DESC LIMIT 15",[$id]);
+        foreach ($recentOperations as &$operation) { $payload=$ep->store->decode($operation); $operation['tool']=$payload['plan']['tool']??''; $operation['error']=$payload['failure_reason']??null; $job=$ep->store->one('SELECT status,error FROM approval_jobs WHERE request_id=?',[$operation['id']]); if ($job) { $operation['status']=$job['status']; $operation['error']=$job['error']; } unset($operation['data']); } unset($operation);
         $new=$_SESSION['cms_mcp_new'][$id]??null; unset($_SESSION['cms_mcp_new'][$id]);
         $sites=[]; $groups=[];
         if (Policy::site($id)===null) {
             $sites=Database::connect()->query("SELECT t.id,t.name,t.domain,t.group_id FROM tenants t INNER JOIN domain_groups g ON g.id=t.group_id WHERE t.status='active' ORDER BY g.name,t.name")->fetchAll(\PDO::FETCH_ASSOC);
             $groups=Database::connect()->query('SELECT id,name FROM domain_groups ORDER BY name')->fetchAll(\PDO::FETCH_ASSOC);
         }
+        $imageDiagnostics=[];
+        foreach (\Screenart\Musedock\Services\AI\ImageTrace::recent() as $trace) {
+            if (empty($trace['request_id'])) continue;
+            if (!$ep->store->one('SELECT id FROM requests WHERE id=? AND resource=?',[$trace['request_id'],$id])) continue;
+            $imageDiagnostics[]=$trace;
+            if (count($imageDiagnostics)>=30) break;
+        }
         $resourceOptions=['main'=>'Dominio principal'];
         foreach (['cross-publisher'=>'Cross Publisher','news-aggregator'=>'News Aggregator'] as $slug=>$label) if (Endpoint::installed('plugin:'.$slug)) $resourceOptions['plugin:'.$slug]=$label;
         (new Scheduler($ep->store,$content));
-        $data=['recentOperations'=>$recentOperations,'resourceOptions'=>$resourceOptions,'schedules'=>$ep->store->all("SELECT * FROM schedules WHERE resource=? AND status='scheduled' ORDER BY due",[$id]),'title'=>'(MCP) Conexiones IA','resource'=>$r,'clients'=>$clients,'grants'=>$grants,'requests'=>$requests,'newClient'=>$new,'error'=>$error,
+        $data=['imageDiagnostics'=>$imageDiagnostics,'recentOperations'=>$recentOperations,'resourceOptions'=>$resourceOptions,'schedules'=>$ep->store->all("SELECT * FROM schedules WHERE resource=? AND status='scheduled' ORDER BY due",[$id]),'title'=>'(MCP) Conexiones IA','resource'=>$r,'clients'=>$clients,'grants'=>$grants,'requests'=>$requests,'newClient'=>$new,'error'=>$error,
             'base'=>$base,'back'=>$back,'tenantMode'=>$tenant,'scopes'=>Policy::scopes($id),'sites'=>$sites,'groups'=>$groups,
             'canManageDeployment'=>!$tenant && \Screenart\Musedock\Helpers\PermissionHelper::isSuperAdminRoot($actor),
             'deploymentEnabled'=>filter_var(Env::get('MCP_CMS_DIRECT_ENABLED',false),FILTER_VALIDATE_BOOLEAN) && filter_var(Env::get('MCP_ENABLED',true),FILTER_VALIDATE_BOOLEAN),'pluginInstalled'=>Endpoint::installed($id),

@@ -46,6 +46,10 @@ class AIImageService
             throw new \Exception("No hay API key configurada para el proveedor '{$provider['name']}'");
         }
 
+        ImageTrace::$context=['request_id'=>$GLOBALS['mcp_request_id']??null,'tenant_id'=>$tenantId,'provider_id'=>$providerId,'provider_type'=>$provider['provider_type'],'model'=>$provider['model']??null];
+        $started=microtime(true);
+        ImageTrace::record('provider_request_started');
+        try {
         // Generate based on provider type
         $result = match ($provider['provider_type']) {
             'openai'   => self::generateOpenAI($apiKey, $prompt, $provider, $options),
@@ -55,8 +59,14 @@ class AIImageService
             default    => throw new \Exception("Tipo de proveedor de imagen no soportado: {$provider['provider_type']}")
         };
 
+        ImageTrace::record('provider_response_received');
         // Download and save image locally
         $localPath = self::downloadAndSave($result['url'], $tenantId, $metadata);
+        ImageTrace::record('image_saved',['duration_ms'=>(int)((microtime(true)-$started)*1000)]);
+        } catch (\Throwable $e) {
+            ImageTrace::record('generation_failed',['duration_ms'=>(int)((microtime(true)-$started)*1000),'error_type'=>get_class($e)]);
+            throw $e;
+        } finally { ImageTrace::$context=[]; }
 
         // Log usage
         try {
@@ -185,6 +195,7 @@ class AIImageService
             'Content-Type: application/json',
         ]);
 
+        ImageTrace::record('provider_api_status',['provider_status'=>(int)($response['base_resp']['status_code']??0)]);
         // Check for API errors
         if (isset($response['base_resp']['status_code']) && $response['base_resp']['status_code'] !== 0) {
             throw new \Exception("MiniMax error: " . ($response['base_resp']['status_msg'] ?? 'Error desconocido'));
@@ -411,6 +422,7 @@ class AIImageService
      */
     private static function httpPost(string $url, array $data, array $headers = []): array
     {
+        $networkStarted=microtime(true);
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
@@ -425,6 +437,7 @@ class AIImageService
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
+        ImageTrace::record('provider_http_response',['duration_ms'=>(int)((microtime(true)-$networkStarted)*1000),'http_status'=>(int)$httpCode,'curl_errno'=>curl_errno($ch)]);
         curl_close($ch);
 
         if ($error) {

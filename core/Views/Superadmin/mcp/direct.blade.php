@@ -147,8 +147,16 @@
     </form>
   </div></details>
   <div class="card mb-3"><div class="card-body"><h2 class="h5">Clientes y permisos</h2>
+    @if($isPluginConnection)<p class="text-muted">Puedes crear varios accesos independientes con esta misma URL: por ejemplo, «ChatGPT · Tech» y «Claude · Festivales». Selecciona los grupos y dominios de cada cliente al crearlo; sus credenciales solo permiten acceder a esa selección.</p>@endif
     @forelse($clients as $client)
     <div class="border rounded p-3 mb-3"><h3 class="h6">{{ $client['name'] }} — {{ $client['enabled'] ? 'Habilitado' : 'Revocado' }}</h3><p class="small">ID: <code>{{ $client['id'] }}</code><br>Callback: {{ $client['callback'] }}</p>
+      @if($isPluginConnection)
+      <p class="small"><strong>Grupos:</strong>
+        @foreach(($client['groups'] ?? []) as $groupId)<span class="badge bg-light text-dark">{{ $groupNames[(int)$groupId] ?? 'Grupo no disponible' }}</span> @endforeach
+        <br><strong>Dominios:</strong>
+        @foreach($sites as $site)@if(in_array((int)$site['id'], $client['sites'] ?? [], true))<span class="badge bg-light text-dark">{{ $site['domain'] }}</span> @endif @endforeach
+      </p>
+      @endif
       @if($client['enabled'])
       <form method="post" action="{{ $back }}" class="mb-3">
         {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="client" value="{{ $client['id'] }}">
@@ -178,7 +186,7 @@
     @empty <p class="text-muted">Ningún asistente ha completado la autorización.</p>@endforelse
   </div></div>
   <div class="card mb-3"><div class="card-body"><h2 class="h5">Cambios pendientes</h2>
-    @if(count($requests))<button type="button" class="btn btn-success mb-3" id="mcp-approve-all">Aprobar todas en cola ({{ count($requests) }})</button><p class="small text-muted">Las solicitudes se ejecutan una a una. Mantén esta página abierta hasta que termine la cola.</p>@endif
+    @if(count($requests))<button type="button" class="btn btn-success mb-3" id="mcp-approve-all">Aprobar todas en cola ({{ count($requests) }})</button><p class="small text-muted">Las aprobaciones se guardan en una cola interna y se ejecutan en segundo plano. El procesamiento puede tardar hasta un minuto en empezar.</p>@endif
     @forelse($requests as $request)
       <div class="border rounded p-3 mb-3"><p>Solicitud {{ $request['id'] }} · caduca en {{ max(0,$request['expires']-time()) }} segundos</p>
       <details><summary>Revisar el plan y el contenido</summary><pre class="text-wrap border p-2">{{ json_encode($request['payload']['plan'],JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</pre></details>
@@ -188,11 +196,16 @@
   @if(!empty($recentOperations))
   <div class="card mb-3"><div class="card-body"><h2 class="h5">Estado de operaciones recientes</h2>
     @foreach($recentOperations as $operation)
-      <p class="small"><code>{{ $operation['id'] }}</code> · {{ $operation['tool'] }} · <strong>{{ ['executing'=>'En ejecución o pendiente de verificar', 'failed'=>'Fallida', 'completed'=>'Completada'][$operation['status']] }}</strong></p>
+      <p class="small"><code>{{ $operation['id'] }}</code> · {{ $operation['tool'] }} · <strong>{{ ['queued'=>'En cola', 'executing'=>'En ejecución o pendiente de verificar', 'failed'=>'Fallida', 'completed'=>'Completada'][$operation['status']] }}</strong>@if(!empty($operation['error'])) · {{ $operation['error'] }}@endif</p>
     @endforeach
     <p class="small text-muted">Si una operación permanece en ejecución, comprueba el gestor de medios y el artículo antes de solicitar otra generación. No se reintenta automáticamente.</p>
   </div></div>
   @endif
+  <details class="card mb-3"><summary class="card-header">Diagnóstico de generación de imágenes</summary><div class="card-body">
+    <p class="small text-muted">Registro privado desde esta actualización: proveedor, etapa, duración y códigos de respuesta. No guarda claves, secretos, prompts ni las URL del proveedor. Una generación interrumpida anterior no tiene un diagnóstico retroactivo.</p>
+    @forelse(($imageDiagnostics ?? []) as $trace)<pre class="text-wrap border p-2 small">{{ json_encode($trace,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</pre>
+    @empty<p class="text-muted">Todavía no hay llamadas registradas para esta conexión.</p>@endforelse
+  </div></details>
   @if(count($schedules))
   <div class="card mb-3"><div class="card-body"><h2 class="h5">Publicaciones programadas</h2>
     @foreach($schedules as $schedule)
@@ -222,7 +235,7 @@
 </dialog>
 @endsection
 @push('scripts')
-<script src="/assets/superadmin/js/mcp-progress.js?v=1"></script>
+<script src="/assets/superadmin/js/mcp-progress.js?v=2"></script>
 <script>
 document.querySelectorAll('[data-mcp-info]').forEach(button=>button.addEventListener('click',()=>document.getElementById('mcp-info-'+button.dataset.mcpInfo).showModal()));
 document.querySelectorAll('[data-mcp-close]').forEach(button=>button.addEventListener('click',()=>button.closest('dialog').close()));

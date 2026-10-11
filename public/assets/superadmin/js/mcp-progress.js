@@ -31,8 +31,22 @@
             try {
                 const response = await fetch(form.action, { method: 'POST', body: data, credentials: 'same-origin', headers: { 'X-MCP-Progress': '1', 'Accept': 'application/json' } });
                 if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('Respuesta no verificable. Revisa el estado antes de volver a aprobar.');
-                const result = await response.json();
+                let result = await response.json();
                 if (!response.ok || !result.ok) throw new Error(result.error || 'No se pudo completar la solicitud.');
+                if (result.result?.status === 'queued') {
+                    for (;;) {
+                        rows[i].textContent = form.elements.request.value.slice(0, 12) + ' — ' + (result.status === 'executing' ? 'En ejecución en el servidor' : 'En cola interna; esperando al procesador');
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        const poll = new FormData(form);
+                        poll.set('action', 'operation_status');
+                        const response = await fetch(form.action, { method: 'POST', body: poll, credentials: 'same-origin', headers: { 'X-MCP-Progress': '1', 'Accept': 'application/json' } });
+                        if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('No se pudo consultar el estado. La cola permanece en el servidor; recarga para revisarla.');
+                        result = await response.json();
+                        if (!response.ok || !result.ok) throw new Error(result.error || 'No se pudo consultar el estado.');
+                        if (result.status === 'completed') break;
+                        if (result.status === 'failed') throw new Error(result.error || 'La operación falló.');
+                    }
+                }
                 rows[i].textContent = form.elements.request.value.slice(0, 12) + (action === 'approve' ? ' — Completada' : ' — Rechazada');
                 if (result.result?.media?.url) {
                     const link = document.createElement('a');

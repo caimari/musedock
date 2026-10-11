@@ -1,0 +1,27 @@
+<?php
+require __DIR__.'/run.php';
+use Screenart\Musedock\Services\Mcp\Direct\{Store,Authorization,Content,Tools,Policy,ApprovalQueue};
+$store=new Store(new PDO('sqlite::memory:'));$content=new Content(fixture());$oauth=new Authorization($store);$tools=new Tools($store,$content);
+resource($store,'main','https://cms.example/mcp');
+[$auth]=connection($oauth,'main',[Policy::READ,Policy::CREATE]);
+$request=$tools->call('create_draft',$auth,['title'=>'Queued draft','content'=>'Queue test','apply'=>true]);
+$id=$request['request_id'];
+$result=$tools->decide('main',$id,7,true,true);
+check($result['status']==='queued','approval queued');
+check($content->db->query("SELECT COUNT(*) FROM blog_posts WHERE title='Queued draft'")->fetchColumn()==0,'queued approval does not mutate CMS');
+$tools->decide('main',$id,7,true,true);
+check($store->one('SELECT COUNT(*) AS n FROM approval_jobs')['n']==1,'approval queue deduplicates requests');
+check($tools->call('get_request_status',$auth,['request_id'=>$id])['status']==='queued','client can poll own queued request');
+check((new ApprovalQueue($store,$content))->run()===1,'worker consumes queued request');
+check($tools->call('get_request_status',$auth,['request_id'=>$id])['status']==='completed','client can poll completion');
+check($content->db->query("SELECT COUNT(*) FROM blog_posts WHERE title='Queued draft'")->fetchColumn()==1,'worker creates draft once');
+check((new ApprovalQueue($store,$content))->run()===0,'worker does not repeat completed writes');
+[$other]=connection($oauth,'main',[Policy::READ,Policy::CREATE]);
+denied(fn()=>$tools->call('get_request_status',$other,['request_id'=>$id]),'other client cannot inspect request result');
+$request=$tools->call('create_draft',$auth,['title'=>'Revoked queue','content'=>'Queue test','apply'=>true]);
+$tools->decide('main',$request['request_id'],7,true,true);
+$oauth->reviseClient('main',$auth['client']['id'],[Policy::READ],false);
+(new ApprovalQueue($store,$content))->run();
+check($store->one('SELECT status FROM approval_jobs WHERE request_id=?',[$request['request_id']])['status']==='failed','worker rechecks authorization');
+check($content->db->query("SELECT COUNT(*) FROM blog_posts WHERE title='Revoked queue'")->fetchColumn()==0,'revoked queued write never executes');
+echo "PASS: durable approval queue, completion polling, deduplication, isolation and execution-time permissions.\n";

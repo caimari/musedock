@@ -13,7 +13,7 @@ final class Tools
         'list_media'=>Policy::MEDIA,'list_image_options'=>Policy::MEDIA,'upload_image'=>Policy::MEDIA,'generate_image'=>Policy::MEDIA,
         'create_category'=>Policy::TAXONOMY,'update_category'=>Policy::TAXONOMY,'create_tag'=>Policy::TAXONOMY,'update_tag'=>Policy::TAXONOMY,
         'create_post'=>Policy::EDITOR,'update_post'=>Policy::EDITOR,'publish_post'=>Policy::POSTS,'schedule_post'=>Policy::POSTS,
-        'list_requests'=>Policy::APPROVE,'approve_request'=>Policy::APPROVE,'reject_request'=>Policy::APPROVE,
+        'get_request_status'=>Policy::READ,'list_requests'=>Policy::APPROVE,'approve_request'=>Policy::APPROVE,'reject_request'=>Policy::APPROVE,
         'list_sites'=>Policy::READ,'copy_draft'=>Policy::COPY,'list_news_items'=>Policy::READ,'import_news_draft'=>Policy::IMPORT,
     ];
     public function __construct(public Store $store, public Content $content) {}
@@ -39,7 +39,7 @@ final class Tools
                 if ($tool==='create_draft') $required=array_merge($required,['title','content']);
             }
             if (isset(Editor::MAP[$tool])) { $properties=Editor::schema($tool); $required=Editor::required($tool); if (Policy::site($r['id'])===null) $required[]='site_id'; }
-            if (in_array($tool,['list_requests','approve_request','reject_request'],true)) { $properties=$tool==='list_requests'?[]:['request_id'=>['type'=>'string','maxLength'=>48,'minLength'=>48]]; $required=$tool==='list_requests'?[]:['request_id']; }
+            if (in_array($tool,['get_request_status','list_requests','approve_request','reject_request'],true)) { $properties=$tool==='list_requests'?[]:['request_id'=>['type'=>'string','maxLength'=>48,'minLength'=>48]]; $required=$tool==='list_requests'?[]:['request_id']; }
             $write=!self::readOnly($tool) && !in_array($tool,['approve_request','reject_request'],true);
             if ($write) {
                 foreach (in_array($tool,['create_draft','update_draft','copy_draft','import_news_draft','create_post','update_post'],true)?['category_ids','tag_ids']:[] as $f) $properties[$f]=['type'=>'array','items'=>['type'=>'integer','minimum'=>1],'maxItems'=>50];
@@ -65,7 +65,7 @@ final class Tools
         return Policy::active($r,$auth['client'],$auth['grant']) && Policy::allows($auth['client'],$auth['grant'],$scope)
             && $this->content->actorActive($r['id'],$auth['grant']['actor'],$scope);
     }
-    public static function readOnly(string $tool): bool { return str_starts_with($tool,'list_') || in_array($tool,['get_post','get_post_details'],true); }
+    public static function readOnly(string $tool): bool { return str_starts_with($tool,'list_') || in_array($tool,['get_post','get_post_details','get_request_status'],true); }
     public function validate(string $tool,array $auth,array $args,bool $stored=false): void
     {
         $def=null; foreach ($this->catalog($auth) as $t) if ($t['name']===$tool) $def=$t;
@@ -85,6 +85,13 @@ final class Tools
     public function call(string $tool,array $auth,array $args): array
     {
         $this->validate($tool,$auth,$args); $r=$auth['resource']; $c=$auth['client']; $g=$auth['grant'];
+        if ($tool==='get_request_status') {
+            $row=$this->store->one('SELECT * FROM requests WHERE id=? AND resource=? AND client=?',[$args['request_id'],$r['id'],$c['id']]);
+            $payload=$this->store->decode($row);
+            if (!$row || ($payload['grant']??'')!==$g['id']) throw new RuntimeException('Solicitud ajena o no disponible.');
+            $job=$this->store->one('SELECT status,error FROM approval_jobs WHERE request_id=?',[$row['id']]);
+            return ['request_id'=>$row['id'],'status'=>$job['status']??$row['status'],'result'=>$payload['result']??null,'error'=>$job['error']??null];
+        }
         if (self::MAP[$tool]===Policy::APPROVE) return $this->remoteDecision($tool,$auth,$args);
         if (self::readOnly($tool)) {
             $result=$this->content->read($tool,$r,$c,$args);
@@ -117,9 +124,9 @@ final class Tools
         if ($tool==='list_requests') return array_values(array_map(fn($row)=>['request_id'=>$row['id'],'expires'=>$row['expires'],'plan'=>$this->store->decode($row)['plan']],$own));
         $found=null; foreach ($own as $row) if ($row['id']===$args['request_id']) $found=$row;
         if (!$found) throw new RuntimeException('Solicitud ajena, caducada o no disponible.');
-        return $this->decide($auth['resource']['id'],$found['id'],$auth['grant']['actor'],$tool==='approve_request');
+        return $this->decide($auth['resource']['id'],$found['id'],$auth['grant']['actor'],$tool==='approve_request',$tool==='approve_request' && ($this->store->decode($found)['plan']['tool']??'')==='generate_image');
     }
-    public function decide(string $resource,string $id,int $actor,bool $approve): array
+    public function decide(string $resource,string $id,int $actor,bool $approve,bool $enqueue=false): array
     {
         $row=$this->store->one('SELECT * FROM requests WHERE id=? AND resource=?',[$id,$resource]);
         if (!$row || $row['status']!=='pending' || $row['expires']<=time()) throw new RuntimeException('Solicitud caducada o ya procesada.');
@@ -137,6 +144,10 @@ final class Tools
         $plan=$this->content->plan($tool,$r,$c,$p['args']);
         if (!hash_equals($p['fingerprint'],Policy::fingerprint($plan))) throw new RuntimeException('El plan ha cambiado. Solicita uno nuevo.');
         $this->assertPublishing($tool,$plan,$auth,$actor);
+        if ($enqueue) {
+            $this->store->run("INSERT INTO approval_jobs(request_id,resource,actor,status,created) VALUES(?,?,?,'queued',?) ON CONFLICT(request_id) DO NOTHING",[$id,$resource,$actor,time()]);
+            return ['status'=>'queued','request_id'=>$id];
+        }
         // Durable consumption before any CMS mutation. No retry after partial failure.
         $n=$this->store->run("UPDATE requests SET status='executing' WHERE id=? AND resource=? AND status='pending' AND expires>?",[$id,$resource,time()]);
         if ($n!==1) throw new RuntimeException('Solicitud caducada o ya procesada.');

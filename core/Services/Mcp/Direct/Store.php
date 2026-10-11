@@ -38,6 +38,7 @@ final class Store
             CREATE TABLE IF NOT EXISTS tokens (hash TEXT PRIMARY KEY, type TEXT NOT NULL, family TEXT NOT NULL, data TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS requests (id TEXT PRIMARY KEY, resource TEXT NOT NULL, client TEXT NOT NULL, status TEXT NOT NULL, expires INTEGER NOT NULL, data TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, resource TEXT NOT NULL, action TEXT NOT NULL, actor INTEGER NOT NULL, detail TEXT NOT NULL, created INTEGER NOT NULL);
+            CREATE TABLE IF NOT EXISTS approval_jobs (request_id TEXT PRIMARY KEY, resource TEXT NOT NULL, actor INTEGER NOT NULL, status TEXT NOT NULL, created INTEGER NOT NULL, started INTEGER, error TEXT);
             CREATE TABLE IF NOT EXISTS limits (id TEXT PRIMARY KEY, started INTEGER NOT NULL, count INTEGER NOT NULL);");
     }
     public function one(string $sql, array $args = []): ?array
