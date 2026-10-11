@@ -1,7 +1,28 @@
 @extends('layouts.app')
 @section('title', $title)
 @section('content')
-<div class="container-fluid p-4">
+<style>
+.mcp-settings { max-width: 1500px; }
+.mcp-settings > h1 { margin-bottom: 18px; font-weight: 600; }
+.mcp-settings > .nav { gap: 6px; margin-bottom: 22px !important; }
+.mcp-settings .nav-link { border-radius: 9px; }
+.mcp-settings > p { line-height: 1.6; margin-bottom: 22px; }
+.mcp-settings > .card { border: 1px solid #e5eaf1; border-radius: 12px; margin-bottom: 22px !important; box-shadow: 0 3px 14px rgba(30, 50, 80, .035); overflow: hidden; }
+.mcp-settings .card-body { padding: 24px; }
+.mcp-settings .card-body > h2 { margin-bottom: 14px; font-weight: 600; }
+.mcp-settings .card-header { padding: 18px 24px; background: #fff; cursor: pointer; font-weight: 500; }
+.mcp-settings details[open] > .card-header { border-bottom: 1px solid #e5eaf1; }
+.mcp-settings .form-check { line-height: 1.6; margin-bottom: 8px; }
+.mcp-settings .input-group { margin: 18px 0 22px; }
+.mcp-settings .input-group input[readonly] { background: #f6f8fb; }
+.mcp-settings .mcp-activation-notice { padding: 18px 20px; margin: 0 0 26px; border: 1px solid #dce6f5; border-left: 4px solid #3b7ddd; border-radius: 10px; background: #edf3fc; color: #40536d; line-height: 1.6; }
+.mcp-settings .mcp-activation-notice span { display: block; margin-top: 4px; }
+.mcp-settings .mcp-status { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: .85em; font-weight: 600; background: #eef1f5; color: #596579; }
+.mcp-settings .mcp-status.is-enabled { background: #e7f5ec; color: #247445; }
+.mcp-settings .mcp-consents-heading { margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5eaf1; }
+@media (max-width: 576px) { .mcp-settings.container-fluid { padding: 16px !important; } .mcp-settings .card-body, .mcp-settings .card-header { padding: 18px; } .mcp-settings .nav-link { padding: 10px 12px; } }
+</style>
+<div class="container-fluid p-4 mcp-settings">
   <h1 class="h3"><i class="bi bi-robot me-2"></i>Conexiones IA (MCP)</h1>
   @if(!$tenantMode)
   <nav class="nav nav-pills mb-3">
@@ -17,11 +38,11 @@
   @endif
   <p>Conecta un asistente para consultar artículos y preparar borradores en <strong>{{ $resource['name'] }}</strong>.</p>
   @if($error)<div class="alert alert-danger">{{ $error }}</div>@endif
-  @if(!$deploymentEnabled)<div class="alert alert-secondary">La conexión pública está pendiente de activación por el operador del CMS. Puedes preparar sus clientes y permisos.</div>@endif
+  @if(!$deploymentEnabled)<div class="mcp-activation-notice" role="status"><strong>La conexión pública está pendiente de activación por el operador del CMS.</strong><span>Puedes preparar sus clientes y permisos.</span></div>@endif
   @if(!$pluginInstalled)<div class="alert alert-warning">Este plugin debe estar instalado y activo para abrir su conexión MCP.</div>@endif
   <div class="card mb-3"><div class="card-body">
     <h2 class="h5">Conexión directa HTTPS</h2>
-    <p>Servicio: <strong>{{ $deploymentEnabled && $resource['enabled'] && $pluginInstalled ? 'Habilitado' : 'Desactivado' }}</strong>. La autorización de cada cliente se muestra por separado.</p>
+    <p>Servicio: <span class="mcp-status {{ $deploymentEnabled && $resource['enabled'] && $pluginInstalled ? 'is-enabled' : '' }}">{{ $deploymentEnabled && $resource['enabled'] && $pluginInstalled ? 'Habilitado' : 'Desactivado' }}</span>. La autorización de cada cliente se muestra por separado.</p>
     <div class="input-group mb-3"><input id="mcp-url" class="form-control" readonly value="{{ $resource['url'] }}"><button class="btn btn-outline-primary" type="button" data-copy="mcp-url">Copiar URL</button></div>
     <form method="post" action="{{ $back }}">
       {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="action" value="configure">
@@ -82,7 +103,7 @@
       <form method="post" action="{{ $back }}">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="client" value="{{ $client['id'] }}"><button class="btn btn-sm btn-outline-danger" name="action" value="revoke_client">Revocar cliente</button></form>
     </div>
     @empty <p class="text-muted">Aún no hay clientes registrados.</p>@endforelse
-    <h3 class="h6">Consentimientos</h3>
+    <h3 class="h6 mcp-consents-heading">Consentimientos</h3>
     @forelse($grants as $grant)
       <form method="post" action="{{ $back }}" class="mb-2">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="grant" value="{{ $grant['id'] }}">
         <span>{{ $grant['client'] }} — {{ $grant['active'] && $grant['resource_revision']===$resource['revision'] ? 'Concedido (sujeto a permisos vigentes)' : 'Revocado o pendiente de renovación' }}</span>
