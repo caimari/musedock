@@ -41,3 +41,25 @@ Se guardó una copia completa PostgreSQL en formato custom y la configuración f
 Se añadieron y pasaron las mismas 78 comprobaciones en un PostgreSQL 16 temporal sin escucha TCP (`python3 tests/mcp/postgres_test.py`). También pasaron nuevamente las 78 comprobaciones SQLite, 30 HTTP, concurrencia y vistas Blade. Se confirmó por HTTPS que la gestión requiere login y que los recursos públicos desactivados responden 404.
 
 El valor anterior `MCP_ENABLED=false` se conserva; el nuevo interruptor también permanece desactivado por defecto. El código y la gestión están desplegados, pero la conexión externa requiere habilitación explícita y configurar clientes con callbacks reales. No se ha verificado aún una cuenta real de ChatGPT/Claude.
+
+
+## Editor completo 2.21 — 11 de octubre de 2026
+
+La ampliación se desplegó en `main` hasta `81c4155`, integrando antes las mejoras recientes de menú, callbacks automáticos, configuración en dos pasos, dominios con enlace y filtro por grupos editoriales. La entrega anterior descrita arriba corresponde a 2.20; sus limitaciones funcionales se sustituyen por [EDITOR-2.21.md](EDITOR-2.21.md).
+
+| Validación final | Resultado |
+| --- | --- |
+| Autorización, aislamiento y editor con SQLite | 139 comprobaciones correctas |
+| Misma suite con PostgreSQL temporal sin TCP | 139 comprobaciones correctas |
+| Misma suite con MariaDB temporal sin TCP | 139 comprobaciones correctas |
+| Router y endpoints HTTP; aprobación remota y artículos privados/protegidos | 38 comprobaciones correctas |
+| Código OAuth concurrente | Exactamente un intercambio correcto |
+| Vistas Blade, pasos, dominios y estados sin sitios | Correctas en superadmin y tenant |
+| Copia íntegra del esquema y datos PostgreSQL de producción en instancia privada desechable | Editor, publicación, edición en vivo, taxonomías, comentarios, traducciones, programación y migración idempotente correctos |
+| Sintaxis de PHP modificado y diff | Correctos |
+
+Se verificó la copia previa al despliegue en `.codex/backups/mcp-editor-2.21-20261011T110024Z`: dump completo PostgreSQL (112055026 bytes), entorno, copia consistente del SQLite OAuth, crontab y parche de cambios previos de plugins privados. Los ficheros privados tienen permisos 0600 y el directorio 0700. El CMS mantiene autonomía respecto al Panel y no se modificó el repositorio de plugins privados.
+
+Se aplicaron únicamente las migraciones 150000 y 160000, registradas en una transacción. Se verificaron las ocho columnas del editor/traducciones y la integridad del SQLite. El worker de publicaciones está registrado cada minuto, preservando las tareas existentes. Se purgó la caché HTML previa al cambio de visibilidad (12387 entradas). La web, blog y un artículo publicado responden 200 por HTTPS; la página de gestión redirige al login; los tres recursos MCP responden 404 mientras está desactivado el interruptor público.
+
+La configuración existente no se alteró: durante este despliegue `MCP_ENABLED=true` y `MCP_CMS_DIRECT_ENABLED=false`. Activar la conexión pública sigue siendo una acción explícita del operador. Las opciones de publicación y aprobación remota son independientes y no se conceden a clientes existentes automáticamente. No se crearon credenciales ni artículos de producción para las pruebas, ni se consumieron créditos de proveedores. La generación utiliza el proveedor configurado del CMS; no se verificó una conexión real de ChatGPT/Claude ni una generación pagada. La persistencia de subida de medios se validó con un adaptador aislado, como se detalla en EDITOR-2.21.md.
