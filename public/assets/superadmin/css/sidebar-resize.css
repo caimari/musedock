@@ -1,0 +1,51 @@
+#sidebar,
+#sidebar .sidebar-content {
+    scrollbar-width: thin;
+    scrollbar-color: #62748a #222e3c;
+}
+#sidebar::-webkit-scrollbar,
+#sidebar .sidebar-content::-webkit-scrollbar { width: 5px; }
+#sidebar::-webkit-scrollbar-track,
+#sidebar .sidebar-content::-webkit-scrollbar-track { background: #222e3c; }
+#sidebar::-webkit-scrollbar-thumb,
+#sidebar .sidebar-content::-webkit-scrollbar-thumb { background: #62748a; border-radius: 8px; }
+#sidebar::-webkit-scrollbar-thumb:hover,
+#sidebar .sidebar-content::-webkit-scrollbar-thumb:hover { background: #91a2b5; }
+.sidebar-resizer { display: none; }
+@media (min-width: 768px) {
+    nav#sidebar.sidebar:not(.collapsed) {
+        width: var(--musedock-sidebar-width, 220px) !important;
+        min-width: var(--musedock-sidebar-width, 220px) !important;
+        max-width: var(--musedock-sidebar-width, 220px) !important;
+    }
+    .sidebar-resizer {
+        display: block;
+        flex: 0 0 6px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        align-self: flex-start;
+        cursor: col-resize;
+        touch-action: none;
+        z-index: 2;
+        outline: none;
+    }
+    .sidebar-resizer::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 2px;
+        width: 2px;
+        background: transparent;
+        transition: background .15s;
+    }
+    .sidebar-resizer:hover::after,
+    .sidebar-resizer:focus-visible::after,
+    .sidebar-is-resizing .sidebar-resizer::after { background: #3b7ddd; }
+    nav#sidebar.sidebar.collapsed + .sidebar-resizer { display: none; }
+    .sidebar-is-resizing,
+    .sidebar-is-resizing * { cursor: col-resize !important; user-select: none !important; }
+    .sidebar-is-resizing nav#sidebar.sidebar { transition: none !important; }
+    .wrapper > .main { min-width: 0; }
+}

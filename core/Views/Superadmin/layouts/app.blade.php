@@ -231,6 +231,8 @@
 	  </style>
 @stack('styles')
 @stack('meta')
+<link rel="stylesheet" href="/assets/superadmin/css/sidebar-resize.css?v=1">
+<script src="/assets/superadmin/js/sidebar-resize.js?v=1"></script>
 </head>
 
 <body>
@@ -580,6 +582,8 @@
 	</nav>
 
 	{{-- Contenedor Principal --}}
+    <div id="sidebar-resizer" class="sidebar-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Cambiar ancho del menú lateral" aria-controls="sidebar" aria-valuemin="200" aria-valuemax="480" aria-valuenow="220" title="Arrastra para cambiar el ancho. Doble clic para restablecer. También puedes usar las flechas del teclado."></div>
+
 	<div class="main">
 		{{-- Navbar Adaptada --}}
 		<nav class="navbar navbar-expand navbar-light navbar-bg">
