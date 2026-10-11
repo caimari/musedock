@@ -17,7 +17,7 @@
 
 @section('content')
 <div class="row g-4">
-  <div class="col-xl-9 col-lg-8">
+  <div class="col-12 col-xl-9">
 @php
   $allPerms = \Screenart\Musedock\Controllers\Api\V1\ApiKeyController::availablePermissions();
   $permGroups = \Screenart\Musedock\Controllers\Api\V1\ApiKeyController::permissionGroups();
@@ -285,7 +285,7 @@ document.getElementById('btnCreateKey').addEventListener('click', function() {
 @endpush
 
   </div>
-  <aside class="col-xl-3 col-lg-4" aria-label="Opciones de Ajustes">
+  <aside class="col-xl-3 d-none d-xl-block" aria-label="Opciones de Ajustes">
     @include('settings.partials.sidebar', ['active' => 'api-keys'])
   </aside>
 </div>

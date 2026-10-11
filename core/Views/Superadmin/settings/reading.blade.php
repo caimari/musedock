@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="row g-4">
-  <div class="col-xl-9 col-lg-8">
+  <div class="col-12 col-xl-9">
 <div class="card">
   <div class="card-header">
     <h3 class="card-title">Ajustes de lectura</h3>
@@ -319,7 +319,7 @@
   </div>
 </div>
   </div>
-  <div class="col-xl-3 col-lg-4">
+  <div class="col-xl-3 d-none d-xl-block">
     @include('settings.partials.sidebar', ['active' => 'reading'])
   </div>
 </div>

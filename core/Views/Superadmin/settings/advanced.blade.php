@@ -4,10 +4,10 @@
 
 @section('content')
 <div class="row g-4">
-  <div class="col-xl-9 col-lg-8">
-<div class="container">
+  <div class="col-12 col-xl-9">
+<div class="container-fluid px-0">
   <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-12">
 
       {{-- Card Versión del Sistema --}}
       <div class="card mb-4">
@@ -226,7 +226,7 @@
   </div>
 </div>
   </div>
-  <div class="col-xl-3 col-lg-4">
+  <div class="col-xl-3 d-none d-xl-block">
     @include('settings.partials.sidebar', ['active' => 'advanced'])
   </div>
 </div>

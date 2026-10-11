@@ -34,7 +34,7 @@
   }));
 @endphp
 <div class="row g-4">
-  <div class="col-xl-9 col-lg-8">
+  <div class="col-12 col-xl-9">
 <div class="mcp-settings">
   <h1 class="h3"><i class="bi bi-robot me-2"></i>(MCP) Conexiones IA</h1>
   @if(!$tenantMode)
@@ -176,7 +176,7 @@
   <details class="card mb-3"><summary class="card-header">Actividad reciente</summary><div class="card-body"><ul>@foreach($events as $event)<li>{{ gmdate('Y-m-d H:i:s',$event['created']) }} UTC — {{ $event['action'] }} — {{ $event['detail'] }}</li>@endforeach</ul></div></details>
 </div>
   </div>
-  <aside class="col-xl-3 col-lg-4" aria-label="Opciones de Ajustes">
+  <aside class="col-xl-3 d-none d-xl-block" aria-label="Opciones de Ajustes">
     @include('settings.partials.sidebar', ['active' => 'mcp'])
   </aside>
 </div>

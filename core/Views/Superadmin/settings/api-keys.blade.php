@@ -37,7 +37,7 @@
 @endphp
 
 <div class="row g-4">
-  <div class="col-xl-9 col-lg-8">
+  <div class="col-12 col-xl-9">
 <!-- Info cards -->
 <div class="api-info-grid mb-4">
   <div class="api-info-card">
@@ -163,7 +163,7 @@
   {!! csrf_field() !!}
 </form>
   </div>
-  <div class="col-xl-3 col-lg-4">
+  <div class="col-xl-3 d-none d-xl-block">
     @include('settings.partials.sidebar', ['active' => 'api-keys'])
   </div>
 </div>

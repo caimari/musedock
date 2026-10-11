@@ -31,7 +31,7 @@
 
 @section('content')
 <div class="row g-4">
-  <div class="col-xl-9 col-lg-8">
+  <div class="col-12 col-xl-9">
 <div class="app-content">
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -210,7 +210,7 @@
 </div>
 
   </div>
-  <aside class="col-xl-3 col-lg-4" aria-label="Opciones de Ajustes">
+  <aside class="col-xl-3 d-none d-xl-block" aria-label="Opciones de Ajustes">
     @include('settings.partials.sidebar', ['active' => 'security'])
   </aside>
 </div>

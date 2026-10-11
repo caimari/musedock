@@ -30,7 +30,7 @@
 
 @section('content')
 <div class="row g-4">
-  <div class="col-xl-9 col-lg-8">
+  <div class="col-12 col-xl-9">
 <div class="alert alert-info"><a href="{{ '/' . admin_path() . '/mcp/direct' }}">Configurar clientes OAuth y borradores con aprobación</a></div>
 @php
   $activeKeys = array_filter($keys, fn($k) => $k['is_active'] && !$k['is_expired']);
@@ -418,7 +418,7 @@
 @endif
 
   </div>
-  <aside class="col-xl-3 col-lg-4" aria-label="Opciones de Ajustes">
+  <aside class="col-xl-3 d-none d-xl-block" aria-label="Opciones de Ajustes">
     @include('settings.partials.sidebar', ['active' => 'mcp'])
   </aside>
 </div>
