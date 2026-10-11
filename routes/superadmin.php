@@ -911,3 +911,5 @@ if (is_dir($pluginRoutesDir)) {
 // CMS-owned MCP management; service activation is separately gated by environment.
 Route::get('/musedock/settings/mcp', fn() => (new \Screenart\Musedock\Services\Mcp\Direct\Admin())->handle())->middleware('superadmin')->name('settings.mcp');
 Route::post('/musedock/settings/mcp', fn() => (new \Screenart\Musedock\Services\Mcp\Direct\Admin())->handle())->middleware('superadmin');
+
+Route::post('/musedock/tenants/{id}/classification', 'superadmin.TenantsController@classification')->middleware('superadmin');

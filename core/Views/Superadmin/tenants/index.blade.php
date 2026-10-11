@@ -10,6 +10,9 @@
 .tenant-page .table td,.tenant-page .table th { padding:16px; }
 .tenant-page .tenant-actions { display:flex;gap:8px;flex-wrap:wrap; }
 .tenant-page .form-control,.tenant-page .form-select { border-radius:7px; }
+.tenant-color { width:18px;height:18px;border-radius:50%;padding:0;border:2px solid white;outline:1px solid #ccd3dd; }
+.tenant-color.selected { outline:2px solid #263c55; }
+.tenant-color-blue { background:#397de0; }.tenant-color-green { background:#279c65; }.tenant-color-orange { background:#e49a29; }.tenant-color-purple { background:#8a56c5; }.tenant-color-red { background:#d84c53; }.tenant-color-none { background:#d5dae1; }
 </style>
 <div class="app-content tenant-page">
     <div class="container-fluid">
@@ -33,6 +36,9 @@
                     <option value="">Todos</option><option value="domain" {{ $type === 'domain' ? 'selected' : '' }}>Dominios propios</option><option value="subdomain" {{ $type === 'subdomain' ? 'selected' : '' }}>Subdominios de {{ $mainDomain }}</option>
                 </select></div>
                 <div><label for="tenant-per-page" class="form-label">Por página</label><select id="tenant-per-page" name="per_page" class="form-select">@foreach ([25, 50, 100, 200] as $size)<option value="{{ $size }}" {{ $perPage === $size ? 'selected' : '' }}>{{ $size }}</option>@endforeach</select></div>
+                <div><label for="tenant-ownership" class="form-label">Clasificación</label><select id="tenant-ownership" name="ownership" class="form-select"><option value="">Todos</option><option value="client" {{ $ownership === 'client' ? 'selected' : '' }}>Dominios de clientes</option><option value="unmarked" {{ $ownership === 'unmarked' ? 'selected' : '' }}>Sin marca de cliente</option></select></div>
+                <div><label for="tenant-color-filter" class="form-label">Color</label><select id="tenant-color-filter" name="color" class="form-select"><option value="">Todos los colores</option><option value="none" {{ $color === 'none' ? 'selected' : '' }}>Sin color</option>@foreach ($labelColors as $value => $label)@if ($value !== '')<option value="{{ $value }}" {{ $color === $value ? 'selected' : '' }}>{{ $label }}</option>@endif
+@endforeach</select></div>
                 <input type="hidden" name="sort" value="{{ $sort }}"><input type="hidden" name="direction" value="{{ $direction }}">
                 <button class="btn btn-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button><a class="btn btn-outline-secondary" href="/musedock/tenants">Restablecer</a>
             </div>
@@ -53,7 +59,12 @@
                         @foreach ($tenants as $tenant)
                             <tr>
 							<td>{{ $tenant->name }}</td>
-							<td>{{ $tenant->domain }}</td>
+							<td>{{ $tenant->domain }} @if (!empty($tenant->is_client_domain))<span class="badge bg-secondary ms-2">Cliente</span>@endif
+                                <form method="post" action="/musedock/tenants/{{ $tenant->id }}/classification" class="d-flex gap-2 mt-2" aria-label="Color de {{ $tenant->domain }}">
+                                    {!! csrf_field() !!}
+                                    @foreach ($labelColors as $value => $label)<button type="submit" name="label_color" value="{{ $value }}" class="tenant-color tenant-color-{{ $value ?: 'none' }} {{ ($tenant->label_color ?? '') === $value ? 'selected' : '' }}" title="{{ $label }}" aria-label="{{ $label }}" aria-pressed="{{ ($tenant->label_color ?? '') === $value ? 'true' : 'false' }}"></button>@endforeach
+                                </form>
+                            </td>
 							<td>
                                 @php
                                     $createdAt = $tenant->created_at ? new DateTime($tenant->created_at) : null;

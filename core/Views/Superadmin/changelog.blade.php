@@ -13,6 +13,11 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">Mejoras de gestión de tenants — 11 de octubre de 2026</h5></div><div class="card-body"><ul>
+            <li>Búsqueda por nombre o dominio, filtro de dominios propios y subdominios del CMS, columnas ordenables y paginación de 100 por defecto.</li>
+            <li>Tarjeta para identificar dominios de clientes, paleta de colores por tenant y filtros de clasificación y color.</li>
+            <li>Acceso a la web en una pestaña nueva, mejoras visuales de edición y almacenamiento y gestión de plugins compartidos por dominio.</li>
+        </ul></div></div>
         <!-- v2.21.0 -->
         <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.21.0 — Editor completo por MCP</h5></div><div class="card-body">
             <p class="text-muted">11 de octubre de 2026</p>

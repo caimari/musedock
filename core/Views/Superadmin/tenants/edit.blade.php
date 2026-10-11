@@ -102,6 +102,18 @@
                 </div>
             </div>
 
+            <div class="card mt-4" id="tenant-classification">
+                <div class="card-header"><h3 class="h5 mb-0">Clasificación del dominio</h3></div>
+                <form class="card-body" method="post" action="/musedock/tenants/{{ $tenant->id }}/classification">
+                    {!! csrf_field() !!}<input type="hidden" name="edit_client" value="1">
+                    <label class="d-flex gap-2 align-items-center mb-2"><input type="checkbox" name="is_client_domain" value="1" {{ !empty($tenant->is_client_domain) ? 'checked' : '' }}> Dominio de cliente</label>
+                    <p class="small text-muted">Marca los sitios de clientes para distinguirlos en el listado. Esta etiqueta no cambia los permisos ni los grupos editoriales.</p>
+                    <label for="label-color" class="form-label">Color del dominio</label>
+                    <select id="label-color" name="label_color" class="form-select mb-3">@foreach ($labelColors as $value => $label)<option value="{{ $value }}" {{ ($tenant->label_color ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select>
+                    <button class="btn btn-primary">Guardar clasificación</button>
+                </form>
+            </div>
+
             <div class="card mt-4" id="tenant-plugins">
                 <div class="card-header"><h3 class="h5 mb-0"><i class="bi bi-puzzle me-2"></i>Plugins compartidos de este dominio</h3></div>
                 <div class="card-body">

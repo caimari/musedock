@@ -53,6 +53,27 @@ class TenantsController
         return true;
     }
 
+    private const LABEL_COLORS = ['' => 'Sin color', 'blue' => 'Azul', 'green' => 'Verde', 'orange' => 'Naranja', 'purple' => 'Violeta', 'red' => 'Rojo'];
+
+    public function classification($id)
+    {
+        $this->checkMultitenancyEnabled();
+        SessionSecurity::startSession();
+        $this->checkPermission('tenants.manage');
+        if (!validate_csrf($_POST['_csrf'] ?? '')) { http_response_code(403); return; }
+        $color = $_POST['label_color'] ?? '';
+        if (!is_string($color) || !array_key_exists($color, self::LABEL_COLORS)) { http_response_code(400); return; }
+        $tenant = Database::table('tenants')->where('id', (int)$id)->first();
+        if (!$tenant) { http_response_code(404); return; }
+        $data = ['label_color' => $color];
+        if (isset($_POST['edit_client'])) $data['is_client_domain'] = isset($_POST['is_client_domain']) ? 1 : 0;
+        Database::table('tenants')->where('id', (int)$id)->update($data);
+        \Screenart\Musedock\Security\AuditLogger::log('tenant.classification.updated', 'INFO', ['tenant_id' => (int)$id, 'classification' => $data]);
+        flash('success', 'Clasificación del dominio guardada.');
+        $back = isset($_POST['edit_client']) ? '/musedock/tenants/'.(int)$id.'/edit#tenant-classification' : '/musedock/tenants';
+        header('Location: '.$back);
+    }
+
     public function index()
     {
         $this->checkMultitenancyEnabled();
@@ -74,11 +95,15 @@ class TenantsController
         if ($type !== '') {
             $query->whereRaw("LOWER(domain) " . ($type === 'subdomain' ? 'LIKE' : 'NOT LIKE') . " :domain_suffix", [':domain_suffix' => '%.' . $mainDomain]);
         }
+        $ownership = in_array($scalar('ownership'), ['client', 'unmarked'], true) ? $scalar('ownership') : '';
+        $color = $scalar('color') === 'none' || array_key_exists($scalar('color'), self::LABEL_COLORS) ? $scalar('color') : '';
+        if ($ownership !== '') $query->where('is_client_domain', $ownership === 'client' ? 1 : 0);
+        if ($color !== '') $query->where('label_color', $color === 'none' ? '' : $color);
         $total = $query->count();
         $pages = max(1, (int) ceil($total / $perPage));
         $page = min($pages, max(1, (int) $scalar('page', '1')));
         $tenants = $query->orderBy($sort, $direction)->limit($perPage)->offset(($page - 1) * $perPage)->get();
-        $filters = ['q' => $search, 'type' => $type, 'sort' => $sort, 'direction' => $direction, 'per_page' => $perPage];
+        $filters = ['q' => $search, 'type' => $type, 'sort' => $sort, 'direction' => $direction, 'per_page' => $perPage, 'ownership' => $ownership, 'color' => $color];
         $listUrl = static fn(array $changes = []) => '/musedock/tenants?' . http_build_query(array_merge($filters, ['page' => $page], $changes));
 
         // Obtener formatos de fecha y hora de las preferencias del sistema
@@ -92,7 +117,8 @@ class TenantsController
             'timeFormat' => $timeFormat,
             'search' => $search, 'type' => $type, 'sort' => $sort, 'direction' => $direction,
             'perPage' => $perPage, 'page' => $page, 'pages' => $pages, 'total' => $total,
-            'mainDomain' => $mainDomain, 'listUrl' => $listUrl
+            'mainDomain' => $mainDomain, 'listUrl' => $listUrl,
+            'ownership' => $ownership, 'color' => $color, 'labelColors' => self::LABEL_COLORS
         ]);
     }
 
@@ -215,6 +241,7 @@ public function store()
         return View::renderSuperadmin('tenants.edit', [
             'title' => __('tenant_edit_title') ?? 'Editar Tenant',
             'tenant' => $tenant,
+            'labelColors' => self::LABEL_COLORS,
             'sharedPlugins' => \Screenart\Musedock\TenantPluginManager::getAvailableSharedPlugins(),
             'tenantPlugins' => \Screenart\Musedock\TenantPluginManager::getAllPlugins((int)$id)
         ]);
