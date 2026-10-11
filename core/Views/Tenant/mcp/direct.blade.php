@@ -72,7 +72,10 @@
     <form method="post" action="{{ $back }}">
       {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="action" value="create_client">
       <label class="form-label">Nombre</label><input name="name" class="form-control mb-2" required maxlength="100" placeholder="ChatGPT editorial">
-      <label class="form-label">Callback HTTPS exacto que muestra el asistente</label><input name="callback" type="url" class="form-control mb-3" required maxlength="500" placeholder="https://…">
+      <label for="mcp-provider" class="form-label">Asistente</label>
+      <select id="mcp-provider" name="provider" class="form-select mb-2"><option value="chatgpt">ChatGPT — dirección de retorno automática</option><option value="claude">Claude — dirección de retorno automática</option><option value="custom">Personalizado — otro asistente o callback distinto</option></select>
+      <label for="mcp-callback" class="form-label">Dirección de retorno OAuth (callback)</label><input id="mcp-callback" name="callback" type="url" class="form-control mb-2" readonly maxlength="500" value="https://chatgpt.com/connector_platform_oauth_redirect" placeholder="Pega la URL HTTPS exacta del asistente">
+      <p class="small text-muted mb-3">Es la dirección del asistente a la que volverás después de autorizar el acceso en este CMS. ChatGPT y Claude se rellenan automáticamente. Si el asistente muestra otra URL, elige Personalizado y copia esa dirección exacta; en ese modo no puede quedar vacía. Cada asistente necesita sus propias credenciales.</p>
       <fieldset class="mb-3"><legend class="h6">Permisos</legend>
       @foreach($scopes as $scope)
         <label class="form-check"><input class="form-check-input" type="checkbox" name="scopes[]" value="{{ $scope }}" {{ $loop->first ? 'checked' : '' }}> {{ $scope }}</label>
@@ -88,7 +91,7 @@
           @endif
         @endforeach
       @endif
-      <details class="mt-3"><summary>Redes permitidas (opcional)</summary><label class="form-label">IPs o CIDR de salida fiables del cliente</label><textarea name="networks" class="form-control" rows="3"></textarea><p class="small text-muted">Vacío permite cualquier red con OAuth válido. No se autorizan IPs por User-Agent ni por intentos de conexión. Esta restricción se aplica a MCP y al intercambio de tokens, no al consentimiento del navegador.</p></details>
+      <details class="mt-3"><summary>Redes permitidas (opcional)</summary><label class="form-label">IPs o CIDR de salida fiables del cliente</label><textarea name="networks" class="form-control" rows="3"></textarea><p class="small text-muted">Por defecto, déjalo vacío: se exige OAuth válido desde cualquier IP. No desactiva el firewall ni abre puertos nuevos; esta conexión utiliza el HTTPS de tu web (443). Rellénalo únicamente si conoces las IPs o rangos de salida del asistente: una lista incorrecta impedirá conectar. Se aplica a MCP y al intercambio de tokens, no al consentimiento del navegador.</p></details>
       <button class="btn btn-primary mt-3">Crear credenciales</button>
     </form>
   </div></details>
@@ -129,6 +132,17 @@
 @endsection
 @push('scripts')
 <script>
+const providerSelect=document.getElementById('mcp-provider');
+const callbackInput=document.getElementById('mcp-callback');
+let customCallback='';
+providerSelect?.addEventListener('change',()=>{
+  const callbacks={chatgpt:'https://chatgpt.com/connector_platform_oauth_redirect',claude:'https://claude.ai/api/mcp/auth_callback'};
+  if (!callbackInput.readOnly) customCallback=callbackInput.value;
+  const automatic=Object.prototype.hasOwnProperty.call(callbacks,providerSelect.value);
+  callbackInput.readOnly=automatic;
+  callbackInput.required=!automatic;
+  callbackInput.value=automatic?callbacks[providerSelect.value]:customCallback;
+});
 document.querySelectorAll('[data-copy]').forEach(button=>button.addEventListener('click',async()=>{const input=document.getElementById(button.dataset.copy);try{await navigator.clipboard.writeText(input.value);button.textContent='Copiado';}catch(e){input.focus();input.select();}}));
 document.getElementById('show-secret')?.addEventListener('click',()=>{const input=document.getElementById('client-secret');input.type=input.type==='password'?'text':'password';});
 document.getElementById('dismiss-credentials')?.addEventListener('click',()=>{document.getElementById('client-secret').value='';document.getElementById('new-credentials').remove();});

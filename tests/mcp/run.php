@@ -6,6 +6,12 @@ use Screenart\Musedock\Security\IPHelper;
 $count=0;
 function check(bool $condition,string $label): void { global $count; if (!$condition) throw new RuntimeException('FAIL: '.$label); $count++; }
 function denied(callable $fn,string $label): void { try { $fn(); } catch (Throwable $e) { check(true,$label); return; } check(false,$label); }
+check(Policy::clientCallback('chatgpt','https://attacker.example/callback')==='https://chatgpt.com/connector_platform_oauth_redirect','ChatGPT callback is fixed server-side');
+check(Policy::clientCallback('claude')==='https://claude.ai/api/mcp/auth_callback','Claude callback preset');
+check(Policy::clientCallback('custom',' https://client.example/return ')==='https://client.example/return','Custom exact HTTPS callback');
+denied(fn()=>Policy::clientCallback('custom',''),'Empty custom callback denied');
+denied(fn()=>Policy::clientCallback('custom','http://client.example/return'),'Non-HTTPS custom callback denied');
+denied(fn()=>Policy::clientCallback('unknown'),'Unknown provider denied');
 $store=new Store(new PDO('sqlite::memory:')); $content=new Content(fixture()); $oauth=new Authorization($store); $tools=new Tools($store,$content);
 function resource(Store $s,string $id,string $url,array $owned=[]): array {
  $r=['id'=>$id,'url'=>$url,'name'=>$id,'enabled'=>true,'allow_drafts'=>true,'owned_sites'=>$owned,'revision'=>1]; $s->putResource($r); return $r;

@@ -56,7 +56,8 @@ final class Admin
                             if (!in_array((int)$s->fetchColumn(),$groups,true)) throw new \RuntimeException('El sitio no pertenece a los grupos seleccionados.');
                         }
                     }
-                    $new=$ep->oauth->createClient($id,(string)($_POST['name']??''),(string)($_POST['callback']??''),(array)($_POST['scopes']??[]),$sites,$groups,(string)($_POST['networks']??''));
+                    $callback=Policy::clientCallback((string)($_POST['provider']??'custom'),(string)($_POST['callback']??''));
+                    $new=$ep->oauth->createClient($id,(string)($_POST['name']??''),$callback,(array)($_POST['scopes']??[]),$sites,$groups,(string)($_POST['networks']??''));
                     $_SESSION['cms_mcp_new'][$id]=['id'=>$new['client']['id'],'secret'=>$new['secret']];
                     $ep->store->event($id,'client.created',$actor,['client'=>$new['client']['id']]);
                 } elseif ($action==='client_permissions' || $action==='revoke_client') {
