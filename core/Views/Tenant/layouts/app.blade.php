@@ -497,6 +497,8 @@ try {
     $adminMenus = [];
 }
 
+$adminMenus = \Screenart\Musedock\Services\SettingsNavigation::synchronize($adminMenus, true);
+
 // Funciones auxiliares
 $isUrlActive = function($url, $currentUrl) {
     if (empty($url) || $url === '#') return false;

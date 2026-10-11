@@ -265,6 +265,8 @@
     $adminMenus = [];
   }
 
+$adminMenus = \Screenart\Musedock\Services\SettingsNavigation::synchronize($adminMenus, false);
+
   // Inyectar módulos activos (con admin_url) como hijos de "Módulos" en el sidebar
   try {
     $pdo = \Screenart\Musedock\Database::connect();
