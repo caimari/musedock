@@ -327,7 +327,7 @@ class PluginsController
      * Sync plugin menus in tenant_menus when plugin is toggled.
      * Reads admin_menu from plugin.json and inserts/removes entries.
      */
-    private function syncPluginMenus(int $tenantId, string $slug, bool $activate): void
+    public function syncPluginMenus(int $tenantId, string $slug, bool $activate): void
     {
         try {
             $pluginDir = TenantPluginManager::resolvePluginPath($tenantId, $slug);

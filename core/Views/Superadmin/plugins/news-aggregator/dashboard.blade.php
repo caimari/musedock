@@ -13,7 +13,7 @@
         @if($isGlobal ?? true)
             {{-- Vista global: listado de tenants --}}
             <div class="alert alert-light border mb-3">
-                <strong>¿Quieres añadir otro dominio?</strong> Activa News Aggregator en la administración de ese tenant, en Plugins. Cuando el plugin esté instalado y activo, el dominio aparecerá en este listado. Después configura sus fuentes y autoriza su acceso MCP por separado.
+                <strong>¿Quieres añadir otro dominio?</strong> En «Gestionar tenants», abre «Editar» en el dominio y pulsa «Instalar y activar» para News Aggregator en «Plugins compartidos». Cuando el plugin esté instalado y activo, el dominio aparecerá en este listado. Después configura sus fuentes y autoriza su acceso MCP por separado.
                 <a class="btn btn-sm btn-outline-primary ms-2" href="/musedock/tenants">Gestionar tenants</a>
             </div>
             <div class="card border-0 shadow-sm">

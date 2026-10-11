@@ -3,10 +3,18 @@
 @section('title', __('tenants.title'))
 
 @section('content')
-<div class="app-content">
+<style>
+.tenant-page .btn { border-radius:8px;text-decoration:none!important;display:inline-flex;align-items:center;justify-content:center;gap:6px; }
+.tenant-page .card { border:1px solid #e5eaf1;border-radius:12px;box-shadow:0 3px 14px rgba(30,50,80,.035);overflow:hidden; }
+.tenant-page .card-body { padding:24px; }
+.tenant-page .table td,.tenant-page .table th { padding:16px; }
+.tenant-page .tenant-actions { display:flex;gap:8px;flex-wrap:wrap; }
+.tenant-page .form-control,.tenant-page .form-select { border-radius:7px; }
+</style>
+<div class="app-content tenant-page">
     <div class="container-fluid">
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-3">
             <h2>{{ __('tenants.title') }}</h2>
             <div class="d-flex gap-2">
                 <a href="/musedock/settings/tenant-defaults" class="btn btn-outline-secondary">
@@ -40,17 +48,18 @@
                                 @endphp
                                 {{ $createdAt ? $createdAt->format($dateFormat . ' ' . $timeFormat) : '-' }}
                             </td>
-							<td class="d-flex gap-1">
-								<a href="/musedock/tenants/{{ $tenant->id }}/edit" class="btn btn-sm btn-warning">
+							<td><div class="tenant-actions">
+<a href="https://{{ $tenant->domain }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary" title="Abrir web de {{ $tenant->domain }}" aria-label="Abrir web de {{ $tenant->domain }}"><i class="bi bi-box-arrow-up-right"></i></a>
+								<a href="/musedock/tenants/{{ $tenant->id }}/edit" class="btn btn-sm btn-outline-primary">
 									<i class="bi bi-pencil"></i> {{ __('common.edit') }}
 								</a>
 
-								<button type="button" class="btn btn-sm btn-danger btn-delete-tenant"
+								<button type="button" class="btn btn-sm btn-outline-danger btn-delete-tenant"
 									data-tenant-id="{{ $tenant->id }}"
 									data-tenant-name="{{ $tenant->name }}">
 									<i class="bi bi-trash"></i> {{ __('common.delete') }}
 								</button>
-                                </td>
+                                </div></td>
                             </tr>
                         @endforeach
                     </tbody>

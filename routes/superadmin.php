@@ -182,6 +182,7 @@ Route::get('/musedock/tenants', 'superadmin.TenantsController@index')->middlewar
 Route::get('/musedock/tenants/create', 'superadmin.TenantsController@create')->middleware('superadmin');
 Route::post('/musedock/tenants/store', 'superadmin.TenantsController@store')->middleware('superadmin');
 Route::get('/musedock/tenants/{id}/edit', 'superadmin.TenantsController@edit')->middleware('superadmin');
+Route::post('/musedock/tenants/{id}/shared-plugin', 'superadmin.TenantsController@sharedPlugin')->middleware('superadmin');
 Route::post('/musedock/tenants/{id}/update', 'superadmin.TenantsController@update')->middleware('superadmin');
 //Route::post('/musedock/tenants/{id}/delete', 'superadmin.TenantsController@destroy')->middleware('superadmin');
 

@@ -191,8 +191,33 @@ public function store()
 
         return View::renderSuperadmin('tenants.edit', [
             'title' => __('tenant_edit_title') ?? 'Editar Tenant',
-            'tenant' => $tenant
+            'tenant' => $tenant,
+            'sharedPlugins' => \Screenart\Musedock\TenantPluginManager::getAvailableSharedPlugins(),
+            'tenantPlugins' => \Screenart\Musedock\TenantPluginManager::getAllPlugins((int)$id)
         ]);
+    }
+
+    public function sharedPlugin($id)
+    {
+        $this->checkMultitenancyEnabled();
+        SessionSecurity::startSession();
+        $this->checkPermission('tenants.manage');
+        $back='/musedock/tenants/'.(int)$id.'/edit#tenant-plugins';
+        if (!validate_csrf($_POST['_csrf']??$_POST['_token']??'')) { http_response_code(403); echo 'Token CSRF inválido'; return; }
+        $tenant=Database::table('tenants')->where('id',(int)$id)->first();
+        if (!$tenant) { http_response_code(404); return; }
+        $manager=\Screenart\Musedock\TenantPluginManager::class;
+        $slug=(string)($_POST['slug']??'');$action=(string)($_POST['plugin_action']??'');
+        $available=array_column($manager::getAvailableSharedPlugins(),'slug');
+        if (!in_array($slug,$available,true) || !in_array($action,['activate','deactivate'],true)) { http_response_code(400); echo 'Plugin compartido o acción no válidos'; return; }
+        try {
+            $ok=$action==='activate'?$manager::activateSharedPlugin((int)$id,$slug):$manager::deactivateSharedPlugin((int)$id,$slug);
+            if (!$ok) throw new \RuntimeException('No se pudo cambiar el estado del plugin.');
+            (new \Screenart\Musedock\Controllers\Tenant\PluginsController())->syncPluginMenus((int)$id,$slug,$action==='activate');
+            \Screenart\Musedock\Security\AuditLogger::log('tenant.shared_plugin.'.$action,'INFO',['tenant_id'=>(int)$id,'plugin_slug'=>$slug]);
+            flash('success',$action==='activate'?'Plugin compartido instalado y activo para este dominio.':'Plugin desactivado para este dominio.');
+        } catch (\Throwable $e) { Logger::error('Tenant shared plugin management failed',['tenant_id'=>(int)$id,'slug'=>$slug,'error'=>$e->getMessage()]); flash('error','No se pudo gestionar el plugin. Consulta los registros.'); }
+        header('Location: '.$back);
     }
 
     public function update($id)

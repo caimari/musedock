@@ -3,13 +3,21 @@
 @section('title', __('tenants.edit'))
 
 @section('content')
-<div class="container-fluid">
+<style>
+.tenant-page .btn { border-radius:8px;text-decoration:none!important;display:inline-flex;align-items:center;justify-content:center;gap:6px; }
+.tenant-page .card { border:1px solid #e5eaf1;border-radius:12px;box-shadow:0 3px 14px rgba(30,50,80,.035);overflow:hidden; }
+.tenant-page .card-body { padding:24px; }
+.tenant-page .table td,.tenant-page .table th { padding:16px; }
+.tenant-page .tenant-actions { display:flex;gap:8px;flex-wrap:wrap; }
+.tenant-page .form-control,.tenant-page .form-select { border-radius:7px; }
+</style>
+<div class="app-content tenant-page"><div class="container-fluid">
     <div class="row">
-        <div class="col-md-8">
+        <div class="col-12 col-xl-10">
 
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3 class="card-title mb-0">{{ __('tenants.edit') }}</h3>
+                    <div><h3 class="card-title mb-1">{{ __('tenants.edit') }}</h3><a class="small" href="https://{{ $tenant->domain }}" target="_blank" rel="noopener noreferrer">{{ $tenant->domain }} <i class="bi bi-box-arrow-up-right"></i></a></div>
                     <a href="/musedock/tenants" class="btn btn-sm btn-outline-secondary">
                         <i class="bi bi-arrow-left me-1"></i>Volver
                     </a>
@@ -71,14 +79,14 @@
 
                     <div class="mb-3">
                         <label class="form-label">Uso actual</label>
-                        <div class="progress" style="height: 25px;">
+                        <p class="fw-semibold mb-2">{{ $usedFormatted }} / {{ $quotaMb >= 1024 ? round($quotaMb / 1024, 1) . ' GB' : $quotaMb . ' MB' }}</p>
+                        <div class="progress" style="height: 10px;">
                             <div class="progress-bar {{ $percentage > 90 ? 'bg-danger' : ($percentage > 70 ? 'bg-warning' : 'bg-success') }}"
                                 role="progressbar"
                                 style="width: {{ min($percentage, 100) }}%"
                                 aria-valuenow="{{ $percentage }}"
                                 aria-valuemin="0"
                                 aria-valuemax="100">
-                                {{ $usedFormatted }} / {{ $quotaMb >= 1024 ? round($quotaMb / 1024, 1) . ' GB' : $quotaMb . ' MB' }}
                             </div>
                         </div>
                         <small class="text-muted">{{ $percentage }}% del espacio utilizado</small>
@@ -94,9 +102,30 @@
                 </div>
             </div>
 
+            <div class="card mt-4" id="tenant-plugins">
+                <div class="card-header"><h3 class="h5 mb-0"><i class="bi bi-puzzle me-2"></i>Plugins compartidos de este dominio</h3></div>
+                <div class="card-body">
+                    <p class="text-muted">Instala y activa los plugins compartidos disponibles para este tenant. Los cambios se aplican únicamente a este dominio. Desactivar conserva sus datos y configuración.</p>
+                    @php
+                        $installedPlugins=[];
+                        foreach (($tenantPlugins ?? []) as $plugin) { $plugin=(array)$plugin; $installedPlugins[$plugin['slug']]=$plugin; }
+                    @endphp
+                    @forelse(($sharedPlugins ?? []) as $plugin)
+                        @php $installed=$installedPlugins[$plugin['slug']]??null; $active=!empty($installed['active']); @endphp
+                        <div class="border rounded p-3 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
+                            <div><strong>{{ $plugin['name'] }}</strong> <span class="badge {{ $active ? 'bg-success' : 'bg-secondary' }}">{{ $active ? 'Activo' : ($installed ? 'Inactivo' : 'No instalado') }}</span><p class="small text-muted mb-0 mt-1">{{ $plugin['description'] }}</p></div>
+                            <form method="post" action="/musedock/tenants/{{ $tenant->id }}/shared-plugin">
+                                {!! csrf_field() !!}<input type="hidden" name="slug" value="{{ $plugin['slug'] }}"><input type="hidden" name="plugin_action" value="{{ $active ? 'deactivate' : 'activate' }}">
+                                <button class="btn btn-sm {{ $active ? 'btn-outline-secondary' : 'btn-outline-primary' }}">{{ $active ? 'Desactivar' : ($installed ? 'Activar' : 'Instalar y activar') }}</button>
+                            </form>
+                        </div>
+                    @empty <p class="text-muted mb-0">No hay plugins compartidos disponibles.</p>@endforelse
+                </div>
+            </div>
+
         </div>
     </div>
-</div>
+</div></div>
 
 @push('scripts')
 <script>

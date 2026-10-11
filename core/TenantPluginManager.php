@@ -497,7 +497,12 @@ class TenantPluginManager
      */
     public static function activateSharedPlugin(int $tenantId, string $slug): bool
     {
-        $sharedPath = self::getSharedPluginsPath() . '/' . $slug;
+        if (!preg_match('/^[a-z0-9][a-z0-9-]*$/D',$slug)) return false;
+        $sharedPath=null;
+        foreach (self::getAllSharedPluginsPaths() as $directory) {
+            if (is_file($directory.'/'.$slug.'/plugin.json')) { $sharedPath=$directory.'/'.$slug; break; }
+        }
+        if (!$sharedPath) return false;
         $metadataFile = $sharedPath . '/plugin.json';
 
         if (!file_exists($metadataFile)) {
