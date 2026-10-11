@@ -87,6 +87,47 @@ class TenantsController
         $statement->execute($parameters);
     }
 
+    public function bulk()
+    {
+        $this->checkMultitenancyEnabled();
+        SessionSecurity::startSession();
+        $this->checkPermission('tenants.manage');
+        if (!validate_csrf($_POST['_csrf'] ?? '')) { http_response_code(403); return; }
+        $ids = $_POST['tenant_ids'] ?? [];
+        $action = $_POST['bulk_action'] ?? '';
+        if (!is_array($ids) || count($ids) > 200 || !in_array($action, ['color', 'client', 'not_client', 'plugin'], true)) { http_response_code(400); return; }
+        $ids = array_values(array_unique(array_filter($ids, static fn($id) => is_scalar($id) && ctype_digit((string)$id) && (int)$id > 0)));
+        if (!$ids) { flash('error', 'Selecciona al menos un tenant.'); header('Location: /musedock/tenants'); return; }
+        $color = $_POST['label_color'] ?? '';
+        $slug = $_POST['plugin_slug'] ?? '';
+        $manager = \Screenart\Musedock\TenantPluginManager::class;
+        if ($action === 'color' && (!is_string($color) || !array_key_exists($color, self::LABEL_COLORS))) { http_response_code(400); return; }
+        if ($action === 'plugin' && (!is_string($slug) || !in_array($slug, array_column($manager::getAvailableSharedPlugins(), 'slug'), true))) { http_response_code(400); return; }
+        $done = 0; $failed = [];
+        foreach ($ids as $id) {
+            try {
+                $tenant = Database::table('tenants')->where('id', (int)$id)->first();
+                if (!$tenant) throw new \RuntimeException('Tenant no encontrado');
+                if ($action === 'plugin') {
+                    if (is_dir($manager::getPluginsPath((int)$id).'/'.$slug)) throw new \RuntimeException('Tiene una copia individual; gestiona ese plugin desde su tenant');
+                    if (!$manager::activateSharedPlugin((int)$id, $slug)) throw new \RuntimeException('No se pudo activar el plugin');
+                    (new \Screenart\Musedock\Controllers\Tenant\PluginsController())->syncPluginMenus((int)$id, $slug, true);
+                } else {
+                    $data = ['label_color' => $action === 'color' ? $color : ($tenant->label_color ?? '')];
+                    if ($action !== 'color') $data['is_client_domain'] = $action === 'client' ? 1 : 0;
+                    $this->saveClassification((int)$id, $data);
+                }
+                $done++;
+            } catch (\Throwable $e) {
+                $failed[] = (int)$id;
+                Logger::error('Tenant bulk action failed', ['tenant_id' => (int)$id, 'action' => $action, 'error' => $e->getMessage()]);
+            }
+        }
+        \Screenart\Musedock\Security\AuditLogger::log('tenant.bulk.updated', 'INFO', ['action' => $action, 'tenant_ids' => $ids, 'completed' => $done, 'failed' => $failed]);
+        flash($failed ? 'error' : 'success', $done.' tenants actualizados.'.($failed ? ' No completados: '.implode(', ', $failed).'. Consulta los registros.' : ''));
+        header('Location: /musedock/tenants');
+    }
+
     public function index()
     {
         $this->checkMultitenancyEnabled();
@@ -131,7 +172,8 @@ class TenantsController
             'search' => $search, 'type' => $type, 'sort' => $sort, 'direction' => $direction,
             'perPage' => $perPage, 'page' => $page, 'pages' => $pages, 'total' => $total,
             'mainDomain' => $mainDomain, 'listUrl' => $listUrl,
-            'ownership' => $ownership, 'color' => $color, 'labelColors' => self::LABEL_COLORS
+            'ownership' => $ownership, 'color' => $color, 'labelColors' => self::LABEL_COLORS,
+            'sharedPlugins' => \Screenart\Musedock\TenantPluginManager::getAvailableSharedPlugins()
         ]);
     }
 

@@ -16,6 +16,7 @@
         <div class="card mb-4"><div class="card-header"><h5 class="mb-0">Mejoras de gestión de tenants — 11 de octubre de 2026</h5></div><div class="card-body"><ul>
             <li>Búsqueda por nombre o dominio, filtro de dominios propios y subdominios del CMS, columnas ordenables y paginación de 100 por defecto.</li>
             <li>Tarjeta para identificar dominios de clientes, paleta de colores por tenant y filtros de clasificación y color.</li>
+            <li>Selección por filas y acciones masivas para color, clasificación de cliente e instalación o activación de plugins compartidos, con confirmación y resumen de resultados.</li>
             <li>Acceso a la web en una pestaña nueva, mejoras visuales de edición y almacenamiento y gestión de plugins compartidos por dominio.</li>
         </ul></div></div>
         <!-- v2.21.0 -->

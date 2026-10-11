@@ -67,11 +67,31 @@
                 <button class="btn btn-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button><a class="btn btn-outline-secondary" href="/musedock/tenants">Restablecer</a>
             </div>
         </form>
+        @include('partials.alerts')
+        <form id="tenant-bulk" method="post" action="/musedock/tenants/bulk" class="card mb-3">
+            {!! csrf_field() !!}
+            <div class="card-body d-flex flex-wrap gap-3 align-items-end">
+                <div><label for="bulk-action" class="form-label">Acción masiva</label><select id="bulk-action" name="bulk_action" class="form-select"><option value="color">Cambiar color</option><option value="client">Marcar como cliente</option><option value="not_client">Desmarcar como cliente</option><option value="plugin">Instalar / activar plugin compartido</option></select></div>
+                <div id="bulk-color"><label class="form-label" for="bulk-color-select">Color</label><select id="bulk-color-select" name="label_color" class="form-select">
+                    @foreach ($labelColors as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                </select></div>
+                <div id="bulk-plugin" hidden><label class="form-label" for="bulk-plugin-select">Plugin compartido</label><select id="bulk-plugin-select" name="plugin_slug" class="form-select">
+                    @foreach (($sharedPlugins ?? []) as $plugin)
+                        <option value="{{ $plugin['slug'] }}">{{ $plugin['name'] }}</option>
+                    @endforeach
+                </select></div>
+                <button id="bulk-submit" class="btn btn-primary" disabled>Aplicar a seleccionados</button><span id="bulk-count" class="text-muted">0 seleccionados</span>
+                <p class="small text-muted mb-0 w-100">La selección afecta únicamente a los tenants marcados en esta página.</p>
+            </div>
+        </form>
         <div class="card">
             <div class="card-body table-responsive p-0">
                 <table class="table table-hover align-middle">
                     <thead>
                         <tr>
+                            <th><input id="tenant-select-all" type="checkbox" aria-label="Seleccionar todos los tenants de esta página"></th>
                             <th aria-sort="{{ $sort === 'name' ? ($direction === 'asc' ? 'ascending' : 'descending') : 'none' }}"><a class="text-decoration-none" href="{{ $listUrl(['sort' => 'name', 'direction' => $sort === 'name' && $direction === 'asc' ? 'desc' : 'asc', 'page' => 1]) }}">{{ __('tenants.name') }} <i class="bi {{ $sort === 'name' ? ($direction === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down') : 'bi-arrow-down-up' }}"></i></a></th>
                             <th aria-sort="{{ $sort === 'domain' ? ($direction === 'asc' ? 'ascending' : 'descending') : 'none' }}"><a class="text-decoration-none" href="{{ $listUrl(['sort' => 'domain', 'direction' => $sort === 'domain' && $direction === 'asc' ? 'desc' : 'asc', 'page' => 1]) }}">{{ __('tenants.domain') }} <i class="bi {{ $sort === 'domain' ? ($direction === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down') : 'bi-arrow-down-up' }}"></i></a></th>
                             <th aria-sort="{{ $sort === 'created_at' ? ($direction === 'asc' ? 'ascending' : 'descending') : 'none' }}"><a class="text-decoration-none" href="{{ $listUrl(['sort' => 'created_at', 'direction' => $sort === 'created_at' && $direction === 'asc' ? 'desc' : 'asc', 'page' => 1]) }}">{{ __('common.created') }} <i class="bi {{ $sort === 'created_at' ? ($direction === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down') : 'bi-arrow-down-up' }}"></i></a></th>
@@ -79,9 +99,10 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @if ($total === 0)<tr><td colspan="4" class="text-center text-muted py-4">No hay tenants que coincidan con los filtros.</td></tr>@endif
+                        @if ($total === 0)<tr><td colspan="5" class="text-center text-muted py-4">No hay tenants que coincidan con los filtros.</td></tr>@endif
                         @foreach ($tenants as $tenant)
                             <tr class="{{ !empty($tenant->label_color) && array_key_exists($tenant->label_color, $labelColors) ? 'tenant-row-' . $tenant->label_color : '' }}">
+                                <td><input class="tenant-select" type="checkbox" name="tenant_ids[]" value="{{ $tenant->id }}" form="tenant-bulk" aria-label="Seleccionar {{ $tenant->domain }}"></td>
 							<td>{{ $tenant->name }}</td>
 							<td>{{ $tenant->domain }} @if (!empty($tenant->is_client_domain))<span class="badge bg-secondary ms-2">Cliente</span>@endif
                                 <form method="post" action="/musedock/tenants/{{ $tenant->id }}/classification" class="d-flex gap-2 mt-2" aria-label="Color de {{ $tenant->domain }}">
@@ -128,6 +149,31 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const bulkForm = document.getElementById('tenant-bulk');
+    const choices = Array.from(document.querySelectorAll('.tenant-select'));
+    const selectAll = document.getElementById('tenant-select-all');
+    const action = document.getElementById('bulk-action');
+    function refreshBulk() {
+        const count = choices.filter(item => item.checked).length;
+        document.getElementById('bulk-count').textContent = count + ' seleccionados';
+        document.getElementById('bulk-submit').disabled = !count;
+        selectAll.checked = count > 0 && count === choices.length;
+        selectAll.indeterminate = count > 0 && count < choices.length;
+        document.getElementById('bulk-color').hidden = action.value !== 'color';
+        document.getElementById('bulk-plugin').hidden = action.value !== 'plugin';
+    }
+    selectAll.addEventListener('change', () => { choices.forEach(item => item.checked = selectAll.checked); refreshBulk(); });
+    choices.forEach(item => item.addEventListener('change', refreshBulk));
+    action.addEventListener('change', refreshBulk);
+    bulkForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        const count = choices.filter(item => item.checked).length;
+        if (!count) return;
+        const selected = action.options[action.selectedIndex].text;
+        const result = await Swal.fire({title: 'Confirmar acción masiva', text: selected + ' en ' + count + ' tenants seleccionados.', icon: 'question', showCancelButton: true, confirmButtonText: 'Aplicar', cancelButtonText: 'Cancelar'});
+        if (result.isConfirmed) { document.getElementById('bulk-submit').disabled = true; document.getElementById('bulk-submit').textContent = 'Aplicando…'; bulkForm.submit(); }
+    });
+    refreshBulk();
     const csrfToken = '<?= csrf_token() ?>';
 
     // ========== ELIMINAR TENANT con SweetAlert2 y verificación de contraseña ==========
