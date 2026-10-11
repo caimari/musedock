@@ -1,0 +1,115 @@
+@extends('layouts.app')
+@section('title', $title)
+@section('content')
+<div class="container-fluid p-4">
+  <h1 class="h3"><i class="bi bi-robot me-2"></i>Conexiones IA (MCP)</h1>
+  @if(!$tenantMode)
+  <nav class="nav nav-pills mb-3">
+    @foreach(['main'=>'Dominio principal','plugin:cross-publisher'=>'Cross Publisher','plugin:news-aggregator'=>'News Aggregator'] as $key=>$label)
+      <a class="nav-link {{ $resource['id']===$key ? 'active' : '' }}" href="{{ $base }}?resource={{ urlencode($key) }}">{{ $label }}</a>
+    @endforeach
+  </nav>
+  @else
+    <p><a href="{{ '/' . admin_path() . '/mcp' }}">Volver a las conexiones del sitio</a></p>
+  @endif
+  @if($tenantMode)
+    <p class="text-muted">Al activar esta modalidad, las conexiones anteriores de este sitio deberán reconectarse con sus nuevos clientes OAuth.</p>
+  @endif
+  <p>Conecta un asistente para consultar artículos y preparar borradores en <strong>{{ $resource['name'] }}</strong>.</p>
+  @if($error)<div class="alert alert-danger">{{ $error }}</div>@endif
+  @if(!$deploymentEnabled)<div class="alert alert-secondary">La conexión pública está pendiente de activación por el operador del CMS. Puedes preparar sus clientes y permisos.</div>@endif
+  @if(!$pluginInstalled)<div class="alert alert-warning">Este plugin debe estar instalado y activo para abrir su conexión MCP.</div>@endif
+  <div class="card mb-3"><div class="card-body">
+    <h2 class="h5">Conexión directa HTTPS</h2>
+    <p>Servicio: <strong>{{ $deploymentEnabled && $resource['enabled'] && $pluginInstalled ? 'Habilitado' : 'Desactivado' }}</strong>. La autorización de cada cliente se muestra por separado.</p>
+    <div class="input-group mb-3"><input id="mcp-url" class="form-control" readonly value="{{ $resource['url'] }}"><button class="btn btn-outline-primary" type="button" data-copy="mcp-url">Copiar URL</button></div>
+    <form method="post" action="{{ $back }}">
+      {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="action" value="configure">
+      <label class="form-check"><input class="form-check-input" type="checkbox" name="enabled" {{ $resource['enabled'] ? 'checked' : '' }}> Habilitar esta conexión</label>
+      <label class="form-check mb-3"><input class="form-check-input" type="checkbox" name="allow_drafts" {{ $resource['allow_drafts'] ? 'checked' : '' }}> Permitir solicitudes de borradores con aprobación en el CMS</label>
+      @if(count($sites))
+      <fieldset class="border rounded p-3 mb-3"><legend class="float-none w-auto h6 px-2">Sitios propios autorizados para este plugin</legend>
+        <p class="small text-muted">Marca únicamente sitios de tu organización. Los clientes también quedarán limitados por grupo editorial.</p>
+        @foreach($sites as $site)
+          <label class="form-check"><input class="form-check-input" type="checkbox" name="owned_sites[]" value="{{ $site['id'] }}" {{ in_array((int)$site['id'],$resource['owned_sites'],true) ? 'checked' : '' }}> {{ $site['name'] }} — {{ $site['domain'] }}</label>
+        @endforeach
+      </fieldset>
+      @endif
+      <p class="small text-muted">Guardar cambia la autorización del recurso: los clientes deberán volver a dar su consentimiento.</p>
+      <button class="btn btn-primary">Guardar</button>
+    </form>
+  </div></div>
+  @if($newClient)
+  <div id="new-credentials" class="card border-success mb-3"><div class="card-body">
+    <h2 class="h5">Credenciales nuevas</h2><p>Cópialas ahora. El secreto se muestra una sola vez.</p>
+    <label for="client-id">ID del cliente</label><div class="input-group mb-2"><input id="client-id" readonly class="form-control" value="{{ $newClient['id'] }}"><button type="button" class="btn btn-outline-primary" data-copy="client-id">Copiar</button></div>
+    <label for="client-secret">Secreto</label><div class="input-group mb-2"><input type="password" id="client-secret" readonly autocomplete="off" class="form-control" value="{{ $newClient['secret'] }}"><button type="button" class="btn btn-outline-secondary" id="show-secret">Mostrar/ocultar</button><button type="button" class="btn btn-outline-primary" data-copy="client-secret">Copiar</button></div>
+    <button type="button" class="btn btn-success" id="dismiss-credentials">Ya las he guardado</button>
+  </div></div>
+  @endif
+  <details class="card mb-3"><summary class="card-header">Crear cliente para ChatGPT, Claude u otro asistente</summary><div class="card-body">
+    <form method="post" action="{{ $back }}">
+      {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="action" value="create_client">
+      <label class="form-label">Nombre</label><input name="name" class="form-control mb-2" required maxlength="100" placeholder="ChatGPT editorial">
+      <label class="form-label">Callback HTTPS exacto que muestra el asistente</label><input name="callback" type="url" class="form-control mb-3" required maxlength="500" placeholder="https://…">
+      <fieldset class="mb-3"><legend class="h6">Permisos</legend>
+      @foreach($scopes as $scope)
+        <label class="form-check"><input class="form-check-input" type="checkbox" name="scopes[]" value="{{ $scope }}" {{ $loop->first ? 'checked' : '' }}> {{ $scope }}</label>
+      @endforeach
+      </fieldset>
+      @if(count($sites))
+        <label class="form-label">Grupos editoriales permitidos</label>
+        @foreach($groups as $group)<label class="form-check"><input class="form-check-input" type="checkbox" name="groups[]" value="{{ $group['id'] }}"> {{ $group['name'] }}</label>@endforeach
+        <label class="form-label mt-3">Sitios de este cliente</label>
+        @foreach($sites as $site)
+          @if(in_array((int)$site['id'],$resource['owned_sites'],true))
+            <label class="form-check"><input class="form-check-input" type="checkbox" name="sites[]" value="{{ $site['id'] }}"> {{ $site['domain'] }}</label>
+          @endif
+        @endforeach
+      @endif
+      <details class="mt-3"><summary>Redes permitidas (opcional)</summary><label class="form-label">IPs o CIDR de salida fiables del cliente</label><textarea name="networks" class="form-control" rows="3"></textarea><p class="small text-muted">Vacío permite cualquier red con OAuth válido. No se autorizan IPs por User-Agent ni por intentos de conexión. Esta restricción se aplica a MCP y al intercambio de tokens, no al consentimiento del navegador.</p></details>
+      <button class="btn btn-primary mt-3">Crear credenciales</button>
+    </form>
+  </div></details>
+  <div class="card mb-3"><div class="card-body"><h2 class="h5">Clientes y permisos</h2>
+    @forelse($clients as $client)
+    <div class="border rounded p-3 mb-3"><h3 class="h6">{{ $client['name'] }} — {{ $client['enabled'] ? 'Habilitado' : 'Revocado' }}</h3><p class="small">ID: <code>{{ $client['id'] }}</code><br>Callback: {{ $client['callback'] }}</p>
+      <form method="post" action="{{ $back }}" class="mb-2">
+        {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="client" value="{{ $client['id'] }}"><input type="hidden" name="action" value="client_permissions">
+        @foreach($scopes as $scope)<label class="form-check"><input class="form-check-input" type="checkbox" name="scopes[]" value="{{ $scope }}" {{ in_array($scope,$client['scopes'],true) ? 'checked' : '' }}> {{ $scope }}</label>@endforeach
+        <button class="btn btn-sm btn-outline-primary mt-2">Guardar permisos y exigir nuevo consentimiento</button>
+      </form>
+      <form method="post" action="{{ $back }}">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="client" value="{{ $client['id'] }}"><button class="btn btn-sm btn-outline-danger" name="action" value="revoke_client">Revocar cliente</button></form>
+    </div>
+    @empty <p class="text-muted">Aún no hay clientes registrados.</p>@endforelse
+    <h3 class="h6">Consentimientos</h3>
+    @forelse($grants as $grant)
+      <form method="post" action="{{ $back }}" class="mb-2">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="grant" value="{{ $grant['id'] }}">
+        <span>{{ $grant['client'] }} — {{ $grant['active'] && $grant['resource_revision']===$resource['revision'] ? 'Concedido (sujeto a permisos vigentes)' : 'Revocado o pendiente de renovación' }}</span>
+        <button class="btn btn-sm btn-outline-danger" name="action" value="revoke_grant">Revocar consentimiento</button>
+      </form>
+    @empty <p class="text-muted">Ningún asistente ha completado la autorización.</p>@endforelse
+  </div></div>
+  <div class="card mb-3"><div class="card-body"><h2 class="h5">Cambios pendientes</h2>
+    @forelse($requests as $request)
+      <div class="border rounded p-3 mb-3"><p>Solicitud {{ $request['id'] }} · caduca en {{ max(0,$request['expires']-time()) }} segundos</p>
+      <details><summary>Revisar el plan y el contenido</summary><pre class="text-wrap border p-2">{{ json_encode($request['payload']['plan'],JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</pre></details>
+      <form method="post" action="{{ $back }}" class="mt-2">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="request" value="{{ $request['id'] }}"><button class="btn btn-success" name="action" value="approve">Aprobar borrador</button> <button class="btn btn-outline-danger" name="action" value="reject">Rechazar</button></form></div>
+    @empty <p class="text-muted">No hay cambios pendientes.</p>@endforelse
+  </div></div>
+  <details class="card mb-3"><summary class="card-header">Instrucciones de conexión</summary><div class="card-body">
+    <ol><li>En el asistente, añade una conexión MCP remota usando la URL de esta página.</li><li>Selecciona OAuth y tu propio cliente; copia su ID y secreto.</li><li>Usa <code>client_secret_basic</code> y los ámbitos que hayas habilitado, separados por espacios.</li><li>Inicia sesión en este CMS y revisa el consentimiento.</li><li>Prueba una consulta. Para escribir, solicita un borrador y apruébalo en esta página.</li></ol>
+    <p>El asistente debe admitir Authorization Code con PKCE S256 y enviar el recurso MCP exacto. Cada asistente utiliza credenciales independientes.</p>
+    <p><a href="https://developers.openai.com/plugins/build/auth" target="_blank" rel="noopener">Autenticación en ChatGPT</a> · <a href="https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp" target="_blank" rel="noopener">Conectores de Claude</a></p>
+  </div></details>
+  <details class="card mb-3"><summary class="card-header">Modalidad túnel</summary><div class="card-body"><p>Esta entrega utiliza HTTPS directo por 443. El túnel OpenAI no está configurado ni se reutiliza el del Panel. Su incorporación requiere una configuración independiente.</p></div></details>
+  <details class="card mb-3"><summary class="card-header">Actividad reciente</summary><div class="card-body"><ul>@foreach($events as $event)<li>{{ gmdate('Y-m-d H:i:s',$event['created']) }} UTC — {{ $event['action'] }} — {{ $event['detail'] }}</li>@endforeach</ul></div></details>
+</div>
+@endsection
+@push('scripts')
+<script>
+document.querySelectorAll('[data-copy]').forEach(button=>button.addEventListener('click',async()=>{const input=document.getElementById(button.dataset.copy);try{await navigator.clipboard.writeText(input.value);button.textContent='Copiado';}catch(e){input.focus();input.select();}}));
+document.getElementById('show-secret')?.addEventListener('click',()=>{const input=document.getElementById('client-secret');input.type=input.type==='password'?'text':'password';});
+document.getElementById('dismiss-credentials')?.addEventListener('click',()=>{document.getElementById('client-secret').value='';document.getElementById('new-credentials').remove();});
+</script>
+@endpush

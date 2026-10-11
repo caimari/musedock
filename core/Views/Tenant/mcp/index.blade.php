@@ -29,6 +29,7 @@
 @endpush
 
 @section('content')
+<div class="alert alert-info"><a href="{{ '/' . admin_path() . '/mcp/direct' }}">Configurar clientes OAuth y borradores con aprobación</a></div>
 @php
   $activeKeys = array_filter($keys, fn($k) => $k['is_active'] && !$k['is_expired']);
   $tokenForSnippets = $newKey['raw'] ?? 'mdk_TU_TOKEN';

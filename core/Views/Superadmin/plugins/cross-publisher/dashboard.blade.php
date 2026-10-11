@@ -3,6 +3,7 @@
 @section('title', 'Cross-Publisher - Dashboard')
 
 @section('content')
+<div class="px-4 pt-3"><a class="btn btn-outline-primary" href="/musedock/settings/mcp?resource=plugin%3Across-publisher"><i class="bi bi-robot me-1"></i>Conexiones MCP</a></div>
 <div class="container-fluid p-4">
     @include('partials.alerts-sweetalert2')
     <div class="d-flex justify-content-between align-items-center mb-4">

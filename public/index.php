@@ -195,7 +195,10 @@ if (!file_exists(__DIR__ . '/../install.lock')) {
 if (!defined('MUSEDOCK_STATELESS_REQUEST')) {
     $__statelessPath = rtrim(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/', '/');
     define('MUSEDOCK_STATELESS_REQUEST',
-        in_array($__statelessPath, ['/mcp', '/oauth/register', '/oauth/token', '/oauth/revoke', '/.well-known/openid-configuration'], true)
+        preg_match('#^/mcp/(cross-publisher|news-aggregator)$#D', $__statelessPath)
+        || preg_match('#^/mcp-auth/(cms|cross-publisher|news-aggregator)/(token|revoke)$#D', $__statelessPath)
+        || (preg_match('#^/mcp-auth/(cms|cross-publisher|news-aggregator)/authorize$#D', $__statelessPath) && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && !isset($_GET['_ss']))
+        || in_array($__statelessPath, ['/mcp', '/oauth/register', '/oauth/token', '/oauth/revoke', '/.well-known/openid-configuration'], true)
         || str_starts_with($__statelessPath, '/.well-known/oauth-')
         // Primer paso de /oauth/authorize (rebote same-site): no debe tocar la cookie de sesión
         || ($__statelessPath === '/oauth/authorize' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && !isset($_GET['_ss']))

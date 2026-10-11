@@ -27,6 +27,10 @@ class McpController
         SessionSecurity::startSession();
         $this->checkPermission('settings.view');
         $tenantId = $this->tenantIdOrRedirect();
+        if (\Screenart\Musedock\Services\Mcp\Direct\Routing::useDirect()) {
+            header('Location: /' . admin_path() . '/mcp/direct');
+            return;
+        }
 
         $pdo = Database::connect();
 

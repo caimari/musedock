@@ -13,13 +13,13 @@ class AuthController
         
         // Verificar si ya hay una sesión activa y redirigir al dashboard
         if (isset($_SESSION['super_admin']) || isset($_SESSION['admin']) || isset($_SESSION['user'])) {
-            header('Location: /musedock/dashboard');
+            header('Location: ' . self::consumeMcpReturn());
             exit;
         }
         
         // Intentar restaurar sesión desde token "recordarme" si no hay sesión activa
         if (SessionSecurity::checkRemembered()) {
-            header('Location: /musedock/dashboard');
+            header('Location: ' . self::consumeMcpReturn());
             exit;
         }
         
@@ -110,7 +110,7 @@ class AuthController
                 $_SESSION['persistent'] = true;
             }
 
-            header('Location: /musedock/dashboard');
+            header('Location: ' . self::consumeMcpReturn());
             exit;
         }
         
@@ -190,6 +190,15 @@ class AuthController
 
         header('Location: /musedock/login');
         exit;
+    }
+
+    private static function consumeMcpReturn(): string
+    {
+        $target = $_SESSION['auth_return_to'] ?? null;
+        unset($_SESSION['auth_return_to']);
+        if (is_string($target) && preg_match('#^/mcp-auth/(cms|cross-publisher|news-aggregator)/authorize\?#', $target)
+            && !preg_match('/[\x00-\x20\x7f\\\\]/', $target)) return $target;
+        return '/musedock/dashboard';
     }
 
     public function logout()

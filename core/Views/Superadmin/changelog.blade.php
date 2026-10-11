@@ -13,11 +13,22 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.20.0 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.20.0 — MCP autónomo del CMS</h5></div><div class="card-body">
+            <p class="text-muted">11 de octubre de 2026</p>
+            <ul><li>Conexiones OAuth independientes para dominio principal, tenants y plugins editoriales, sin dependencias de MuseDock Panel.</li>
+            <li>Clientes manuales, PKCE S256, tokens vinculados al recurso, revocación y permisos explícitos.</li>
+            <li>Lectura y solicitudes de borradores con aprobación privada, caducidad y comprobación de cambios.</li>
+            <li>Cross Publisher: copias en borrador entre sitios propios autorizados. News Aggregator: conversión a borrador sin llamadas de IA.</li>
+            <li>Aislamiento de posts REST por grupo y revalidación de trabajos API al ejecutar Cross Publisher.</li>
+            <li>Conexión directa desactivada por defecto. Túnel y publicación por MCP no incluidos.</li></ul>
+        </div></div>
+
         <!-- v2.19.0 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-tag me-2"></i>v2.19.0</h5>
-                <span class="badge bg-success">Latest</span>
+                <span class="badge bg-secondary">Anterior</span>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3"><i class="bi bi-calendar3 me-1"></i> 28 de Abril de 2026</p>

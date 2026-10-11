@@ -14,15 +14,21 @@ use Screenart\Musedock\Services\Mcp\McpServer;
 use Screenart\Musedock\Services\Mcp\OAuthServer;
 
 Route::post('/mcp', function () {
-    (new McpServer())->handleHttp();
+    if (\Screenart\Musedock\Services\Mcp\Direct\Routing::useDirect()) {
+        (new \Screenart\Musedock\Services\Mcp\Direct\Endpoint(\Screenart\Musedock\Services\Mcp\Direct\Endpoint::siteResource()))->mcp();
+    } else { (new McpServer())->handleHttp(); }
 });
 
 Route::get('/mcp', function () {
-    (new McpServer())->handleHttp();
+    if (\Screenart\Musedock\Services\Mcp\Direct\Routing::useDirect()) {
+        (new \Screenart\Musedock\Services\Mcp\Direct\Endpoint(\Screenart\Musedock\Services\Mcp\Direct\Endpoint::siteResource()))->mcp();
+    } else { (new McpServer())->handleHttp(); }
 });
 
 Route::options('/mcp', function () {
-    (new McpServer())->handleHttp();
+    if (\Screenart\Musedock\Services\Mcp\Direct\Routing::useDirect()) {
+        (new \Screenart\Musedock\Services\Mcp\Direct\Endpoint(\Screenart\Musedock\Services\Mcp\Direct\Endpoint::siteResource()))->mcp();
+    } else { (new McpServer())->handleHttp(); }
 });
 
 // ============================================================================
@@ -37,7 +43,7 @@ $__oauthPreflight = function () {
 };
 
 foreach (['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp'] as $__path) {
-    Route::get($__path, fn() => (new OAuthServer())->protectedResourceMetadata());
+    Route::get($__path, fn() => \Screenart\Musedock\Services\Mcp\Direct\Routing::resourceMetadata());
     Route::options($__path, $__oauthPreflight);
 }
 foreach (['/.well-known/oauth-authorization-server', '/.well-known/openid-configuration'] as $__path) {
@@ -53,3 +59,5 @@ Route::post('/oauth/revoke', fn() => (new OAuthServer())->revoke());
 foreach (['/oauth/register', '/oauth/token', '/oauth/revoke'] as $__path) {
     Route::options($__path, $__oauthPreflight);
 }
+
+require __DIR__ . '/mcp_direct.php';

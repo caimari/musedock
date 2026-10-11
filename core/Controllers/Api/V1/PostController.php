@@ -87,7 +87,7 @@ class PostController
 
         // Enforce tenant isolation for non-superadmin keys
         $key = ApiKeyAuth::key();
-        if (!$key->isSuperadmin() && (int)$post['tenant_id'] !== (int)$key->tenant_id) {
+        if (!$key->canAccessTenant((int)($post['tenant_id'] ?? 0))) {
             ApiKeyAuth::respond(404, 'NOT_FOUND', 'Post not found.');
         }
 
@@ -278,7 +278,7 @@ class PostController
 
         // Tenant isolation
         $key = ApiKeyAuth::key();
-        if (!$key->isSuperadmin() && (int)$postRow['tenant_id'] !== (int)$key->tenant_id) {
+        if (!$key->canAccessTenant((int)($postRow['tenant_id'] ?? 0))) {
             ApiKeyAuth::respond(404, 'NOT_FOUND', 'Post not found.');
         }
 
@@ -386,7 +386,7 @@ class PostController
 
         // Tenant isolation
         $key = ApiKeyAuth::key();
-        if (!$key->isSuperadmin() && (int)$post['tenant_id'] !== (int)$key->tenant_id) {
+        if (!$key->canAccessTenant((int)($post['tenant_id'] ?? 0))) {
             ApiKeyAuth::respond(404, 'NOT_FOUND', 'Post not found.');
         }
 
@@ -428,11 +428,21 @@ class PostController
             ApiKeyAuth::respond(404, 'NOT_FOUND', 'Source post not found.');
         }
 
+        $key = ApiKeyAuth::key();
+        if (!$key->canAccessTenant((int)($sourcePost['tenant_id'] ?? 0))) {
+            ApiKeyAuth::respond(404, 'NOT_FOUND', 'Source post not found.');
+        }
+        foreach ($targetTenantIds as $targetId) {
+            if (!$key->canAccessTenant((int)$targetId)) {
+                ApiKeyAuth::respond(403, 'TENANT_NOT_ALLOWED', 'Target tenant is outside the authorized scope.');
+            }
+        }
+
         // Check cross-publisher queue table exists
         try {
-            $pdo->query("SELECT 1 FROM cross_publisher_queue LIMIT 1");
+            $pdo->query("SELECT origin_api_key_id FROM cross_publish_queue LIMIT 1");
         } catch (\Exception $e) {
-            ApiKeyAuth::respond(501, 'PLUGIN_NOT_INSTALLED', 'Cross-Publisher plugin is not installed. The cross_publisher_queue table does not exist.');
+            ApiKeyAuth::respond(501, 'PLUGIN_NOT_INSTALLED', 'Cross-Publisher requires its installation and the CMS API-origin migration.');
         }
 
         $results = [];
@@ -452,11 +462,11 @@ class PostController
             // Insert into cross-publisher queue
             try {
                 $qStmt = $pdo->prepare("
-                    INSERT INTO cross_publisher_queue
-                    (source_post_id, source_tenant_id, target_tenant_id, target_status, status, created_at)
-                    VALUES (?, ?, ?, ?, 'pending', NOW())
+                    INSERT INTO cross_publish_queue
+                    (source_post_id, source_tenant_id, target_tenant_id, target_status, origin_api_key_id, status, created_at)
+                    VALUES (?, ?, ?, ?, ?, 'pending', NOW())
                 ");
-                $qStmt->execute([$id, $sourcePost['tenant_id'], $targetTenantId, $targetStatus]);
+                $qStmt->execute([$id, $sourcePost['tenant_id'], $targetTenantId, $targetStatus, (int)$key->id]);
 
                 $results[] = ['tenant_id' => $targetTenantId, 'tenant_name' => $targetTenant['name'], 'status' => 'queued'];
             } catch (\Exception $e) {

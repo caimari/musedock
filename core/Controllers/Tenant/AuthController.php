@@ -46,7 +46,7 @@ class AuthController
         $target = $_SESSION['auth_return_to'] ?? null;
         unset($_SESSION['auth_return_to']);
 
-        if (is_string($target) && str_starts_with($target, '/oauth/authorize?') && !preg_match('/[\r\n]/', $target)) {
+        if (is_string($target) && (str_starts_with($target, '/oauth/authorize?') || str_starts_with($target, '/mcp-auth/cms/authorize?')) && !preg_match('/[\r\n]/', $target)) {
             return $target;
         }
         return $default;

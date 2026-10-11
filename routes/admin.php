@@ -676,3 +676,6 @@ Route::post("$adminPath/ads/{id}/delete", 'tenant.AdsController@delete')
      ->middleware(['auth'])->name('tenant.ads.delete');
 Route::post("$adminPath/ads/ads-txt", 'tenant.AdsController@saveAdsTxt')
      ->middleware(['auth'])->name('tenant.ads.adstxt');
+
+Route::get("$adminPath/mcp/direct", fn() => (new \Screenart\Musedock\Services\Mcp\Direct\Admin())->handle())->middleware('auth');
+Route::post("$adminPath/mcp/direct", fn() => (new \Screenart\Musedock\Services\Mcp\Direct\Admin())->handle())->middleware('auth');

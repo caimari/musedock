@@ -271,7 +271,9 @@ public static function resolve() {
         $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';
         // Servidor MCP y endpoints OAuth máquina-a-máquina: autenticación por token/cliente,
         // sin sesión (coincidencia exacta). /oauth/authorize (consentimiento) SÍ lleva CSRF.
-        $skipCsrf = in_array(rtrim($currentUri, '/'), ['/mcp', '/oauth/register', '/oauth/token', '/oauth/revoke'], true);
+        $skipCsrf = (bool) preg_match('#^/mcp/(cross-publisher|news-aggregator)/?$#D', $currentUri)
+            || (bool) preg_match('#^/mcp-auth/(cms|cross-publisher|news-aggregator)/(token|revoke)/?$#D', $currentUri)
+            || in_array(rtrim($currentUri, '/'), ['/mcp', '/oauth/register', '/oauth/token', '/oauth/revoke'], true);
 
         foreach ($csrfExcludedRoutes as $excludedRoute) {
             // Verificar si la ruta comienza con el patrón O si termina con el patrón

@@ -3,6 +3,7 @@
 @section('title', 'News Aggregator')
 
 @section('content')
+<div class="px-4 pt-3"><a class="btn btn-outline-primary" href="/musedock/settings/mcp?resource=plugin%3Anews-aggregator"><i class="bi bi-robot me-1"></i>Conexiones MCP</a></div>
 <div class="app-content">
     <div class="container-fluid">
 
