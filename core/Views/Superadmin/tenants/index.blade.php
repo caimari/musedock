@@ -13,6 +13,20 @@
 .tenant-color { width:18px;height:18px;border-radius:50%;padding:0;border:2px solid white;outline:1px solid #ccd3dd; }
 .tenant-color.selected { outline:2px solid #263c55; }
 .tenant-color-blue { background:#397de0; }.tenant-color-green { background:#279c65; }.tenant-color-orange { background:#e49a29; }.tenant-color-purple { background:#8a56c5; }.tenant-color-red { background:#d84c53; }.tenant-color-none { background:#d5dae1; }
+.tenant-row-blue { --tenant-row-tint:#f0f5fd; }
+.tenant-row-green { --tenant-row-tint:#eff8f3; }
+.tenant-row-orange { --tenant-row-tint:#fff7ec; }
+.tenant-row-purple { --tenant-row-tint:#f6f1fb; }
+.tenant-row-red { --tenant-row-tint:#fdf1f2; }
+.tenant-page .table tbody tr[class*="tenant-row-"] > td {
+    background-color:var(--tenant-row-tint);
+    --bs-table-bg:var(--tenant-row-tint);
+    --bs-table-accent-bg:transparent;
+    box-shadow:none;
+}
+.tenant-page .table tbody tr[class*="tenant-row-"]:hover > td {
+    box-shadow:inset 0 0 0 9999px rgba(30,50,80,.025);
+}
 </style>
 <div class="app-content tenant-page">
     <div class="container-fluid">
@@ -67,7 +81,7 @@
                     <tbody>
                         @if ($total === 0)<tr><td colspan="4" class="text-center text-muted py-4">No hay tenants que coincidan con los filtros.</td></tr>@endif
                         @foreach ($tenants as $tenant)
-                            <tr>
+                            <tr class="{{ !empty($tenant->label_color) && array_key_exists($tenant->label_color, $labelColors) ? 'tenant-row-' . $tenant->label_color : '' }}">
 							<td>{{ $tenant->name }}</td>
 							<td>{{ $tenant->domain }} @if (!empty($tenant->is_client_domain))<span class="badge bg-secondary ms-2">Cliente</span>@endif
                                 <form method="post" action="/musedock/tenants/{{ $tenant->id }}/classification" class="d-flex gap-2 mt-2" aria-label="Color de {{ $tenant->domain }}">
