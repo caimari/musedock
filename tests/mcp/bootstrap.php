@@ -11,8 +11,8 @@ spl_autoload_register(function ($class) {
 \Screenart\Musedock\Env::load('/nonexistent-cms-mcp-test-env');
 function fixture(): PDO
 {
-    $dsn=getenv('MCP_TEST_MYSQL_DSN');
-    $p=$dsn?new PDO($dsn,'root',''):new PDO('sqlite::memory:'); $p->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+    $pg=getenv('MCP_TEST_PG_DSN'); $dsn=$pg?:getenv('MCP_TEST_MYSQL_DSN');
+    $p=$dsn?new PDO($dsn,$pg?getenv('MCP_TEST_PG_USER'):'root',''):new PDO('sqlite::memory:'); $p->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
     $schema="CREATE TABLE settings(key TEXT,value TEXT); INSERT INTO settings VALUES('force_lang','es');
         CREATE TABLE languages(code TEXT,active INTEGER); INSERT INTO languages VALUES('es',1);
         CREATE TABLE tenants(id INTEGER PRIMARY KEY,name TEXT,domain TEXT,group_id INTEGER,status TEXT);
@@ -31,13 +31,18 @@ function fixture(): PDO
         CREATE TABLE cross_publish_queue(id INTEGER PRIMARY KEY AUTOINCREMENT,source_post_id INTEGER,source_tenant_id INTEGER,target_tenant_id INTEGER,target_status TEXT,status TEXT,created_at TEXT);
         CREATE TABLE news_aggregator_items(id INTEGER PRIMARY KEY,tenant_id INTEGER,original_title TEXT,original_content TEXT,original_url TEXT,rewritten_title TEXT,rewritten_content TEXT,rewritten_excerpt TEXT,status TEXT,created_post_id INTEGER);
         INSERT INTO news_aggregator_items VALUES(1,1,'Noticia','Texto sin IA','https://source.example/news',NULL,NULL,NULL,'pending',NULL),(2,3,'Privada','Privada','https://source.example/private',NULL,NULL,NULL,'pending',NULL);";
-    if ($dsn) {
+    if ($pg) {
+        $schema=str_replace('INTEGER PRIMARY KEY AUTOINCREMENT','SERIAL PRIMARY KEY',$schema);
+        $schema=str_replace('sync_enabled INTEGER','sync_enabled BOOLEAN',$schema);
+    } elseif ($dsn) {
         $schema=str_replace(['INTEGER PRIMARY KEY AUTOINCREMENT','INTEGER PRIMARY KEY','key TEXT'],['INT PRIMARY KEY AUTO_INCREMENT','INT PRIMARY KEY','`key` VARCHAR(100)'],$schema);
     }
     $p->exec($schema);
+    if ($pg) $p->exec("SELECT setval('blog_posts_id_seq',4)");
     if (!$dsn) { $p->exec('ALTER TABLE cross_publish_queue ADD COLUMN origin_api_key_id INTEGER NULL'); $p->sqliteCreateFunction('NOW',fn()=>gmdate('Y-m-d H:i:s')); }
     else { require_once APP_ROOT.'/database/migrations/2026_10_11_130000_add_cross_publish_api_origin.php'; }
     $property=new ReflectionProperty(\Screenart\Musedock\Database::class,'connection'); $property->setAccessible(true); $property->setValue(null,$p);
+    if ($pg) { $driver=new ReflectionProperty(\Screenart\Musedock\Database::class,'driver'); $driver->setAccessible(true); $driver->setValue(null,new \Screenart\Musedock\Database\Drivers\PostgreSQLDriver()); }
     if ($dsn) { (new AddCrossPublishApiOrigin_2026_10_11_130000())->up(); (new AddCrossPublishApiOrigin_2026_10_11_130000())->up(); }
     return $p;
 }

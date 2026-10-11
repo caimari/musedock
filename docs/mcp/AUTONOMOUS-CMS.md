@@ -1,6 +1,6 @@
 # MuseDock CMS MCP — versión 2.20.0
 
-Estado: implementación preparada en rama aislada. No desplegada ni activada en producción.
+Estado: desplegada en producción el 11 de octubre de 2026 con autorización del usuario. La conexión externa permanece desactivada hasta configurar clientes y habilitar los recursos.
 
 ## Independencia
 
@@ -69,7 +69,7 @@ La migración `2026_10_11_130000` añade esa columna a instalaciones existentes.
 
 ## Validación y activación
 
-Consultar `VALIDATION.md`. Los ensayos usan fixtures SQLite, una instancia temporal de MariaDB por socket privado y servidor PHP en loopback, sin conectar al SQL de producción ni ejecutar IA. Falta validación en una copia completa del esquema del despliegue, navegador autenticado y las cuentas reales de asistentes.
+Consultar `VALIDATION.md`. Los ensayos usan fixtures SQLite, una instancia temporal de MariaDB por socket privado y servidor PHP en loopback, sin conectar al SQL de producción ni ejecutar IA. También se han validado las 78 comprobaciones con PostgreSQL 16 aislado. Falta validación en una copia completa del esquema del despliegue, navegador autenticado y las cuentas reales de asistentes.
 
 Hasta recibir autorización explícita después de presentar los resultados:
 - no aplicar migraciones a producción;

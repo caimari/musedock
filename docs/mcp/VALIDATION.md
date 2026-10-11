@@ -31,3 +31,13 @@ Las fixtures contienen un sitio principal, dos propios y un sitio de cliente; us
 Las pruebas HTTP usan el router y los endpoints reales: descubrimiento, desafío 401, rebote SameSite sin cookie, consentimiento autenticado con CSRF, estado e issuer en callback, intercambio de código, inicialización MCP, catálogo de herramientas, solicitudes pendientes, rechazo de tokens revocados, método GET, JSON inválido, notificaciones y host no autorizado. No se conectan al SQL de producción ni se emiten credenciales reales.
 
 Límites: no equivalen a una prueba visual del panel completo ni a una sesión real ChatGPT/Claude. El SQL de contenido se prueba con SQLite y MariaDB temporal, incluyendo la migración de origen API aplicada dos veces. Antes de activar debe verificarse contra una copia del esquema completo del despliegue; PostgreSQL no se ha ejecutado en estas pruebas. No se prueban publicación, IA, túnel, DNS ni firewall porque esta entrega no los implementa ni modifica.
+
+## Despliegue autorizado — 11 de octubre de 2026
+
+El usuario autorizó expresamente el despliegue después de recibir los resultados. Se integró el CMS en producción (`4889ed5`) y el parche de plugins privados (`18a2992`), conservando exactamente los cambios previos sin confirmar del repositorio de plugins. Se ejecutaron solo las dos migraciones nuevas, dentro de una transacción PostgreSQL, y se verificaron la entrada de menú y la columna de origen de la cola.
+
+Se guardó una copia completa PostgreSQL en formato custom y la configuración fuera del directorio público, en `.codex/backups/mcp-deploy-20261011`; el índice se verificó con pg_restore 16. El almacenamiento OAuth privado se inicializó con permisos restrictivos y sin recursos ni clientes. No se publicaron commits en GitHub.
+
+Se añadieron y pasaron las mismas 78 comprobaciones en un PostgreSQL 16 temporal sin escucha TCP (`python3 tests/mcp/postgres_test.py`). También pasaron nuevamente las 78 comprobaciones SQLite, 30 HTTP, concurrencia y vistas Blade. Se confirmó por HTTPS que la gestión requiere login y que los recursos públicos desactivados responden 404.
+
+El valor anterior `MCP_ENABLED=false` se conserva; el nuevo interruptor también permanece desactivado por defecto. El código y la gestión están desplegados, pero la conexión externa requiere habilitación explícita y configurar clientes con callbacks reales. No se ha verificado aún una cuenta real de ChatGPT/Claude.
