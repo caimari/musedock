@@ -26,18 +26,30 @@
             </div>
         </div>
 
+        <form method="get" action="/musedock/tenants" class="card mb-3">
+            <div class="card-body d-flex flex-wrap gap-3 align-items-end">
+                <div class="flex-grow-1"><label for="tenant-search" class="form-label">Buscar nombre o dominio</label><input id="tenant-search" name="q" class="form-control" value="{{ $search }}" placeholder="Nombre o dominio"></div>
+                <div><label for="tenant-type" class="form-label">Tipo de dominio</label><select id="tenant-type" name="type" class="form-select">
+                    <option value="">Todos</option><option value="domain" {{ $type === 'domain' ? 'selected' : '' }}>Dominios propios</option><option value="subdomain" {{ $type === 'subdomain' ? 'selected' : '' }}>Subdominios de {{ $mainDomain }}</option>
+                </select></div>
+                <div><label for="tenant-per-page" class="form-label">Por página</label><select id="tenant-per-page" name="per_page" class="form-select">@foreach ([25, 50, 100, 200] as $size)<option value="{{ $size }}" {{ $perPage === $size ? 'selected' : '' }}>{{ $size }}</option>@endforeach</select></div>
+                <input type="hidden" name="sort" value="{{ $sort }}"><input type="hidden" name="direction" value="{{ $direction }}">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button><a class="btn btn-outline-secondary" href="/musedock/tenants">Restablecer</a>
+            </div>
+        </form>
         <div class="card">
             <div class="card-body table-responsive p-0">
                 <table class="table table-hover align-middle">
                     <thead>
                         <tr>
-                            <th>{{ __('tenants.name') }}</th>
-                            <th>{{ __('tenants.domain') }}</th>
-                            <th>{{ __('common.created') }}</th>
+                            <th aria-sort="{{ $sort === 'name' ? ($direction === 'asc' ? 'ascending' : 'descending') : 'none' }}"><a class="text-decoration-none" href="{{ $listUrl(['sort' => 'name', 'direction' => $sort === 'name' && $direction === 'asc' ? 'desc' : 'asc', 'page' => 1]) }}">{{ __('tenants.name') }} <i class="bi {{ $sort === 'name' ? ($direction === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down') : 'bi-arrow-down-up' }}"></i></a></th>
+                            <th aria-sort="{{ $sort === 'domain' ? ($direction === 'asc' ? 'ascending' : 'descending') : 'none' }}"><a class="text-decoration-none" href="{{ $listUrl(['sort' => 'domain', 'direction' => $sort === 'domain' && $direction === 'asc' ? 'desc' : 'asc', 'page' => 1]) }}">{{ __('tenants.domain') }} <i class="bi {{ $sort === 'domain' ? ($direction === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down') : 'bi-arrow-down-up' }}"></i></a></th>
+                            <th aria-sort="{{ $sort === 'created_at' ? ($direction === 'asc' ? 'ascending' : 'descending') : 'none' }}"><a class="text-decoration-none" href="{{ $listUrl(['sort' => 'created_at', 'direction' => $sort === 'created_at' && $direction === 'asc' ? 'desc' : 'asc', 'page' => 1]) }}">{{ __('common.created') }} <i class="bi {{ $sort === 'created_at' ? ($direction === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down') : 'bi-arrow-down-up' }}"></i></a></th>
                             <th>{{ __('common.actions') }}</th>
                         </tr>
                     </thead>
                     <tbody>
+                        @if ($total === 0)<tr><td colspan="4" class="text-center text-muted py-4">No hay tenants que coincidan con los filtros.</td></tr>@endif
                         @foreach ($tenants as $tenant)
                             <tr>
 							<td>{{ $tenant->name }}</td>
@@ -64,6 +76,14 @@
                         @endforeach
                     </tbody>
                 </table>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 p-3 border-top">
+                    <span class="text-muted">{{ $total === 0 ? 0 : ($page - 1) * $perPage + 1 }}–{{ min($page * $perPage, $total) }} de {{ $total }} tenants</span>
+                    <nav aria-label="Paginación de tenants" class="d-flex flex-wrap gap-2 align-items-center">
+                        @if ($page > 1)<a class="btn btn-sm btn-outline-secondary" href="{{ $listUrl(['page' => 1]) }}">Primera</a><a class="btn btn-sm btn-outline-secondary" href="{{ $listUrl(['page' => $page - 1]) }}">Anterior</a>@endif
+                        <span>Página {{ $page }} de {{ $pages }}</span>
+                        @if ($page < $pages)<a class="btn btn-sm btn-outline-secondary" href="{{ $listUrl(['page' => $page + 1]) }}">Siguiente</a><a class="btn btn-sm btn-outline-secondary" href="{{ $listUrl(['page' => $pages]) }}">Última</a>@endif
+                    </nav>
+                </div>
             </div>
         </div>
 

@@ -59,7 +59,27 @@ class TenantsController
         SessionSecurity::startSession();
         $this->checkPermission('tenants.manage');
 
-        $tenants = Database::table('tenants')->get();
+        $scalar = static fn($key, $default = '') => is_scalar($_GET[$key] ?? null) ? (string) $_GET[$key] : $default;
+        $search = mb_substr(trim($scalar('q')), 0, 200);
+        $type = in_array($scalar('type'), ['domain', 'subdomain'], true) ? $scalar('type') : '';
+        $sort = in_array($scalar('sort'), ['name', 'domain', 'created_at'], true) ? $scalar('sort') : 'name';
+        $direction = $scalar('direction') === 'desc' ? 'desc' : 'asc';
+        $perPage = in_array((int) $scalar('per_page'), [25, 50, 100, 200], true) ? (int) $scalar('per_page') : 100;
+        $mainDomain = strtolower((string) parse_url(\Screenart\Musedock\Env::get('APP_URL', 'https://musedock.com'), PHP_URL_HOST));
+        $query = Database::table('tenants');
+        if ($search !== '') {
+            $pattern = '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($search)) . '%';
+            $query->whereRaw("(LOWER(name) LIKE :search_name ESCAPE '!' OR LOWER(domain) LIKE :search_domain ESCAPE '!')", [':search_name' => $pattern, ':search_domain' => $pattern]);
+        }
+        if ($type !== '') {
+            $query->whereRaw("LOWER(domain) " . ($type === 'subdomain' ? 'LIKE' : 'NOT LIKE') . " :domain_suffix", [':domain_suffix' => '%.' . $mainDomain]);
+        }
+        $total = $query->count();
+        $pages = max(1, (int) ceil($total / $perPage));
+        $page = min($pages, max(1, (int) $scalar('page', '1')));
+        $tenants = $query->orderBy($sort, $direction)->limit($perPage)->offset(($page - 1) * $perPage)->get();
+        $filters = ['q' => $search, 'type' => $type, 'sort' => $sort, 'direction' => $direction, 'per_page' => $perPage];
+        $listUrl = static fn(array $changes = []) => '/musedock/tenants?' . http_build_query(array_merge($filters, ['page' => $page], $changes));
 
         // Obtener formatos de fecha y hora de las preferencias del sistema
         $dateFormat = setting('date_format', 'd/m/Y');
@@ -69,7 +89,10 @@ class TenantsController
             'title' => __('tenants_title') ?? 'Tenants',
             'tenants' => $tenants,
             'dateFormat' => $dateFormat,
-            'timeFormat' => $timeFormat
+            'timeFormat' => $timeFormat,
+            'search' => $search, 'type' => $type, 'sort' => $sort, 'direction' => $direction,
+            'perPage' => $perPage, 'page' => $page, 'pages' => $pages, 'total' => $total,
+            'mainDomain' => $mainDomain, 'listUrl' => $listUrl
         ]);
     }
 
