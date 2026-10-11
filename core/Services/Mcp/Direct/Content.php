@@ -68,6 +68,7 @@ final class Content
     }
     public function read(string $tool, array $r, array $c, array $args): array
     {
+        if (in_array($tool,NewsReader::TOOLS,true)) { if ($r['id']!=='plugin:news-aggregator') throw new RuntimeException('Consulta exclusiva de News Aggregator.'); return (new NewsReader($this))->read($tool,$r,$c,$args); }
         if (isset(Editor::MAP[$tool])) return (new Editor($this))->read($tool,$r,$c,$args);
         if ($tool==='list_sites') return $this->listSites($r,$c);
         if ($tool==='get_post') return $this->post($r,$c,(int)$args['post_id']);

@@ -5,7 +5,7 @@
  * Procesa la cola de publicaciones pendientes y sincroniza relaciones.
  *
  * Uso: php cli/cron-cross-publisher.php [--verbose] [--dry-run]
- * Crontab: */15 * * * * php /var/www/vhosts/musedock.com/httpdocs/cli/cron-cross-publisher.php
+ * Ejecutar cada quince minutos mediante el programador del sistema.
  */
 
 if (php_sapi_name() !== 'cli') {
@@ -14,46 +14,24 @@ if (php_sapi_name() !== 'cli') {
 
 define('APP_ROOT', dirname(__DIR__));
 
-// Lock file para evitar ejecución concurrente
-$lockFile = APP_ROOT . '/storage/cache/.cron-cross-publisher.lock';
-
-if (file_exists($lockFile)) {
-    $lockAge = time() - filemtime($lockFile);
-    if ($lockAge < 600) { // 10 minutos max
-        echo "[SKIP] Lock file exists (age: {$lockAge}s). Exiting.\n";
-        exit(0);
-    }
-    // Lock file viejo, eliminamos
-    unlink($lockFile);
+require_once APP_ROOT . '/vendor/autoload.php';
+require_once APP_ROOT . '/core/bootstrap.php';
+if (!\Screenart\Musedock\Services\Mcp\Direct\Endpoint::installed('plugin:cross-publisher')) exit;
+$pluginDir=null;
+foreach (\Screenart\Musedock\Services\SuperadminPluginService::getPluginsDirs() as $directory) {
+    if (is_file($directory.'/cross-publisher/Services/CrossPublishService.php')) { $pluginDir=$directory.'/cross-publisher/'; break; }
 }
-
-file_put_contents($lockFile, getmypid());
-
-// Registrar cleanup
-register_shutdown_function(function() use ($lockFile) {
-    if (file_exists($lockFile)) {
-        unlink($lockFile);
-    }
-});
+if (!$pluginDir) { fwrite(STDERR,"Cross Publisher installation not found.\n"); exit(1); }
+\Screenart\Musedock\ModuleAutoloader::registerNamespace('CrossPublisherAdmin', $pluginDir);
+$lockFile=APP_ROOT.'/storage/cache/.cron-cross-publisher.lock';
+$lock=fopen($lockFile,'c');
+if (!$lock || !flock($lock,LOCK_EX|LOCK_NB)) { echo "[SKIP] Another Cross Publisher worker is running.\n"; exit; }
+register_shutdown_function(function () use ($lock) { flock($lock,LOCK_UN); fclose($lock); });
 
 $verbose = in_array('--verbose', $argv);
 $dryRun = in_array('--dry-run', $argv);
 
 try {
-    // Bootstrap del sistema
-    require_once APP_ROOT . '/core/bootstrap.php';
-
-    // Registrar autoloader del plugin
-    spl_autoload_register(function ($class) {
-        $prefix = 'CrossPublisherAdmin\\';
-        $baseDir = APP_ROOT . '/plugins/superadmin/cross-publisher/';
-        $len = strlen($prefix);
-        if (strncmp($prefix, $class, $len) !== 0) return;
-        $relativeClass = substr($class, $len);
-        $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
-        if (file_exists($file)) require $file;
-    });
-
     $startTime = microtime(true);
     echo "[" . date('Y-m-d H:i:s') . "] Cross-Publisher cron started\n";
 
@@ -113,7 +91,7 @@ try {
     $elapsed = round(microtime(true) - $startTime, 2);
     echo "[DONE] Completed in {$elapsed}s\n";
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     echo "[ERROR] " . $e->getMessage() . "\n";
     error_log("[Cross-Publisher Cron] " . $e->getMessage());
     exit(1);

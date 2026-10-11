@@ -51,7 +51,7 @@
           <p>Es la conexión recomendada para vuestro grupo editorial. Gestiona el blog de los sitios propios que marques y que estén en los grupos autorizados para cada cliente.</p>
           <p>También copia artículos entre esos sitios como borradores. La copia no activa sincronización ni traducción automática; puedes preparar las traducciones desde el asistente y guardarlas con sus herramientas.</p>
         @else
-          <p>Gestiona los blogs de los sitios propios autorizados y consulta las noticias que ya haya capturado News Aggregator. Permite convertir esas noticias en borradores.</p>
+          <p>Consulta las noticias originales, fuentes, agrupaciones y análisis IA que ya guarda News Aggregator en los sitios autorizados. Estas consultas no generan costes de IA. Convertir una noticia en borrador y publicar siguen sujetos a los permisos y aprobaciones configurados.</p>
           <p>La conexión no ejecuta la captura de fuentes ni la reescritura automática del plugin.</p>
         @endif
         <p>Las herramientas dependen de los permisos del cliente. Publicar y aprobar desde MCP requieren habilitación explícita. Sin aprobación remota, los cambios se revisan y aprueban en el CMS.</p>

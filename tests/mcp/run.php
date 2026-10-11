@@ -161,4 +161,5 @@ check($endpoint->configuration()===null,'deployment gate blocks prepared resourc
 $_ENV['MCP_CMS_DIRECT_ENABLED']=true;
 check($endpoint->configuration()!==null,'operator gate and enabled resource both required');
 require __DIR__.'/editor_checks.php';
+require __DIR__.'/news_reader_checks.php';
 echo "PASS: {$count} checks; isolated fixtures, no production changes.\n";
