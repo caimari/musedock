@@ -104,6 +104,7 @@
     </form>
   </div></div>
   @if($newClient)
+    @if(!empty($newClient['rotated']))<div class="alert alert-info">Secreto renovado. Copia el nuevo valor y actualízalo en ChatGPT. El secreto anterior seguirá funcionando durante 24 horas o hasta que pulses «Finalizar renovación». Se conservan el ID, los permisos, los consentimientos y los tokens existentes.</div>@endif
   <div id="new-credentials" class="card border-success mb-3"><div class="card-body">
     <h2 class="h5">Credenciales nuevas</h2><p>Cópialas ahora. El secreto se muestra una sola vez.</p>
     <label for="client-id">ID del cliente</label><div class="input-group mb-2"><input id="client-id" readonly class="form-control" value="{{ $newClient['id'] }}"><button type="button" class="btn btn-outline-primary" data-copy="client-id">Copiar</button></div>
@@ -148,6 +149,18 @@
   <div class="card mb-3"><div class="card-body"><h2 class="h5">Clientes y permisos</h2>
     @forelse($clients as $client)
     <div class="border rounded p-3 mb-3"><h3 class="h6">{{ $client['name'] }} — {{ $client['enabled'] ? 'Habilitado' : 'Revocado' }}</h3><p class="small">ID: <code>{{ $client['id'] }}</code><br>Callback: {{ $client['callback'] }}</p>
+      @if($client['enabled'])
+      <form method="post" action="{{ $back }}" class="mb-3">
+        {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="client" value="{{ $client['id'] }}">
+        @if(($client['previous_secret_expires'] ?? 0) > time())
+          <p class="small text-muted">Renovación pendiente: el secreto anterior vence el {{ date('d/m/Y H:i', $client['previous_secret_expires']) }} (hora del servidor). Actualiza el secreto en ChatGPT antes de finalizar.</p>
+          <button class="btn btn-sm btn-outline-primary" name="action" value="finish_secret_rotation">Finalizar renovación e invalidar secreto anterior</button>
+        @else
+          <button class="btn btn-sm btn-outline-primary" name="action" value="rotate_secret">Renovar secreto sin revocar la conexión</button>
+          <p class="small text-muted mt-2 mb-0">Mantiene el mismo cliente. Tendrás 24 horas para actualizar el secreto en ChatGPT. Los tokens OAuth se renuevan automáticamente.</p>
+        @endif
+      </form>
+      @endif
       <form method="post" action="{{ $back }}" class="mb-2">
         {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="client" value="{{ $client['id'] }}"><input type="hidden" name="action" value="client_permissions">
         @foreach($scopes as $scope)<label class="form-check"><input class="form-check-input" type="checkbox" name="scopes[]" value="{{ $scope }}" {{ in_array($scope,$client['scopes'],true) ? 'checked' : '' }}> {{ \Screenart\Musedock\Services\Mcp\Direct\Policy::label($scope) }} <small class="text-muted">({{ $scope }})</small></label>@endforeach

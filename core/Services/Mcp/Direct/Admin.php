@@ -68,6 +68,13 @@ final class Admin
                     $new=$ep->oauth->createClient($id,(string)($_POST['name']??''),$callback,(array)($_POST['scopes']??[]),$sites,$groups,(string)($_POST['networks']??''));
                     $_SESSION['cms_mcp_new'][$id]=['id'=>$new['client']['id'],'secret'=>$new['secret']];
                     $ep->store->event($id,'client.created',$actor,['client'=>$new['client']['id']]);
+                } elseif ($action==='rotate_secret' || $action==='finish_secret_rotation') {
+                    $clientId=(string)($_POST['client']??'');
+                    if ($action==='rotate_secret') {
+                        $secret=$ep->oauth->rotateSecret($id,$clientId);
+                        $_SESSION['cms_mcp_new'][$id]=['id'=>$clientId,'secret'=>$secret,'rotated'=>true];
+                    } else $ep->oauth->finishSecretRotation($id,$clientId);
+                    $ep->store->event($id,$action,$actor,['client'=>$clientId]);
                 } elseif ($action==='client_permissions' || $action==='revoke_client') {
                     $client=$ep->store->client((string)($_POST['client']??''));
                     if (!$client || $client['resource']!==$id) throw new \RuntimeException('Cliente no encontrado.');
@@ -91,7 +98,7 @@ final class Admin
         }
         $clients=[];
         foreach ($ep->store->all('SELECT data FROM clients WHERE resource=?',[$id]) as $row) {
-            $c=$ep->store->decode($row); unset($c['secret_hash']); $clients[]=$c;
+            $c=$ep->store->decode($row); unset($c['secret_hash'],$c['previous_secret_hash']); $clients[]=$c;
         }
         $grants=[]; foreach ($ep->store->all('SELECT data FROM grants WHERE resource=?',[$id]) as $row) $grants[]=$ep->store->decode($row);
         $requests=$ep->store->all("SELECT * FROM requests WHERE resource=? AND status='pending' AND expires>? ORDER BY expires DESC",[$id,time()]);

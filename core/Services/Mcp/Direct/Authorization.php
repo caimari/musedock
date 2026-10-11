@@ -18,6 +18,29 @@ final class Authorization
         $this->store->putClient($c);
         return ['client'=>$c,'secret'=>$secret];
     }
+    public function rotateSecret(string $resource, string $id): string
+    {
+        return $this->store->atomic(function () use ($resource, $id) {
+            $c=$this->store->client($id);
+            if (!$c || !$c['enabled'] || $c['resource']!==$resource) throw new RuntimeException('Cliente no autorizado.');
+            if (($c['previous_secret_expires']??0)>time()) throw new RuntimeException('Finaliza la renovación pendiente antes de generar otro secreto.');
+            $secret='cms_secret_'.bin2hex(random_bytes(32));
+            $c['previous_secret_hash']=$c['secret_hash'];
+            $c['previous_secret_expires']=time()+86400;
+            $c['secret_hash']=hash('sha256',$secret);
+            $this->store->putClient($c);
+            return $secret;
+        });
+    }
+    public function finishSecretRotation(string $resource, string $id): void
+    {
+        $this->store->atomic(function () use ($resource, $id) {
+            $c=$this->store->client($id);
+            if (!$c || !$c['enabled'] || $c['resource']!==$resource) throw new RuntimeException('Cliente no autorizado.');
+            unset($c['previous_secret_hash'], $c['previous_secret_expires']);
+            $this->store->putClient($c);
+        });
+    }
     public function reviseClient(string $resource, string $id, array $scopes, bool $enabled): void
     {
         $c=$this->store->client($id);
@@ -68,7 +91,9 @@ final class Authorization
         if (!$decoded || !str_contains($decoded,':')) throw new RuntimeException('Cliente no autorizado.');
         [$id,$secret]=array_map('urldecode',explode(':',$decoded,2));
         $c=$this->store->client($id);
-        if (!$c || !$c['enabled'] || $c['resource']!==$resource || !hash_equals($c['secret_hash'],hash('sha256',$secret))) throw new RuntimeException('Cliente no autorizado.');
+        $hash=hash('sha256',$secret);
+        $valid=$c && (hash_equals($c['secret_hash'],$hash) || (($c['previous_secret_expires']??0)>time() && hash_equals($c['previous_secret_hash']??'',$hash)));
+        if (!$c || !$c['enabled'] || $c['resource']!==$resource || !$valid) throw new RuntimeException('Cliente no autorizado.');
         return $c;
     }
     public function exchange(array $c, array $p): array
