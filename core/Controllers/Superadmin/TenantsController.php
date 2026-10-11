@@ -67,11 +67,24 @@ class TenantsController
         if (!$tenant) { http_response_code(404); return; }
         $data = ['label_color' => $color];
         if (isset($_POST['edit_client'])) $data['is_client_domain'] = isset($_POST['is_client_domain']) ? 1 : 0;
-        Database::table('tenants')->where('id', (int)$id)->update($data);
+        $this->saveClassification((int)$id, $data);
         \Screenart\Musedock\Security\AuditLogger::log('tenant.classification.updated', 'INFO', ['tenant_id' => (int)$id, 'classification' => $data]);
         flash('success', 'Clasificación del dominio guardada.');
         $back = isset($_POST['edit_client']) ? '/musedock/tenants/'.(int)$id.'/edit#tenant-classification' : '/musedock/tenants';
         header('Location: '.$back);
+    }
+
+    private function saveClassification(int $id, array $data): void
+    {
+        // Keep an empty color as an empty string; QueryBuilder::update converts it to NULL.
+        $sql = 'UPDATE tenants SET label_color = :color';
+        $parameters = [':color' => $data['label_color'], ':id' => $id];
+        if (array_key_exists('is_client_domain', $data)) {
+            $sql .= ', is_client_domain = :is_client';
+            $parameters[':is_client'] = $data['is_client_domain'];
+        }
+        $statement = Database::connect()->prepare($sql . ' WHERE id = :id');
+        $statement->execute($parameters);
     }
 
     public function index()
