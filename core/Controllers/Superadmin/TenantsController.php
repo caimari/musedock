@@ -96,7 +96,7 @@ class TenantsController
             $query->whereRaw("LOWER(domain) " . ($type === 'subdomain' ? 'LIKE' : 'NOT LIKE') . " :domain_suffix", [':domain_suffix' => '%.' . $mainDomain]);
         }
         $ownership = in_array($scalar('ownership'), ['client', 'unmarked'], true) ? $scalar('ownership') : '';
-        $color = $scalar('color') === 'none' || array_key_exists($scalar('color'), self::LABEL_COLORS) ? $scalar('color') : '';
+        $color = ($scalar('color') === 'none' || array_key_exists($scalar('color'), self::LABEL_COLORS)) ? $scalar('color') : '';
         if ($ownership !== '') $query->where('is_client_domain', $ownership === 'client' ? 1 : 0);
         if ($color !== '') $query->where('label_color', $color === 'none' ? '' : $color);
         $total = $query->count();

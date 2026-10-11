@@ -37,8 +37,18 @@
                 </select></div>
                 <div><label for="tenant-per-page" class="form-label">Por página</label><select id="tenant-per-page" name="per_page" class="form-select">@foreach ([25, 50, 100, 200] as $size)<option value="{{ $size }}" {{ $perPage === $size ? 'selected' : '' }}>{{ $size }}</option>@endforeach</select></div>
                 <div><label for="tenant-ownership" class="form-label">Clasificación</label><select id="tenant-ownership" name="ownership" class="form-select"><option value="">Todos</option><option value="client" {{ $ownership === 'client' ? 'selected' : '' }}>Dominios de clientes</option><option value="unmarked" {{ $ownership === 'unmarked' ? 'selected' : '' }}>Sin marca de cliente</option></select></div>
-                <div><label for="tenant-color-filter" class="form-label">Color</label><select id="tenant-color-filter" name="color" class="form-select"><option value="">Todos los colores</option><option value="none" {{ $color === 'none' ? 'selected' : '' }}>Sin color</option>@foreach ($labelColors as $value => $label)@if ($value !== '')<option value="{{ $value }}" {{ $color === $value ? 'selected' : '' }}>{{ $label }}</option>@endif
-@endforeach</select></div>
+                <div>
+                    <label for="tenant-color-filter" class="form-label">Color</label>
+                    <select id="tenant-color-filter" name="color" class="form-select">
+                        <option value="">Todos los colores</option>
+                        <option value="none" {{ $color === 'none' ? 'selected' : '' }}>Sin color</option>
+                        @foreach ($labelColors as $value => $label)
+                            @if ($value !== '')
+                                <option value="{{ $value }}" {{ $color === $value ? 'selected' : '' }}>{{ $label }}</option>
+                            @endif
+                        @endforeach
+                    </select>
+                </div>
                 <input type="hidden" name="sort" value="{{ $sort }}"><input type="hidden" name="direction" value="{{ $direction }}">
                 <button class="btn btn-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button><a class="btn btn-outline-secondary" href="/musedock/tenants">Restablecer</a>
             </div>
