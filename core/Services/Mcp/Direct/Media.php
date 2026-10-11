@@ -66,7 +66,7 @@ final class Media
             'size_mode'=>'pixels',
             'custom_size_constraints'=>$provider['provider_type']==='minimax'?['minimum'=>512,'maximum'=>2048,'multiple_of'=>8]:null,
             'max_prompt_length'=>$provider['provider_type']==='minimax'?1500:4000,
-            'note'=>'Opciones compatibles con el adaptador instalado del CMS. MiniMax recibe ancho y alto explícitos. El historial informa de las dimensiones reales de la imagen recibida. Generar una imagen no la asigna al post: usa update_post con featured_image_id.',
+            'note'=>'Opciones compatibles con el adaptador instalado del CMS. MiniMax recibe ancho y alto explícitos. El historial informa de las dimensiones reales de la imagen recibida. Generar una imagen no la asigna al post: consulta get_request_status hasta que termine y usa set_featured_image con site_id, post_id y media_id. apply=false prepara el cambio; apply=true solicita aprobación.',
             'uses_site_ai_quota'=>true];
     }
     public function plan(string $tool,int $site,array $args): array
