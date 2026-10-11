@@ -3,6 +3,32 @@
 @section('title', 'Domain Manager')
 
 @section('content')
+<style>
+.domain-tenants-table { width:100%;table-layout:fixed; }
+.domain-tenants-table th,.domain-tenants-table td { padding:12px 10px;white-space:normal!important;overflow-wrap:anywhere; }
+.domain-tenants-table th:nth-child(1) { width:16%; }
+.domain-tenants-table th:nth-child(2) { width:21%; }
+.domain-tenants-table th:nth-child(3) { width:18%; }
+.domain-tenants-table th:nth-child(4) { width:9%; }
+.domain-tenants-table th:nth-child(5) { width:10%; }
+.domain-tenants-table th:nth-child(6) { width:6%; }
+.domain-tenants-table th:nth-child(7) { width:10%; }
+.domain-tenants-table th:nth-child(8) { width:10%; }
+.domain-tenants-table .badge { max-width:100%;white-space:normal;overflow-wrap:anywhere; }
+.domain-tenants-table .btn-group { display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px; }
+.domain-tenants-table .btn-group > .btn { flex:0 0 auto;margin:0!important;border-radius:6px!important;padding:5px 8px; }
+@media (max-width:1100px) {
+    .domain-tenants-table,.domain-tenants-table tbody { display:block; }
+    .domain-tenants-table thead { display:none; }
+    .domain-tenants-table tr { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;border-bottom:1px solid #dee2e6; }
+    .domain-tenants-table td { display:block;min-width:0;border:0; }
+    .domain-tenants-table td::before { content:attr(data-label);display:block;font-size:.75rem;font-weight:600;color:#687787;margin-bottom:4px; }
+    .domain-tenants-table td:last-child { grid-column:1 / -1;text-align:left!important; }
+    .domain-tenants-table .btn-group { justify-content:flex-start; }
+    .domain-tenants-table td[colspan] { grid-column:1 / -1; }
+}
+@media (max-width:480px) { .domain-tenants-table tr { grid-template-columns:minmax(0,1fr); } }
+</style>
 <div class="app-content">
     <div class="container-fluid">
 
@@ -177,7 +203,7 @@
         <!-- Tabla de dominios -->
         <div class="card">
             <div class="card-body table-responsive p-0">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 domain-tenants-table">
                     <thead class="table-light">
                         <tr>
                             <th>Tenant</th>
@@ -193,11 +219,11 @@
                     <tbody>
                         @forelse ($tenants as $tenant)
                             <tr>
-                                <td>
+                                <td data-label="Tenant">
                                     <strong>{{ $tenant->name }}</strong>
                                     <br><small class="text-muted">{{ $tenant->slug }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Dominio">
                                     <a href="https://{{ $tenant->domain }}" target="_blank" class="text-decoration-none">
                                         {{ $tenant->domain }}
                                         <i class="bi bi-box-arrow-up-right small"></i>
@@ -210,21 +236,21 @@
                                     @endif
                                     <br>{!! $dnsBadge($tenant->dns_provider ?? null, $tenant->dns_mode ?? null, $tenant->cloudflare_zone_id ?? null, $tenant->cloudflare_record_id ?? null) !!}
                                 </td>
-                                <td>
+                                <td data-label="Admin">
                                     @if(!empty($tenantAdminEmails[$tenant->id]))
                                         <small>{{ $tenantAdminEmails[$tenant->id]->email }}</small>
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
-                                <td>
+                                <td data-label="Tipo">
                                     @if(str_ends_with($tenant->domain, '.' . ($baseDomain ?? 'musedock.com')))
                                         <span class="badge bg-info">{{ $baseDomain ?? 'musedock.com' }}</span>
                                     @else
                                         <span class="badge bg-warning text-dark">Custom</span>
                                     @endif
                                 </td>
-                                <td>
+                                <td data-label="Estado Caddy">
                                     @php
                                         $statusClass = match($tenant->caddy_status ?? 'not_configured') {
                                             'active' => 'success',
@@ -250,21 +276,21 @@
                                         </small>
                                     @endif
                                 </td>
-                                <td>
+                                <td data-label="SSL">
                                     @if(($tenant->caddy_status ?? '') === 'active')
                                         <span class="text-success"><i class="bi bi-shield-check"></i> SSL</span>
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
-                                <td>
+                                <td data-label="Configurado">
                                     @if($tenant->caddy_configured_at ?? false)
                                         {{ date('d/m/Y H:i', strtotime($tenant->caddy_configured_at)) }}
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
-                                <td class="text-end">
+                                <td class="text-end" data-label="Acciones">
                                     <div class="btn-group btn-group-sm">
                                         <!-- Verificar estado -->
                                         <button type="button" class="btn btn-outline-info" onclick="checkStatus({{ $tenant->id }})" title="Verificar estado">
