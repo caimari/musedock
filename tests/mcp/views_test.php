@@ -23,6 +23,7 @@ try {
         $html=$blade->runString($source,$data);
         if (!str_contains($html,'name="_csrf"') || str_contains($html,'<script>evil</script>') || !str_contains($html,'&lt;script&gt;evil&lt;/script&gt;') || !str_contains($html,'type="password"')) throw new RuntimeException('Fallo de render o escape de la vista '.$mode);
         if (!str_contains($html,'Paso 1') || !str_contains($html,'Paso 2') || !str_contains($html,'data-mcp-site-group="10"')) throw new RuntimeException('Faltan pasos o grupo del sitio.');
+        if (substr_count($html,'href="https://a.example" target="_blank" rel="noopener noreferrer"')!==2) throw new RuntimeException('Faltan enlaces seguros al dominio en ambos pasos.');
         $data['resource']['owned_sites']=[];
         $html=$blade->runString($source,$data);
         if (!str_contains($html,'Todavía no hay sitios disponibles') || str_contains($html,'name="sites[]"')) throw new RuntimeException('No se explica la falta de sitios guardados.');

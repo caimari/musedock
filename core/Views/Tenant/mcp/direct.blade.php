@@ -59,9 +59,10 @@
       <label class="form-check mb-3"><input class="form-check-input" type="checkbox" name="allow_drafts" {{ $resource['allow_drafts'] ? 'checked' : '' }}> Permitir solicitudes de borradores con aprobación en el CMS</label>
       @if(count($sites))
       <fieldset class="border rounded p-3 mb-3"><legend class="float-none w-auto h6 px-2">Sitios disponibles para conexiones MCP del plugin</legend>
-        <p class="small text-muted">Marca únicamente sitios de tu organización y guarda esta sección. Esto define la lista disponible para el paso 2; todavía no concede acceso a ningún asistente. Los sitios sin grupo editorial no podrán asignarse a un cliente del plugin.</p>
+        <p class="small text-muted">Aquí solo aparecen sitios activos que pertenecen a los grupos editoriales del plugin. Marca los sitios propios que quieres habilitar para MCP y guarda esta sección; después podrás asignarlos a cada asistente en el paso 2.</p>
+        <p class="small"><a href="/musedock/cross-publisher/groups" target="_blank" rel="noopener noreferrer">Ver y gestionar los grupos editoriales <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a></p>
         @foreach($sites as $site)
-          <label class="form-check"><input class="form-check-input" type="checkbox" name="owned_sites[]" value="{{ $site['id'] }}" {{ in_array((int)$site['id'],$resource['owned_sites'],true) ? 'checked' : '' }}> {{ $site['name'] }} — {{ $site['domain'] }} <small class="d-block text-muted">Grupo: {{ $groupNames[(int)$site['group_id']] ?? 'Sin grupo editorial — no disponible para asistentes' }}</small></label>
+          <div class="d-flex align-items-start gap-2"><div class="flex-grow-1"><label class="form-check"><input class="form-check-input" type="checkbox" name="owned_sites[]" value="{{ $site['id'] }}" {{ in_array((int)$site['id'],$resource['owned_sites'],true) ? 'checked' : '' }}> {{ $site['name'] }} — {{ $site['domain'] }} <small class="d-block text-muted">Grupo: {{ $groupNames[(int)$site['group_id']] ?? 'Sin grupo editorial — no disponible para asistentes' }}</small></label></div><a class="btn btn-sm btn-outline-secondary" href="https://{{ $site['domain'] }}" target="_blank" rel="noopener noreferrer" title="Abrir {{ $site['domain'] }} en otra pestaña" aria-label="Abrir {{ $site['domain'] }} en otra pestaña"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a></div>
         @endforeach
       </fieldset>
       @endif
@@ -100,10 +101,10 @@
           <p class="small text-muted">Seleccionar un grupo no marca sus sitios automáticamente. Debes elegir también los sitios. Solo se admiten sitios del paso 1 que pertenezcan a un grupo seleccionado.</p>
           <p id="mcp-group-hint" class="small text-muted" role="status">Selecciona un grupo para poder marcar sus sitios.</p>
           @foreach($clientSites as $site)
-            <label class="form-check"><input class="form-check-input" type="checkbox" name="sites[]" value="{{ $site['id'] }}" data-mcp-site-group="{{ $site['group_id'] }}"> {{ $site['domain'] }} <small class="d-block text-muted">Grupo: {{ $groupNames[(int)$site['group_id']] }}</small></label>
+            <div class="d-flex align-items-start gap-2"><div class="flex-grow-1"><label class="form-check"><input class="form-check-input" type="checkbox" name="sites[]" value="{{ $site['id'] }}" data-mcp-site-group="{{ $site['group_id'] }}"> {{ $site['domain'] }} <small class="d-block text-muted">Grupo: {{ $groupNames[(int)$site['group_id']] }}</small></label></div><a class="btn btn-sm btn-outline-secondary" href="https://{{ $site['domain'] }}" target="_blank" rel="noopener noreferrer" title="Abrir {{ $site['domain'] }} en otra pestaña" aria-label="Abrir {{ $site['domain'] }} en otra pestaña"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a></div>
           @endforeach
         @else
-          <div class="alert alert-info mb-0" role="status"><strong>Todavía no hay sitios disponibles para este asistente.</strong><br>En el paso 1, marca al menos un sitio propio con grupo editorial y pulsa «Guardar conexión y sitios disponibles». Después vuelve aquí para seleccionar el grupo y los sitios del asistente.</div>
+          <div class="alert alert-info mb-0" role="status"><strong>Todavía no hay sitios disponibles para este asistente.</strong><br>En el paso 1, marca al menos un sitio propio de tus grupos editoriales y pulsa «Guardar conexión y sitios disponibles». Después vuelve aquí para seleccionar el grupo y los sitios del asistente.</div>
         @endif
       </fieldset>
       @endif

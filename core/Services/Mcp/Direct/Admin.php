@@ -36,8 +36,8 @@ final class Admin
                     if (str_starts_with($id,'plugin:')) {
                         $ids=array_values(array_unique(array_filter(array_map('intval',(array)($_POST['owned_sites']??[])),fn($n)=>$n>0)));
                         foreach ($ids as $site) {
-                            $s=Database::connect()->prepare("SELECT id FROM tenants WHERE id=? AND status='active'"); $s->execute([$site]);
-                            if (!$s->fetchColumn()) throw new \RuntimeException('Sitio no válido.');
+                            $s=Database::connect()->prepare("SELECT t.id FROM tenants t INNER JOIN domain_groups g ON g.id=t.group_id WHERE t.id=? AND t.status='active'"); $s->execute([$site]);
+                            if (!$s->fetchColumn()) throw new \RuntimeException('El sitio debe estar activo y pertenecer a un grupo editorial del plugin.');
                         }
                         $r['owned_sites']=$ids;
                     }
@@ -52,8 +52,9 @@ final class Admin
                         $groups=array_values(array_unique(array_map('intval',(array)($_POST['groups']??[]))));
                         if (!$sites || !$groups || array_diff($sites,$r['owned_sites'])) throw new \RuntimeException('Selecciona grupos y sitios propios autorizados.');
                         foreach ($sites as $site) {
-                            $s=Database::connect()->prepare('SELECT group_id FROM tenants WHERE id=?'); $s->execute([$site]);
-                            if (!in_array((int)$s->fetchColumn(),$groups,true)) throw new \RuntimeException('El sitio no pertenece a los grupos seleccionados.');
+                            $s=Database::connect()->prepare("SELECT g.id FROM tenants t INNER JOIN domain_groups g ON g.id=t.group_id WHERE t.id=? AND t.status='active'"); $s->execute([$site]);
+                            $group=$s->fetchColumn();
+                            if ($group===false || !in_array((int)$group,$groups,true)) throw new \RuntimeException('El sitio no pertenece a los grupos seleccionados.');
                         }
                     }
                     $callback=Policy::clientCallback((string)($_POST['provider']??'custom'),(string)($_POST['callback']??''));
@@ -86,7 +87,7 @@ final class Admin
         $new=$_SESSION['cms_mcp_new'][$id]??null; unset($_SESSION['cms_mcp_new'][$id]);
         $sites=[]; $groups=[];
         if (Policy::site($id)===null) {
-            $sites=Database::connect()->query("SELECT id,name,domain,group_id FROM tenants WHERE status='active' ORDER BY name")->fetchAll(\PDO::FETCH_ASSOC);
+            $sites=Database::connect()->query("SELECT t.id,t.name,t.domain,t.group_id FROM tenants t INNER JOIN domain_groups g ON g.id=t.group_id WHERE t.status='active' ORDER BY g.name,t.name")->fetchAll(\PDO::FETCH_ASSOC);
             $groups=Database::connect()->query('SELECT id,name FROM domain_groups ORDER BY name')->fetchAll(\PDO::FETCH_ASSOC);
         }
         $data=['title'=>'(MCP) Conexiones IA','resource'=>$r,'clients'=>$clients,'grants'=>$grants,'requests'=>$requests,'newClient'=>$new,'error'=>$error,
