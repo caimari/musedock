@@ -39,6 +39,7 @@ final class Scheduler
                     if ($post['status']!=='draft' || !hash_equals($data['snapshot'],Policy::fingerprint($post))) throw new RuntimeException('Artículo modificado después de programarlo.');
                     $args=['post_id'=>(int)$job['post_id'],'site_id'=>$data['site_id']];$auth=['resource'=>$r,'client'=>$c,'grant'=>$g];
                     $plan=$this->content->plan('publish_post',$r,$c,$args);
+                    if (!hash_equals($data['snapshot'],Policy::fingerprint($plan['source']))) throw new RuntimeException('Artículo modificado antes de publicar.');
                     $this->content->execute($plan,$data['actor'],$auth,$args);
                     $this->store->run("UPDATE schedules SET status='published' WHERE id=?",[$job['id']]);$out['published']++;
                     $this->store->event($r['id'],'publication.completed',$data['actor'],['post_id'=>$job['post_id'],'schedule'=>$job['id']]);

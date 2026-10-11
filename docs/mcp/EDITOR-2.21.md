@@ -44,7 +44,7 @@ La migración `2026_10_11_150000` añade los campos de cabecera que faltaban y l
 
 `generate_image` utiliza el proveedor configurado en **IA → AI Image** del sitio, sus claves y cuotas. No utiliza las claves del Panel ni la generación integrada de la cuenta ChatGPT. El plan informa del proveedor/modelo y no genera ni cobra. La llamada externa se hace solo al aprobar y no se reintenta automáticamente.
 
-`upload_image` acepta una URL HTTPS pública o base64 (hasta 2 MiB decodificados). Las descargas se limitan a 10 MiB, con IP pública fijada y revisión de redirecciones mediante UrlGuard. Se validan MIME, formato real y límite de 40 megapíxeles; no SVG/HTML. Los datos base64 no se incluyen en el plan público. La biblioteca y las cuotas se procesan en el contexto temporal del sitio de destino, restaurando el contexto del panel después. Devuelve un ID, URL y HTML que pueden usarse en el artículo. Los proveedores también utilizan la descarga segura del CMS.
+`upload_image` acepta una URL HTTPS pública o base64 (hasta 2 MiB decodificados). Las descargas se limitan a 10 MiB, con IP pública fijada y revisión de redirecciones mediante UrlGuard. Se validan MIME, formato real y límite de 40 megapíxeles; no SVG/HTML. Los datos base64 no se incluyen en el plan público. La biblioteca y las cuotas se procesan en el contexto temporal del sitio de destino, restaurando el contexto del panel después. La biblioteca MCP muestra imágenes con enlace público gestionado (token); las imágenes antiguas sin ese enlace pueden asignarse por su URL desde el editor. Devuelve un ID, URL y HTML que pueden usarse en el artículo. Los proveedores también utilizan la descarga segura del CMS.
 
 ## Programación
 
@@ -54,6 +54,6 @@ Las publicaciones programadas se muestran en la pantalla y se pueden cancelar al
 
 ## Validación
 
-Suite con 131 comprobaciones en fixtures SQLite, MariaDB y PostgreSQL; HTTP OAuth/MCP con aprobación remota y protección de transporte; concurrencia de códigos OAuth; render Blade y escapes. Prueba adicional en una copia íntegra del backup PostgreSQL de producción, restaurada en una instancia temporal sin TCP: editor completo, publicación, taxonomías, comentarios, traducciones, programación y migración idempotente. No se escriben datos reales.
+Suite con 139 comprobaciones en fixtures SQLite, MariaDB y PostgreSQL; 38 comprobaciones HTTP OAuth/MCP con aprobación remota, protección de transporte y acceso a artículos privados/protegidos; concurrencia de códigos OAuth; render Blade y escapes. Prueba adicional en una copia íntegra del backup PostgreSQL de producción, restaurada en una instancia temporal sin TCP: editor completo, publicación, taxonomías, comentarios, traducciones, programación y migración idempotente. No se escriben datos reales.
 
 La subida prueba validación, ámbito, aprobación y contexto contra un adaptador de persistencia de medios de prueba. No se llama a proveedores reales de imágenes, no se certifica la salida de cada modelo, ni se verifica una cuenta real de ChatGPT/Claude. La configuración de cada proveedor y el callback real se comprueban al conectar.

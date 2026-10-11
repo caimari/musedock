@@ -37,7 +37,7 @@ final class Content
         // Resource-owned sites and client sites are separate, explicit allowlists.
         $ids=array_values(array_intersect($r['owned_sites']??[], $c['sites']??[]));
         if (!$ids) return [];
-        $rows=$this->query('SELECT id,group_id FROM tenants WHERE status=? AND id IN ('.implode(',',array_fill(0,count($ids),'?')).')',array_merge(['active'],$ids));
+        $rows=$this->query('SELECT t.id,t.group_id FROM tenants t INNER JOIN domain_groups g ON g.id=t.group_id WHERE t.status=? AND t.id IN ('.implode(',',array_fill(0,count($ids),'?')).')',array_merge(['active'],$ids));
         return array_values(array_map(fn($t)=>(int)$t['id'],array_filter($rows,fn($t)=>in_array((int)$t['group_id'],$c['groups']??[],true))));
     }
     public function assertSite(array $r, array $c, int $site): void

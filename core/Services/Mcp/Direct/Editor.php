@@ -162,9 +162,12 @@ final class Editor
         } elseif (str_contains($tool,'category') || str_contains($tool,'tag')) {
             $table=str_contains($tool,'category')?'blog_categories':'blog_tags';
             if (str_starts_with($tool,'update_')) $source=$this->object($table,$args['taxonomy_id'],$site);
-            foreach (['name','slug','description','color','seo_title','seo_description','seo_keywords','image','order','parent_id'] as $key) if (isset($args[$key])) $fields[$key]=is_int($args[$key])?$args[$key]:$this->text($args[$key],in_array($key,['name','slug'],true)?200:200000);
+            foreach (['name','slug','description','color','seo_title','seo_description','seo_keywords','image','order','parent_id'] as $key) if (isset($args[$key])) {
+                $max=match($key){'name'=>$table==='blog_tags'?100:255,'slug'=>$table==='blog_tags'?150:200,'seo_title'=>500,default=>200000};
+                $fields[$key]=is_int($args[$key])?$args[$key]:$this->text($args[$key],$max);
+            }
             if (isset($fields['name']) && trim($fields['name'])==='') throw new RuntimeException('Nombre vacío.');
-            if (!$source) $fields['slug']=$fields['slug']??$this->slug($fields['name']);
+            if (!$source) $fields['slug']=$fields['slug']??substr($this->slug($fields['name']),0,$table==='blog_tags'?150:180);
             if (isset($fields['slug']) && !preg_match('/^[a-z0-9][a-z0-9-]{0,199}$/D',$fields['slug'])) throw new RuntimeException('Slug no válido.');
             if (isset($fields['color']) && $fields['color']!=='' && !preg_match('/^#[a-f0-9]{6}$/iD',$fields['color'])) throw new RuntimeException('Color no válido.');
             if (isset($fields['image'])) $fields['image']=$this->url($fields['image']);

@@ -34,6 +34,8 @@ $approve($prepare('update_category',['site_id'=>1,'taxonomy_id'=>$cat['id'],'nam
 check($content->db->query('SELECT name FROM blog_categories WHERE id='.$cat['id'])->fetchColumn()==='Categoría editada','category edited');
 denied(fn()=>$prepare('update_category',['site_id'=>1,'taxonomy_id'=>2,'parent_id'=>$cat['id']]),'category cycle denied');
 denied(fn()=>$prepare('create_category',['site_id'=>1,'name'=>'Bad','parent_id'=>3]),'foreign parent denied');
+denied(fn()=>$prepare('create_tag',['site_id'=>1,'name'=>str_repeat('a',101)]),'tag name matches native database limit');
+denied(fn()=>$prepare('create_tag',['site_id'=>1,'name'=>'Long slug','slug'=>str_repeat('a',151)]),'tag slug matches native database limit');
 $tag=$approve($prepare('create_tag',['site_id'=>1,'name'=>'Nueva etiqueta']));
 $approve($prepare('update_tag',['site_id'=>1,'taxonomy_id'=>$tag['id'],'description'=>'Actualizada']));
 check($content->db->query('SELECT description FROM blog_tags WHERE id='.$tag['id'])->fetchColumn()==='Actualizada','tag created and edited');

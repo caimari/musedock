@@ -15,6 +15,7 @@ function fixture(): PDO
     $p=$dsn?new PDO($dsn,$pg?getenv('MCP_TEST_PG_USER'):'root',''):new PDO('sqlite::memory:'); $p->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
     $schema="CREATE TABLE settings(key TEXT,value TEXT); INSERT INTO settings VALUES('force_lang','es');
         CREATE TABLE languages(code TEXT,active INTEGER); INSERT INTO languages VALUES('es',1);
+        CREATE TABLE domain_groups(id INTEGER PRIMARY KEY,name TEXT); INSERT INTO domain_groups VALUES(10,'Propios'),(20,'Clientes');
         CREATE TABLE tenants(id INTEGER PRIMARY KEY,name TEXT,domain TEXT,group_id INTEGER,status TEXT);
         INSERT INTO tenants VALUES(1,'Propio A','a.example',10,'active'),(2,'Propio B','b.example',10,'active'),(3,'Cliente','client.example',20,'active');
         CREATE TABLE super_admins(id INTEGER PRIMARY KEY,role TEXT); INSERT INTO super_admins VALUES(7,'superadmin');

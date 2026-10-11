@@ -24,7 +24,7 @@ final class Media
     }
     public function listing(int $site,int $limit,int $offset): array
     {
-        $rows=$this->content->query("SELECT id FROM media WHERE COALESCE(tenant_id,0)=? AND mime_type LIKE 'image/%' ORDER BY id DESC LIMIT {$limit} OFFSET {$offset}",[$site]);
+        $rows=$this->content->query("SELECT id FROM media WHERE COALESCE(tenant_id,0)=? AND mime_type LIKE 'image/%' AND public_token IS NOT NULL AND public_token<>'' ORDER BY id DESC LIMIT {$limit} OFFSET {$offset}",[$site]);
         return array_map(fn($r)=>$this->one((int)$r['id'],$site),$rows);
     }
     public function plan(string $tool,int $site,array $args): array
@@ -75,7 +75,7 @@ final class Media
             if ($tool==='generate_image') {
                 $result=AIImageService::generateWithDefault(SafeHtml::plain($args['prompt']),['size'=>$args['size']??'1024x1024','quality'=>$args['quality']??'standard'],['tenant_id'=>$site?:null,'user_id'=>null,'user_type'=>'mcp','module'=>'mcp','action'=>'generate_image']);
                 $row=$this->content->query('SELECT id,public_token,slug,seo_filename FROM media WHERE COALESCE(tenant_id,0)=? ORDER BY id DESC LIMIT 5',[$site]);
-                $id=0;foreach($row as $m) if($this->publicUrl($m)===$result['local_path']) $id=(int)$m['id'];
+                $id=0;foreach($row as $m) if(!empty($m['public_token']) && $this->publicUrl($m)===$result['local_path']) $id=(int)$m['id'];
                 if (!$id) throw new RuntimeException('No se pudo localizar la imagen generada en el sitio autorizado.');
             } else {
                 $data=isset($args['base64'])?base64_decode($args['base64'],true):UrlGuard::fetch($args['url'],10485760,20);

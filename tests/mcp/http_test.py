@@ -77,6 +77,23 @@ with tempfile.TemporaryDirectory(prefix='cms-mcp-http-') as directory:
         for path in ['/musedock/settings/api-keys','/login','/storage/private/mcp.sqlite']:
             status,_,_=request(path);check(status in (302,404),'administrative route not an MCP tool')
         check(os.stat(env['MCP_CMS_PRIVATE_DIRECTORY']+'/mcp.sqlite').st_mode & 0o777 == 0o600,'private OAuth database permissions')
+        # Anonymous protected-content flow, using the native guard/unlock controller.
+        opener=urllib.request.build_opener(NoRedirect,urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+        status,headers,body=request('/__test/private')
+        check(status==404 and 'private-body' not in body and 'no-store' in headers.get('Cache-Control',''),'private body withheld and never cacheable')
+        status,headers,body=request('/__test/protected')
+        check(status==401 and 'protected-body' not in body and 'no-store' in headers.get('Cache-Control',''),'password body withheld and never cacheable')
+        password_csrf=re.search(r'name="_csrf" value="([^"]+)"',body).group(1)
+        status,_,_=request('/blog/unlock/1','POST',{'password':'test-password'},{'Accept':'application/json'})
+        check(status in (403,419),'password unlock requires CSRF')
+        _,_,body=request('/__test/protected')
+        password_csrf=re.search(r'name="_csrf" value="([^"]+)"',body).group(1)
+        status,_,_=request('/blog/unlock/1','POST',{'password':'wrong','_csrf':password_csrf})
+        check(status==401,'incorrect password denied')
+        status,headers,_=request('/blog/unlock/1','POST',{'password':'test-password','_csrf':password_csrf})
+        check(status==302 and headers.get('Location')=='/blog/principal','password unlock redirects to own article')
+        status,headers,body=request('/__test/protected')
+        check(status==200 and body=='protected-body' and 'no-store' in headers.get('Cache-Control',''),'unlocked body rendered without shared caching')
         print(f'PASS: {checks} HTTP checks; real CMS routes and endpoints, loopback only.')
     finally:
         server.terminate();server.wait(timeout=5);

@@ -16,7 +16,7 @@ final class Endpoint
     {
         if (!str_starts_with($id,'plugin:')) return true;
         $slug=substr($id,7);
-        return function_exists('is_superadmin_plugin_active') ? is_superadmin_plugin_active($slug) : self::pluginActive($slug);
+        return self::pluginActive($slug) && (!function_exists('is_superadmin_plugin_active') || is_superadmin_plugin_active($slug));
     }
     private static function pluginActive(string $slug): bool
     {
