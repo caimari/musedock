@@ -25,6 +25,14 @@
 .mcp-settings .mcp-consents-heading { margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5eaf1; }
 @media (max-width: 576px) { .mcp-settings.container-fluid { padding: 16px !important; } .mcp-settings .card-body, .mcp-settings .card-header { padding: 18px; } .mcp-settings .nav-link { padding: 10px 12px; } }
 </style>
+@php
+  $isPluginConnection = str_starts_with($resource['id'], 'plugin:');
+  $groupNames = [];
+  foreach ($groups as $editorialGroup) $groupNames[(int)$editorialGroup['id']] = $editorialGroup['name'];
+  $clientSites = array_values(array_filter($sites, function ($site) use ($resource, $groupNames) {
+      return in_array((int)$site['id'], $resource['owned_sites'], true) && isset($groupNames[(int)$site['group_id']]);
+  }));
+@endphp
 <div class="container-fluid p-4 mcp-settings">
   <h1 class="h3"><i class="bi bi-robot me-2"></i>(MCP) Conexiones IA</h1>
   @if(!$tenantMode)
@@ -58,7 +66,8 @@
   @if(!$deploymentEnabled)<div class="mcp-activation-notice" role="status"><strong>La conexión pública está pendiente de activación por el operador del CMS.</strong><span>Puedes preparar sus clientes y permisos.</span></div>@endif
   @if(!$pluginInstalled)<div class="alert alert-warning">Este plugin debe estar instalado y activo para abrir su conexión MCP.</div>@endif
   <div class="card mb-3"><div class="card-body">
-    <h2 class="h5">Conexión directa HTTPS</h2>
+    <h2 class="h5">{{ $isPluginConnection ? 'Paso 1 · Configurar la conexión y sus sitios disponibles' : 'Conexión directa HTTPS' }}</h2>
+    @if($isPluginConnection)<p class="text-muted">Primero define los sitios propios que este plugin podrá gestionar por MCP. Después podrás dar a cada asistente acceso a todos o solo a algunos de ellos.</p>@endif
     <p>Servicio: <span class="mcp-status {{ $deploymentEnabled && $resource['enabled'] && $pluginInstalled ? 'is-enabled' : '' }}">{{ $deploymentEnabled && $resource['enabled'] && $pluginInstalled ? 'Habilitado' : 'Desactivado' }}</span>. La autorización de cada cliente se muestra por separado.</p>
     <div class="input-group mb-3"><input id="mcp-url" class="form-control" readonly value="{{ $resource['url'] }}"><button class="btn btn-outline-primary" type="button" data-copy="mcp-url">Copiar URL</button></div>
     <form method="post" action="{{ $back }}">
@@ -69,15 +78,16 @@
       <label class="form-check"><input class="form-check-input" type="checkbox" name="allow_mcp_approval" {{ !empty($resource['allow_mcp_approval']) ? 'checked' : '' }}> Permitir aprobar solicitudes desde MCP</label>
       <p class="small text-muted mb-3">La aprobación desde MCP permite ejecutar cambios desde el asistente. Cada cliente necesita además el permiso «Aprobar solicitudes propias desde MCP». Si está desmarcado, apruebas en esta pantalla.</p>
       @if(count($sites))
-      <fieldset class="border rounded p-3 mb-3"><legend class="float-none w-auto h6 px-2">Sitios propios autorizados para este plugin</legend>
-        <p class="small text-muted">Marca únicamente sitios de tu organización. Los clientes también quedarán limitados por grupo editorial.</p>
+      <fieldset class="border rounded p-3 mb-3"><legend class="float-none w-auto h6 px-2">Sitios disponibles para conexiones MCP del plugin</legend>
+        <p class="small text-muted">Aquí solo aparecen sitios activos que pertenecen a los grupos editoriales del plugin. Marca los sitios propios que quieres habilitar para MCP y guarda esta sección; después podrás asignarlos a cada asistente en el paso 2.</p>
+        <p class="small"><a href="/musedock/cross-publisher/groups" target="_blank" rel="noopener noreferrer">Ver y gestionar los grupos editoriales <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a></p>
         @foreach($sites as $site)
-          <label class="form-check"><input class="form-check-input" type="checkbox" name="owned_sites[]" value="{{ $site['id'] }}" {{ in_array((int)$site['id'],$resource['owned_sites'],true) ? 'checked' : '' }}> {{ $site['name'] }} — {{ $site['domain'] }}</label>
+          <div class="d-flex align-items-start gap-2"><div class="flex-grow-1"><label class="form-check"><input class="form-check-input" type="checkbox" name="owned_sites[]" value="{{ $site['id'] }}" {{ in_array((int)$site['id'],$resource['owned_sites'],true) ? 'checked' : '' }}> {{ $site['name'] }} — {{ $site['domain'] }} <small class="d-block text-muted">Grupo: {{ $groupNames[(int)$site['group_id']] ?? 'Sin grupo editorial — no disponible para asistentes' }}</small></label></div><a class="btn btn-sm btn-outline-secondary" href="https://{{ $site['domain'] }}" target="_blank" rel="noopener noreferrer" title="Abrir {{ $site['domain'] }} en otra pestaña" aria-label="Abrir {{ $site['domain'] }} en otra pestaña"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a></div>
         @endforeach
       </fieldset>
       @endif
       <p class="small text-muted">Guardar cambia la autorización del recurso: los clientes deberán volver a dar su consentimiento.</p>
-      <button class="btn btn-primary">Guardar</button>
+      <button class="btn btn-primary">{{ $isPluginConnection ? 'Guardar conexión y sitios disponibles' : 'Guardar' }}</button>
     </form>
   </div></div>
   @if($newClient)
@@ -88,28 +98,38 @@
     <button type="button" class="btn btn-success" id="dismiss-credentials">Ya las he guardado</button>
   </div></div>
   @endif
-  <details class="card mb-3"><summary class="card-header">Crear cliente para ChatGPT, Claude u otro asistente</summary><div class="card-body">
+  <details class="card mb-3"><summary class="card-header">{{ $isPluginConnection ? 'Paso 2 · Dar acceso a un asistente' : 'Crear cliente para ChatGPT, Claude u otro asistente' }}</summary><div class="card-body">
+    @if($isPluginConnection)<p class="text-muted">Crea credenciales independientes para ChatGPT, Claude u otro asistente. Aquí decides qué puede hacer y a cuáles de los sitios guardados en el paso 1 podrá acceder.</p>@endif
     <form method="post" action="{{ $back }}">
       {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="action" value="create_client">
       <label class="form-label">Nombre</label><input name="name" class="form-control mb-2" required maxlength="100" placeholder="ChatGPT editorial">
-      <label class="form-label">Callback HTTPS exacto que muestra el asistente</label><input name="callback" type="url" class="form-control mb-3" required maxlength="500" placeholder="https://…">
+      <label for="mcp-provider" class="form-label">Asistente</label>
+      <select id="mcp-provider" name="provider" class="form-select mb-2"><option value="chatgpt">ChatGPT — dirección de retorno automática</option><option value="claude">Claude — dirección de retorno automática</option><option value="custom">Personalizado — otro asistente o callback distinto</option></select>
+      <label for="mcp-callback" class="form-label">Dirección de retorno OAuth (callback)</label><input id="mcp-callback" name="callback" type="url" class="form-control mb-2" readonly maxlength="500" value="https://chatgpt.com/connector_platform_oauth_redirect" placeholder="Pega la URL HTTPS exacta del asistente">
+      <p class="small text-muted mb-3">Es la dirección del asistente a la que volverás después de autorizar el acceso en este CMS. ChatGPT y Claude se rellenan automáticamente. Si el asistente muestra otra URL, elige Personalizado y copia esa dirección exacta; en ese modo no puede quedar vacía. Cada asistente necesita sus propias credenciales.</p>
       <fieldset class="mb-3"><legend class="h6">Permisos</legend>
       @foreach($scopes as $scope)
         <label class="form-check"><input class="form-check-input" type="checkbox" name="scopes[]" value="{{ $scope }}" {{ $loop->first ? 'checked' : '' }}> {{ \Screenart\Musedock\Services\Mcp\Direct\Policy::label($scope) }} <small class="text-muted">({{ $scope }})</small></label>
       @endforeach
       </fieldset>
-      @if(count($sites))
-        <label class="form-label">Grupos editoriales permitidos</label>
-        @foreach($groups as $group)<label class="form-check"><input class="form-check-input" type="checkbox" name="groups[]" value="{{ $group['id'] }}"> {{ $group['name'] }}</label>@endforeach
-        <label class="form-label mt-3">Sitios de este cliente</label>
-        @foreach($sites as $site)
-          @if(in_array((int)$site['id'],$resource['owned_sites'],true))
-            <label class="form-check"><input class="form-check-input" type="checkbox" name="sites[]" value="{{ $site['id'] }}"> {{ $site['domain'] }}</label>
-          @endif
-        @endforeach
+      @if($isPluginConnection)
+      <fieldset class="border rounded p-3 mb-3"><legend class="float-none w-auto h6 px-2">Acceso de este asistente</legend>
+        @if(count($clientSites))
+          <label class="form-label">1. Selecciona los grupos editoriales que puede utilizar</label>
+          @foreach($groups as $group)<label class="form-check"><input class="form-check-input" type="checkbox" name="groups[]" value="{{ $group['id'] }}" data-mcp-group> {{ $group['name'] }}</label>@endforeach
+          <label class="form-label mt-3">2. Marca los sitios concretos a los que tendrá acceso</label>
+          <p class="small text-muted">Seleccionar un grupo no marca sus sitios automáticamente. Debes elegir también los sitios. Solo se admiten sitios del paso 1 que pertenezcan a un grupo seleccionado.</p>
+          <p id="mcp-group-hint" class="small text-muted" role="status">Selecciona un grupo para poder marcar sus sitios.</p>
+          @foreach($clientSites as $site)
+            <div class="d-flex align-items-start gap-2"><div class="flex-grow-1"><label class="form-check"><input class="form-check-input" type="checkbox" name="sites[]" value="{{ $site['id'] }}" data-mcp-site-group="{{ $site['group_id'] }}"> {{ $site['domain'] }} <small class="d-block text-muted">Grupo: {{ $groupNames[(int)$site['group_id']] }}</small></label></div><a class="btn btn-sm btn-outline-secondary" href="https://{{ $site['domain'] }}" target="_blank" rel="noopener noreferrer" title="Abrir {{ $site['domain'] }} en otra pestaña" aria-label="Abrir {{ $site['domain'] }} en otra pestaña"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a></div>
+          @endforeach
+        @else
+          <div class="alert alert-info mb-0" role="status"><strong>Todavía no hay sitios disponibles para este asistente.</strong><br>En el paso 1, marca al menos un sitio propio de tus grupos editoriales y pulsa «Guardar conexión y sitios disponibles». Después vuelve aquí para seleccionar el grupo y los sitios del asistente.</div>
+        @endif
+      </fieldset>
       @endif
-      <details class="mt-3"><summary>Redes permitidas (opcional)</summary><label class="form-label">IPs o CIDR de salida fiables del cliente</label><textarea name="networks" class="form-control" rows="3"></textarea><p class="small text-muted">Vacío permite cualquier red con OAuth válido. No se autorizan IPs por User-Agent ni por intentos de conexión. Esta restricción se aplica a MCP y al intercambio de tokens, no al consentimiento del navegador.</p></details>
-      <button class="btn btn-primary mt-3">Crear credenciales</button>
+      <details class="mt-3"><summary>Redes permitidas (opcional)</summary><label class="form-label">IPs o CIDR de salida fiables del cliente</label><textarea name="networks" class="form-control" rows="3"></textarea><p class="small text-muted">Por defecto, déjalo vacío: se exige OAuth válido desde cualquier IP. No desactiva el firewall ni abre puertos nuevos; esta conexión utiliza el HTTPS de tu web (443). Rellénalo únicamente si conoces las IPs o rangos de salida del asistente: una lista incorrecta impedirá conectar. Se aplica a MCP y al intercambio de tokens, no al consentimiento del navegador.</p></details>
+      <button class="btn btn-primary mt-3" {{ $isPluginConnection && !count($clientSites) ? 'disabled' : '' }}>Crear credenciales del asistente</button>
     </form>
   </div></details>
   <div class="card mb-3"><div class="card-body"><h2 class="h5">Clientes y permisos</h2>
@@ -159,6 +179,29 @@
 document.querySelectorAll('[data-mcp-info]').forEach(button=>button.addEventListener('click',()=>document.getElementById('mcp-info-'+button.dataset.mcpInfo).showModal()));
 document.querySelectorAll('[data-mcp-close]').forEach(button=>button.addEventListener('click',()=>button.closest('dialog').close()));
 document.querySelectorAll('.mcp-info-dialog').forEach(dialog=>dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}}));
+const groupInputs=Array.from(document.querySelectorAll('[data-mcp-group]'));
+function updateAssistantSites(){
+  const selected=new Set(groupInputs.filter(input=>input.checked).map(input=>input.value));
+  document.querySelectorAll('[data-mcp-site-group]').forEach(input=>{
+    input.disabled=!selected.has(input.dataset.mcpSiteGroup);
+    if(input.disabled) input.checked=false;
+  });
+  const hint=document.getElementById('mcp-group-hint');
+  if(hint) hint.hidden=selected.size>0;
+}
+groupInputs.forEach(input=>input.addEventListener('change',updateAssistantSites));
+updateAssistantSites();
+const providerSelect=document.getElementById('mcp-provider');
+const callbackInput=document.getElementById('mcp-callback');
+let customCallback='';
+providerSelect?.addEventListener('change',()=>{
+  const callbacks={chatgpt:'https://chatgpt.com/connector_platform_oauth_redirect',claude:'https://claude.ai/api/mcp/auth_callback'};
+  if (!callbackInput.readOnly) customCallback=callbackInput.value;
+  const automatic=Object.prototype.hasOwnProperty.call(callbacks,providerSelect.value);
+  callbackInput.readOnly=automatic;
+  callbackInput.required=!automatic;
+  callbackInput.value=automatic?callbacks[providerSelect.value]:customCallback;
+});
 document.querySelectorAll('[data-copy]').forEach(button=>button.addEventListener('click',async()=>{const input=document.getElementById(button.dataset.copy);try{await navigator.clipboard.writeText(input.value);button.textContent='Copiado';}catch(e){input.focus();input.select();}}));
 document.getElementById('show-secret')?.addEventListener('click',()=>{const input=document.getElementById('client-secret');input.type=input.type==='password'?'text':'password';});
 document.getElementById('dismiss-credentials')?.addEventListener('click',()=>{document.getElementById('client-secret').value='';document.getElementById('new-credentials').remove();});

@@ -859,6 +859,7 @@ function generate_id($prefix = 'menu-') {
 
 <!-- Scripts -->
 <script src="/assets/superadmin/js/app.js"></script>
+<script src="/assets/superadmin/js/sidebar-position.js?v=1" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -928,20 +929,6 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof feather !== 'undefined') {
         try { feather.replace(); } catch (e) { console.error("Feather icon error:", e); }
     }
-
-    // Auto-scroll: centrar la página en el item activo del sidebar
-    window.addEventListener('load', () => {
-        setTimeout(() => {
-            const allActive = document.querySelectorAll('#sidebar .sidebar-item.active');
-            if (!allActive.length) return;
-            const el = allActive[allActive.length - 1];
-            const rect = el.getBoundingClientRect();
-            if (rect.top > window.innerHeight * 0.6 || rect.top < 0) {
-                const targetY = window.scrollY + rect.top - (window.innerHeight * 0.3);
-                window.scrollTo({ top: Math.max(0, targetY), behavior: 'auto' });
-            }
-        }, 50);
-    });
 
     const sidebarToggler = document.querySelector('.js-sidebar-toggle');
     const sidebar = document.getElementById('sidebar');

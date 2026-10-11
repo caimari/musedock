@@ -35,6 +35,17 @@ final class Policy
         if (in_array($resource, ['plugin:cross-publisher','plugin:news-aggregator'], true)) return null;
         throw new RuntimeException('Recurso MCP desconocido.');
     }
+    public static function clientCallback(string $provider, string $custom = ''): string
+    {
+        $uri = match ($provider) {
+            'chatgpt' => 'https://chatgpt.com/connector_platform_oauth_redirect',
+            'claude' => 'https://claude.ai/api/mcp/auth_callback',
+            'custom' => trim($custom),
+            default => throw new RuntimeException('Asistente desconocido.'),
+        };
+        if (!self::callback($uri)) throw new RuntimeException('Indica una dirección de retorno HTTPS exacta.');
+        return $uri;
+    }
     public static function callback(string $uri): bool
     {
         if (strlen($uri) > 500 || preg_match('/[\\\\\s\x00-\x1f\x7f*]/', $uri)) return false;
