@@ -2568,6 +2568,33 @@ if (!function_exists('is_cross_publisher_active')) {
     }
 }
 
+if (!function_exists('media_srcset')) {
+    /**
+     * Atributo srcset para imágenes del Media Manager: variantes WebP thumb (420px)
+     * y medium (800px), para que el navegador descargue la que necesita según el
+     * ancho real en pantalla. Devuelve '' si la URL no es del Media Manager
+     * (externas, SVG por defecto...): en ese caso basta con src.
+     */
+    function media_srcset(string $url): string
+    {
+        if ($url === '') {
+            return '';
+        }
+        $base = preg_replace('/[?&]size=[a-z]+/i', '', $url);
+        // Solo /media/p/ y /media/t/: si falta una variante, el servidor sirve el original.
+        // /media/file/ (branding, etc.) puede no tener miniaturas → no se arriesga un 404.
+        if (!str_starts_with($base, '/media/p/') && !str_starts_with($base, '/media/t/')) {
+            return '';
+        }
+        $thumb = media_thumb_url($base, 'thumb');
+        $medium = media_thumb_url($base, 'medium');
+        if ($thumb === $base || $medium === $base) {
+            return '';
+        }
+        return htmlspecialchars($thumb, ENT_QUOTES) . ' 420w, ' . htmlspecialchars($medium, ENT_QUOTES) . ' 800w';
+    }
+}
+
 if (!function_exists('media_thumb_url')) {
     /**
      * Convierte una URL de imagen del Media Manager a su versión thumbnail.

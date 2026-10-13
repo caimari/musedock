@@ -122,3 +122,6 @@ docs/
 !core/.htaccess
 !database/.htaccess
 !vendor/.htaccess
+
+# Variantes de imagen generadas al vuelo (ImageVariant)
+public/assets/cache/

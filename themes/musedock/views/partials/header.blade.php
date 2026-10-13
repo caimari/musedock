@@ -229,9 +229,12 @@ $cmsHasUpdate = !empty($topbarVersionData['cms_has_update']);
               } else {
                   $finalLogo = url('/') . '/assets/logo-default.png';
               }
+              // WebP al tamaño mostrado (×2 retina) + width/height; si no es local, la original
+              $logoImg = \Screenart\Musedock\Helpers\ImageVariant::forHeight($finalLogo, 50);
+              $logoDims = $logoImg['width'] ? 'width="' . $logoImg['width'] . '" height="' . $logoImg['height'] . '"' : '';
               @endphp
-              <img src="{{ $finalLogo }}" alt="{{ $siteName }}" class="retina-logo" style="max-height: 50px; width: auto;" onerror="this.onerror=null; this.src='{{ url('/') }}/assets/logo-default.png';">
-              <img src="{{ $finalLogo }}" alt="{{ $siteName }}" class="default-logo" style="max-height: 50px; width: auto;" onerror="this.onerror=null; this.src='{{ url('/') }}/assets/logo-default.png';">
+              <img src="{{ $logoImg['url'] }}" {!! $logoDims !!} alt="{{ $siteName }}" class="retina-logo" style="max-height: 50px; width: auto;" onerror="this.onerror=null; this.src='{{ $finalLogo }}';">
+              <img src="{{ $logoImg['url'] }}" {!! $logoDims !!} alt="{{ $siteName }}" class="default-logo" style="max-height: 50px; width: auto;" onerror="this.onerror=null; this.src='{{ $finalLogo }}';">
               @if($showTitle)
               <span>{{ $siteName }}</span>
               @endif

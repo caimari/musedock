@@ -118,7 +118,7 @@
     text-align: center;
     margin-top: 10px;
     font-size: 13px;
-    color: #999;
+    color: #6b6b6b;
     letter-spacing: 0.3px;
 }
 

@@ -19,7 +19,7 @@ $_contactAddress = site_setting('contact_address', '');
 <head>
   <meta charset="utf-8">
   <meta http-equiv="x-ua-compatible" content="ie=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   
   {{-- Título --}}
   <title>{{ \Screenart\Musedock\View::yieldSection('title') ?: $_siteName }}</title>
@@ -114,21 +114,31 @@ $_contactAddress = site_setting('contact_address', '');
   {{-- Preload de la fuente de iconos: debe coincidir EXACTAMENTE con la URL usada en font-awesome.min.css --}}
   <link rel="preload" href="{{ url('assets/themes/musedock/fonts/fontawesome-webfont.woff2') }}?v=4.6.3.1" as="font" type="font/woff2" crossorigin>
 
-  {{-- CSS del tema --}}
-  <link rel="stylesheet" href="{{ asset('themes/musedock/css/classic-themes.min.css') }}?v={{ cms_version() }}">
-  <link rel="stylesheet" href="{{ asset('themes/musedock/css/css-extra1.css') }}?v={{ cms_version() }}">
-  <link rel="stylesheet" href="{{ asset('themes/musedock/css/css-extra2.css') }}?v={{ cms_version() }}">
-  <link rel="stylesheet" href="{{ asset('themes/musedock/css/js_composer.min.css') }}?v={{ cms_version() }}">
-  <link rel="stylesheet" href="{{ asset('themes/musedock/css/bootstrap.min.css') }}?v={{ cms_version() }}">
-  <link rel="stylesheet" href="{{ asset('themes/musedock/css/font-awesome.min.css') }}?v={{ cms_version() }}">
-  <link rel="stylesheet" href="{{ asset('themes/musedock/css/plugins.css') }}?v={{ cms_version() }}">
-  <link rel="stylesheet" href="{{ asset('themes/musedock/css/animated.css') }}?v={{ cms_version() }}">
-  <link rel="stylesheet" href="{{ asset('themes/musedock/css/owl.carousel.min.css') }}?v={{ cms_version() }}">
-  <link rel="stylesheet" href="{{ asset('themes/musedock/css/styles(1).css') }}?v={{ cms_version() }}">
-  <link rel="stylesheet" href="{{ asset('themes/musedock/css/style.css') }}?v={{ cms_version() }}">
-  <link rel="stylesheet" href="{{ asset('themes/musedock/css/colors.css') }}?v={{ cms_version() }}">
-  <link rel="stylesheet" href="{{ asset('themes/musedock/css/responsive.css') }}?v={{ cms_version() }}">
-  <link rel="stylesheet" href="{{ asset('themes/musedock/css/simple-slider.css') }}?v={{ cms_version() }}">
+  {{-- CSS del tema.
+       Versión = CMS + fecha del fichero: editar un asset cambia su URL (Caddy los sirve
+       "immutable" 1 año; con solo la versión del CMS los cambios no llegaban al navegador).
+       js_composer.min.css (WPBakery, 462 KB) retirado: ninguna clase de la web usa sus reglas. --}}
+  @php $themeAsset = fn(string $f) => asset("themes/musedock/{$f}") . '?v=' . cms_version() . '.' . (@filemtime(public_path("assets/themes/musedock/{$f}")) ?: 0); @endphp
+  <link rel="stylesheet" href="{{ $themeAsset('css/classic-themes.min.css') }}">
+  <link rel="stylesheet" href="{{ $themeAsset('css/css-extra1.css') }}">
+  <link rel="stylesheet" href="{{ $themeAsset('css/css-extra2.css') }}">
+  <link rel="stylesheet" href="{{ $themeAsset('css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ $themeAsset('css/font-awesome.min.css') }}">
+  <link rel="stylesheet" href="{{ $themeAsset('css/plugins.css') }}">
+  <link rel="stylesheet" href="{{ $themeAsset('css/animated.css') }}">
+  <link rel="stylesheet" href="{{ $themeAsset('css/owl.carousel.min.css') }}">
+  {{-- styles-lite.css = styles(1).css sin las reglas que la web no usa (PurgeCSS + csso sin reestructurar;
+       274→142 KB). Validado con capturas píxel a píxel y estilos calculados (2026-10-13).
+       Si se añaden plantillas con clases nuevas de styles(1).css hay que regenerarlo; ?css=full carga el original. --}}
+  @if(($_GET['css'] ?? '') === 'full')
+  <link rel="stylesheet" href="{{ $themeAsset('css/styles(1).css') }}">
+  @else
+  <link rel="stylesheet" href="{{ $themeAsset('css/styles-lite.css') }}">
+  @endif
+  <link rel="stylesheet" href="{{ $themeAsset('css/style.css') }}">
+  <link rel="stylesheet" href="{{ $themeAsset('css/colors.css') }}">
+  <link rel="stylesheet" href="{{ $themeAsset('css/responsive.css') }}">
+  <link rel="stylesheet" href="{{ $themeAsset('css/simple-slider.css') }}">
 
   {{-- Nice Select 2 --}}
   <link rel="stylesheet" href="{{ asset('vendor/nice-select2/nice-select2.min.css') }}?v={{ cms_version() }}">
@@ -141,21 +151,45 @@ $_contactAddress = site_setting('contact_address', '');
   {{-- CSS Variables dinámicas --}}
   <style>
     :root {
-      /* Defaults alineados con Zipprich (styles(1).css) */
+      /* Defaults alineados con Zipprich (styles(1).css), ajustados a contraste WCAG AA (≥4.5:1):
+         gris #808a95→#5f6873 (válido sobre blanco y sobre #eef3f8), pie #595f7c→#8a90ab sobre #0C112A */
       --topbar-bg-color: {{ themeOption('topbar.topbar_bg_color', '#ffffff') }};
-      --topbar-text-color: {{ themeOption('topbar.topbar_text_color', '#808a95') }};
+      --topbar-text-color: {{ themeOption('topbar.topbar_text_color', '#5f6873') }};
       --header-bg-color: {{ themeOption('header.header_bg_color', '#ffffff') }};
       --header-logo-text-color: {{ themeOption('header.header_logo_text_color', '#243141') }};
-      --header-link-color: {{ themeOption('header.header_link_color', '#808a95') }};
+      --header-link-color: {{ themeOption('header.header_link_color', '#5f6873') }};
       --header-link-hover-color: {{ themeOption('header.header_link_hover_color', '#243141') }};
       --footer-bg-color: {{ themeOption('footer.footer_bg_color', '#0C112A') }};
-      --footer-text-color: {{ themeOption('footer.footer_text_color', '#595f7c') }};
+      --footer-text-color: {{ themeOption('footer.footer_text_color', '#8a90ab') }};
       --footer-heading-color: {{ themeOption('footer.footer_heading_color', '#ffffff') }};
-      --footer-link-color: {{ themeOption('footer.footer_link_color', '#595f7c') }};
+      --footer-link-color: {{ themeOption('footer.footer_link_color', '#8a90ab') }};
       --footer-link-hover-color: {{ themeOption('footer.footer_link_hover_color', '#ffffff') }};
       --footer-icon-color: {{ themeOption('footer.footer_icon_color', '#ffffff') }};
       --footer-border-color: {{ themeOption('footer.footer_border_color', '#181d35') }};
     }
+
+    /* Botones verde de marca (#86c401): texto oscuro para contraste AA (6.2:1; blanco daba 2.1:1).
+       En hover el fondo pasa a azul/navy → texto blanco. */
+    .ziph-headlogin_btn a.btn,
+    .ziph-domainsrch_form input[type="submit"],
+    .simple-slide .slide-button a { color: #243141 !important; }
+    .ziph-headlogin_btn a.btn:hover, .ziph-headlogin_btn a.btn:focus,
+    .ziph-domainsrch_form input[type="submit"]:hover,
+    .ziph-domainsrch_form input[type="submit"]:focus { color: #fff !important; }
+    /* Newsletter del pie: azul #267AE9 (4.2:1) → #2372db; en hover pasa a verde → texto oscuro */
+    .ziph-ftrform_warp button[type="submit"],
+    .ziph-ftrform_warp input[type="submit"] { background-color: #2372db; }
+    .ziph-ftrform_warp button[type="submit"]:hover, .ziph-ftrform_warp button[type="submit"]:focus,
+    .ziph-ftrform_warp input[type="submit"]:hover, .ziph-ftrform_warp input[type="submit"]:focus { color: #243141; }
+
+    /* Grises fijos de styles(1).css (#808a95 y #595f7c, contraste < 4.5:1) → variables del tema,
+       que siguen siendo personalizables desde Ajustes */
+    .ziph-head_info a { color: var(--topbar-text-color); }
+    .ziph-footer_top a,
+    .ziph-footer_widget ul li, .ziph-footer_widget ul li a,
+    .ziph-footrwidget_loc, .ziph-footrwidget_loc a,
+    .ziph-footer_widget.vt-text-widget { color: var(--footer-link-color); }
+    .ziph-footer_widget .tagcloud a { color: var(--footer-link-color); border-color: var(--footer-link-color); }
 
     /* Navbar con tono gris-azulado (home + páginas secundarias) */
     .ziph-header_navigation {
@@ -195,18 +229,18 @@ $_contactAddress = site_setting('contact_address', '');
   </div>
 
   {{-- Scripts del tema --}}
-  <script src="{{ asset('themes/musedock/js/jquery.min.js') }}?v={{ cms_version() }}"></script>
-  <script src="{{ asset('themes/musedock/js/bootstrap.min.js') }}?v={{ cms_version() }}"></script>
-  <script src="{{ asset('themes/musedock/js/plugins.js') }}?v={{ cms_version() }}"></script>
-  <script src="{{ asset('themes/musedock/js/waypoints.min.js') }}?v={{ cms_version() }}"></script>
-  <script src="{{ asset('themes/musedock/js/counterup.min.js') }}?v={{ cms_version() }}"></script>
-  <script src="{{ asset('themes/musedock/js/owl.carousel.min.js') }}?v={{ cms_version() }}"></script>
-  <script src="{{ asset('themes/musedock/js/slimmenu.min.js') }}?v={{ cms_version() }}"></script>
-  <script src="{{ asset('themes/musedock/js/fitvids.min.js') }}?v={{ cms_version() }}"></script>
-  <script src="{{ asset('themes/musedock/js/sticky.header.min.js') }}?v={{ cms_version() }}"></script>
-  <script src="{{ asset('themes/musedock/js/matchHeight.min.js') }}?v={{ cms_version() }}"></script>
-  <script src="{{ asset('themes/musedock/js/scripts.js') }}?v={{ cms_version() }}"></script>
-  <script src="{{ asset('themes/musedock/js/simple-slider.js') }}?v={{ cms_version() }}"></script>
+  <script src="{{ $themeAsset('js/jquery.min.js') }}"></script>
+  <script src="{{ $themeAsset('js/bootstrap.min.js') }}"></script>
+  <script src="{{ $themeAsset('js/plugins.js') }}"></script>
+  <script src="{{ $themeAsset('js/waypoints.min.js') }}"></script>
+  <script src="{{ $themeAsset('js/counterup.min.js') }}"></script>
+  <script src="{{ $themeAsset('js/owl.carousel.min.js') }}"></script>
+  <script src="{{ $themeAsset('js/slimmenu.min.js') }}"></script>
+  <script src="{{ $themeAsset('js/fitvids.min.js') }}"></script>
+  <script src="{{ $themeAsset('js/sticky.header.min.js') }}"></script>
+  <script src="{{ $themeAsset('js/matchHeight.min.js') }}"></script>
+  <script src="{{ $themeAsset('js/scripts.js') }}"></script>
+  <script src="{{ $themeAsset('js/simple-slider.js') }}"></script>
 
   {{-- Nice Select 2 --}}
   <script src="{{ asset('vendor/nice-select2/nice-select2.min.js') }}?v={{ cms_version() }}"></script>
@@ -246,8 +280,9 @@ $_contactAddress = site_setting('contact_address', '');
       $cookieLayout = site_setting('cookies_banner_layout', 'card');
       $cookieBg     = site_setting('cookies_bg_color', '#ffffff');
       $cookieText   = site_setting('cookies_text_color', '#333333');
-      $cookieBtnAccept = site_setting('cookies_btn_accept_bg', '#4CAF50');
-      $cookieBtnReject = site_setting('cookies_btn_reject_bg', '#f44336');
+      // Defaults con contraste AA para texto blanco (#4CAF50 daba 2.8:1, #f44336 3.7:1)
+      $cookieBtnAccept = site_setting('cookies_btn_accept_bg', '#2e7d32');
+      $cookieBtnReject = site_setting('cookies_btn_reject_bg', '#d32f2f');
 
       $__mdCookiesUrl = function_exists('legal_page_url')
         ? legal_page_url(['cookie-policy', 'cookies', 'politica-de-cookies', 'politica-cookies'], 'cookie-policy')
@@ -258,7 +293,7 @@ $_contactAddress = site_setting('contact_address', '');
     @endphp
     <div id="cookie-consent-popup" class="cookie-consent-popup cookie-layout-{{ $cookieLayout }}" style="display: none; --cookie-bg: {{ $cookieBg }}; --cookie-text: {{ $cookieText }}; --cookie-btn-accept: {{ $cookieBtnAccept }}; --cookie-btn-reject: {{ $cookieBtnReject }};">
       <div class="cookie-popup-content">
-        <h4>{{ __('cookies.title') }}</h4>
+        <h4 aria-level="2">{{ __('cookies.title') }}</h4>
         <p>{{ __('cookies.text') }}</p>
         <div class="cookie-popup-actions">
           <button id="cookie-manage-prefs" class="cookie-btn cookie-btn-manage">{{ __('cookies.manage_preferences') }}</button>
@@ -275,14 +310,14 @@ $_contactAddress = site_setting('contact_address', '');
     <div id="cookie-preferences-modal" class="cookie-preferences-modal" style="display: none; --cookie-bg: {{ $cookieBg }}; --cookie-text: {{ $cookieText }}; --cookie-btn-accept: {{ $cookieBtnAccept }}; --cookie-btn-reject: {{ $cookieBtnReject }};">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>{{ __('cookies.modal_title') }}</h3>
+          <h3 aria-level="2">{{ __('cookies.modal_title') }}</h3>
           <button id="cookie-modal-close" class="modal-close-btn">×</button>
         </div>
         <div class="modal-body">
           <p>{{ __('cookies.modal_intro') }}</p>
           <div class="cookie-category">
             <div class="category-header">
-              <h4>{{ __('cookies.cat_necessary_title') }}</h4>
+              <h4 aria-level="3">{{ __('cookies.cat_necessary_title') }}</h4>
               <label class="switch always-on">
                 <input type="checkbox" checked disabled>
                 <span class="slider round"></span>
@@ -292,7 +327,7 @@ $_contactAddress = site_setting('contact_address', '');
           </div>
           <div class="cookie-category">
             <div class="category-header">
-              <h4>{{ __('cookies.cat_analytics_title') ?: 'Cookies de Analítica' }}</h4>
+              <h4 aria-level="3">{{ __('cookies.cat_analytics_title') ?: 'Cookies de Analítica' }}</h4>
               <label class="switch">
                 <input type="checkbox" id="cookie-pref-analytics">
                 <span class="slider round"></span>

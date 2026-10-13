@@ -29,6 +29,11 @@
 {{ site_setting('site_description', '') }}
 @endsection
 
+@push('styles')
+  {{-- LCP = fondo del primer slide: precargarlo para que no espere a todo el CSS --}}
+  <link rel="preload" as="image" href="{{ asset('themes/musedock/images/home-one-slider-one.jpg') }}" fetchpriority="high">
+@endpush
+
 @section('content')
 <!-- START Simple Slider (pegado al header) -->
 <div id="simple-slider" class="simple-slider-container">
@@ -47,16 +52,22 @@
 	        </div>
 	      </div>
 	      <div class="slide-image">
-	        <img src="{{ asset('themes/musedock/images/object-one.png') }}" alt="MuseDock" class="animated-obj-1">
+	        @php $objOne = \Screenart\Musedock\Helpers\ImageVariant::forWidth(asset('themes/musedock/images/object-one.png'), 570); @endphp
+	        {{-- ≤1024px la columna está oculta (simple-slider.css): imagen vacía para que el móvil no la descargue --}}
+	        <picture>
+	          <source media="(max-width: 1024px)" srcset="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+	          <img src="{{ $objOne['url'] }}" @if($objOne['width']) width="{{ $objOne['width'] }}" height="{{ $objOne['height'] }}" @endif alt="MuseDock" class="animated-obj-1" decoding="async">
+	        </picture>
 	      </div>
 	    </div>
 	  </div>
 
   <!-- Slide 2 -->
-	  <div class="simple-slide" style="background-image: url('{{ asset('themes/musedock/images/home-one-slider-two.jpg') }}');">
+	  {{-- data-bg: el fondo se carga al mostrar el slide (simple-slider.js), no en la carga inicial --}}
+	  <div class="simple-slide" data-bg="{{ asset('themes/musedock/images/home-one-slider-two.jpg') }}">
 	    <div class="simple-slide-content">
 	      <div class="slide-text">
-	        <h1><strong>Subdominio</strong> incluido<br>en .musedock.com</h1>
+	        <h2><strong>Subdominio</strong> incluido<br>en .musedock.com</h2>
 	        <ul class="slide-features">
 	          <li><i class="fa fa-check"></i> Tu web en minutos, sin instalar nada</li>
 	          <li><i class="fa fa-check"></i> URL: <strong>tu-subdominio.musedock.com</strong></li>
@@ -67,15 +78,19 @@
 	        </div>
 	      </div>
 	      <div class="slide-image">
-	        <img src="{{ asset('themes/musedock/images/object-two.png') }}" alt="Infraestructura" class="animated-obj-2">
+	        @php $objTwo = \Screenart\Musedock\Helpers\ImageVariant::forWidth(asset('themes/musedock/images/object-two.png'), 570); @endphp
+	        <picture>
+	          <source media="(max-width: 1024px)" srcset="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+	          <img src="{{ $objTwo['url'] }}" @if($objTwo['width']) width="{{ $objTwo['width'] }}" height="{{ $objTwo['height'] }}" @endif alt="Infraestructura" class="animated-obj-2" loading="lazy" decoding="async">
+	        </picture>
 	      </div>
 	    </div>
 	  </div>
 
   <!-- Slide 3 -->
-	  <div class="simple-slide" style="background-image: url('{{ asset('themes/musedock/images/home-one-slider-three.jpg') }}');">
+	  <div class="simple-slide" data-bg="{{ asset('themes/musedock/images/home-one-slider-three.jpg') }}">
 	    <div class="simple-slide-content">
-	      <h1><strong>Seguridad</strong> y rendimiento<br>con Cloudflare</h1>
+	      <h2><strong>Seguridad</strong> y rendimiento<br>con Cloudflare</h2>
 	      <ul class="slide-features">
 	        <li><i class="fa fa-check"></i> Proxy naranja + mitigación de ataques</li>
 	        <li><i class="fa fa-check"></i> SSL gratis y HTTPS siempre</li>
@@ -88,7 +103,7 @@
 <!-- END Simple Slider -->
 
 <!-- Domain Search (hardcoded) -->
-<div class="ziph-page_content ziph-dhav-dotted" style="background-color:#267ae9;">
+<div class="ziph-page_content ziph-dhav-dotted" style="background-color:#2372db;">
   <div class="container">
     <div class="ziph-page_warp">
       <section class="wpb-content-wrapper">
@@ -97,7 +112,7 @@
             <div class="ziph-domainsearch_area">
               <div class="ziph-domainsearch">
                 <div class="ziph-fix ziph-domainsrch_warp">
-                  <h3 class="ziph-flt_left ziph-domainsrch_title">{{ __('home.find_perfect_domain') }}</h3>
+                  <h2 class="ziph-flt_left ziph-domainsrch_title" style="font-size:1.75rem;">{{ __('home.find_perfect_domain') }}</h2>
                   <div class="ziph-flt_right ziph-domainsrch_form">
                     <form method="get" action="{{ url('/domain') }}">
                       <input type="search" id="whmcs_domain_search" name="query" placeholder="{{ __('home.enter_domain') }}">

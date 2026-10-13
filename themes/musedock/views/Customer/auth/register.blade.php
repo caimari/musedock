@@ -17,7 +17,7 @@
         {{-- Title --}}
         <div class="text-center" style="margin-bottom:20px;">
           <h1 style="color:#243141; font-size:1.4rem; font-weight:700; margin:0 0 4px;">{{ __('Crea tu sitio web') }}</h1>
-          <p style="color:#8a94a6; font-size:0.9rem; margin:0;">{{ __('Elige como quieres empezar') }}</p>
+          <p style="color:#5f6873; font-size:0.9rem; margin:0;">{{ __('Elige como quieres empezar') }}</p>
         </div>
 
         {{-- Main card --}}
@@ -25,8 +25,8 @@
 
           <form id="registerForm" method="POST" action="/register" autocomplete="off" autocapitalize="off" spellcheck="false">
             {{-- Anti-autofill decoys: capturan autocompletado agresivo del navegador --}}
-            <input type="text" name="fake_username" autocomplete="username" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;">
-            <input type="password" name="fake_password" autocomplete="current-password" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;">
+            <input type="text" name="fake_username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;">
+            <input type="password" name="fake_password" autocomplete="current-password" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;">
             <input type="hidden" name="_csrf_token" value="{{ $csrf_token ?? csrf_token() }}">
             <input type="hidden" name="language" value="{{ detectLanguage() }}">
             @php
@@ -35,10 +35,11 @@
               $freeSubdomainEnabled = $gate ? $gate::allows('free_subdomain') : false;
               $connectEnabled = $gate ? $gate::allows('connect_domain') : false;
               $domainOptions = [
-                ['type' => 'subdomain', 'icon' => 'gift-fill', 'title' => 'Subdominio', 'badge' => $freeSubdomainEnabled ? 'GRATIS' : 'PRONTO', 'badgeColor' => $freeSubdomainEnabled ? '#28a745' : '#6c757d', 'enabled' => $freeSubdomainEnabled],
-                ['type' => 'register', 'icon' => 'cart-plus', 'title' => 'Registrar', 'badge' => 'PRONTO', 'badgeColor' => '#6c757d', 'enabled' => false],
-                ['type' => 'transfer', 'icon' => 'arrow-left-right', 'title' => 'Transferir', 'badge' => 'PRONTO', 'badgeColor' => '#6c757d', 'enabled' => false],
-                ['type' => 'connect', 'icon' => 'link-45deg', 'title' => 'Vincular', 'badge' => $connectEnabled ? 'OK' : 'PRONTO', 'badgeColor' => $connectEnabled ? '#4e73df' : '#6c757d', 'enabled' => $connectEnabled],
+                // Colores de etiqueta con contraste ≥4.5:1 (sobre blanco o sobre el gris de las deshabilitadas)
+                ['type' => 'subdomain', 'icon' => 'gift-fill', 'title' => 'Subdominio', 'badge' => $freeSubdomainEnabled ? 'GRATIS' : 'PRONTO', 'badgeColor' => $freeSubdomainEnabled ? '#1e7e34' : '#5f6873', 'enabled' => $freeSubdomainEnabled],
+                ['type' => 'register', 'icon' => 'cart-plus', 'title' => 'Registrar', 'badge' => 'PRONTO', 'badgeColor' => '#5f6873', 'enabled' => false],
+                ['type' => 'transfer', 'icon' => 'arrow-left-right', 'title' => 'Transferir', 'badge' => 'PRONTO', 'badgeColor' => '#5f6873', 'enabled' => false],
+                ['type' => 'connect', 'icon' => 'link-45deg', 'title' => 'Vincular', 'badge' => $connectEnabled ? 'OK' : 'PRONTO', 'badgeColor' => $connectEnabled ? '#3b5bdb' : '#5f6873', 'enabled' => $connectEnabled],
               ];
               // Opción seleccionada al cargar: la primera activa (null = alta cerrada)
               $defaultDomainType = null;
@@ -64,17 +65,18 @@
 
               <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;">
                 @foreach($domainOptions as $opt)
+                {{-- Deshabilitadas: fondo gris y texto gris oscuro (legible, ≥4.5:1) en lugar de opacity:.5 --}}
                 <div class="reg-domain-opt {{ !$opt['enabled'] ? 'disabled' : '' }} {{ $opt['type'] === $defaultDomainType ? 'selected' : '' }}"
                      data-type="{{ $opt['type'] }}"
+                     @if(!$opt['enabled']) aria-disabled="true" @endif
                      style="
                        padding:12px 8px; border-radius:8px; text-align:center; cursor:{{ $opt['enabled'] ? 'pointer' : 'not-allowed' }};
-                       border:2px solid {{ $opt['type'] === $defaultDomainType ? '#4e73df' : '#e5e7eb' }};
-                       background:{{ $opt['type'] === $defaultDomainType ? '#f0f4ff' : ($opt['enabled'] ? '#fff' : '#f9fafb') }};
-                       opacity:{{ $opt['enabled'] ? '1' : '0.5' }};
+                       border:2px {{ $opt['enabled'] ? 'solid' : 'dashed' }} {{ $opt['type'] === $defaultDomainType ? '#4e73df' : '#e5e7eb' }};
+                       background:{{ $opt['type'] === $defaultDomainType ? '#f0f4ff' : ($opt['enabled'] ? '#fff' : '#f3f4f6') }};
                        transition:all 0.15s;
                      ">
-                  <i class="bi bi-{{ $opt['icon'] }}" style="font-size:1.2rem; color:{{ $opt['enabled'] ? '#4e73df' : '#adb5bd' }}; display:block; margin-bottom:4px;"></i>
-                  <div style="font-size:0.72rem; font-weight:600; color:#243141;">{{ __($opt['title']) }}</div>
+                  <i class="bi bi-{{ $opt['icon'] }}" aria-hidden="true" style="font-size:1.2rem; color:{{ $opt['enabled'] ? '#4e73df' : '#9ca3af' }}; display:block; margin-bottom:4px;"></i>
+                  <div style="font-size:0.72rem; font-weight:600; color:{{ $opt['enabled'] ? '#243141' : '#4b5563' }};">{{ __($opt['title']) }}</div>
                   <span style="font-size:0.6rem; font-weight:700; color:{{ $opt['badgeColor'] }}; letter-spacing:0.3px;">{{ $opt['badge'] }}</span>
                 </div>
                 @endforeach
@@ -159,8 +161,8 @@
                     <input type="password" id="password" name="password" required minlength="8" placeholder="{{ __('Mínimo 8 caracteres') }}" autocomplete="new-password"
                            style="width:100%; padding:10px 12px; padding-right:40px; border:1px solid #d1d5db; border-radius:8px; font-size:0.9rem; outline:none;"
                            onfocus="this.style.borderColor='#4e73df'" onblur="this.style.borderColor='#d1d5db'">
-                    <button type="button" class="toggle-password" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:#9ca3af; cursor:pointer; padding:4px;">
-                      <i class="bi bi-eye"></i>
+                    <button type="button" class="toggle-password" aria-label="{{ __('Mostrar contraseña') }}" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); background:none; border:none; color:#6b7280; cursor:pointer; padding:4px; min-width:32px; min-height:32px;">
+                      <i class="bi bi-eye" aria-hidden="true"></i>
                     </button>
                   </div>
                 </div>
@@ -170,8 +172,8 @@
                     <input type="password" id="password_confirm" name="password_confirm" required placeholder="{{ __('Repite contraseña') }}" autocomplete="new-password"
                            style="width:100%; padding:10px 12px; padding-right:40px; border:1px solid #d1d5db; border-radius:8px; font-size:0.9rem; outline:none;"
                            onfocus="this.style.borderColor='#4e73df'" onblur="this.style.borderColor='#d1d5db'">
-                    <button type="button" class="toggle-password-confirm" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:#9ca3af; cursor:pointer; padding:4px;">
-                      <i class="bi bi-eye"></i>
+                    <button type="button" class="toggle-password-confirm" aria-label="{{ __('Mostrar contraseña') }}" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); background:none; border:none; color:#6b7280; cursor:pointer; padding:4px; min-width:32px; min-height:32px;">
+                      <i class="bi bi-eye" aria-hidden="true"></i>
                     </button>
                   </div>
                 </div>
@@ -184,7 +186,7 @@
         <div style="margin-top:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
           <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.8rem; color:#4a5568;">
             <input type="checkbox" id="terms" name="accept_terms" value="1" form="registerForm" required style="width:16px; height:16px; accent-color:#4e73df;">
-            <span>{{ __('Acepto los') }} <a href="/p/terms-and-conditions" target="_blank" style="color:#4e73df; font-weight:600;">{{ __('términos') }}</a> {{ __('y') }} <a href="/p/privacy" target="_blank" style="color:#4e73df; font-weight:600;">{{ __('privacidad') }}</a></span>
+            <span>{{ __('Acepto los') }} <a href="/p/terms-and-conditions" target="_blank" style="color:#3b5bdb; font-weight:600;">{{ __('términos') }}</a> {{ __('y') }} <a href="/p/privacy" target="_blank" style="color:#3b5bdb; font-weight:600;">{{ __('privacidad') }}</a></span>
           </label>
           <button type="submit" id="submitBtn" form="registerForm" disabled {{ $signupClosed ? 'data-closed=1' : '' }} style="
             padding:11px 28px; background:#4e73df; color:#fff; border:none; border-radius:8px;
@@ -196,8 +198,8 @@
 
         {{-- Login link --}}
         <div style="text-align:center; margin-top:16px; font-size:0.85rem;">
-          <span style="color:#8a94a6;">{{ __('¿Ya tienes cuenta?') }}</span>
-          <a href="/customer/login" style="color:#4e73df; font-weight:600; margin-left:4px; text-decoration:none;">{{ __('Inicia sesión') }}</a>
+          <span style="color:#5f6873;">{{ __('¿Ya tienes cuenta?') }}</span>
+          <a href="/customer/login" style="color:#3b5bdb; font-weight:600; margin-left:4px; text-decoration:none;">{{ __('Inicia sesión') }}</a>
         </div>
 
       </div>
@@ -237,7 +239,8 @@ let checkTimeout;
 if (!currentDomainType) {
   document.addEventListener('DOMContentLoaded', function () {
     const acct = document.getElementById('account_section');
-    if (acct) { acct.style.opacity = '0.4'; acct.style.pointerEvents = 'none'; }
+    // inert: no enfocable ni accesible (coherente con el alta cerrada; los lectores de pantalla lo omiten)
+    if (acct) { acct.style.opacity = '0.4'; acct.style.pointerEvents = 'none'; acct.inert = true; }
     updateSubmitButton();
   });
 }
@@ -364,15 +367,14 @@ document.getElementById('registerForm')?.addEventListener('submit', function(e) 
 });
 
 // Toggle password
-document.querySelector('.toggle-password')?.addEventListener('click', function() {
-  const i = document.getElementById('password'); const ic = this.querySelector('i');
-  i.type = i.type === 'password' ? 'text' : 'password';
+function togglePasswordField(btn, inputId) {
+  const i = document.getElementById(inputId); const ic = btn.querySelector('i');
+  const show = i.type === 'password';
+  i.type = show ? 'text' : 'password';
   ic.classList.toggle('bi-eye'); ic.classList.toggle('bi-eye-slash');
-});
-document.querySelector('.toggle-password-confirm')?.addEventListener('click', function() {
-  const i = document.getElementById('password_confirm'); const ic = this.querySelector('i');
-  i.type = i.type === 'password' ? 'text' : 'password';
-  ic.classList.toggle('bi-eye'); ic.classList.toggle('bi-eye-slash');
-});
+  btn.setAttribute('aria-label', show ? @json(__('Ocultar contraseña')) : @json(__('Mostrar contraseña')));
+}
+document.querySelector('.toggle-password')?.addEventListener('click', function() { togglePasswordField(this, 'password'); });
+document.querySelector('.toggle-password-confirm')?.addEventListener('click', function() { togglePasswordField(this, 'password_confirm'); });
 </script>
 @endpush

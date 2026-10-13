@@ -208,9 +208,10 @@
         ];
 
         // Collect unique Google Font families needed
-        $fontsToLoad = [];
+        // Poppins es la fuente base de style.css (antes via @import bloqueante); se carga aquí async
+        $fontsToLoad = ['Poppins:wght@300;400;500;600;700'];
         foreach ([$logoFont, $contentHeadingFont, $contentBodyFont] as $f) {
-            if (isset($googleFonts[$f]) && !in_array($googleFonts[$f], $fontsToLoad)) {
+            if (isset($googleFonts[$f]) && !in_array($googleFonts[$f], $fontsToLoad) && !str_starts_with($googleFonts[$f], 'Poppins:')) {
                 $fontsToLoad[] = $googleFonts[$f];
             }
         }
@@ -233,13 +234,15 @@
     <link rel="stylesheet" href="{{ asset('themes/default/css/fontawesome-all.min.css') }}">
     <link rel="stylesheet" href="{{ asset('themes/default/css/themify-icons.css') }}">
     <link rel="stylesheet" href="{{ asset('themes/default/css/style.css') }}">
-    <link rel="stylesheet" href="{{ asset('themes/default/css/responsive.css') }}?v={{ time() }}">
+    {{-- Versión = fecha de modificación del fichero (antes time(): URL distinta cada segundo, el navegador nunca reutilizaba la caché) --}}
+    @php $cssVer = fn(string $f) => @filemtime(public_path("assets/themes/default/css/{$f}")) ?: 1; @endphp
+    <link rel="stylesheet" href="{{ asset('themes/default/css/responsive.css') }}?v={{ $cssVer('responsive.css') }}">
 
     {{-- CSS Personalizado - Espaciado y estilos del tema --}}
-    <link rel="stylesheet" href="{{ asset('themes/default/css/template.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('themes/default/css/template.css') }}?v={{ $cssVer('template.css') }}">
 
     {{-- CSS Custom global del tema (layout, anchos, header styles, etc.) --}}
-    <link rel="stylesheet" href="{{ asset('themes/default/css/custom.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('themes/default/css/custom.css') }}?v={{ $cssVer('custom.css') }}">
 
     {{-- CSS Custom del tenant - se carga DESPUÉS del global para poder sobrescribir --}}
     @php
@@ -743,8 +746,9 @@
     }
     </style>
 	
-    <!-- Modernizr  -->
-    <script src="{{ asset('themes/default/js/vendor/modernizr-3.5.0.min.js') }}"></script>
+    {{-- Modernizr retirado: ningún CSS/JS usa sus clases ni su API (tarea larga de ~340 ms en móvil).
+         Solo se conserva su efecto útil: cambiar no-js → js en <html>. --}}
+    <script>document.documentElement.className=document.documentElement.className.replace(/\bno-js\b/,'js');</script>
 
     <!-- Progressive Web App (PWA)  -->
     <!-- <link rel="manifest" href="{{ asset('site.webmanifest') }}"> -->
@@ -2237,8 +2241,8 @@ body.mobile-menu-open {
     \Screenart\Musedock\Services\TranslationService::load($currentLangLayout, 'tenant');
 @endphp
 
-    <!-- Preloader Start -->
- <!--   <div id="preloader-active">
+    {{-- Preloader desactivado (comentario Blade: no se envía al navegador)
+    <div id="preloader-active">
         <div class="preloader d-flex align-items-center justify-content-center">
             <div class="preloader-inner position-relative">
                 <div class="preloader-circle"></div>
@@ -2247,8 +2251,8 @@ body.mobile-menu-open {
                 </div>
             </div>
         </div>
-    </div> -->
-    <!-- Preloader Start -->
+    </div>
+    --}}
 
 
 
@@ -2476,8 +2480,8 @@ body.mobile-menu-open {
             <form action="{{ url('/search') }}" method="GET">
                 <div style="display:flex; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
                     <input type="text" name="q" placeholder="{{ ($currentLang ?? 'es') === 'en' ? 'Search...' : 'Buscar...' }}" required minlength="2" style="flex:1; border:none; padding: 10px 14px; font-size: 15px; outline:none; background: #f8f8f8;">
-                    <button type="submit" style="border:none; background: var(--header-link-hover-color, #ff5e15); color:#fff; padding: 10px 14px; cursor:pointer;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <button type="submit" aria-label="{{ ($currentLang ?? 'es') === 'en' ? 'Search' : 'Buscar' }}" style="border:none; background: var(--header-link-hover-color, #ff5e15); color:#fff; padding: 10px 14px; cursor:pointer;">
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     </button>
                 </div>
             </form>
@@ -2807,8 +2811,11 @@ document.querySelectorAll('.footer-area .widget-area').forEach(function(wa) {
             $cookieLayout = themeOption('footer.footer_cookie_banner_layout', site_setting('cookies_banner_layout', 'card'));
             $cookieBg     = site_setting('cookies_bg_color', '#ffffff');
             $cookieText   = site_setting('cookies_text_color', '#333333');
-            $cookieBtnAccept = site_setting('cookies_btn_accept_bg', '#4CAF50');
-            $cookieBtnReject = site_setting('cookies_btn_reject_bg', '#f44336');
+            $cookieBtnAccept = site_setting('cookies_btn_accept_bg', '#2e7d32');
+            $cookieBtnReject = site_setting('cookies_btn_reject_bg', '#d32f2f');
+            // Los antiguos valores por defecto no llegan a contraste AA con texto blanco
+            if (strcasecmp($cookieBtnAccept, '#4CAF50') === 0) $cookieBtnAccept = '#2e7d32';
+            if (strcasecmp($cookieBtnReject, '#f44336') === 0) $cookieBtnReject = '#d32f2f';
 
             // Resolver URLs legales inteligentemente (buscar páginas reales del tenant)
             $cookiePdo = \Screenart\Musedock\Database::connect();
@@ -2872,7 +2879,7 @@ document.querySelectorAll('.footer-area .widget-area').forEach(function(wa) {
         <!-- ===== Cookie Consent Popup ===== -->
         <div id="cookie-consent-popup" class="cookie-consent-popup cookie-layout-{{ $cookieLayout }}" style="display: none; --cookie-bg: {{ $cookieBg }}; --cookie-text: {{ $cookieText }}; --cookie-btn-accept: {{ $cookieBtnAccept }}; --cookie-btn-reject: {{ $cookieBtnReject }};">
         <div class="cookie-popup-content">
-            <h4>{{ __('cookies.title') }}</h4>
+            <h4 aria-level="2">{{ __('cookies.title') }}</h4>
             <p>{{ __('cookies.text') }}</p>
             <div class="cookie-popup-actions">
                 <button id="cookie-manage-prefs" class="cookie-btn cookie-btn-manage">{{ __('cookies.manage_preferences') }}</button>
@@ -2890,7 +2897,7 @@ document.querySelectorAll('.footer-area .widget-area').forEach(function(wa) {
     <div id="cookie-preferences-modal" class="cookie-preferences-modal" style="display: none; --cookie-bg: {{ $cookieBg }}; --cookie-text: {{ $cookieText }}; --cookie-btn-accept: {{ $cookieBtnAccept }}; --cookie-btn-reject: {{ $cookieBtnReject }};">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>{{ __('cookies.modal_title') }}</h3>
+                <h3 aria-level="2">{{ __('cookies.modal_title') }}</h3>
                 <button id="cookie-modal-close" class="modal-close-btn">×</button>
             </div>
             <div class="modal-body">
@@ -2899,7 +2906,7 @@ document.querySelectorAll('.footer-area .widget-area').forEach(function(wa) {
                 <!-- Strictly Necessary Cookies -->
                 <div class="cookie-category">
                     <div class="category-header">
-                        <h4>{{ __('cookies.cat_necessary_title') }}</h4>
+                        <h4 aria-level="3">{{ __('cookies.cat_necessary_title') }}</h4>
                         <label class="switch always-on">
                             <input type="checkbox" checked disabled>
                             <span class="slider round"></span>
@@ -2911,7 +2918,7 @@ document.querySelectorAll('.footer-area .widget-area').forEach(function(wa) {
                 <!-- Analytics Cookies -->
                 <div class="cookie-category">
                     <div class="category-header">
-                        <h4>{{ __('cookies.cat_analytics_title') ?: 'Cookies de Analítica' }}</h4>
+                        <h4 aria-level="3">{{ __('cookies.cat_analytics_title') ?: 'Cookies de Analítica' }}</h4>
                         <label class="switch">
                             <input type="checkbox" id="cookie-pref-analytics">
                             <span class="slider round"></span>
@@ -2978,8 +2985,8 @@ document.querySelectorAll('.footer-area .widget-area').forEach(function(wa) {
 })(jQuery);
 </script>
 
-	{{-- Swiper JS local (reemplaza CDN) --}}
-<script src="/assets/js/swiper-bundle.min.js"></script>
+	{{-- Swiper JS local: los sliders (SliderHelper) ya incluyen el suyo; aquí solo si hay un .swiper sin inicializar --}}
+<script>if(!window.Swiper&&document.querySelector('.swiper,.swiper-container')){var s=document.createElement('script');s.src='/assets/js/swiper-bundle.min.js';document.body.appendChild(s);}</script>
 {{-- Slick Carousel JS (local) --}}
 <script src="{{ asset('vendor/slick/slick.min.js') }}"></script>
 {{-- Owl Carousel JS (local) --}}

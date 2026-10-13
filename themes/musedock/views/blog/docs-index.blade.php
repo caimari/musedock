@@ -64,7 +64,7 @@
                             @if(!empty($sectionNames))
                             <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.75rem;">
                                 @foreach($sectionNames as $sn)
-                                <span style="font-size:0.72rem; padding:0.2rem 0.6rem; background:#f3f4f6; border-radius:100px; color:#6b7280;">{{ $sn }}</span>
+                                <span style="font-size:0.72rem; padding:0.2rem 0.6rem; background:#f3f4f6; border-radius:100px; color:#4b5563;">{{ $sn }}</span>
                                 @endforeach
                             </div>
                             @endif

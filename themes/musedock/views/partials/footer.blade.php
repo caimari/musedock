@@ -105,7 +105,7 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
               @if($__f1)
               <div class="ziph-footer_widget zipprich-link-widget">
                 @if($__f1Title && ($__f1['show_title'] ?? 1))
-                <h4 class="ziph-footrwidget_title">{{ $__f1Title }}</h4>
+                <h2 class="ziph-footrwidget_title">{{ $__f1Title }}</h2>
                 @endif
                 @custommenu('footer1', null, ['nav_class' => '', 'li_class' => '', 'a_class' => ''])
               </div>
@@ -121,7 +121,7 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
               @if($__f2)
               <div class="ziph-footer_widget zipprich-link-widget">
                 @if($__f2Title && ($__f2['show_title'] ?? 1))
-                <h4 class="ziph-footrwidget_title">{{ $__f2Title }}</h4>
+                <h2 class="ziph-footrwidget_title">{{ $__f2Title }}</h2>
                 @endif
                 @custommenu('footer2', null, ['nav_class' => '', 'li_class' => '', 'a_class' => ''])
               </div>
@@ -139,7 +139,7 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
               @if($__f3)
               <div class="ziph-footer_widget zipprich-link-widget">
                 @if($__f3Title && ($__f3['show_title'] ?? 1))
-                <h4 class="ziph-footrwidget_title">{{ $__f3Title }}</h4>
+                <h2 class="ziph-footrwidget_title">{{ $__f3Title }}</h2>
                 @endif
                 @custommenu('footer3', null, ['nav_class' => '', 'li_class' => '', 'a_class' => ''])
               </div>
@@ -154,9 +154,9 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
                   $__entityType = site_setting('legal_entity_type', 'personal');
               @endphp
               <div class="ziph-footer_widget vt-text-widget">
-                <h4 class="ziph-footrwidget_title">
+                <h2 class="ziph-footrwidget_title">
                   {{ __('footer.contact_details') }}
-                </h4>
+                </h2>
                 <div>
                   @if($__legalName && $__legalName !== $siteName)
                   <div class="ziph-footrwidget_loc">
@@ -205,7 +205,7 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
               @if($__f4)
               <div class="ziph-footer_widget zipprich-link-widget">
                 @if($__f4Title && ($__f4['show_title'] ?? 1))
-                <h4 class="ziph-footrwidget_title">{{ $__f4Title }}</h4>
+                <h2 class="ziph-footrwidget_title">{{ $__f4Title }}</h2>
                 @endif
                 @custommenu('footer4', null, ['nav_class' => '', 'li_class' => '', 'a_class' => ''])
               </div>
@@ -213,18 +213,18 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
 
               <!-- Social Media Widget -->
               <div class="ziph-footer_widget zipprich-social-widget">
-                <h4 class="ziph-footrwidget_title">
+                <h2 class="ziph-footrwidget_title">
                   {{ __('footer.follow_us') }}
-                </h4>
+                </h2>
                 <ul class="textwidget list-inline ziph-footrwidget_social">
-                  @if($socialFacebook)<li><a href="{{ $socialFacebook }}" target="_blank"><i class="fa fa-facebook"></i></a></li>@endif
-                  @if($socialTwitter)<li><a href="{{ $socialTwitter }}" target="_blank"><i class="fa fa-twitter"></i></a></li>@endif
-                  @if($socialInstagram)<li><a href="{{ $socialInstagram }}" target="_blank"><i class="fa fa-instagram"></i></a></li>@endif
-                  @if($socialLinkedIn)<li><a href="{{ $socialLinkedIn }}" target="_blank"><i class="fa fa-linkedin"></i></a></li>@endif
-                  @if($socialYoutube)<li><a href="{{ $socialYoutube }}" target="_blank"><i class="fa fa-youtube"></i></a></li>@endif
-                  @if($socialPinterest)<li><a href="{{ $socialPinterest }}" target="_blank"><i class="fa fa-pinterest"></i></a></li>@endif
-                  @if($socialTiktok)<li><a href="{{ $socialTiktok }}" target="_blank"><i class="fa fa-music"></i></a></li>@endif
-                  @if($socialGithub)<li><a href="{{ $socialGithub }}" target="_blank"><i class="fa fa-github"></i></a></li>@endif
+                  @if($socialFacebook)<li><a href="{{ $socialFacebook }}" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa fa-facebook" aria-hidden="true"></i></a></li>@endif
+                  @if($socialTwitter)<li><a href="{{ $socialTwitter }}" target="_blank" rel="noopener" aria-label="X (Twitter)"><i class="fa fa-twitter" aria-hidden="true"></i></a></li>@endif
+                  @if($socialInstagram)<li><a href="{{ $socialInstagram }}" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa fa-instagram" aria-hidden="true"></i></a></li>@endif
+                  @if($socialLinkedIn)<li><a href="{{ $socialLinkedIn }}" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa fa-linkedin" aria-hidden="true"></i></a></li>@endif
+                  @if($socialYoutube)<li><a href="{{ $socialYoutube }}" target="_blank" rel="noopener" aria-label="YouTube"><i class="fa fa-youtube" aria-hidden="true"></i></a></li>@endif
+                  @if($socialPinterest)<li><a href="{{ $socialPinterest }}" target="_blank" rel="noopener" aria-label="Pinterest"><i class="fa fa-pinterest" aria-hidden="true"></i></a></li>@endif
+                  @if($socialTiktok)<li><a href="{{ $socialTiktok }}" target="_blank" rel="noopener" aria-label="TikTok"><i class="fa fa-music" aria-hidden="true"></i></a></li>@endif
+                  @if($socialGithub)<li><a href="{{ $socialGithub }}" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa fa-github" aria-hidden="true"></i></a></li>@endif
                 </ul>
                 <div class="clear"></div>
               </div>
@@ -241,7 +241,7 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
                   ? legal_page_url(['privacy', 'privacidad', 'politica-de-privacidad', 'politica-privacidad'], 'privacy')
                   : '/p/privacy';
               @endphp
-              <h4 class="ziph-footrwidget_title">Newsletter</h4>
+              <h2 class="ziph-footrwidget_title">Newsletter</h2>
               <div class="ziph-ftrform_warp">
                 <form action="{{ url('/newsletter/subscribe') }}" method="POST" class="wpcf7-form">
                   {!! csrf_field() !!}
@@ -286,8 +286,11 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
                 @php
                   // Logo del footer: SIEMPRE usar logo2_footer.png (versión pequeña)
                   $footerLogoFinal = url('/') . '/assets/logo2_footer.png';
+                  $footerLogoImg = \Screenart\Musedock\Helpers\ImageVariant::forHeight($footerLogoFinal, 60);
                 @endphp
-                <img src="{{ $footerLogoFinal }}"
+                <img src="{{ $footerLogoImg['url'] }}"
+                     @if($footerLogoImg['width']) width="{{ $footerLogoImg['width'] }}" height="{{ $footerLogoImg['height'] }}" @endif
+                     loading="lazy" decoding="async"
                      alt="{{ $siteName }}"
                      style="max-height: 60px; width: auto;"
                      onerror="this.onerror=null; this.src='{{ url('/') }}/assets/logo2_footer.png';">
@@ -325,7 +328,8 @@ $footerBottomBorderColor = themeOption('footer.footer_bottom_border_color', '#e5
           @if($showFooterLangSelector)
           <div class="footer-language-selector" style="margin-top: 10px;">
             <form action="" method="get" id="footer-language-form" style="display: inline-block;">
-              <select name="lang" id="footer-language-select" onchange="this.form.submit();">
+              <label for="footer-language-select" class="sr-only">{{ __('Idioma') }}</label>
+              <select name="lang" id="footer-language-select" aria-label="{{ __('Idioma') }}" onchange="this.form.submit();">
                 @foreach($activeLanguages as $lang)
                   <option value="{{ $lang['code'] }}" {{ $currentLang == $lang['code'] ? 'selected' : '' }}>
                     {{ $lang['name'] }}

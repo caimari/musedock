@@ -39,17 +39,38 @@ class SimpleSlider {
         // Pause on hover
         this.container.addEventListener('mouseenter', () => this.stopAutoplay());
         this.container.addEventListener('mouseleave', () => this.startAutoplay());
+
+        // Fondos diferidos (data-bg): se cargan cuando la página ya ha terminado,
+        // así no compiten con el primer slide (LCP). goToSlide() también los aplica.
+        const loadAll = () => this.slides.forEach((slide) => this.loadBackground(slide));
+        if (document.readyState === 'complete') {
+            setTimeout(loadAll, 3500);
+        } else {
+            window.addEventListener('load', () => setTimeout(loadAll, 3500), { once: true });
+        }
+    }
+
+    loadBackground(slide) {
+        const bg = slide && slide.dataset ? slide.dataset.bg : null;
+        if (bg) {
+            slide.style.backgroundImage = "url('" + bg.replace(/'/g, "\\'") + "')";
+            delete slide.dataset.bg;
+        }
     }
 
     createArrows() {
         const prevArrow = document.createElement('button');
+        prevArrow.type = 'button';
         prevArrow.className = 'simple-slider-arrow simple-slider-prev';
-        prevArrow.innerHTML = '<i class="fa fa-angle-left"></i>';
+        prevArrow.setAttribute('aria-label', 'Diapositiva anterior');
+        prevArrow.innerHTML = '<i class="fa fa-angle-left" aria-hidden="true"></i>';
         prevArrow.addEventListener('click', () => this.prev());
 
         const nextArrow = document.createElement('button');
+        nextArrow.type = 'button';
         nextArrow.className = 'simple-slider-arrow simple-slider-next';
-        nextArrow.innerHTML = '<i class="fa fa-angle-right"></i>';
+        nextArrow.setAttribute('aria-label', 'Diapositiva siguiente');
+        nextArrow.innerHTML = '<i class="fa fa-angle-right" aria-hidden="true"></i>';
         nextArrow.addEventListener('click', () => this.next());
 
         this.container.appendChild(prevArrow);
@@ -61,6 +82,7 @@ class SimpleSlider {
         if (index === this.currentSlide) return;
 
         this.isTransitioning = true;
+        this.loadBackground(this.slides[index]);
 
         // Remove active class from current slide
         this.slides[this.currentSlide].classList.remove('active');

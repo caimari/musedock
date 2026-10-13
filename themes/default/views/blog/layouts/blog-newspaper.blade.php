@@ -42,6 +42,9 @@
                 } else {
                     $featuredImg = '/assets/themes/default/img/blog-default.svg';
                 }
+                // Imagen del LCP: variante WebP (medium/thumb) en vez del original a tamaño completo
+                $featuredSrcset = media_srcset($featuredImg);
+                $featuredSrc = $featuredSrcset ? media_thumb_url(preg_replace('/[?&]size=[a-z]+/i', '', $featuredImg), 'medium') : $featuredImg;
                 $dateVal = $featured->published_at ?? $featured->created_at;
                 $dateStr = $dateVal instanceof \DateTime ? $dateVal->format('d/m/Y') : date('d/m/Y', strtotime($dateVal));
                 $postAuthorName = null;
@@ -94,7 +97,7 @@
                 @if($__newspaperOverlay)
                 <div class="newspaper-overlay-wrap d-block overflow-hidden rounded" style="height: 400px; background-color: #f0f2f5;">
                     <a href="{{ blog_url($featured->slug) }}" class="newspaper-overlay-link">
-                        <img src="{{ $featuredImg }}" alt="{{ $featured->title }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
+                        <img src="{{ $featuredSrc }}" @if($featuredSrcset) srcset="{!! $featuredSrcset !!}" sizes="(max-width: 767px) 100vw, 750px" @endif fetchpriority="high" decoding="async" alt="{{ $featured->title }}" style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
                     </a>
                     <div class="newspaper-overlay-content">
                         @if(!empty($__featCats))
@@ -116,7 +119,7 @@
                 </div>
                 @else
                 <a href="{{ blog_url($featured->slug) }}" class="d-block overflow-hidden rounded newspaper-hero-img-wrap" style="max-height: 400px; background-color: #f0f2f5;">
-                    <img src="{{ $featuredImg }}" alt="{{ $featured->title }}" loading="lazy" style="width: 100%; height: auto; display: block;">
+                    <img src="{{ $featuredSrc }}" @if($featuredSrcset) srcset="{!! $featuredSrcset !!}" sizes="(max-width: 767px) 100vw, 750px" @endif fetchpriority="high" decoding="async" alt="{{ $featured->title }}" style="width: 100%; height: auto; display: block;">
                 </a>
                 <div style="padding-top: 10px;">
                     <div class="post-meta mb-1 text-muted small">
@@ -149,6 +152,7 @@
                         $sideImg = '/assets/themes/default/img/blog-default.svg';
                     }
                     $sideImg = media_thumb_url($sideImg, 'medium');
+                    $sideSrcset = media_srcset($sideImg);
                     $dateVal = $sidePost->published_at ?? $sidePost->created_at;
                     $sideDateStr = $dateVal instanceof \DateTime ? $dateVal->format('d/m/Y') : date('d/m/Y', strtotime($dateVal));
                     $sideAuthorName = null;
@@ -198,7 +202,7 @@
                     @if($__newspaperOverlay)
                     <div class="newspaper-overlay-wrap d-block overflow-hidden rounded" style="height: 100%; min-height: 190px; background-color: #f0f2f5;">
                         <a href="{{ blog_url($sidePost->slug) }}" class="newspaper-overlay-link">
-                            <img src="{{ $sideImg }}" alt="{{ $sidePost->title }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
+                            <img src="{{ $sideImg }}" @if($sideSrcset) srcset="{!! $sideSrcset !!}" sizes="(max-width: 767px) 100vw, 380px" @endif alt="{{ $sidePost->title }}" loading="lazy" decoding="async" style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
                         </a>
                         <div class="newspaper-overlay-content">
                             @if(!empty($__sideCats))
@@ -219,7 +223,7 @@
                     </div>
                     @else
                     <a href="{{ blog_url($sidePost->slug) }}" class="d-block overflow-hidden rounded newspaper-side-img-wrap" style="max-height: 190px; background-color: #f0f2f5;">
-                        <img src="{{ $sideImg }}" alt="{{ $sidePost->title }}" loading="lazy" style="width: 100%; height: auto; display: block;">
+                        <img src="{{ $sideImg }}" @if($sideSrcset) srcset="{!! $sideSrcset !!}" sizes="(max-width: 767px) 100vw, 380px" @endif alt="{{ $sidePost->title }}" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
                     </a>
                     <div style="padding-top: 6px;">
                         <div class="post-meta mb-1 text-muted small">
@@ -265,8 +269,9 @@
                         $imageUrl = '/assets/themes/default/img/blog-default.svg';
                     }
                     $imageUrl = media_thumb_url($imageUrl, 'medium');
+                    $imageSrcset = media_srcset($imageUrl);
                 @endphp
-                <img src="{{ $imageUrl }}" alt="{{ $post->title }}" loading="lazy" style="width: 100%; height: auto; display: block;">
+                <img src="{{ $imageUrl }}" @if($imageSrcset) srcset="{!! $imageSrcset !!}" sizes="(max-width: 767px) 100vw, 380px" @endif alt="{{ $post->title }}" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
             </a>
             @php
                 // Cargar categorías si no están disponibles
