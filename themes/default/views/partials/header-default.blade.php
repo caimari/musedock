@@ -31,7 +31,7 @@
                     <div class="header-brand-block">
                         <div class="header-brand-top">
                             @if($showLogo)
-                                <img src="{{ $logoPath ? public_file_url($logoPath) : $defaultLogo }}"
+                                <img src="{{ logo_variant_url($logoPath ? public_file_url($logoPath) : $defaultLogo, max(40, (int) themeOption('header.header_logo_max_height', '45'))) }}"
                                      alt="{{ $siteName }}"
                                      class="header-brand-logo"
                                      onerror="this.onerror=null; this.src='{{ $defaultLogo }}';">

@@ -95,6 +95,13 @@ class ImageVariant
             return null;
         }
 
+        // Logos/branding de tenants: se sirven por /media/file/ pero viven en storage (son públicos)
+        if (str_starts_with($path, '/media/file/branding/')) {
+            $root = defined('APP_ROOT') ? rtrim(APP_ROOT, '/') : dirname(self::publicDir());
+            $file = $root . '/storage/app/media/' . substr($path, strlen('/media/file/'));
+            return is_file($file) ? $file : null;
+        }
+
         $file = self::publicDir() . $path;
         return is_file($file) ? $file : null;
     }

@@ -2568,6 +2568,25 @@ if (!function_exists('is_cross_publisher_active')) {
     }
 }
 
+if (!function_exists('logo_variant_url')) {
+    /**
+     * URL de un logo en WebP redimensionado (2× la altura máxima mostrada) en vez del
+     * PNG original, que a menudo pesa cientos de KB para verse a 40 px. Si no es una
+     * imagen local procesable, devuelve la URL original.
+     */
+    function logo_variant_url(string $url, int $maxDisplayHeight = 80): string
+    {
+        if ($url === '') {
+            return $url;
+        }
+        try {
+            return \Screenart\Musedock\Helpers\ImageVariant::forHeight($url, max(30, $maxDisplayHeight))['url'];
+        } catch (\Throwable $e) {
+            return $url;
+        }
+    }
+}
+
 if (!function_exists('media_srcset')) {
     /**
      * Atributo srcset para imágenes del Media Manager: variantes WebP thumb (420px)

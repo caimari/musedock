@@ -36,7 +36,7 @@
                     <a href="{{ url('/') }}" style="text-decoration:none;color:inherit;display:inline-block;">
                         <div style="display:flex;flex-direction:column;align-items:flex-start;">
                             @if($showLogo)
-                                <img src="{{ $logoPath ? public_file_url($logoPath) : $defaultLogo }}"
+                                <img src="{{ logo_variant_url($logoPath ? public_file_url($logoPath) : $defaultLogo, (int) ($logoAboveMaxHeight ?? 120)) }}"
                                      alt="{{ $siteName }}"
                                      class="header-brand-logo"
                                      style="max-height:{{ $logoAboveMaxHeight }}px;width:auto;display:block;"

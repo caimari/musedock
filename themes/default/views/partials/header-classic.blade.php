@@ -97,7 +97,7 @@
         <div class="container">
             <a href="{{ url('/') }}" class="classic-brand-link">
                 @if($showLogo)
-                    <img src="{{ $logoPath ? public_file_url($logoPath) : $defaultLogo }}"
+                    <img src="{{ logo_variant_url($logoPath ? public_file_url($logoPath) : $defaultLogo, max(40, (int) themeOption('header.header_logo_max_height', '45'))) }}"
                          alt="{{ $siteName }}"
                          class="header-brand-logo"
                          style="max-height:{{ $logoMaxHeight }}px;"

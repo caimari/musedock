@@ -33,7 +33,7 @@
                          <div class="footer-logo" style="display:flex; align-items:center; gap:12px;">
                              <a href="{{ url('/') }}" style="display:flex; align-items:center; gap:12px; text-decoration:none;">
                                  @if($showFooterLogo)
-                                    <img src="{{ $footerLogoSrc }}"
+                                    <img src="{{ logo_variant_url($footerLogoSrc, (int) ($footerLogoMaxHeight ?? 60)) }}"
                                           alt="{{ $footerSiteName }}"
                                          style="max-height: {{ $footerLogoMaxHeight }}px; width: auto;"
                                           onerror="this.onerror=null; this.src='{{ $footerDefaultLogo }}';">

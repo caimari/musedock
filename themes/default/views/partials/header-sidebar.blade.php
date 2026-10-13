@@ -51,7 +51,7 @@
         <div class="sidebar-nav-brand {{ !$__hasMenu ? 'sidebar-nav-brand-centered' : '' }}">
             <a href="{{ url('/') }}" class="sidebar-nav-brand-link">
                 @if($showLogo && $sidebarShowLogo)
-                    <img src="{{ $logoPath ? public_file_url($logoPath) : $defaultLogo }}"
+                    <img src="{{ logo_variant_url($logoPath ? public_file_url($logoPath) : $defaultLogo, max(40, (int) themeOption('header.header_logo_max_height', '45'))) }}"
                          alt="{{ $siteName }}"
                          class="sidebar-nav-logo"
                          onerror="this.onerror=null; this.src='{{ $defaultLogo }}';">
@@ -128,7 +128,7 @@
             <div class="header-logo" style="min-width:0;flex:1;">
                 <a href="{{ url('/') }}" class="sidebar-mobile-brand-link" style="text-decoration:none !important;display:flex;align-items:center;gap:8px;min-width:0;color:{{ $sidebarTitleColor }} !important;{{ $sidebarTitleFont !== 'inherit' ? 'font-family:'.$sidebarTitleFont.' !important;' : '' }}">
                     @if($showLogo && $sidebarShowLogo)
-                        <img src="{{ $logoPath ? public_file_url($logoPath) : $defaultLogo }}"
+                        <img src="{{ logo_variant_url($logoPath ? public_file_url($logoPath) : $defaultLogo, max(40, (int) themeOption('header.header_logo_max_height', '45'))) }}"
                              alt="{{ $siteName }}"
                              style="max-height:35px;width:auto;"
                              onerror="this.onerror=null; this.src='{{ $defaultLogo }}';">

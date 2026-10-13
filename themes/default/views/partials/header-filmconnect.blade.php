@@ -38,7 +38,7 @@
             <div class="hdr-fc-brand-inner">
                 <a href="{{ url('/') }}" class="hdr-fc-logo-link" style="text-decoration:none;color:inherit;display:inline-flex;align-items:center;gap:12px;">
                     @if($showLogo)
-                        <img src="{{ $logoPath ? public_file_url($logoPath) : $defaultLogo }}"
+                        <img src="{{ logo_variant_url($logoPath ? public_file_url($logoPath) : $defaultLogo, max(60, (int) themeOption('header.header_logo_max_height', '45'))) }}"
                              alt="{{ $siteName }}"
                              class="header-brand-logo"
                              style="max-height:{{ $logoMaxHeight }}px;width:auto;display:block;"
