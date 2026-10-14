@@ -1,13 +1,35 @@
 (function () {
     const dialog = document.getElementById('mcp-progress');
     if (!dialog) return;
-    const forms = [...document.querySelectorAll('[data-mcp-request-form]')];
+    const forms = () => [...document.querySelectorAll('[data-mcp-request-form]')];
     const summary = document.getElementById('mcp-progress-summary');
     const list = document.getElementById('mcp-progress-list');
     const spinner = document.getElementById('mcp-progress-spinner');
     const close = document.getElementById('mcp-progress-close');
     let running = false;
-    close.addEventListener('click', () => location.reload());
+    close.addEventListener('click', () => { dialog.close(); refreshRequests(); });
+    let refreshing = false;
+    async function refreshRequests() {
+        if (refreshing || document.hidden || (running && dialog.open)) return;
+        const panels = [...document.querySelectorAll('[data-mcp-panel="requests"]')];
+        if (!panels.some(panel => !panel.hidden)) return;
+        if (panels.some(panel => panel.querySelector('details[open]'))) return;
+        refreshing = true;
+        try {
+            const url = new URL(location.href); url.hash = '';
+            const response = await fetch(url, {credentials: 'same-origin', cache: 'no-store'});
+            if (!response.ok) return;
+            const html = new DOMParser().parseFromString(await response.text(), 'text/html');
+            const updated = [...html.querySelectorAll('[data-mcp-panel="requests"]')];
+            if (updated.length !== panels.length) return;
+            panels.forEach((panel, index) => { panel.innerHTML = updated[index].innerHTML; });
+            const tab = document.querySelector('[data-mcp-tab="requests"]');
+            const nextTab = html.querySelector('[data-mcp-tab="requests"]');
+            if (tab && nextTab) tab.textContent = nextTab.textContent;
+        } catch (_) { /* Keep the last verified state during a network interruption. */ }
+        finally { refreshing = false; }
+    }
+    setInterval(refreshRequests, 10000);
     async function run(jobs) {
         if (running) return;
         running = true;
@@ -71,11 +93,17 @@
         running = false;
         spinner.hidden = true;
         close.disabled = false;
+        running = false;
         summary.textContent = 'Cola finalizada: ' + (completed - failures) + ' correctas; ' + failures + ' con incidencias.';
     }
-    forms.forEach(form => form.addEventListener('submit', event => {
+    document.addEventListener('submit', event => {
+        const form = event.target;
+        if (!form.matches('[data-mcp-request-form]')) return;
         event.preventDefault();
         run([{ form, action: event.submitter?.value || 'approve' }]);
-    }));
-    document.getElementById('mcp-approve-all')?.addEventListener('click', () => run(forms.filter(form => !form.querySelector('button').disabled).map(form => ({ form, action: 'approve' }))));
+    });
+    document.addEventListener('click', event => {
+        if (!event.target.closest('#mcp-approve-all')) return;
+        run(forms().filter(form => !form.querySelector('button').disabled).map(form => ({ form, action: 'approve' })));
+    });
 })();

@@ -297,7 +297,7 @@
 </dialog>
 @endsection
 @push('scripts')
-<script src="/assets/superadmin/js/mcp-progress.js?v=4"></script>
+<script src="/assets/superadmin/js/mcp-progress.js?v=5"></script>
 <script src="/assets/superadmin/js/mcp-access-tabs.js?v=2"></script>
 <script>
 document.querySelectorAll('[data-mcp-info]').forEach(button=>button.addEventListener('click',()=>document.getElementById('mcp-info-'+button.dataset.mcpInfo).showModal()));
