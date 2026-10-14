@@ -76,6 +76,10 @@ final class Admin
                     $new=$ep->oauth->createClient($id,(string)($_POST['name']??''),$callback,(array)($_POST['scopes']??[]),$sites,$groups,(string)($_POST['networks']??''));
                     $_SESSION['cms_mcp_new'][$id]=['id'=>$new['client']['id'],'secret'=>$new['secret']];
                     $ep->store->event($id,'client.created',$actor,['client'=>$new['client']['id']]);
+                    $saved=$ep->store->client($new['client']['id']);
+                    $saved['auto_approve_posts']=isset($_POST['auto_approve_posts']);
+                    $saved['auto_approve_images']=isset($_POST['auto_approve_images']);
+                    $ep->store->putClient($saved);
                 } elseif ($action==='rotate_secret' || $action==='finish_secret_rotation') {
                     $clientId=(string)($_POST['client']??'');
                     if ($action==='rotate_secret') {
@@ -88,6 +92,13 @@ final class Admin
                     if (!$client || $client['resource']!==$id) throw new \RuntimeException('Cliente no encontrado.');
                     $scopes=$action==='revoke_client'?$client['scopes']:(array)($_POST['scopes']??[]);
                     $ep->oauth->reviseClient($id,$client['id'],$scopes,$action!=='revoke_client');
+                    if ($action==='client_permissions') {
+                        $saved=$ep->store->client($client['id']);
+                        $saved['auto_approve_posts']=isset($_POST['auto_approve_posts']);
+                        $saved['auto_approve_images']=isset($_POST['auto_approve_images']);
+                        $ep->store->putClient($saved);
+                        $ep->store->event($id,'client.auto_approval.updated',$actor,['client'=>$client['id'],'posts'=>$saved['auto_approve_posts'],'images'=>$saved['auto_approve_images']]);
+                    }
                     $ep->store->event($id,$action,$actor,['client'=>$client['id']]);
                 } elseif ($action==='revoke_grant') {
                     $g=$ep->store->grant((string)($_POST['grant']??''));

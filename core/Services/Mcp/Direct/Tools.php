@@ -118,7 +118,18 @@ final class Tools
             $this->store->run("INSERT INTO requests(id,resource,client,status,expires,data) VALUES(?,?,?,'pending',?,?)",[$id,$r['id'],$c['id'],time()+600,Store::json($payload)]);
             $this->store->event($r['id'],'request.created',$g['actor'],['client'=>$c['id'],'request'=>$id,'tool'=>$payload['plan']['tool']]);
         });
+        // Opt-in per client; decide revalidates scopes, sites, actor and publication policy.
+        if (self::autoApprove($tool,$c)) {
+            $result=$this->decide($r['id'],$id,(int)$g['actor'],true,true);
+            $this->store->event($r['id'],'request.auto_approved',(int)$g['actor'],['client'=>$c['id'],'request'=>$id,'tool'=>$tool]);
+            return $result+['auto_approved'=>true,'plan'=>$plan,'next'=>'La solicitud se ejecutará en la cola. Consulta get_request_status; no repitas la operación.'];
+        }
         return ['status'=>'pending_approval','request_id'=>$id,'expires_in'=>600,'plan'=>$plan,'next'=>'Aprueba o rechaza en (MCP) Conexiones IA del CMS.'];
+    }
+    public static function autoApprove(string $tool,array $client): bool
+    {
+        if ($tool==='generate_image') return !empty($client['auto_approve_images']);
+        return !empty($client['auto_approve_posts']) && in_array($tool,['create_post','update_post','publish_post','schedule_post','set_featured_image'],true);
     }
     private function assertPublishing(string $tool,array $plan,array $auth,int $actor): void
     {
