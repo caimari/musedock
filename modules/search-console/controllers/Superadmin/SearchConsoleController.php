@@ -38,13 +38,15 @@ class SearchConsoleController extends BaseController
         $this->checkPermission('search_console.view');
         $credential = $this->credentials->find(null);
         $properties = $credential ? $this->properties->visibleForSuperadmin() : [];
-        $totals = $this->totals(array_map(fn ($p) => (int) $p['id'], $properties));
+        $external = $credential ? $this->properties->externalForSuperadmin() : [];
+        $totals = $this->totals(array_map(fn ($p) => (int) $p['id'], array_merge($properties, $external)));
         $clientCount = (int) $this->pdo->query('SELECT COUNT(*) FROM tenants WHERE is_client_domain = 1')->fetchColumn();
 
         return View::renderModule('search-console', 'superadmin.index', [
             'title' => 'Search Console',
             'credential' => CredentialStore::publicView($credential),
             'properties' => $properties,
+            'external' => $external,
             'totals' => $totals,
             'missing' => $credential ? $this->properties->ownDomainsWithoutProperty((int) $credential['id']) : [],
             'clientCount' => $clientCount,

@@ -87,6 +87,10 @@ try {
     check($summary['linked'] === 1, 'la plataforma enlaza solo el dominio propio (una propiedad por dominio)');
     check($summary['skipped_clients'] === 1, 'la plataforma ignora el dominio del cliente aunque Google se lo muestre');
     check(count($summary['unknown']) === 1, 'informa de propiedades sin sitio en el CMS');
+    check($summary['external'] === 1 && count($svc->externalForSuperadmin()) === 1, 'guarda el dominio ajeno al CMS en «Otros dominios»');
+    check(!in_array($summary['unknown'][0], array_column($svc->visibleForSuperadmin(), 'domain'), true), '«Otros dominios» no se mezclan con los dominios de tenants');
+    check(array_column($svc->visibleForTenant((int) $own['id']), 'domain') === [$ownDomain], 'los tenants no ven «Otros dominios»');
+
     $ownProp = $pdo->query("SELECT site_url FROM gsc_properties WHERE credential_id = {$platformCred['id']}")->fetchColumn();
     check($ownProp === 'sc-domain:' . $ownDomain, 'prefiere la propiedad de dominio a la de prefijo de URL');
 
@@ -112,6 +116,11 @@ try {
     $left = (int) $pdo->query("SELECT COUNT(*) FROM gsc_site_daily WHERE property_id = {$stalePropertyId}")->fetchColumn();
     check($left === 0, 'sus métricas también se borran');
     check((int) $pdo->query("SELECT COUNT(*) FROM gsc_properties WHERE credential_id = {$clientCred['id']}")->fetchColumn() === 1, 'los datos de la cuenta propia del cliente se conservan');
+    // Un dominio externo que luego se da de alta como tenant cliente se borra
+    $externalDomain = $summary['unknown'][0];
+    $pdo->prepare("INSERT INTO domain_aliases (tenant_id, domain, status) VALUES (?, ?, 'active')")->execute([$client['id'], $externalDomain]);
+    $svc->purgePlatformDataOfClients();
+    check(count($svc->externalForSuperadmin()) === 0, 'un dominio externo que pasa a ser de un cliente se borra');
 } finally {
     $pdo->rollBack();
 }

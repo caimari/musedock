@@ -138,6 +138,39 @@
         </div>
     </div></div>
 
+    @if(!empty($external))
+    <div class="card mb-4"><div class="card-body p-0">
+        <div class="p-3 border-bottom">
+            <h6 class="mb-0" style="font-weight:700;">Otros dominios de Search Console ({{ count($external) }})</h6>
+            <div class="text-muted" style="font-size:.82rem;">Están en tu Search Console pero no son ningún sitio del CMS. Solo los ves tú; si alguno se da de alta como tenant, pasa a la tabla de arriba (o se borra, si es de un cliente).</div>
+        </div>
+        <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Dominio</th><th>Estado</th><th class="num">Clics</th><th class="num">Impresiones</th><th class="num">CTR</th><th class="num">Posición</th><th class="num">vs. 28 d antes</th><th>Última sync.</th></tr></thead>
+            <tbody>
+            @foreach($external as $p)
+                @php
+                    $t = $totals[(int) $p['id']] ?? null;
+                    $delta = ($t && $t['prev_clicks'] > 0) ? ($t['clicks'] - $t['prev_clicks']) / $t['prev_clicks'] : null;
+                    [$sLabel, $sClass] = $statusLabels[$p['status']] ?? [$p['status'], 'secondary'];
+                @endphp
+                <tr>
+                    <td><strong>{{ $p['domain'] }}</strong><div class="text-muted" style="font-size:.75rem;">{{ $p['site_url'] }}</div></td>
+                    <td><span class="badge bg-{{ $sClass }}">{{ $sLabel }}</span></td>
+                    <td class="num">{{ $t ? $fmt($t['clicks']) : '—' }}</td>
+                    <td class="num">{{ $t ? $fmt($t['impressions']) : '—' }}</td>
+                    <td class="num">{{ $t ? number_format($t['ctr'] * 100, 1, ',', '.') . ' %' : '—' }}</td>
+                    <td class="num">{{ ($t && $t['position'] !== null) ? number_format($t['position'], 1, ',', '.') : '—' }}</td>
+                    <td class="num">@if($delta !== null)<span class="{{ $delta >= 0 ? 'gsc-up' : 'gsc-down' }}">{{ ($delta >= 0 ? '+' : '') . number_format($delta * 100, 0, ',', '.') }} %</span>@else — @endif</td>
+                    <td style="font-size:.8rem;">{{ $p['last_sync_at'] ? date('d/m H:i', strtotime($p['last_sync_at'])) : 'Pendiente' }}</td>
+                </tr>
+            @endforeach
+            </tbody>
+        </table>
+        </div>
+    </div></div>
+    @endif
+
     @if(!empty($missing))
     <div class="card mb-4"><div class="card-body p-3">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">

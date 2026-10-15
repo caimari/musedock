@@ -1,8 +1,17 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "changelog": [
+    {
+      "version": "0.1.1",
+      "date": "2026-10-15",
+      "changes": [
+        "«Otros dominios de Search Console»: propiedades de la cuenta de la plataforma que no son ningún sitio del CMS, visibles solo para el superadmin (columna gsc_properties.external).",
+        "Si un dominio externo se da de alta después como tenant cliente (o alias de uno), sus datos se borran igual que los de cualquier cliente.",
+        "Acciones con $this->checkPermission() explícito para EnforcePermissionMiddleware."
+      ]
+    },
     {
       "version": "0.1.0",
       "date": "2026-10-15",
@@ -21,7 +30,10 @@
   "enabled_by_default": false,
   "for_cms": true,
   "for_tenant": true,
-  "permissions": ["search_console.view", "search_console.manage"],
+  "permissions": [
+    "search_console.view",
+    "search_console.manage"
+  ],
   "settings": {},
   "autoload": {
     "psr-4": {

@@ -15,13 +15,16 @@ require_once __DIR__ . '/controllers/BaseController.php';
 
 try {
     $pdo = \Screenart\Musedock\Database::connect();
-    $exists = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql'
-        ? $pdo->query("SELECT to_regclass('public.gsc_properties')")->fetchColumn()
-        : $pdo->query("SHOW TABLES LIKE 'gsc_properties'")->fetchColumn();
-    if (!$exists) {
+    // La columna más reciente indica que todas las migraciones del módulo están aplicadas
+    $ready = $pdo->query($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql'
+        ? "SELECT 1 FROM information_schema.columns WHERE table_name = 'gsc_properties' AND column_name = 'external'"
+        : "SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'gsc_properties' AND column_name = 'external'")->fetchColumn();
+    if (!$ready) {
         require_once __DIR__ . '/migrations/2026_10_15_000000_create_search_console_tables.php';
+        require_once __DIR__ . '/migrations/2026_10_15_120000_add_external_properties.php';
         ob_start();
         (new CreateSearchConsoleTables_2026_10_15_000000())->up();
+        (new AddExternalProperties_2026_10_15_120000())->up();
         ob_end_clean();
     }
 } catch (\Throwable $e) {

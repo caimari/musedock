@@ -22,6 +22,7 @@
                 <li>Vista agrupada del SEO de los dominios propios, con filtros por dominio, color y estado y suma de lo filtrado. Accesible desde Tenants y Domain Manager.</li>
                 <li>Los dominios de clientes son privados. Cada cliente conecta su propia cuenta de Google desde su panel y la cuenta de la plataforma nunca lee sus datos. Si un dominio pasa a ser de cliente, se borra lo que la plataforma tuviera de él.</li>
                 <li>Alta automática de dominios en Search Console: verificación por TXT en Cloudflare y alta de la propiedad, sin cambiar los propietarios actuales.</li>
+                <li>«Otros dominios de Search Console»: los dominios de tu cuenta que no son ningún sitio del CMS, visibles solo para el superadmin.</li>
                 <li>Permisos nuevos: «Ver Search Console» y «Gestionar Search Console».</li>
             </ul>
             <h6 class="text-success"><i class="bi bi-speedometer2 me-1"></i> Rendimiento y accesibilidad (PageSpeed)</h6>

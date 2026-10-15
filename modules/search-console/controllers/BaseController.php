@@ -193,7 +193,9 @@ abstract class BaseController
         if ($s['skipped_clients'] > 0) {
             $parts[] = $s['skipped_clients'] . ' de clientes ignoradas (privadas)';
         }
-        if (!empty($s['unknown'])) {
+        if (!empty($s['external'])) {
+            $parts[] = $s['external'] . ' en «Otros dominios»';
+        } elseif (!empty($s['unknown'])) {
             $parts[] = count($s['unknown']) . ' sin sitio en el CMS';
         }
 
