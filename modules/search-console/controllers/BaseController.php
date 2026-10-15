@@ -29,7 +29,12 @@ abstract class BaseController
         $this->properties = new PropertyService($this->pdo);
     }
 
-    abstract protected function authorizeManage(): void;
+    /**
+     * Comprobación de acceso de cada acción. Se llama literalmente como
+     * $this->checkPermission() porque EnforcePermissionMiddleware busca esa llamada
+     * en el código de cada método de controlador.
+     */
+    abstract protected function checkPermission(string $permission): void;
 
     abstract protected function actorEmail(): string;
 
@@ -41,7 +46,7 @@ abstract class BaseController
     /** POST: guardar la clave JSON (fichero subido o texto pegado). */
     public function saveCredential()
     {
-        $this->authorizeManage();
+        $this->checkPermission('search_console.manage');
         $json = '';
         if (!empty($_FILES['key_file']['tmp_name']) && is_uploaded_file($_FILES['key_file']['tmp_name'])) {
             $json = (string) file_get_contents($_FILES['key_file']['tmp_name'], false, null, 0, 20001);
@@ -69,7 +74,7 @@ abstract class BaseController
     /** POST: volver a leer de Google qué propiedades ve la cuenta de servicio. */
     public function refresh()
     {
-        $this->authorizeManage();
+        $this->checkPermission('search_console.manage');
         $row = $this->credentials->find($this->scopeTenantId);
         if (!$row) {
             flash('error', 'Primero conecta la cuenta de servicio.');
@@ -90,7 +95,7 @@ abstract class BaseController
     /** POST (AJAX): alta automática de un dominio vía Cloudflare. */
     public function verifyDomain()
     {
-        $this->authorizeManage();
+        $this->checkPermission('search_console.manage');
         header('Content-Type: application/json; charset=utf-8');
         $row = $this->credentials->find($this->scopeTenantId);
         $domain = PropertyService::normalizeHost((string) ($_POST['domain'] ?? ''));
@@ -116,7 +121,7 @@ abstract class BaseController
     /** POST: desconectar la cuenta de servicio y borrar todos sus datos. */
     public function deleteCredential()
     {
-        $this->authorizeManage();
+        $this->checkPermission('search_console.manage');
         $row = $this->credentials->find($this->scopeTenantId);
         if ($row) {
             $this->credentials->delete((int) $row['id']);

@@ -19,9 +19,10 @@ class SearchConsoleController extends BaseController
         $this->basePath = 'musedock';
     }
 
-    protected function authorizeManage(): void
+    /** En el superadmin todo exige sesión de superadmin (la credencial es de la plataforma). */
+    protected function checkPermission(string $permission): void
     {
-        if (empty($_SESSION['super_admin'])) {
+        if (empty($_SESSION['super_admin']) || ($_SESSION['super_admin']['role'] ?? '') !== 'superadmin') {
             http_response_code(403);
             exit('Acceso denegado');
         }
@@ -34,7 +35,7 @@ class SearchConsoleController extends BaseController
 
     public function index()
     {
-        $this->authorizeManage();
+        $this->checkPermission('search_console.view');
         $credential = $this->credentials->find(null);
         $properties = $credential ? $this->properties->visibleForSuperadmin() : [];
         $totals = $this->totals(array_map(fn ($p) => (int) $p['id'], $properties));

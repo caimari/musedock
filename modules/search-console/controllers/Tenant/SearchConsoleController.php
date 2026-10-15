@@ -38,10 +38,11 @@ class SearchConsoleController extends BaseController
         redirect('/' . trim($this->basePath, '/') . '/dashboard');
     }
 
-    protected function authorizeManage(): void
+    protected function checkPermission(string $permission): void
     {
         $this->requireTenant();
-        if (!userCan('search_console.manage')) {
+        // Quien puede gestionar también puede ver
+        if (!userCan($permission) && !($permission === 'search_console.view' && userCan('search_console.manage'))) {
             $this->deny();
         }
     }
@@ -53,10 +54,8 @@ class SearchConsoleController extends BaseController
 
     public function index()
     {
+        $this->checkPermission('search_console.view');
         $tenantId = $this->requireTenant();
-        if (!userCan('search_console.view') && !userCan('search_console.manage')) {
-            $this->deny();
-        }
 
         $properties = $this->properties->visibleForTenant($tenantId);
         $credential = $this->credentials->find($tenantId);
