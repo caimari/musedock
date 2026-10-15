@@ -13,6 +13,37 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.22.0 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.22.0 — Search Console y rendimiento</h5></div><div class="card-body">
+            <p class="text-muted">15 de octubre de 2026</p>
+            <h6 class="text-primary"><i class="bi bi-graph-up-arrow me-1"></i> Nuevo módulo Search Console</h6>
+            <ul class="mb-3">
+                <li>Conexión con Google mediante cuenta de servicio, guardada cifrada. No se vuelve a mostrar y no requiere librerías nuevas.</li>
+                <li>Vista agrupada del SEO de los dominios propios, con filtros por dominio, color y estado y suma de lo filtrado. Accesible desde Tenants y Domain Manager.</li>
+                <li>Los dominios de clientes son privados. Cada cliente conecta su propia cuenta de Google desde su panel y la cuenta de la plataforma nunca lee sus datos. Si un dominio pasa a ser de cliente, se borra lo que la plataforma tuviera de él.</li>
+                <li>Alta automática de dominios en Search Console: verificación por TXT en Cloudflare y alta de la propiedad, sin cambiar los propietarios actuales.</li>
+                <li>Permisos nuevos: «Ver Search Console» y «Gestionar Search Console».</li>
+            </ul>
+            <h6 class="text-success"><i class="bi bi-speedometer2 me-1"></i> Rendimiento y accesibilidad (PageSpeed)</h6>
+            <ul class="mb-3">
+                <li>Tema de musedock.com: CSS depurado y minificado, imágenes en WebP al tamaño mostrado y carga diferida del slider. Contraste y orden de títulos corregidos: accesibilidad 100.</li>
+                <li>Tema de los tenants:
+                    <ul>
+                        <li>imagen destacada del blog en WebP con prioridad alta y <code>srcset</code> en las demás;</li>
+                        <li>fuentes de Google sin bloquear la carga;</li>
+                        <li>Modernizr retirado;</li>
+                        <li>Swiper solo cuando hay un carrusel.</li>
+                    </ul>
+                    En screenai.es, PageSpeed en móvil ha pasado de 49 a 84.</li>
+                <li>Logos de todos los tenants en WebP al doble de la altura mostrada: en festivalnews.org han pasado de 282 KB a 22 KB.</li>
+                <li>Versiones de CSS por fecha del fichero (antes cambiaban en cada carga e impedían la caché) y botones de cookies con contraste suficiente.</li>
+            </ul>
+            <h6 class="text-warning"><i class="bi bi-wrench me-1"></i> Correcciones</h6>
+            <ul class="mb-0">
+                <li>Política de seguridad (CSP) en dominios alias: buscaba una columna que no existía, así que los scripts externos del <code>custom.js</code> se bloqueaban al entrar por un alias.</li>
+            </ul>
+        </div></div>
+
         <div class="card mb-4"><div class="card-header"><h5 class="mb-0">Mejoras de gestión de tenants — 11 de octubre de 2026</h5></div><div class="card-body"><ul>
             <li>Búsqueda por nombre o dominio, filtro de dominios propios y subdominios del CMS, columnas ordenables y paginación de 100 por defecto.</li>
             <li>Tarjeta para identificar dominios de clientes, paleta de colores por tenant y filtros de clasificación y color.</li>
