@@ -1,0 +1,32 @@
+{
+  "name": "Search Console",
+  "slug": "search-console",
+  "version": "0.1.0",
+  "changelog": [
+    {
+      "version": "0.1.0",
+      "date": "2026-10-15",
+      "changes": [
+        "Fase 1: cuenta de servicio de Google cifrada (AES-256-GCM, subclave por ámbito), sin dependencias nuevas (JWT RS256 con openssl).",
+        "Credencial de la plataforma para los dominios propios y credencial propia para cada tenant cliente.",
+        "Privacidad: la credencial de la plataforma nunca se asocia a dominios de clientes (tenants.is_client_domain); el superadmin no ve sus datos; si un tenant pasa a cliente, se borran los datos leídos por la plataforma.",
+        "Alta automática de dominios: Site Verification API (DNS_TXT) + TXT en Cloudflare + sites.add.",
+        "Tablas de métricas por día y dimensión (sitio, página, consulta+página, país, dispositivo) e historial de sincronizaciones.",
+        "Permisos search_console.view y search_console.manage."
+      ]
+    }
+  ],
+  "description": "Métricas de Google Search Console de todos los dominios en el panel, con separación estricta entre dominios propios y de clientes.",
+  "author": "MuseDock",
+  "enabled_by_default": false,
+  "for_cms": true,
+  "for_tenant": true,
+  "permissions": ["search_console.view", "search_console.manage"],
+  "settings": {},
+  "autoload": {
+    "psr-4": {
+      "Modules\\SearchConsole\\Controllers\\": "controllers/",
+      "Modules\\SearchConsole\\Services\\": "services/"
+    }
+  }
+}

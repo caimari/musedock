@@ -81,6 +81,11 @@
                 <i class="bi bi-people"></i> Clientes
             </a>
             <div class="ms-auto d-flex gap-2">
+                @if(class_exists(\Modules\SearchConsole\Services\PropertyService::class))
+                <a href="/musedock/search-console" class="btn btn-outline-success">
+                    <i class="bi bi-graph-up-arrow"></i> SEO de mis dominios
+                </a>
+                @endif
                 <button type="button" class="btn btn-success" onclick="showCreateFreeSubdomainModal()">
                     <i class="bi bi-gift"></i> Crear Subdominio FREE
                 </button>
@@ -295,6 +300,19 @@
                                         <button type="button" class="btn btn-outline-info" onclick="checkStatus({{ $tenant->id }})" title="Verificar estado">
                                             <i class="bi bi-arrow-clockwise"></i>
                                         </button>
+
+                                        <!-- SEO (Search Console): los dominios de clientes son privados -->
+                                        @if(class_exists(\Modules\SearchConsole\Services\PropertyService::class))
+                                            @if(empty($tenant->is_client_domain))
+                                            <a href="/musedock/search-console?tenant={{ $tenant->id }}" class="btn btn-outline-success" title="SEO de {{ $tenant->domain }}" aria-label="SEO de {{ $tenant->domain }}">
+                                                <i class="bi bi-graph-up-arrow"></i>
+                                            </a>
+                                            @else
+                                            <span class="btn btn-outline-secondary disabled" title="SEO privado del cliente: solo lo ve desde su panel" aria-label="SEO privado del cliente">
+                                                <i class="bi bi-shield-lock"></i>
+                                            </span>
+                                            @endif
+                                        @endif
 
                                         <!-- Editar -->
                                         <a href="/musedock/domain-manager/{{ $tenant->id }}/edit" class="btn btn-outline-warning" title="Editar">

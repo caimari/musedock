@@ -438,8 +438,8 @@ if ($_cspHost && file_exists(__DIR__ . '/../.env')) {
             $_tenantRow = $_stmt->fetch(PDO::FETCH_ASSOC);
             if (!$_tenantRow) {
                 try {
-                    $_stmt2 = $_pdo->prepare("SELECT tenant_id FROM domain_aliases WHERE alias_domain = :host LIMIT 1");
-                    $_stmt2->execute([':host' => $_cspHost]);
+                    $_stmt2 = $_pdo->prepare("SELECT tenant_id FROM domain_aliases WHERE domain IN (:host, :bare) AND status = 'active' LIMIT 1");
+                    $_stmt2->execute([':host' => $_cspHost, ':bare' => preg_replace('/^www\./i', '', $_cspHost)]);
                     $_aliasRow = $_stmt2->fetch(PDO::FETCH_ASSOC);
                     if ($_aliasRow) {
                         $_stmt3 = $_pdo->prepare("SELECT id, theme FROM tenants WHERE id = :id LIMIT 1");

@@ -34,6 +34,11 @@
         <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-3">
             <h2>{{ __('tenants.title') }}</h2>
             <div class="d-flex gap-2">
+                @if(class_exists(\Modules\SearchConsole\Services\PropertyService::class))
+                <a href="/musedock/search-console" class="btn btn-outline-success">
+                    <i class="bi bi-graph-up-arrow"></i> SEO de mis dominios
+                </a>
+                @endif
                 <a href="/musedock/settings/tenant-defaults" class="btn btn-outline-secondary">
                     <i class="bi bi-gear-wide-connected"></i> Configurar Defaults
                 </a>
@@ -122,6 +127,13 @@
                             </td>
 							<td><div class="tenant-actions">
 <a href="https://{{ $tenant->domain }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary" title="Abrir web de {{ $tenant->domain }}" aria-label="Abrir web de {{ $tenant->domain }}"><i class="bi bi-box-arrow-up-right"></i></a>
+								@if(class_exists(\Modules\SearchConsole\Services\PropertyService::class))
+									@if(empty($tenant->is_client_domain))
+									<a href="/musedock/search-console?tenant={{ $tenant->id }}" class="btn btn-sm btn-outline-success" title="SEO de {{ $tenant->domain }}" aria-label="SEO de {{ $tenant->domain }}"><i class="bi bi-graph-up-arrow"></i></a>
+									@else
+									<span class="btn btn-sm btn-outline-secondary disabled" title="SEO privado del cliente: solo lo ve desde su panel" aria-label="SEO privado del cliente"><i class="bi bi-shield-lock"></i></span>
+									@endif
+								@endif
 								<a href="/musedock/tenants/{{ $tenant->id }}/edit" class="btn btn-sm btn-outline-primary">
 									<i class="bi bi-pencil"></i> {{ __('common.edit') }}
 								</a>
