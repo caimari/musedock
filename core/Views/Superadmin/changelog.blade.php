@@ -39,8 +39,16 @@
                 <li>Logos de todos los tenants en WebP al doble de la altura mostrada: en festivalnews.org han pasado de 282 KB a 22 KB.</li>
                 <li>Versiones de CSS por fecha del fichero (antes cambiaban en cada carga e impedían la caché) y botones de cookies con contraste suficiente.</li>
             </ul>
+            <h6 class="text-info"><i class="bi bi-translate me-1"></i> SEO multi-idioma</h6>
+            <ul class="mb-3">
+                <li>Los artículos y docs con traducción publican <code>hreflang</code> (es, en, x-default), canonical propio para cada idioma y <code>&lt;html lang&gt;</code> con el idioma real.</li>
+                <li>La plantilla de documentación muestra la traducción: título, contenido, SEO y menú lateral, con los textos de la interfaz en el idioma de la página.</li>
+                <li>El selector de idioma recuerda la elección en una cookie.</li>
+                <li>Primer documento bilingüe: «Search Console: el SEO de todos tus dominios».</li>
+            </ul>
             <h6 class="text-warning"><i class="bi bi-wrench me-1"></i> Correcciones</h6>
             <ul class="mb-0">
+                <li>Caché HTML por idioma: solo guarda la versión en el idioma por defecto y no la sirve a quien pide otro idioma (antes podía servir una página en el idioma equivocado).</li>
                 <li>Política de seguridad (CSP) en dominios alias: buscaba una columna que no existía, así que los scripts externos del <code>custom.js</code> se bloqueaban al entrar por un alias.</li>
             </ul>
         </div></div>

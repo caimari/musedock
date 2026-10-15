@@ -93,6 +93,15 @@ class HtmlCacheMiddleware
                 }
             }
 
+            // Idioma: la página cacheada está en el idioma por defecto del sitio; si el
+            // visitante pide otro (?lang, cookie o navegador), se genera al momento.
+            $wantLang = self::requestedLanguage();
+            $cachedLang = isset($meta) && is_array($meta) ? ($meta['lang'] ?? null) : null;
+            if ($wantLang !== null && $wantLang !== $cachedLang) {
+                self::startCapture($uri);
+                return;
+            }
+
             // CACHE HIT — serve directly and exit
             $size = filesize($cachePath);
             http_response_code(200);
@@ -180,8 +189,15 @@ class HtmlCacheMiddleware
         $cacheComment = "\n<!-- Cached by MuseDock HtmlCache | " . gmdate('Y-m-d H:i:s') . " UTC -->";
         $htmlWithComment = $html . $cacheComment;
 
+        // Solo se cachea la versión en el idioma por defecto (la que ve quien no pide
+        // otro idioma). Las demás se generan siempre, así nunca se mezclan idiomas.
+        $lang = function_exists('detectLanguage') ? detectLanguage() : null;
+        if ($lang !== null && function_exists('site_default_language') && $lang !== site_default_language()) {
+            return;
+        }
+
         // Write to cache (HtmlCache handles locks and atomic writes)
-        HtmlCache::put(self::$uri, $htmlWithComment, $tenantId, $tags);
+        HtmlCache::put(self::$uri, $htmlWithComment, $tenantId, $tags, 0, $lang);
 
         // Add cache MISS header (already sent via ob_get_flush, but useful for logs)
         if (!headers_sent()) {
@@ -201,6 +217,22 @@ class HtmlCacheMiddleware
         self::$uri = $uri;
         self::$capturing = true;
         ob_start();
+    }
+
+    /**
+     * Idioma que pide el visitante, sin abrir sesión: ?lang, cookie «lang» o el
+     * idioma principal del navegador. null si no indica ninguno.
+     */
+    private static function requestedLanguage(): ?string
+    {
+        foreach ([$_GET['lang'] ?? null, $_COOKIE['lang'] ?? null] as $value) {
+            if (is_string($value) && preg_match('/^[a-z]{2}$/', $value)) {
+                return $value;
+            }
+        }
+        $browser = strtolower(substr((string) ($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? ''), 0, 2));
+
+        return preg_match('/^[a-z]{2}$/', $browser) ? $browser : null;
     }
 
     /**

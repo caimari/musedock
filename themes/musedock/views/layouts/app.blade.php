@@ -15,7 +15,7 @@ $_contactEmail = site_setting('contact_email', '');
 $_contactPhone = site_setting('contact_phone', ''); 
 $_contactAddress = site_setting('contact_address', '');
 @endphp<!doctype html>
-<html lang="{{ site_setting('language', 'es') }}">
+<html lang="{{ detectLanguage() }}">
 <head>
   <meta charset="utf-8">
   <meta http-equiv="x-ua-compatible" content="ie=edge">
@@ -79,8 +79,9 @@ $_contactAddress = site_setting('contact_address', '');
   @if($canonicalUrl)
   <link rel="canonical" href="{{ $canonicalUrl }}">
   @else
-  <link rel="canonical" href="{{ url($_SERVER['REQUEST_URI']) }}">
+  <link rel="canonical" href="{{ seo_language_canonical() ?: url($_SERVER['REQUEST_URI']) }}">
   @endif
+  {!! seo_language_tags() !!}
 
   {{-- Twitter/X Cards --}}
   <meta name="twitter:card" content="summary_large_image">

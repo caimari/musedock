@@ -64,7 +64,7 @@ class HtmlCache
      * @param array    $tags      Cache tags for invalidation (e.g., ['blog', 'post:42'])
      * @param int      $ttl       Time-to-live in seconds (0 = no expiry, uses DEFAULT_TTL)
      */
-    public static function put(string $uri, string $html, ?int $tenantId, array $tags = [], int $ttl = 0): void
+    public static function put(string $uri, string $html, ?int $tenantId, array $tags = [], int $ttl = 0, ?string $lang = null): void
     {
         if (!self::isEnabled()) {
             return;
@@ -120,6 +120,7 @@ class HtmlCache
                 'tags'       => $tags,
                 'created_at' => time(),
                 'ttl'        => $ttl ?: self::DEFAULT_TTL,
+                'lang'       => $lang, // idioma de la página: solo se sirve a quien pide ese idioma
             ];
             $metaPath = $cachePath . self::META_EXT;
             @file_put_contents($metaPath, json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));

@@ -234,6 +234,22 @@ class BlogController
             $translation = $stmt->fetch(\PDO::FETCH_OBJ);
         }
 
+        // SEO multi-idioma: hreflang y canonical por idioma si el post tiene traducciones
+        try {
+            $pdoLang = \Screenart\Musedock\Database::connect();
+            $locStmt = $pdoLang->prepare("SELECT locale FROM blog_post_translations WHERE post_id = ?");
+            $locStmt->execute([$post->id]);
+            $postLocales = array_merge([(string) ($post->base_locale ?: site_default_language())], $locStmt->fetchAll(\PDO::FETCH_COLUMN));
+            $activeStmt = $tenantId !== null
+                ? $pdoLang->prepare("SELECT code FROM languages WHERE active = 1 AND tenant_id = ?")
+                : $pdoLang->prepare("SELECT code FROM languages WHERE active = 1 AND tenant_id IS NULL");
+            $activeStmt->execute($tenantId !== null ? [$tenantId] : []);
+            $activeLocales = $activeStmt->fetchAll(\PDO::FETCH_COLUMN);
+            seo_set_language_alternates($activeLocales ? array_intersect($postLocales, $activeLocales) : $postLocales);
+        } catch (\Throwable $e) {
+            error_log('Blog hreflang: ' . $e->getMessage());
+        }
+
         // Preparar datos para la vista
         $displayData = new \stdClass();
         $displayData->title = $translation->title ?? $post->title;

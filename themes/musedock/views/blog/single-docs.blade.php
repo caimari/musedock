@@ -3,8 +3,23 @@
 @extends('layouts.app')
 
 @php
-    $seoTitle = $post->seo_title ?: $post->title;
-    $seoDesc = $post->seo_description ?: ($post->excerpt ?? mb_substr(strip_tags($post->content), 0, 160));
+    // Versión en el idioma que se está viendo (el controlador ya aplica la traducción)
+    $__doc = $translation ?? $post;
+    $__lang = detectLanguage();
+    $__isEn = $__lang === 'en';
+    $__t = fn (string $es, string $en) => $__isEn ? $en : $es;
+    // Nombres de secciones en inglés (las categorías no tienen traducciones propias)
+    $__sectionEn = [
+        'Documentación' => 'Documentation', 'Presentación' => 'Getting started', 'Configuración' => 'Configuration',
+        'Temas' => 'Themes', 'Módulos y Plugins' => 'Modules & plugins', 'Plantillas Legales' => 'Legal templates',
+        'API REST' => 'REST API', 'Multi-tenancy' => 'Multi-tenancy', 'Despliegue' => 'Deployment',
+        'Certificados y DNS' => 'Certificates & DNS', 'Dominios y SSL' => 'Domains & SSL', 'Caddy y Despliegue' => 'Caddy & deployment',
+        'Seguridad' => 'Security', 'Cluster y Alta Disponibilidad' => 'Cluster & high availability', 'Base de Datos' => 'Database',
+        'Facturación y Pagos' => 'Billing & payments', 'Tenants y Sitios' => 'Tenants & sites',
+    ];
+    $__secLabel = fn (string $name) => $__isEn ? ($__sectionEn[$name] ?? $name) : $name;
+    $seoTitle = $__doc->seo_title ?: $__doc->title;
+    $seoDesc = $__doc->seo_description ?: ($__doc->excerpt ?: mb_substr(strip_tags((string) $__doc->content), 0, 160));
 @endphp
 
 @section('title', $seoTitle . ' | Docs | ' . site_setting('site_name', ''))
@@ -34,14 +49,16 @@
         $allCategories[(int)$catRow->id] = $catRow;
     }
 
+    $__trLocale = $pdo->quote($__lang);
     $navStmt = $pdo->query("
-        SELECT p.id, p.title, p.slug,
+        SELECT p.id, COALESCE(tr.title, p.title) AS title, p.slug,
                c.id as cat_id, c.slug as cat_slug,
                COALESCE(s.prefix, 'docs') as url_prefix
         FROM blog_posts p
         LEFT JOIN blog_post_categories bpc ON bpc.post_id = p.id
         LEFT JOIN blog_categories c ON c.id = bpc.category_id
         LEFT JOIN slugs s ON s.reference_id = p.id AND s.module = 'blog' AND $__sf
+        LEFT JOIN blog_post_translations tr ON tr.post_id = p.id AND tr.locale = $__trLocale
         WHERE p.post_type = 'docs'
         AND p.status = 'published'
         AND $__tf
@@ -286,7 +303,7 @@
         $currentCat = $post->categories[0] ?? null;
     }
 
-    $processedContent = apply_filters('the_content', $post->content ?? '');
+    $processedContent = apply_filters('the_content', $__doc->content ?? '');
 @endphp
 
 <div class="docs-layout">
@@ -297,12 +314,12 @@
                 <nav class="docs-sidebar" id="docs-sidebar">
                     <div class="docs-sidebar-header">
                         <a href="/docs/" class="docs-sidebar-title">
-                            <i class="bi bi-book"></i> Documentación
+                            <i class="bi bi-book"></i> {{ $__t('Documentación', 'Documentation') }}
                         </a>
                     </div>
 
                     <div class="docs-search">
-                        <input type="text" id="docs-search-input" placeholder="Buscar en docs..." class="docs-search-input">
+                        <input type="text" id="docs-search-input" placeholder="{{ $__t('Buscar en docs...', 'Search docs...') }}" class="docs-search-input">
                     </div>
 
                     <div class="docs-nav-sections" id="docs-nav-sections">
@@ -331,7 +348,7 @@
                                 <div class="docs-nav-section" data-section="{{ $sectionSlug }}">
                                     @php $__hasActive = !empty(array_filter($section['posts'], fn($p) => $p->active)); @endphp
                                     <button class="docs-nav-section-title {{ $__hasActive ? 'active' : '' }}" type="button">
-                                        {{ $section['name'] }}
+                                        {{ $__secLabel((string) $section['name']) }}
                                         <svg class="docs-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                     </button>
                                     <ul class="docs-nav-links {{ $__hasActive ? 'show' : '' }}">
@@ -363,19 +380,19 @@
                     @if($currentSection && $currentSection !== '_root' && isset($docsNav[$currentProduct]['sections'][$currentSection]) && !empty($docsNav[$currentProduct]['sections'][$currentSection]['name']))
                     <span class="docs-breadcrumb-sep">/</span>
                     @if($sectionCrumbUrl)
-                    <a href="{{ $sectionCrumbUrl }}">{{ $docsNav[$currentProduct]['sections'][$currentSection]['name'] }}</a>
+                    <a href="{{ $sectionCrumbUrl }}">{{ $__secLabel((string) $docsNav[$currentProduct]['sections'][$currentSection]['name']) }}</a>
                     @else
-                    <span>{{ $docsNav[$currentProduct]['sections'][$currentSection]['name'] }}</span>
+                    <span>{{ $__secLabel((string) $docsNav[$currentProduct]['sections'][$currentSection]['name']) }}</span>
                     @endif
                     @endif
                     <span class="docs-breadcrumb-sep">/</span>
-                    <a href="{{ $currentDocUrl }}" class="docs-breadcrumb-current">{{ $post->title }}</a>
+                    <a href="{{ $currentDocUrl }}" class="docs-breadcrumb-current">{{ $__doc->title }}</a>
                 </nav>
 
                 {{-- Article --}}
                 <article class="docs-article">
                     @if(!($post->hide_title ?? 0))
-                    <h1 class="docs-title">{{ $post->title }}</h1>
+                    <h1 class="docs-title">{{ $__doc->title }}</h1>
                     @endif
 
                     <div class="docs-body page-body">
@@ -404,7 +421,7 @@
                     <nav class="docs-pagination">
                         @if($prevDoc)
                         <a href="{{ $prevDoc->url }}{{ !empty($selectedProduct) ? '?product=' . urlencode($selectedProduct) : '' }}" class="docs-pagination-prev">
-                            <span class="docs-pagination-label">&larr; Anterior</span>
+                            <span class="docs-pagination-label">&larr; {{ $__t('Anterior', 'Previous') }}</span>
                             <span class="docs-pagination-title">{{ $prevDoc->title }}</span>
                         </a>
                         @else
@@ -412,7 +429,7 @@
                         @endif
                         @if($nextDoc)
                         <a href="{{ $nextDoc->url }}{{ !empty($selectedProduct) ? '?product=' . urlencode($selectedProduct) : '' }}" class="docs-pagination-next">
-                            <span class="docs-pagination-label">Siguiente &rarr;</span>
+                            <span class="docs-pagination-label">{{ $__t('Siguiente', 'Next') }} &rarr;</span>
                             <span class="docs-pagination-title">{{ $nextDoc->title }}</span>
                         </a>
                         @endif
@@ -424,7 +441,7 @@
             {{-- Table of Contents (right sidebar) --}}
             <aside class="col-lg-2 docs-toc-col">
                 <div class="docs-toc" id="docs-toc">
-                    <div class="docs-toc-title">En esta página</div>
+                    <div class="docs-toc-title">{{ $__t('En esta página', 'On this page') }}</div>
                     <nav id="docs-toc-nav">
                         {{-- Populated by JS from H2/H3 headings --}}
                     </nav>

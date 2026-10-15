@@ -21,7 +21,7 @@
     $_twitterDescription = site_setting('twitter_description', '');
     $_blogPublic = site_setting('blog_public', '1');
 @endphp
-<html lang="{{ site_setting('language', 'es') }}" class="no-js">
+<html lang="{{ detectLanguage() }}" class="no-js">
 
 <head>
     <!-- Configuración básica -->
@@ -99,8 +99,9 @@
     @if($canonicalUrl)
     <link rel="canonical" href="{{ $canonicalUrl }}">
     @else
-    <link rel="canonical" href="{{ url($_SERVER['REQUEST_URI']) }}">
+    <link rel="canonical" href="{{ seo_language_canonical() ?: url($_SERVER['REQUEST_URI']) }}">
     @endif
+    {!! seo_language_tags() !!}
     @if($_siteName)
     <link rel="alternate" type="application/rss+xml" title="{{ $_siteName }} RSS Feed" href="{{ url('/feed') }}">
     @endif

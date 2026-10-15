@@ -1368,6 +1368,11 @@ if (!function_exists('detectLanguage')) {
         if (!empty($_GET['lang'])) {
             if (in_array($_GET['lang'], $available)) {
                 $_SESSION['lang'] = $_GET['lang'];
+                // Cookie (legible sin sesión) para que la caché HTML respete la elección
+                if (!headers_sent() && ($_COOKIE['lang'] ?? '') !== $_GET['lang']) {
+                    setcookie('lang', $_GET['lang'], ['expires' => time() + 31536000, 'path' => '/', 'secure' => !empty($_SERVER['HTTPS']), 'samesite' => 'Lax']);
+                    $_COOKIE['lang'] = $_GET['lang'];
+                }
                 return $lang = $_GET['lang'];
             }
         }
@@ -1377,6 +1382,12 @@ if (!function_exists('detectLanguage')) {
             if (in_array($_SESSION['lang'], $available)) {
                 return $lang = $_SESSION['lang'];
             }
+        }
+
+        // Elección guardada en cookie (sesión caducada)
+        if (!empty($_COOKIE['lang']) && in_array($_COOKIE['lang'], $available)) {
+            $_SESSION['lang'] = $_COOKIE['lang'];
+            return $lang = $_COOKIE['lang'];
         }
 
         // Detectar idioma del navegador
@@ -1391,6 +1402,88 @@ if (!function_exists('detectLanguage')) {
         }
 
         return $lang = setting('language', 'es');
+    }
+}
+
+if (!function_exists('seo_set_language_alternates')) {
+    /**
+     * Registra las versiones por idioma de la página actual para SEO multi-idioma.
+     * El idioma por defecto usa la URL limpia y el resto la misma URL con ?lang=xx;
+     * los layouts pintan <link rel="alternate" hreflang>, x-default y el canonical
+     * del idioma que se está viendo.
+     *
+     * @param string[] $locales idiomas en los que existe el contenido
+     */
+    function seo_set_language_alternates(array $locales, ?string $path = null): void
+    {
+        $locales = array_values(array_unique(array_filter($locales, fn ($l) => is_string($l) && preg_match('/^[a-z]{2}$/', $l))));
+        if (count($locales) < 2) {
+            return; // una sola versión: canonical normal, sin hreflang
+        }
+        $path = $path ?? (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+        $base = url($path);
+        $default = site_default_language();
+        $urls = [];
+        foreach ($locales as $locale) {
+            $urls[$locale] = $locale === $default ? $base : $base . '?lang=' . $locale;
+        }
+        $GLOBALS['__seo_language_alternates'] = $urls;
+        $GLOBALS['__seo_language_default'] = isset($urls[$default]) ? $urls[$default] : reset($urls);
+    }
+}
+
+if (!function_exists('seo_language_alternates')) {
+    /** @return array<string,string> idioma => URL (vacío si la página no tiene traducciones) */
+    function seo_language_alternates(): array
+    {
+        return $GLOBALS['__seo_language_alternates'] ?? [];
+    }
+}
+
+if (!function_exists('seo_language_tags')) {
+    /** HTML de hreflang + x-default para el <head> (vacío si no hay traducciones). */
+    function seo_language_tags(): string
+    {
+        $urls = seo_language_alternates();
+        if (!$urls) {
+            return '';
+        }
+        $html = '';
+        foreach ($urls as $locale => $href) {
+            $html .= '<link rel="alternate" hreflang="' . e($locale) . '" href="' . e($href) . '">' . "\n";
+        }
+
+        return $html . '<link rel="alternate" hreflang="x-default" href="' . e($GLOBALS['__seo_language_default']) . '">' . "\n";
+    }
+}
+
+if (!function_exists('seo_language_canonical')) {
+    /** Canonical de la versión que se está viendo (null si la página no tiene traducciones). */
+    function seo_language_canonical(): ?string
+    {
+        $urls = seo_language_alternates();
+
+        return $urls[detectLanguage()] ?? null;
+    }
+}
+
+if (!function_exists('site_default_language')) {
+    /**
+     * Idioma que ve un visitante sin preferencias (sin ?lang, cookie ni idioma de
+     * navegador reconocido): el forzado si lo hay, si no el idioma por defecto del sitio.
+     * Misma lógica que el final de detectLanguage().
+     */
+    function site_default_language(): string
+    {
+        $tenantId = tenant_id();
+        $forced = $tenantId !== null ? tenant_setting('force_lang') : setting('force_lang');
+        if (!empty($forced)) {
+            return (string) $forced;
+        }
+
+        return (string) ($tenantId !== null
+            ? tenant_setting('default_lang', tenant_setting('language', 'es'))
+            : setting('language', 'es'));
     }
 }
 
