@@ -50,6 +50,7 @@ class SearchConsoleController extends BaseController
             'totals' => $totals,
             'missing' => $credential ? $this->properties->ownDomainsWithoutProperty((int) $credential['id']) : [],
             'pendingExternal' => $credential ? $this->properties->pendingExternal((int) $credential['id']) : [],
+            'clientTenants' => $credential ? $this->properties->clientTenantsForAuthorization((int) $credential['id']) : [],
             'clientCount' => $clientCount,
             'baseUrl' => $this->baseUrl(),
             'focusTenant' => isset($_GET['tenant']) ? (int) $_GET['tenant'] : null,

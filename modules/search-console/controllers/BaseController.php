@@ -227,6 +227,66 @@ abstract class BaseController
         return null;
     }
 
+    /**
+     * POST (AJAX): el master autoriza a propósito el dominio (o subdominio) de un cliente. Solo plataforma y con
+     * su contraseña. Desde ese momento el cliente ve su SEO sin hacer nada y esos datos no se purgan.
+     */
+    public function authorizeClient()
+    {
+        $this->checkPermission('search_console.manage');
+        header('Content-Type: application/json; charset=utf-8');
+        $row = $this->credentials->find($this->scopeTenantId);
+        $domain = PropertyService::normalizeHost((string) ($_POST['domain'] ?? ''));
+        $owner = $this->properties->hostMap()[$domain] ?? null;
+        if ($this->scopeTenantId !== null || !$row || !$owner || empty($owner['client']) || empty($owner['tenant_id'])) {
+            http_response_code(403);
+            echo json_encode(['status' => 'error', 'message' => 'Solo se pueden autorizar dominios de tenants marcados como cliente.']);
+            exit;
+        }
+        if (!$this->actorPasswordOk((string) ($_POST['confirm_password'] ?? ''))) {
+            echo json_encode(['status' => 'error', 'message' => 'Contraseña incorrecta (o demasiados intentos): no se ha autorizado nada.']);
+            exit;
+        }
+
+        $tenantId = (int) $owner['tenant_id'];
+        $parent = $this->properties->parentProperty((int) $row['id'], $domain);
+        if ($parent) {
+            // Subdominio de un dominio ya dado de alta: no hay nada que verificar, se descarga con filtro de página
+            $this->properties->ensureVirtual((int) $row['id'], $parent, $domain, $tenantId, true);
+            echo json_encode(['status' => 'verified', 'message' => "{$domain} autorizado: el cliente ya ve su SEO (solo el de su subdominio). Los datos se descargan en el siguiente ciclo o con «Descargar datos ahora»."], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        // Dominio propio del cliente: se verifica con TXT (si su DNS está en tus cuentas DNS) y se marca como autorizado
+        $this->properties->markPending((int) $row['id'], $domain, $tenantId, false, 'Autorizado por ti; esperando la verificación de Google.', true);
+        $client = $this->credentials->client($row);
+        $result = (new DomainVerifier($client))->verify($domain);
+        $this->recordVerification($row, $client, $domain, $result);
+        echo json_encode($result, JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    /** POST (AJAX): el master retira la autorización; la propiedad y sus datos se borran de la plataforma. */
+    public function revokeClient()
+    {
+        $this->checkPermission('search_console.manage');
+        header('Content-Type: application/json; charset=utf-8');
+        $id = (int) ($_POST['property_id'] ?? 0);
+        $stmt = $this->pdo->prepare('SELECT p.id FROM gsc_properties p JOIN tenants t ON t.id = p.tenant_id WHERE p.id = ? AND p.authorized = 1 AND t.is_client_domain = 1');
+        $stmt->execute([$id]);
+        if ($this->scopeTenantId !== null || !$stmt->fetchColumn()) {
+            http_response_code(403);
+            echo json_encode(['status' => 'error', 'message' => 'No es una autorización de un cliente.']);
+            exit;
+        }
+        if (!$this->actorPasswordOk((string) ($_POST['confirm_password'] ?? ''))) {
+            echo json_encode(['status' => 'error', 'message' => 'Contraseña incorrecta (o demasiados intentos): no se ha retirado nada.']);
+            exit;
+        }
+        $this->properties->revokeAuthorization($id);
+        echo json_encode(['status' => 'verified', 'message' => 'Autorización retirada: los datos de este cliente se han borrado de la plataforma.'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     /** POST: desconectar la cuenta de servicio y borrar todos sus datos. Exige la contraseña del administrador. */
     public function deleteCredential()
     {

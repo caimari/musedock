@@ -21,6 +21,8 @@ Route::post('/musedock/search-console/verify', "{$gscSaCtrl}@verifyDomain")->mid
 Route::post('/musedock/search-console/external', "{$gscSaCtrl}@addExternalDomain")->middleware('superadmin');
 Route::get('/musedock/search-console/domain/{id}', "{$gscSaCtrl}@show")->name('search-console.sa.domain')->middleware('superadmin');
 Route::post('/musedock/search-console/sync', "{$gscSaCtrl}@syncNow")->middleware('superadmin');
+Route::post('/musedock/search-console/client/authorize', "{$gscSaCtrl}@authorizeClient")->middleware('superadmin');
+Route::post('/musedock/search-console/client/revoke', "{$gscSaCtrl}@revokeClient")->middleware('superadmin');
 
 $gscTenantCtrl = 'Modules\SearchConsole\Controllers\Tenant\SearchConsoleController';
 $gscAdminPath = '/' . trim(function_exists('admin_path') ? admin_path() : 'admin', '/');

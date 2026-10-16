@@ -80,10 +80,17 @@ class SyncService
     {
         $collected = [];
         for ($page = 0; $page < $maxPages; $page++) {
-            $res = $client->request('POST', sprintf(self::SEARCH_URL, rawurlencode($property['site_url'])), [
+            $body = [
                 'startDate' => $start, 'endDate' => $end, 'dimensions' => $dims,
                 'rowLimit' => self::ROW_LIMIT, 'startRow' => $page * self::ROW_LIMIT, 'dataState' => 'final',
-            ]);
+            ];
+            // Propiedad virtual (subdominio de un tenant): solo las páginas de su subdominio
+            if (!empty($property['page_filter'])) {
+                $body['dimensionFilterGroups'] = [['groupType' => 'and', 'filters' => [
+                    ['dimension' => 'page', 'operator' => 'includingRegex', 'expression' => '^' . preg_quote((string) $property['page_filter']) . '.*'],
+                ]]];
+            }
+            $res = $client->request('POST', sprintf(self::SEARCH_URL, rawurlencode($property['site_url'])), $body);
             $batch = $res['rows'] ?? [];
             foreach ($batch as $r) {
                 $collected[] = $r;

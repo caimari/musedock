@@ -4,8 +4,11 @@
 
 @section('content')
 @php
-    $sumClicks = array_sum(array_column($totals, 'clicks'));
-    $sumImpr = array_sum(array_column($totals, 'impressions'));
+    // Las propiedades virtuales (subdominios) ya están dentro del total de su dominio: no se suman dos veces
+    $virtualIds = array_map(fn ($p) => (int) $p['id'], array_filter($properties, fn ($p) => ($p['page_filter'] ?? '') !== ''));
+    $realTotals = array_diff_key($totals, array_flip($virtualIds));
+    $sumClicks = array_sum(array_column($realTotals, 'clicks'));
+    $sumImpr = array_sum(array_column($realTotals, 'impressions'));
     $fmt = fn($n) => number_format((int) $n, 0, ',', '.');
     $statusLabels = ['active' => ['Activa', 'success'], 'no_access' => ['Sin acceso', 'warning'], 'pending' => ['Pendiente', 'secondary'], 'error' => ['Error', 'danger']];
 @endphp
@@ -116,8 +119,8 @@
                     [$sLabel, $sClass] = $statusLabels[$p['status']] ?? [$p['status'], 'secondary'];
                     $color = $p['label_color'] ?: 'none';
                 @endphp
-                <tr data-text="{{ strtolower($p['domain'] . ' ' . ($p['tenant_name'] ?? 'sitio principal')) }}" data-color="{{ $color }}" data-status="{{ $p['status'] }}" data-clicks="{{ $t['clicks'] ?? 0 }}" data-impr="{{ $t['impressions'] ?? 0 }}" @if($focusTenant !== null && (int) $p['tenant_id'] === $focusTenant) class="table-primary" @endif>
-                    <td><a href="{{ $baseUrl }}/domain/{{ $p['id'] }}" title="Ver el informe de SEO de este dominio"><strong>{{ $p['domain'] }}</strong></a><div class="text-muted" style="font-size:.75rem;">{{ $p['site_url'] }}</div></td>
+                <tr data-virtual="{{ ($p['page_filter'] ?? '') !== '' ? 1 : 0 }}" data-text="{{ strtolower($p['domain'] . ' ' . ($p['tenant_name'] ?? 'sitio principal')) }}" data-color="{{ $color }}" data-status="{{ $p['status'] }}" data-clicks="{{ $t['clicks'] ?? 0 }}" data-impr="{{ $t['impressions'] ?? 0 }}" @if($focusTenant !== null && (int) $p['tenant_id'] === $focusTenant) class="table-primary" @endif>
+                    <td><a href="{{ $baseUrl }}/domain/{{ $p['id'] }}" title="Ver el informe de SEO de este dominio"><strong>{{ $p['domain'] }}</strong></a>@if(($p['page_filter'] ?? '') !== '') <span class="badge bg-light text-dark border" title="Subdominio: sus datos son los de la propiedad del dominio que lo cubre, filtrados por página. Ya están incluidos en el total de ese dominio.">subdominio</span>@endif @if(!empty($p['authorized']))<span class="badge bg-info text-dark" title="Dominio de cliente que has autorizado: el cliente ve su SEO.">cliente autorizado</span>@endif<div class="text-muted" style="font-size:.75rem;">{{ ($p['page_filter'] ?? '') !== '' ? $p['page_filter'] . ' (en ' . $p['site_url'] . ')' : $p['site_url'] }}</div></td>
                     <td><span class="gsc-dot gsc-dot-{{ $color }}"></span>{{ $p['tenant_name'] ?? 'Sitio principal' }}</td>
                     <td><span class="badge bg-{{ $sClass }}">{{ $sLabel }}</span></td>
                     <td class="num">{{ $t ? $fmt($t['clicks']) : '—' }}</td>
@@ -199,6 +202,36 @@
     </div></div>
     @endif
 
+    {{-- ===== Dominios de clientes: los autorizas tú ===== --}}
+    @if(!empty($clientTenants))
+    <div class="card mb-4"><div class="card-body p-3">
+        <h6 class="mb-1" style="font-weight:700;"><i class="bi bi-shield-lock"></i> Dominios de clientes ({{ count($clientTenants) }})</h6>
+        <div class="text-muted mb-2" style="font-size:.82rem;">
+            Los datos de un cliente son privados salvo que <strong>tú</strong> lo autorices: si das de alta su dominio o subdominio con tu cuenta de Google, el cliente ve su SEO sin hacer nada
+            (solo el suyo, nunca el de otros), y tú también lo verás. Si no lo autorizas, el cliente puede conectar su propia cuenta. Autorizar y retirar piden tu contraseña.
+        </div>
+        <ul class="list-group list-group-flush">
+        @foreach($clientTenants as $ct)
+            <li class="list-group-item d-flex justify-content-between align-items-center gap-2 flex-wrap px-0">
+                <span><strong>{{ $ct['domain'] }}</strong> <span class="text-muted" style="font-size:.82rem;">· {{ $ct['name'] }}</span>
+                    @if($ct['authorized'] && $ct['state'] === 'active')<span class="badge bg-success ms-1">Autorizado</span>@if($ct['virtual'])<span class="badge bg-light text-dark border ms-1">subdominio</span>@endif
+                    @elseif($ct['authorized'])<span class="badge bg-warning text-dark ms-1">Autorizado · pendiente de Google</span>
+                    @else<span class="badge bg-secondary ms-1">No autorizado · el cliente conecta su cuenta</span>@endif
+                    @if($ct['authorized'] && $ct['state'] !== 'active' && $ct['note'])<div class="text-muted" style="font-size:.78rem;">{{ $ct['note'] }}</div>@endif
+                </span>
+                <span>
+                    @if($ct['authorized'])
+                        <button type="button" class="btn btn-outline-danger btn-sm gsc-client-revoke" data-property="{{ $ct['property_id'] }}" data-domain="{{ $ct['domain'] }}">Retirar autorización</button>
+                    @else
+                        <button type="button" class="btn btn-outline-primary btn-sm gsc-client-authorize" data-domain="{{ $ct['domain'] }}">Autorizar y dar de alta</button>
+                    @endif
+                </span>
+            </li>
+        @endforeach
+        </ul>
+    </div></div>
+    @endif
+
     {{-- ===== Dominio externo (WordPress, otro servidor, otro panel…) ===== --}}
     <div class="card mb-4"><div class="card-body p-3">
         <h6 class="mb-1" style="font-weight:700;">Añadir un dominio que no está en el CMS</h6>
@@ -243,7 +276,7 @@
             table.querySelectorAll('tbody tr[data-text]').forEach(function (tr) {
                 var show = (!q || tr.dataset.text.indexOf(q) !== -1) && (!c || tr.dataset.color === c) && (!s || tr.dataset.status === s);
                 tr.style.display = show ? '' : 'none';
-                if (show) { n++; clicks += +tr.dataset.clicks; impr += +tr.dataset.impr; }
+                if (show && tr.dataset.virtual !== '1') { n++; clicks += +tr.dataset.clicks; impr += +tr.dataset.impr; }
             });
             sum.textContent = n + ' dominios · ' + fmt.format(clicks) + ' clics · ' + fmt.format(impr) + ' impresiones';
         }
@@ -284,6 +317,33 @@
 
     document.querySelectorAll('.gsc-ext-retry').forEach(function (b) {
         b.addEventListener('click', function () { document.getElementById('gsc-ext-domain').value = b.dataset.domain; document.getElementById('gsc-ext-btn').click(); });
+    });
+
+    function clientAction(url, extra, title, html, confirmText, danger) {
+        Swal.fire({ title: title, html: html, icon: danger ? 'warning' : 'question', input: 'password', inputPlaceholder: 'Contraseña de administrador',
+            inputAttributes: { autocomplete: 'current-password' }, showCancelButton: true, confirmButtonText: confirmText, cancelButtonText: 'Cancelar',
+            confirmButtonColor: danger ? '#dc3545' : undefined, inputValidator: function (v) { return v ? undefined : 'Escribe tu contraseña'; } })
+        .then(function (r) {
+            if (!r.isConfirmed) { return; }
+            Swal.fire({ title: 'Trabajando…', text: 'Puede tardar unos segundos.', allowOutsideClick: false, showConfirmButton: false, didOpen: function () { Swal.showLoading(); } });
+            var body = new URLSearchParams(Object.assign({ confirm_password: r.value, _csrf: token }, extra));
+            fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': token }, body: body }).then(function (x) { return x.json(); }).then(function (res) {
+                var ok = res.status === 'verified' || res.status === 'pending';
+                Swal.fire({ icon: ok ? 'success' : 'error', title: ok ? 'Hecho' : 'No se pudo', text: res.message }).then(function () { if (ok) { location.reload(); } });
+            }).catch(function () { Swal.fire({ icon: 'error', title: 'Error de red' }); });
+        });
+    }
+    document.querySelectorAll('.gsc-client-authorize').forEach(function (b) {
+        b.addEventListener('click', function () {
+            clientAction(@json($baseUrl . '/client/authorize'), { domain: b.dataset.domain }, 'Autorizar el SEO de ' + b.dataset.domain,
+                'Vas a dar de alta este dominio de cliente con tu cuenta de Google. <strong>El cliente verá su SEO sin hacer nada</strong> (solo el suyo) y tú también lo verás. Puedes retirarlo cuando quieras. Confirma con tu contraseña.', 'Autorizar', false);
+        });
+    });
+    document.querySelectorAll('.gsc-client-revoke').forEach(function (b) {
+        b.addEventListener('click', function () {
+            clientAction(@json($baseUrl . '/client/revoke'), { property_id: b.dataset.property }, 'Retirar la autorización de ' + b.dataset.domain,
+                'Se <strong>borrarán de la plataforma</strong> los datos de este cliente y dejará de ver su SEO desde tu cuenta (podrá conectar la suya). Confirma con tu contraseña.', 'Retirar y borrar', true);
+        });
     });
 
     var syncAll = document.getElementById('gsc-sync-all');
