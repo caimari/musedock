@@ -43,6 +43,17 @@ if (!function_exists('register_module_admin_menu')) {
         }
         $registered[$menuSlug] = true;
 
+        // Rendimiento: esta función se llama en CADA petición desde el bootstrap de varios módulos y hacía ~10
+        // consultas (con UPDATE) por menú y petición, aunque nada hubiera cambiado. Si este mismo menú (con esta
+        // misma configuración y para este tenant) se registró hace menos de una hora, no se toca la BD.
+        // Un cambio en la configuración del menú cambia la firma y se registra de nuevo al instante.
+        $menuTenant = function_exists('tenant_id') ? (int) (tenant_id() ?? 0) : 0;
+        $menuMarkerDir = (defined('APP_ROOT') ? APP_ROOT : dirname(__DIR__)) . '/storage/cache/menu-sync';
+        $menuMarker = $menuMarkerDir . '/' . sha1(json_encode([$config, $menuTenant]));
+        if (is_file($menuMarker) && (time() - (int) @filemtime($menuMarker)) < 3600) {
+            return;
+        }
+
         try {
             $pdo = Database::connect();
         } catch (\Throwable $e) {
@@ -163,6 +174,11 @@ if (!function_exists('register_module_admin_menu')) {
                     ]);
                 }
             }
+            // Registrado: no se vuelve a tocar la BD durante una hora (ver arriba)
+            if (!is_dir($menuMarkerDir)) {
+                @mkdir($menuMarkerDir, 0775, true);
+            }
+            @touch($menuMarker);
         } catch (\Throwable $e) {
             error_log("register_module_admin_menu: error ({$menuSlug}) - " . $e->getMessage());
         }
