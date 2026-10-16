@@ -1,8 +1,18 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "changelog": [
+    {
+      "version": "0.2.0",
+      "date": "2026-10-16",
+      "changes": [
+        "Descarga de datos: SyncService baja de la Search Analytics API clics, impresiones, CTR y posición (sitio, países, dispositivos, páginas y consultas). Primera vez ~16 meses; después solapa los últimos 4 días. Cron cli/cron-search-console.php cada 15 min (cada propiedad se actualiza cada ~12 h, cada 3 h si falló) y botón «Descargar datos ahora».",
+        "Informe por dominio (/search-console/domain/{id}) con KPIs frente al periodo anterior, gráfico diario, consultas, páginas, países y dispositivos; periodos 7/28/90/180/365 días. Solo propiedades que el ámbito puede ver (misma regla de privacidad).",
+        "La verificación pendiente se guarda (propiedad en estado «pendiente»): sobrevive a recargar la página, se ve en la lista con su estado y la reintenta el cron durante 48 h.",
+        "Tablas gsc_*_daily: las consultas más largas que la columna se recortan; gsc_query_daily.page se rellena vacío."
+      ]
+    },
     {
       "version": "0.1.4",
       "date": "2026-10-16",

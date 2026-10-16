@@ -113,15 +113,18 @@ class SyncService
     private function insert(string $table, int $propertyId, array $dims, array $rows): void
     {
         $extra = $dims[1] ?? null; // country | device | page | query
-        $cols = 'property_id, date' . ($extra ? ', ' . $extra : '') . ', clicks, impressions, ctr, position';
-        $one = '(?, ?' . ($extra ? ', ?' : '') . ', ?, ?, ?, ?)';
+        // gsc_query_daily también tiene la columna page (obligatoria): aquí va vacía
+        $withPage = $table === 'gsc_query_daily';
+        $max = ['country' => 8, 'device' => 16, 'page' => 2000, 'query' => 1000][$extra] ?? 0; // largo de cada columna
+        $cols = 'property_id, date' . ($extra ? ', ' . $extra : '') . ($withPage ? ', page' : '') . ', clicks, impressions, ctr, position';
+        $one = '(?, ?' . ($extra ? ', ?' : '') . ($withPage ? ", ''" : '') . ', ?, ?, ?, ?)';
         foreach (array_chunk($rows, 300) as $chunk) {
             $args = [];
             foreach ($chunk as $r) {
                 $args[] = $propertyId;
                 $args[] = $r['keys'][0];
                 if ($extra) {
-                    $args[] = mb_substr((string) $r['keys'][1], 0, 2000);
+                    $args[] = mb_substr((string) $r['keys'][1], 0, $max);
                 }
                 $args[] = (int) ($r['clicks'] ?? 0);
                 $args[] = (int) ($r['impressions'] ?? 0);
