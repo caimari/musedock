@@ -34,7 +34,7 @@ foreach ($files as $file) {
         $t = $tokens[$i];
         if (!is_array($t)) { continue; }
         if ($t[0] === T_NAMESPACE) { $ns = $name($i + 2); }
-        if ($t[0] === T_USE && ($tokens[$i + 2][0] ?? null) !== T_FUNCTION && $i < 80) { $u = $name($i + 2); if ($u !== '') { $uses[substr($u, (int) strrpos('\\' . $u, '\\'))] = ltrim($u, '\\'); } }
+        if ($t[0] === T_USE && ($tokens[$i + 2][0] ?? null) !== T_FUNCTION && $i < 400) { $u = $name($i + 2); if ($u !== '') { $uses[substr($u, (int) strrpos('\\' . $u, '\\'))] = ltrim($u, '\\'); } }
         if ($t[0] === T_NEW) { $j = $i + 1; while (is_array($tokens[$j]) && $tokens[$j][0] === T_WHITESPACE) { $j++; } $nm = $name($j); if ($nm !== '') { $refs[$nm] = $t[2]; } }
         if ($t[0] === T_DOUBLE_COLON) { $j = $i - 1; if (is_array($tokens[$j]) && in_array($tokens[$j][0], [T_STRING, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED], true)) { $refs[$tokens[$j][1]] = $t[2]; } }
     }
