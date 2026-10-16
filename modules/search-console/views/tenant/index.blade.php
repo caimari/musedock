@@ -72,7 +72,7 @@
             </div>
             <div class="d-flex gap-2">
                 <form method="post" action="{{ $baseUrl }}/refresh">{!! csrf_field() !!}<button class="btn btn-outline-primary btn-sm" type="submit"><i class="bi bi-arrow-repeat"></i> Releer propiedades</button></form>
-                <form method="post" action="{{ $baseUrl }}/credential/delete" onsubmit="return confirm('¿Desconectar tu cuenta y borrar los datos guardados?');">{!! csrf_field() !!}<button class="btn btn-outline-danger btn-sm" type="submit"><i class="bi bi-x-circle"></i> Desconectar</button></form>
+                <form method="post" action="{{ $baseUrl }}/credential/delete" id="gsc-delete-form">{!! csrf_field() !!}<input type="hidden" name="confirm_password" value=""><button class="btn btn-outline-danger btn-sm" type="submit"><i class="bi bi-x-circle"></i> Desconectar</button></form>
             </div>
         </div></div>
 
@@ -138,6 +138,25 @@
                 if (res.status === 'verified') { setTimeout(function () { location.reload(); }, 1200); } else { btn.disabled = false; }
             })
             .catch(function () { msg.className = 'gsc-verify-msg text-danger'; msg.textContent = 'Error de red'; btn.disabled = false; });
+    });
+})();
+</script>
+<script>
+(function () {
+    var del = document.getElementById('gsc-delete-form');
+    if (!del || !window.Swal) return;
+    del.addEventListener('submit', function (e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Desconectar Search Console',
+            html: 'Se desconectará tu cuenta de servicio y se <strong>borrarán los datos</strong> guardados. Confirma con tu contraseña de administrador.',
+            icon: 'warning', input: 'password', inputPlaceholder: 'Contraseña de administrador',
+            inputAttributes: { autocomplete: 'current-password' },
+            showCancelButton: true, confirmButtonText: 'Desconectar y borrar', cancelButtonText: 'Cancelar', confirmButtonColor: '#dc3545',
+            inputValidator: function (v) { return v ? undefined : 'Escribe tu contraseña'; }
+        }).then(function (r) {
+            if (r.isConfirmed) { del.querySelector('[name=confirm_password]').value = r.value; del.submit(); }
+        });
     });
 })();
 </script>

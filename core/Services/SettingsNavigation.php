@@ -21,6 +21,7 @@ final class SettingsNavigation
         if (!$tenant) {
             $definitions[] = ['tenant-defaults', 'Defaults tenants', 'building-gear', '/settings/tenant-defaults'];
             $definitions[] = ['acme-assistant', 'Certificados', 'patch-check', '/settings/acme-assistant'];
+            $definitions[] = ['dns-accounts', 'Cuentas DNS', 'cloud', '/settings/dns-accounts'];
             $definitions[] = ['backups', 'Backups', 'database', '/settings/backups'];
         }
         return array_map(static fn($item) => [

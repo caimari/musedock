@@ -18,6 +18,7 @@ Route::post('/musedock/search-console/credential', "{$gscSaCtrl}@saveCredential"
 Route::post('/musedock/search-console/credential/delete', "{$gscSaCtrl}@deleteCredential")->middleware('superadmin');
 Route::post('/musedock/search-console/refresh', "{$gscSaCtrl}@refresh")->middleware('superadmin');
 Route::post('/musedock/search-console/verify', "{$gscSaCtrl}@verifyDomain")->middleware('superadmin');
+Route::post('/musedock/search-console/external', "{$gscSaCtrl}@addExternalDomain")->middleware('superadmin');
 
 $gscTenantCtrl = 'Modules\SearchConsole\Controllers\Tenant\SearchConsoleController';
 $gscAdminPath = '/' . trim(function_exists('admin_path') ? admin_path() : 'admin', '/');

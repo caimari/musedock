@@ -80,7 +80,7 @@
         </div>
         <div class="d-flex gap-2">
             <form method="post" action="{{ $baseUrl }}/refresh">{!! csrf_field() !!}<button class="btn btn-outline-primary btn-sm" type="submit"><i class="bi bi-arrow-repeat"></i> Releer propiedades</button></form>
-            <form method="post" action="{{ $baseUrl }}/credential/delete" onsubmit="return confirm('¿Desconectar la cuenta y borrar todos los datos de Search Console guardados?');">{!! csrf_field() !!}<button class="btn btn-outline-danger btn-sm" type="submit"><i class="bi bi-x-circle"></i> Desconectar</button></form>
+            <form method="post" action="{{ $baseUrl }}/credential/delete" id="gsc-delete-form">{!! csrf_field() !!}<input type="hidden" name="confirm_password" value=""><button class="btn btn-outline-danger btn-sm" type="submit"><i class="bi bi-x-circle"></i> Desconectar</button></form>
         </div>
     </div></div>
 
@@ -176,7 +176,7 @@
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
             <div>
                 <h6 class="mb-0" style="font-weight:700;">Dominios propios sin acceso todavía ({{ count($missing) }})</h6>
-                <div class="text-muted" style="font-size:.82rem;">«Dar de alta» verifica el dominio con un TXT en Cloudflare y lo añade a Search Console. Tus propietarios actuales no cambian.</div>
+                <div class="text-muted" style="font-size:.82rem;">«Dar de alta» da acceso a este dominio al robot (la cuenta del JSON): pone un TXT en Cloudflare para demostrar que es tuyo. Tu acceso no cambia.</div>
             </div>
             <button type="button" class="btn btn-primary btn-sm" id="gsc-verify-all"><i class="bi bi-lightning"></i> Dar de alta todos</button>
         </div>
@@ -193,6 +193,20 @@
         </ul>
     </div></div>
     @endif
+
+    {{-- ===== Dominio externo (WordPress, otro servidor, otro panel…) ===== --}}
+    <div class="card mb-4"><div class="card-body p-3">
+        <h6 class="mb-1" style="font-weight:700;">Añadir un dominio que no está en el CMS</h6>
+        <div class="text-muted mb-2" style="font-size:.82rem;">
+            Sirve para WordPress u otros servidores. Si su DNS está en una cuenta de Cloudflare del panel, el registro TXT se publica solo.
+            Si no, te mostramos el TXT para que lo pongas en su DNS; después vuelve a pulsar «Dar de alta». Los dominios de clientes no se pueden añadir.
+        </div>
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+            <input type="text" id="gsc-ext-domain" class="form-control form-control-sm" placeholder="ejemplo.com" style="max-width:260px;" autocomplete="off" aria-label="Dominio externo">
+            <button type="button" class="btn btn-primary btn-sm" id="gsc-ext-btn"><i class="bi bi-plus-circle"></i> Dar de alta</button>
+        </div>
+        <div id="gsc-ext-msg" class="mt-2" style="font-size:.85rem;word-break:break-all;"></div>
+    </div></div>
     @endif
 
 </div>
@@ -236,6 +250,37 @@
             .catch(function () { msg.className = 'gsc-verify-msg text-danger'; msg.textContent = 'Error de red'; btn.disabled = false; });
     }
     document.querySelectorAll('.gsc-verify').forEach(function (b) { b.addEventListener('click', function () { verify(b.closest('li')); }); });
+    var del = document.getElementById('gsc-delete-form');
+    if (del) del.addEventListener('submit', function (e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Desconectar Search Console',
+            html: 'Se desconectará la cuenta de servicio y se <strong>borrarán todos los datos</strong> guardados. Confirma con tu contraseña de administrador.',
+            icon: 'warning', input: 'password', inputPlaceholder: 'Contraseña de administrador',
+            inputAttributes: { autocomplete: 'current-password' },
+            showCancelButton: true, confirmButtonText: 'Desconectar y borrar', cancelButtonText: 'Cancelar', confirmButtonColor: '#dc3545',
+            inputValidator: function (v) { return v ? undefined : 'Escribe tu contraseña'; }
+        }).then(function (r) {
+            if (r.isConfirmed) { del.querySelector('[name=confirm_password]').value = r.value; del.submit(); }
+        });
+    });
+
+    var extBtn = document.getElementById('gsc-ext-btn');
+    if (extBtn) extBtn.addEventListener('click', function () {
+        var input = document.getElementById('gsc-ext-domain'), msg = document.getElementById('gsc-ext-msg');
+        if (!input.value.trim()) { return; }
+        extBtn.disabled = true; msg.className = 'mt-2 text-muted'; msg.textContent = 'Verificando…';
+        fetch(@json($baseUrl . '/external'), { method: 'POST', headers: { 'X-CSRF-TOKEN': token }, body: new URLSearchParams({ domain: input.value.trim(), _csrf: token }) })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                var cls = { verified: 'text-success', pending: 'text-warning', manual: 'text-secondary', error: 'text-danger' }[res.status] || 'text-danger';
+                msg.className = 'mt-2 ' + cls; msg.textContent = res.message;
+                if (res.status === 'verified') { input.value = ''; }
+            })
+            .catch(function () { msg.className = 'mt-2 text-danger'; msg.textContent = 'Error de red'; })
+            .then(function () { extBtn.disabled = false; });
+    });
+
     var all = document.getElementById('gsc-verify-all');
     if (all) all.addEventListener('click', function () {
         all.disabled = true;

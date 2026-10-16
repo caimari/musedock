@@ -782,6 +782,7 @@ $adminMenus = \Screenart\Musedock\Services\SettingsNavigation::synchronize($admi
 <script src="/assets/vendor/feather-icons/feather.min.js"></script>
 <!-- SweetAlert2 JS (LOCAL) -->
 <script src="/assets/vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script src="/assets/js/md-dialogs.js?v=1"></script>
 <!-- Sistema de Notificaciones -->
 @if($__multiTenantEnabled)
 <script src="/assets/superadmin/js/notifications.js"></script>

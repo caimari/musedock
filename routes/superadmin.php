@@ -260,6 +260,15 @@ Route::post('/musedock/settings/run-update', 'superadmin.SettingsController@runC
 Route::get('/musedock/settings/update-status', 'superadmin.SettingsController@cmsUpdateStatus')->name('settings.update-status')->middleware('superadmin');
 
 // Settings - Email
+// Cuentas DNS: registro único de credenciales (Cloudflare y otros proveedores)
+Route::get('/musedock/settings/dns-accounts', 'superadmin.DnsAccountsController@index')->name('settings.dns-accounts')->middleware('superadmin');
+Route::post('/musedock/settings/dns-accounts', 'superadmin.DnsAccountsController@save')->name('settings.dns-accounts.save')->middleware('superadmin');
+Route::post('/musedock/settings/dns-accounts/import', 'superadmin.DnsAccountsController@import')->name('settings.dns-accounts.import')->middleware('superadmin');
+Route::post('/musedock/settings/dns-accounts/{id}/test', 'superadmin.DnsAccountsController@test')->name('settings.dns-accounts.test')->middleware('superadmin');
+Route::post('/musedock/settings/dns-accounts/{id}/default', 'superadmin.DnsAccountsController@makeDefault')->name('settings.dns-accounts.default')->middleware('superadmin');
+Route::post('/musedock/settings/dns-accounts/{id}/toggle', 'superadmin.DnsAccountsController@toggle')->name('settings.dns-accounts.toggle')->middleware('superadmin');
+Route::post('/musedock/settings/dns-accounts/{id}/delete', 'superadmin.DnsAccountsController@delete')->name('settings.dns-accounts.delete')->middleware('superadmin');
+
 Route::get('/musedock/settings/email', 'superadmin.SettingsController@email')->name('settings.email')->middleware('superadmin');
 Route::post('/musedock/settings/email', 'superadmin.SettingsController@updateEmail')->name('settings.email.update')->middleware('superadmin');
 

@@ -266,8 +266,8 @@
 
 <script>
 // Cambiar estado del ticket
-function changeStatus(newStatus) {
-    if (!confirm('¿Estás seguro de cambiar el estado de este ticket?')) {
+async function changeStatus(newStatus) {
+    if (!(await mdConfirm('¿Estás seguro de cambiar el estado de este ticket?'))) {
         return;
     }
 
@@ -293,8 +293,8 @@ function changeStatus(newStatus) {
 }
 
 // Eliminar ticket
-function deleteTicket() {
-    if (!confirm('¿Estás seguro de que quieres eliminar este ticket? Esta acción no se puede deshacer.')) {
+async function deleteTicket() {
+    if (!(await mdConfirm('¿Estás seguro de que quieres eliminar este ticket? Esta acción no se puede deshacer.'))) {
         return;
     }
 

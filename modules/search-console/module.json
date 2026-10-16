@@ -1,8 +1,17 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "changelog": [
+    {
+      "version": "0.1.2",
+      "date": "2026-10-16",
+      "changes": [
+        "Desconectar la cuenta exige la contraseña del administrador (modal SweetAlert2 en superadmin y tenant; máx. 5 fallos cada 10 minutos).",
+        "Superadmin: «Añadir un dominio que no está en el CMS» (WordPress u otro servidor): TXT automático si su DNS está en Cloudflare del panel; si no, se muestra el TXT para ponerlo a mano y se puede volver a verificar. Los dominios de clientes (y sus subdominios) se rechazan.",
+        "DomainVerifier: sin zona en Cloudflare ya no se detiene antes de verificar, así que un TXT puesto a mano llega a verificarse."
+      ]
+    },
     {
       "version": "0.1.1",
       "date": "2026-10-15",

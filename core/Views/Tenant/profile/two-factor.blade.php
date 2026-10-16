@@ -128,7 +128,10 @@
   var disable = document.getElementById('btnDisable');
   if (disable) {
     disable.addEventListener('click', function (e) {
-      if (!confirm('¿Desactivar la verificación en dos pasos? Tu cuenta quedará protegida solo por la contraseña.')) e.preventDefault();
+      e.preventDefault();
+      mdConfirm('¿Desactivar la verificación en dos pasos? Tu cuenta quedará protegida solo por la contraseña.').then(function (ok) {
+        if (ok && disable.form) { disable.form.requestSubmit(disable); }
+      });
     });
   }
 })();

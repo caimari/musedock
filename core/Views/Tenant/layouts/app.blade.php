@@ -868,6 +868,7 @@ function generate_id($prefix = 'menu-') {
 <script src="/assets/superadmin/js/sidebar-position.js?v=1" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/assets/js/md-dialogs.js?v=1"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <!-- Sistema de Notificaciones -->
 @if($__multiTenantEnabled)

@@ -19,8 +19,11 @@ class DomainVerifier
 {
     private const VERIFY_API = 'https://www.googleapis.com/siteVerification/v1';
 
-    public function __construct(private GoogleClient $client)
+    private ?\Screenart\Musedock\Services\Dns\DnsZones $zones = null;
+
+    public function __construct(private GoogleClient $client, ?\Screenart\Musedock\Services\Dns\DnsZones $zones = null)
     {
+        $this->zones = $zones;
     }
 
     /** @return array{status:string, message:string} status: verified|pending|manual|error */
@@ -40,11 +43,12 @@ class DomainVerifier
                 return ['status' => 'error', 'message' => 'Google no devolvió el token de verificación.'];
             }
 
-            $zone = $this->findCloudflareZone($domain);
-            if ($zone === null) {
-                return ['status' => 'manual', 'message' => "El DNS de {$domain} no está en las cuentas de Cloudflare del panel. Añade a mano en Search Console el email de la cuenta de servicio como usuario, o publica este TXT en el dominio: {$token}"];
+            // Si el DNS está en una cuenta del registro DNS del CMS, el TXT se publica solo. Si no, se intenta
+            // igualmente la verificación por si el TXT ya se puso a mano en el DNS del dominio.
+            $zone = $this->findZone($domain);
+            if ($zone !== null) {
+                $zone['client']->ensureTxt($zone['zone']['id'], $domain, $token);
             }
-            $this->ensureTxt($zone, $domain, $token);
 
             try {
                 $this->client->request('POST', self::VERIFY_API . '/webResource?verificationMethod=DNS_TXT', [
@@ -52,7 +56,11 @@ class DomainVerifier
                 ]);
             } catch (GoogleApiException $e) {
                 if ($e->status === 400) {
-                    return ['status' => 'pending', 'message' => 'TXT publicado en Cloudflare; Google aún no lo ve (propagación DNS). Se reintentará.'];
+                    if ($zone === null) {
+                        return ['status' => 'manual', 'message' => "El DNS de {$domain} no está en ninguna cuenta DNS del CMS (Ajustes → Cuentas DNS). Publica este registro TXT en el DNS del dominio (nombre @) y vuelve a pulsar «Dar de alta»: {$token}  — o, alternativa, añade a mano el email de la cuenta de servicio como usuario en Search Console."];
+                    }
+
+                    return ['status' => 'pending', 'message' => 'TXT publicado en el DNS; Google aún no lo ve (propagación DNS). Se reintentará.'];
                 }
                 throw $e;
             }
@@ -72,65 +80,20 @@ class DomainVerifier
     }
 
     /**
-     * Busca la zona del dominio (o de un dominio padre, para subdominios) en todas
-     * las cuentas de Cloudflare del panel. Devuelve [service, zoneId] o null.
+     * Busca la zona del dominio (o de un dominio padre) en el registro único de cuentas DNS del CMS
+     * (Ajustes → Cuentas DNS). Devuelve ['client' => DnsZoneClient, 'zone' => ['id', 'name']] o null.
      */
-    private function findCloudflareZone(string $domain): ?array
+    private function findZone(string $domain): ?array
     {
-        if (!self::loadCloudflare()) {
+        try {
+            return $this->zones()->locate($domain);
+        } catch (\Throwable $e) {
             return null;
         }
-        $base = new \CaddyDomainManager\Services\CloudflareZoneService();
-        $labels = explode('.', $domain);
-        $candidates = [];
-        for ($i = 0; $i < count($labels) - 1; $i++) {
-            $candidates[] = implode('.', array_slice($labels, $i));
-        }
-
-        foreach ($base->getAllAccounts() as $account) {
-            $service = \CaddyDomainManager\Services\CloudflareZoneService::forAccount($account);
-            foreach ($candidates as $candidate) {
-                try {
-                    $zone = $service->getZoneByDomain($candidate);
-                } catch (\Throwable $e) {
-                    $zone = null;
-                }
-                $zoneId = $zone['zone_id'] ?? ($zone['id'] ?? null);
-                if ($zoneId) {
-                    return [$service, (string) $zoneId];
-                }
-            }
-        }
-
-        return null;
     }
 
-    private function ensureTxt(array $zone, string $domain, string $token): void
+    private function zones(): \Screenart\Musedock\Services\Dns\DnsZones
     {
-        [$service, $zoneId] = $zone;
-        foreach ($service->getDNSRecords($zoneId, 'TXT') as $record) {
-            if (($record['name'] ?? '') === $domain && trim((string) ($record['content'] ?? ''), '"') === $token) {
-                return;
-            }
-        }
-        $service->createDNSRecord($zoneId, 'TXT', $domain, $token, false, 1);
-    }
-
-    private static function loadCloudflare(): bool
-    {
-        if (class_exists(\CaddyDomainManager\Services\CloudflareZoneService::class)) {
-            return true;
-        }
-        $root = defined('PRIVATE_PLUGINS_PATH') ? PRIVATE_PLUGINS_PATH
-            : (\Screenart\Musedock\Env::get('PRIVATE_PLUGINS_PATH') ?: dirname(APP_ROOT) . '/private-plugins');
-        $dir = rtrim((string) $root, '/') . '/superadmin/caddy-domain-manager/Services';
-        foreach (['CloudflareAccountService.php', 'CloudflareZoneService.php'] as $file) {
-            if (!is_file($dir . '/' . $file)) {
-                return false;
-            }
-            require_once $dir . '/' . $file;
-        }
-
-        return class_exists(\CaddyDomainManager\Services\CloudflareZoneService::class);
+        return $this->zones ??= new \Screenart\Musedock\Services\Dns\DnsZones(\Screenart\Musedock\Services\DnsAccounts::make());
     }
 }

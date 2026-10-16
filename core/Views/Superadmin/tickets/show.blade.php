@@ -167,8 +167,8 @@
 </div>
 
 <script>
-function changeStatus(status) {
-    if (!confirm('¿Cambiar el estado del ticket?')) return;
+async function changeStatus(status) {
+    if (!(await mdConfirm('¿Cambiar el estado del ticket?'))) return;
     fetch('/musedock/tickets/<?= $ticket->id ?>/status', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -185,8 +185,8 @@ function assignTicket() {
     }).then(r => r.json()).then(d => d.success ? location.reload() : alert('Error'));
 }
 
-function deleteTicket() {
-    if (!confirm('¿Eliminar este ticket? No se puede deshacer.')) return;
+async function deleteTicket() {
+    if (!(await mdConfirm('¿Eliminar este ticket? No se puede deshacer.'))) return;
     fetch('/musedock/tickets/<?= $ticket->id ?>', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},

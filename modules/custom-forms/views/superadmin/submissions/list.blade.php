@@ -272,8 +272,8 @@ function bulkMarkSpam() {
     bulkAction('spam');
 }
 
-function bulkDelete() {
-    if (!confirm('{{ __forms("submission.confirm_bulk_delete") }}')) return;
+async function bulkDelete() {
+    if (!(await mdConfirm('{{ __forms("submission.confirm_bulk_delete") }}'))) return;
     bulkAction('delete');
 }
 

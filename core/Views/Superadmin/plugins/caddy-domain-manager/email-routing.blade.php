@@ -192,12 +192,12 @@ const tenantDomain = '{{ $tenant['domain'] }}';
 const csrfToken = '{{ $csrf_token }}';
 
 // Activar/Desactivar Email Routing
-function toggleEmailRouting(enable) {
+async function toggleEmailRouting(enable) {
     const action = enable ? 'enable' : 'disable';
     const url = `/musedock/domain-manager/${tenantId}/email-routing/${action}`;
 
     if (!enable) {
-        if (!confirm('¿Estás seguro de desactivar Email Routing? Se deshabilitarán todas las reglas.')) {
+        if (!(await mdConfirm('¿Estás seguro de desactivar Email Routing? Se deshabilitarán todas las reglas.'))) {
             return;
         }
     }

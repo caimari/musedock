@@ -118,10 +118,41 @@ abstract class BaseController
         exit;
     }
 
-    /** POST: desconectar la cuenta de servicio y borrar todos sus datos. */
+    /** POST (AJAX): alta de un dominio que no es tenant del CMS (WordPress, otro servidor…). Solo la plataforma. */
+    public function addExternalDomain()
+    {
+        $this->checkPermission('search_console.manage');
+        header('Content-Type: application/json; charset=utf-8');
+        $row = $this->credentials->find($this->scopeTenantId);
+        $domain = PropertyService::normalizeHost((string) ($_POST['domain'] ?? ''));
+        if (!$row || $this->scopeTenantId !== null || $domain === '' || !$this->externalAllowed($domain)) {
+            http_response_code(403);
+            echo json_encode(['status' => 'error', 'message' => 'Dominio no permitido: es de un cliente o no es válido.']);
+            exit;
+        }
+
+        $client = $this->credentials->client($row);
+        $result = (new DomainVerifier($client))->verify($domain);
+        if ($result['status'] === 'verified') {
+            try {
+                $this->properties->refreshFromGoogle($row, $client);
+            } catch (\Throwable $e) {
+                // la propiedad ya existe en Google; se enlazará en la próxima actualización
+            }
+        }
+        echo json_encode($result, JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    /** POST: desconectar la cuenta de servicio y borrar todos sus datos. Exige la contraseña del administrador. */
     public function deleteCredential()
     {
         $this->checkPermission('search_console.manage');
+        if (!$this->actorPasswordOk((string) ($_POST['confirm_password'] ?? ''))) {
+            flash('error', 'Contraseña incorrecta (o demasiados intentos): no se ha desconectado nada.');
+
+            return redirect($this->baseUrl());
+        }
         $row = $this->credentials->find($this->scopeTenantId);
         if ($row) {
             $this->credentials->delete((int) $row['id']);
@@ -129,6 +160,30 @@ abstract class BaseController
         }
 
         return redirect($this->baseUrl());
+    }
+
+    /** Comprueba la contraseña del administrador con sesión iniciada (confirmación común del core). */
+    protected function actorPasswordOk(string $password): bool
+    {
+        return \Screenart\Musedock\Security\PasswordConfirmation::verify($password, $this->pdo);
+    }
+
+    /** Un dominio externo vale mientras no sea (ni cuelgue de) un dominio de cliente. */
+    protected function externalAllowed(string $domain): bool
+    {
+        if (!preg_match('/^[a-z0-9.-]+\.[a-z]{2,}$/', $domain)) {
+            return false;
+        }
+        $map = $this->properties->hostMap();
+        $labels = explode('.', $domain);
+        for ($i = 0; $i < count($labels) - 1; $i++) {
+            $candidate = implode('.', array_slice($labels, $i));
+            if (!empty($map[$candidate]['client'])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /** ¿Puede este ámbito dar de alta ese dominio? */
