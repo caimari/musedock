@@ -10,7 +10,8 @@ use PDO;
  */
 class QueryLabelService
 {
-    public const LABELS = ['own' => 'Es mi marca (o una variante)', 'third' => 'Marca de otra empresa', 'ignore' => 'No es relevante'];
+    /** Tres estados para la marca (propia, ajena o dudosa) más «no relevante»: lo dudoso no se decide solo. */
+    public const LABELS = ['own' => 'Marca propia (o variante) — confirmada', 'third' => 'Marca de otra empresa — confirmada', 'review' => 'Ambigua: pendiente de investigar', 'ignore' => 'No es relevante'];
 
     public static function key(string $query): string
     {

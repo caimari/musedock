@@ -62,6 +62,7 @@ class UrlInspectionService
             'last_crawl' => $i['lastCrawlTime'] ?? null,
             'google_canonical' => $google, 'user_canonical' => $user,
             'canonical_differs' => $google !== null && $user !== null && rtrim($google, '/') !== rtrim($user, '/'),
+            'is_alternate' => (bool) preg_match('/alternativ|alternate/iu', $coverage) && $google !== null && !($user !== null && rtrim($google, '/') !== rtrim($user, '/')),
             'fetch' => $i['pageFetchState'] ?? null, 'robots' => $i['robotsTxtState'] ?? null, 'indexing' => $i['indexingState'] ?? null,
             'crawled_as' => $i['crawledAs'] ?? null, 'sitemaps' => $i['sitemap'] ?? [], 'link' => $res['inspectionResultLink'] ?? null,
         ];

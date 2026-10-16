@@ -383,11 +383,14 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
                 ['Canonical que eligió Google', esc(r.google_canonical || '—') + (r.canonical_differs ? ' <span class="badge bg-warning text-dark">distinto</span>' : '')]];
             if (r.fetch) { rows.push(['Descarga de la página', esc(r.fetch)]); }
             if (r.robots) { rows.push(['robots.txt', esc(r.robots)]); }
-            var tip = '';
-            if (/redirec/i.test(r.coverage)) { tip = 'Esta URL <strong>redirige</strong>: Google ya la ha detectado como redirección y traspasa su SEO al destino. Es lo esperado tras «Mover el SEO».'; }
+            var tip = '', canon = r.google_canonical || r.user_canonical;
+            function norm(u) { return String(u || '').replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '').toLowerCase(); }
+            var isVariant = !r.indexed && canon && norm(canon) !== norm(url) && !r.canonical_differs;
+            if (isVariant) { tip = 'Esta URL <strong>no se indexa por separado</strong> porque Google ha elegido correctamente <strong>otra como canónica</strong> (' + esc(canon) + '). No es un error de indexación: comprueba la indexación de esa versión principal y no pidas indexar la variante. <div class="mt-2"><a href="#" id="gsc-inspect-canon" data-url="' + esc(canon) + '">Inspeccionar la URL canónica →</a></div>'; }
+            else if (/redirec/i.test(r.coverage)) { tip = 'Esta URL <strong>redirige</strong>: Google ya la ha detectado como redirección y traspasa su SEO al destino. Es lo esperado tras «Mover el SEO».'; }
             else if (r.canonical_differs) { tip = 'Google considera <strong>otra URL</strong> como la principal. Si acabas de mover el SEO, es normal mientras traspasa.'; }
             else if (!r.indexed) { tip = 'Google aún no la tiene indexada. Envía el sitemap y espera: puede tardar días.'; }
-            Swal.fire({ title: 'Inspección de URL', width: 720, confirmButtonText: 'Cerrar', html: '<div style="text-align:left;font-size:.88rem;"><div class="text-muted mb-2" style="word-break:break-all;">' + esc(url) + '</div><table class="table table-sm mb-2">' +
+            Swal.fire({ title: 'Inspección de URL', width: 720, confirmButtonText: 'Cerrar', didOpen: function () { var a = document.getElementById('gsc-inspect-canon'); if (a) { a.addEventListener('click', function (ev) { ev.preventDefault(); inspect(a.dataset.url); }); } }, html: '<div style="text-align:left;font-size:.88rem;"><div class="text-muted mb-2" style="word-break:break-all;">' + esc(url) + '</div><table class="table table-sm mb-2">' +
                 rows.map(function (x) { return '<tr><th style="width:38%;font-weight:600;">' + x[0] + '</th><td style="word-break:break-all;">' + x[1] + '</td></tr>'; }).join('') + '</table>' + (tip ? '<div class="alert alert-light border py-2 mb-0">' + tip + '</div>' : '') +
                 (r.link ? '<div class="mt-2"><a href="' + esc(r.link) + '" target="_blank" rel="noopener noreferrer">Abrir en Search Console ↗</a></div>' : '') + '</div>' });
         }).catch(function () { Swal.fire({ icon: 'error', title: 'Error de red' }); });

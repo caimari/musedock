@@ -209,5 +209,24 @@ ok(!$brandItems || $brandItems && array_values($brandItems)[0]['brand'] === true
 $tail = (new OpportunityService($pdo))->detect(['id' => 1, 'domain' => 'x.test'], 28);
 ok(in_array('creen ai', array_column(array_filter($tail['items'], fn ($i) => $i['kind'] === 'query'), 'name'), true), 'sin marca conocida (dominio corto) no se hace esta distinción y se trata como cualquier consulta');
 
+echo "== 8. Una sola clasificación: dominios escritos, marcas ajenas etiquetadas y dudosas\n";
+$pdo = db();
+$pdo->exec('CREATE TABLE gsc_query_label (domain TEXT, query_key TEXT, query TEXT, label TEXT, updated_at TEXT, PRIMARY KEY (domain, query_key))');
+put($pdo, 'gsc_site_daily', $cur, null, 30, 3000, 8.0);
+put($pdo, 'gsc_site_daily', $prev, null, 30, 3000, 8.0);
+foreach (['8i8gent.com', 'marca ajena', 'dudosa', 'normal'] as $q) {
+    put($pdo, 'gsc_query_daily', $prev, $q, 0, 995, 6.0);
+    put($pdo, 'gsc_query_daily', $cur, $q, 0, 23, 6.0);
+}
+foreach ([['marca ajena', 'third'], ['dudosa', 'review']] as [$q, $l]) { $pdo->prepare('INSERT INTO gsc_query_label VALUES (?, ?, ?, ?, ?)')->execute(['x.test', $q, $q, $l, '2026-10-01']); }
+$r = (new OpportunityService($pdo))->detect($prop, 28);
+$q = fn (string $n) => array_values(array_filter($r['items'], fn ($i) => $i['kind'] === 'query' && $i['name'] === $n));
+ok(!$q('8i8gent.com'), '«8i8gent.com» (un dominio escrito en el buscador, 995 → 23) ya no sale como caída');
+ok(!$q('marca ajena'), 'una consulta etiquetada como marca de otra empresa deja de recomendarse como tráfico propio');
+ok($q('dudosa') && $q('dudosa')[0]['pending'] === true, 'una consulta «pendiente de investigar» sigue visible pero marcada (no se decide sola)');
+ok($q('normal') && $q('normal')[0]['pending'] === false, 'una consulta normal con la misma caída sí sale');
+ok($r['notes'] !== [] && str_contains(implode(' ', $r['notes']), '1 dominios escritos en el buscador') && str_contains(implode(' ', $r['notes']), 'etiquetadas'), 'el informe explica cuántas consultas se han apartado y por qué');
+ok(array_keys(\Modules\SearchConsole\Services\QueryLabelService::LABELS) === ['own', 'third', 'review', 'ignore'], 'tres estados de marca (propia, ajena, dudosa) más «no relevante»');
+
 echo "\n" . ($fails ? "RESULTADO: $fails de $n comprobaciones FALLAN\n" : "RESULTADO: las $n comprobaciones pasan\n");
 exit($fails ? 1 : 0);

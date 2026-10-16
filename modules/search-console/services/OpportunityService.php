@@ -48,6 +48,9 @@ class OpportunityService
     /** CTR de las búsquedas de marca del periodo (para detectar parecidos inesperados), o null. */
     private ?float $brandCtr = null;
 
+    /** Consultas apartadas porque no son una oportunidad propia, por motivo (para explicarlo en el informe). */
+    private array $skipped = ['navigational' => 0, 'third' => 0, 'unexpected' => 0];
+
     public function __construct(private PDO $pdo)
     {
     }
@@ -88,6 +91,7 @@ class OpportunityService
         $this->total = $total;
         $this->brand = BrandService::tokens($property);
         $this->labels = QueryLabelService::map($this->pdo, (string) $property['domain']);
+        $this->skipped = ['navigational' => 0, 'third' => 0, 'unexpected' => 0];
         $items = [];
         $excluded = 0;
         foreach (['query' => ['gsc_query_daily', 'query'], 'page' => ['gsc_page_daily', 'page']] as $kind => [$table, $col]) {
@@ -126,6 +130,15 @@ class OpportunityService
         }
         if ($excluded) {
             $notes[] = $excluded . ' página(s) legales, de acceso o de panel se han excluido (no son oportunidades de captación).';
+        }
+        if (array_sum($this->skipped)) {
+            $parts = [];
+            foreach (['navigational' => 'dominios escritos en el buscador', 'third' => 'etiquetadas como de otra empresa o no relevantes', 'unexpected' => 'coincidencias inesperadas con tu marca'] as $k => $txt) {
+                if ($this->skipped[$k]) {
+                    $parts[] = $this->skipped[$k] . ' ' . $txt;
+                }
+            }
+            $notes[] = 'Consultas apartadas porque no son tráfico propio: ' . implode(', ', $parts) . '.';
         }
 
         $counts = array_fill_keys(array_keys(self::TYPES), 0);
@@ -180,8 +193,15 @@ class OpportunityService
     {
         $out = [];
         $unexpected = $kind === 'query' && $this->isUnexpected($name, $c, $p);
-        if ($unexpected) {
-            return []; // no es una oportunidad ni una pérdida propia: se muestra aparte, en «Búsquedas parecidas a tu marca»
+        if ($kind === 'query') {
+            // Una sola clasificación para todos los detectores: lo que no es tráfico propio no es oportunidad ni pérdida propia
+            $label = $this->labels[QueryLabelService::key($name)] ?? null;
+            $why = in_array($label, ['third', 'ignore'], true) ? 'third' : (self::looksLikeDomain($name) ? 'navigational' : ($unexpected ? 'unexpected' : null));
+            if ($why !== null) {
+                $this->skipped[$why]++;
+
+                return []; // se muestra aparte (parecidos a tu marca) o no se muestra
+            }
         }
         $imp = $c['impressions'];
         $pos = $c['position'];
@@ -257,6 +277,7 @@ class OpportunityService
         return [
             'type' => $type, 'kind' => $kind, 'name' => $name, 'label' => $label, 'tier' => $tier, 'tier_why' => $why, 'year' => $year, 'context' => $context, 'basis' => $type === 'drop' ? self::dropBasis($c, $p) : null, 'navigational' => $kind === 'query' && self::looksLikeDomain($name), 'confidence' => $this->confidenceOf($type, $kind, $name, $c, $p), 'variants' => (int) ($c['variants'] ?? 1), 'brand' => $kind === 'query' && (BrandService::isBrand($name, $this->brand) || ($this->labels[QueryLabelService::key($name)] ?? null) === 'own'),
             'unexpected' => $kind === 'query' && $this->isUnexpected($name, $c, $p),
+            'pending' => $kind === 'query' && ($this->labels[QueryLabelService::key($name)] ?? null) === 'review',
             'third' => $kind === 'query' && in_array($this->labels[QueryLabelService::key($name)] ?? null, ['third', 'ignore'], true),
             'clicks' => $c['clicks'], 'impressions' => $imp, 'ctr' => $imp > 0 ? $c['clicks'] / $imp : 0.0, 'position' => $c['position'],
             'prev_clicks' => $p['clicks'] ?? null, 'prev_impressions' => $p['impressions'] ?? null,

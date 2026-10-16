@@ -1,8 +1,17 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "changelog": [
+    {
+      "version": "0.9.1",
+      "date": "2026-10-16",
+      "changes": [
+        "Inspector de URL: una variante que Google no indexa por separado porque eligió correctamente otra como canónica (p. ej. www.agent8ai.com/screen-ai → agent8ai.com/screen-ai) ya no dice «Google aún no la tiene indexada, envía el sitemap»: explica que no es un error y ofrece inspeccionar directamente la canónica.",
+        "Una sola clasificación compartida por todos los detectores: las consultas que son un dominio escrito en el buscador («8i8gent.com»), las etiquetadas como marca de otra empresa o no relevantes y las coincidencias inesperadas con tu marca ya no salen como oportunidad ni como caída en el informe (antes solo se excluían de «Esta semana merece tu tiempo»), y el informe cuenta cuántas ha apartado y por qué.",
+        "Tres estados para la marca en lugar de dos: marca propia (o variante) confirmada, marca de otra empresa confirmada y ambigua pendiente de investigar (visible, marcada y fuera de las prioridades hasta que la decidas), más «no relevante»."
+      ]
+    },
     {
       "version": "0.9.0",
       "date": "2026-10-16",

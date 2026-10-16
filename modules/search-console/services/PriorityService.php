@@ -66,7 +66,7 @@ class PriorityService
             }
             $r = $this->opportunities->detect($p, 28);
             foreach ($r['cards'] ?? $r['items'] ?? [] as $it) {
-                if ($it['tier'] !== 'high' || $it['type'] === 'rising' || !empty($it['navigational']) || !empty($it['third']) || !empty($it['unexpected'])) {
+                if ($it['tier'] !== 'high' || $it['type'] === 'rising' || !empty($it['navigational']) || !empty($it['third']) || !empty($it['unexpected']) || !empty($it['pending'])) {
                     continue; // las búsquedas de un dominio (navegacionales) no son una oportunidad de contenido
                 }
                 if (!empty($it['brand']) && $it['type'] !== 'drop') {
