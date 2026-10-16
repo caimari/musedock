@@ -52,7 +52,7 @@ function db(): PDO
 {
     $p = new PDO('sqlite::memory:');
     $p->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $p->exec('CREATE TABLE gsc_properties (id INTEGER PRIMARY KEY AUTOINCREMENT, credential_id INT, tenant_id INT, domain TEXT, site_url TEXT, permission_level TEXT, status TEXT DEFAULT \'pending\', verification_note TEXT, last_sync_at TEXT, last_sync_status TEXT, last_error TEXT, data_from TEXT, data_until TEXT, created_at TEXT, updated_at TEXT, external INT DEFAULT 0, page_filter TEXT NOT NULL DEFAULT '')');
+    $p->exec('CREATE TABLE gsc_properties (id INTEGER PRIMARY KEY AUTOINCREMENT, credential_id INT, tenant_id INT, domain TEXT, site_url TEXT, permission_level TEXT, status TEXT DEFAULT \'pending\', verification_note TEXT, last_sync_at TEXT, last_sync_status TEXT, last_error TEXT, data_from TEXT, data_until TEXT, created_at TEXT, updated_at TEXT, external INT DEFAULT 0, page_filter TEXT NOT NULL DEFAULT \'\')');
     $p->exec('CREATE TABLE gsc_sync_runs (id INTEGER PRIMARY KEY AUTOINCREMENT, property_id INT, started_at TEXT, finished_at TEXT, status TEXT, date_from TEXT, date_until TEXT, rows_stored INT, attempts INT, error TEXT)');
     $m = 'clicks INT NOT NULL, impressions INT NOT NULL, ctr REAL NOT NULL, position REAL NOT NULL';
     $p->exec("CREATE TABLE gsc_site_daily (property_id INT, date TEXT, $m)");
