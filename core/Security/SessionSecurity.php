@@ -91,6 +91,14 @@ class SessionSecurity
             }
         }
 
+        // Sesión identificada: nunca cachear la respuesta (ni el navegador ni la caché
+        // HTML). En páginas públicas PHP ya no manda su «no-store» automático (ver
+        // session_cache_limiter en public/index.php), así que se envía aquí.
+        if (!headers_sent() && (isset($_SESSION['admin']) || isset($_SESSION['super_admin']) || isset($_SESSION['user']) || isset($_SESSION['customer']))) {
+            header('Cache-Control: no-store, no-cache, must-revalidate, private');
+            header('Pragma: no-cache');
+        }
+
         // Expiración por inactividad
         // Usar timeout extendido si la sesión es persistente (remember me)
         $isPersistent = isset($_SESSION['persistent']) && $_SESSION['persistent'] === true;

@@ -59,8 +59,13 @@ class HtmlCacheMiddleware
             return;
         }
 
-        // Skip if admin session cookie exists (don't serve cached to editors)
-        if (self::hasAdminSession()) {
+        // ?page=2, ?q=... cambian el contenido: la caché (indexada por ruta) no vale
+        if (!HtmlCache::isCacheableQuery($_GET)) {
+            return;
+        }
+
+        // Visitante identificado (admin, usuario, cliente, carrito...): página dinámica
+        if (self::hasPersonalSession()) {
             return;
         }
 
@@ -149,9 +154,17 @@ class HtmlCacheMiddleware
             return;
         }
 
-        // Don't cache if admin session was established during this request
-        if (isset($_SESSION['admin']) || isset($_SESSION['super_admin'])) {
+        // Nada personal: solo se guarda si la sesión sigue siendo de visitante anónimo
+        if (!HtmlCache::isAnonymousSession($_SESSION ?? []) || !HtmlCache::isCacheableQuery($_GET)) {
             return;
+        }
+
+        // Panel de un tenant con ruta de administración propia (p. ej. /gestion)
+        if (function_exists('admin_path')) {
+            $adminBase = '/' . trim((string) admin_path(), '/');
+            if ($adminBase !== '/' && (self::$uri === $adminBase || str_starts_with(self::$uri, $adminBase . '/'))) {
+                return;
+            }
         }
 
         // Don't cache error pages or redirects
@@ -289,21 +302,39 @@ class HtmlCacheMiddleware
     /**
      * Check if the request has admin session cookies (without starting a session).
      */
-    private static function hasAdminSession(): bool
+    private static function hasPersonalSession(): bool
     {
-        // Check for PHP session cookie existence
-        $sessionName = session_name() ?: 'PHPSESSID';
-        if (!isset($_COOKIE[$sessionName])) {
-            return false; // No session at all — definitely not admin
+        // «Recordarme» u otras cookies de acceso: visitante identificado
+        foreach (array_keys($_COOKIE) as $cookie) {
+            if (stripos((string) $cookie, 'remember') !== false) {
+                return true;
+            }
         }
 
-        // We have a session cookie, but we can't read session data without session_start().
-        // The safest approach: if there's a session cookie, DON'T serve from early cache.
-        // Let the full PHP bootstrap handle it (Phase 2 will still cache if appropriate).
-        //
-        // This is the conservative approach: admins always get dynamic pages,
-        // anonymous visitors (no session cookie) get ultra-fast cached pages.
-        return true;
+        $sessionName = session_name() ?: 'PHPSESSID';
+        if (empty($_COOKIE[$sessionName])) {
+            return false; // sin sesión: anónimo
+        }
+
+        // Leer la sesión sin bloquearla ni modificarla (read_and_close), sin cabeceras
+        // de caché ni cookie nueva; la aplicación la abrirá después con normalidad.
+        $limiter = session_cache_limiter();
+        $strict = ini_get('session.use_strict_mode');
+        session_cache_limiter('');
+        ini_set('session.use_strict_mode', '0');
+        $data = [];
+        try {
+            if (session_status() === PHP_SESSION_NONE && @session_start(['read_and_close' => true])) {
+                $data = is_array($_SESSION ?? null) ? $_SESSION : [];
+            }
+        } catch (\Throwable $e) {
+            return true; // ante la duda, página dinámica
+        } finally {
+            session_cache_limiter($limiter);
+            ini_set('session.use_strict_mode', (string) $strict);
+        }
+
+        return !HtmlCache::isAnonymousSession($data);
     }
 
     /**

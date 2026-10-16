@@ -79,6 +79,12 @@ require_once __DIR__ . '/../core/Env.php';
 // If cache miss: starts output buffering for Phase 2 capture.
 require_once __DIR__ . '/../core/Cache/HtmlCache.php';
 require_once __DIR__ . '/../core/Cache/HtmlCacheMiddleware.php';
+// Páginas públicas cacheables: sin el «no-store» automático que PHP añade al abrir la
+// sesión (impedía la caché HTML de todo el sitio). Las sesiones identificadas lo reciben
+// en SessionSecurity::startSession(); el panel y las rutas excluidas conservan el de PHP.
+if (\Screenart\Musedock\Cache\HtmlCache::shouldCache((string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH))) {
+    session_cache_limiter('');
+}
 \Screenart\Musedock\Cache\HtmlCacheMiddleware::tryServeFromCache();
 
 // Determinar entorno (producción vs desarrollo)

@@ -74,6 +74,7 @@
                 <li>Logos de todos los tenants en WebP al doble de la altura mostrada: en festivalnews.org han pasado de 282 KB a 22 KB.</li>
                 <li>Sliders: imágenes en WebP (variante nueva de 1600 px para los de ancho completo), Swiper cargado una sola vez por página aunque haya varios sliders, y espacio reservado antes de arrancar para que la página no salte. En ibestff.com la portada ha pasado de 2,7 MB a 1,1 MB y los saltos (CLS) de 0,50 a 0,04.</li>
                 <li>Media Manager: las variantes WebP que faltan se generan automáticamente la primera vez que se piden. Los logos del Media Manager usan su variante WebP.</li>
+                <li>Caché HTML reactivada de forma segura. Solo se sirve y se guarda para visitantes anónimos: cualquier sesión con admin, usuario, cliente, carrito o avisos pendientes recibe la página generada al momento, con <code>no-store</code>. Las URLs con parámetros (<code>?page=2</code>, <code>?q=…</code>) no se cachean, salvo los de campañas (<code>utm_*</code>, <code>gclid</code>…). Respuesta del servidor de ~1,8 s a ~0,2 s.</li>
                 <li>Versiones de CSS por fecha del fichero (antes cambiaban en cada carga e impedían la caché) y botones de cookies con contraste suficiente.</li>
             </ul>
             <h6 class="text-info"><i class="bi bi-translate me-1"></i> SEO multi-idioma</h6>

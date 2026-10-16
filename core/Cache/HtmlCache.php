@@ -559,6 +559,46 @@ class HtmlCache
     /**
      * Determine if a URI should be cached.
      */
+    /**
+     * Claves de sesión que tiene cualquier visitante anónimo. Si la sesión tiene
+     * cualquier otra (admin, usuario, cliente, carrito, formulario con errores...),
+     * la página puede ser personal: ni se sirve de caché ni se guarda.
+     */
+    private const ANONYMOUS_SESSION_KEYS = ['created', 'last_active', 'tenant_id', '_a_sid', 'lang', 'locale', 'superadmin_locale', '_csrf_token', 'last_cleanup', '_flash', '_flash_timestamps'];
+
+    /** Parámetros de URL que no cambian el contenido (campañas y seguimiento). */
+    private const IGNORED_QUERY_PARAMS = ['gclid', 'fbclid', 'msclkid', 'dclid', 'yclid', 'mc_cid', 'mc_eid', '_ga', '_gl', 'ref'];
+
+    public static function isAnonymousSession(array $session): bool
+    {
+        foreach ($session as $key => $value) {
+            if (!in_array($key, self::ANONYMOUS_SESSION_KEYS, true)) {
+                return false;
+            }
+            if (($key === '_flash' || $key === '_flash_timestamps') && !empty($value)) {
+                return false; // aviso pendiente de mostrar: página personal
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * La caché se indexa por ruta sin parámetros: solo vale para peticiones sin
+     * parámetros que cambien el contenido (?page=2, ?q=..., ?lang=...).
+     */
+    public static function isCacheableQuery(array $query): bool
+    {
+        foreach (array_keys($query) as $param) {
+            $param = strtolower((string) $param);
+            if (!str_starts_with($param, 'utm_') && !in_array($param, self::IGNORED_QUERY_PARAMS, true)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public static function shouldCache(string $uri): bool
     {
         // Only cache GET requests (caller should verify HTTP method)
