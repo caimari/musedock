@@ -195,5 +195,19 @@ ok(count($r['items']) > count($r['cards']) && array_sum($r['card_counts']) >= co
 $ids = array_map(fn ($c) => $c['kind'] . '|' . $c['name'], $r['cards']);
 ok(count($ids) === count(array_unique($ids)), 'ninguna URL ni consulta se repite entre las tarjetas');
 
+echo "== 7. Coincidencias inesperadas (otra marca o error de escritura)\n";
+$pdo = db();
+put($pdo, 'gsc_site_daily', $cur, null, 30, 3000, 8.0);
+put($pdo, 'gsc_site_daily', $prev, null, 30, 3000, 8.0);
+foreach ([['screen ai', 14, 101, 4.3], ['screenai', 10, 86, 2.5], ['creen ai', 3, 249, 8.4], ['screen ia', 5, 45, 4.4]] as [$q, $c, $i, $ps]) { put($pdo, 'gsc_query_daily', $cur, $q, $c, $i, $ps); }
+put($pdo, 'gsc_query_daily', $prev, 'creen ai', 12, 1191, 8.0);   // antes tenía mucho más: sin la regla sería una «caída» de prioridad alta
+$r = (new OpportunityService($pdo))->detect(['id' => 1, 'domain' => 'screenai.es'], 28);
+$names = array_column(array_filter($r['items'], fn ($i) => $i['kind'] === 'query'), 'name');
+ok(!in_array('creen ai', $names, true), '«creen ai» (parecida a la marca, CTR 1,2 % frente al 12,8 % de la marca) no sale como oportunidad ni como caída propia');
+$brandItems = array_filter($r['items'], fn ($i) => $i['kind'] === 'query' && $i['name'] === 'screenai');
+ok(!$brandItems || $brandItems && array_values($brandItems)[0]['brand'] === true, 'las búsquedas de marca siguen su curso normal (marcadas como marca)');
+$tail = (new OpportunityService($pdo))->detect(['id' => 1, 'domain' => 'x.test'], 28);
+ok(in_array('creen ai', array_column(array_filter($tail['items'], fn ($i) => $i['kind'] === 'query'), 'name'), true), 'sin marca conocida (dominio corto) no se hace esta distinción y se trata como cualquier consulta');
+
 echo "\n" . ($fails ? "RESULTADO: $fails de $n comprobaciones FALLAN\n" : "RESULTADO: las $n comprobaciones pasan\n");
 exit($fails ? 1 : 0);

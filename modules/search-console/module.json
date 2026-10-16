@@ -1,8 +1,18 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "changelog": [
+    {
+      "version": "0.9.0",
+      "date": "2026-10-16",
+      "changes": [
+        "Búsquedas parecidas a tu marca: detecta consultas que se escriben casi como tu marca sin contenerla («creen ai» frente a «screenai») y las separa por su CTR frente al de tu marca: «Parece una variante tuya» (CTR parecido), «Coincidencia inesperada» (CTR muy inferior con volumen: probablemente otra empresa o un error) o «Sin pista clara». Es una pista, no un veredicto: el sistema no sabe qué productos existen.",
+        "Las coincidencias inesperadas no se tratan como pérdida ni como oportunidad propia (ya no salen como «caída» de prioridad alta) y quedan en su tarjeta aparte.",
+        "Etiquetas manuales por dominio (tabla gsc_query_label): «es mi marca (o una variante)», «marca de otra empresa» o «no relevante». Corrigen la clasificación de marca (con apartado propio «marca de otra empresa» en el reparto) y las excluyen de «Esta semana merece tu tiempo».",
+        "La prioridad explica por qué se asignó, en el propio aviso: «Volumen alto: …», «Volumen medio: el volumen del periodo anterior (134 impresiones; ahora 61)…», «Alta por actualidad: edición vigente, aunque el volumen de datos sea limitado (83 impresiones, menos de 500)», «Caída de clics confirmada (14 → 3)»."
+      ]
+    },
     {
       "version": "0.8.1",
       "date": "2026-10-16",

@@ -180,6 +180,9 @@ class OpportunityService
     {
         $out = [];
         $unexpected = $kind === 'query' && $this->isUnexpected($name, $c, $p);
+        if ($unexpected) {
+            return []; // no es una oportunidad ni una pérdida propia: se muestra aparte, en «Búsquedas parecidas a tu marca»
+        }
         $imp = $c['impressions'];
         $pos = $c['position'];
         $ctr = $imp > 0 ? $c['clicks'] / $imp : 0.0;
