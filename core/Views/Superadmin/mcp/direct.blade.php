@@ -141,12 +141,6 @@
       <p class="small text-muted mb-3">Es la dirección del asistente a la que volverás después de autorizar el acceso en este CMS. ChatGPT y Claude se rellenan automáticamente. Si el asistente muestra otra URL, elige Personalizado y copia esa dirección exacta; en ese modo no puede quedar vacía. Cada asistente necesita sus propias credenciales.</p>
       <fieldset class="mb-3"><legend class="h6">Permisos de este acceso</legend>
       <div class="d-flex flex-wrap gap-2 mb-2"><button type="button" class="btn btn-sm btn-outline-secondary" data-mcp-permission-preset="read">Solo lectura</button><button type="button" class="btn btn-sm btn-outline-secondary" data-mcp-permission-preset="all">Todos los disponibles</button></div><p class="small text-muted">La selección solo se aplica al crear este acceso; el servicio mantiene sus límites y sitios autorizados.</p>
-      <div class="border rounded p-3 mb-3">
-        <h4 class="h6">Aprobación automática (opcional)</h4>
-        <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_posts"> Aprobar automáticamente artículos y publicaciones</label>
-        <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_images"> Aprobar automáticamente generaciones de imágenes</label>
-        <p class="small text-muted mb-0">Se mantienen los permisos y sitios seleccionados. La generación consume la cuota o saldo del proveedor.</p>
-      </div>
       @foreach($scopes as $scope)
         <label class="form-check"><input class="form-check-input" type="checkbox" name="scopes[]" value="{{ $scope }}" {{ $loop->first ? 'checked' : '' }}> {{ \Screenart\Musedock\Services\Mcp\Direct\Policy::label($scope) }} <small class="text-muted">({{ $scope }})</small></label>
       @endforeach
