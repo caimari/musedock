@@ -25,7 +25,18 @@ require_once APP_ROOT . '/vendor/autoload.php';
 require_once APP_ROOT . '/core/bootstrap.php';
 
 // Cargar clases del plugin caddy-domain-manager (no están en composer autoload)
-$pluginPath = APP_ROOT . '/plugins/superadmin/caddy-domain-manager';
+// El plugin vive en private-plugins (PRIVATE_PLUGINS_PATH) o en plugins/superadmin según la instalación
+$pluginPath = null;
+foreach (\Screenart\Musedock\Services\SuperadminPluginService::getPluginsDirs() as $pluginsDir) {
+    if (is_file($pluginsDir . '/caddy-domain-manager/Services/CloudflareService.php')) {
+        $pluginPath = $pluginsDir . '/caddy-domain-manager';
+        break;
+    }
+}
+if ($pluginPath === null) {
+    fwrite(STDERR, "[CRON] No se encuentra el plugin caddy-domain-manager.\n");
+    exit(1);
+}
 require_once $pluginPath . '/Services/CloudflareService.php';
 require_once $pluginPath . '/Services/CloudflareZoneService.php';
 require_once $pluginPath . '/Services/CaddyService.php';
