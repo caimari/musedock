@@ -28,6 +28,7 @@
                 <li><strong>Mover el SEO entre un dominio y su alias</strong>: redirección 301 que conserva la ruta, en los dos sentidos, uno a uno o varios a la vez, con contraseña. Se inserta al principio de las rutas de Caddy (antes del comodín), se verifica con una petición real y se deshace sola si falla. No toca DNS ni Google, y no borra nada.</li>
                 <li>Buscador en cada tarjeta y orden por columna en todas las tablas. Documentación pública actualizada (es/en).</li>
                 <li><strong>Avisar a los buscadores</strong>: enviar el sitemap a Google (a mano, al dar de alta un dominio y al mover el SEO), inspeccionar una URL (¿indexada?, último rastreo, canonical elegido por Google) e <strong>IndexNow</strong> automático para Bing y Yandex con lo nuevo o modificado.</li>
+                <li><strong>Exportar a CSV</strong> (tabla de dominios y cada tabla del informe), <strong>contenido del CMS en el informe</strong> (cada URL con su título y enlace «Editar») y <strong>aviso por correo de caídas de SEO</strong>.</li>
                 <li><strong>Descargar datos ahora</strong> como cola con barra de progreso y parar, y cuidado del servidor: espera si hay mucha carga de CPU, pausa entre dominios, prioridad baja y memoria limitada.</li>
             </ul>
             <h6 class="text-info"><i class="bi bi-cloud me-1"></i> Cuentas DNS y diálogos</h6>

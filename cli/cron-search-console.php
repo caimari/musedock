@@ -20,11 +20,11 @@ require_once APP_ROOT . '/core/Env.php';
 \Screenart\Musedock\Env::load();
 require_once APP_ROOT . '/config/config.php';
 require_once APP_ROOT . '/core/helpers.php';
-foreach (['Crypto', 'GoogleApiException', 'GoogleClient', 'PropertyService', 'CredentialStore', 'DomainVerifier', 'SyncService', 'BulkVerifyService', 'DomainExpiryService', 'SitemapService', 'IndexNowService', 'SyncQueueService'] as $class) {
+foreach (['Crypto', 'GoogleApiException', 'GoogleClient', 'PropertyService', 'CredentialStore', 'DomainVerifier', 'SyncService', 'BulkVerifyService', 'DomainExpiryService', 'SitemapService', 'IndexNowService', 'SyncQueueService', 'DropAlertService'] as $class) {
     require_once APP_ROOT . "/modules/search-console/services/{$class}.php";
 }
 
-use Modules\SearchConsole\Services\{BulkVerifyService, DomainExpiryService, SitemapService, IndexNowService, SyncQueueService, CredentialStore, DomainVerifier, PropertyService, SyncService};
+use Modules\SearchConsole\Services\{BulkVerifyService, DomainExpiryService, SitemapService, IndexNowService, SyncQueueService, DropAlertService, CredentialStore, DomainVerifier, PropertyService, SyncService};
 
 // Trabajo en segundo plano: prioridad mínima y memoria acotada, para no competir con las webs
 if (function_exists('proc_nice')) {
@@ -113,6 +113,16 @@ if (!$onlyProperty && !$loadHigh && $syncQueue->isStale()) {
         if ($v['wait'] !== null) { sleep(SyncQueueService::MIN_GAP); }
     } while ($v['status'] === 'running' && time() < $until);
     $log("«Descargar datos ahora»: {$v['status']} · {$v['counts']['ok']} descargados · {$v['counts']['error']} con error");
+}
+
+// 0b3) Caídas de SEO: una vez al día (a partir de las 8:00) se avisa por correo a los superadmin de lo relevante
+if (!$onlyProperty && !$loadHigh) {
+    $drops = new DropAlertService($pdo);
+    if ($drops->due()) {
+        $emails = $pdo->query("SELECT email FROM super_admins WHERE email IS NOT NULL AND email <> ''")->fetchAll(PDO::FETCH_COLUMN);
+        $r = $drops->run($props, static fn ($to, $subject, $html) => \Screenart\Musedock\Mail\Mailer::send($to, $subject, $html), $emails);
+        $log("caídas de SEO: {$r['checked']} dominios revisados · {$r['alerts']} avisos" . ($r['alerts'] ? ($r['sent'] ? ' (correo enviado)' : ' (no se pudo enviar el correo)') : ''));
+    }
 }
 
 // 0c) IndexNow: cada hora, lee el sitemap de cada dominio propio y avisa a Bing/Yandex de lo nuevo o cambiado

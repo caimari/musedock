@@ -1,8 +1,18 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "changelog": [
+    {
+      "version": "0.5.0",
+      "date": "2026-10-16",
+      "changes": [
+        "Exportar a CSV (UTF-8, «;» y decimales con coma, listo para Excel): la tabla de dominios del periodo elegido y, en cada informe, consultas, páginas, países, dispositivos y la serie diaria. Las celdas que empiezan por =, +, - o @ se protegen contra inyección de fórmulas.",
+        "El informe relaciona cada URL con su contenido del CMS (ContentMapService): tipo (artículo, página, documentación, inicio), título y enlace «Editar». Solo del propio tenant; no se cruzan tenants.",
+        "Aviso por correo de caídas de SEO (DropAlertService): una vez al día (desde las 8:00) si los clics o impresiones de un dominio caen a la mitad, o una página con tráfico pierde la mitad de sus clics, frente a los 28 días anteriores. Sin histórico suficiente o con poco tráfico no avisa; cada aviso se repite como mucho una vez por semana.",
+        "Dominios fuera del CMS (p. ej. muserelay.com, en otro servidor) se dan de alta con «Añadir un dominio que no está en el CMS»; si su DNS está en una cuenta de Cloudflare del registro, el TXT se publica solo."
+      ]
+    },
     {
       "version": "0.4.0",
       "date": "2026-10-16",
