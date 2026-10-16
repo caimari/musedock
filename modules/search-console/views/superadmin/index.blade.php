@@ -12,7 +12,7 @@
     $fmt = fn($n) => number_format((int) $n, 0, ',', '.');
     $statusLabels = ['active' => ['Activa', 'success'], 'no_access' => ['Sin acceso', 'warning'], 'pending' => ['Pendiente', 'secondary'], 'error' => ['Error', 'danger']];
 @endphp
-@php include __DIR__ . '/../partials/sortable-css.php'; @endphp
+@php include APP_ROOT . '/modules/search-console/views/partials/sortable-css.php'; @endphp
 <style>
 .gsc-page .card { border:1px solid #e5eaf1;border-radius:12px;box-shadow:0 3px 14px rgba(30,50,80,.035); }
 .gsc-page .stat-badge { display:flex;align-items:center;gap:.35rem;font-size:.85rem;padding:.4rem .75rem;border-radius:6px;background:#f8f9fa;border:1px solid #e9ecef; }
