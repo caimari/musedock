@@ -1,8 +1,20 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "changelog": [
+    {
+      "version": "0.6.0",
+      "date": "2026-10-16",
+      "changes": [
+        "Detector de oportunidades 2.0 (a raíz de una revisión externa): las variantes de una misma página (con/sin www, con #ancla, con utm_*, con barra final) se agrupan en una sola (UrlNormalizer; el dato original no se toca) y las páginas legales, de acceso y de panel se excluyen. En laraflex.org, la portada del artículo principal pasó de 654 a 1.004 impresiones al sumar sus 16 variantes.",
+        "Prioridades: cada aviso es de prioridad alta, media o exploración según el volumen que lo respalda. Las exploratorias (pocas impresiones) se ocultan por defecto y no llevan consejo concreto («Pocos datos: necesita revisión»). Las cifras de potencial se rotulan como estimación.",
+        "Canibalización: nueva instantánea consulta+página de los últimos 28 días (tabla gsc_query_page, se reemplaza en cada descarga) y tarjeta «Páginas que compiten entre sí».",
+        "Sugerencias editoriales por reglas (EditorialService, sin IA): incluir la búsqueda principal en el título, completar o ajustar la descripción SEO, otras búsquedas que ya trae la página y enlaces internos desde páginas relacionadas. Solo proponen; los textos de Google se tratan como datos (escapados).",
+        "«Esta semana merece tu tiempo» (PriorityService): arriba de la pantalla principal, las 5 cosas de más impacto de todos los dominios, en clics estimados, con tope por dominio.",
+        "Rendimiento: modules/module-menu-helper.php dejó de hacer ~40 UPDATE/s en cada petición (registro de menús de módulos); ahora, si el mismo menú ya se registró hace menos de una hora, no toca la BD."
+      ]
+    },
     {
       "version": "0.5.0",
       "date": "2026-10-16",

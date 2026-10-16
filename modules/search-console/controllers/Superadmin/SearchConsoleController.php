@@ -53,6 +53,7 @@ class SearchConsoleController extends BaseController
             'expiry' => (new \Modules\SearchConsole\Services\DomainExpiryService($this->pdo))->listing(),
             'redirectPairs' => (new \Modules\SearchConsole\Services\RedirectService($this->pdo))->pairs(),
             'indexNow' => $this->indexNowView(),
+            'priorities' => $credential ? $this->priorities($properties) : [],
             'archived' => $credential ? $this->properties->archivedForSuperadmin() : [],
             'missing' => $credential ? $this->properties->ownDomainsWithoutProperty((int) $credential['id']) : [],
             'pendingExternal' => $credential ? $this->properties->pendingExternal((int) $credential['id']) : [],
@@ -245,5 +246,20 @@ class SearchConsoleController extends BaseController
         };
         echo json_encode($state, JSON_UNESCAPED_UNICODE);
         exit;
+    }
+
+    /** Lo que más merece tu tiempo: pocas oportunidades y caídas de impacto alto en todos los dominios. */
+    private function priorities(array $properties): array
+    {
+        try {
+            $svc = new \Modules\SearchConsole\Services\PriorityService(
+                new \Modules\SearchConsole\Services\OpportunityService($this->pdo),
+                new \Modules\SearchConsole\Services\DropAlertService($this->pdo)
+            );
+
+            return $svc->top($properties, 5);
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 }

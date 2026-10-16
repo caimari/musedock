@@ -70,15 +70,15 @@ class DropAlertService
 
         $out = [];
         if ($prev['c'] >= self::MIN_PREV_CLICKS && $now['c'] <= $prev['c'] * 0.5) {
-            $out[] = ['key' => $property['domain'] . '|site-clicks', 'text' => "Los clics bajan de {$prev['c']} a {$now['c']} (−" . round((1 - $now['c'] / $prev['c']) * 100) . ' %) frente a los 28 días anteriores.'];
+            $out[] = ['impact' => (float) ($prev['c'] - $now['c']), 'domain' => $property['domain'], 'key' => $property['domain'] . '|site-clicks', 'text' => "Los clics bajan de {$prev['c']} a {$now['c']} (−" . round((1 - $now['c'] / $prev['c']) * 100) . ' %) frente a los 28 días anteriores.'];
         } elseif ($prev['i'] >= self::MIN_PREV_IMPRESSIONS && $now['i'] <= $prev['i'] * 0.5) {
-            $out[] = ['key' => $property['domain'] . '|site-impr', 'text' => "Las impresiones bajan de {$prev['i']} a {$now['i']} (−" . round((1 - $now['i'] / $prev['i']) * 100) . ' %) frente a los 28 días anteriores.'];
+            $out[] = ['impact' => (float) (($prev['i'] - $now['i']) * 0.01), 'domain' => $property['domain'], 'key' => $property['domain'] . '|site-impr', 'text' => "Las impresiones bajan de {$prev['i']} a {$now['i']} (−" . round((1 - $now['i'] / $prev['i']) * 100) . ' %) frente a los 28 días anteriores.'];
         }
         $pages = $this->pdo->prepare('SELECT page, SUM(CASE WHEN date >= ? AND date <= ? THEN clicks ELSE 0 END) AS c, SUM(CASE WHEN date >= ? AND date <= ? THEN clicks ELSE 0 END) AS pc FROM gsc_page_daily WHERE property_id = ? AND date >= ? AND date <= ? GROUP BY page HAVING SUM(CASE WHEN date >= ? AND date <= ? THEN clicks ELSE 0 END) >= ? ORDER BY pc DESC LIMIT 20');
         $pages->execute([$from, $to, $prevFrom, $prevTo, $id, $prevFrom, $to, $prevFrom, $prevTo, self::MIN_PAGE_PREV_CLICKS]);
         foreach ($pages->fetchAll(PDO::FETCH_ASSOC) as $p) {
             if ((int) $p['c'] <= (int) $p['pc'] * 0.5) {
-                $out[] = ['key' => $property['domain'] . '|page|' . sha1($p['page']), 'text' => 'La página ' . $p['page'] . " pasa de {$p['pc']} a {$p['c']} clics."];
+                $out[] = ['impact' => (float) ($p['pc'] - $p['c']), 'domain' => $property['domain'], 'key' => $property['domain'] . '|page|' . sha1($p['page']), 'text' => 'La página ' . $p['page'] . " pasa de {$p['pc']} a {$p['c']} clics."];
             }
             if (count($out) >= 4) {
                 break;

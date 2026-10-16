@@ -90,7 +90,27 @@
     </div></div>
 
     {{-- ===== Dominios ===== --}}
-    <div class="card mb-4"><div class="card mb-3" id="gsc-sync-card" style="display:none;"><div class="card-body p-3">
+    <div class="card mb-4">@if(!empty($priorities))
+    <div class="card mb-3 border-primary" id="gsc-priorities"><div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
+            <h6 class="mb-0" style="font-weight:700;"><i class="bi bi-bullseye"></i> Esta semana merece tu tiempo</h6>
+            <button type="button" class="btn btn-link btn-sm p-0" id="gsc-priorities-help"><i class="bi bi-question-circle"></i> ¿Cómo se eligen?</button>
+        </div>
+        <div class="text-muted mb-2" style="font-size:.8rem;">Lo de más impacto de todos tus dominios, sin repetir avisos: variantes de URL agrupadas, páginas legales excluidas y solo prioridad alta.</div>
+        <ol class="mb-0 ps-3">
+        @foreach($priorities as $pr)
+            <li class="mb-2" style="font-size:.9rem;">
+                <a href="{{ $baseUrl }}/domain/{{ $pr['property_id'] }}"><strong>{{ $pr['domain'] }}</strong></a>
+                <span class="badge bg-light text-dark border ms-1" style="font-size:.68rem;">{{ $pr['title'] }}</span>
+                <span class="text-muted" style="font-size:.75rem;">≈ {{ number_format($pr['impact'], 0, ',', '.') }} clics/28 d (estimación)</span>
+                <div>{{ $pr['text'] }}</div>
+            </li>
+        @endforeach
+        </ol>
+    </div></div>
+    @endif
+
+    <div class="card mb-3" id="gsc-sync-card" style="display:none;"><div class="card-body p-3">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
             <div style="font-weight:700;"><span class="spinner-border spinner-border-sm me-2" id="gsc-sync-spin" aria-hidden="true"></span><span id="gsc-sync-title">Descargando datos de Google…</span></div>
             <div class="d-flex gap-2">
@@ -833,6 +853,12 @@
         var order = ['dominio', 'tenant', 'estado', 'clics', 'impresiones', 'ctr', 'posición', 'vs.', 'última'];
         Swal.fire({ title: 'Qué significa cada columna', width: 720, confirmButtonText: 'Entendido',
             html: '<ul style="text-align:left;font-size:.92rem;padding-left:1.1rem;margin:0;">' + order.map(function (k) { return '<li class="mb-2"><strong>' + colHelp[k][0] + '</strong>: ' + colHelp[k][1] + '</li>'; }).join('') + '</ul><div class="text-muted mt-2" style="font-size:.82rem;text-align:left;">Haz clic en el título de una columna para ordenar por ella.</div>' });
+    });
+
+    var prHelp = document.getElementById('gsc-priorities-help');
+    if (prHelp) prHelp.addEventListener('click', function () {
+        Swal.fire({ title: 'Cómo se eligen las prioridades', icon: 'info', width: 680, confirmButtonText: 'Entendido',
+            html: '<div style="text-align:left;font-size:.92rem;"><p>Se revisan todos tus dominios con las mismas reglas del detector de oportunidades y se queda solo lo de <strong>prioridad alta</strong>: mucho peso en el sitio o una caída de clics confirmada. Se suman también las caídas de visibilidad de cada dominio.</p><p>Todo se expresa en <strong>clics estimados por periodo de 28 días</strong> para poder compararlo, y un mismo dominio no ocupa más de dos puestos. Es una <strong>estimación</strong>, no una previsión: con pocos datos, un cambio pequeño produce porcentajes enormes, así que no lo tomes como prueba de nada sin mirar el informe del dominio.</p></div>' });
     });
 
     // ===== Dar de baja (conservando los datos) y reactivar =====
