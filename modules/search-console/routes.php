@@ -41,6 +41,8 @@ Route::post($gscAdminPath . '/search-console/refresh', "{$gscTenantCtrl}@refresh
 Route::post($gscAdminPath . '/search-console/verify', "{$gscTenantCtrl}@verifyDomain")->middleware('auth');
 Route::get($gscAdminPath . '/search-console/domain/{id}', "{$gscTenantCtrl}@show")->name('search-console.tenant.domain')->middleware('auth');
 Route::get($gscAdminPath . '/search-console/export', "{$gscTenantCtrl}@export")->middleware('auth');
+Route::post($gscAdminPath . '/search-console/optimization/add', "{$gscTenantCtrl}@optimizationAdd")->middleware('auth');
+Route::post($gscAdminPath . '/search-console/optimization/delete', "{$gscTenantCtrl}@optimizationDelete")->middleware('auth');
 Route::post($gscAdminPath . '/search-console/sync', "{$gscTenantCtrl}@syncNow")->middleware('auth');
 Route::post($gscAdminPath . '/search-console/sitemap/submit', "{$gscTenantCtrl}@submitSitemap")->middleware('auth');
 Route::post($gscAdminPath . '/search-console/inspect', "{$gscTenantCtrl}@inspectUrl")->middleware('auth');
@@ -51,6 +53,9 @@ $gscIndexNowCfg = is_file($gscIndexNowFile) ? json_decode((string) @file_get_con
 if (is_array($gscIndexNowCfg) && preg_match('/^[a-f0-9]{16,64}$/', (string) ($gscIndexNowCfg['key'] ?? ''))) {
     Route::get('/' . $gscIndexNowCfg['key'] . '.txt', 'Modules\SearchConsole\Controllers\IndexNowController@key');
 }
+Route::post('/musedock/search-console/optimization/add', "{$gscSaCtrl}@optimizationAdd")->middleware('superadmin');
+Route::post('/musedock/search-console/optimization/delete', "{$gscSaCtrl}@optimizationDelete")->middleware('superadmin');
+Route::post('/musedock/search-console/task', "{$gscSaCtrl}@taskToggle")->middleware('superadmin');
 Route::post('/musedock/search-console/goal', "{$gscSaCtrl}@goalSet")->middleware('superadmin');
 Route::post('/musedock/search-console/indexnow/scan', "{$gscSaCtrl}@indexNowScan")->middleware('superadmin');
 Route::post('/musedock/search-console/indexnow/toggle', "{$gscSaCtrl}@indexNowToggle")->middleware('superadmin');

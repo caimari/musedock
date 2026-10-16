@@ -1,8 +1,18 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "changelog": [
+    {
+      "version": "0.8.0",
+      "date": "2026-10-16",
+      "changes": [
+        "Seguimiento de optimizaciones (OptimizationService, tabla gsc_optimizations): se registra qué cambiaste en una página (título, descripción, contenido, enlaces, actualización), cuándo y una nota; el módulo compara N días antes con N días después (N = 28, o los que haya), sumando las variantes de la URL, y lo contrasta con lo que hizo el sitio entero en los mismos días. El veredicto es prudente («Coincide con una mejora», «Sin cambio claro», «Coincide con un empeoramiento», «Pocos datos», «En seguimiento») y avisa de que es una coincidencia en el tiempo, no una prueba de causa. Botón «Registrar optimización» en cada oportunidad de página, tarjeta en el informe y resumen en la pantalla principal.",
+        "Plan semanal guardado en la base de datos, por usuario (gsc_task_state), en lugar de en el navegador: no se pierde al cambiar de equipo o limpiar datos.",
+        "«Esta semana merece tu tiempo» ya no se recalcula en cada carga del panel: se guarda una hora y la recalienta el cron; cambiar un objetivo o descargar datos nuevos la invalida.",
+        "Objetivos iniciales de los dominios propios configurados (tráfico, reputación editorial, captar clientes, difusión cultural); se pueden cambiar con el selector bajo cada dominio."
+      ]
+    },
     {
       "version": "0.7.0",
       "date": "2026-10-16",

@@ -152,6 +152,7 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
                         <strong><?= $it['kind'] === 'page' ? $pageLink($it['name'], $it['label']) : $e($it['label']) ?></strong><?php if (!empty($it['brand'])): ?> <span class="badge bg-light text-dark border" style="font-size:.62rem;" title="Búsqueda de marca: contiene el nombre del sitio">marca</span><?php endif; ?></td>
                     <td class="num"><?= $n($it['impressions']) ?></td><td class="num"><?= $n($it['clicks']) ?></td><td class="num"><?= $pos($it['position']) ?></td>
                     <td style="font-size:.82rem;min-width:240px;max-width:460px;"><strong><?= $e($it['detail']) ?></strong><div class="text-muted"><?= $e($it['advice']) ?></div>
+                        <?php if ($it['kind'] === 'page' && ($property['status'] ?? '') === 'active'): ?><div><button type="button" class="btn btn-link btn-sm p-0 gsc-opt-add" style="font-size:.74rem;" data-url="<?= $e($it['name']) ?>"><i class="bi bi-journal-check"></i> Registrar optimización</button></div><?php endif; ?>
                         <?php if (!empty($editorial['suggestions'][$it['name']])): $sg = $editorial['suggestions'][$it['name']]; ?>
                         <details class="mt-1"><summary class="text-primary" style="cursor:pointer;font-size:.78rem;"><i class="bi bi-lightbulb"></i> Sugerencias (<?= count($sg) ?>)</summary>
                             <ul class="mb-1 mt-1 ps-3" style="font-size:.78rem;"><?php foreach ($sg as $line): ?><li><?= $e($line) ?></li><?php endforeach; ?></ul>
@@ -176,6 +177,40 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
                     <td class="text-muted" style="font-size:.78rem;min-width:240px;max-width:380px;"><?= $e($cn['advice']) ?></td></tr>
             <?php endforeach; ?>
         </tbody></table></div></div>
+    </div>
+    <?php endif; ?>
+    <?php if (isset($optimizations) && ($property['status'] ?? '') === 'active'): ?>
+    <div class="card mb-3" id="gsc-optimizations">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div><strong><i class="bi bi-journal-check"></i> Seguimiento de optimizaciones</strong>
+                <span class="text-muted" style="font-size:.8rem;">qué cambiaste, cuándo, y cómo se comportó la página antes y después</span></div>
+            <button type="button" class="btn btn-outline-primary btn-sm gsc-opt-add" data-url=""><i class="bi bi-plus-circle"></i> Registrar optimización</button>
+        </div>
+        <div class="card-body p-0">
+        <?php if (!$optimizations): ?>
+            <div class="text-muted p-3" style="font-size:.85rem;">Todavía no has registrado ninguna. Cuando mejores una página (título, contenido, enlaces…), regístrala aquí con su fecha: el módulo comparará 28 días antes con 28 días después, y con lo que hizo el sitio entero, para ver si el cambio coincide con una mejora.</div>
+        <?php else: ?>
+            <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
+                <thead><tr><th>Fecha</th><th>Página</th><th>Cambio</th><th>Antes → después</th><th>Valoración</th><th></th></tr></thead><tbody>
+                <?php foreach ($optimizations as $o): $ev = $o['evaluation'];
+                    $vc = ['better' => 'success', 'worse' => 'danger', 'flat' => 'secondary', 'tracking' => 'info', 'few_data' => 'secondary'][$ev['state']] ?? 'secondary'; ?>
+                    <tr>
+                        <td style="white-space:nowrap;"><?= $e(date('d/m/Y', strtotime($o['done_on']))) ?></td>
+                        <td class="gsc-trunc" style="max-width:240px;" title="<?= $e($o['url']) ?>"><?= $pageLink($o['url'], OpportunityService::shortPage($o['url'], (string) $property['domain'])) ?></td>
+                        <td style="font-size:.82rem;"><strong><?= $e($optimizationKinds[$o['kind']] ?? $o['kind']) ?></strong><?php if (!empty($o['note'])): ?><div class="text-muted" style="font-size:.75rem;"><?= $e($o['note']) ?></div><?php endif; ?></td>
+                        <td style="font-size:.8rem;white-space:nowrap;">
+                        <?php if ($ev['before'] && $ev['after']): ?>
+                            <div>pos. <?= $pos($ev['before']['position']) ?> → <strong><?= $pos($ev['after']['position']) ?></strong></div>
+                            <div class="text-muted"><?= $n($ev['before']['clicks']) ?> → <?= $n($ev['after']['clicks']) ?> clics · <?= $n($ev['before']['impressions']) ?> → <?= $n($ev['after']['impressions']) ?> impr.</div>
+                            <div class="text-muted" style="font-size:.7rem;"><?= (int) $ev['days'] ?> días antes vs. <?= (int) $ev['days'] ?> después</div>
+                        <?php else: ?>—<?php endif; ?></td>
+                        <td style="font-size:.82rem;min-width:220px;max-width:340px;"><span class="badge bg-<?= $e($vc) ?>"><?= $e($ev['verdict']) ?></span><div class="text-muted" style="font-size:.72rem;"><?= $e($ev['note']) ?></div></td>
+                        <td><button type="button" class="btn btn-link btn-sm text-danger p-0 gsc-opt-del" data-id="<?= (int) $o['id'] ?>" title="Quitar del seguimiento"><i class="bi bi-trash"></i></button></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody></table></div>
+        <?php endif; ?>
+        </div>
     </div>
     <?php endif; ?>
     <script>
@@ -271,6 +306,36 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
         ];
         var html = '<ul style="text-align:left;font-size:.92rem;padding-left:1.1rem;margin:0;">' + items.map(function (i) { return '<li class="mb-2"><strong>' + i[0] + '</strong>: ' + i[1] + '</li>'; }).join('') + '</ul>';
         if (window.Swal) { Swal.fire({ title: 'Qué significa cada dato', html: html, icon: 'info', width: 720, confirmButtonText: 'Entendido' }); }
+    });
+})();
+</script>
+<script>
+(function () {
+    var token = <?= json_encode(function_exists('csrf_token') ? csrf_token() : '') ?>, base = <?= json_encode($baseUrl) ?>, pid = <?= (int) $property['id'] ?>,
+        kinds = <?= json_encode($optimizationKinds ?? [], JSON_UNESCAPED_UNICODE) ?>, def = <?= json_encode('https://' . $property['domain'] . '/') ?>;
+    function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+    function post(path, params) { return fetch(base + path, { method: 'POST', headers: { 'X-CSRF-TOKEN': token }, body: new URLSearchParams(Object.assign({ _csrf: token, property_id: pid }, params)) }).then(function (r) { return r.json(); }); }
+    document.addEventListener('click', function (e) {
+        var add = e.target.closest('.gsc-opt-add'), del = e.target.closest('.gsc-opt-del');
+        if (add) {
+            var today = new Date().toISOString().slice(0, 10);
+            Swal.fire({ title: 'Registrar una optimización', width: 640, showCancelButton: true, confirmButtonText: 'Registrar', cancelButtonText: 'Cancelar',
+                html: '<div style="text-align:left;font-size:.9rem;"><p class="text-muted" style="font-size:.82rem;">Registra qué cambiaste y cuándo. El módulo comparará 28 días antes con 28 días después, y con lo que hizo el sitio entero. Es una coincidencia en el tiempo, no una prueba de causa.</p>' +
+                    '<label class="form-label mb-0">Página (URL completa)</label><input id="opt-url" class="swal2-input" style="margin:.25rem 0 .6rem;width:100%;" value="' + esc(add.dataset.url || def) + '">' +
+                    '<label class="form-label mb-0">Qué cambiaste</label><select id="opt-kind" class="swal2-select" style="margin:.25rem 0 .6rem;width:100%;">' + Object.keys(kinds).map(function (k) { return '<option value="' + k + '">' + esc(kinds[k]) + '</option>'; }).join('') + '</select>' +
+                    '<label class="form-label mb-0">Nota (opcional)</label><input id="opt-note" class="swal2-input" maxlength="500" style="margin:.25rem 0 .6rem;width:100%;" placeholder="Ej.: título con «claude code precio», descripción nueva">' +
+                    '<label class="form-label mb-0">Fecha del cambio</label><input id="opt-date" type="date" class="swal2-input" style="margin:.25rem 0 0;width:100%;" value="' + today + '" max="' + today + '"></div>',
+                preConfirm: function () { return { url: document.getElementById('opt-url').value.trim(), kind: document.getElementById('opt-kind').value, note: document.getElementById('opt-note').value.trim(), done_on: document.getElementById('opt-date').value }; } })
+            .then(function (x) {
+                if (!x.isConfirmed) { return; }
+                post('/optimization/add', x.value).then(function (r) { if (r.ok) { location.reload(); } else { Swal.fire({ icon: 'error', title: 'No se pudo registrar', text: r.message || 'Error' }); } })
+                    .catch(function () { Swal.fire({ icon: 'error', title: 'Error de red' }); });
+            });
+        }
+        if (del) {
+            Swal.fire({ title: 'Quitar del seguimiento', text: 'Solo se borra el registro; la página y sus datos no se tocan.', icon: 'question', showCancelButton: true, confirmButtonText: 'Quitar', cancelButtonText: 'Cancelar' })
+                .then(function (x) { if (x.isConfirmed) { post('/optimization/delete', { id: del.dataset.id }).then(function () { location.reload(); }); } });
+        }
     });
 })();
 </script>

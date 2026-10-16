@@ -91,5 +91,32 @@ ok(abs(GoalService::factor('traffic', ['kind' => 'page', 'name' => 'https://x.te
 ok(GoalService::factor('cultural', ['kind' => 'page', 'name' => 'https://x.test/entrevista-director', 'label' => '', 'context' => 'current']) <= 1.8 && GoalService::factor('cultural', ['kind' => 'page', 'name' => 'https://x.test/entrevista-director', 'label' => '', 'context' => 'current']) > 1.5, 'difusión cultural sube entrevistas de la edición vigente, con tope');
 ok(array_sum(array_map(fn ($t) => $t['domain'] === 'dos.test' ? 1 : 0, $svc2->top($p2, 10))) <= PriorityService::PER_DOMAIN, 'sigue el tope por dominio');
 
+echo "== Caché y tareas\n";
+$calls = 0;
+$counting = new class($pdo, $items, $calls) extends OpportunityService {
+    public function __construct(PDO $pdo, private array $items, public int &$calls) { parent::__construct($pdo); }
+    public function detect(array $property, int $days): array { $this->calls++; return ['empty' => false, 'items' => $this->items[$property['id']] ?? []]; }
+};
+$file = sys_get_temp_dir() . '/gsc_prio_' . bin2hex(random_bytes(3)) . '.json';
+$svc3 = new PriorityService($counting, $drops);
+$a = $svc3->topCached($props, 5, [], $file);
+$afterFirst = $calls;
+$b = $svc3->topCached($props, 5, [], $file);
+ok($afterFirst > 0 && $calls === $afterFirst, 'la segunda carga usa lo guardado: no recalcula ningún dominio');
+ok(json_encode($a) === json_encode($b) && count($b) > 0, 'y devuelve lo mismo');
+$svc3->topCached($props, 5, ['uno.test' => 'leads'], $file);
+ok($calls > $afterFirst, 'cambiar el objetivo de un dominio invalida la caché');
+$before = $calls;
+$props2 = $props; $props2[0]['last_sync_at'] = '2026-10-16 23:00:00';
+$svc3->topCached($props2, 5, ['uno.test' => 'leads'], $file);
+ok($calls > $before, 'una descarga nueva de datos también la invalida');
+$old = json_decode(file_get_contents($file), true); $old['at'] = time() - 7200; file_put_contents($file, json_encode($old));
+$before = $calls;
+$svc3->topCached($props2, 5, ['uno.test' => 'leads'], $file);
+ok($calls > $before, 'pasada una hora se recalcula');
+@unlink($file);
+$k1 = PriorityService::taskKey(['domain' => 'a.test', 'kind' => 'low_ctr', 'text' => 'Revisa X']);
+ok($k1 === PriorityService::taskKey(['domain' => 'a.test', 'kind' => 'low_ctr', 'text' => 'Revisa X']) && $k1 !== PriorityService::taskKey(['domain' => 'b.test', 'kind' => 'low_ctr', 'text' => 'Revisa X']) && preg_match('/^[a-f0-9]{20}$/', $k1), 'la clave de una tarea es estable y distinta por dominio');
+
 echo $fails ? "RESULTADO: $fails comprobaciones FALLAN\n" : "RESULTADO: las comprobaciones pasan\n";
 exit($fails ? 1 : 0);

@@ -17,6 +17,33 @@ class PriorityService
     {
     }
 
+    /** Identificador estable de una tarea del plan semanal (para recordar si está hecha). */
+    public static function taskKey(array $item): string
+    {
+        return substr(sha1($item['domain'] . '|' . $item['kind'] . '|' . $item['text']), 0, 20);
+    }
+
+    /**
+     * Igual que top(), pero sin recalcular todos los dominios en cada carga del panel: el resultado se guarda y se
+     * reutiliza durante $ttl segundos mientras no cambien los dominios ni sus objetivos. El cron lo recalienta.
+     */
+    public function topCached(array $properties, int $limit, array $goals, string $file, int $ttl = 3600): array
+    {
+        $ids = [];
+        foreach ($properties as $p) {
+            $ids[] = $p['id'] . ':' . ($p['status'] ?? '') . ':' . ($p['last_sync_at'] ?? '');
+        }
+        $sig = sha1(json_encode([$ids, $goals, $limit]));
+        $c = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+        if (is_array($c) && ($c['sig'] ?? '') === $sig && time() - (int) ($c['at'] ?? 0) < $ttl) {
+            return $c['data'];
+        }
+        $data = $this->top($properties, $limit, $goals);
+        file_put_contents($file, json_encode(['sig' => $sig, 'at' => time(), 'data' => $data]), LOCK_EX);
+
+        return $data;
+    }
+
     /**
      * @param array<int,array>     $properties propiedades activas visibles
      * @param array<string,string> $goals      dominio => objetivo (GoalService::GOALS)

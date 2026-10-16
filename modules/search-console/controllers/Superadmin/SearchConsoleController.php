@@ -57,6 +57,8 @@ class SearchConsoleController extends BaseController
             'goals' => (new \Modules\SearchConsole\Services\GoalService($this->pdo))->all(),
             'goalOptions' => \Modules\SearchConsole\Services\GoalService::GOALS,
             'dataUntil' => array_reduce($properties, fn ($c, $p) => max((string) $c, (string) ($p['data_until'] ?? '')), ''),
+            'optimizationKindLabels' => \Modules\SearchConsole\Services\OptimizationService::KINDS,
+            'recentOptimizations' => $credential ? $this->recentOptimizations($properties) : [],
             'archived' => $credential ? $this->properties->archivedForSuperadmin() : [],
             'missing' => $credential ? $this->properties->ownDomainsWithoutProperty((int) $credential['id']) : [],
             'pendingExternal' => $credential ? $this->properties->pendingExternal((int) $credential['id']) : [],
@@ -260,7 +262,15 @@ class SearchConsoleController extends BaseController
                 new \Modules\SearchConsole\Services\DropAlertService($this->pdo)
             );
 
-            return $svc->top($properties, 5, (new \Modules\SearchConsole\Services\GoalService($this->pdo))->all());
+            $list = $svc->topCached($properties, 5, (new \Modules\SearchConsole\Services\GoalService($this->pdo))->all(), (defined('APP_ROOT') ? APP_ROOT : dirname(__DIR__, 4)) . '/storage/cache/search-console-priorities.json');
+            $done = $this->doneTasks();
+            foreach ($list as &$item) {
+                $item['key'] = \Modules\SearchConsole\Services\PriorityService::taskKey($item);
+                $item['done'] = isset($done[$item['key']]);
+            }
+            unset($item);
+
+            return $list;
         } catch (\Throwable $e) {
             return [];
         }
@@ -280,5 +290,56 @@ class SearchConsoleController extends BaseController
         }
         echo json_encode(['ok' => true]);
         exit;
+    }
+
+    /** Identificador del usuario que usa el panel (las tareas se guardan por usuario, en la BD). */
+    private function userKey(): string
+    {
+        return 'sa:' . (int) ($_SESSION['super_admin']['id'] ?? 0);
+    }
+
+    /** @return array<string,true> tareas del plan semanal que este usuario ha marcado como hechas */
+    private function doneTasks(): array
+    {
+        try {
+            $stmt = $this->pdo->prepare('SELECT task_key FROM gsc_task_state WHERE user_key = ?');
+            $stmt->execute([$this->userKey()]);
+
+            return array_fill_keys($stmt->fetchAll(\PDO::FETCH_COLUMN), true);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /** POST (AJAX): marca o desmarca una tarea del plan semanal. */
+    public function taskToggle()
+    {
+        $this->checkPermission('search_console.manage');
+        header('Content-Type: application/json; charset=utf-8');
+        $key = (string) ($_POST['key'] ?? '');
+        if (!preg_match('/^[a-f0-9]{20}$/', $key)) {
+            http_response_code(422);
+            echo json_encode(['ok' => false]);
+            exit;
+        }
+        if (!empty($_POST['done']) && $_POST['done'] !== '0') {
+            $this->pdo->prepare('DELETE FROM gsc_task_state WHERE user_key = ? AND task_key = ?')->execute([$this->userKey(), $key]);
+            $this->pdo->prepare('INSERT INTO gsc_task_state (user_key, task_key, done_at) VALUES (?, ?, ?)')->execute([$this->userKey(), $key, date('Y-m-d H:i:s')]);
+        } else {
+            $this->pdo->prepare('DELETE FROM gsc_task_state WHERE user_key = ? AND task_key = ?')->execute([$this->userKey(), $key]);
+        }
+        echo json_encode(['ok' => true]);
+        exit;
+    }
+
+    private function recentOptimizations(array $properties): array
+    {
+        try {
+            $main = array_map(fn ($p) => (int) $p['id'], array_filter($properties, fn ($p) => ($p['page_filter'] ?? '') === ''));
+
+            return (new \Modules\SearchConsole\Services\OptimizationService($this->pdo))->recent($main, 8);
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 }

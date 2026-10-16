@@ -110,9 +110,9 @@
         </div>
         <ol class="mb-0 ps-3" id="gsc-pr-list">
         @foreach($priorities as $pr)
-            <li class="mb-2" style="font-size:.9rem;" data-text="{{ $pr['domain'] }} — {{ $pr['title'] }}: {{ $pr['text'] }}">
+            <li class="mb-2" style="font-size:.9rem;" data-key="{{ $pr['key'] ?? '' }}" data-text="{{ $pr['domain'] }} — {{ $pr['title'] }}: {{ $pr['text'] }}">
                 <label class="d-flex gap-2 align-items-start mb-0" style="cursor:pointer;">
-                    <input type="checkbox" class="form-check-input mt-1 gsc-pr-check" aria-label="Hecho">
+                    <input type="checkbox" class="form-check-input mt-1 gsc-pr-check" aria-label="Hecho" @if(!empty($pr['done']))checked @endif>
                     <span>
                         <a href="{{ $baseUrl }}/domain/{{ $pr['property_id'] }}"><strong>{{ $pr['domain'] }}</strong></a>
                         <span class="badge bg-light text-dark border ms-1" style="font-size:.68rem;">{{ $pr['title'] }}</span>
@@ -125,6 +125,25 @@
             </li>
         @endforeach
         </ol>
+    </div></div>
+    @endif
+
+    @if(!empty($recentOptimizations))
+    <div class="card mb-3" id="gsc-opt-summary"><div class="card-body p-0">
+        <div class="p-3 border-bottom"><h6 class="mb-0" style="font-weight:700;"><i class="bi bi-journal-check"></i> Seguimiento de optimizaciones</h6>
+            <div class="text-muted" style="font-size:.8rem;">Lo último que has optimizado y si coincide con una mejora. Es una coincidencia en el tiempo, no una prueba de causa. Regístralas desde el informe de cada dominio.</div></div>
+        <div class="table-responsive"><table class="table table-sm mb-0 align-middle"><thead><tr><th>Fecha</th><th>Dominio</th><th>Página</th><th>Cambio</th><th>Valoración</th></tr></thead><tbody>
+        @foreach($recentOptimizations as $ro)
+            @php $ev = $ro['evaluation']; $vc = ['better' => 'success', 'worse' => 'danger', 'flat' => 'secondary', 'tracking' => 'info', 'few_data' => 'secondary'][$ev['state']] ?? 'secondary'; @endphp
+            <tr>
+                <td style="white-space:nowrap;">{{ date('d/m/Y', strtotime($ro['done_on'])) }}</td>
+                <td><a href="{{ $baseUrl }}/domain/{{ $ro['property_id'] }}"><strong>{{ $ro['domain'] }}</strong></a></td>
+                <td class="text-muted" style="font-size:.8rem;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ $ro['url'] }}">{{ parse_url($ro['url'], PHP_URL_PATH) ?: '/' }}</td>
+                <td style="font-size:.82rem;">{{ $optimizationKindLabels[$ro['kind']] ?? $ro['kind'] }}</td>
+                <td><span class="badge bg-{{ $vc }}">{{ $ev['verdict'] }}</span>@if($ev['state'] === 'tracking' && $ev['days'] >= 7) <span class="text-muted" style="font-size:.72rem;">{{ $ev['days'] }} de 28 días</span>@endif</td>
+            </tr>
+        @endforeach
+        </tbody></table></div>
     </div></div>
     @endif
 
@@ -882,13 +901,17 @@
     });
     // Plan semanal: marcar lo hecho (se recuerda en este navegador) y copiar las tareas
     var prItems = Array.prototype.slice.call(document.querySelectorAll('#gsc-pr-list li'));
-    function prKey(li) { var t = li.dataset.text || '', h = 0; for (var i = 0; i < t.length; i++) { h = (h * 31 + t.charCodeAt(i)) | 0; } return 'gsc-pr-' + h; }
     function prRefresh() { var n = prItems.filter(function (li) { return li.querySelector('input').checked; }).length, el = document.getElementById('gsc-pr-progress'); if (el) { el.textContent = '· ' + n + ' de ' + prItems.length + ' hechas'; } }
     prItems.forEach(function (li) {
-        var cb = li.querySelector('input'), k = prKey(li);
-        try { cb.checked = localStorage.getItem(k) === '1'; } catch (e) {}
-        cb.addEventListener('change', function () { try { localStorage.setItem(k, cb.checked ? '1' : '0'); } catch (e) {} li.style.opacity = cb.checked ? .55 : ''; prRefresh(); });
+        var cb = li.querySelector('input');
         li.style.opacity = cb.checked ? .55 : '';
+        // El estado se guarda en la base de datos, por usuario: no se pierde al cambiar de navegador o de equipo
+        cb.addEventListener('change', function () {
+            li.style.opacity = cb.checked ? .55 : ''; prRefresh();
+            fetch(@json($baseUrl . '/task'), { method: 'POST', headers: { 'X-CSRF-TOKEN': token }, body: new URLSearchParams({ key: li.dataset.key || '', done: cb.checked ? '1' : '0', _csrf: token }) })
+                .then(function (r) { return r.json(); }).then(function (res) { if (!res.ok) { cb.checked = !cb.checked; li.style.opacity = cb.checked ? .55 : ''; prRefresh(); } })
+                .catch(function () { cb.checked = !cb.checked; li.style.opacity = cb.checked ? .55 : ''; prRefresh(); });
+        });
     });
     prRefresh();
     var prCopy = document.getElementById('gsc-pr-copy');

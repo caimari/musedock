@@ -10,6 +10,7 @@ use Modules\SearchConsole\Services\EditorialService;
 use Modules\SearchConsole\Services\GoogleApiException;
 use Modules\SearchConsole\Services\GoogleClient;
 use Modules\SearchConsole\Services\OpportunityService;
+use Modules\SearchConsole\Services\OptimizationService;
 use Modules\SearchConsole\Services\PropertyService;
 use Modules\SearchConsole\Services\ReportService;
 use Modules\SearchConsole\Services\SitemapService;
@@ -171,6 +172,51 @@ abstract class BaseController
         }
     }
 
+    private function optimizationsFor(array $property): array
+    {
+        try {
+            return (new OptimizationService($this->pdo))->forProperty($property);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /** POST (AJAX): registra una optimización hecha en una página del dominio. */
+    public function optimizationAdd()
+    {
+        $this->checkPermission('search_console.manage');
+        header('Content-Type: application/json; charset=utf-8');
+        $property = $this->visibleProperty((int) ($_POST['property_id'] ?? 0));
+        $url = trim((string) ($_POST['url'] ?? ''));
+        $date = (string) ($_POST['done_on'] ?? date('Y-m-d'));
+        $valid = $property && UrlInspectionService::belongsTo($url, (string) $property['domain'], (string) ($property['page_filter'] ?? ''))
+            && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) && strtotime($date) !== false && $date <= date('Y-m-d') && $date >= date('Y-m-d', strtotime('-2 years'));
+        if (!$valid) {
+            http_response_code(422);
+            echo json_encode(['ok' => false, 'message' => 'Revisa la URL (debe ser de este dominio) y la fecha (no puede ser futura).']);
+            exit;
+        }
+        (new OptimizationService($this->pdo))->add($property, $url, (string) ($_POST['kind'] ?? 'other'), (string) ($_POST['note'] ?? ''), $date, $this->actorEmail());
+        echo json_encode(['ok' => true]);
+        exit;
+    }
+
+    /** POST (AJAX): borra una optimización registrada. */
+    public function optimizationDelete()
+    {
+        $this->checkPermission('search_console.manage');
+        header('Content-Type: application/json; charset=utf-8');
+        $property = $this->visibleProperty((int) ($_POST['property_id'] ?? 0));
+        if (!$property) {
+            http_response_code(403);
+            echo json_encode(['ok' => false]);
+            exit;
+        }
+        (new OptimizationService($this->pdo))->delete((int) ($_POST['id'] ?? 0), (int) $property['id']);
+        echo json_encode(['ok' => true]);
+        exit;
+    }
+
     /** Reparto marca / sin marca del periodo (sobre las consultas visibles). */
     private function brandFor(array $property, array $report): ?array
     {
@@ -264,6 +310,8 @@ abstract class BaseController
             'content' => $this->contentFor($property, $report),
             'editorial' => $this->editorialFor($property, $report, $opportunities),
             'brand' => $this->brandFor($property, $report),
+            'optimizations' => $this->optimizationsFor($property),
+            'optimizationKinds' => OptimizationService::KINDS,
             'opportunities' => $opportunities,
             'periods' => ReportService::PERIODS,
             'baseUrl' => $this->baseUrl(),

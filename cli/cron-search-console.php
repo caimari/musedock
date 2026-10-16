@@ -20,7 +20,7 @@ require_once APP_ROOT . '/core/Env.php';
 \Screenart\Musedock\Env::load();
 require_once APP_ROOT . '/config/config.php';
 require_once APP_ROOT . '/core/helpers.php';
-foreach (['Crypto', 'GoogleApiException', 'GoogleClient', 'PropertyService', 'CredentialStore', 'DomainVerifier', 'SyncService', 'BulkVerifyService', 'DomainExpiryService', 'SitemapService', 'IndexNowService', 'SyncQueueService', 'DropAlertService'] as $class) {
+foreach (['Crypto', 'GoogleApiException', 'GoogleClient', 'PropertyService', 'CredentialStore', 'DomainVerifier', 'SyncService', 'BulkVerifyService', 'DomainExpiryService', 'SitemapService', 'IndexNowService', 'SyncQueueService', 'DropAlertService', 'BrandService', 'UrlNormalizer', 'ReportService', 'OpportunityService', 'GoalService', 'PriorityService'] as $class) {
     require_once APP_ROOT . "/modules/search-console/services/{$class}.php";
 }
 
@@ -122,6 +122,16 @@ if (!$onlyProperty && !$loadHigh) {
         $emails = $pdo->query("SELECT email FROM super_admins WHERE email IS NOT NULL AND email <> ''")->fetchAll(PDO::FETCH_COLUMN);
         $r = $drops->run($props, static fn ($to, $subject, $html) => \Screenart\Musedock\Mail\Mailer::send($to, $subject, $html), $emails);
         $log("caídas de SEO: {$r['checked']} dominios revisados · {$r['alerts']} avisos" . ($r['alerts'] ? ($r['sent'] ? ' (correo enviado)' : ' (no se pudo enviar el correo)') : ''));
+    }
+}
+
+// 0b4) «Esta semana merece tu tiempo»: se recalcula aquí (cada hora como mucho), no en cada carga del panel
+if (!$onlyProperty && !$loadHigh) {
+    try {
+        (new \Modules\SearchConsole\Services\PriorityService(new \Modules\SearchConsole\Services\OpportunityService($pdo), new \Modules\SearchConsole\Services\DropAlertService($pdo)))
+            ->topCached($props->visibleForSuperadmin(), 5, (new \Modules\SearchConsole\Services\GoalService($pdo))->all(), APP_ROOT . '/storage/cache/search-console-priorities.json');
+    } catch (\Throwable $e) {
+        $log('prioridades: ' . $e->getMessage());
     }
 }
 
