@@ -4,6 +4,29 @@ if (!defined('APP_ROOT')) {
     define('APP_ROOT', realpath(__DIR__ . '/../')); // httpdocs (RAÍZ del proyecto)
 }
 
+// =========== RUTAS SENSIBLES: 404 INMEDIATO ===========
+// Los escáneres piden sin parar ficheros de claves y de configuración (/.env, /.git/, /config/secrets/…, *.tfvars,
+// *.sql, wp-login.php…). Ninguno existe en este CMS: se responde 404 aquí, antes de cargar el framework, para no gastar
+// PHP ni base de datos en cada sondeo. No sustituye a bloquear la IP o el patrón en el cortafuegos/Cloudflare.
+(static function () {
+    $path = strtolower(rawurldecode((string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH)));
+    if ($path === '' || $path === '/' || strpos($path, '/.well-known/') === 0) {
+        return;
+    }
+    $probe = '#(^|/)\.(env|git|svn|hg|aws|ssh|npmrc|docker|ds_store|htaccess|htpasswd|bash_history|idea|vscode)(/|\.|$)'
+        . '|(^|/)(config/secrets|secrets|terraform\.tfstate|phpmyadmin|adminer|cgi-bin|boaform|actuator)(/|\.|$)'
+        . '|(^|/)(wp-login\.php|xmlrpc\.php|wp-admin|wp-content|wp-includes|phpinfo\.php|composer\.(json|lock)|vendor/(phpunit|composer))(/|$)'
+        . '|(_keys|credentials|secrets?)\.(json|ya?ml|txt)$'
+        . '|\.(tfvars|tfstate|pem|p12|pfx|jks|kdbx|sql|sqlite3?|bak|swp|dump|env)$#';
+    if (preg_match($probe, $path)) {
+        http_response_code(404);
+        header('Content-Type: text/plain; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo 'Not found';
+        exit;
+    }
+})();
+
 // =========== VERIFICACIÓN TEMPRANA DE INSTALACIÓN ===========
 // Antes de cargar NADA, verificar si el sistema está instalado
 // Esto previene errores fatales cuando vendor/ no existe
