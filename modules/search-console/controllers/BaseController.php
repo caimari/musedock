@@ -183,7 +183,7 @@ abstract class BaseController
                 return null;
             }
 
-            return ['tokens' => $tokens] + (new BrandService())->split($this->pdo, (int) $property['id'], $report['from'], $report['to'], $tokens);
+            return ['tokens' => $tokens] + (new BrandService())->split($this->pdo, (int) $property['id'], $report['from'], $report['to'], $tokens, (int) ($report['totals']['impressions'] ?? 0));
         } catch (\Throwable $e) {
             return null;
         }

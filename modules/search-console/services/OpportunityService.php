@@ -122,7 +122,7 @@ class OpportunityService
         }
         usort($final, fn ($a, $b) => $b['score'] <=> $a['score']);
 
-        $tiers = ['high' => 0, 'medium' => 0, 'explore' => 0];
+        $tiers = ['high' => 0, 'medium' => 0, 'explore' => 0, 'archive' => 0];
         foreach ($final as $it) {
             $tiers[$it['tier']]++;
         }
@@ -176,12 +176,23 @@ class OpportunityService
         $label = $kind === 'page' ? self::shortPage($name, $domain) : $name;
         $imp = $c['impressions'];
         $tier = $this->tierOf($type, $c, $p);
+        // Contexto: una página de una edición pasada (año en su URL, hace 2 o más años) es archivo, sin urgencia SEO;
+        // la de la edición vigente (año actual o posterior) sube de prioridad media a alta.
+        $year = $kind === 'page' ? self::yearOf($name) : null;
+        $context = null;
+        if ($year !== null && $year <= (int) date('Y') - 2) {
+            $tier = 'archive';
+            $context = 'historic';
+        } elseif ($year !== null && $year >= (int) date('Y')) {
+            $context = 'current';
+            $tier = $tier === 'medium' ? 'high' : $tier;
+        }
 
         return [
-            'type' => $type, 'kind' => $kind, 'name' => $name, 'label' => $label, 'tier' => $tier, 'variants' => (int) ($c['variants'] ?? 1), 'brand' => $kind === 'query' && BrandService::isBrand($name, $this->brand),
+            'type' => $type, 'kind' => $kind, 'name' => $name, 'label' => $label, 'tier' => $tier, 'year' => $year, 'context' => $context, 'variants' => (int) ($c['variants'] ?? 1), 'brand' => $kind === 'query' && BrandService::isBrand($name, $this->brand),
             'clicks' => $c['clicks'], 'impressions' => $imp, 'ctr' => $imp > 0 ? $c['clicks'] / $imp : 0.0, 'position' => $c['position'],
             'prev_clicks' => $p['clicks'] ?? null, 'prev_impressions' => $p['impressions'] ?? null,
-            'score' => round($score, 2), 'advice' => $tier === 'explore' ? 'Pocos datos: necesita revisión antes de actuar. Espera a tener más impresiones para decidir.' : $this->advice($type, $kind, $c, $p), 'detail' => $this->detail($type, $c, $p, $score),
+            'score' => round($score, 2), 'advice' => $tier === 'archive' ? 'Página histórica (' . $year . '): mantenimiento y archivo, sin urgencia SEO. Mantenla accesible y enlázala desde la edición vigente.' : ($tier === 'explore' ? 'Pocos datos: necesita revisión antes de actuar. Espera a tener más impresiones para decidir.' : $this->advice($type, $kind, $c, $p)), 'detail' => $this->detail($type, $c, $p, $score),
         ];
     }
 
@@ -239,6 +250,17 @@ class OpportunityService
             'rising' => ($p === null || ($p['impressions'] ?? 0) === 0 ? 'Aparece por primera vez' : 'Está creciendo') . ': aprovecha reforzando ' . $what . ' mientras sube.',
             default => '',
         };
+    }
+
+    /** Año más reciente (19xx/20xx) que aparece en la ruta de una URL, o null. «winners-2020-21» → 2020. */
+    public static function yearOf(string $url): ?int
+    {
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        if (!preg_match_all('/(?<!\d)((?:19|20)\d{2})(?!\d)/', $path, $m)) {
+            return null;
+        }
+
+        return (int) max($m[1]);
     }
 
     public static function shortPage(string $url, string $domain): string

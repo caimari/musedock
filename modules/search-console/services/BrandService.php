@@ -12,20 +12,32 @@ use PDO;
  */
 class BrandService
 {
-    /** @return string[] nombres de marca compactos (minúsculas, sin acentos ni separadores), de 4+ caracteres */
+    /** Palabras demasiado genéricas para ser, por sí solas, la marca de nadie («spain», «film», «news»…). */
+    private const GENERIC = ['spain', 'espana', 'film', 'films', 'filme', 'news', 'post', 'posts', 'media', 'cine', 'cinema', 'movie', 'movies', 'festival', 'awards', 'award', 'studio', 'studios', 'world', 'global',
+        'music', 'musica', 'tech', 'cloud', 'digital', 'online', 'web', 'blog', 'info', 'shop', 'tienda', 'mail', 'app', 'test', 'demo', 'cultura', 'culture', 'art', 'arts', 'arte', 'london', 'madrid', 'barcelona', 'newyork'];
+
+    /**
+     * Nombres de marca compactos (minúsculas, sin acentos ni separadores, 5+ caracteres, no genéricos): el dominio sin
+     * extensión, el nombre del tenant y, solo en subdominios de la plataforma (alexapost.musedock.com), el subdominio.
+     * En otros subdominios (spain.filmconnect.org) la etiqueta «spain» NO es la marca: lo es «filmconnect».
+     *
+     * @return string[]
+     */
     public static function tokens(array $property, ?string $tenantName = null): array
     {
         $out = [];
         $host = PropertyService::normalizeHost((string) ($property['domain'] ?? ''));
         $labels = explode('.', $host);
-        if (count($labels) >= 3) {
-            $out[] = self::compact($labels[0]);                  // sub.musedock.com → sub
+        $n = count($labels);
+        $apexIdx = $n - 2;
+        if ($n >= 3 && in_array($labels[$n - 2], ['co', 'com', 'org', 'net', 'gov', 'ac'], true) && strlen($labels[$n - 1]) === 2) {
+            $apexIdx = $n - 3; // x.co.uk → x
         }
-        $apex = count($labels) >= 2 ? $labels[count($labels) - 2] : ($labels[0] ?? '');
-        if (in_array($apex, ['co', 'com', 'org', 'net', 'gov', 'ac'], true) && count($labels) >= 3) {
-            $apex = $labels[count($labels) - 3];                 // x.co.uk → x
-        }
-        if (count($labels) < 3 || !in_array($labels[count($labels) - 2] . '.' . $labels[count($labels) - 1], ['musedock.com'], true)) {
+        $apex = $labels[max(0, $apexIdx)] ?? '';
+        $platform = $n >= 3 && $labels[$n - 2] . '.' . $labels[$n - 1] === 'musedock.com';
+        if ($platform) {
+            $out[] = self::compact($labels[0]);        // alexapost.musedock.com → alexapost (el «musedock» no es su marca)
+        } else {
             $out[] = self::compact($apex);
         }
         $name = $tenantName ?? ($property['tenant_name'] ?? null);
@@ -33,7 +45,7 @@ class BrandService
             $out[] = self::compact((string) $name);
         }
 
-        return array_values(array_unique(array_filter($out, fn ($t) => strlen($t) >= 4)));
+        return array_values(array_unique(array_filter($out, fn ($t) => strlen($t) >= 5 && !in_array($t, self::GENERIC, true))));
     }
 
     public static function compact(string $s): string
@@ -61,11 +73,11 @@ class BrandService
 
     /**
      * Reparto de clics e impresiones del periodo entre marca y sin marca, sobre las consultas que Google muestra
-     * (las anónimas no están en la lista y no se cuentan aquí).
+     * (las anónimas no están en la lista y no se cuentan aquí). Incluye cuánto del total se ha podido clasificar.
      *
-     * @return array{brand:array{clicks:int,impressions:int},other:array{clicks:int,impressions:int},brand_share:?float}
+     * @return array{brand:array{clicks:int,impressions:int},other:array{clicks:int,impressions:int},brand_share:?float,classified:int,site_impressions:int,coverage:?float}
      */
-    public function split(PDO $pdo, int $propertyId, string $from, string $to, array $tokens): array
+    public function split(PDO $pdo, int $propertyId, string $from, string $to, array $tokens, ?int $siteImpressions = null): array
     {
         $stmt = $pdo->prepare('SELECT query, SUM(clicks) c, SUM(impressions) i FROM gsc_query_daily WHERE property_id = ? AND date >= ? AND date <= ? GROUP BY query');
         $stmt->execute([$propertyId, $from, $to]);
@@ -76,8 +88,10 @@ class BrandService
             $$target['clicks'] += (int) $r['c'];
             $$target['impressions'] += (int) $r['i'];
         }
-        $total = $b['impressions'] + $o['impressions'];
+        $classified = $b['impressions'] + $o['impressions'];
+        $site = $siteImpressions ?? $classified;
 
-        return ['brand' => $b, 'other' => $o, 'brand_share' => $total > 0 ? $b['impressions'] / $total : null];
+        return ['brand' => $b, 'other' => $o, 'brand_share' => $classified > 0 ? $b['impressions'] / $classified : null,
+            'classified' => $classified, 'site_impressions' => $site, 'coverage' => $site > 0 ? min(1.0, $classified / $site) : null];
     }
 }

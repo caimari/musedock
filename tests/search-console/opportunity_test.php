@@ -141,5 +141,29 @@ ok(array_sum($r['tiers']) === count($r['items']), 'los contadores de prioridad c
 $grokCtr = array_values(array_filter($pages, fn ($i) => str_contains($i['name'], 'grok') && $i['type'] === 'low_ctr'));
 ok($grokCtr && str_contains($grokCtr[0]['detail'], 'estimación'), 'las cifras de potencial se presentan como estimación');
 
+echo "== 5. Contexto: ediciones pasadas y edición vigente\n";
+$cy = (int) date('Y');
+$pdo = db();
+put($pdo, 'gsc_site_daily', $cur, null, 20, 2000, 8.0);
+put($pdo, 'gsc_page_daily', $cur, 'https://x.test/seleccion-oficial-' . ($cy - 6), 0, 99, 7.0);   // edición antigua con 99 impresiones
+put($pdo, 'gsc_page_daily', $cur, 'https://x.test/ganadores-' . ($cy - 3) . '-' . substr((string) ($cy - 2), 2), 2, 96, 7.0);
+put($pdo, 'gsc_page_daily', $cur, 'https://x.test/seleccion-oficial-' . $cy, 0, 40, 7.0);          // edición vigente, volumen medio
+put($pdo, 'gsc_page_daily', $cur, 'https://x.test/seleccion-oficial-' . ($cy - 1), 0, 40, 7.0);    // edición del año pasado: sin cambio de trato
+put($pdo, 'gsc_page_daily', $cur, 'https://x.test/nosotros', 0, 40, 7.0);                           // sin año: trato normal
+$r = (new OpportunityService($pdo))->detect($prop, 28);
+$by = fn (string $needle) => array_values(array_filter($r['items'], fn ($i) => $i['kind'] === 'page' && str_contains($i['name'], $needle)));
+$old6 = $by('seleccion-oficial-' . ($cy - 6));
+ok($old6 && $old6[0]['tier'] === 'archive' && str_contains($old6[0]['advice'], 'histórica') && str_contains($old6[0]['advice'], 'sin urgencia'), 'una edición de hace años (99 impresiones) es archivo, no prioridad alta');
+$win = $by('ganadores');
+ok($win && $win[0]['tier'] === 'archive' && $win[0]['year'] === $cy - 3, 'una página «ganadores» de una edición pasada también (se toma el año más reciente de la URL)');
+$now = $by('seleccion-oficial-' . $cy);
+ok($now && $now[0]['tier'] === 'high' && $now[0]['context'] === 'current', 'la edición vigente sube de prioridad media a alta');
+$last = $by('seleccion-oficial-' . ($cy - 1));
+ok($last && $last[0]['tier'] === 'medium' && $last[0]['context'] === null, 'la edición del año pasado se trata con normalidad');
+$plain = $by('nosotros');
+ok($plain && $plain[0]['tier'] === 'medium' && $plain[0]['year'] === null, 'una página sin año no cambia');
+ok($r['tiers']['archive'] === count(array_filter($r['items'], fn ($i) => $i['tier'] === 'archive')) && array_sum($r['tiers']) === count($r['items']), 'los contadores incluyen el archivo');
+ok(OpportunityService::yearOf('https://x.test/winners-2020-21/') === 2020 && OpportunityService::yearOf('https://x.test/blog/mi-post') === null && OpportunityService::yearOf('https://x.test/p/12345') === null, 'el año se toma de la ruta; un número cualquiera no cuenta');
+
 echo "\n" . ($fails ? "RESULTADO: $fails de $n comprobaciones FALLAN\n" : "RESULTADO: las $n comprobaciones pasan\n");
 exit($fails ? 1 : 0);

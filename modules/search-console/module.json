@@ -1,8 +1,16 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "changelog": [
+    {
+      "version": "0.6.2",
+      "date": "2026-10-16",
+      "changes": [
+        "Contexto de la página (a raíz de otra revisión): las páginas de ediciones pasadas (un año de hace 2 o más en su URL, p. ej. seleccion-oficial-2020, ganadores-2023) pasan a prioridad «Archivo»: mantenimiento y archivo, sin urgencia SEO, ocultas por defecto junto a las exploratorias. Las de la edición vigente (año actual o posterior) suben de media a alta y llevan la etiqueta «vigente».",
+        "Marca: la clasificación indica sobre cuántas impresiones se ha podido hacer («238 de 912 impresiones»: el resto no tiene consulta visible) y deja de tomar como marca palabras genéricas (spain, film, news, festival…) o la etiqueta de un subdominio ajeno (spain.filmconnect.org → la marca es «filmconnect», no «spain»)."
+      ]
+    },
     {
       "version": "0.6.1",
       "date": "2026-10-16",

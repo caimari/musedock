@@ -103,7 +103,7 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
     <div class="card mb-3"><div class="card-body py-2 d-flex flex-wrap gap-3 align-items-center" style="font-size:.85rem;">
         <span><i class="bi bi-person-badge"></i> <strong>Búsquedas de marca</strong> (<?= $e(implode(', ', $brand['tokens'])) ?>): <?= $n($brand['brand']['clicks']) ?> clics · <?= $n($brand['brand']['impressions']) ?> impr. (<?= number_format($brand['brand_share'] * 100, 0, ',', '.') ?> %)</span>
         <span><i class="bi bi-search"></i> <strong>Sin marca</strong> (te descubren): <?= $n($brand['other']['clicks']) ?> clics · <?= $n($brand['other']['impressions']) ?> impr. (<?= number_format((1 - $brand['brand_share']) * 100, 0, ',', '.') ?> %)</span>
-        <span class="text-muted" style="font-size:.75rem;" title="Se cuenta sobre las consultas que Google muestra; las anónimas no están en la lista. Una búsqueda es «de marca» si contiene el nombre del sitio.">sobre las consultas visibles · heurística</span>
+        <span class="text-muted" style="font-size:.75rem;" title="Google oculta las consultas poco frecuentes por privacidad: cuentan en el total pero no aparecen en la lista, así que no se pueden clasificar. Una búsqueda es «de marca» si contiene el nombre del sitio (no palabras genéricas como «film» o «spain»).">Clasificación basada en <?= $n($brand['classified']) ?> de <?= $n($brand['site_impressions']) ?> impresiones (<?= number_format(($brand['coverage'] ?? 0) * 100, 0, ',', '.') ?> %): el resto no tiene consulta visible y no está clasificado.</span>
     </div></div>
     <?php endif; ?>
     <div class="card mb-3"><div class="card-body gsc-chart">
@@ -138,15 +138,15 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
                 <?php foreach ($oppTypes as $key => [$label, $color]): if (empty($o['counts'][$key])) { continue; } ?>
                     <button type="button" class="btn btn-sm btn-outline-<?= $e($color) ?>" data-type="<?= $e($key) ?>"><?= $e($label) ?> <span class="badge bg-<?= $e($color) ?>"><?= (int) $o['counts'][$key] ?></span></button>
                 <?php endforeach; ?>
-                <?php if (!empty($o['tiers']['explore'])): ?>
-                <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="gsc-opps-explore" title="Avisos con pocas impresiones: mucha incertidumbre"><i class="bi bi-eye"></i> Mostrar exploratorias (<?= (int) $o['tiers']['explore'] ?>)</button>
+                <?php if (!empty($o['tiers']['explore']) || !empty($o['tiers']['archive'])): $hidden = (int) ($o['tiers']['explore'] ?? 0) + (int) ($o['tiers']['archive'] ?? 0); ?>
+                <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="gsc-opps-explore" title="Exploración: pocas impresiones. Archivo: páginas de ediciones pasadas"><i class="bi bi-eye"></i> Mostrar exploratorias y de archivo (<?= $hidden ?>)</button>
                 <?php endif; ?>
             </div>
             <div class="table-responsive"><table class="table table-sm mb-0 gsc-sortable" id="gsc-opps-table"><thead><tr><th>Oportunidad</th><th>URL / palabra clave</th><th class="num">Impr.</th><th class="num">Clics</th><th class="num">Pos.</th><th>Qué puedes ganar y qué hacer</th></tr></thead><tbody>
             <?php foreach ($o['items'] as $it): [$tl, $tc] = $oppTypes[$it['type']]; ?>
-                <?php $tierLabel = ['high' => ['Prioridad alta', 'danger'], 'medium' => ['Prioridad media', 'warning'], 'explore' => ['Exploración', 'secondary']][$it['tier']]; ?>
-                <tr data-type="<?= $e($it['type']) ?>" data-tier="<?= $e($it['tier']) ?>" <?= $it['tier'] === 'explore' ? 'style="display:none;"' : '' ?>>
-                    <td style="white-space:nowrap;"><span class="badge bg-<?= $e($tc) ?>"><?= $e($tl) ?></span><div style="margin-top:3px;"><span class="badge bg-<?= $e($tierLabel[1]) ?> <?= $tierLabel[1] === 'warning' ? 'text-dark' : '' ?>" style="font-size:.62rem;" title="<?= $it['tier'] === 'explore' ? 'Pocas impresiones: mucha incertidumbre, no actúes sin más datos' : ($it['tier'] === 'high' ? 'Mucho peso en el sitio o caída de clics confirmada' : 'Volumen razonable') ?>"><?= $e($tierLabel[0]) ?></span></div></td>
+                <?php $tierLabel = ['high' => ['Prioridad alta', 'danger'], 'medium' => ['Prioridad media', 'warning'], 'explore' => ['Exploración', 'secondary'], 'archive' => ['Archivo', 'secondary']][$it['tier']]; ?>
+                <tr data-type="<?= $e($it['type']) ?>" data-tier="<?= $e($it['tier']) ?>" <?= in_array($it['tier'], ['explore', 'archive'], true) ? 'style="display:none;"' : '' ?>>
+                    <td style="white-space:nowrap;"><span class="badge bg-<?= $e($tc) ?>"><?= $e($tl) ?></span><div style="margin-top:3px;"><span class="badge bg-<?= $e($tierLabel[1]) ?> <?= $tierLabel[1] === 'warning' ? 'text-dark' : '' ?>" style="font-size:.62rem;" title="<?= $it['tier'] === 'archive' ? 'Página de una edición pasada: mantenimiento y archivo, sin urgencia SEO' : ($it['tier'] === 'explore' ? 'Pocas impresiones: mucha incertidumbre, no actúes sin más datos' : ($it['tier'] === 'high' ? 'Mucho peso en el sitio o caída de clics confirmada' : 'Volumen razonable')) ?>"><?= $e($tierLabel[0]) ?></span><?php if (($it['context'] ?? null) === 'current'): ?> <span class="badge bg-success" style="font-size:.62rem;" title="Edición vigente (<?= (int) $it['year'] ?>)">vigente</span><?php endif; ?></div></td>
                     <td class="gsc-trunc" style="max-width:260px;" title="<?= $e($it['name']) ?>">
                         <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;"><?= $it['kind'] === 'page' ? 'URL' : 'Palabra clave' ?></div>
                         <strong><?= $it['kind'] === 'page' ? $pageLink($it['name'], $it['label']) : $e($it['label']) ?></strong><?php if (!empty($it['brand'])): ?> <span class="badge bg-light text-dark border" style="font-size:.62rem;" title="Búsqueda de marca: contiene el nombre del sitio">marca</span><?php endif; ?></td>
@@ -182,7 +182,7 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
     (function () {
         var chips = document.querySelectorAll('#gsc-opps-chips [data-type]'), rows = document.querySelectorAll('#gsc-opps-table tbody tr'), showExplore = false, curType = '';
         function applyOpps() {
-            rows.forEach(function (r) { r.style.display = ((!curType || r.dataset.type === curType) && (showExplore || r.dataset.tier !== 'explore')) ? '' : 'none'; });
+            rows.forEach(function (r) { r.style.display = ((!curType || r.dataset.type === curType) && (showExplore || (r.dataset.tier !== 'explore' && r.dataset.tier !== 'archive'))) ? '' : 'none'; });
         }
         chips.forEach(function (b) {
             b.addEventListener('click', function () {
@@ -194,7 +194,7 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
         var ex = document.getElementById('gsc-opps-explore');
         if (ex) ex.addEventListener('click', function () {
             showExplore = !showExplore;
-            ex.innerHTML = showExplore ? '<i class="bi bi-eye-slash"></i> Ocultar exploratorias' : '<i class="bi bi-eye"></i> Mostrar exploratorias (' + <?= (int) ($o['tiers']['explore'] ?? 0) ?> + ')';
+            ex.innerHTML = showExplore ? '<i class="bi bi-eye-slash"></i> Ocultar exploratorias y de archivo' : '<i class="bi bi-eye"></i> Mostrar exploratorias y de archivo (' + <?= (int) (($o['tiers']['explore'] ?? 0) + ($o['tiers']['archive'] ?? 0)) ?> + ')';
             applyOpps();
         });
         var help = document.getElementById('gsc-opps-help');
@@ -202,7 +202,7 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
             var items = <?= json_encode(array_map(fn ($k) => [$oppTypes[$k][0], $oppHelp[$k]], array_keys($oppTypes)), JSON_UNESCAPED_UNICODE) ?>;
             var html = '<div style="text-align:left;font-size:.92rem"><p>Son reglas fijas (sin IA) sobre los datos que Google ya te ha dado. Se aplican a consultas y a páginas, y se ordenan por lo que podrías ganar.</p><ul>'
                 + items.map(function (i) { return '<li><strong>' + i[0] + '</strong>: ' + i[1] + '</li>'; }).join('')
-                + '</ul><p class="mb-1">Cada aviso lleva una <strong>prioridad</strong> según los datos que lo respaldan: <strong>alta</strong> (mucho peso en el sitio o una caída de clics confirmada), <strong>media</strong> y <strong>exploración</strong> (pocas impresiones: se ocultan por defecto y no llevan consejo concreto). Las variantes de una misma página (con/sin www, #ancla, utm_*) se suman, y las páginas legales y de acceso se excluyen. Las cifras «≈ +N clics» son una <strong>estimación</strong>, no una previsión. El mínimo de impresiones se adapta al tamaño del sitio (entre 3 y 50). El CTR «normal» por posición es una referencia típica del sector (28 % en la 1.ª, 15 % en la 2.ª, 11 % en la 3.ª… 2 % en la 10.ª), no un dato de Google.</p></div>';
+                + '</ul><p class="mb-1">Cada aviso lleva una <strong>prioridad</strong> según los datos que lo respaldan: <strong>alta</strong> (mucho peso en el sitio o una caída de clics confirmada), <strong>media</strong> y <strong>exploración</strong> (pocas impresiones: se ocultan por defecto y no llevan consejo concreto) y <strong>archivo</strong> (páginas de ediciones pasadas, con un año de hace 2 o más en su URL: mantenimiento sin urgencia SEO). Las de la edición vigente suben de prioridad. Las variantes de una misma página (con/sin www, #ancla, utm_*) se suman, y las páginas legales y de acceso se excluyen. Las cifras «≈ +N clics» son una <strong>estimación</strong>, no una previsión. El mínimo de impresiones se adapta al tamaño del sitio (entre 3 y 50). El CTR «normal» por posición es una referencia típica del sector (28 % en la 1.ª, 15 % en la 2.ª, 11 % en la 3.ª… 2 % en la 10.ª), no un dato de Google.</p></div>';
             if (window.Swal) { Swal.fire({ title: 'Cómo se detectan las oportunidades', html: html, icon: 'info', width: 680, confirmButtonText: 'Entendido' }); }
         });
     })();
