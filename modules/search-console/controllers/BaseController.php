@@ -428,7 +428,20 @@ abstract class BaseController
             $options[$d] = ReportService::periodLabel($d);
         }
 
-        return ['key' => $key, 'label' => ReportService::periodLabel($key), 'options' => $options];
+        // Fechas que abarca: el periodo termina hace 2 días (Google publica con retraso) y se compara con el anterior de la misma duración
+        $end = strtotime('-2 days');
+        if ($key === 0) {
+            $min = $this->pdo->query('SELECT MIN(date) FROM gsc_site_daily')->fetchColumn();
+            $days = $min ? max(7, (int) floor(($end - strtotime((string) $min)) / 86400) + 1) : 28;
+        } else {
+            $days = $key;
+        }
+        $from = strtotime('-' . ($days - 1) . ' days', $end);
+        $prevTo = strtotime('-1 day', $from);
+        $prevFrom = strtotime('-' . ($days - 1) . ' days', $prevTo);
+        $range = ['from' => date('d/m/Y', $from), 'to' => date('d/m/Y', $end), 'prev_from' => date('d/m/Y', $prevFrom), 'prev_to' => date('d/m/Y', $prevTo), 'days' => $days];
+
+        return ['key' => $key, 'label' => ReportService::periodLabel($key), 'options' => $options, 'range' => $range];
     }
 
     protected function totals(array $propertyIds, int $days = 28): array

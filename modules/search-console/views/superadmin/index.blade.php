@@ -12,6 +12,7 @@
     $fmt = fn($n) => number_format((int) $n, 0, ',', '.');
     $statusLabels = ['active' => ['Activa', 'success'], 'no_access' => ['Sin acceso', 'warning'], 'pending' => ['Pendiente', 'secondary'], 'error' => ['Error', 'danger']];
 @endphp
+@php include __DIR__ . '/../partials/sortable-css.php'; @endphp
 <style>
 .gsc-page .card { border:1px solid #e5eaf1;border-radius:12px;box-shadow:0 3px 14px rgba(30,50,80,.035); }
 .gsc-page .stat-badge { display:flex;align-items:center;gap:.35rem;font-size:.85rem;padding:.4rem .75rem;border-radius:6px;background:#f8f9fa;border:1px solid #e9ecef; }
@@ -123,6 +124,10 @@
                 @foreach($period['options'] as $pk => $pl)<option value="{{ $pk }}" @if($pk === $period['key'])selected @endif>{{ $pl }}</option>@endforeach
             </select>
             <div class="ms-auto text-muted" style="font-size:.85rem;" id="gsc-filter-sum"></div>
+        </div>
+        <div class="px-3 pb-2 d-flex align-items-center flex-wrap gap-2" style="font-size:.82rem;">
+            <span class="text-muted"><i class="bi bi-calendar-range"></i> Periodo: <strong>{{ $period['range']['from'] }} – {{ $period['range']['to'] }}</strong> ({{ $period['range']['days'] }} días) · comparado con <strong>{{ $period['range']['prev_from'] }} – {{ $period['range']['prev_to'] }}</strong>@if($period['key'] === 0) <em>(no hay datos anteriores)</em>@endif</span>
+            <button type="button" class="btn btn-outline-secondary btn-sm py-0 ms-auto" id="gsc-cols-info"><i class="bi bi-question-circle"></i> ¿Qué significa cada columna?</button>
         </div>
         <div class="table-responsive">
         <table class="table table-hover mb-0 gsc-sortable" id="gsc-table">
@@ -317,7 +322,7 @@
             <div class="text-muted" style="font-size:.82rem;">Están en tu Search Console pero no son ningún sitio del CMS. Solo los ves tú; si alguno se da de alta como tenant, pasa a la tabla de arriba (o se borra, si es de un cliente).</div>
         </div>
         <div class="table-responsive">
-        <table class="table table-hover mb-0 gsc-sortable">
+        <table class="table table-hover mb-0 gsc-sortable" id="gsc-table-ext">
             <thead><tr><th>Dominio</th><th>Estado</th><th class="num">Clics</th><th class="num">Impresiones</th><th class="num">CTR</th><th class="num">Posición</th><th class="num">{{ ($period['key'] ?? 28) === 0 ? 'vs. antes' : 'vs. ' . ($period['key'] ?? 28) . ' d antes' }}</th><th>Última sync.</th></tr></thead>
             <tbody>
             @foreach($external as $p)
@@ -795,6 +800,39 @@
 
     var gscPeriod = document.getElementById('gsc-period');
     if (gscPeriod) gscPeriod.addEventListener('change', function () { location.href = '?days=' + gscPeriod.value; });
+
+    // ===== Ayuda de las columnas: icono (i) en cada cabecera y un resumen de todas =====
+    var colHelp = {
+        'dominio': ['Dominio', 'El sitio, o el subdominio, del que se descargan los datos. Haz clic en su nombre para abrir su informe completo.'],
+        'tenant': ['Tenant', 'El sitio del CMS al que pertenece, con su color de etiqueta (el mismo que en la lista de tenants).'],
+        'estado': ['Estado', '<strong>Activa</strong>: el robot tiene acceso y se descargan datos. <strong>Sin acceso</strong>: lo tenía y lo perdió. <strong>Error</strong>: Google devolvió un fallo (el mensaje lo explica).'],
+        'clics': ['Clics', 'Veces que alguien vio tu página en los resultados de Google <strong>y entró</strong>, en el periodo elegido.'],
+        'impresiones': ['Impresiones', 'Veces que tu página <strong>apareció</strong> en los resultados de alguien, aunque no entrara. Es tu visibilidad en Google.'],
+        'ctr': ['CTR (porcentaje de clics)', 'Clics ÷ impresiones. Un 3 % significa que 3 de cada 100 personas que te ven, entran. Depende mucho de la posición: en el puesto 1 lo normal es ~28 %, en el 10 ~2 %. Se mejora con un buen título y descripción.'],
+        'posición': ['Posición media', 'El lugar medio en el que sales en los resultados. 1 es el primero; del 1 al 10 estás en la primera página; del 11 al 20, en la segunda. Es una media ponderada por impresiones: <strong>cuanto más bajo, mejor</strong>.'],
+        'vs.': ['Comparación con el periodo anterior', 'Variación de los <strong>clics</strong> frente al periodo inmediatamente anterior de la misma duración (las fechas se ven arriba). En verde, más clics; en rojo, menos. Con «Todo el histórico» no hay periodo anterior.'],
+        'última': ['Última sincronización', 'Cuándo se descargaron por última vez los datos de Google. Google publica con unos 2 días de retraso, y la descarga se repite sola cada pocas horas.']
+    };
+    function colKey(th) { var t = th.textContent.trim().toLowerCase(); return Object.keys(colHelp).filter(function (k) { return t.indexOf(k) === 0; })[0] || null; }
+    document.querySelectorAll('#gsc-table thead th, #gsc-table-ext thead th').forEach(function (th) {
+        var k = colKey(th); if (!k) { return; }
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'btn btn-link p-0 ms-1 gsc-colinfo'; b.dataset.key = k; b.title = 'Qué significa esta columna'; b.setAttribute('aria-label', 'Qué significa ' + colHelp[k][0]);
+        b.innerHTML = '<i class="bi bi-info-circle" style="font-size:.8rem;"></i>';
+        th.appendChild(b);
+    });
+    document.addEventListener('click', function (e) {
+        var b = e.target.closest('.gsc-colinfo'); if (!b) { return; }
+        e.stopPropagation();
+        var h = colHelp[b.dataset.key];
+        Swal.fire({ title: h[0], html: '<div style="text-align:left;font-size:.95rem;">' + h[1] + '</div>', icon: 'info', confirmButtonText: 'Entendido' });
+    });
+    var colsAll = document.getElementById('gsc-cols-info');
+    if (colsAll) colsAll.addEventListener('click', function () {
+        var order = ['dominio', 'tenant', 'estado', 'clics', 'impresiones', 'ctr', 'posición', 'vs.', 'última'];
+        Swal.fire({ title: 'Qué significa cada columna', width: 720, confirmButtonText: 'Entendido',
+            html: '<ul style="text-align:left;font-size:.92rem;padding-left:1.1rem;margin:0;">' + order.map(function (k) { return '<li class="mb-2"><strong>' + colHelp[k][0] + '</strong>: ' + colHelp[k][1] + '</li>'; }).join('') + '</ul><div class="text-muted mt-2" style="font-size:.82rem;text-align:left;">Haz clic en el título de una columna para ordenar por ella.</div>' });
+    });
 
     // ===== Dar de baja (conservando los datos) y reactivar =====
     function propertyAction(action, id, password) {
