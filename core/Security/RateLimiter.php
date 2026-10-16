@@ -64,6 +64,10 @@ class RateLimiter
      */
     public static function increment($identifier, $decayMinutes = null)
     {
+        // Login fallido de un cliente (musedock-cloud usa este prefijo)
+        if (is_string($identifier) && str_starts_with($identifier, 'customer_login|')) {
+            SecurityEventLog::log('login_failed');
+        }
         try {
             $config = require __DIR__ . '/../../config/config.php';
             $decayMinutes = $decayMinutes ?? ($config['security']['rate_limit_decay'] ?? 15);
@@ -346,6 +350,8 @@ class RateLimiter
      */
     public static function incrementDual($identifier, $email, $decayMinutes = null)
     {
+        // Login fallido (superadmin o admin de tenant): aviso a fail2ban
+        SecurityEventLog::log('login_failed');
         $specificAttempts = self::increment($identifier, $decayMinutes);
         $globalIdentifier = "global_email:{$email}";
         $globalAttempts = self::increment($globalIdentifier, $decayMinutes);

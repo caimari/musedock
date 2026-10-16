@@ -17,8 +17,22 @@ if (!defined('APP_ROOT')) {
         . '|(^|/)(config/secrets|secrets|terraform\.tfstate|phpmyadmin|adminer|cgi-bin|boaform|actuator)(/|\.|$)'
         . '|(^|/)(wp-login\.php|xmlrpc\.php|wp-admin|wp-content|wp-includes|phpinfo\.php|composer\.(json|lock)|vendor/(phpunit|composer))(/|$)'
         . '|(_keys|credentials|secrets?)\.(json|ya?ml|txt)$'
-        . '|\.(tfvars|tfstate|pem|p12|pfx|jks|kdbx|sql|sqlite3?|bak|swp|dump|env)$#';
+        . '|\.(tfvars|tfstate|pem|p12|pfx|jks|kdbx|sql|sqlite3?|bak|swp|dump|env)$'
+        // Ningún .php público llega aquí salvo index.php (Caddy sirve los que existen): /uuu.php, /mac.php...
+        . '|(^|/)(?!index\.php$)[^/]*\.php$#';
     if (preg_match($probe, $path)) {
+        // Aviso a fail2ban (jaula musedock-cms-probe del panel). Las imágenes de antiguos
+        // WordPress (/wp-content/uploads/) dan 404 pero no cuentan: una página vieja puede
+        // enlazar decenas y no hay que banear a sus lectores.
+        if (!preg_match('#^/wp-content/uploads/#', $path)) {
+            try {
+                require_once __DIR__ . '/../core/Env.php';
+                \Screenart\Musedock\Env::load();
+                require_once __DIR__ . '/../core/Security/SecurityEventLog.php';
+                \Screenart\Musedock\Security\SecurityEventLog::log('probe');
+            } catch (\Throwable $e) {
+            }
+        }
         http_response_code(404);
         header('Content-Type: text/plain; charset=utf-8');
         header('Cache-Control: no-store');

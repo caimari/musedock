@@ -139,6 +139,7 @@ class AuthController
         }
 
         if (!$verified) {
+            \Screenart\Musedock\Security\SecurityEventLog::log('twofa_failed');
             $left = self::TWO_FACTOR_MAX_ATTEMPTS - $pending['attempts'];
             flash('error', "Código incorrecto. Te quedan {$left} intentos.");
             header("Location: {$adminPath}/login/2fa");

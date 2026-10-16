@@ -330,6 +330,7 @@ class TwoFactorController
             exit;
         }
 
+        \Screenart\Musedock\Security\SecurityEventLog::log('twofa_failed');
         flash('error', 'Código incorrecto. Inténtalo de nuevo.');
         header('Location: /musedock/login/2fa');
         exit;
