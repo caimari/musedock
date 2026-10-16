@@ -51,5 +51,6 @@ $gscIndexNowCfg = is_file($gscIndexNowFile) ? json_decode((string) @file_get_con
 if (is_array($gscIndexNowCfg) && preg_match('/^[a-f0-9]{16,64}$/', (string) ($gscIndexNowCfg['key'] ?? ''))) {
     Route::get('/' . $gscIndexNowCfg['key'] . '.txt', 'Modules\SearchConsole\Controllers\IndexNowController@key');
 }
+Route::post('/musedock/search-console/goal', "{$gscSaCtrl}@goalSet")->middleware('superadmin');
 Route::post('/musedock/search-console/indexnow/scan', "{$gscSaCtrl}@indexNowScan")->middleware('superadmin');
 Route::post('/musedock/search-console/indexnow/toggle', "{$gscSaCtrl}@indexNowToggle")->middleware('superadmin');

@@ -1,8 +1,18 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "changelog": [
+    {
+      "version": "0.7.0",
+      "date": "2026-10-16",
+      "changes": [
+        "«Esta semana merece tu tiempo» más fiable (a raíz de otra revisión): se ordena por impacto estimado × confianza × objetivo del dominio. Cada aviso muestra su confianza (alta, media o baja según el volumen de datos y el tipo de aviso); el impacto se rotula como estimación de ordenación, no como previsión; una caída solo de impresiones no se presenta como «clics recuperables»; las búsquedas que son un dominio escrito en el buscador (navegacionales, p. ej. «8i8gent.com») no son oportunidades; en la portada se recomienda analizar primero qué consultas la activan en vez de cambiarla.",
+        "Objetivo por dominio (GoalService, tabla gsc_property_goal): tráfico, captar clientes, reputación editorial o difusión cultural, con un selector bajo cada dominio. Pondera el ORDEN según el tipo de búsqueda o de página (palabras clave visibles); no cambia los datos ni el detector.",
+        "Plan semanal: casillas para marcar lo hecho (se recuerdan en el navegador), progreso «N de 5» y botón «Copiar tareas».",
+        "Cabecera coherente con la tabla: «33 dominios + 12 subdominios · 143 clics · 9.502 impresiones» (mismos dominios y mismo periodo; los subdominios no se suman dos veces y los «otros dominios» van aparte), con las fechas del periodo. La tarjeta de prioridades indica hasta qué día llegan los datos y con qué se comparan."
+      ]
+    },
     {
       "version": "0.6.2",
       "date": "2026-10-16",

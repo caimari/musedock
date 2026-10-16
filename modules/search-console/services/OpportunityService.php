@@ -189,7 +189,7 @@ class OpportunityService
         }
 
         return [
-            'type' => $type, 'kind' => $kind, 'name' => $name, 'label' => $label, 'tier' => $tier, 'year' => $year, 'context' => $context, 'variants' => (int) ($c['variants'] ?? 1), 'brand' => $kind === 'query' && BrandService::isBrand($name, $this->brand),
+            'type' => $type, 'kind' => $kind, 'name' => $name, 'label' => $label, 'tier' => $tier, 'year' => $year, 'context' => $context, 'basis' => $type === 'drop' ? self::dropBasis($c, $p) : null, 'navigational' => $kind === 'query' && self::looksLikeDomain($name), 'confidence' => $this->confidenceOf($type, $kind, $name, $c, $p), 'variants' => (int) ($c['variants'] ?? 1), 'brand' => $kind === 'query' && BrandService::isBrand($name, $this->brand),
             'clicks' => $c['clicks'], 'impressions' => $imp, 'ctr' => $imp > 0 ? $c['clicks'] / $imp : 0.0, 'position' => $c['position'],
             'prev_clicks' => $p['clicks'] ?? null, 'prev_impressions' => $p['impressions'] ?? null,
             'score' => round($score, 2), 'advice' => $tier === 'archive' ? 'Página histórica (' . $year . '): mantenimiento y archivo, sin urgencia SEO. Mantenla accesible y enlázala desde la edición vigente.' : ($tier === 'explore' ? 'Pocos datos: necesita revisión antes de actuar. Espera a tener más impresiones para decidir.' : $this->advice($type, $kind, $c, $p)), 'detail' => $this->detail($type, $c, $p, $score),
@@ -250,6 +250,36 @@ class OpportunityService
             'rising' => ($p === null || ($p['impressions'] ?? 0) === 0 ? 'Aparece por primera vez' : 'Está creciendo') . ': aprovecha reforzando ' . $what . ' mientras sube.',
             default => '',
         };
+    }
+
+    /** Una caída puede ser de clics o solo de impresiones: no es lo mismo y no se debe presentar igual. */
+    public static function dropBasis(array $c, ?array $p): string
+    {
+        return ($p !== null && (int) $p['clicks'] >= 3 && (int) ($c['clicks'] ?? 0) <= 0.5 * (int) $p['clicks']) ? 'clicks' : 'impressions';
+    }
+
+    /** «8i8gent.com», «www.otra.es/ruta»: quien escribe un dominio en el buscador va a ese dominio (búsqueda navegacional). */
+    public static function looksLikeDomain(string $query): bool
+    {
+        return (bool) preg_match('#^(https?://)?(www\.)?[a-z0-9][a-z0-9-]*(\.[a-z0-9-]+)*\.[a-z]{2,}(/\S*)?$#i', trim($query));
+    }
+
+    /**
+     * Cuánto se puede fiar de que mejorarlo dé resultado: depende del volumen que lo respalda, del tipo de aviso
+     * (estar muy lejos o caer solo en impresiones es menos seguro) y de si es una búsqueda navegacional.
+     */
+    private function confidenceOf(string $type, string $kind, string $name, array $c, ?array $p): string
+    {
+        $weight = max((int) $c['impressions'], (int) ($p['impressions'] ?? 0));
+        $level = $weight >= 200 ? 2 : ($weight >= 60 ? 1 : 0);
+        if ($type === 'far' || ($type === 'drop' && self::dropBasis($c, $p) === 'impressions')) {
+            $level--;
+        }
+        if ($kind === 'query' && self::looksLikeDomain($name)) {
+            $level = 0;
+        }
+
+        return ['low', 'low', 'medium', 'high'][max(0, min(2, $level)) + ($level >= 1 ? 1 : 0)] ?? 'low';
     }
 
     /** Año más reciente (19xx/20xx) que aparece en la ruta de una URL, o null. «winners-2020-21» → 2020. */

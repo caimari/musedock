@@ -54,6 +54,9 @@ class SearchConsoleController extends BaseController
             'redirectPairs' => (new \Modules\SearchConsole\Services\RedirectService($this->pdo))->pairs(),
             'indexNow' => $this->indexNowView(),
             'priorities' => $credential ? $this->priorities($properties) : [],
+            'goals' => (new \Modules\SearchConsole\Services\GoalService($this->pdo))->all(),
+            'goalOptions' => \Modules\SearchConsole\Services\GoalService::GOALS,
+            'dataUntil' => array_reduce($properties, fn ($c, $p) => max((string) $c, (string) ($p['data_until'] ?? '')), ''),
             'archived' => $credential ? $this->properties->archivedForSuperadmin() : [],
             'missing' => $credential ? $this->properties->ownDomainsWithoutProperty((int) $credential['id']) : [],
             'pendingExternal' => $credential ? $this->properties->pendingExternal((int) $credential['id']) : [],
@@ -257,9 +260,25 @@ class SearchConsoleController extends BaseController
                 new \Modules\SearchConsole\Services\DropAlertService($this->pdo)
             );
 
-            return $svc->top($properties, 5);
+            return $svc->top($properties, 5, (new \Modules\SearchConsole\Services\GoalService($this->pdo))->all());
         } catch (\Throwable $e) {
             return [];
         }
+    }
+
+    /** POST (AJAX): objetivo de un dominio (pondera «Esta semana merece tu tiempo»). */
+    public function goalSet()
+    {
+        $this->checkPermission('search_console.manage');
+        header('Content-Type: application/json; charset=utf-8');
+        $domain = \Modules\SearchConsole\Services\PropertyService::normalizeHost((string) ($_POST['domain'] ?? ''));
+        $visible = array_column(array_merge($this->properties->visibleForSuperadmin(), $this->properties->externalForSuperadmin()), 'domain');
+        if ($domain === '' || !in_array($domain, $visible, true) || !(new \Modules\SearchConsole\Services\GoalService($this->pdo))->set($domain, (string) ($_POST['goal'] ?? ''))) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'message' => 'Dominio u objetivo no válidos.']);
+            exit;
+        }
+        echo json_encode(['ok' => true]);
+        exit;
     }
 }

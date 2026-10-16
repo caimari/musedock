@@ -4,11 +4,16 @@
 
 @section('content')
 @php
-    // Las propiedades virtuales (subdominios) ya están dentro del total de su dominio: no se suman dos veces
+    // Las propiedades virtuales (subdominios) ya están dentro del total de su dominio: no se suman dos veces. El resumen de
+    // la cabecera usa EXACTAMENTE los mismos dominios y el mismo periodo que la tabla (los «otros dominios» van aparte).
     $virtualIds = array_map(fn ($p) => (int) $p['id'], array_filter($properties, fn ($p) => ($p['page_filter'] ?? '') !== ''));
-    $realTotals = array_diff_key($totals, array_flip($virtualIds));
+    $mainIds = array_map(fn ($p) => (int) $p['id'], array_filter($properties, fn ($p) => ($p['page_filter'] ?? '') === ''));
+    $realTotals = array_intersect_key($totals, array_flip($mainIds));
     $sumClicks = array_sum(array_column($realTotals, 'clicks'));
     $sumImpr = array_sum(array_column($realTotals, 'impressions'));
+    $nMain = count($mainIds);
+    $nVirtual = count($virtualIds);
+    $nExternal = count($external ?? []);
     $fmt = fn($n) => number_format((int) $n, 0, ',', '.');
     $statusLabels = ['active' => ['Activa', 'success'], 'no_access' => ['Sin acceso', 'warning'], 'pending' => ['Pendiente', 'secondary'], 'error' => ['Error', 'danger']];
 @endphp
@@ -34,11 +39,11 @@
             </div>
             <div>
                 <h3 class="mb-0" style="font-size:1.25rem;font-weight:700;">Search Console de tus dominios</h3>
-                <p class="text-muted mb-0" style="font-size:0.85rem;">Clics, impresiones y posición de todos tus sitios en un solo panel (últimos 28 días)</p>
+                <p class="text-muted mb-0" style="font-size:0.85rem;">Clics, impresiones y posición de todos tus sitios en un solo panel ({{ mb_strtolower($period['label']) }}: {{ $period['range']['from'] }} – {{ $period['range']['to'] }})</p>
             </div>
         </div>
         <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
-            <div class="stat-badge"><i class="bi bi-globe2"></i><span>{{ count($properties) }} dominios</span></div>
+            <div class="stat-badge" title="{{ $nMain }} dominios en la tabla{{ $nVirtual ? ' + ' . $nVirtual . ' subdominios (sus datos ya están dentro de su dominio y no se suman dos veces)' : '' }}{{ $nExternal ? ' · ' . $nExternal . ' dominios de «Otros dominios», que van aparte' : '' }}"><i class="bi bi-globe2"></i><span>{{ $nMain }} dominios{{ $nVirtual ? ' + ' . $nVirtual . ' subdominios' : '' }}</span></div>
             <div class="stat-badge" style="background:rgba(26,115,232,.08);border-color:rgba(26,115,232,.2);color:#1a5fc4;"><i class="bi bi-cursor"></i><span>{{ $fmt($sumClicks) }} clics</span></div>
             <div class="stat-badge" style="background:rgba(52,168,83,.08);border-color:rgba(52,168,83,.2);color:#1e7e34;"><i class="bi bi-eye"></i><span>{{ $fmt($sumImpr) }} impresiones</span></div>
             <a href="/musedock/tenants" class="stat-badge" style="text-decoration:none;color:#495057;"><i class="bi bi-building"></i><span>Tenants</span></a>
@@ -93,17 +98,30 @@
     <div class="card mb-4">@if(!empty($priorities))
     <div class="card mb-3 border-primary" id="gsc-priorities"><div class="card-body p-3">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
-            <h6 class="mb-0" style="font-weight:700;"><i class="bi bi-bullseye"></i> Esta semana merece tu tiempo</h6>
-            <button type="button" class="btn btn-link btn-sm p-0" id="gsc-priorities-help"><i class="bi bi-question-circle"></i> ¿Cómo se eligen?</button>
+            <h6 class="mb-0" style="font-weight:700;"><i class="bi bi-bullseye"></i> Esta semana merece tu tiempo <span class="text-muted" style="font-weight:400;font-size:.8rem;" id="gsc-pr-progress"></span></h6>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm py-0" id="gsc-pr-copy"><i class="bi bi-clipboard"></i> Copiar tareas</button>
+                <button type="button" class="btn btn-link btn-sm p-0" id="gsc-priorities-help"><i class="bi bi-question-circle"></i> ¿Cómo se eligen?</button>
+            </div>
         </div>
-        <div class="text-muted mb-2" style="font-size:.8rem;">Lo de más impacto de todos tus dominios, sin repetir avisos: variantes de URL agrupadas, páginas legales excluidas y solo prioridad alta.</div>
-        <ol class="mb-0 ps-3">
+        <div class="text-muted mb-2" style="font-size:.8rem;">
+            Lo de más impacto de todos tus dominios, sin repetir avisos. Calculado sobre los 28 días hasta el último dato de cada dominio{{ $dataUntil ? ' (el más reciente: ' . date('d/m/Y', strtotime($dataUntil)) . ')' : '' }}, comparado con los 28 anteriores.
+            Las cifras son una <strong>estimación de ordenación</strong>, no una previsión de clics.
+        </div>
+        <ol class="mb-0 ps-3" id="gsc-pr-list">
         @foreach($priorities as $pr)
-            <li class="mb-2" style="font-size:.9rem;">
-                <a href="{{ $baseUrl }}/domain/{{ $pr['property_id'] }}"><strong>{{ $pr['domain'] }}</strong></a>
-                <span class="badge bg-light text-dark border ms-1" style="font-size:.68rem;">{{ $pr['title'] }}</span>
-                <span class="text-muted" style="font-size:.75rem;">≈ {{ number_format($pr['impact'], 0, ',', '.') }} clics/28 d (estimación)</span>
-                <div>{{ $pr['text'] }}</div>
+            <li class="mb-2" style="font-size:.9rem;" data-text="{{ $pr['domain'] }} — {{ $pr['title'] }}: {{ $pr['text'] }}">
+                <label class="d-flex gap-2 align-items-start mb-0" style="cursor:pointer;">
+                    <input type="checkbox" class="form-check-input mt-1 gsc-pr-check" aria-label="Hecho">
+                    <span>
+                        <a href="{{ $baseUrl }}/domain/{{ $pr['property_id'] }}"><strong>{{ $pr['domain'] }}</strong></a>
+                        <span class="badge bg-light text-dark border ms-1" style="font-size:.68rem;">{{ $pr['title'] }}</span>
+                        <span class="badge bg-{{ ['high' => 'success', 'medium' => 'warning', 'low' => 'secondary'][$pr['confidence']] }} {{ $pr['confidence'] === 'medium' ? 'text-dark' : '' }}" style="font-size:.62rem;" title="Cuánto se puede fiar de que mejorarlo dé resultado: depende del volumen de datos y del tipo de aviso">confianza {{ ['high' => 'alta', 'medium' => 'media', 'low' => 'baja'][$pr['confidence']] }}</span>
+                        @if(($pr['goal'] ?? 'traffic') !== 'traffic')<span class="badge bg-light text-dark border" style="font-size:.62rem;" title="Objetivo del dominio">{{ $goalOptions[$pr['goal']][0] }}</span>@endif
+                        <span class="text-muted" style="font-size:.75rem;">{{ $pr['impact_label'] }}</span>
+                        <span class="d-block">{{ $pr['text'] }}</span>
+                    </span>
+                </label>
             </li>
         @endforeach
         </ol>
@@ -182,7 +200,8 @@
                 @endphp
                 <tr data-id="{{ $p['id'] }}" @if($isChild)data-child="1" data-parent="{{ $p['parent_id'] }}" style="display:none;background:rgba(0,0,0,.015);"@endif data-virtual="{{ ($p['page_filter'] ?? '') !== '' ? 1 : 0 }}" data-text="{{ strtolower($p['domain'] . ' ' . ($p['tenant_name'] ?? 'sitio principal')) }}" data-color="{{ $color }}" data-status="{{ $p['status'] }}" data-clicks="{{ $t['clicks'] ?? 0 }}" data-impr="{{ $t['impressions'] ?? 0 }}" @if($focusTenant !== null && (int) $p['tenant_id'] === $focusTenant) class="table-primary" @endif>
                     <td>@if($nKids)<button type="button" class="btn btn-sm btn-light border py-0 px-1 me-1 gsc-toggle" data-id="{{ $p['id'] }}" aria-expanded="false" title="Mostrar los {{ $nKids }} subdominios"><i class="bi bi-chevron-right"></i> <span style="font-size:.72rem;">{{ $nKids }}</span></button>@endif @if($isChild)<span class="text-muted ms-3 me-1">↳</span>@endif<a href="{{ $baseUrl }}/domain/{{ $p['id'] }}" title="Ver el informe de SEO de {{ $p['domain'] }} · {{ ($p['page_filter'] ?? '') !== '' ? $p['page_filter'] . ' (en ' . $p['site_url'] . ')' : $p['site_url'] }}"><strong>{{ $p['domain'] }}</strong></a>@if(($p['page_filter'] ?? '') !== '') <span class="badge bg-light text-dark border" title="Subdominio: sus datos son los de la propiedad del dominio que lo cubre, filtrados por página. Ya están incluidos en el total de ese dominio.">subdominio</span>@endif @if(!empty($p['authorized']))<span class="badge bg-info text-dark" title="Dominio de cliente que has autorizado: el cliente ve su SEO.">cliente autorizado</span>@endif</td>
-                    <td><span class="gsc-dot gsc-dot-{{ $color }}"></span>{{ $p['tenant_name'] ?? 'Sitio principal' }}</td>
+                    <td><span class="gsc-dot gsc-dot-{{ $color }}"></span>{{ $p['tenant_name'] ?? 'Sitio principal' }}
+                        @if(($p['page_filter'] ?? '') === '')<div><select class="form-select form-select-sm gsc-goal" style="font-size:.72rem;padding:1px 22px 1px 6px;width:auto;max-width:150px;margin-top:3px;" data-domain="{{ $p['domain'] }}" title="Objetivo del dominio: pondera el orden de «Esta semana merece tu tiempo»" aria-label="Objetivo de {{ $p['domain'] }}">@foreach($goalOptions as $gk => $gv)<option value="{{ $gk }}" @if(($goals[$p['domain']] ?? 'traffic') === $gk)selected @endif>{{ $gv[0] }}</option>@endforeach</select></div>@endif</td>
                     <td><span class="badge bg-{{ $sClass }}">{{ $sLabel }}</span></td>
                     <td class="num">{{ $t ? $fmt($t['clicks']) : '—' }}</td>
                     <td class="num">{{ $t ? $fmt($t['impressions']) : '—' }}</td>
@@ -857,8 +876,34 @@
 
     var prHelp = document.getElementById('gsc-priorities-help');
     if (prHelp) prHelp.addEventListener('click', function () {
-        Swal.fire({ title: 'Cómo se eligen las prioridades', icon: 'info', width: 680, confirmButtonText: 'Entendido',
-            html: '<div style="text-align:left;font-size:.92rem;"><p>Se revisan todos tus dominios con las mismas reglas del detector de oportunidades y se queda solo lo de <strong>prioridad alta</strong>: mucho peso en el sitio o una caída de clics confirmada. Se suman también las caídas de visibilidad de cada dominio.</p><p>Todo se expresa en <strong>clics estimados por periodo de 28 días</strong> para poder compararlo, y un mismo dominio no ocupa más de dos puestos. Es una <strong>estimación</strong>, no una previsión: con pocos datos, un cambio pequeño produce porcentajes enormes, así que no lo tomes como prueba de nada sin mirar el informe del dominio.</p></div>' });
+        Swal.fire({ title: 'Cómo se eligen las prioridades', icon: 'info', width: 700, confirmButtonText: 'Entendido',
+            html: '<div style="text-align:left;font-size:.92rem;"><p>Se revisan todos tus dominios con las reglas del detector y se queda lo de <strong>prioridad alta</strong> (mucho peso en el sitio o una caída de clics confirmada), más las caídas de visibilidad de cada dominio. Se ordena por <strong>impacto estimado × confianza × objetivo del dominio</strong>, y un mismo dominio no ocupa más de dos puestos.</p>' +
+            '<ul><li><strong>Impacto</strong>: clics estimados cada 28 días si la página llegara al top 3 o a un CTR normal. Es una cifra para ordenar, no una previsión ni algo que se pueda sumar.</li><li><strong>Confianza</strong>: baja con pocos datos, o si el aviso es de estar muy lejos o de perder solo impresiones.</li><li><strong>Objetivo</strong> (selector bajo cada dominio): tráfico, captar clientes, reputación editorial o difusión cultural; sube o baja el orden según el tipo de búsqueda o de página. No cambia los datos.</li><li>Se excluyen las búsquedas de marca (salvo caídas) y las que son un dominio escrito en el buscador.</li><li>En la portada, la recomendación es analizar primero qué consultas la activan, no cambiarla.</li></ul></div>' });
+    });
+    // Plan semanal: marcar lo hecho (se recuerda en este navegador) y copiar las tareas
+    var prItems = Array.prototype.slice.call(document.querySelectorAll('#gsc-pr-list li'));
+    function prKey(li) { var t = li.dataset.text || '', h = 0; for (var i = 0; i < t.length; i++) { h = (h * 31 + t.charCodeAt(i)) | 0; } return 'gsc-pr-' + h; }
+    function prRefresh() { var n = prItems.filter(function (li) { return li.querySelector('input').checked; }).length, el = document.getElementById('gsc-pr-progress'); if (el) { el.textContent = '· ' + n + ' de ' + prItems.length + ' hechas'; } }
+    prItems.forEach(function (li) {
+        var cb = li.querySelector('input'), k = prKey(li);
+        try { cb.checked = localStorage.getItem(k) === '1'; } catch (e) {}
+        cb.addEventListener('change', function () { try { localStorage.setItem(k, cb.checked ? '1' : '0'); } catch (e) {} li.style.opacity = cb.checked ? .55 : ''; prRefresh(); });
+        li.style.opacity = cb.checked ? .55 : '';
+    });
+    prRefresh();
+    var prCopy = document.getElementById('gsc-pr-copy');
+    if (prCopy) prCopy.addEventListener('click', function () {
+        var text = prItems.map(function (li) { return (li.querySelector('input').checked ? '[x] ' : '[ ] ') + li.dataset.text; }).join('\n');
+        var done = function () { prCopy.innerHTML = '<i class="bi bi-check2"></i> Copiado'; setTimeout(function () { prCopy.innerHTML = '<i class="bi bi-clipboard"></i> Copiar tareas'; }, 1800); };
+        if (navigator.clipboard) { navigator.clipboard.writeText(text).then(done); } else { var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); }
+    });
+    // Objetivo de cada dominio
+    document.addEventListener('change', function (e) {
+        var sel = e.target.closest ? e.target.closest('.gsc-goal') : null; if (!sel) { return; }
+        sel.disabled = true;
+        fetch(@json($baseUrl . '/goal'), { method: 'POST', headers: { 'X-CSRF-TOKEN': token }, body: new URLSearchParams({ domain: sel.dataset.domain, goal: sel.value, _csrf: token }) })
+            .then(function (r) { return r.json(); }).then(function (res) { sel.style.outline = res.ok ? '2px solid #34a853' : '2px solid #dc3545'; setTimeout(function () { sel.style.outline = ''; }, 1200); })
+            .catch(function () { sel.style.outline = '2px solid #dc3545'; }).then(function () { sel.disabled = false; });
     });
 
     // ===== Dar de baja (conservando los datos) y reactivar =====
