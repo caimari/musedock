@@ -123,7 +123,7 @@ foreach (['https://x.test/grok', 'https://x.test/grok#gratis', 'https://x.test/g
 put($pdo, 'gsc_page_daily', $cur, 'https://x.test/cookie-policy', 0, 400, 5.0);
 put($pdo, 'gsc_page_daily', $cur, 'https://x.test/p/privacy', 0, 300, 5.0);
 put($pdo, 'gsc_page_daily', $cur, 'https://x.test/pequena', 0, 12, 7.0);
-put($pdo, 'gsc_page_daily', $cur, 'https://x.test/mediana', 0, 60, 7.0);
+put($pdo, 'gsc_page_daily', $cur, 'https://x.test/mediana', 0, 40, 7.0);
 $r = (new OpportunityService($pdo))->detect($prop, 28);
 $pages = array_values(array_filter($r['items'], fn ($i) => $i['kind'] === 'page'));
 $names = array_column($pages, 'name');
