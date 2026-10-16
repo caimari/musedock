@@ -152,8 +152,26 @@ class OpportunityService
             'type' => $type, 'kind' => $kind, 'name' => $name, 'label' => $label,
             'clicks' => $c['clicks'], 'impressions' => $imp, 'ctr' => $imp > 0 ? $c['clicks'] / $imp : 0.0, 'position' => $c['position'],
             'prev_clicks' => $p['clicks'] ?? null, 'prev_impressions' => $p['impressions'] ?? null,
-            'score' => round($score, 2), 'advice' => $this->advice($type, $kind, $c, $p),
+            'score' => round($score, 2), 'advice' => $this->advice($type, $kind, $c, $p), 'detail' => $this->detail($type, $c, $p, $score),
         ];
+    }
+
+    /** Cifra que acompaña a cada oportunidad (qué se puede ganar o qué ha cambiado). */
+    private function detail(string $type, array $c, ?array $p, float $score): string
+    {
+        $n = fn ($v) => number_format((float) $v, 0, ',', '.');
+        $plus = '≈ +' . number_format(max(0.1, $score), 1, ',', '.') . ' clics';
+
+        return match ($type) {
+            'low_ctr' => $plus . ' con un CTR normal',
+            'striking' => $plus . ' si llegas al top 3',
+            'far' => $n($c['impressions']) . ' impresiones sin aprovechar',
+            'drop' => $p !== null && $p['clicks'] > ($c['clicks'] ?? 0) && ($p['clicks'] >= 3)
+                ? $n($p['clicks']) . ' → ' . $n($c['clicks'] ?? 0) . ' clics'
+                : $n($p['impressions'] ?? 0) . ' → ' . $n($c['impressions'] ?? 0) . ' impresiones',
+            'rising' => $n($p['impressions'] ?? 0) . ' → ' . $n($c['impressions']) . ' impresiones',
+            default => '',
+        };
     }
 
     private function advice(string $type, string $kind, array $c, ?array $p): string

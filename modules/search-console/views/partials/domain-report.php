@@ -78,6 +78,69 @@ $empty = $report['empty'];
         <div id="gsc-chart"></div>
     </div></div>
 
+<?php if (isset($opportunities) && empty($opportunities['empty'])):
+    $o = $opportunities;
+    $oppTypes = \Modules\SearchConsole\Services\OpportunityService::TYPES;
+    $oppHelp = [
+        'low_ctr' => 'Apareces alto (posición 1–10) pero con menos de la mitad de los clics que es normal en esa posición.',
+        'striking' => 'Posición 4–20: estás en las dos primeras páginas de Google pero fuera del top 3.',
+        'far' => 'Posición por encima de 20 con impresiones: hay gente que lo busca y estás muy lejos.',
+        'drop' => 'Menos clics (o menos de la mitad de impresiones) que en el periodo anterior.',
+        'rising' => 'Más del doble de impresiones que antes, o aparece por primera vez entre las 20 primeras posiciones.',
+    ];
+?>
+    <div class="card mb-3" id="gsc-opps">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div><strong><i class="bi bi-lightbulb"></i> Oportunidades SEO</strong>
+                <span class="text-muted" style="font-size:.8rem;">detectadas con los datos de los últimos <?= (int) $o['days'] ?> días · se ignora lo que tiene menos de <?= (int) $o['min_impressions'] ?> impresiones</span></div>
+            <button type="button" class="btn btn-link btn-sm p-0" id="gsc-opps-help"><i class="bi bi-question-circle"></i> ¿Cómo se calculan?</button>
+        </div>
+        <div class="card-body">
+        <?php if (!$o['items']): ?>
+            <div class="text-center text-muted p-3"><i class="bi bi-hourglass-split"></i> Con tan pocos datos todavía no hay señales claras. Las oportunidades irán apareciendo a medida que el dominio reciba más búsquedas en Google.</div>
+        <?php else: ?>
+            <div class="d-flex flex-wrap gap-2 mb-3" id="gsc-opps-chips">
+                <button type="button" class="btn btn-sm btn-dark" data-type="">Todas <span class="badge bg-light text-dark"><?= count($o['items']) ?></span></button>
+                <?php foreach ($oppTypes as $key => [$label, $color]): if (empty($o['counts'][$key])) { continue; } ?>
+                    <button type="button" class="btn btn-sm btn-outline-<?= $e($color) ?>" data-type="<?= $e($key) ?>"><?= $e($label) ?> <span class="badge bg-<?= $e($color) ?>"><?= (int) $o['counts'][$key] ?></span></button>
+                <?php endforeach; ?>
+            </div>
+            <div class="table-responsive"><table class="table table-sm mb-0" id="gsc-opps-table"><thead><tr><th>Tipo</th><th>Qué</th><th class="num">Impr.</th><th class="num">Clics</th><th class="num">Pos.</th><th>Qué se puede ganar</th><th>Qué hacer</th></tr></thead><tbody>
+            <?php foreach ($o['items'] as $it): [$tl, $tc] = $oppTypes[$it['type']]; ?>
+                <tr data-type="<?= $e($it['type']) ?>">
+                    <td><span class="badge bg-<?= $e($tc) ?>"><?= $e($tl) ?></span><div class="text-muted" style="font-size:.72rem;"><?= $it['kind'] === 'page' ? 'página' : 'consulta' ?></div></td>
+                    <td class="gsc-trunc" title="<?= $e($it['name']) ?>"><strong><?= $e($it['label']) ?></strong></td>
+                    <td class="num"><?= $n($it['impressions']) ?></td><td class="num"><?= $n($it['clicks']) ?></td><td class="num"><?= $pos($it['position']) ?></td>
+                    <td style="font-size:.85rem;white-space:nowrap;"><?= $e($it['detail']) ?></td>
+                    <td style="font-size:.82rem;min-width:260px;"><?= $e($it['advice']) ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody></table></div>
+        <?php endif; ?>
+        <?php foreach ($o['notes'] as $note): ?><div class="text-muted mt-2" style="font-size:.78rem;"><i class="bi bi-info-circle"></i> <?= $e($note) ?></div><?php endforeach; ?>
+        </div>
+    </div>
+    <script>
+    (function () {
+        var chips = document.querySelectorAll('#gsc-opps-chips [data-type]'), rows = document.querySelectorAll('#gsc-opps-table tbody tr');
+        chips.forEach(function (b) {
+            b.addEventListener('click', function () {
+                chips.forEach(function (x) { x.classList.toggle('btn-dark', x === b && !x.dataset.type); });
+                rows.forEach(function (r) { r.style.display = (!b.dataset.type || r.dataset.type === b.dataset.type) ? '' : 'none'; });
+            });
+        });
+        var help = document.getElementById('gsc-opps-help');
+        if (help) help.addEventListener('click', function () {
+            var items = <?= json_encode(array_map(fn ($k) => [$oppTypes[$k][0], $oppHelp[$k]], array_keys($oppTypes)), JSON_UNESCAPED_UNICODE) ?>;
+            var html = '<div style="text-align:left;font-size:.92rem"><p>Son reglas fijas (sin IA) sobre los datos que Google ya te ha dado. Se aplican a consultas y a páginas, y se ordenan por lo que podrías ganar.</p><ul>'
+                + items.map(function (i) { return '<li><strong>' + i[0] + '</strong>: ' + i[1] + '</li>'; }).join('')
+                + '</ul><p class="mb-1">El mínimo de impresiones se adapta al tamaño del sitio (entre 3 y 50). El CTR «normal» por posición es una referencia típica del sector (28 % en la 1.ª, 15 % en la 2.ª, 11 % en la 3.ª… 2 % en la 10.ª), no un dato de Google.</p></div>';
+            if (window.Swal) { Swal.fire({ title: 'Cómo se detectan las oportunidades', html: html, icon: 'info', width: 680, confirmButtonText: 'Entendido' }); }
+        });
+    })();
+    </script>
+<?php endif; ?>
+
     <div class="row g-3">
         <div class="col-lg-6"><div class="card"><div class="card-header"><strong>Consultas</strong> <span class="text-muted" style="font-size:.8rem;">lo que la gente busca en Google</span></div>
             <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Consulta</th><th class="num">Clics</th><th class="num">Impr.</th><th class="num">CTR</th><th class="num">Pos.</th></tr></thead><tbody>

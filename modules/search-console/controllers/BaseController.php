@@ -6,6 +6,7 @@ use Modules\SearchConsole\Services\CredentialStore;
 use Modules\SearchConsole\Services\DomainVerifier;
 use Modules\SearchConsole\Services\GoogleApiException;
 use Modules\SearchConsole\Services\GoogleClient;
+use Modules\SearchConsole\Services\OpportunityService;
 use Modules\SearchConsole\Services\PropertyService;
 use Modules\SearchConsole\Services\ReportService;
 use Modules\SearchConsole\Services\SyncService;
@@ -173,6 +174,7 @@ abstract class BaseController
             'title' => 'SEO · ' . $property['domain'],
             'property' => $property,
             'report' => $report,
+            'opportunities' => (new OpportunityService($this->pdo))->detect($property, $days),
             'periods' => ReportService::PERIODS,
             'baseUrl' => $this->baseUrl(),
         ]);
