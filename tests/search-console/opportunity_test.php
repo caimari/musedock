@@ -55,7 +55,7 @@ foreach ([
     ['sale arriba sin clics', $cur, 2, 200, 3.0],
     ['muy lejos', $cur, 0, 30, 60.0],
     ['cae', $cur, 5, 50, 2.0], ['cae', $prev, 20, 80, 2.0],
-    ['nueva y creciendo', $cur, 5, 40, 3.0],
+    ['nueva y creciendo', $cur, 5, 120, 3.0],
     ['desaparece', $prev, 10, 40, 3.0],
     ['demasiado poco', $cur, 0, 2, 8.0],
     ['va bien', $cur, 14, 50, 1.0], ['va bien', $prev, 14, 50, 1.0], // igual que antes: no hay nada que avisar
@@ -123,7 +123,7 @@ foreach (['https://x.test/grok', 'https://x.test/grok#gratis', 'https://x.test/g
 put($pdo, 'gsc_page_daily', $cur, 'https://x.test/cookie-policy', 0, 400, 5.0);
 put($pdo, 'gsc_page_daily', $cur, 'https://x.test/p/privacy', 0, 300, 5.0);
 put($pdo, 'gsc_page_daily', $cur, 'https://x.test/pequena', 0, 12, 7.0);
-put($pdo, 'gsc_page_daily', $cur, 'https://x.test/mediana', 0, 40, 7.0);
+put($pdo, 'gsc_page_daily', $cur, 'https://x.test/mediana', 0, 150, 7.0);
 $r = (new OpportunityService($pdo))->detect($prop, 28);
 $pages = array_values(array_filter($r['items'], fn ($i) => $i['kind'] === 'page'));
 $names = array_column($pages, 'name');
@@ -137,7 +137,7 @@ $med = array_values(array_filter($pages, fn ($i) => str_contains($i['name'], 'me
 $small = array_values(array_filter($pages, fn ($i) => str_contains($i['name'], 'pequena')));
 ok($med && $med[0]['tier'] === 'medium', 'volumen razonable: prioridad media');
 ok($small && $small[0]['tier'] === 'explore' && str_contains($small[0]['advice'], 'Pocos datos') && !str_contains($small[0]['advice'], 'top 3'), 'pocas impresiones: exploración, sin consejo concreto');
-ok(array_sum($r['tiers']) === count($r['items']), 'los contadores de prioridad cuadran');
+ok(array_sum($r['tiers']) === count($r['cards']), 'los contadores de prioridad cuadran (una tarjeta por página o consulta)');
 $grokCtr = array_values(array_filter($pages, fn ($i) => str_contains($i['name'], 'grok') && $i['type'] === 'low_ctr'));
 ok($grokCtr && str_contains($grokCtr[0]['detail'], 'estimación'), 'las cifras de potencial se presentan como estimación');
 
@@ -147,9 +147,9 @@ $pdo = db();
 put($pdo, 'gsc_site_daily', $cur, null, 20, 2000, 8.0);
 put($pdo, 'gsc_page_daily', $cur, 'https://x.test/seleccion-oficial-' . ($cy - 6), 0, 99, 7.0);   // edición antigua con 99 impresiones
 put($pdo, 'gsc_page_daily', $cur, 'https://x.test/ganadores-' . ($cy - 3) . '-' . substr((string) ($cy - 2), 2), 2, 96, 7.0);
-put($pdo, 'gsc_page_daily', $cur, 'https://x.test/seleccion-oficial-' . $cy, 0, 40, 7.0);          // edición vigente, volumen medio
-put($pdo, 'gsc_page_daily', $cur, 'https://x.test/seleccion-oficial-' . ($cy - 1), 0, 40, 7.0);    // edición del año pasado: sin cambio de trato
-put($pdo, 'gsc_page_daily', $cur, 'https://x.test/nosotros', 0, 40, 7.0);                           // sin año: trato normal
+put($pdo, 'gsc_page_daily', $cur, 'https://x.test/seleccion-oficial-' . $cy, 0, 150, 7.0);          // edición vigente, volumen medio
+put($pdo, 'gsc_page_daily', $cur, 'https://x.test/seleccion-oficial-' . ($cy - 1), 0, 150, 7.0);    // edición del año pasado: sin cambio de trato
+put($pdo, 'gsc_page_daily', $cur, 'https://x.test/nosotros', 0, 150, 7.0);                           // sin año: trato normal
 $r = (new OpportunityService($pdo))->detect($prop, 28);
 $by = fn (string $needle) => array_values(array_filter($r['items'], fn ($i) => $i['kind'] === 'page' && str_contains($i['name'], $needle)));
 $old6 = $by('seleccion-oficial-' . ($cy - 6));
@@ -162,8 +162,38 @@ $last = $by('seleccion-oficial-' . ($cy - 1));
 ok($last && $last[0]['tier'] === 'medium' && $last[0]['context'] === null, 'la edición del año pasado se trata con normalidad');
 $plain = $by('nosotros');
 ok($plain && $plain[0]['tier'] === 'medium' && $plain[0]['year'] === null, 'una página sin año no cambia');
-ok($r['tiers']['archive'] === count(array_filter($r['items'], fn ($i) => $i['tier'] === 'archive')) && array_sum($r['tiers']) === count($r['items']), 'los contadores incluyen el archivo');
+ok($r['tiers']['archive'] === count(array_filter($r['cards'], fn ($i) => $i['tier'] === 'archive')) && array_sum($r['tiers']) === count($r['cards']), 'los contadores incluyen el archivo');
 ok(OpportunityService::yearOf('https://x.test/winners-2020-21/') === 2020 && OpportunityService::yearOf('https://x.test/blog/mi-post') === null && OpportunityService::yearOf('https://x.test/p/12345') === null, 'el año se toma de la ruta; un número cualquiera no cuenta');
+
+echo "== 6. Umbrales por volumen, métrica exacta y una tarjeta por URL\n";
+$pdo = db();
+put($pdo, 'gsc_site_daily', $cur, null, 60, 5000, 8.0);
+put($pdo, 'gsc_site_daily', $prev, null, 60, 5000, 8.0);
+// sin comparar con histórico: 33 y 61 impresiones bien posicionadas NO son prioridad alta; 800 sí; 150 media
+foreach ([['https://x.test/pocas33', 33], ['https://x.test/pocas61', 61], ['https://x.test/medias150', 150], ['https://x.test/muchas800', 800]] as [$u, $i]) {
+    put($pdo, 'gsc_page_daily', $cur, $u, 0, $i, 7.0);
+}
+// caída de IMPRESIONES (167 → 83, sin perder clics): el texto debe decir impresiones, no clics
+put($pdo, 'gsc_page_daily', $prev, 'https://x.test/seedance', 1, 167, 8.0);
+put($pdo, 'gsc_page_daily', $cur, 'https://x.test/seedance', 1, 83, 8.0);
+// una página con CTR bajo Y caída de clics: debe salir UNA sola tarjeta con los dos motivos
+put($pdo, 'gsc_page_daily', $prev, 'https://x.test/doble', 14, 700, 7.0);
+put($pdo, 'gsc_page_daily', $cur, 'https://x.test/doble', 3, 700, 7.0);
+$r = (new OpportunityService($pdo))->detect($prop, 28);
+$card = fn (string $needle) => array_values(array_filter($r['cards'], fn ($c) => $c['kind'] === 'page' && str_contains($c['name'], $needle)));
+ok($card('pocas33') && $card('pocas33')[0]['tier'] === 'explore' && $card('pocas61')[0]['tier'] === 'explore', 'con 33 o 61 impresiones no hay prioridad alta (ni media): exploración');
+ok($card('medias150')[0]['tier'] === 'medium' && $card('muchas800')[0]['tier'] === 'high', '150 impresiones: media; 800: alta');
+$sd = $card('seedance');
+ok($sd && $sd[0]['basis'] === 'impressions' && str_contains($sd[0]['advice'], 'Ha perdido impresiones') && str_contains($sd[0]['advice'], '167 → 83') && !str_contains($sd[0]['advice'], 'perdido clics'), 'una caída de 167 a 83 impresiones lo dice con esas palabras y esas cifras (no «clics»)');
+$dbl = $card('doble');
+ok(count($dbl) === 1, 'una página con varios motivos sale UNA sola vez en las tarjetas');
+$types = $dbl ? $dbl[0]['types'] : [];
+ok(in_array('low_ctr', $types, true) && in_array('drop', $types, true) && count($dbl[0]['reasons']) >= 1, 'agrupa sus motivos (CTR bajo y caída de clics) en una tarjeta');
+$dropReason = array_values(array_filter(array_merge([['type' => $dbl[0]['type'], 'basis' => $dbl[0]['basis']]], $dbl[0]['reasons']), fn ($x) => $x['type'] === 'drop'));
+ok($dropReason && $dropReason[0]['basis'] === 'clicks', 'y la caída se identifica como de clics');
+ok(count($r['items']) > count($r['cards']) && array_sum($r['card_counts']) >= count($r['cards']), 'las tarjetas son menos que los avisos sueltos; los filtros cuentan cada motivo');
+$ids = array_map(fn ($c) => $c['kind'] . '|' . $c['name'], $r['cards']);
+ok(count($ids) === count(array_unique($ids)), 'ninguna URL ni consulta se repite entre las tarjetas');
 
 echo "\n" . ($fails ? "RESULTADO: $fails de $n comprobaciones FALLAN\n" : "RESULTADO: las $n comprobaciones pasan\n");
 exit($fails ? 1 : 0);

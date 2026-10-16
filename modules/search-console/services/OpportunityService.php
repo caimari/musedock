@@ -32,6 +32,10 @@ class OpportunityService
     private const CTR = [1 => 0.28, 2 => 0.15, 3 => 0.11, 4 => 0.08, 5 => 0.06, 6 => 0.05, 7 => 0.04, 8 => 0.03, 9 => 0.025, 10 => 0.02];
     private const PER_TYPE = 15;
 
+    /** Volumen mínimo (impresiones en el periodo) para prioridad alta y media: no se promete urgencia con pocos datos. */
+    public const HIGH_MIN = 500;
+    public const MEDIUM_MIN = 100;
+
     /** Impresiones totales del periodo (para repartir las oportunidades por prioridad). */
     private int $total = 0;
 
@@ -122,14 +126,34 @@ class OpportunityService
         }
         usort($final, fn ($a, $b) => $b['score'] <=> $a['score']);
 
-        $tiers = ['high' => 0, 'medium' => 0, 'explore' => 0, 'archive' => 0];
+        // Una sola tarjeta por URL o consulta: el motivo principal y, agrupados, los demás (ordenados por importancia)
+        $tierRank = ['high' => 3, 'medium' => 2, 'explore' => 1, 'archive' => 0];
+        $groups = [];
         foreach ($final as $it) {
+            $groups[$it['kind'] . '|' . $it['name']][] = $it;
+        }
+        $cards = [];
+        $cardCounts = array_fill_keys(array_keys(self::TYPES), 0);
+        foreach ($groups as $list) {
+            usort($list, fn ($a, $b) => [$a['type'] === 'rising', $tierRank[$b['tier']], $b['score']] <=> [$b['type'] === 'rising', $tierRank[$a['tier']], $a['score']]);
+            $primary = array_shift($list);
+            $primary['reasons'] = array_map(fn ($r) => ['type' => $r['type'], 'label' => self::TYPES[$r['type']][0], 'detail' => $r['detail'], 'basis' => $r['basis'] ?? null], $list);
+            $primary['types'] = array_merge([$primary['type']], array_column($primary['reasons'], 'type'));
+            foreach (array_unique($primary['types']) as $t) {
+                $cardCounts[$t]++;
+            }
+            $cards[] = $primary;
+        }
+        usort($cards, fn ($a, $b) => $b['score'] <=> $a['score']);
+
+        $tiers = ['high' => 0, 'medium' => 0, 'explore' => 0, 'archive' => 0];
+        foreach ($cards as $it) {
             $tiers[$it['tier']]++;
         }
 
         return [
             'empty' => false, 'days' => $days, 'from' => $from, 'to' => $to, 'min_impressions' => $min,
-            'items' => $final, 'counts' => $counts, 'tiers' => $tiers, 'total_impressions' => $total,
+            'items' => $final, 'cards' => $cards, 'counts' => $counts, 'card_counts' => $cardCounts, 'tiers' => $tiers, 'total_impressions' => $total,
             'notes' => $notes,
         ];
     }
@@ -198,8 +222,9 @@ class OpportunityService
 
     /**
      * Prioridad según el volumen que respalda el aviso:
-     *  alta: mucho peso en el sitio (o una caída de clics confirmada con un mínimo de clics previos);
-     *  media: volumen razonable; exploración: pocas impresiones (mucha incertidumbre).
+     *  alta: 500 o más impresiones (y al menos el 3 % del sitio), o una caída de clics confirmada con un mínimo de clics previos;
+     *  media: 100 o más (y al menos el 1 % del sitio); exploración: menos, con mucha incertidumbre.
+     *  Son umbrales por volumen, no una regla absoluta: la prioridad de un dominio comercial se ajusta con su objetivo.
      */
     private function tierOf(string $type, array $c, ?array $p): string
     {
@@ -208,10 +233,10 @@ class OpportunityService
         if ($type === 'drop' && $p !== null && (int) $p['clicks'] >= 10 && (int) ($c['clicks'] ?? 0) <= 0.5 * (int) $p['clicks']) {
             return 'high';
         }
-        if ($weight >= max(50, (int) round($this->total * 0.03))) {
+        if ($weight >= max(self::HIGH_MIN, (int) round($this->total * 0.03))) {
             return 'high';
         }
-        if ($weight >= max(15, (int) round($this->total * 0.01))) {
+        if ($weight >= max(self::MEDIUM_MIN, (int) round($this->total * 0.01))) {
             return 'medium';
         }
 
@@ -246,7 +271,7 @@ class OpportunityService
             'far' => $kind === 'page'
                 ? 'Hay gente que llega a esta página buscando algo pero estás muy abajo: revisa si responde bien a esa búsqueda y mejórala.'
                 : 'Hay gente que busca esto y estás muy lejos: crea o mejora una página pensada específicamente para esta búsqueda.',
-            'drop' => ($p !== null && ($c['clicks'] ?? 0) < ($p['clicks'] ?? 0) ? 'Ha perdido clics' : 'Ha perdido impresiones') . ' frente al periodo anterior: revisa si cambiaste ' . $what . ' o si la competencia te ha adelantado.',
+            'drop' => (self::dropBasis($c, $p) === 'clicks' ? 'Ha perdido clics (' . ($p['clicks'] ?? 0) . ' → ' . ($c['clicks'] ?? 0) . ')' : 'Ha perdido impresiones (' . number_format((int) ($p['impressions'] ?? 0), 0, ',', '.') . ' → ' . number_format((int) ($c['impressions'] ?? 0), 0, ',', '.') . '), no clics') . ' frente al periodo anterior: revisa si cambiaste ' . $what . ' o si la competencia te ha adelantado.',
             'rising' => ($p === null || ($p['impressions'] ?? 0) === 0 ? 'Aparece por primera vez' : 'Está creciendo') . ': aprovecha reforzando ' . $what . ' mientras sube.',
             default => '',
         };

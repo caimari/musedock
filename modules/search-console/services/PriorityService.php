@@ -65,7 +65,7 @@ class PriorityService
                     'confidence' => 'medium', 'title' => 'Caída de visibilidad', 'text' => $d['text'], 'rank' => (float) $d['impact'] * self::CONFIDENCE['medium']];
             }
             $r = $this->opportunities->detect($p, 28);
-            foreach ($r['items'] ?? [] as $it) {
+            foreach ($r['cards'] ?? $r['items'] ?? [] as $it) {
                 if ($it['tier'] !== 'high' || $it['type'] === 'rising' || !empty($it['navigational'])) {
                     continue; // las búsquedas de un dominio (navegacionales) no son una oportunidad de contenido
                 }

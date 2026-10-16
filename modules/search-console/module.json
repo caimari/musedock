@@ -1,8 +1,17 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "changelog": [
+    {
+      "version": "0.8.1",
+      "date": "2026-10-16",
+      "changes": [
+        "Prioridades por volumen absoluto (a raíz de otra revisión): prioridad alta desde 500 impresiones en el periodo (y al menos el 3 % del sitio), media desde 100 (y al menos el 1 %), y por debajo, exploración. Antes, una página con pocas impresiones podía ser «alta» por tener un sitio pequeño o por haber tenido más volumen en el periodo anterior (167 → 83 impresiones). Una caída de clics confirmada con 10 o más clics previos sigue siendo alta.",
+        "Corregido: el consejo de una caída decía «ha perdido clics» aunque la caída fuera de impresiones. Ahora nombra la métrica exacta y las cifras («Ha perdido impresiones (167 → 83), no clics»).",
+        "Una sola tarjeta por página o consulta en el informe: el motivo principal arriba y los demás agrupados en «También» (antes, una misma página salía varias veces: CTR bajo, caída de clics…). Los filtros por tipo cuentan una tarjeta por cada motivo que contiene. «Esta semana merece tu tiempo» usa las mismas tarjetas."
+      ]
+    },
     {
       "version": "0.8.0",
       "date": "2026-10-16",

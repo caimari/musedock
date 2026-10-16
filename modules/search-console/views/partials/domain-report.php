@@ -130,28 +130,29 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
             <button type="button" class="btn btn-link btn-sm p-0" id="gsc-opps-help"><i class="bi bi-question-circle"></i> ¿Cómo se calculan?</button>
         </div>
         <div class="card-body">
-        <?php if (!$o['items']): ?>
+        <?php if (!($o['cards'] ?? $o['items'])): ?>
             <div class="text-center text-muted p-3"><i class="bi bi-hourglass-split"></i> Con tan pocos datos todavía no hay señales claras. Las oportunidades irán apareciendo a medida que el dominio reciba más búsquedas en Google.</div>
         <?php else: ?>
             <div class="d-flex flex-wrap gap-2 mb-3" id="gsc-opps-chips">
-                <button type="button" class="btn btn-sm btn-dark" data-type="">Todas <span class="badge bg-light text-dark"><?= count($o['items']) ?></span></button>
-                <?php foreach ($oppTypes as $key => [$label, $color]): if (empty($o['counts'][$key])) { continue; } ?>
-                    <button type="button" class="btn btn-sm btn-outline-<?= $e($color) ?>" data-type="<?= $e($key) ?>"><?= $e($label) ?> <span class="badge bg-<?= $e($color) ?>"><?= (int) $o['counts'][$key] ?></span></button>
+                <button type="button" class="btn btn-sm btn-dark" data-type="">Todas <span class="badge bg-light text-dark"><?= count($o['cards']) ?></span></button>
+                <?php foreach ($oppTypes as $key => [$label, $color]): if (empty($o['card_counts'][$key])) { continue; } ?>
+                    <button type="button" class="btn btn-sm btn-outline-<?= $e($color) ?>" data-type="<?= $e($key) ?>"><?= $e($label) ?> <span class="badge bg-<?= $e($color) ?>"><?= (int) $o['card_counts'][$key] ?></span></button>
                 <?php endforeach; ?>
                 <?php if (!empty($o['tiers']['explore']) || !empty($o['tiers']['archive'])): $hidden = (int) ($o['tiers']['explore'] ?? 0) + (int) ($o['tiers']['archive'] ?? 0); ?>
                 <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="gsc-opps-explore" title="Exploración: pocas impresiones. Archivo: páginas de ediciones pasadas"><i class="bi bi-eye"></i> Mostrar exploratorias y de archivo (<?= $hidden ?>)</button>
                 <?php endif; ?>
             </div>
             <div class="table-responsive"><table class="table table-sm mb-0 gsc-sortable" id="gsc-opps-table"><thead><tr><th>Oportunidad</th><th>URL / palabra clave</th><th class="num">Impr.</th><th class="num">Clics</th><th class="num">Pos.</th><th>Qué puedes ganar y qué hacer</th></tr></thead><tbody>
-            <?php foreach ($o['items'] as $it): [$tl, $tc] = $oppTypes[$it['type']]; ?>
+            <?php foreach ($o['cards'] as $it): [$tl, $tc] = $oppTypes[$it['type']]; ?>
                 <?php $tierLabel = ['high' => ['Prioridad alta', 'danger'], 'medium' => ['Prioridad media', 'warning'], 'explore' => ['Exploración', 'secondary'], 'archive' => ['Archivo', 'secondary']][$it['tier']]; ?>
-                <tr data-type="<?= $e($it['type']) ?>" data-tier="<?= $e($it['tier']) ?>" <?= in_array($it['tier'], ['explore', 'archive'], true) ? 'style="display:none;"' : '' ?>>
+                <tr data-type="<?= $e(implode(' ', array_unique($it['types']))) ?>" data-tier="<?= $e($it['tier']) ?>" <?= in_array($it['tier'], ['explore', 'archive'], true) ? 'style="display:none;"' : '' ?>>
                     <td style="white-space:nowrap;"><span class="badge bg-<?= $e($tc) ?>"><?= $e($tl) ?></span><div style="margin-top:3px;"><span class="badge bg-<?= $e($tierLabel[1]) ?> <?= $tierLabel[1] === 'warning' ? 'text-dark' : '' ?>" style="font-size:.62rem;" title="<?= $it['tier'] === 'archive' ? 'Página de una edición pasada: mantenimiento y archivo, sin urgencia SEO' : ($it['tier'] === 'explore' ? 'Pocas impresiones: mucha incertidumbre, no actúes sin más datos' : ($it['tier'] === 'high' ? 'Mucho peso en el sitio o caída de clics confirmada' : 'Volumen razonable')) ?>"><?= $e($tierLabel[0]) ?></span><?php if (($it['context'] ?? null) === 'current'): ?> <span class="badge bg-success" style="font-size:.62rem;" title="Edición vigente (<?= (int) $it['year'] ?>)">vigente</span><?php endif; ?></div></td>
                     <td class="gsc-trunc" style="max-width:260px;" title="<?= $e($it['name']) ?>">
                         <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;"><?= $it['kind'] === 'page' ? 'URL' : 'Palabra clave' ?></div>
                         <strong><?= $it['kind'] === 'page' ? $pageLink($it['name'], $it['label']) : $e($it['label']) ?></strong><?php if (!empty($it['brand'])): ?> <span class="badge bg-light text-dark border" style="font-size:.62rem;" title="Búsqueda de marca: contiene el nombre del sitio">marca</span><?php endif; ?></td>
                     <td class="num"><?= $n($it['impressions']) ?></td><td class="num"><?= $n($it['clicks']) ?></td><td class="num"><?= $pos($it['position']) ?></td>
                     <td style="font-size:.82rem;min-width:240px;max-width:460px;"><strong><?= $e($it['detail']) ?></strong><div class="text-muted"><?= $e($it['advice']) ?></div>
+                        <?php if (!empty($it['reasons'])): ?><div class="mt-1" style="font-size:.74rem;"><span class="text-muted">También:</span> <?php foreach ($it['reasons'] as $rs): [, $rc] = $oppTypes[$rs['type']]; ?><span class="badge bg-<?= $e($rc) ?> bg-opacity-75" style="font-size:.62rem;"><?= $e($rs['label']) ?></span> <span class="text-muted"><?= $e($rs['detail']) ?></span>; <?php endforeach; ?></div><?php endif; ?>
                         <?php if ($it['kind'] === 'page' && ($property['status'] ?? '') === 'active'): ?><div><button type="button" class="btn btn-link btn-sm p-0 gsc-opt-add" style="font-size:.74rem;" data-url="<?= $e($it['name']) ?>"><i class="bi bi-journal-check"></i> Registrar optimización</button></div><?php endif; ?>
                         <?php if (!empty($editorial['suggestions'][$it['name']])): $sg = $editorial['suggestions'][$it['name']]; ?>
                         <details class="mt-1"><summary class="text-primary" style="cursor:pointer;font-size:.78rem;"><i class="bi bi-lightbulb"></i> Sugerencias (<?= count($sg) ?>)</summary>
@@ -217,7 +218,7 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
     (function () {
         var chips = document.querySelectorAll('#gsc-opps-chips [data-type]'), rows = document.querySelectorAll('#gsc-opps-table tbody tr'), showExplore = false, curType = '';
         function applyOpps() {
-            rows.forEach(function (r) { r.style.display = ((!curType || r.dataset.type === curType) && (showExplore || (r.dataset.tier !== 'explore' && r.dataset.tier !== 'archive'))) ? '' : 'none'; });
+            rows.forEach(function (r) { r.style.display = ((!curType || (' ' + r.dataset.type + ' ').indexOf(' ' + curType + ' ') !== -1) && (showExplore || (r.dataset.tier !== 'explore' && r.dataset.tier !== 'archive'))) ? '' : 'none'; });
         }
         chips.forEach(function (b) {
             b.addEventListener('click', function () {
