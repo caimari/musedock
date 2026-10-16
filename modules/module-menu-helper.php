@@ -49,7 +49,9 @@ if (!function_exists('register_module_admin_menu')) {
         // Un cambio en la configuración del menú cambia la firma y se registra de nuevo al instante.
         $menuTenant = function_exists('tenant_id') ? (int) (tenant_id() ?? 0) : 0;
         $menuMarkerDir = (defined('APP_ROOT') ? APP_ROOT : dirname(__DIR__)) . '/storage/cache/menu-sync';
-        $menuMarker = $menuMarkerDir . '/' . sha1(json_encode([$config, $menuTenant]));
+        // La firma incluye el estado de los módulos (instalar, actualizar, activar o desactivar uno, también para este
+        // tenant): cualquier cambio invalida la caché y los menús se registran de nuevo en la siguiente petición.
+        $menuMarker = $menuMarkerDir . '/' . sha1(json_encode([$config, $menuTenant, module_menu_epoch($menuTenant)]));
         if (is_file($menuMarker) && (time() - (int) @filemtime($menuMarker)) < 3600) {
             return;
         }
@@ -181,6 +183,34 @@ if (!function_exists('register_module_admin_menu')) {
             @touch($menuMarker);
         } catch (\Throwable $e) {
             error_log("register_module_admin_menu: error ({$menuSlug}) - " . $e->getMessage());
+        }
+    }
+}
+
+if (!function_exists('module_menu_epoch')) {
+    /**
+     * Huella del estado de los módulos (y de los habilitados para el tenant). Dos consultas pequeñas por petición,
+     * compartidas por todos los menús: mucho menos que lo que se evita (decenas de UPDATE).
+     */
+    function module_menu_epoch(int $tenantId): string
+    {
+        static $cache = [];
+        if (isset($cache[$tenantId])) {
+            return $cache[$tenantId];
+        }
+        try {
+            $pdo = Database::connect();
+            $mods = $pdo->query('SELECT id, active, cms_enabled, version, updated_at FROM modules ORDER BY id')->fetchAll(\PDO::FETCH_ASSOC);
+            $tenantMods = [];
+            if ($tenantId > 0) {
+                $stmt = $pdo->prepare('SELECT module_id, enabled FROM tenant_modules WHERE tenant_id = ? ORDER BY module_id');
+                $stmt->execute([$tenantId]);
+                $tenantMods = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            }
+
+            return $cache[$tenantId] = md5(json_encode([$mods, $tenantMods]));
+        } catch (\Throwable $e) {
+            return $cache[$tenantId] = 'sin-huella'; // si no se puede leer, la caché horaria sigue funcionando
         }
     }
 }
