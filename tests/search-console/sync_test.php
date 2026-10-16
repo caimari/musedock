@@ -27,6 +27,7 @@ class FakeGoogle extends GoogleClient
 {
     public array $calls = [];
     public ?array $fail = null; // ['dim' => 'query', 'status' => 500]
+    public bool $zeroMobile = false;
     public function __construct() {}
     public function request(string $method, string $url, ?array $body = null): array
     {
@@ -41,6 +42,7 @@ class FakeGoogle extends GoogleClient
             foreach ($variants as $i => $v) {
                 if ($v === 'cine' && substr($d, -2) === '05') { $v = str_repeat('q', 1500); } // consulta absurdamente larga
                 $rows[] = ['keys' => $v === null ? [$d] : [$d, $v], 'clicks' => 10 - $i * 4, 'impressions' => 100 * ($i + 1), 'ctr' => 0.1, 'position' => 4.0 + $i * 6];
+                if ($this->zeroMobile && $v === 'MOBILE') { $rows[array_key_last($rows)]['clicks'] = 0; $rows[array_key_last($rows)]['impressions'] = 0; }
             }
         }
 
@@ -108,6 +110,12 @@ $pdo = db(); $svc = new SyncService($pdo, false);
 $gn = new FakeGoogle();
 $svc->syncProperty($prop($pdo), $gn, $today);
 ok(!array_filter($gn->calls, fn ($c) => isset($c['dimensionFilterGroups'])), 'una propiedad normal no lleva filtro');
+
+echo "== 2c. Los días vacíos no se guardan\n";
+$pdo = db(); $svc = new SyncService($pdo, false);
+$gz = new FakeGoogle(); $gz->zeroMobile = true;
+$svc->syncProperty($prop($pdo), $gz, $today);
+ok((int) $pdo->query("SELECT COUNT(*) FROM gsc_device_daily WHERE device = 'MOBILE'")->fetchColumn() === 0 && (int) $pdo->query("SELECT COUNT(*) FROM gsc_device_daily WHERE device = 'DESKTOP'")->fetchColumn() === 481, 'filas con 0 clics y 0 impresiones no se guardan; las demás sí');
 
 echo "== 3. Errores\n";
 $pdo = db(); $svc = new SyncService($pdo, false);

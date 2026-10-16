@@ -57,10 +57,16 @@ $empty = $report['empty'];
 <?php if ($empty): ?>
     <div class="card"><div class="card-body text-center p-5">
         <i class="bi bi-hourglass-split" style="font-size:2rem;color:#8a97a8;"></i>
+        <?php if (($property['last_sync_status'] ?? '') === 'ok'): ?>
+        <h5 class="mt-3">Google aún no registra búsquedas para este dominio</h5>
+        <p class="text-muted mb-3">La descarga se hizo bien (<?= $e(date('d/m/Y H:i', strtotime((string) $property['last_sync_at']))) ?>), pero Google no ha mostrado este sitio en ninguna búsqueda en el periodo descargado. Es normal en sitios nuevos o con poco contenido indexado. Los datos aparecerán solos en cuanto haya impresiones.</p>
+        <button type="button" class="btn btn-outline-primary" id="gsc-sync2"><i class="bi bi-cloud-arrow-down"></i> Volver a descargar</button>
+        <?php else: ?>
         <h5 class="mt-3">Todavía no hay datos de este dominio</h5>
         <p class="text-muted mb-3">La descarga automática corre sola en segundo plano (cada pocas horas). También puedes pedirla ahora; la primera vez baja hasta 16 meses de histórico y puede tardar uno o dos minutos.
         Si el dominio es nuevo en Search Console, Google puede tardar unos días en tener datos.</p>
         <button type="button" class="btn btn-primary" id="gsc-sync2"><i class="bi bi-cloud-arrow-down"></i> Descargar ahora</button>
+        <?php endif; ?>
     </div></div>
 <?php else:
     $t = $report['totals'];

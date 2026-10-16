@@ -125,6 +125,8 @@ class SyncService
         $max = ['country' => 8, 'device' => 16, 'page' => 2000, 'query' => 1000][$extra] ?? 0; // largo de cada columna
         $cols = 'property_id, date' . ($extra ? ', ' . $extra : '') . ($withPage ? ', page' : '') . ', clicks, impressions, ctr, position';
         $one = '(?, ?' . ($extra ? ', ?' : '') . ($withPage ? ", ''" : '') . ', ?, ?, ?, ?)';
+        // Un día sin clics ni impresiones no aporta nada (con filtro, Google devuelve una fila por día aunque esté vacía)
+        $rows = array_values(array_filter($rows, fn ($r) => (int) ($r['clicks'] ?? 0) > 0 || (int) ($r['impressions'] ?? 0) > 0));
         foreach (array_chunk($rows, 300) as $chunk) {
             $args = [];
             foreach ($chunk as $r) {
