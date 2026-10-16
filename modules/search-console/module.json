@@ -1,8 +1,18 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "changelog": [
+    {
+      "version": "0.3.0",
+      "date": "2026-10-16",
+      "changes": [
+        "Detector de oportunidades SEO (OpportunityService): CTR bajo para su posición, a punto de despegar, lejos con demanda, caídas y ascensos, sobre consultas y páginas; reglas fijas, umbral mínimo adaptado al volumen, tarjeta en el informe con ayuda.",
+        "Autorización por el master: el superadmin autoriza (con contraseña) dominios de clientes para que los lea la cuenta de la plataforma; el cliente los ve sin configurar nada. Retirar la autorización borra los datos. Sin autorizar siguen privados.",
+        "Propiedades virtuales por subdominio: se descargan con filtro de página sobre la propiedad de dominio, con datos exactos; cada tenant solo ve la suya y no se suman dos veces en los totales.",
+        "Migración: gsc_properties.authorized, page_filter, parent_id; índice único (credential_id, site_url, page_filter). No se guardan días sin clics ni impresiones."
+      ]
+    },
     {
       "version": "0.2.0",
       "date": "2026-10-16",
