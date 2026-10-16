@@ -25,6 +25,11 @@
 .domain-tenants-table .badge { max-width:100%;white-space:normal;overflow-wrap:anywhere; }
 .domain-tenants-table .btn-group { display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px; }
 .domain-tenants-table .btn-group > .btn { flex:0 0 auto;margin:0!important;border-radius:6px!important;padding:5px 8px; }
+/* Alias, redirecciones y pedidos: los botones de acciones (SEO, editar, borrar…) con su espacio, como en la tabla de sitios */
+.dm-table .btn-group { display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px; }
+.dm-table .btn-group > .btn { flex:0 0 auto;margin:0!important;border-radius:6px!important;padding:5px 8px; }
+.dm-table .dm-status { cursor:pointer;border:0;font:inherit;font-size:.75em;line-height:1.2; }
+.dm-table .dm-status:hover { filter:brightness(1.12);box-shadow:0 0 0 2px rgba(13,110,253,.25); }
 @media (max-width:1100px) {
     .domain-tenants-table,.domain-tenants-table tbody { display:block; }
     .domain-tenants-table thead { display:none; }
@@ -302,15 +307,17 @@
                                         </button>
 
                                         <!-- SEO (Search Console): los dominios de clientes son privados -->
-                                        @if(class_exists(\Modules\SearchConsole\Services\PropertyService::class))
-                                            @if(empty($tenant->is_client_domain))
-                                            <a href="/musedock/search-console?tenant={{ $tenant->id }}" class="btn btn-outline-success" title="SEO de {{ $tenant->domain }}" aria-label="SEO de {{ $tenant->domain }}">
-                                                <i class="bi bi-graph-up-arrow"></i>
-                                            </a>
-                                            @else
+                                        {{-- Solo si el módulo está activo y este dominio tiene su propiedad activa en Search Console --}}
+                                        @php $tenantSeoId = $seoMap[strtolower(preg_replace('/^www\./', '', (string) $tenant->domain))] ?? null; @endphp
+                                        @if(!empty($seoActive))
+                                            @if(!empty($tenant->is_client_domain))
                                             <span class="btn btn-outline-secondary disabled" title="SEO privado del cliente: solo lo ve desde su panel" aria-label="SEO privado del cliente">
                                                 <i class="bi bi-shield-lock"></i>
                                             </span>
+                                            @elseif($tenantSeoId)
+                                            <a href="/musedock/search-console/domain/{{ (int) $tenantSeoId }}" class="btn btn-outline-success" title="SEO de {{ $tenant->domain }} (Search Console)" aria-label="SEO de {{ $tenant->domain }}">
+                                                <i class="bi bi-graph-up-arrow"></i>
+                                            </a>
                                             @endif
                                         @endif
 
@@ -381,7 +388,7 @@
                 </div>
             </div>
             <div class="card-body table-responsive p-0">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 dm-table">
                     <thead class="table-light">
                         <tr>
                             <th>Dominio</th>
@@ -502,7 +509,7 @@
                 </a>
             </div>
             <div class="card-body table-responsive p-0">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 dm-table">
                     <thead class="table-light">
                         <tr>
                             <th>Dominio Alias</th>
@@ -552,7 +559,16 @@
                                             default => 'dark'
                                         };
                                     @endphp
-                                    <span class="badge bg-{{ $aliasStatusClass }}">{{ ucfirst($alias->status ?? 'pending') }}</span>
+                                    @if(in_array($alias->status ?? '', ['active', 'suspended'], true))
+                                        <button type="button" class="badge bg-{{ $aliasStatusClass }} dm-status"
+                                                data-domain="{{ $alias->domain }}"
+                                                onclick="toggleDomainStatus('alias', {{ (int) $alias->id }}, this.dataset.domain, '{{ $alias->status }}')"
+                                                title="{{ $alias->status === 'active' ? 'Pulsa para suspender este alias' : 'Pulsa para activar este alias' }}">
+                                            {{ ucfirst($alias->status) }} <i class="bi bi-arrow-repeat ms-1"></i>
+                                        </button>
+                                    @else
+                                        <span class="badge bg-{{ $aliasStatusClass }}">{{ ucfirst($alias->status ?? 'pending') }}</span>
+                                    @endif
                                 </td>
                                 <td>
                                     @if($alias->caddy_configured ?? false)
@@ -577,6 +593,12 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="btn-group btn-group-sm">
+                                        @php $aliasSeoId = $seoMap[strtolower(preg_replace('/^www\./', '', (string) $alias->domain))] ?? null; @endphp
+                                        @if($aliasSeoId)
+                                            <a href="/musedock/search-console/domain/{{ (int) $aliasSeoId }}" class="btn btn-outline-success" title="SEO de {{ $alias->domain }} (Search Console)" aria-label="SEO de {{ $alias->domain }}">
+                                                <i class="bi bi-graph-up-arrow"></i>
+                                            </a>
+                                        @endif
                                         <a href="/musedock/domain-manager/alias/{{ $alias->id }}/edit" class="btn btn-outline-warning" title="Editar">
                                             <i class="bi bi-pencil"></i>
                                         </a>
@@ -612,7 +634,7 @@
                 </a>
             </div>
             <div class="card-body table-responsive p-0">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 dm-table">
                     <thead class="table-light">
                         <tr>
                             <th>Dominio Origen</th>
@@ -670,7 +692,16 @@
                                             default => 'dark'
                                         };
                                     @endphp
-                                    <span class="badge bg-{{ $redirStatusClass }}">{{ ucfirst($redir->status ?? 'pending') }}</span>
+                                    @if(in_array($redir->status ?? '', ['active', 'suspended'], true))
+                                        <button type="button" class="badge bg-{{ $redirStatusClass }} dm-status"
+                                                data-domain="{{ $redir->domain }}"
+                                                onclick="toggleDomainStatus('redirect', {{ (int) $redir->id }}, this.dataset.domain, '{{ $redir->status }}')"
+                                                title="{{ $redir->status === 'active' ? 'Pulsa para suspender esta redirección' : 'Pulsa para activar esta redirección' }}">
+                                            {{ ucfirst($redir->status) }} <i class="bi bi-arrow-repeat ms-1"></i>
+                                        </button>
+                                    @else
+                                        <span class="badge bg-{{ $redirStatusClass }}">{{ ucfirst($redir->status ?? 'pending') }}</span>
+                                    @endif
                                     @if($redir->error_log ?? false)
                                         <br><small class="text-danger" title="{{ $redir->error_log }}"><i class="bi bi-exclamation-triangle"></i></small>
                                     @endif
@@ -691,6 +722,12 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="btn-group btn-group-sm">
+                                        @php $redirSeoId = $seoMap[strtolower(preg_replace('/^www\./', '', (string) $redir->domain))] ?? null; @endphp
+                                        @if($redirSeoId)
+                                            <a href="/musedock/search-console/domain/{{ (int) $redirSeoId }}" class="btn btn-outline-success" title="SEO de {{ $redir->domain }} (Search Console)" aria-label="SEO de {{ $redir->domain }}">
+                                                <i class="bi bi-graph-up-arrow"></i>
+                                            </a>
+                                        @endif
                                         <a href="/musedock/domain-manager/redirect/{{ $redir->id }}/edit" class="btn btn-outline-warning" title="Editar">
                                             <i class="bi bi-pencil"></i>
                                         </a>
@@ -1187,6 +1224,61 @@ function confirmDeleteDomainOrder(id, domain, hasCloudflare) {
                     confirmButtonColor: '#0d6efd'
                 });
             });
+        }
+    });
+}
+
+// ========== ACTIVAR / SUSPENDER un alias o una redirección desde la lista ==========
+// Se pulsa el badge de estado; ventana de confirmación con la contraseña de administrador.
+// No borra nada: suspendido = fuera de Caddy (deja de servirse y de pedir certificado).
+function toggleDomainStatus(kind, id, domain, current) {
+    const activating = current === 'suspended';
+    const what = kind === 'alias' ? 'el alias' : 'la redirección';
+    const safeDomain = String(domain).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+    const effect = activating
+        ? 'Se volverá a configurar en Caddy y pedirá su certificado. Comprueba antes que su DNS apunta a este servidor.'
+        : 'Dejará de servirse y de pedir certificado. <strong>No se borra nada</strong>: se puede reactivar cuando quieras.';
+    Swal.fire({
+        icon: activating ? 'question' : 'warning',
+        title: (activating ? 'Activar ' : 'Suspender ') + what,
+        html: `<p class="mb-2"><strong>${safeDomain}</strong></p>
+               <p class="small text-muted mb-3">${effect}</p>
+               <input type="password" id="dmStatusPwd" class="swal2-input" placeholder="Contraseña de administrador" autocomplete="current-password">`,
+        showCancelButton: true,
+        confirmButtonText: activating ? 'Activar' : 'Suspender',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: activating ? '#198754' : '#6c757d',
+        showLoaderOnConfirm: true,
+        allowOutsideClick: () => !Swal.isLoading(),
+        preConfirm: () => {
+            const pwd = document.getElementById('dmStatusPwd').value;
+            if (!pwd) {
+                Swal.showValidationMessage('Escribe tu contraseña de administrador');
+                return false;
+            }
+            return fetch(`/musedock/domain-manager/${kind}/${id}/toggle-status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ _csrf: csrfToken, status: activating ? 'active' : 'suspended', password: pwd })
+            })
+                .then(r => r.json().catch(() => ({ success: false, message: 'Respuesta no válida del servidor.' })))
+                .then(d => {
+                    if (!d.success) {
+                        Swal.showValidationMessage(d.message || 'No se pudo cambiar el estado.');
+                        return false;
+                    }
+                    return d;
+                })
+                .catch(() => {
+                    Swal.showValidationMessage('No se pudo conectar con el servidor.');
+                    return false;
+                });
+        }
+    }).then(result => {
+        if (result.isConfirmed && result.value) {
+            Swal.fire({ icon: 'success', title: 'Hecho', text: result.value.message, timer: 2200, showConfirmButton: false })
+                .then(() => location.reload());
         }
     });
 }
