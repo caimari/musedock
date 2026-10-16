@@ -5,8 +5,12 @@ namespace Modules\SearchConsole\Controllers;
 use Modules\SearchConsole\Services\CredentialStore;
 use Modules\SearchConsole\Services\DomainVerifier;
 use Modules\SearchConsole\Services\GoogleApiException;
+use Modules\SearchConsole\Services\GoogleClient;
 use Modules\SearchConsole\Services\PropertyService;
+use Modules\SearchConsole\Services\ReportService;
+use Modules\SearchConsole\Services\SyncService;
 use Screenart\Musedock\Database;
+use Screenart\Musedock\View;
 
 /**
  * Lógica común de las pantallas de Search Console. Cada subclase fija el ámbito:
