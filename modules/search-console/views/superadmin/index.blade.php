@@ -79,6 +79,7 @@
             <div class="text-muted" style="font-size:.8rem;">Para dar acceso a una propiedad a mano: Search Console → Configuración → Usuarios y permisos → añade este email.</div>
         </div>
         <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-success btn-sm" id="gsc-sync-all" title="Descarga ahora clics, impresiones y posición de todas las propiedades activas (se hace sola cada pocas horas)"><i class="bi bi-cloud-arrow-down"></i> Descargar datos ahora</button>
             <form method="post" action="{{ $baseUrl }}/refresh">{!! csrf_field() !!}<button class="btn btn-outline-primary btn-sm" type="submit"><i class="bi bi-arrow-repeat"></i> Releer propiedades</button></form>
             <form method="post" action="{{ $baseUrl }}/credential/delete" id="gsc-delete-form">{!! csrf_field() !!}<input type="hidden" name="confirm_password" value=""><button class="btn btn-outline-danger btn-sm" type="submit"><i class="bi bi-x-circle"></i> Desconectar</button></form>
         </div>
@@ -116,7 +117,7 @@
                     $color = $p['label_color'] ?: 'none';
                 @endphp
                 <tr data-text="{{ strtolower($p['domain'] . ' ' . ($p['tenant_name'] ?? 'sitio principal')) }}" data-color="{{ $color }}" data-status="{{ $p['status'] }}" data-clicks="{{ $t['clicks'] ?? 0 }}" data-impr="{{ $t['impressions'] ?? 0 }}" @if($focusTenant !== null && (int) $p['tenant_id'] === $focusTenant) class="table-primary" @endif>
-                    <td><strong>{{ $p['domain'] }}</strong><div class="text-muted" style="font-size:.75rem;">{{ $p['site_url'] }}</div></td>
+                    <td><a href="{{ $baseUrl }}/domain/{{ $p['id'] }}" title="Ver el informe de SEO de este dominio"><strong>{{ $p['domain'] }}</strong></a><div class="text-muted" style="font-size:.75rem;">{{ $p['site_url'] }}</div></td>
                     <td><span class="gsc-dot gsc-dot-{{ $color }}"></span>{{ $p['tenant_name'] ?? 'Sitio principal' }}</td>
                     <td><span class="badge bg-{{ $sClass }}">{{ $sLabel }}</span></td>
                     <td class="num">{{ $t ? $fmt($t['clicks']) : '—' }}</td>
@@ -155,7 +156,7 @@
                     [$sLabel, $sClass] = $statusLabels[$p['status']] ?? [$p['status'], 'secondary'];
                 @endphp
                 <tr>
-                    <td><strong>{{ $p['domain'] }}</strong><div class="text-muted" style="font-size:.75rem;">{{ $p['site_url'] }}</div></td>
+                    <td><a href="{{ $baseUrl }}/domain/{{ $p['id'] }}" title="Ver el informe de SEO de este dominio"><strong>{{ $p['domain'] }}</strong></a><div class="text-muted" style="font-size:.75rem;">{{ $p['site_url'] }}</div></td>
                     <td><span class="badge bg-{{ $sClass }}">{{ $sLabel }}</span></td>
                     <td class="num">{{ $t ? $fmt($t['clicks']) : '—' }}</td>
                     <td class="num">{{ $t ? $fmt($t['impressions']) : '—' }}</td>
@@ -183,10 +184,14 @@
         <ul class="list-group list-group-flush">
             @foreach($missing as $m)
             <li class="list-group-item d-flex justify-content-between align-items-center gap-2 flex-wrap px-0" data-domain="{{ $m['domain'] }}">
-                <span><strong>{{ $m['domain'] }}</strong> <span class="text-muted" style="font-size:.82rem;">· {{ $m['name'] }}</span></span>
+                @php $pend = ($m['state'] ?? null) === 'pending'; @endphp
+                <span><strong>{{ $m['domain'] }}</strong> <span class="text-muted" style="font-size:.82rem;">· {{ $m['name'] }}</span>
+                    @if($pend)<span class="badge bg-warning text-dark ms-1" title="El TXT ya está puesto; Google aún no lo reconoce. El servidor lo reintenta solo cada pocos minutos, aunque cierres esta página.">Pendiente de Google</span>@endif
+                    @if(($m['state'] ?? null) === 'no_access')<span class="badge bg-secondary ms-1">Perdió el acceso</span>@endif
+                </span>
                 <span class="d-flex align-items-center gap-2">
-                    <span class="gsc-verify-msg text-muted" style="font-size:.8rem;max-width:520px;"></span>
-                    <button type="button" class="btn btn-outline-primary btn-sm gsc-verify">Dar de alta</button>
+                    <span class="gsc-verify-msg {{ $pend ? 'text-warning' : 'text-muted' }}" style="font-size:.8rem;max-width:520px;">@if($pend){{ $m['note'] }}@if(!empty($m['checked_at'])) (última comprobación: {{ date('d/m H:i', strtotime($m['checked_at'])) }})@endif @endif</span>
+                    <button type="button" class="btn btn-outline-primary btn-sm gsc-verify">{{ $pend ? 'Reintentar ahora' : 'Dar de alta' }}</button>
                 </span>
             </li>
             @endforeach
@@ -206,6 +211,18 @@
             <button type="button" class="btn btn-primary btn-sm" id="gsc-ext-btn"><i class="bi bi-plus-circle"></i> Dar de alta</button>
         </div>
         <div id="gsc-ext-msg" class="mt-2" style="font-size:.85rem;word-break:break-all;"></div>
+        @if(!empty($pendingExternal))
+        <div class="mt-3" style="font-size:.85rem;">
+            <strong>Pendientes de verificar</strong> <span class="text-muted">(el servidor los reintenta solo cada pocos minutos, aunque cierres esta página)</span>
+            @foreach($pendingExternal as $pe)
+            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap border-top py-2 mt-2">
+                <span><strong>{{ $pe['domain'] }}</strong> <span class="badge bg-warning text-dark">Pendiente</span>
+                    <span class="text-muted" style="word-break:break-all;">{{ $pe['verification_note'] }}@if(!empty($pe['updated_at'])) (última comprobación: {{ date('d/m H:i', strtotime($pe['updated_at'])) }})@endif</span></span>
+                <button type="button" class="btn btn-outline-primary btn-sm gsc-ext-retry" data-domain="{{ $pe['domain'] }}">Reintentar ahora</button>
+            </div>
+            @endforeach
+        </div>
+        @endif
     </div></div>
     @endif
 
@@ -264,6 +281,25 @@
         });
     });
     window.addEventListener('pageshow', function (e) { if (e.persisted) { location.reload(); } });
+
+    document.querySelectorAll('.gsc-ext-retry').forEach(function (b) {
+        b.addEventListener('click', function () { document.getElementById('gsc-ext-domain').value = b.dataset.domain; document.getElementById('gsc-ext-btn').click(); });
+    });
+
+    var syncAll = document.getElementById('gsc-sync-all');
+    if (syncAll) syncAll.addEventListener('click', function () {
+        syncAll.disabled = true;
+        syncAll.insertAdjacentHTML('afterbegin', '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>');
+        if (window.Swal) { Swal.fire({ title: 'Descargando datos de Search Console…', text: 'La primera vez baja hasta 16 meses de cada dominio y puede tardar varios minutos.', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false, didOpen: function () { Swal.showLoading(); } }); }
+        fetch(@json($baseUrl . '/sync'), { method: 'POST', headers: { 'X-CSRF-TOKEN': token }, body: new URLSearchParams({ _csrf: token }) })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (res.ok) { location.reload(); return; }
+                if (window.Swal) { Swal.fire({ icon: 'error', title: 'No se pudo descargar', text: res.message || 'Error desconocido' }); }
+                syncAll.disabled = false;
+            })
+            .catch(function () { if (window.Swal) { Swal.fire({ icon: 'error', title: 'Error de red' }); } syncAll.disabled = false; });
+    });
 
     var del = document.getElementById('gsc-delete-form');
     if (del) del.addEventListener('submit', function (e) {

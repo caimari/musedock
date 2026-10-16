@@ -19,6 +19,8 @@ Route::post('/musedock/search-console/credential/delete', "{$gscSaCtrl}@deleteCr
 Route::post('/musedock/search-console/refresh', "{$gscSaCtrl}@refresh")->middleware('superadmin');
 Route::post('/musedock/search-console/verify', "{$gscSaCtrl}@verifyDomain")->middleware('superadmin');
 Route::post('/musedock/search-console/external', "{$gscSaCtrl}@addExternalDomain")->middleware('superadmin');
+Route::get('/musedock/search-console/domain/{id}', "{$gscSaCtrl}@show")->name('search-console.sa.domain')->middleware('superadmin');
+Route::post('/musedock/search-console/sync', "{$gscSaCtrl}@syncNow")->middleware('superadmin');
 
 $gscTenantCtrl = 'Modules\SearchConsole\Controllers\Tenant\SearchConsoleController';
 $gscAdminPath = '/' . trim(function_exists('admin_path') ? admin_path() : 'admin', '/');
@@ -27,3 +29,5 @@ Route::post($gscAdminPath . '/search-console/credential', "{$gscTenantCtrl}@save
 Route::post($gscAdminPath . '/search-console/credential/delete', "{$gscTenantCtrl}@deleteCredential")->middleware('auth');
 Route::post($gscAdminPath . '/search-console/refresh', "{$gscTenantCtrl}@refresh")->middleware('auth');
 Route::post($gscAdminPath . '/search-console/verify', "{$gscTenantCtrl}@verifyDomain")->middleware('auth');
+Route::get($gscAdminPath . '/search-console/domain/{id}', "{$gscTenantCtrl}@show")->name('search-console.tenant.domain')->middleware('auth');
+Route::post($gscAdminPath . '/search-console/sync', "{$gscTenantCtrl}@syncNow")->middleware('auth');

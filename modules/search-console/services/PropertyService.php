@@ -218,7 +218,7 @@ class PropertyService
             FROM gsc_properties p
             JOIN gsc_credentials c ON c.id = p.credential_id AND c.owner_type = 'platform'
             LEFT JOIN tenants t ON t.id = p.tenant_id
-            WHERE p.external = 0 AND (p.tenant_id IS NULL OR t.is_client_domain = 0)
+            WHERE p.external = 0 AND p.status <> 'pending' AND (p.tenant_id IS NULL OR t.is_client_domain = 0)
             ORDER BY p.domain
         ")->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -229,7 +229,7 @@ class PropertyService
         return $this->pdo->query("
             SELECT p.* FROM gsc_properties p
             JOIN gsc_credentials c ON c.id = p.credential_id AND c.owner_type = 'platform'
-            WHERE p.external = 1 AND p.tenant_id IS NULL
+            WHERE p.external = 1 AND p.tenant_id IS NULL AND p.status <> 'pending'
             ORDER BY p.domain
         ")->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -242,7 +242,7 @@ class PropertyService
             FROM gsc_properties p
             JOIN gsc_credentials c ON c.id = p.credential_id
             JOIN tenants t ON t.id = p.tenant_id
-            WHERE p.tenant_id = ?
+            WHERE p.tenant_id = ? AND p.status <> 'pending'
               AND (c.owner_type = 'tenant' AND c.tenant_id = p.tenant_id
                    OR c.owner_type = 'platform' AND t.is_client_domain = 0)
             ORDER BY c.owner_type DESC, p.domain
@@ -255,22 +255,59 @@ class PropertyService
     /** Dominios propios del CMS que la plataforma aún no tiene en Search Console. */
     public function ownDomainsWithoutProperty(int $platformCredentialId): array
     {
-        $have = $this->pdo->prepare('SELECT domain FROM gsc_properties WHERE credential_id = ?');
-        $have->execute([$platformCredentialId]);
-        $have = array_flip($have->fetchAll(PDO::FETCH_COLUMN));
+        // Solo cuenta como «ya la tengo» una propiedad activa. Las pendientes de verificar (Google aún no
+        // ve el TXT) y las que perdieron el acceso siguen en la lista, con su estado.
+        $stmt = $this->pdo->prepare('SELECT domain, status, verification_note, updated_at FROM gsc_properties WHERE credential_id = ?');
+        $stmt->execute([$platformCredentialId]);
+        $have = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $have[$row['domain']] = $row;
+        }
+        $entry = static fn (?array $row) => ['state' => $row['status'] ?? null, 'note' => $row['verification_note'] ?? null, 'checked_at' => $row['updated_at'] ?? null];
 
         $missing = [];
         foreach ($this->pdo->query('SELECT id, name, domain FROM tenants WHERE is_client_domain = 0 ORDER BY domain') as $t) {
             $domain = self::normalizeHost($t['domain']);
-            if (!isset($have[$domain])) {
-                $missing[] = ['tenant_id' => (int) $t['id'], 'name' => $t['name'], 'domain' => $domain];
+            if (($have[$domain]['status'] ?? null) !== 'active') {
+                $missing[] = ['tenant_id' => (int) $t['id'], 'name' => $t['name'], 'domain' => $domain] + $entry($have[$domain] ?? null);
             }
         }
         $main = self::mainDomain();
-        if ($main !== '' && !isset($have[$main])) {
-            array_unshift($missing, ['tenant_id' => null, 'name' => 'Sitio principal', 'domain' => $main]);
+        if ($main !== '' && ($have[$main]['status'] ?? null) !== 'active') {
+            array_unshift($missing, ['tenant_id' => null, 'name' => 'Sitio principal', 'domain' => $main] + $entry($have[$main] ?? null));
         }
 
         return $missing;
+    }
+
+    /**
+     * Guarda que un dominio está pendiente de verificar (el TXT está puesto o por poner pero Google aún
+     * no lo reconoce). Así el estado sobrevive a recargar la página y lo reintenta el cron del servidor.
+     */
+    public function markPending(int $credentialId, string $domain, ?int $tenantId, bool $external, string $note): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $note = mb_substr($note, 0, 500);
+        $stmt = $this->pdo->prepare('SELECT id, status FROM gsc_properties WHERE credential_id = ? AND domain = ?');
+        $stmt->execute([$credentialId, $domain]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            if ($row['status'] !== 'active') {
+                $this->pdo->prepare("UPDATE gsc_properties SET status = 'pending', verification_note = ?, updated_at = ? WHERE id = ?")->execute([$note, $now, $row['id']]);
+            }
+
+            return;
+        }
+        $this->pdo->prepare("INSERT INTO gsc_properties (credential_id, tenant_id, domain, site_url, status, verification_note, external, created_at, updated_at) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?)")
+            ->execute([$credentialId, $tenantId, $domain, 'sc-domain:' . $domain, $note, $external ? 1 : 0, $now, $now]);
+    }
+
+    /** Dominios externos (fuera del CMS) pendientes de verificar, solo plataforma. */
+    public function pendingExternal(int $platformCredentialId): array
+    {
+        $stmt = $this->pdo->prepare("SELECT domain, verification_note, updated_at FROM gsc_properties WHERE credential_id = ? AND status = 'pending' AND external = 1 AND tenant_id IS NULL ORDER BY domain");
+        $stmt->execute([$platformCredentialId]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

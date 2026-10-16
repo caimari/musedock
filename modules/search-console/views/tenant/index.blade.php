@@ -100,7 +100,7 @@
                     $delta = ($t && $t['prev_clicks'] > 0) ? ($t['clicks'] - $t['prev_clicks']) / $t['prev_clicks'] : null;
                 @endphp
                 <tr>
-                    <td><strong>{{ $p['domain'] }}</strong>
+                    <td><a href="{{ $baseUrl }}/domain/{{ $p['id'] }}" title="Ver el informe de SEO"><strong>{{ $p['domain'] }}</strong></a>
                         <div class="text-muted" style="font-size:.75rem;">{{ $p['site_url'] }} · {{ $p['owner_type'] === 'tenant' ? 'tu cuenta' : 'cuenta de la plataforma' }}@if($p['status'] !== 'active') · <span class="text-warning">sin acceso</span>@endif</div></td>
                     <td class="num">{{ $t ? $fmt($t['clicks']) : '—' }}</td>
                     <td class="num">{{ $t ? $fmt($t['impressions']) : '—' }}</td>

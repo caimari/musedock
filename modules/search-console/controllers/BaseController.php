@@ -107,13 +107,7 @@ abstract class BaseController
 
         $client = $this->credentials->client($row);
         $result = (new DomainVerifier($client))->verify($domain);
-        if ($result['status'] === 'verified') {
-            try {
-                $this->properties->refreshFromGoogle($row, $client);
-            } catch (\Throwable $e) {
-                // la propiedad ya existe en Google; se enlazará en la próxima actualización
-            }
-        }
+        $this->recordVerification($row, $client, $domain, $result);
         echo json_encode($result, JSON_UNESCAPED_UNICODE);
         exit;
     }
@@ -133,15 +127,98 @@ abstract class BaseController
 
         $client = $this->credentials->client($row);
         $result = (new DomainVerifier($client))->verify($domain);
+        $this->recordVerification($row, $client, $domain, $result);
+        echo json_encode($result, JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    /**
+     * Tras un intento de alta: si Google ya lo reconoce se enlaza la propiedad; si aún no, se guarda como
+     * «pendiente» para que el estado sobreviva a recargar la página y lo reintente el cron del servidor.
+     */
+    protected function recordVerification(array $credential, GoogleClient $client, string $domain, array $result): void
+    {
         if ($result['status'] === 'verified') {
             try {
-                $this->properties->refreshFromGoogle($row, $client);
+                $this->properties->refreshFromGoogle($credential, $client);
             } catch (\Throwable $e) {
                 // la propiedad ya existe en Google; se enlazará en la próxima actualización
             }
+
+            return;
         }
-        echo json_encode($result, JSON_UNESCAPED_UNICODE);
+        if (in_array($result['status'], ['pending', 'manual'], true)) {
+            $owner = $this->properties->hostMap()[$domain] ?? null;
+            $this->properties->markPending((int) $credential['id'], $domain, $owner['tenant_id'] ?? $this->scopeTenantId, $owner === null, (string) $result['message']);
+        }
+    }
+
+    /** GET: informe de SEO de una propiedad (solo las que este ámbito puede ver). */
+    public function show($id)
+    {
+        $this->checkPermission('search_console.view');
+        $property = $this->visibleProperty((int) $id);
+        if (!$property) {
+            http_response_code(404);
+            exit('Propiedad no encontrada');
+        }
+        $days = (int) ($_GET['days'] ?? 28);
+        $report = (new ReportService($this->pdo))->report($property, $days);
+
+        return View::renderModule('search-console', ($this->scopeTenantId === null ? 'superadmin' : 'tenant') . '.domain', [
+            'title' => 'SEO · ' . $property['domain'],
+            'property' => $property,
+            'report' => $report,
+            'periods' => ReportService::PERIODS,
+            'baseUrl' => $this->baseUrl(),
+        ]);
+    }
+
+    /** POST (AJAX): descarga ahora los datos de una propiedad (o de todas las visibles). */
+    public function syncNow()
+    {
+        $this->checkPermission('search_console.manage');
+        header('Content-Type: application/json; charset=utf-8');
+        @set_time_limit(600);
+        $row = $this->credentials->find($this->scopeTenantId);
+        $only = (int) ($_POST['property_id'] ?? 0);
+        $targets = array_filter($this->visibleProperties(), fn ($p) => $p['status'] === 'active' && ($only === 0 || (int) $p['id'] === $only));
+        if (!$row || !$targets) {
+            echo json_encode(['ok' => false, 'message' => 'No hay propiedades activas que descargar.']);
+            exit;
+        }
+        $client = $this->credentials->client($row);
+        $sync = new SyncService($this->pdo);
+        $rows = 0;
+        $errors = [];
+        foreach ($targets as $p) {
+            $r = $sync->syncProperty($p, $client);
+            $rows += $r['rows'];
+            if ($r['status'] !== 'ok') {
+                $errors[] = $p['domain'] . ': ' . $r['error'];
+            }
+        }
+        echo json_encode(['ok' => !$errors, 'rows' => $rows, 'message' => $errors ? implode(' · ', $errors) : "Descargadas {$rows} filas de " . count($targets) . ' propiedad(es).'], JSON_UNESCAPED_UNICODE);
         exit;
+    }
+
+    /** Propiedades que este ámbito puede ver (misma regla de privacidad que las pantallas). */
+    protected function visibleProperties(): array
+    {
+        return $this->scopeTenantId === null
+            ? array_merge($this->properties->visibleForSuperadmin(), $this->properties->externalForSuperadmin())
+            : $this->properties->visibleForTenant($this->scopeTenantId);
+    }
+
+    protected function visibleProperty(int $id): ?array
+    {
+        foreach ($this->visibleProperties() as $p) {
+            if ((int) $p['id'] === $id) {
+                return $p;
+            }
+        }
+
+        return null;
     }
 
     /** POST: desconectar la cuenta de servicio y borrar todos sus datos. Exige la contraseña del administrador. */
