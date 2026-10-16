@@ -52,7 +52,7 @@ function db(): PDO
 {
     $p = new PDO('sqlite::memory:');
     $p->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $p->exec('CREATE TABLE gsc_properties (id INTEGER PRIMARY KEY AUTOINCREMENT, credential_id INT, tenant_id INT, domain TEXT, site_url TEXT, permission_level TEXT, status TEXT DEFAULT \'pending\', verification_note TEXT, last_sync_at TEXT, last_sync_status TEXT, last_error TEXT, data_from TEXT, data_until TEXT, created_at TEXT, updated_at TEXT, external INT DEFAULT 0)');
+    $p->exec('CREATE TABLE gsc_properties (id INTEGER PRIMARY KEY AUTOINCREMENT, credential_id INT, tenant_id INT, domain TEXT, site_url TEXT, permission_level TEXT, status TEXT DEFAULT \'pending\', verification_note TEXT, last_sync_at TEXT, last_sync_status TEXT, last_error TEXT, data_from TEXT, data_until TEXT, created_at TEXT, updated_at TEXT, external INT DEFAULT 0, page_filter TEXT NOT NULL DEFAULT '')');
     $p->exec('CREATE TABLE gsc_sync_runs (id INTEGER PRIMARY KEY AUTOINCREMENT, property_id INT, started_at TEXT, finished_at TEXT, status TEXT, date_from TEXT, date_until TEXT, rows_stored INT, attempts INT, error TEXT)');
     $m = 'clicks INT NOT NULL, impressions INT NOT NULL, ctr REAL NOT NULL, position REAL NOT NULL';
     $p->exec("CREATE TABLE gsc_site_daily (property_id INT, date TEXT, $m)");
@@ -93,6 +93,21 @@ ok($r2['from'] === '2026-10-10' && $r2['until'] === '2026-10-16', 'vuelve a baja
 ok((int) $pdo->query('SELECT COUNT(*) FROM gsc_site_daily')->fetchColumn() === 483, 'dos días nuevos y ninguno duplicado');
 ok((int) $pdo->query("SELECT MAX(c) FROM (SELECT COUNT(*) c FROM gsc_query_daily GROUP BY date, query) t")->fetchColumn() === 1, 'ninguna consulta duplicada en el solape');
 ok(count($g2->calls) < 12, 'pocas peticiones en las siguientes descargas (' . count($g2->calls) . ')');
+
+echo "== 2b. Propiedad virtual: la descarga lleva el filtro de página\n";
+$pdo = db(); $svc = new SyncService($pdo, false);
+$pdo->exec("UPDATE gsc_properties SET page_filter = 'https://cliente.x.test/' WHERE id = 1");
+$gv = new FakeGoogle();
+$svc->syncProperty($prop($pdo), $gv, $today);
+$withFilter = array_filter($gv->calls, fn ($c) => isset($c['dimensionFilterGroups']));
+ok(count($withFilter) === count($gv->calls) && count($gv->calls) > 0, 'TODAS las peticiones de una propiedad virtual llevan el filtro (si no, el tenant vería todo el dominio)');
+$f = $gv->calls[0]['dimensionFilterGroups'][0]['filters'][0];
+ok($f['dimension'] === 'page' && $f['operator'] === 'includingRegex' && $f['expression'] === '^' . preg_quote('https://cliente.x.test/') . '.*', 'filtro por página con regex anclada al inicio: ' . $f['expression']);
+ok(@preg_match('~' . str_replace('~', '\\~', $f['expression']) . '~', 'https://cliente.x.test/a') === 1 && @preg_match('~' . str_replace('~', '\\~', $f['expression']) . '~', 'https://otro.x.test/?u=https://cliente.x.test/') === 0, 'la regex acepta su subdominio y rechaza una URL ajena que solo lo menciona');
+$pdo = db(); $svc = new SyncService($pdo, false);
+$gn = new FakeGoogle();
+$svc->syncProperty($prop($pdo), $gn, $today);
+ok(!array_filter($gn->calls, fn ($c) => isset($c['dimensionFilterGroups'])), 'una propiedad normal no lleva filtro');
 
 echo "== 3. Errores\n";
 $pdo = db(); $svc = new SyncService($pdo, false);

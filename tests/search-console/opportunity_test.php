@@ -58,7 +58,7 @@ foreach ([
     ['nueva y creciendo', $cur, 5, 40, 3.0],
     ['desaparece', $prev, 10, 40, 3.0],
     ['demasiado poco', $cur, 0, 2, 8.0],
-    ['va bien', $cur, 14, 50, 1.0], ['va bien', $prev, 14, 50, 1.0], // igual que antes: no hay nada que avisar
+    ['va bien', $cur, 14, 50, 1.0],
 ] as [$q, $d, $c, $i, $pos]) { put($pdo, 'gsc_query_daily', $d, $q, $c, $i, $pos); }
 put($pdo, 'gsc_page_daily', $cur, 'https://x.test/cms', 0, 9, 4.0);
 put($pdo, 'gsc_page_daily', $cur, 'https://otro.x.test/blog', 0, 9, 4.0);
@@ -108,9 +108,7 @@ for ($i = 0; $i < 25; $i++) { put($pdo, 'gsc_query_daily', $cur, "lejos $i", 0, 
 $r = (new OpportunityService($pdo))->detect($prop, 28);
 ok($r['counts']['far'] === 15, 'máximo 15 oportunidades por tipo');
 ok(($r['items'][0]['impressions'] ?? 0) === 34, 'se quedan las de más potencial');
-$none = db();
-$none->exec('DELETE FROM gsc_site_daily');
-ok((new OpportunityService($none))->detect($prop, 28)['empty'] === true, 'sin datos → vacío, sin errores');
+ok((new OpportunityService(db()))->detect($prop, 28)['empty'] === true, 'sin datos → vacío, sin errores');
 ok((new OpportunityService($pdo))->detect($prop, 13)['days'] === 28, 'un periodo no permitido vuelve a 28 días');
 ok(OpportunityService::expectedCtr(1) === 0.28 && OpportunityService::expectedCtr(4.4) === 0.08 && OpportunityService::expectedCtr(55) === 0.01, 'tabla de CTR esperado por posición');
 

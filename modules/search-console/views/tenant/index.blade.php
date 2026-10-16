@@ -6,6 +6,8 @@
 @php
     $fmt = fn($n) => number_format((int) $n, 0, ',', '.');
     $linkedDomains = array_column($properties, 'domain');
+    // El master dio de alta (autorizó) el dominio de este cliente: ve su SEO sin conectar nada
+    $platformManaged = $isClient && (bool) array_filter($properties, fn ($p) => ($p['owner_type'] ?? '') === 'platform' && !empty($p['authorized']));
     $ownPropertyMissing = $credential && $tenantDomain !== '' && !in_array($tenantDomain, $linkedDomains, true);
 @endphp
 <style>
@@ -35,7 +37,12 @@
         @endif
     </div>
 
-    @if($isClient)
+    @if($platformManaged)
+    <div class="alert alert-light border d-flex gap-2 align-items-start" style="font-size:.88rem;">
+        <i class="bi bi-check2-circle" style="font-size:1.1rem;color:#1e7e34;"></i>
+        <div>La plataforma ha dado de alta tu dominio en Search Console: <strong>ves tu SEO sin configurar nada</strong>, y solo el de tu sitio. Si prefieres que tus datos sean privados, puedes pedir que retiren la autorización y conectar tu propia cuenta de Google.</div>
+    </div>
+    @elseif($isClient)
     <div class="alert alert-light border d-flex gap-2 align-items-start" style="font-size:.88rem;">
         <i class="bi bi-shield-lock" style="font-size:1.1rem;color:#5f6873;"></i>
         <div>Tus datos de Search Console son <strong>privados</strong>: se leen con tu propia cuenta de Google y solo los ve tu equipo. El administrador de la plataforma no tiene acceso a ellos.</div>
@@ -43,7 +50,7 @@
     @endif
 
     {{-- ===== Cuenta propia (obligatoria para clientes, opcional para el resto) ===== --}}
-    @if($canManage && ($isClient || $credential))
+    @if($canManage && (($isClient && !$platformManaged) || $credential))
         @if(!$credential)
         <div class="card mb-4"><div class="card-body p-4">
             <h5 style="font-weight:700;">Conecta tu cuenta de Google</h5>

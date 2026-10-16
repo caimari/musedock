@@ -68,6 +68,14 @@ foreach ($pdo->query('SELECT * FROM gsc_credentials ORDER BY id')->fetchAll(PDO:
         }
     }
 
+    // 1b) Subdominios de tenants cubiertos por una propiedad de dominio activa: cada uno tiene su propiedad virtual
+    if ($cred['owner_type'] === 'platform' && !$onlyProperty) {
+        $virtual = $props->syncVirtualHosts((int) $cred['id']);
+        if ($virtual) {
+            $log("propiedades virtuales de subdominios: {$virtual}");
+        }
+    }
+
     // 2) Descarga de datos de las propiedades activas que toca actualizar
     $sql = "SELECT * FROM gsc_properties WHERE credential_id = ? AND status = 'active'";
     $args = [$cred['id']];
