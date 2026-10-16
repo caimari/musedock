@@ -1,8 +1,17 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "changelog": [
+    {
+      "version": "0.6.1",
+      "date": "2026-10-16",
+      "changes": [
+        "Búsquedas de marca frente a sin marca (BrandService): reparto de clics e impresiones en el informe (heurística sobre el nombre del sitio, sobre las consultas visibles) y etiqueta «marca» en oportunidades y canibalización. Las búsquedas de marca no entran en «Esta semana merece tu tiempo» salvo que caigan.",
+        "Canibalización: en las búsquedas de marca se explica que es normal; en el resto se recuerdan las tres comprobaciones antes de fusionar o redirigir (¿misma intención?, ¿Google alterna entre ellas?, ¿contenido realmente distinto?).",
+        "Verificado contra Google: la suma de las filas de las variantes de una URL coincide con el agregado de Search Console filtrado por esa página (laraflex.org: 1.023 impresiones en ambos; screenai.es: 721 en ambos), así que no se cuentan impresiones dos veces."
+      ]
+    },
     {
       "version": "0.6.0",
       "date": "2026-10-16",
