@@ -122,8 +122,8 @@ class PropertyService
                 // Plataforma: dominio de tu Search Console que no es ningún sitio del CMS
                 $owner = ['tenant_id' => null, 'client' => false, 'external' => true];
             }
-            if ($ownerTenant === null && $owner['client']) {
-                $summary['skipped_clients']++; // regla 1: la plataforma no lee clientes
+            if ($ownerTenant === null && $owner['client'] && !$this->isAuthorized((int) $credential['id'], $domain)) {
+                $summary['skipped_clients']++; // regla 1: la plataforma no lee clientes, salvo que el master lo haya autorizado
                 continue;
             }
             if ($ownerTenant !== null && $owner['tenant_id'] !== $ownerTenant) {
@@ -135,7 +135,7 @@ class PropertyService
             }
         }
 
-        $upsert = $this->pdo->prepare('SELECT id FROM gsc_properties WHERE credential_id = ? AND domain = ?');
+        $upsert = $this->pdo->prepare("SELECT id FROM gsc_properties WHERE credential_id = ? AND domain = ? AND page_filter = ''");
         $update = $this->pdo->prepare("UPDATE gsc_properties SET site_url = ?, permission_level = ?, tenant_id = ?, external = ?, status = 'active', last_error = NULL, updated_at = NOW() WHERE id = ?");
         $insert = $this->pdo->prepare("INSERT INTO gsc_properties (credential_id, tenant_id, domain, site_url, permission_level, external, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'active', NOW(), NOW())");
         foreach ($chosen as $domain => $c) {
@@ -155,7 +155,7 @@ class PropertyService
 
         // Propiedades que la credencial ya no ve en Google
         $known = array_keys($chosen);
-        $stmt = $this->pdo->prepare("SELECT id, domain FROM gsc_properties WHERE credential_id = ? AND status = 'active'");
+        $stmt = $this->pdo->prepare("SELECT id, domain FROM gsc_properties WHERE credential_id = ? AND status = 'active' AND page_filter = ''");
         $stmt->execute([$credential['id']]);
         $lost = $this->pdo->prepare("UPDATE gsc_properties SET status = 'no_access', last_error = 'La cuenta de servicio ya no tiene acceso a esta propiedad en Search Console.', updated_at = NOW() WHERE id = ?");
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $p) {
@@ -165,6 +165,9 @@ class PropertyService
         }
 
         $summary['unknown'] = array_values(array_unique($summary['unknown']));
+        if ($ownerTenant === null) {
+            $summary['virtual'] = $this->syncVirtualHosts((int) $credential['id']);
+        }
         $this->purgePlatformDataOfClients();
 
         return $summary;
@@ -181,12 +184,14 @@ class PropertyService
             SELECT p.id FROM gsc_properties p
             JOIN gsc_credentials c ON c.id = p.credential_id AND c.owner_type = 'platform'
             JOIN tenants t ON t.id = p.tenant_id AND t.is_client_domain = 1
+            WHERE p.authorized = 0
         ")->fetchAll(PDO::FETCH_COLUMN);
         $clientHosts = array_keys(array_filter($this->hostMap(), fn ($o) => $o['client']));
         if ($clientHosts) {
             $platformRows = $this->pdo->query("
                 SELECT p.id, p.domain FROM gsc_properties p
                 JOIN gsc_credentials c ON c.id = p.credential_id AND c.owner_type = 'platform'
+                WHERE p.authorized = 0
             ")->fetchAll(PDO::FETCH_ASSOC);
             foreach ($platformRows as $row) {
                 if (in_array($row['domain'], $clientHosts, true)) {
@@ -218,7 +223,7 @@ class PropertyService
             FROM gsc_properties p
             JOIN gsc_credentials c ON c.id = p.credential_id AND c.owner_type = 'platform'
             LEFT JOIN tenants t ON t.id = p.tenant_id
-            WHERE p.external = 0 AND p.status <> 'pending' AND (p.tenant_id IS NULL OR t.is_client_domain = 0)
+            WHERE p.external = 0 AND p.status <> 'pending' AND (p.tenant_id IS NULL OR t.is_client_domain = 0 OR p.authorized = 1)
             ORDER BY p.domain
         ")->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -244,7 +249,7 @@ class PropertyService
             JOIN tenants t ON t.id = p.tenant_id
             WHERE p.tenant_id = ? AND p.status <> 'pending'
               AND (c.owner_type = 'tenant' AND c.tenant_id = p.tenant_id
-                   OR c.owner_type = 'platform' AND t.is_client_domain = 0)
+                   OR c.owner_type = 'platform' AND (t.is_client_domain = 0 OR p.authorized = 1))
             ORDER BY c.owner_type DESC, p.domain
         ");
         $stmt->execute([$tenantId]);
@@ -284,7 +289,7 @@ class PropertyService
      * Guarda que un dominio está pendiente de verificar (el TXT está puesto o por poner pero Google aún
      * no lo reconoce). Así el estado sobrevive a recargar la página y lo reintenta el cron del servidor.
      */
-    public function markPending(int $credentialId, string $domain, ?int $tenantId, bool $external, string $note): void
+    public function markPending(int $credentialId, string $domain, ?int $tenantId, bool $external, string $note, bool $authorized = false): void
     {
         $now = date('Y-m-d H:i:s');
         $note = mb_substr($note, 0, 500);
@@ -295,11 +300,130 @@ class PropertyService
             if ($row['status'] !== 'active') {
                 $this->pdo->prepare("UPDATE gsc_properties SET status = 'pending', verification_note = ?, updated_at = ? WHERE id = ?")->execute([$note, $now, $row['id']]);
             }
+            if ($authorized) {
+                $this->pdo->prepare('UPDATE gsc_properties SET authorized = 1 WHERE id = ?')->execute([$row['id']]);
+            }
 
             return;
         }
-        $this->pdo->prepare("INSERT INTO gsc_properties (credential_id, tenant_id, domain, site_url, status, verification_note, external, created_at, updated_at) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?)")
-            ->execute([$credentialId, $tenantId, $domain, 'sc-domain:' . $domain, $note, $external ? 1 : 0, $now, $now]);
+        $this->pdo->prepare("INSERT INTO gsc_properties (credential_id, tenant_id, domain, site_url, status, verification_note, external, authorized, created_at, updated_at) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)")
+            ->execute([$credentialId, $tenantId, $domain, 'sc-domain:' . $domain, $note, $external ? 1 : 0, $authorized ? 1 : 0, $now, $now]);
+    }
+
+    /** ¿El master autorizó a propósito esta propiedad de un tenant (cliente)? */
+    public function isAuthorized(int $credentialId, string $domain): bool
+    {
+        $stmt = $this->pdo->prepare("SELECT authorized FROM gsc_properties WHERE credential_id = ? AND domain = ? AND page_filter = ''");
+        $stmt->execute([$credentialId, $domain]);
+
+        return (int) $stmt->fetchColumn() === 1;
+    }
+
+    /** Propiedad de dominio activa de la plataforma que cubre a un subdominio (musedock.com cubre a x.musedock.com), o null. */
+    public function parentProperty(int $credentialId, string $host): ?array
+    {
+        $labels = explode('.', self::normalizeHost($host));
+        for ($i = 1; $i < count($labels) - 1; $i++) {
+            $stmt = $this->pdo->prepare("SELECT * FROM gsc_properties WHERE credential_id = ? AND domain = ? AND page_filter = '' AND status = 'active' AND site_url LIKE 'sc-domain:%'");
+            $stmt->execute([$credentialId, implode('.', array_slice($labels, $i))]);
+            if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /** Prefijo de URL que delimita un subdominio dentro de la propiedad de su dominio. */
+    public static function hostFilter(string $host): string
+    {
+        return 'https://' . self::normalizeHost($host) . '/';
+    }
+
+    /**
+     * Crea (si no existe) la propiedad «virtual» de un subdominio: sus datos son los de la propiedad
+     * de dominio que lo cubre, descargados con un filtro de página. Así cada tenant ve solo lo suyo.
+     */
+    public function ensureVirtual(int $credentialId, array $parent, string $host, ?int $tenantId, bool $authorized): int
+    {
+        $host = self::normalizeHost($host);
+        $filter = self::hostFilter($host);
+        $stmt = $this->pdo->prepare('SELECT id FROM gsc_properties WHERE credential_id = ? AND site_url = ? AND page_filter = ?');
+        $stmt->execute([$credentialId, $parent['site_url'], $filter]);
+        $now = date('Y-m-d H:i:s');
+        if ($id = $stmt->fetchColumn()) {
+            $this->pdo->prepare("UPDATE gsc_properties SET tenant_id = ?, domain = ?, parent_id = ?, status = 'active', authorized = ?, updated_at = ? WHERE id = ?")
+                ->execute([$tenantId, $host, $parent['id'], $authorized ? 1 : 0, $now, $id]);
+
+            return (int) $id;
+        }
+        $this->pdo->prepare("INSERT INTO gsc_properties (credential_id, tenant_id, domain, site_url, permission_level, status, page_filter, parent_id, authorized, external, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, 0, ?, ?)")
+            ->execute([$credentialId, $tenantId, $host, $parent['site_url'], $parent['permission_level'], $filter, $parent['id'], $authorized ? 1 : 0, $now, $now]);
+
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    /**
+     * Garantiza la propiedad virtual de cada tenant PROPIO cuyo dominio es un subdominio de una propiedad activa
+     * (los clientes solo la tienen si el master los autorizó). Las filas virtuales que ya no tienen propiedad madre
+     * activa, o cuyo tenant dejó de existir, pasan a «sin acceso». Devuelve cuántas filas virtuales hay.
+     */
+    public function syncVirtualHosts(int $credentialId): int
+    {
+        $n = 0;
+        foreach ($this->pdo->query('SELECT id, domain, is_client_domain FROM tenants') as $t) {
+            $host = self::normalizeHost($t['domain']);
+            $parent = $this->parentProperty($credentialId, $host);
+            if ($parent === null) {
+                continue;
+            }
+            $existing = $this->pdo->prepare('SELECT authorized FROM gsc_properties WHERE credential_id = ? AND site_url = ? AND page_filter = ?');
+            $existing->execute([$credentialId, $parent['site_url'], self::hostFilter($host)]);
+            $row = $existing->fetch(PDO::FETCH_ASSOC);
+            if ((int) $t['is_client_domain'] === 1 && !$row) {
+                continue; // un cliente solo tiene su propiedad virtual si el master lo autorizó
+            }
+            $this->ensureVirtual($credentialId, $parent, $host, (int) $t['id'], $row ? (int) $row['authorized'] === 1 : false);
+            $n++;
+        }
+        $orphans = $this->pdo->prepare("SELECT v.id FROM gsc_properties v LEFT JOIN gsc_properties p ON p.id = v.parent_id AND p.status = 'active' WHERE v.credential_id = ? AND v.page_filter <> '' AND v.status = 'active' AND p.id IS NULL");
+        $orphans->execute([$credentialId]);
+        foreach ($orphans->fetchAll(PDO::FETCH_COLUMN) as $id) {
+            $this->pdo->prepare("UPDATE gsc_properties SET status = 'no_access', last_error = 'La propiedad de dominio que cubría este subdominio ya no está activa.' WHERE id = ?")->execute([$id]);
+        }
+
+        return $n;
+    }
+
+    /** Tenants cliente y si el master los ha autorizado ya (lista del master). */
+    public function clientTenantsForAuthorization(int $platformCredentialId): array
+    {
+        $out = [];
+        $stmt = $this->pdo->prepare("SELECT id, domain, authorized, status, verification_note, page_filter FROM gsc_properties WHERE credential_id = ? AND tenant_id IS NOT NULL AND authorized = 1");
+        $stmt->execute([$platformCredentialId]);
+        $props = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $p) {
+            $props[$p['domain']] = $p;
+        }
+        foreach ($this->pdo->query('SELECT id, name, domain FROM tenants WHERE is_client_domain = 1 ORDER BY domain') as $t) {
+            $domain = self::normalizeHost($t['domain']);
+            $p = $props[$domain] ?? null;
+            $out[] = [
+                'tenant_id' => (int) $t['id'], 'name' => $t['name'], 'domain' => $domain,
+                'authorized' => $p !== null, 'property_id' => $p['id'] ?? null, 'state' => $p['status'] ?? null, 'note' => $p['verification_note'] ?? null,
+                'virtual' => $p !== null && $p['page_filter'] !== '',
+            ];
+        }
+
+        return $out;
+    }
+
+    /** El master retira la autorización: la propiedad y sus datos se borran de la plataforma. */
+    public function revokeAuthorization(int $propertyId): void
+    {
+        $this->pdo->prepare('UPDATE gsc_properties SET authorized = 0 WHERE id = ?')->execute([$propertyId]);
+        $this->purgePlatformDataOfClients();
+        // Si no era un cliente (nada que purgar), no queda nada autorizado que mostrar
     }
 
     /** Dominios externos (fuera del CMS) pendientes de verificar, solo plataforma. */
