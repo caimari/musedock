@@ -14,7 +14,7 @@
         </div>
 
         <!-- v2.23.0 -->
-        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.23.0 — Search Console completo, cuentas DNS y SEO entre dominios</h5></div><div class="card-body">
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.23.0 — Search Console completo, caché HTML segura, URLs por idioma y cuentas DNS</h5></div><div class="card-body">
             <p class="text-muted">16 de octubre de 2026</p>
             <h6 class="text-primary"><i class="bi bi-graph-up-arrow me-1"></i> Search Console</h6>
             <ul class="mb-3">
@@ -33,6 +33,15 @@
                 <li><strong>Rendimiento</strong>: el registro de menús de los módulos hacía ~40 UPDATE por segundo en cada petición; ahora se registra una vez por hora.</li>
                 <li><strong>Exportar a CSV</strong> (tabla de dominios y cada tabla del informe), <strong>contenido del CMS en el informe</strong> (cada URL con su título y enlace «Editar») y <strong>aviso por correo de caídas de SEO</strong>.</li>
                 <li><strong>Descargar datos ahora</strong> como cola con barra de progreso y parar, y cuidado del servidor: espera si hay mucha carga de CPU, pausa entre dominios, prioridad baja y memoria limitada.</li>
+            </ul>
+            <h6 class="text-success"><i class="bi bi-speedometer2 me-1"></i> Rendimiento, caché y URLs por idioma</h6>
+            <ul class="mb-3">
+                <li><strong>Caché HTML reactivada de forma segura</strong> en todos los sitios: solo se sirve y se guarda para visitantes anónimos. Cualquier sesión con admin, usuario, cliente, carrito o avisos pendientes recibe la página generada al momento, con <code>no-store</code>. Las URLs con parámetros (<code>?page=2</code>, <code>?q=…</code>) no se cachean, salvo los de campañas (<code>utm_*</code>, <code>gclid</code>…). Respuesta del servidor de ~1,8 s a ~0,2 s.</li>
+                <li><strong>Sliders</strong>: imágenes en WebP (variante nueva de 1600 px para los de ancho completo), Swiper cargado una sola vez por página aunque haya varios sliders, y espacio reservado antes de arrancar para que la página no salte. En ibestff.com la portada ha pasado de 2,7 MB a 1,1 MB y los saltos (CLS) de 0,50 a 0,04.</li>
+                <li><strong>Media Manager 1.1.0</strong>: las variantes WebP que faltan (imágenes importadas o anteriores) se generan automáticamente la primera vez que se piden; un PNG de 847 KB pasa a 80 KB. Los logos del Media Manager usan su variante WebP.</li>
+                <li><strong>URL propia para cada idioma</strong>: el idioma por defecto en la URL limpia y las traducciones con prefijo y slug traducido (<code>/en/docs/search-console-guide</code>). Cada URL muestra siempre un solo idioma; <code>hreflang</code> y canonical apuntan a las URLs nuevas.</li>
+                <li>Redirecciones 301 desde <code>?lang=xx</code>, desde el slug sin traducir y desde <code>/es/</code>. <code>/en/</code> solo existe para contenidos traducidos (sin copias duplicadas). Si el visitante eligió otro idioma, se le lleva a su versión.</li>
+                <li><strong>Sitemap</strong>: los posts y docs salen con su URL real (los docs aparecían como <code>/blog/…</code>), con las versiones traducidas y sus enlaces <code>xhtml:link</code>.</li>
             </ul>
             <h6 class="text-info"><i class="bi bi-cloud me-1"></i> Cuentas DNS y diálogos</h6>
             <ul class="mb-3">
@@ -72,17 +81,11 @@
                     </ul>
                     En screenai.es, PageSpeed en móvil ha pasado de 49 a 84.</li>
                 <li>Logos de todos los tenants en WebP al doble de la altura mostrada: en festivalnews.org han pasado de 282 KB a 22 KB.</li>
-                <li>Sliders: imágenes en WebP (variante nueva de 1600 px para los de ancho completo), Swiper cargado una sola vez por página aunque haya varios sliders, y espacio reservado antes de arrancar para que la página no salte. En ibestff.com la portada ha pasado de 2,7 MB a 1,1 MB y los saltos (CLS) de 0,50 a 0,04.</li>
-                <li>Media Manager: las variantes WebP que faltan se generan automáticamente la primera vez que se piden. Los logos del Media Manager usan su variante WebP.</li>
-                <li>Caché HTML reactivada de forma segura. Solo se sirve y se guarda para visitantes anónimos: cualquier sesión con admin, usuario, cliente, carrito o avisos pendientes recibe la página generada al momento, con <code>no-store</code>. Las URLs con parámetros (<code>?page=2</code>, <code>?q=…</code>) no se cachean, salvo los de campañas (<code>utm_*</code>, <code>gclid</code>…). Respuesta del servidor de ~1,8 s a ~0,2 s.</li>
                 <li>Versiones de CSS por fecha del fichero (antes cambiaban en cada carga e impedían la caché) y botones de cookies con contraste suficiente.</li>
             </ul>
             <h6 class="text-info"><i class="bi bi-translate me-1"></i> SEO multi-idioma</h6>
             <ul class="mb-3">
-                <li>URL propia para cada idioma: el idioma por defecto en la URL limpia y las traducciones con prefijo y slug traducido (<code>/en/docs/search-console-guide</code>). Cada URL muestra siempre un solo idioma.</li>
-                <li>Redirecciones 301 desde <code>?lang=xx</code>, desde el slug sin traducir y desde <code>/es/</code>. <code>/en/</code> solo existe para contenidos traducidos (sin copias duplicadas). Si el visitante eligió otro idioma, se le lleva a su versión.</li>
                 <li>Los artículos y docs con traducción publican <code>hreflang</code> (es, en, x-default), canonical propio para cada idioma y <code>&lt;html lang&gt;</code> con el idioma real.</li>
-                <li>Sitemap: los docs salen con su URL real (<code>/docs/…</code>; antes aparecían como <code>/blog/…</code>), con las versiones traducidas y sus enlaces <code>xhtml:link</code>.</li>
                 <li>La plantilla de documentación muestra la traducción: título, contenido, SEO y menú lateral, con los textos de la interfaz en el idioma de la página.</li>
                 <li>El selector de idioma recuerda la elección en una cookie.</li>
                 <li>Primer documento bilingüe: «Search Console: el SEO de todos tus dominios».</li>
