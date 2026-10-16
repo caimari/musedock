@@ -1,8 +1,15 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "changelog": [
+    {
+      "version": "0.1.4",
+      "date": "2026-10-16",
+      "changes": [
+        "Alta de dominios: si Google aún no ve el TXT recién publicado, el panel reintenta solo cada 20 s (hasta 5 veces) en vez de limitarse a decir «se reintentará»."
+      ]
+    },
     {
       "version": "0.1.3",
       "date": "2026-10-16",

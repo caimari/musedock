@@ -60,7 +60,7 @@ class DomainVerifier
                         return ['status' => 'manual', 'message' => "El DNS de {$domain} no está en ninguna cuenta DNS del CMS (Ajustes → Cuentas DNS). Publica este registro TXT en el DNS del dominio (nombre @) y vuelve a pulsar «Dar de alta»: {$token}  — o, alternativa, añade a mano el email de la cuenta de servicio como usuario en Search Console."];
                     }
 
-                    return ['status' => 'pending', 'message' => 'TXT publicado en el DNS; Google aún no lo ve (propagación DNS). Se reintentará.'];
+                    return ['status' => 'pending', 'message' => 'TXT publicado en el DNS; Google aún no lo ve (suele tardar unos segundos).'];
                 }
                 throw $e;
             }

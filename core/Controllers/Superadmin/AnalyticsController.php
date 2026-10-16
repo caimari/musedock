@@ -119,32 +119,42 @@ class AnalyticsController
 
         $this->checkPermission('analytics-view');
 
-        // Período de tiempo (últimos 30 días por defecto)
-        $period = $_GET['period'] ?? '30';
-        $tenantId = $_GET['tenant_id'] ?? null;
+        // Período de tiempo (últimos 30 días por defecto): solo 7, 30 o 90
+        $period = (string) (in_array((int) ($_GET['period'] ?? 30), [7, 30, 90], true) ? (int) $_GET['period'] : 30);
+        $tenantId = !empty($_GET['tenant_id']) ? (int) $_GET['tenant_id'] : null;
 
         $db = Database::connect();
 
-        // Estadísticas generales
-        $stats = $this->getGeneralStats($db, $period, $tenantId);
-
-        // Gráfico de visitas por día
-        $visitsChart = $this->getVisitsByDay($db, $period, $tenantId);
-
-        // Top páginas
-        $topPages = $this->getTopPages($db, $period, $tenantId);
-
-        // Top países
-        $topCountries = $this->getTopCountries($db, $period, $tenantId);
-
-        // Fuentes de tráfico
-        $trafficSources = $this->getTrafficSources($db, $period, $tenantId);
-
-        // Dispositivos
-        $devices = $this->getDeviceStats($db, $period, $tenantId);
-
-        // Navegadores
-        $browsers = $this->getBrowserStats($db, $period, $tenantId);
+        // Las estadísticas recorren cientos de miles de filas (varios segundos): se guardan 10 minutos
+        // por periodo y sitio. «?refresh=1» fuerza el recálculo. Tiempo real va siempre en directo.
+        $cacheFile = APP_ROOT . '/storage/cache/analytics/' . md5($period . '|' . ($tenantId ?? 'all')) . '.json';
+        $cached = null;
+        if (empty($_GET['refresh']) && is_file($cacheFile) && filemtime($cacheFile) > time() - 600) {
+            $cached = json_decode((string) file_get_contents($cacheFile), true);
+        }
+        if (!is_array($cached) || !isset($cached['stats'])) {
+            $cached = [
+                'generated_at' => time(),
+                'stats' => $this->getGeneralStats($db, $period, $tenantId),
+                'visitsChart' => $this->getVisitsByDay($db, $period, $tenantId),
+                'topPages' => $this->getTopPages($db, $period, $tenantId),
+                'topCountries' => $this->getTopCountries($db, $period, $tenantId),
+                'trafficSources' => $this->getTrafficSources($db, $period, $tenantId),
+                'devices' => $this->getDeviceStats($db, $period, $tenantId),
+                'browsers' => $this->getBrowserStats($db, $period, $tenantId),
+            ];
+            if (!is_dir(dirname($cacheFile))) {
+                @mkdir(dirname($cacheFile), 0775, true);
+            }
+            @file_put_contents($cacheFile, json_encode($cached), LOCK_EX);
+        }
+        $stats = $cached['stats'];
+        $visitsChart = $cached['visitsChart'];
+        $topPages = $cached['topPages'];
+        $topCountries = $cached['topCountries'];
+        $trafficSources = $cached['trafficSources'];
+        $devices = $cached['devices'];
+        $browsers = $cached['browsers'];
 
         // Tiempo real (últimos 5 minutos)
         $realtime = $this->getRealtimeStats($db, $tenantId);
@@ -167,6 +177,7 @@ class AnalyticsController
             'browsers' => $browsers,
             'realtime' => $realtime,
             'period' => $period,
+            'generatedAt' => $cached['generated_at'],
             'tenantId' => $tenantId,
             'tenants' => $tenants
         ]);
@@ -177,59 +188,42 @@ class AnalyticsController
      */
     private function getGeneralStats($db, $period, $tenantId): array
     {
-        $whereTenant = $tenantId ? "AND tenant_id = ?" : "";
-        $params = [$period];
-        if ($tenantId) $params[] = $tenantId;
+        // Dos consultas con rangos simples (periodo actual con el rebote incluido, y periodo anterior).
+        // Se probó mezclarlas en una con CASE y resultó 3 veces más lenta (varios COUNT DISTINCT a la vez).
+        // $period es siempre un entero validado, por eso va como literal en el INTERVAL.
+        $days = (int) $period;
+        $d1 = $this->dateInterval((string) $days, 'DAY', true);
+        $d2 = $this->dateInterval((string) ($days * 2), 'DAY', true);
+        $bounce = $this->getDriver() === 'pgsql' ? 'bounce = TRUE' : 'bounce = 1';
+        $whereTenant = $tenantId ? 'AND tenant_id = ?' : '';
+        $params = $tenantId ? [$tenantId] : [];
 
-        // Visitas totales
-        $dateExpr = $this->dateInterval('?', 'DAY');
         $stmt = $db->prepare("
-            SELECT COUNT(*) as total_visits,
-                   COUNT(DISTINCT visitor_id) as unique_visitors,
-                   COUNT(DISTINCT session_id) as total_sessions,
-                   AVG(session_duration) as avg_duration
+            SELECT COUNT(*) AS total_visits,
+                   COUNT(DISTINCT visitor_id) AS unique_visitors,
+                   COUNT(DISTINCT session_id) AS total_sessions,
+                   AVG(session_duration) AS avg_duration,
+                   SUM(CASE WHEN {$bounce} THEN 1 ELSE 0 END) AS bounces
             FROM web_analytics
-            WHERE created_at >= {$dateExpr}
+            WHERE created_at >= {$d1}
             {$whereTenant}
         ");
         $stmt->execute($params);
         $current = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        // Período anterior (para comparación)
         $stmt = $db->prepare("
-            SELECT COUNT(*) as total_visits,
-                   COUNT(DISTINCT visitor_id) as unique_visitors
+            SELECT COUNT(*) AS total_visits,
+                   COUNT(DISTINCT visitor_id) AS unique_visitors
             FROM web_analytics
-            WHERE created_at >= {$dateExpr}
-            AND created_at < {$dateExpr}
-            {$whereTenant}
-        ");
-        $prevParams = [$period * 2, $period];
-        if ($tenantId) $prevParams[] = $tenantId;
-        $stmt->execute($prevParams);
-        $previous = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-        // Calcular cambios porcentuales
-        $visitChange = $this->calculateChange($current['total_visits'], $previous['total_visits']);
-        $visitorChange = $this->calculateChange($current['unique_visitors'], $previous['unique_visitors']);
-
-        // Tasa de rebote
-        // PostgreSQL: bounce es BOOLEAN (comparar con TRUE)
-        // MySQL: bounce es TINYINT (comparar con 1)
-        $driver = $this->getDriver();
-        $bounceCondition = $driver === 'pgsql' ? 'bounce = TRUE' : 'bounce = 1';
-
-        $stmt = $db->prepare("
-            SELECT
-                SUM(CASE WHEN {$bounceCondition} THEN 1 ELSE 0 END) as bounces,
-                COUNT(*) as total
-            FROM web_analytics
-            WHERE created_at >= {$dateExpr}
+            WHERE created_at >= {$d2} AND created_at < {$d1}
             {$whereTenant}
         ");
         $stmt->execute($params);
-        $bounceData = $stmt->fetch(\PDO::FETCH_ASSOC);
-        $bounceRate = $bounceData['total'] > 0 ? ($bounceData['bounces'] / $bounceData['total']) * 100 : 0;
+        $previous = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        $visitChange = $this->calculateChange($current['total_visits'], $previous['total_visits']);
+        $visitorChange = $this->calculateChange($current['unique_visitors'], $previous['unique_visitors']);
+        $bounceRate = $current['total_visits'] > 0 ? ($current['bounces'] / $current['total_visits']) * 100 : 0;
 
         return [
             'total_visits' => $current['total_visits'] ?? 0,

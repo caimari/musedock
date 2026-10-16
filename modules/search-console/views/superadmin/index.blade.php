@@ -245,7 +245,13 @@
                 var cls = { verified: 'text-success', pending: 'text-warning', manual: 'text-secondary', error: 'text-danger' }[res.status] || 'text-danger';
                 msg.className = 'gsc-verify-msg ' + cls; msg.textContent = res.message;
                 btn.disabled = res.status === 'verified';
-                if (res.status === 'verified') btn.textContent = 'Hecho';
+                if (res.status === 'verified') { btn.textContent = 'Hecho'; li._tries = 0; }
+                // Google tarda unos segundos en ver el TXT recién publicado: se reintenta solo (hasta 5 veces)
+                if (res.status === 'pending' && (li._tries = (li._tries || 0) + 1) <= 5) {
+                    btn.disabled = true;
+                    msg.textContent = res.message + ' Reintentando en 20 s (' + li._tries + '/5)…';
+                    setTimeout(function () { verify(li); }, 20000);
+                }
             })
             .catch(function () { msg.className = 'gsc-verify-msg text-danger'; msg.textContent = 'Error de red'; btn.disabled = false; });
     }

@@ -11,6 +11,14 @@
         </h1>
 
         <div class="d-flex gap-2">
+            <?php if (!empty($generatedAt)): ?>
+            <!-- Los datos se guardan 10 minutos; este botón los recalcula al momento -->
+            <a href="?period=<?= (int) $period ?><?= !empty($tenantId) ? '&tenant_id=' . (int) $tenantId : '' ?>&refresh=1"
+               class="btn btn-outline-secondary align-self-center" title="Recalcular ahora (tarda unos segundos)"
+               onclick="this.classList.add('disabled'); this.innerHTML='<span class=\'spinner-border spinner-border-sm me-1\'></span> Recalculando…';">
+                <i class="bi bi-arrow-clockwise"></i> Actualizado hace <?= max(0, (int) round((time() - (int) $generatedAt) / 60)) ?> min
+            </a>
+            <?php endif; ?>
             <!-- Selector de período -->
             <select id="periodSelector" class="form-select" style="width: auto;">
                 <option value="7" <?= $period == 7 ? 'selected' : '' ?>>Últimos 7 días</option>
