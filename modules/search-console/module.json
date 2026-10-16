@@ -12,7 +12,8 @@
         "IndexNow (IndexNowService): cada hora lee el sitemap de cada dominio propio y avisa a Bing, Yandex y otros de lo nuevo o modificado (lastmod). La primera lectura solo toma nota. Clave en storage/indexnow.json y fichero público en public/<clave>.txt (sirve a todos los dominios). Tarjeta con interruptor y «Comprobar ahora». Google no usa IndexNow.",
         "«Descargar datos ahora» pasa a ser una cola en el servidor (SyncQueueService): una propiedad por paso, barra de progreso con la lista de dominios, parar/reanudar, sigue si se cierra la página. Antes era una sola petición que, con el servidor cargado, acababa en «Error de red».",
         "Cuidado del servidor: la descarga espera si la carga de CPU supera el número de núcleos, deja 2 s entre propiedades, baja su prioridad (nice) y limita la memoria a 256 MB; el cron corre con prioridad mínima y aplaza descargas e IndexNow si el servidor está ocupado.",
-        "Prueba y datos reales: una descarga de una propiedad usa ~1 s de CPU y ~4 MB de memoria."
+        "Prueba y datos reales: una descarga de una propiedad usa ~1 s de CPU y ~4 MB de memoria.",
+        "Selector de periodo en la tabla de dominios (superadmin y tenant) y en el informe: 7, 28, 90, 180 días, último año, 2 años y todo el histórico guardado; la columna de comparación se adapta. El histórico no se borra nunca: Google solo ofrece ~16 meses, así que el archivo propio crece con los años."
       ]
     },
     {

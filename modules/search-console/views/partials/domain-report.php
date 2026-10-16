@@ -60,7 +60,7 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
         <div class="d-flex gap-2 align-items-center">
             <?php if (!$empty): ?>
             <select class="form-select form-select-sm" style="width:auto;" onchange="location.href='?days='+this.value" aria-label="Periodo">
-                <?php foreach ($periods as $d): ?><option value="<?= (int) $d ?>" <?= $report['days'] === $d ? 'selected' : '' ?>>Últimos <?= (int) $d ?> días</option><?php endforeach; ?>
+                <?php foreach ($periods as $d): ?><option value="<?= (int) $d ?>" <?= ($report['period'] ?? $report['days']) === $d ? 'selected' : '' ?>><?= $e(\Modules\SearchConsole\Services\ReportService::periodLabel((int) $d)) ?></option><?php endforeach; ?>
             </select>
             <?php endif; ?>
             <button type="button" class="btn btn-outline-secondary btn-sm" id="gsc-glossary"><i class="bi bi-question-circle"></i> ¿Qué significan los datos?</button>

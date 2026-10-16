@@ -98,8 +98,9 @@
     {{-- ===== Datos ===== --}}
     @if(!empty($properties))
     <div class="card mb-4"><div class="card-body p-0"><div class="table-responsive">
-        <table class="table mb-0">
-            <thead><tr><th>Propiedad</th><th class="num">Clics</th><th class="num">Impresiones</th><th class="num">CTR</th><th class="num">Posición</th><th class="num">vs. 28 d antes</th><th>Última sync.</th></tr></thead>
+        <div class="d-flex justify-content-end p-2"><select class="form-select form-select-sm" style="width:auto;" onchange="location.href='?days='+this.value" aria-label="Periodo">@foreach($period['options'] as $pk => $pl)<option value="{{ $pk }}" @if($pk === $period['key'])selected @endif>{{ $pl }}</option>@endforeach</select></div>
+            <table class="table mb-0">
+            <thead><tr><th>Propiedad</th><th class="num">Clics</th><th class="num">Impresiones</th><th class="num">CTR</th><th class="num">Posición</th><th class="num">{{ ($period['key'] ?? 28) === 0 ? 'vs. antes' : 'vs. ' . ($period['key'] ?? 28) . ' d antes' }}</th><th>Última sync.</th></tr></thead>
             <tbody>
             @foreach($properties as $p)
                 @php

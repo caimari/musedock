@@ -119,13 +119,16 @@
                 <option value="active">Activas</option>
                 <option value="no_access">Sin acceso</option>
             </select>
+            <select class="form-select form-select-sm" style="width:auto;" id="gsc-period" aria-label="Periodo" title="Periodo de los clics, impresiones y la comparación">
+                @foreach($period['options'] as $pk => $pl)<option value="{{ $pk }}" @if($pk === $period['key'])selected @endif>{{ $pl }}</option>@endforeach
+            </select>
             <div class="ms-auto text-muted" style="font-size:.85rem;" id="gsc-filter-sum"></div>
         </div>
         <div class="table-responsive">
         <table class="table table-hover mb-0 gsc-sortable" id="gsc-table">
             <thead><tr>
                 <th>Dominio</th><th>Tenant</th><th>Estado</th>
-                <th class="num">Clics</th><th class="num">Impresiones</th><th class="num">CTR</th><th class="num">Posición</th><th class="num">vs. 28 d antes</th><th>Última sync.</th>
+                <th class="num">Clics</th><th class="num">Impresiones</th><th class="num">CTR</th><th class="num">Posición</th><th class="num">{{ ($period['key'] ?? 28) === 0 ? 'vs. antes' : 'vs. ' . ($period['key'] ?? 28) . ' d antes' }}</th><th>Última sync.</th>
             </tr></thead>
             <tbody>
             @php
@@ -315,7 +318,7 @@
         </div>
         <div class="table-responsive">
         <table class="table table-hover mb-0 gsc-sortable">
-            <thead><tr><th>Dominio</th><th>Estado</th><th class="num">Clics</th><th class="num">Impresiones</th><th class="num">CTR</th><th class="num">Posición</th><th class="num">vs. 28 d antes</th><th>Última sync.</th></tr></thead>
+            <thead><tr><th>Dominio</th><th>Estado</th><th class="num">Clics</th><th class="num">Impresiones</th><th class="num">CTR</th><th class="num">Posición</th><th class="num">{{ ($period['key'] ?? 28) === 0 ? 'vs. antes' : 'vs. ' . ($period['key'] ?? 28) . ' d antes' }}</th><th>Última sync.</th></tr></thead>
             <tbody>
             @foreach($external as $p)
                 @php
@@ -788,6 +791,9 @@
         var on = inTog.dataset.enabled !== '1';
         fetch(@json($baseUrl . '/indexnow/toggle'), { method: 'POST', headers: { 'X-CSRF-TOKEN': token }, body: new URLSearchParams({ enabled: on ? '1' : '0', _csrf: token }) }).then(function () { location.reload(); });
     });
+
+    var gscPeriod = document.getElementById('gsc-period');
+    if (gscPeriod) gscPeriod.addEventListener('change', function () { location.href = '?days=' + gscPeriod.value; });
 
     // ===== Dar de baja (conservando los datos) y reactivar =====
     function propertyAction(action, id, password) {

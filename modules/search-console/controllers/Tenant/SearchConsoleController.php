@@ -66,7 +66,8 @@ class SearchConsoleController extends BaseController
             'canManage' => userCan('search_console.manage'),
             'credential' => CredentialStore::publicView($credential),
             'properties' => $properties,
-            'totals' => $this->totals(array_map(fn ($p) => (int) $p['id'], $properties)),
+            'period' => $period = $this->periodFromRequest(),
+            'totals' => $this->totals(array_map(fn ($p) => (int) $p['id'], $properties), $period['key']),
             'baseUrl' => $this->baseUrl(),
             'tenantDomain' => \Modules\SearchConsole\Services\PropertyService::normalizeHost((string) (tenant()['domain'] ?? '')),
         ]);

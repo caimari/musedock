@@ -184,7 +184,7 @@ abstract class BaseController
             'title' => 'SEO · ' . $property['domain'],
             'property' => $property,
             'report' => $report,
-            'opportunities' => (new OpportunityService($this->pdo))->detect($property, $days),
+            'opportunities' => (new OpportunityService($this->pdo))->detect($property, in_array($days, [7, 28, 90, 180, 365], true) ? $days : 365),
             'periods' => ReportService::PERIODS,
             'baseUrl' => $this->baseUrl(),
         ]);
@@ -418,12 +418,29 @@ abstract class BaseController
     }
 
     /** Totales de los últimos $days días y del periodo anterior, por propiedad. */
+    /** Periodo elegido para la tabla principal (?days=): días, texto y opciones del selector. */
+    protected function periodFromRequest(): array
+    {
+        $key = (int) ($_GET['days'] ?? 28);
+        $key = in_array($key, ReportService::PERIODS, true) ? $key : 28;
+        $options = [];
+        foreach (ReportService::PERIODS as $d) {
+            $options[$d] = ReportService::periodLabel($d);
+        }
+
+        return ['key' => $key, 'label' => ReportService::periodLabel($key), 'options' => $options];
+    }
+
     protected function totals(array $propertyIds, int $days = 28): array
     {
         if (empty($propertyIds)) {
             return [];
         }
         $in = implode(',', array_map('intval', $propertyIds));
+        if ($days === 0) { // todo el histórico guardado
+            $min = $this->pdo->query("SELECT MIN(date) FROM gsc_site_daily WHERE property_id IN ({$in})")->fetchColumn();
+            $days = $min ? max(7, (int) floor((strtotime('-2 days') - strtotime((string) $min)) / 86400) + 1) : 28;
+        }
         // Google publica con ~2 días de retraso: el periodo termina hace 2 días
         $end = date('Y-m-d', strtotime('-2 days'));
         $start = date('Y-m-d', strtotime($end . ' -' . ($days - 1) . ' days'));

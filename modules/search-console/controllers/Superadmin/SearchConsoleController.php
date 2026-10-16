@@ -39,7 +39,8 @@ class SearchConsoleController extends BaseController
         $credential = $this->credentials->find(null);
         $properties = $credential ? $this->properties->visibleForSuperadmin() : [];
         $external = $credential ? $this->properties->externalForSuperadmin() : [];
-        $totals = $this->totals(array_map(fn ($p) => (int) $p['id'], array_merge($properties, $external)));
+        $period = $this->periodFromRequest();
+        $totals = $this->totals(array_map(fn ($p) => (int) $p['id'], array_merge($properties, $external)), $period['key']);
         $clientCount = (int) $this->pdo->query('SELECT COUNT(*) FROM tenants WHERE is_client_domain = 1')->fetchColumn();
 
         return View::renderModule('search-console', 'superadmin.index', [
@@ -48,6 +49,7 @@ class SearchConsoleController extends BaseController
             'properties' => $properties,
             'external' => $external,
             'totals' => $totals,
+            'period' => $period,
             'expiry' => (new \Modules\SearchConsole\Services\DomainExpiryService($this->pdo))->listing(),
             'redirectPairs' => (new \Modules\SearchConsole\Services\RedirectService($this->pdo))->pairs(),
             'indexNow' => $this->indexNowView(),

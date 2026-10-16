@@ -10,7 +10,18 @@ use PDO;
  */
 class ReportService
 {
-    public const PERIODS = [7, 28, 90, 180, 365];
+    /** Periodos del selector; 0 = todo el histórico guardado. */
+    public const PERIODS = [7, 28, 90, 180, 365, 730, 0];
+
+    public static function periodLabel(int $days): string
+    {
+        return match (true) {
+            $days === 0 => 'Todo el histórico',
+            $days === 365 => 'Último año',
+            $days === 730 => 'Últimos 2 años',
+            default => "Últimos {$days} días",
+        };
+    }
 
     public function __construct(private PDO $pdo)
     {
@@ -19,20 +30,25 @@ class ReportService
     public function report(array $property, int $days): array
     {
         $days = in_array($days, self::PERIODS, true) ? $days : 28;
+        $period = $days;
         $id = (int) $property['id'];
 
         // El periodo termina en el último día con datos (no en «hoy»: Google va con retraso)
         $last = $this->scalar('SELECT MAX(date) FROM gsc_site_daily WHERE property_id = ?', [$id]);
         if (!$last) {
-            return ['empty' => true, 'days' => $days];
+            return ['empty' => true, 'days' => $days, 'period' => $period];
         }
         $to = (string) $last;
+        if ($days === 0) { // todo el histórico guardado
+            $first = (string) $this->scalar('SELECT MIN(date) FROM gsc_site_daily WHERE property_id = ?', [$id]);
+            $days = max(7, (int) floor((strtotime($to) - strtotime($first)) / 86400) + 1);
+        }
         $from = date('Y-m-d', strtotime($to . ' -' . ($days - 1) . ' days'));
         $prevTo = date('Y-m-d', strtotime($from . ' -1 day'));
         $prevFrom = date('Y-m-d', strtotime($prevTo . ' -' . ($days - 1) . ' days'));
 
         return [
-            'empty' => false, 'days' => $days, 'from' => $from, 'to' => $to,
+            'empty' => false, 'days' => $days, 'period' => $period, 'from' => $from, 'to' => $to,
             'totals' => $this->totals($id, $from, $to),
             'previous' => $this->totals($id, $prevFrom, $prevTo),
             'daily' => $this->rows('SELECT date, clicks, impressions FROM gsc_site_daily WHERE property_id = ? AND date >= ? AND date <= ? ORDER BY date', [$id, $from, $to]),
