@@ -226,6 +226,11 @@ class TranslationService
     {
         SessionSecurity::startSession();
 
+        // Idioma fijado por la URL (/en/...): manda sobre sesión y cookies en el frontend
+        if (!empty($GLOBALS['__request_lang']) && strpos($_SERVER['REQUEST_URI'] ?? '', '/musedock') !== 0) {
+            return self::$currentLocale = (string) $GLOBALS['__request_lang'];
+        }
+
         // Si estamos en contexto superadmin, usar superadmin_locale (ignora force_lang)
         $isSuperadmin = self::$context === 'superadmin' ||
                         strpos($_SERVER['REQUEST_URI'] ?? '', '/musedock') === 0;

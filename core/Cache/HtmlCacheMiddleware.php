@@ -192,7 +192,8 @@ class HtmlCacheMiddleware
         // Solo se cachea la versión en el idioma por defecto (la que ve quien no pide
         // otro idioma). Las demás se generan siempre, así nunca se mezclan idiomas.
         $lang = function_exists('detectLanguage') ? detectLanguage() : null;
-        if ($lang !== null && function_exists('site_default_language') && $lang !== site_default_language()) {
+        $urlLang = \Screenart\Musedock\Services\LanguageUrl::prefixLanguage();
+        if ($lang !== null && function_exists('site_default_language') && $lang !== ($urlLang ?? site_default_language())) {
             return;
         }
 
@@ -225,6 +226,10 @@ class HtmlCacheMiddleware
      */
     private static function requestedLanguage(): ?string
     {
+        // /en/...: el idioma lo fija la URL
+        if (preg_match('#^/([a-z]{2})(/|$)#', (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), $m)) {
+            return $m[1];
+        }
         foreach ([$_GET['lang'] ?? null, $_COOKIE['lang'] ?? null] as $value) {
             if (is_string($value) && preg_match('/^[a-z]{2}$/', $value)) {
                 return $value;

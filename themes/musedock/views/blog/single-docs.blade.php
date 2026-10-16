@@ -51,7 +51,7 @@
 
     $__trLocale = $pdo->quote($__lang);
     $navStmt = $pdo->query("
-        SELECT p.id, COALESCE(tr.title, p.title) AS title, p.slug,
+        SELECT p.id, COALESCE(tr.title, p.title) AS title, p.slug, tr.id AS tr_id, sl.slug AS tr_slug,
                c.id as cat_id, c.slug as cat_slug,
                COALESCE(s.prefix, 'docs') as url_prefix
         FROM blog_posts p
@@ -59,12 +59,23 @@
         LEFT JOIN blog_categories c ON c.id = bpc.category_id
         LEFT JOIN slugs s ON s.reference_id = p.id AND s.module = 'blog' AND $__sf
         LEFT JOIN blog_post_translations tr ON tr.post_id = p.id AND tr.locale = $__trLocale
+        LEFT JOIN slugs sl ON sl.reference_id = p.id AND sl.module = 'blog' AND sl.locale = $__trLocale AND " . str_replace('s.', 'sl.', $__sf) . "
         WHERE p.post_type = 'docs'
         AND p.status = 'published'
         AND $__tf
         ORDER BY p.title ASC
     ");
     $navRows = $navStmt->fetchAll(\PDO::FETCH_OBJ);
+    // Versión con prefijo de idioma (/en/...): enlazar a la URL traducida de cada doc que la tenga
+    $__urlLang = \Screenart\Musedock\Services\LanguageUrl::prefixLanguage();
+    if ($__urlLang !== null) {
+        foreach ($navRows as $__row) {
+            if (!empty($__row->tr_id)) {
+                $__row->url_prefix = $__urlLang . '/' . $__row->url_prefix;
+                $__row->slug = $__row->tr_slug ?: $__row->slug;
+            }
+        }
+    }
 
     $ensureProduct = function (string $key, string $name = '', int $order = 99) use (&$docsNav): void {
         if (!isset($docsNav[$key])) {

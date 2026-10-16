@@ -527,6 +527,9 @@ if (file_exists(__DIR__ . '/../core/Bootstrap/cron.php')) {
 // =========== INICIALIZAR SISTEMA DE TRADUCCIÓN ===========
 use Screenart\Musedock\Services\TranslationService;
 
+// Prefijo de idioma en la URL (/en/...): fija el idioma de la petición y deja la ruta sin prefijo
+\Screenart\Musedock\Services\LanguageUrl::handleRequest();
+
 // Determinar contexto (superadmin o tenant)
 $tenant = tenant();
 $context = empty($tenant) ? 'superadmin' : 'tenant';

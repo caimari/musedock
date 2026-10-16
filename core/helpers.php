@@ -1306,6 +1306,11 @@ if (!function_exists('detectLanguage')) {
 
         if ($lang !== null) return $lang;
 
+        // Idioma fijado por la URL (/en/...) o por la página (una URL = un idioma)
+        if (!empty($GLOBALS['__request_lang'])) {
+            return $lang = (string) $GLOBALS['__request_lang'];
+        }
+
         if (session_status() !== PHP_SESSION_ACTIVE) {
             session_start();
         }
@@ -1405,30 +1410,27 @@ if (!function_exists('detectLanguage')) {
     }
 }
 
-if (!function_exists('seo_set_language_alternates')) {
+if (!function_exists('seo_set_language_urls')) {
     /**
-     * Registra las versiones por idioma de la página actual para SEO multi-idioma.
-     * El idioma por defecto usa la URL limpia y el resto la misma URL con ?lang=xx;
-     * los layouts pintan <link rel="alternate" hreflang>, x-default y el canonical
-     * del idioma que se está viendo.
-     *
-     * @param string[] $locales idiomas en los que existe el contenido
+     * Registra las URLs de la página actual en cada idioma (SEO multi-idioma):
+     * [locale => ruta], p. ej. ['es' => '/docs/guia', 'en' => '/en/docs/guide'].
+     * Los layouts pintan <link rel="alternate" hreflang>, x-default (idioma por
+     * defecto) y el canonical del idioma que se está viendo.
      */
-    function seo_set_language_alternates(array $locales, ?string $path = null): void
+    function seo_set_language_urls(array $paths): void
     {
-        $locales = array_values(array_unique(array_filter($locales, fn ($l) => is_string($l) && preg_match('/^[a-z]{2}$/', $l))));
-        if (count($locales) < 2) {
+        $urls = [];
+        foreach ($paths as $locale => $path) {
+            if (is_string($locale) && preg_match('/^[a-z]{2}$/', $locale) && is_string($path) && $path !== '') {
+                $urls[$locale] = url($path);
+            }
+        }
+        if (count($urls) < 2) {
             return; // una sola versión: canonical normal, sin hreflang
         }
-        $path = $path ?? (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-        $base = url($path);
         $default = site_default_language();
-        $urls = [];
-        foreach ($locales as $locale) {
-            $urls[$locale] = $locale === $default ? $base : $base . '?lang=' . $locale;
-        }
         $GLOBALS['__seo_language_alternates'] = $urls;
-        $GLOBALS['__seo_language_default'] = isset($urls[$default]) ? $urls[$default] : reset($urls);
+        $GLOBALS['__seo_language_default'] = $urls[$default] ?? reset($urls);
     }
 }
 

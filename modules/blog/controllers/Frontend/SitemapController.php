@@ -88,11 +88,31 @@ class SitemapController
             // 4. Posts del blog
             $posts = $this->getPosts($pdo, $tenantId);
             foreach ($posts as $post) {
+                // URL real de cada idioma (prefijo de la tabla slugs: docs, blog...) y
+                // enlaces hreflang entre versiones traducidas
+                $paths = [];
+                try {
+                    $paths = \Screenart\Musedock\Services\LanguageUrl::postPaths($post);
+                } catch (\Throwable $e) {
+                    $paths = [];
+                }
+                if (!$paths) {
+                    $paths = [(string) ($post->base_locale ?: 'es') => blog_url($post->slug)];
+                }
+                $alternates = [];
+                if (count($paths) > 1) {
+                    foreach ($paths as $locale => $path) {
+                        $alternates[$locale] = $siteUrl . $path;
+                    }
+                    $alternates['x-default'] = $siteUrl . ($paths[site_default_language()] ?? reset($paths));
+                }
+                foreach ($paths as $path) {
                 $entry = [
-                    'loc' => $siteUrl . blog_url($post->slug),
+                    'loc' => $siteUrl . $path,
                     'lastmod' => $this->formatDate($post->updated_at ?? $post->published_at),
                     'changefreq' => 'weekly',
                     'priority' => '0.8',
+                    'alternates' => $alternates,
                 ];
                 // Add featured image to sitemap
                 if (!empty($post->featured_image)) {
@@ -103,6 +123,7 @@ class SitemapController
                     $entry['images'] = [['loc' => $imgUrl, 'title' => $post->title ?? '']];
                 }
                 $urls[] = $entry;
+                }
             }
 
             // 5. Categorías del blog (solo las que tienen posts)
@@ -158,7 +179,7 @@ class SitemapController
     private function generateSitemapXml(array $urls): string
     {
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' . "\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:xhtml="http://www.w3.org/1999/xhtml">' . "\n";
 
         foreach ($urls as $url) {
             $xml .= '  <url>' . "\n";
@@ -174,6 +195,11 @@ class SitemapController
 
             if (!empty($url['priority'])) {
                 $xml .= '    <priority>' . $url['priority'] . '</priority>' . "\n";
+            }
+
+            // Versiones en otros idiomas (hreflang)
+            foreach ($url['alternates'] ?? [] as $hreflang => $href) {
+                $xml .= '    <xhtml:link rel="alternate" hreflang="' . $this->escapeXml($hreflang) . '" href="' . $this->escapeXml($href) . '"/>' . "\n";
             }
 
             // Image sitemap extension
@@ -291,7 +317,7 @@ class SitemapController
         try {
             if ($tenantId !== null) {
                 $stmt = $pdo->prepare("
-                    SELECT slug, title, published_at, updated_at, featured_image
+                    SELECT id, tenant_id, slug, base_locale, title, published_at, updated_at, featured_image
                     FROM blog_posts
                     WHERE status = 'published'
                       AND visibility = 'public'
@@ -302,7 +328,7 @@ class SitemapController
                 $stmt->execute([$tenantId]);
             } else {
                 $stmt = $pdo->prepare("
-                    SELECT slug, title, published_at, updated_at, featured_image
+                    SELECT id, tenant_id, slug, base_locale, title, published_at, updated_at, featured_image
                     FROM blog_posts
                     WHERE status = 'published'
                       AND visibility = 'public'

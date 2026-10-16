@@ -219,6 +219,45 @@ class BlogController
             error_log("Blog view tracking error for post ID {$post->id}: " . $e->getMessage());
         }
 
+        // Una URL = un idioma: el idioma base en la URL limpia y cada traducción en
+        // /{locale}/ con su slug. Se corrigen con redirección las URLs que no tocan.
+        $languagePaths = [];
+        try {
+            $languagePaths = \Screenart\Musedock\Services\LanguageUrl::postPaths($post);
+        } catch (\Throwable $e) {
+            error_log('Blog language URLs: ' . $e->getMessage());
+        }
+        $baseLocale = (string) ($post->base_locale ?: site_default_language());
+        if (count($languagePaths) > 1) {
+            $prefixLang = \Screenart\Musedock\Services\LanguageUrl::prefixLanguage();
+            $requested = $_GET['lang'] ?? null;
+            if (is_string($requested) && $requested !== '') {
+                // ?lang=xx (selector o URL antigua) → URL propia de ese idioma, recordando la elección
+                \Screenart\Musedock\Services\LanguageUrl::rememberChoice($requested);
+                \Screenart\Musedock\Services\LanguageUrl::redirect($languagePaths[$requested] ?? $languagePaths[$baseLocale], 301);
+            }
+            if ($prefixLang !== null) {
+                $target = $languagePaths[$prefixLang] ?? $languagePaths[$baseLocale];
+                if ($target !== \Screenart\Musedock\Services\LanguageUrl::originalPath()) {
+                    \Screenart\Musedock\Services\LanguageUrl::redirect($target, 301); // sin traducción o slug no traducido
+                }
+            } else {
+                // Solo la cookie indica una elección explícita (la sesión la rellenan otros servicios)
+                $chosen = $_COOKIE['lang'] ?? null;
+                if (is_string($chosen) && $chosen !== $baseLocale && isset($languagePaths[$chosen])) {
+                    // El visitante eligió otro idioma: llevarle a su versión (Google no lleva cookies)
+                    \Screenart\Musedock\Services\LanguageUrl::redirect($languagePaths[$chosen], 302);
+                }
+                // La URL limpia siempre muestra el idioma base, sea cual sea el navegador
+                $GLOBALS['__request_lang'] = $baseLocale;
+                detectLanguage(true);
+            }
+            seo_set_language_urls($languagePaths);
+        } elseif (\Screenart\Musedock\Services\LanguageUrl::prefixLanguage() !== null && isset($languagePaths[$baseLocale])) {
+            // /en/... de un post sin traducción a ese idioma → su URL en el idioma base
+            \Screenart\Musedock\Services\LanguageUrl::redirect($languagePaths[$baseLocale], 301);
+        }
+
         // Detectar idioma y cargar traducción si existe
         $currentLang = detectLanguage();
         $translation = null;
@@ -232,22 +271,6 @@ class BlogController
             ");
             $stmt->execute([$post->id, $currentLang]);
             $translation = $stmt->fetch(\PDO::FETCH_OBJ);
-        }
-
-        // SEO multi-idioma: hreflang y canonical por idioma si el post tiene traducciones
-        try {
-            $pdoLang = \Screenart\Musedock\Database::connect();
-            $locStmt = $pdoLang->prepare("SELECT locale FROM blog_post_translations WHERE post_id = ?");
-            $locStmt->execute([$post->id]);
-            $postLocales = array_merge([(string) ($post->base_locale ?: site_default_language())], $locStmt->fetchAll(\PDO::FETCH_COLUMN));
-            $activeStmt = $tenantId !== null
-                ? $pdoLang->prepare("SELECT code FROM languages WHERE active = 1 AND tenant_id = ?")
-                : $pdoLang->prepare("SELECT code FROM languages WHERE active = 1 AND tenant_id IS NULL");
-            $activeStmt->execute($tenantId !== null ? [$tenantId] : []);
-            $activeLocales = $activeStmt->fetchAll(\PDO::FETCH_COLUMN);
-            seo_set_language_alternates($activeLocales ? array_intersect($postLocales, $activeLocales) : $postLocales);
-        } catch (\Throwable $e) {
-            error_log('Blog hreflang: ' . $e->getMessage());
         }
 
         // Preparar datos para la vista

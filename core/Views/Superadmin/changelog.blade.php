@@ -41,7 +41,10 @@
             </ul>
             <h6 class="text-info"><i class="bi bi-translate me-1"></i> SEO multi-idioma</h6>
             <ul class="mb-3">
+                <li>URL propia para cada idioma: el idioma por defecto en la URL limpia y las traducciones con prefijo y slug traducido (<code>/en/docs/search-console-guide</code>). Cada URL muestra siempre un solo idioma.</li>
+                <li>Redirecciones 301 desde <code>?lang=xx</code>, desde el slug sin traducir y desde <code>/es/</code>. <code>/en/</code> solo existe para contenidos traducidos (sin copias duplicadas). Si el visitante eligió otro idioma, se le lleva a su versión.</li>
                 <li>Los artículos y docs con traducción publican <code>hreflang</code> (es, en, x-default), canonical propio para cada idioma y <code>&lt;html lang&gt;</code> con el idioma real.</li>
+                <li>Sitemap: los docs salen con su URL real (<code>/docs/…</code>; antes aparecían como <code>/blog/…</code>), con las versiones traducidas y sus enlaces <code>xhtml:link</code>.</li>
                 <li>La plantilla de documentación muestra la traducción: título, contenido, SEO y menú lateral, con los textos de la interfaz en el idioma de la página.</li>
                 <li>El selector de idioma recuerda la elección en una cookie.</li>
                 <li>Primer documento bilingüe: «Search Console: el SEO de todos tus dominios».</li>
