@@ -9,7 +9,9 @@ use Modules\SearchConsole\Services\GoogleClient;
 use Modules\SearchConsole\Services\OpportunityService;
 use Modules\SearchConsole\Services\PropertyService;
 use Modules\SearchConsole\Services\ReportService;
+use Modules\SearchConsole\Services\SitemapService;
 use Modules\SearchConsole\Services\SyncService;
+use Modules\SearchConsole\Services\UrlInspectionService;
 use Screenart\Musedock\Database;
 use Screenart\Musedock\View;
 
@@ -149,6 +151,14 @@ abstract class BaseController
             } catch (\Throwable $e) {
                 // la propiedad ya existe en Google; se enlazará en la próxima actualización
             }
+            if ($credential['owner_type'] === 'platform') {
+                // Recién dado de alta: se avisa a Google de su sitemap para que rastree antes (best-effort)
+                try {
+                    (new SitemapService())->submitForDomain($this->pdo, $this->credentials, $domain);
+                } catch (\Throwable $e) {
+                    // no es crítico
+                }
+            }
 
             return;
         }
@@ -186,25 +196,89 @@ abstract class BaseController
         $this->checkPermission('search_console.manage');
         header('Content-Type: application/json; charset=utf-8');
         @set_time_limit(600);
-        $row = $this->credentials->find($this->scopeTenantId);
         $only = (int) ($_POST['property_id'] ?? 0);
         $targets = array_filter($this->visibleProperties(), fn ($p) => $p['status'] === 'active' && ($only === 0 || (int) $p['id'] === $only));
-        if (!$row || !$targets) {
+        if (!$targets) {
             echo json_encode(['ok' => false, 'message' => 'No hay propiedades activas que descargar.']);
             exit;
         }
-        $client = $this->credentials->client($row);
+        // Cada propiedad se descarga con la cuenta que la lee: la de la plataforma para los dominios propios o
+        // autorizados (también cuando lo pide un tenant), la del propio tenant para lo que él conectó.
         $sync = new SyncService($this->pdo);
+        $clients = [];
         $rows = 0;
         $errors = [];
         foreach ($targets as $p) {
-            $r = $sync->syncProperty($p, $client);
+            $cid = (int) $p['credential_id'];
+            if (!array_key_exists($cid, $clients)) {
+                $cred = $this->credentials->findById($cid);
+                $clients[$cid] = $cred ? $this->credentials->client($cred) : null;
+            }
+            if ($clients[$cid] === null) {
+                $errors[] = $p['domain'] . ': no hay cuenta de servicio conectada.';
+                continue;
+            }
+            $r = $sync->syncProperty($p, $clients[$cid]);
             $rows += $r['rows'];
             if ($r['status'] !== 'ok') {
                 $errors[] = $p['domain'] . ': ' . $r['error'];
             }
         }
         echo json_encode(['ok' => !$errors, 'rows' => $rows, 'message' => $errors ? implode(' · ', $errors) : "Descargadas {$rows} filas de " . count($targets) . ' propiedad(es).'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    /** Credencial que lee una propiedad (la de la plataforma o la del tenant) y su cliente de Google. */
+    private function clientFor(array $property): ?GoogleClient
+    {
+        $cred = $this->credentials->findById((int) $property['credential_id']);
+
+        return $cred ? $this->credentials->client($cred) : null;
+    }
+
+    /** Host real de una propiedad: el subdominio de una propiedad virtual, o el dominio. */
+    private function hostOf(array $property): string
+    {
+        return PropertyService::normalizeHost((string) $property['domain']);
+    }
+
+    /** POST (AJAX): envía el sitemap del dominio a Google y devuelve su estado. */
+    public function submitSitemap()
+    {
+        $this->checkPermission('search_console.manage');
+        header('Content-Type: application/json; charset=utf-8');
+        $property = $this->visibleProperty((int) ($_POST['property_id'] ?? 0));
+        $client = $property && $property['status'] === 'active' ? $this->clientFor($property) : null;
+        if (!$property || !$client) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'message' => 'Propiedad no disponible.']);
+            exit;
+        }
+        $svc = new SitemapService();
+        $r = $svc->submit($client, $property['site_url'], $this->hostOf($property));
+        $status = $r['ok'] ? $svc->status($client, $property['site_url'], $this->hostOf($property)) : null;
+        echo json_encode($r + ['status' => $status], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    /** POST (AJAX): inspecciona una URL de la propiedad (¿indexada? ¿último rastreo? ¿canonical?). */
+    public function inspectUrl()
+    {
+        $this->checkPermission('search_console.view');
+        header('Content-Type: application/json; charset=utf-8');
+        $property = $this->visibleProperty((int) ($_POST['property_id'] ?? 0));
+        $url = trim((string) ($_POST['url'] ?? ''));
+        if (!$property || $property['status'] !== 'active' || !UrlInspectionService::belongsTo($url, (string) $property['domain'], (string) ($property['page_filter'] ?? ''))) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'message' => 'La URL no pertenece a este dominio.']);
+            exit;
+        }
+        $client = $this->clientFor($property);
+        if (!$client) {
+            echo json_encode(['ok' => false, 'message' => 'No hay cuenta de servicio conectada.']);
+            exit;
+        }
+        echo json_encode((new UrlInspectionService())->inspect($client, $property['site_url'], $url), JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -333,7 +407,7 @@ abstract class BaseController
     protected function domainAllowed(string $domain): bool
     {
         $owner = $this->properties->hostMap()[$domain] ?? null;
-        if ($owner === null) {
+        if ($owner === null || ($owner['alias_status'] ?? 'active') !== 'active') {
             return false;
         }
         if ($this->scopeTenantId === null) {

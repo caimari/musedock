@@ -1,8 +1,76 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "changelog": [
+    {
+      "version": "0.4.0",
+      "date": "2026-10-16",
+      "changes": [
+        "Enviar el sitemap a Google (SitemapService, Search Console API): botón «Enviar sitemap» en el informe de cada dominio y, solo, al dar de alta un dominio (a mano, en cola o por el cron) y al mover el SEO (sitemap del destino). Se comprueba antes que el sitemap responde.",
+        "Inspeccionar una URL (UrlInspectionService, URL Inspection API): botón «Inspeccionar URL» y una lupa en cada página del informe. Muestra si está indexada, el último rastreo, el canonical declarado y el que eligió Google, y explica si es una redirección. Solo URL del dominio (y, en subdominios virtuales, de su prefijo).",
+        "IndexNow (IndexNowService): cada hora lee el sitemap de cada dominio propio y avisa a Bing, Yandex y otros de lo nuevo o modificado (lastmod). La primera lectura solo toma nota. Clave en storage/indexnow.json y fichero público en public/<clave>.txt (sirve a todos los dominios). Tarjeta con interruptor y «Comprobar ahora». Google no usa IndexNow.",
+        "«Descargar datos ahora» pasa a ser una cola en el servidor (SyncQueueService): una propiedad por paso, barra de progreso con la lista de dominios, parar/reanudar, sigue si se cierra la página. Antes era una sola petición que, con el servidor cargado, acababa en «Error de red».",
+        "Cuidado del servidor: la descarga espera si la carga de CPU supera el número de núcleos, deja 2 s entre propiedades, baja su prioridad (nice) y limita la memoria a 256 MB; el cron corre con prioridad mínima y aplaza descargas e IndexNow si el servidor está ocupado.",
+        "Prueba y datos reales: una descarga de una propiedad usa ~1 s de CPU y ~4 MB de memoria."
+      ]
+    },
+    {
+      "version": "0.3.6",
+      "date": "2026-10-16",
+      "changes": [
+        "Mover el SEO entre un dominio de tenant y su alias desde el panel (RedirectService, tarjeta «Mover el SEO entre un dominio y su alias»): redirección 301 que conserva la ruta, en los dos sentidos, con contraseña. La ruta de Caddy se inserta al PRINCIPIO de la lista (el comodín *.musedock.com y la ruta del tenant casarían antes), se comprueba que el destino responde, se verifica con una petición real y se deshace sola si falla. Se guarda en domain_redirects.",
+        "cli/repair-caddy-routes.php: las redirecciones sobre hosts de tenants o alias se reponen al principio de la lista de rutas (antes se añadían al final y no se aplicaban).",
+        "Solo tenants propios: el dominio de un cliente no se puede mover.",
+        "Cada tarjeta de la pantalla principal (dominios sin dar de alta, alias, mover SEO, caducidad, clientes, otros dominios, dados de baja) tiene un buscador, y las tablas se ordenan por cualquier columna; las listas tienen botón A–Z / Z–A. La caducidad ordena por fecha real.",
+        "«Dar de alta todos en SEO»: botón propio en la tarjeta de alias y en la de dominios (cada uno encola solo su lista) y progreso más claro: línea «Ahora: verificando X» con spinner, puesto en cola de cada dominio y cuenta atrás hasta el siguiente intento de Google."
+      ]
+    },
+    {
+      "version": "0.3.5",
+      "date": "2026-10-16",
+      "changes": [
+        "Caducidad de dominios (DomainExpiryService, tabla gsc_domain_expiry): el cron consulta cada día por RDAP (y whois en CLI) la fecha de caducidad de los dominios de tenants PROPIOS y sus alias; los de clientes no se vigilan. Avisa por correo a los superadmin a los 60, 30, 15 y 7 días, y si el dominio está en redención, caducado o no registrado; renovar reinicia los avisos.",
+        "Tarjeta «Caducidad de dominios» en Ajustes → Search Console con días restantes, estado y registrador, y botón «Comprobar ahora».",
+        "Los TLD sin RDAP ni whois útil (p. ej. .es) salen como «Sin datos»."
+      ]
+    },
+    {
+      "version": "0.3.4",
+      "date": "2026-10-16",
+      "changes": [
+        "Tabla de dominios más compacta: la URL de la propiedad pasa al tooltip del enlace (ya no ocupa una segunda línea).",
+        "Todas las tablas (dominios, consultas, páginas, países, dispositivos y oportunidades) se ordenan haciendo clic en la cabecera (clics, impresiones, CTR, posición, nombre…).",
+        "En el informe, las páginas son enlaces reales que se abren en otra pestaña; las consultas (palabras) no llevan enlace.",
+        "Botón «¿Qué significan los datos?» con la explicación de clics, impresiones, CTR, posición media, comparación con el periodo anterior, consultas ocultas y retraso de Google."
+      ]
+    },
+    {
+      "version": "0.3.3",
+      "date": "2026-10-16",
+      "changes": [
+        "Dar de baja un dominio SIN borrar sus datos (icono de archivo en la tabla): deja de descargarse y de mostrarse (también al tenant) y la lectura de Google no lo reactiva; aparece en «Dominios dados de baja» con botón «Reactivar».",
+        "El cron de Search Console pasa a ejecutarse cada 5 minutos (antes cada 15), para que los TXT que Google tarda en ver se reintenten antes; la descarga de datos mantiene su intervalo de ~12 h.",
+        "«Dar de alta todos»: hasta 6 intentos espaciados (20 s, 45 s, 90 s, 3 min, 5 min)."
+      ]
+    },
+    {
+      "version": "0.3.2",
+      "date": "2026-10-16",
+      "changes": [
+        "«Dar de alta todos en SEO» es una cola en el servidor (BulkVerifyService): sobrevive a recargar la página, muestra progreso en vivo con spinner por dominio, se puede Parar y Reanudar, reintenta los TXT que Google aún no ve (hasta 4 veces) y, si se cierra la página, el cron la termina. Al acabar se actualiza la tabla sin recargar.",
+        "Los alias de dominio salen en su propia tarjeta, separada de los dominios principales; botones «Dar de alta en SEO».",
+        "Fix: «Descargar datos ahora» en un tenant cuya propiedad lee la cuenta de la plataforma daba «No hay propiedades activas»; cada propiedad se descarga ahora con la cuenta que la lee."
+      ]
+    },
+    {
+      "version": "0.3.1",
+      "date": "2026-10-16",
+      "changes": [
+        "«Dominios propios sin acceso todavía» ofrece también los alias de dominio (Domain Manager) de tenants propios, con «alias de <tenant>» y su botón «Dar de alta». Los alias suspendidos o sin activar salen deshabilitados con el motivo; no se ofrecen los alias de clientes, los que duplican a un tenant o al sitio principal, ni los subdominios ya cubiertos por una propiedad de dominio.",
+        "Privacidad: hostMap incluye todos los alias (también suspendidos), así un alias suspendido de un cliente no puede darse de alta como dominio externo; domainAllowed exige alias activo."
+      ]
+    },
     {
       "version": "0.3.0",
       "date": "2026-10-16",

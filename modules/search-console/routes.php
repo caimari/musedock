@@ -21,6 +21,13 @@ Route::post('/musedock/search-console/verify', "{$gscSaCtrl}@verifyDomain")->mid
 Route::post('/musedock/search-console/external', "{$gscSaCtrl}@addExternalDomain")->middleware('superadmin');
 Route::get('/musedock/search-console/domain/{id}', "{$gscSaCtrl}@show")->name('search-console.sa.domain')->middleware('superadmin');
 Route::post('/musedock/search-console/sync', "{$gscSaCtrl}@syncNow")->middleware('superadmin');
+Route::post('/musedock/search-console/syncq/{action}', "{$gscSaCtrl}@syncQueue")->middleware('superadmin');
+Route::post('/musedock/search-console/bulk/{action}', "{$gscSaCtrl}@bulkAction")->middleware('superadmin');
+Route::post('/musedock/search-console/property/{action}', "{$gscSaCtrl}@propertyAction")->middleware('superadmin');
+Route::post('/musedock/search-console/expiry/check', "{$gscSaCtrl}@expiryCheck")->middleware('superadmin');
+Route::post('/musedock/search-console/redirect/{action}', "{$gscSaCtrl}@redirectAction")->middleware('superadmin');
+Route::post('/musedock/search-console/sitemap/submit', "{$gscSaCtrl}@submitSitemap")->middleware('superadmin');
+Route::post('/musedock/search-console/inspect', "{$gscSaCtrl}@inspectUrl")->middleware('superadmin');
 Route::post('/musedock/search-console/client/authorize', "{$gscSaCtrl}@authorizeClient")->middleware('superadmin');
 Route::post('/musedock/search-console/client/revoke', "{$gscSaCtrl}@revokeClient")->middleware('superadmin');
 
@@ -33,3 +40,14 @@ Route::post($gscAdminPath . '/search-console/refresh', "{$gscTenantCtrl}@refresh
 Route::post($gscAdminPath . '/search-console/verify', "{$gscTenantCtrl}@verifyDomain")->middleware('auth');
 Route::get($gscAdminPath . '/search-console/domain/{id}', "{$gscTenantCtrl}@show")->name('search-console.tenant.domain')->middleware('auth');
 Route::post($gscAdminPath . '/search-console/sync', "{$gscTenantCtrl}@syncNow")->middleware('auth');
+Route::post($gscAdminPath . '/search-console/sitemap/submit', "{$gscTenantCtrl}@submitSitemap")->middleware('auth');
+Route::post($gscAdminPath . '/search-console/inspect', "{$gscTenantCtrl}@inspectUrl")->middleware('auth');
+
+// IndexNow: la clave se sirve en la raíz de cada dominio (https://dominio/<clave>.txt). Ámbito global: variables con prefijo gsc.
+$gscIndexNowFile = (defined('APP_ROOT') ? APP_ROOT : dirname(__DIR__, 2)) . '/storage/indexnow.json';
+$gscIndexNowCfg = is_file($gscIndexNowFile) ? json_decode((string) @file_get_contents($gscIndexNowFile), true) : null;
+if (is_array($gscIndexNowCfg) && preg_match('/^[a-f0-9]{16,64}$/', (string) ($gscIndexNowCfg['key'] ?? ''))) {
+    Route::get('/' . $gscIndexNowCfg['key'] . '.txt', 'Modules\SearchConsole\Controllers\IndexNowController@key');
+}
+Route::post('/musedock/search-console/indexnow/scan', "{$gscSaCtrl}@indexNowScan")->middleware('superadmin');
+Route::post('/musedock/search-console/indexnow/toggle', "{$gscSaCtrl}@indexNowToggle")->middleware('superadmin');

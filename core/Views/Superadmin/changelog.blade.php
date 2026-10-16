@@ -13,6 +13,37 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.23.0 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.23.0 — Search Console completo, cuentas DNS y SEO entre dominios</h5></div><div class="card-body">
+            <p class="text-muted">16 de octubre de 2026</p>
+            <h6 class="text-primary"><i class="bi bi-graph-up-arrow me-1"></i> Search Console</h6>
+            <ul class="mb-3">
+                <li>Descarga automática de datos de Google (clics, impresiones, CTR y posición; sitio, países, dispositivos, páginas y consultas) cada ~12 h, con el cron cada 5 minutos. Informe por dominio con comparación frente al periodo anterior, gráfico, periodos de 7 a 365 días, tablas ordenables, enlaces reales en las páginas y un botón «¿Qué significan los datos?».</li>
+                <li><strong>Detector de oportunidades SEO</strong>: CTR bajo para su posición, a punto de despegar, lejos con demanda, caídas y ascensos, con una frase de qué hacer. Reglas fijas, sin IA.</li>
+                <li><strong>Autorización por el master</strong>: el superadmin autoriza (con contraseña) dominios de clientes para que los lea la cuenta de la plataforma; el cliente ve su SEO sin configurar nada. Retirar la autorización borra los datos.</li>
+                <li><strong>Subdominios por tenant</strong>: cada subdominio tiene su propiedad con datos exactos (filtro de página sobre el dominio) y cada tenant solo ve la suya. En la tabla van plegados bajo su dominio.</li>
+                <li><strong>Alias de dominio</strong> del Domain Manager en su propia tarjeta, con «Dar de alta en SEO» y «Dar de alta todos» (cola en el servidor: progreso en vivo, parar/reanudar, reintentos espaciados para el TXT y continúa aunque cierres la página).</li>
+                <li><strong>Dar de baja sin borrar datos</strong> (con contraseña) y reactivar.</li>
+                <li><strong>Caducidad de dominios</strong>: vigilancia diaria por RDAP/whois de los dominios propios y sus alias, con avisos por correo a los 60, 30, 15 y 7 días y cuando están caducados, en redención o sin registrar.</li>
+                <li><strong>Mover el SEO entre un dominio y su alias</strong>: redirección 301 que conserva la ruta, en los dos sentidos, uno a uno o varios a la vez, con contraseña. Se inserta al principio de las rutas de Caddy (antes del comodín), se verifica con una petición real y se deshace sola si falla. No toca DNS ni Google, y no borra nada.</li>
+                <li>Buscador en cada tarjeta y orden por columna en todas las tablas. Documentación pública actualizada (es/en).</li>
+                <li><strong>Avisar a los buscadores</strong>: enviar el sitemap a Google (a mano, al dar de alta un dominio y al mover el SEO), inspeccionar una URL (¿indexada?, último rastreo, canonical elegido por Google) e <strong>IndexNow</strong> automático para Bing y Yandex con lo nuevo o modificado.</li>
+                <li><strong>Descargar datos ahora</strong> como cola con barra de progreso y parar, y cuidado del servidor: espera si hay mucha carga de CPU, pausa entre dominios, prioridad baja y memoria limitada.</li>
+            </ul>
+            <h6 class="text-info"><i class="bi bi-cloud me-1"></i> Cuentas DNS y diálogos</h6>
+            <ul class="mb-3">
+                <li>Registro único de <strong>cuentas DNS</strong> en el core (Ajustes → Cuentas DNS): un solo sitio, cifrado, para los tokens de Cloudflare y otros proveedores, que usan el Domain Manager, Cloud y Search Console.</li>
+                <li>Los diálogos de confirmación del navegador se sustituyen por ventanas propias (con contraseña en las acciones delicadas).</li>
+                <li>Analytics del superadmin con caché de 10 minutos, calentada por el cron.</li>
+            </ul>
+            <h6 class="text-warning"><i class="bi bi-wrench me-1"></i> Domain Manager y servidor</h6>
+            <ul class="mb-0">
+                <li>No se puede borrar un sitio que tiene alias, ni un sitio o alias implicado en una redirección activa: se quitan antes. Evita perder un dominio por error.</li>
+                <li><code>repair-caddy-routes</code> repone las redirecciones sobre hosts de tenants al principio de la lista de rutas (antes iban al final y no se aplicaban).</li>
+                <li>Corregidos varios fallos de la primera versión: <code>gsc_query_daily.page</code> no admitía nulos, importaciones que faltaban en un controlador y pruebas que dependían de qué dominios estuvieran ya dados de alta.</li>
+            </ul>
+        </div></div>
+
         <!-- v2.22.0 -->
         <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.22.0 — Search Console y rendimiento</h5></div><div class="card-body">
             <p class="text-muted">15 de octubre de 2026</p>

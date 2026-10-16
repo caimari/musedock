@@ -17,6 +17,10 @@ $delta = function ($now, $before, $lowerIsBetter = false) {
     return '<span class="' . ($good ? 'gsc-up' : 'gsc-down') . '">' . ($d >= 0 ? '+' : '') . number_format($d, 0, ',', '.') . ' %</span> <span class="text-muted">vs. anterior</span>';
 };
 $empty = $report['empty'];
+// Las páginas son URL reales y se abren en otra pestaña; las consultas son palabras y no llevan enlace.
+$pageLink = fn ($url, $label) => preg_match('#^https?://[^\s"<>]+$#i', (string) $url)
+    ? '<a href="' . $e($url) . '" target="_blank" rel="noopener noreferrer" title="Abrir ' . $e($url) . '">' . $e($label) . ' <i class="bi bi-box-arrow-up-right" style="font-size:.7em;opacity:.6;"></i></a>'
+    : $e($label);
 ?>
 <style>
 .gsc-page .card { border:1px solid #e5eaf1;border-radius:12px;box-shadow:0 3px 14px rgba(30,50,80,.035); }
@@ -26,6 +30,15 @@ $empty = $report['empty'];
 .gsc-kpi { padding:1rem 1.1rem; } .gsc-kpi .v { font-size:1.55rem;font-weight:700;line-height:1.1; } .gsc-kpi .l { font-size:.8rem;color:#6c757d;text-transform:uppercase;letter-spacing:.04em; }
 .gsc-chart svg { width:100%;height:240px;display:block; }
 .gsc-trunc { max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+table.gsc-sortable thead th { cursor:pointer;user-select:none;white-space:nowrap; }
+table.gsc-sortable thead th:hover { background:rgba(26,115,232,.06); }
+table.gsc-sortable thead th.gsc-asc::after { content:" ▲";font-size:.65em;color:#1a73e8; }
+table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;color:#1a73e8; }
+.gsc-fit { table-layout:auto;width:100%; }
+.gsc-fit td.gsc-trunc { max-width:0;width:100%; }
+.gsc-fit th.num,.gsc-fit td.num { width:1%;padding-left:8px;padding-right:12px; }
+.gsc-fit thead th { font-size:.72rem;letter-spacing:.04em; }
+.gsc-trunc a { color:inherit;text-decoration:none; } .gsc-trunc a:hover { color:#1a73e8;text-decoration:underline; }
 </style>
 
 <div class="app-content gsc-page">
@@ -49,6 +62,11 @@ $empty = $report['empty'];
             <select class="form-select form-select-sm" style="width:auto;" onchange="location.href='?days='+this.value" aria-label="Periodo">
                 <?php foreach ($periods as $d): ?><option value="<?= (int) $d ?>" <?= $report['days'] === $d ? 'selected' : '' ?>>Últimos <?= (int) $d ?> días</option><?php endforeach; ?>
             </select>
+            <?php endif; ?>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="gsc-glossary"><i class="bi bi-question-circle"></i> ¿Qué significan los datos?</button>
+            <?php if (($property['status'] ?? '') === 'active'): ?>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="gsc-inspect-open" title="Ver si Google tiene indexada una URL, cuándo la rastreó y qué canonical eligió"><i class="bi bi-search"></i> Inspeccionar URL</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="gsc-sitemap" data-property="<?= (int) $property['id'] ?>" title="Avisa a Google del sitemap de este dominio para que lo rastree antes"><i class="bi bi-diagram-3"></i> Enviar sitemap</button>
             <?php endif; ?>
             <button type="button" class="btn btn-outline-primary btn-sm" id="gsc-sync" data-property="<?= (int) $property['id'] ?>"><i class="bi bi-cloud-arrow-down"></i> Descargar datos ahora</button>
         </div>
@@ -111,14 +129,15 @@ $empty = $report['empty'];
                     <button type="button" class="btn btn-sm btn-outline-<?= $e($color) ?>" data-type="<?= $e($key) ?>"><?= $e($label) ?> <span class="badge bg-<?= $e($color) ?>"><?= (int) $o['counts'][$key] ?></span></button>
                 <?php endforeach; ?>
             </div>
-            <div class="table-responsive"><table class="table table-sm mb-0" id="gsc-opps-table"><thead><tr><th>Tipo</th><th>Qué</th><th class="num">Impr.</th><th class="num">Clics</th><th class="num">Pos.</th><th>Qué se puede ganar</th><th>Qué hacer</th></tr></thead><tbody>
+            <div class="table-responsive"><table class="table table-sm mb-0 gsc-sortable" id="gsc-opps-table"><thead><tr><th>Oportunidad</th><th>URL / palabra clave</th><th class="num">Impr.</th><th class="num">Clics</th><th class="num">Pos.</th><th>Qué puedes ganar y qué hacer</th></tr></thead><tbody>
             <?php foreach ($o['items'] as $it): [$tl, $tc] = $oppTypes[$it['type']]; ?>
                 <tr data-type="<?= $e($it['type']) ?>">
-                    <td><span class="badge bg-<?= $e($tc) ?>"><?= $e($tl) ?></span><div class="text-muted" style="font-size:.72rem;"><?= $it['kind'] === 'page' ? 'página' : 'consulta' ?></div></td>
-                    <td class="gsc-trunc" title="<?= $e($it['name']) ?>"><strong><?= $e($it['label']) ?></strong></td>
+                    <td style="white-space:nowrap;"><span class="badge bg-<?= $e($tc) ?>"><?= $e($tl) ?></span></td>
+                    <td class="gsc-trunc" style="max-width:260px;" title="<?= $e($it['name']) ?>">
+                        <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;"><?= $it['kind'] === 'page' ? 'URL' : 'Palabra clave' ?></div>
+                        <strong><?= $it['kind'] === 'page' ? $pageLink($it['name'], $it['label']) : $e($it['label']) ?></strong></td>
                     <td class="num"><?= $n($it['impressions']) ?></td><td class="num"><?= $n($it['clicks']) ?></td><td class="num"><?= $pos($it['position']) ?></td>
-                    <td style="font-size:.85rem;white-space:nowrap;"><?= $e($it['detail']) ?></td>
-                    <td style="font-size:.82rem;min-width:260px;"><?= $e($it['advice']) ?></td>
+                    <td style="font-size:.82rem;min-width:240px;max-width:460px;"><strong><?= $e($it['detail']) ?></strong><div class="text-muted"><?= $e($it['advice']) ?></div></td>
                 </tr>
             <?php endforeach; ?>
             </tbody></table></div>
@@ -149,21 +168,21 @@ $empty = $report['empty'];
 
     <div class="row g-3">
         <div class="col-lg-6"><div class="card"><div class="card-header"><strong>Consultas</strong> <span class="text-muted" style="font-size:.8rem;">lo que la gente busca en Google</span></div>
-            <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Consulta</th><th class="num">Clics</th><th class="num">Impr.</th><th class="num">CTR</th><th class="num">Pos.</th></tr></thead><tbody>
-            <?php foreach ($report['queries'] as $r): ?><tr><td class="gsc-trunc"><?= $e($r['name']) ?></td><td class="num"><?= $n($r['clicks']) ?></td><td class="num"><?= $n($r['impressions']) ?></td><td class="num"><?= $pct($r['ctr']) ?></td><td class="num"><?= $pos($r['position']) ?></td></tr><?php endforeach; ?>
+            <div class="table-responsive"><table class="table table-sm mb-0 gsc-sortable gsc-fit"><thead><tr><th>Consulta</th><th class="num">Clics</th><th class="num">Impr.</th><th class="num">CTR</th><th class="num">Pos.</th></tr></thead><tbody>
+            <?php foreach ($report['queries'] as $r): ?><tr><td class="gsc-trunc" title="<?= $e($r['name']) ?>"><?= $e($r['name']) ?></td><td class="num"><?= $n($r['clicks']) ?></td><td class="num"><?= $n($r['impressions']) ?></td><td class="num"><?= $pct($r['ctr']) ?></td><td class="num"><?= $pos($r['position']) ?></td></tr><?php endforeach; ?>
             <?php if (!$report['queries']): ?><tr><td colspan="5" class="text-muted text-center p-3">Sin consultas en este periodo.</td></tr><?php endif; ?>
             </tbody></table></div></div></div>
         <div class="col-lg-6"><div class="card"><div class="card-header"><strong>Páginas</strong> <span class="text-muted" style="font-size:.8rem;">las que más tráfico de Google reciben</span></div>
-            <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Página</th><th class="num">Clics</th><th class="num">Impr.</th><th class="num">CTR</th><th class="num">Pos.</th></tr></thead><tbody>
-            <?php foreach ($report['pages'] as $r): ?><tr><td class="gsc-trunc" title="<?= $e($r['name']) ?>"><?= $e(preg_replace('#^https?://(www\.)?' . preg_quote($property['domain'], '#') . '#i', '', $r['name']) ?: '/') ?></td><td class="num"><?= $n($r['clicks']) ?></td><td class="num"><?= $n($r['impressions']) ?></td><td class="num"><?= $pct($r['ctr']) ?></td><td class="num"><?= $pos($r['position']) ?></td></tr><?php endforeach; ?>
+            <div class="table-responsive"><table class="table table-sm mb-0 gsc-sortable gsc-fit"><thead><tr><th>Página</th><th class="num">Clics</th><th class="num">Impr.</th><th class="num">CTR</th><th class="num">Pos.</th></tr></thead><tbody>
+            <?php foreach ($report['pages'] as $r): ?><tr><td class="gsc-trunc" title="<?= $e($r['name']) ?>"><?php $short = preg_replace('#^https?://(www\.)?' . preg_quote($property['domain'], '#') . '#i', '', $r['name']) ?: '/'; ?><?= $pageLink($r['name'], $short) ?><?php if (($property['status'] ?? '') === 'active' && preg_match('#^https?://#i', (string) $r['name'])): ?> <button type="button" class="btn btn-link p-0 ms-1 gsc-inspect-row" data-url="<?= $e($r['name']) ?>" title="Ver si Google la tiene indexada"><i class="bi bi-search" style="font-size:.72rem;opacity:.6;"></i></button><?php endif; ?></td><td class="num"><?= $n($r['clicks']) ?></td><td class="num"><?= $n($r['impressions']) ?></td><td class="num"><?= $pct($r['ctr']) ?></td><td class="num"><?= $pos($r['position']) ?></td></tr><?php endforeach; ?>
             <?php if (!$report['pages']): ?><tr><td colspan="5" class="text-muted text-center p-3">Sin páginas en este periodo.</td></tr><?php endif; ?>
             </tbody></table></div></div></div>
         <div class="col-lg-6"><div class="card"><div class="card-header"><strong>Países</strong></div>
-            <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>País</th><th class="num">Clics</th><th class="num">Impr.</th><th class="num">CTR</th><th class="num">Pos.</th></tr></thead><tbody>
+            <div class="table-responsive"><table class="table table-sm mb-0 gsc-sortable gsc-fit"><thead><tr><th>País</th><th class="num">Clics</th><th class="num">Impr.</th><th class="num">CTR</th><th class="num">Pos.</th></tr></thead><tbody>
             <?php foreach ($report['countries'] as $r): ?><tr><td><?= $e(strtoupper($r['name'])) ?></td><td class="num"><?= $n($r['clicks']) ?></td><td class="num"><?= $n($r['impressions']) ?></td><td class="num"><?= $pct($r['ctr']) ?></td><td class="num"><?= $pos($r['position']) ?></td></tr><?php endforeach; ?>
             </tbody></table></div></div></div>
         <div class="col-lg-6"><div class="card"><div class="card-header"><strong>Dispositivos</strong></div>
-            <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Dispositivo</th><th class="num">Clics</th><th class="num">Impr.</th><th class="num">CTR</th><th class="num">Pos.</th></tr></thead><tbody>
+            <div class="table-responsive"><table class="table table-sm mb-0 gsc-sortable gsc-fit"><thead><tr><th>Dispositivo</th><th class="num">Clics</th><th class="num">Impr.</th><th class="num">CTR</th><th class="num">Pos.</th></tr></thead><tbody>
             <?php foreach ($report['devices'] as $r): ?><tr><td><?= $e(['DESKTOP' => 'Ordenador', 'MOBILE' => 'Móvil', 'TABLET' => 'Tableta'][$r['name']] ?? $r['name']) ?></td><td class="num"><?= $n($r['clicks']) ?></td><td class="num"><?= $n($r['impressions']) ?></td><td class="num"><?= $pct($r['ctr']) ?></td><td class="num"><?= $pos($r['position']) ?></td></tr><?php endforeach; ?>
             </tbody></table></div></div></div>
     </div>
@@ -172,6 +191,92 @@ $empty = $report['empty'];
 </div>
 </div>
 
+<script>
+(function () {
+    document.addEventListener('click', function (e) {
+        var th = e.target.closest('table.gsc-sortable thead th'); if (!th) { return; }
+        var table = th.closest('table'), idx = Array.prototype.indexOf.call(th.parentNode.children, th), asc = th.dataset.dir !== 'asc';
+        function val(tr) {
+            var c = tr.children[idx]; if (!c) { return ''; }
+            var t = c.textContent.trim();
+            if (th.classList.contains('num')) { if (/^[—–-]$/.test(t) || t === '') { return null; } var n = parseFloat(t.replace(/[^0-9,+\-]/g, '').replace(',', '.')); return isNaN(n) ? null : n; }
+            return t.toLowerCase();
+        }
+        var tbody = table.tBodies[0], rows = Array.prototype.filter.call(tbody.rows, function (r) { return !r.querySelector('td[colspan]'); });
+        rows.sort(function (a, b) {
+            var x = val(a), y = val(b);
+            if (x === null && y === null) { return 0; } if (x === null) { return 1; } if (y === null) { return -1; }
+            return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'es')) * (asc ? 1 : -1);
+        });
+        rows.forEach(function (r) { tbody.appendChild(r); });
+        table.querySelectorAll('thead th').forEach(function (h) { delete h.dataset.dir; h.classList.remove('gsc-asc', 'gsc-desc'); });
+        th.dataset.dir = asc ? 'asc' : 'desc'; th.classList.add(asc ? 'gsc-asc' : 'gsc-desc');
+    });
+    var g = document.getElementById('gsc-glossary');
+    if (g) g.addEventListener('click', function () {
+        var items = [
+            ['Clics', 'Veces que alguien vio tu página en los resultados de Google <em>y entró</em>.'],
+            ['Impresiones', 'Veces que tu página <em>apareció</em> en los resultados de alguien, aunque no entrara. Es tu visibilidad.'],
+            ['CTR', 'Porcentaje de impresiones que acaban en clic (clics ÷ impresiones). Un 3 % significa que 3 de cada 100 personas que te ven, entran. Depende mucho de la posición: en el puesto 1 lo normal es ~28 %, en el 10 ~2 %. Se mejora con un buen título y descripción.'],
+            ['Posición media', 'Lugar medio en el que sales en los resultados. 1 es el primero; del 1 al 10 estás en la primera página; del 11 al 20, en la segunda. Es una media ponderada por impresiones: <strong>cuanto más bajo, mejor</strong>.'],
+            ['vs. periodo anterior', 'Compara con el mismo número de días justo antes. En verde, mejora; en rojo, empeora. En la posición, bajar el número es mejorar.'],
+            ['Consultas', 'Lo que la gente escribe en Google para encontrarte. Son palabras, no enlaces. Google oculta las búsquedas muy raras por privacidad: cuentan en los totales pero no salen en esta lista.'],
+            ['Páginas', 'Las URL de tu sitio que aparecen en Google. Si haces clic en una se abre en otra pestaña.'],
+            ['Países y dispositivos', 'Desde dónde y con qué aparato te ven: ordenador, móvil o tableta.'],
+            ['Los datos van con ~2 días de retraso', 'Es el retraso normal de Google; el último día completo no está disponible todavía.'],
+            ['Ordenar', 'Haz clic en el título de cualquier columna para ordenar por ella; otro clic invierte el orden.']
+        ];
+        var html = '<ul style="text-align:left;font-size:.92rem;padding-left:1.1rem;margin:0;">' + items.map(function (i) { return '<li class="mb-2"><strong>' + i[0] + '</strong>: ' + i[1] + '</li>'; }).join('') + '</ul>';
+        if (window.Swal) { Swal.fire({ title: 'Qué significa cada dato', html: html, icon: 'info', width: 720, confirmButtonText: 'Entendido' }); }
+    });
+})();
+</script>
+<script>
+(function () {
+    var token = <?= json_encode(function_exists('csrf_token') ? csrf_token() : '') ?>, base = <?= json_encode($baseUrl) ?>, pid = <?= (int) $property['id'] ?>,
+        def = <?= json_encode(($property['page_filter'] ?? '') !== '' ? $property['page_filter'] : 'https://' . $property['domain'] . '/') ?>;
+    function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+    function fdate(d) { if (!d) { return '—'; } var x = new Date(d); return isNaN(x) ? esc(d) : x.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }); }
+    function post(path, params) { params = Object.assign({ _csrf: token, property_id: pid }, params || {}); return fetch(base + path, { method: 'POST', headers: { 'X-CSRF-TOKEN': token }, body: new URLSearchParams(params) }).then(function (r) { return r.json(); }); }
+    function inspect(url) {
+        Swal.fire({ title: 'Consultando a Google…', text: url, allowOutsideClick: false, showConfirmButton: false, didOpen: function () { Swal.showLoading(); } });
+        post('/inspect', { url: url }).then(function (r) {
+            if (!r.ok) { Swal.fire({ icon: 'error', title: 'No se pudo inspeccionar', text: r.message || 'Error' }); return; }
+            var tone = r.tone || 'secondary';
+            var rows = [['Estado', '<span class="badge bg-' + tone + '">' + esc(r.coverage_es) + '</span>'],
+                ['¿Indexada?', r.indexed ? '✅ Sí, aparece en Google' : '❌ No (todavía)'],
+                ['Último rastreo', fdate(r.last_crawl)],
+                ['Canonical que declara la página', esc(r.user_canonical || '—')],
+                ['Canonical que eligió Google', esc(r.google_canonical || '—') + (r.canonical_differs ? ' <span class="badge bg-warning text-dark">distinto</span>' : '')]];
+            if (r.fetch) { rows.push(['Descarga de la página', esc(r.fetch)]); }
+            if (r.robots) { rows.push(['robots.txt', esc(r.robots)]); }
+            var tip = '';
+            if (/redirec/i.test(r.coverage)) { tip = 'Esta URL <strong>redirige</strong>: Google ya la ha detectado como redirección y traspasa su SEO al destino. Es lo esperado tras «Mover el SEO».'; }
+            else if (r.canonical_differs) { tip = 'Google considera <strong>otra URL</strong> como la principal. Si acabas de mover el SEO, es normal mientras traspasa.'; }
+            else if (!r.indexed) { tip = 'Google aún no la tiene indexada. Envía el sitemap y espera: puede tardar días.'; }
+            Swal.fire({ title: 'Inspección de URL', width: 720, confirmButtonText: 'Cerrar', html: '<div style="text-align:left;font-size:.88rem;"><div class="text-muted mb-2" style="word-break:break-all;">' + esc(url) + '</div><table class="table table-sm mb-2">' +
+                rows.map(function (x) { return '<tr><th style="width:38%;font-weight:600;">' + x[0] + '</th><td style="word-break:break-all;">' + x[1] + '</td></tr>'; }).join('') + '</table>' + (tip ? '<div class="alert alert-light border py-2 mb-0">' + tip + '</div>' : '') +
+                (r.link ? '<div class="mt-2"><a href="' + esc(r.link) + '" target="_blank" rel="noopener noreferrer">Abrir en Search Console ↗</a></div>' : '') + '</div>' });
+        }).catch(function () { Swal.fire({ icon: 'error', title: 'Error de red' }); });
+    }
+    var io = document.getElementById('gsc-inspect-open');
+    if (io) io.addEventListener('click', function () {
+        Swal.fire({ title: 'Inspeccionar una URL', input: 'url', inputValue: def, inputLabel: 'URL completa de una página de este dominio', showCancelButton: true, confirmButtonText: 'Inspeccionar', cancelButtonText: 'Cancelar',
+            inputValidator: function (v) { return /^https?:\/\//i.test(v) ? undefined : 'Escribe una URL completa (https://…)'; } })
+            .then(function (x) { if (x.isConfirmed) { inspect(x.value.trim()); } });
+    });
+    document.addEventListener('click', function (e) { var b = e.target.closest('.gsc-inspect-row'); if (b) { inspect(b.dataset.url); } });
+    var sm = document.getElementById('gsc-sitemap');
+    if (sm) sm.addEventListener('click', function () {
+        sm.disabled = true;
+        Swal.fire({ title: 'Enviando el sitemap a Google…', allowOutsideClick: false, showConfirmButton: false, didOpen: function () { Swal.showLoading(); } });
+        post('/sitemap/submit').then(function (r) {
+            var st = r.status, extra = st ? '<div class="text-muted mt-2" style="font-size:.85rem;">Estado en Google: ' + (st.pending ? 'pendiente de procesar' : 'recibido') + (st.last_downloaded ? ' · última descarga ' + fdate(st.last_downloaded) : '') + (st.errors ? ' · <span class="text-danger">' + st.errors + ' errores</span>' : '') + '</div>' : '';
+            Swal.fire({ icon: r.ok ? 'success' : 'error', title: r.ok ? 'Sitemap enviado' : 'No se pudo', html: '<div style="word-break:break-all;">' + esc(r.message || '') + '</div>' + extra + (r.ok ? '<div class="text-muted mt-2" style="font-size:.8rem;">Google decide cuándo rastrear: no es instantáneo.</div>' : '') });
+        }).catch(function () { Swal.fire({ icon: 'error', title: 'Error de red' }); }).then(function () { sm.disabled = false; });
+    });
+})();
+</script>
 <script>
 (function () {
     var syncUrl = <?= json_encode($baseUrl . '/sync') ?>, token = <?= json_encode(function_exists('csrf_token') ? csrf_token() : '') ?>;

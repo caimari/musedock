@@ -34,7 +34,12 @@ class FakeGoogle extends GoogleClient
 $pdo = \Screenart\Musedock\Database::connect();
 $pdo->beginTransaction();
 try {
-    $tenants = $pdo->query('SELECT id, domain FROM tenants WHERE is_client_domain = 0 ORDER BY id LIMIT 3')->fetchAll(PDO::FETCH_ASSOC);
+    // Tenants reales, con la pizarra limpia DENTRO de la transacción (se deshace al final): así el test no depende
+    // de qué dominios se hayan dado de alta ya en producción.
+    $tenants = $pdo->query('SELECT id, domain FROM tenants WHERE is_client_domain = 0 ORDER BY id DESC LIMIT 3')->fetchAll(PDO::FETCH_ASSOC);
+    $ids = implode(',', array_map('intval', array_column($tenants, 'id')));
+    $pdo->exec("DELETE FROM gsc_properties WHERE tenant_id IN ({$ids})");
+    $pdo->exec("DELETE FROM domain_aliases WHERE tenant_id IN ({$ids})");
     [$own, $client, $other] = $tenants;
     $parentDomain = 'testparent-' . bin2hex(random_bytes(3)) . '.example';
     $pdo->prepare('UPDATE tenants SET domain = ? WHERE id = ?')->execute(['own.' . $parentDomain, $own['id']]);

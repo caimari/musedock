@@ -63,7 +63,10 @@ echo "Privacidad propios / clientes\n";
 $pdo = \Screenart\Musedock\Database::connect();
 $pdo->beginTransaction();
 try {
-    [$own, $client] = $pdo->query('SELECT id, domain FROM tenants WHERE is_client_domain = 0 ORDER BY id LIMIT 2')->fetchAll(PDO::FETCH_ASSOC);
+    // Tenants reales con la pizarra limpia dentro de la transacción (se deshace): no depende de lo ya dado de alta
+    [$own, $client] = $pdo->query('SELECT id, domain FROM tenants WHERE is_client_domain = 0 ORDER BY id DESC LIMIT 2')->fetchAll(PDO::FETCH_ASSOC);
+    $pdo->exec("DELETE FROM gsc_properties WHERE tenant_id IN ({$own['id']}, {$client['id']})");
+    $pdo->exec("DELETE FROM domain_aliases WHERE tenant_id IN ({$own['id']}, {$client['id']})");
     $pdo->prepare('UPDATE tenants SET is_client_domain = 1 WHERE id = ?')->execute([$client['id']]);
     $ownDomain = PropertyService::normalizeHost($own['domain']);
     $clientDomain = PropertyService::normalizeHost($client['domain']);
@@ -121,6 +124,43 @@ try {
     $pdo->prepare("INSERT INTO domain_aliases (tenant_id, domain, status) VALUES (?, ?, 'active')")->execute([$client['id'], $externalDomain]);
     $svc->purgePlatformDataOfClients();
     check(count($svc->externalForSuperadmin()) === 0, 'un dominio externo que pasa a ser de un cliente se borra');
+
+    // Alias de dominio: los de tenants propios se ofrecen, los de clientes nunca
+    $ins = $pdo->prepare('INSERT INTO domain_aliases (tenant_id, domain, status) VALUES (?, ?, ?)');
+    $ins->execute([$own['id'], 'alias-propio-gsc.test', 'active']);
+    $ins->execute([$own['id'], 'alias-suspendido-gsc.test', 'suspended']);
+    $ins->execute([$own['id'], 'sub.' . $ownDomain, 'active']);
+    $ins->execute([$own['id'], 'www.' . $ownDomain, 'active']);
+    $ins->execute([$client['id'], 'alias-cliente-gsc.test', 'active']);
+    $ins->execute([$client['id'], 'alias-cliente-susp-gsc.test', 'suspended']);
+    $missing = [];
+    foreach ($svc->ownDomainsWithoutProperty((int) $platformCred['id']) as $m) { $missing[$m['domain']] = $m; }
+    check(isset($missing['alias-propio-gsc.test']) && empty($missing['alias-propio-gsc.test']['disabled']) && $missing['alias-propio-gsc.test']['tenant_id'] === (int) $own['id'] && !empty($missing['alias-propio-gsc.test']['alias_of']), 'un alias activo de un tenant propio se ofrece, indicando de qué tenant cuelga');
+    check(isset($missing['alias-suspendido-gsc.test']['disabled']) && str_contains($missing['alias-suspendido-gsc.test']['disabled'], 'suspendido'), 'un alias suspendido sale deshabilitado, con el motivo');
+    check(!isset($missing['alias-cliente-gsc.test']) && !isset($missing['alias-cliente-susp-gsc.test']), 'los alias de un cliente (activos o suspendidos) NO se ofrecen');
+    check(!isset($missing['sub.' . $ownDomain]) && !isset($missing['www.' . $ownDomain]) && !isset($missing[$ownDomain]), 'un subdominio cubierto por una propiedad activa, o el mismo dominio con www, no se duplican');
+    $dup = array_count_values(array_column($svc->ownDomainsWithoutProperty((int) $platformCred['id']), 'domain'));
+    check(max($dup ?: [0]) === 1, 'ningún dominio sale dos veces en la lista');
+    $map = $svc->hostMap();
+    check(($map['alias-cliente-susp-gsc.test']['client'] ?? false) === true, 'hostMap conoce también los alias suspendidos de un cliente (no pasan por «externos»)');
+    $svc->purgePlatformDataOfClients();
+    $pdo->prepare("INSERT INTO gsc_properties (credential_id, tenant_id, domain, site_url, status) VALUES (?, ?, ?, ?, 'active')")->execute([$platformCred['id'], $client['id'], 'alias-cliente-gsc.test', 'sc-domain:alias-cliente-gsc.test']);
+    check($svc->purgePlatformDataOfClients() === 1, 'si un tenant pasa a cliente, los datos de sus alias también se purgan');
+    check(!in_array('alias-cliente-gsc.test', array_column($svc->visibleForSuperadmin(), 'domain'), true), 'el superadmin no ve datos de un alias de cliente');
+
+    // Dar de baja conservando los datos
+    $ownProp = (int) $pdo->query("SELECT id FROM gsc_properties WHERE credential_id = {$platformCred['id']} AND domain = " . $pdo->quote($ownDomain) . " AND page_filter = ''")->fetchColumn();
+    $pdo->prepare("INSERT INTO gsc_site_daily (property_id, date, clicks, impressions) VALUES (?, CURRENT_DATE, 3, 30)")->execute([$ownProp]);
+    $svc->archive($ownProp);
+    check(!in_array($ownDomain, array_column($svc->visibleForSuperadmin(), 'domain'), true), 'una propiedad dada de baja deja de mostrarse al superadmin');
+    check(!in_array($ownDomain, array_column($svc->visibleForTenant((int) $own['id']), 'domain'), true), 'y al tenant');
+    check(in_array($ownDomain, array_column($svc->archivedForSuperadmin(), 'domain'), true), 'aparece en «dados de baja»');
+    check((int) $pdo->query("SELECT COUNT(*) FROM gsc_site_daily WHERE property_id = {$ownProp}")->fetchColumn() === 1, 'sus datos NO se borran');
+    check(!in_array($ownDomain, array_column($svc->ownDomainsWithoutProperty((int) $platformCred['id']), 'domain'), true), 'no se vuelve a ofrecer para dar de alta');
+    $svc->refreshFromGoogle($platformCred, $fake);
+    check($pdo->query("SELECT status FROM gsc_properties WHERE id = {$ownProp}")->fetchColumn() === 'archived', 'leer de Google no la reactiva sola');
+    $svc->restore($ownProp);
+    check(in_array($ownDomain, array_column($svc->visibleForSuperadmin(), 'domain'), true), 'reactivarla la devuelve a la lista con sus datos');
 } finally {
     $pdo->rollBack();
 }

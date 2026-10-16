@@ -115,7 +115,18 @@ function caddyRequest(string $method, string $path, $body = null): array {
  * and concatenate them into a valid JSON array string.
  */
 function buildMergedRoutesJson(string $existingRoutesJson, array $newRoutes): string {
+    // Las rutas marcadas '__first' (redirects sobre hosts de tenants) van al principio de la lista
+    $first = array_values(array_filter($newRoutes, fn ($r) => !empty($r['__first'])));
+    $rest = array_values(array_filter($newRoutes, fn ($r) => empty($r['__first'])));
+    $strip = static function (array $routes): array { foreach ($routes as &$r) { unset($r['__first']); } return $routes; };
+    $first = $strip($first);
+    $newRoutes = $strip($rest);
     $existingRoutesJson = trim($existingRoutesJson);
+    if ($first) {
+        $firstInner = trim(substr(json_encode($first), 1, -1));
+        $existingInner = trim(substr($existingRoutesJson, 1, -1));
+        $existingRoutesJson = '[' . $firstInner . ($existingInner !== '' ? ',' . $existingInner : '') . ']';
+    }
     // Strip outer brackets
     $inner = substr($existingRoutesJson, 1, -1);
     $inner = trim($inner);
@@ -351,6 +362,13 @@ try {
     $stmt = $pdo->query("SELECT id, domain, redirect_to, redirect_type, include_www, preserve_path FROM domain_redirects WHERE status = 'active' AND caddy_configured = 1");
     $redirects = $stmt->fetchAll(PDO::FETCH_ASSOC);
     echo "Redirects activos: " . count($redirects) . "\n";
+    // Un redirect sobre un host que además sirve un tenant (o su alias, o un *.musedock.com) tiene que ir
+    // ANTES en la lista de rutas; si no, la ruta del tenant casa primero y la redirección no se aplica.
+    $tenantHosts = [];
+    try {
+        foreach ($pdo->query("SELECT domain FROM tenants") as $th) { $tenantHosts[strtolower($th['domain'])] = true; }
+        foreach ($pdo->query("SELECT domain FROM domain_aliases") as $th) { $tenantHosts[strtolower($th['domain'])] = true; }
+    } catch (\Throwable $e) { /* sin tabla de alias */ }
 
     foreach ($redirects as $redir) {
         $rDomain = $redir['domain'];
@@ -369,12 +387,16 @@ try {
         $redirectTo = rtrim($redir['redirect_to'], '/');
         $redirectUri = $redir['preserve_path'] ? $redirectTo . '{http.request.uri}' : $redirectTo . '/';
 
-        $missingRoutes[] = [
+        $redirRoute = [
             '@id' => $rRouteId,
             'match' => [['host' => $rHosts]],
             'handle' => [['handler' => 'static_response', 'status_code' => (string)($redir['redirect_type'] ?: 301), 'headers' => ['Location' => [$redirectUri]]]],
             'terminal' => true,
         ];
+        if (isset($tenantHosts[strtolower($rDomain)])) {
+            $redirRoute['__first'] = true;
+        }
+        $missingRoutes[] = $redirRoute;
 
         echo "         [QUEUED] Redirect preparado: {$rRouteId}\n";
         $repaired++;

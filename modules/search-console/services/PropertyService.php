@@ -74,9 +74,10 @@ class PropertyService
             $map[self::normalizeHost($t['domain'])] = ['tenant_id' => (int) $t['id'], 'client' => (int) $t['is_client_domain'] === 1];
         }
         try {
-            $aliases = $this->pdo->query("SELECT a.domain, a.tenant_id, t.is_client_domain FROM domain_aliases a JOIN tenants t ON t.id = a.tenant_id WHERE a.status = 'active'");
+            // Todos los alias, también los suspendidos: así un alias suspendido de un cliente nunca pasa por «externo».
+            $aliases = $this->pdo->query("SELECT a.domain, a.tenant_id, a.status, t.is_client_domain FROM domain_aliases a JOIN tenants t ON t.id = a.tenant_id");
             foreach ($aliases as $a) {
-                $map[self::normalizeHost($a['domain'])] ??= ['tenant_id' => (int) $a['tenant_id'], 'client' => (int) $a['is_client_domain'] === 1];
+                $map[self::normalizeHost($a['domain'])] ??= ['tenant_id' => (int) $a['tenant_id'], 'client' => (int) $a['is_client_domain'] === 1, 'alias_status' => (string) $a['status']];
             }
         } catch (\Throwable $e) {
             // tabla de alias opcional
@@ -141,6 +142,9 @@ class PropertyService
         foreach ($chosen as $domain => $c) {
             $upsert->execute([$credential['id'], $domain]);
             $id = $upsert->fetchColumn();
+            if ($id && $this->isArchived((int) $id)) {
+                continue; // dada de baja a propósito: no se reactiva sola
+            }
             if ($id) {
                 $update->execute([$c['site_url'], $c['level'], $c['tenant_id'], $c['external'] ? 1 : 0, $id]);
             } else {
@@ -207,6 +211,43 @@ class PropertyService
         return count($ids);
     }
 
+    private function isArchived(int $propertyId): bool
+    {
+        $stmt = $this->pdo->prepare('SELECT status FROM gsc_properties WHERE id = ?');
+        $stmt->execute([$propertyId]);
+
+        return $stmt->fetchColumn() === 'archived';
+    }
+
+    /**
+     * Dar de baja SIN borrar nada: la propiedad deja de descargarse y de mostrarse (ni a ti ni al tenant), pero
+     * sus datos se conservan por si el dominio vuelve a ser tuyo. Los subdominios virtuales que cuelgan de ella
+     * quedan sin propiedad que los cubra y el cron los marca sin acceso.
+     */
+    public function archive(int $propertyId): void
+    {
+        $this->pdo->prepare("UPDATE gsc_properties SET status = 'archived', updated_at = NOW() WHERE id = ? AND status <> 'pending'")->execute([$propertyId]);
+    }
+
+    /** Reactiva una propiedad dada de baja; si la cuenta ya no tiene acceso, la próxima lectura de Google la marcará. */
+    public function restore(int $propertyId): void
+    {
+        $this->pdo->prepare("UPDATE gsc_properties SET status = 'active', last_error = NULL, updated_at = NOW() WHERE id = ? AND status = 'archived'")->execute([$propertyId]);
+    }
+
+    /** Dominios dados de baja de la plataforma, con los mismos límites de privacidad que la lista normal. */
+    public function archivedForSuperadmin(): array
+    {
+        return $this->pdo->query("
+            SELECT p.*, t.name AS tenant_name
+            FROM gsc_properties p
+            JOIN gsc_credentials c ON c.id = p.credential_id AND c.owner_type = 'platform'
+            LEFT JOIN tenants t ON t.id = p.tenant_id
+            WHERE p.status = 'archived' AND (p.tenant_id IS NULL OR t.is_client_domain = 0 OR p.authorized = 1)
+            ORDER BY p.domain
+        ")->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function deleteProperty(int $propertyId): void
     {
         foreach (['gsc_site_daily', 'gsc_page_daily', 'gsc_query_daily', 'gsc_country_daily', 'gsc_device_daily', 'gsc_sync_runs'] as $table) {
@@ -223,7 +264,7 @@ class PropertyService
             FROM gsc_properties p
             JOIN gsc_credentials c ON c.id = p.credential_id AND c.owner_type = 'platform'
             LEFT JOIN tenants t ON t.id = p.tenant_id
-            WHERE p.external = 0 AND p.status <> 'pending' AND (p.tenant_id IS NULL OR t.is_client_domain = 0 OR p.authorized = 1)
+            WHERE p.external = 0 AND p.status NOT IN ('pending', 'archived') AND (p.tenant_id IS NULL OR t.is_client_domain = 0 OR p.authorized = 1)
             ORDER BY p.domain
         ")->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -234,7 +275,7 @@ class PropertyService
         return $this->pdo->query("
             SELECT p.* FROM gsc_properties p
             JOIN gsc_credentials c ON c.id = p.credential_id AND c.owner_type = 'platform'
-            WHERE p.external = 1 AND p.tenant_id IS NULL AND p.status <> 'pending'
+            WHERE p.external = 1 AND p.tenant_id IS NULL AND p.status NOT IN ('pending', 'archived')
             ORDER BY p.domain
         ")->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -247,7 +288,7 @@ class PropertyService
             FROM gsc_properties p
             JOIN gsc_credentials c ON c.id = p.credential_id
             JOIN tenants t ON t.id = p.tenant_id
-            WHERE p.tenant_id = ? AND p.status <> 'pending'
+            WHERE p.tenant_id = ? AND p.status NOT IN ('pending', 'archived')
               AND (c.owner_type = 'tenant' AND c.tenant_id = p.tenant_id
                    OR c.owner_type = 'platform' AND (t.is_client_domain = 0 OR p.authorized = 1))
             ORDER BY c.owner_type DESC, p.domain
@@ -273,6 +314,9 @@ class PropertyService
         $missing = [];
         foreach ($this->pdo->query('SELECT id, name, domain FROM tenants WHERE is_client_domain = 0 ORDER BY domain') as $t) {
             $domain = self::normalizeHost($t['domain']);
+            if (($have[$domain]['status'] ?? null) === 'archived') {
+                continue;
+            }
             if (($have[$domain]['status'] ?? null) !== 'active') {
                 $missing[] = ['tenant_id' => (int) $t['id'], 'name' => $t['name'], 'domain' => $domain] + $entry($have[$domain] ?? null);
             }
@@ -282,7 +326,47 @@ class PropertyService
             array_unshift($missing, ['tenant_id' => null, 'name' => 'Sitio principal', 'domain' => $main] + $entry($have[$main] ?? null));
         }
 
-        return $missing;
+        return array_merge($missing, $this->ownAliasesWithoutProperty($platformCredentialId, $have, $missing));
+    }
+
+    /**
+     * Alias de dominio de tenants PROPIOS (nunca de clientes) que se pueden dar de alta. No salen los que
+     * ya tienen propiedad activa, los que duplican al dominio de un tenant o al sitio principal, ni los
+     * subdominios cubiertos por una propiedad de dominio (se atienden como propiedad virtual). Los alias
+     * que no están activos salen deshabilitados, con el motivo: su DNS puede no apuntar aquí.
+     *
+     * @param array<string,array> $have   propiedades de la plataforma por dominio
+     * @param array<int,array>    $listed dominios ya ofrecidos (no se repiten)
+     */
+    private function ownAliasesWithoutProperty(int $credentialId, array $have, array $listed): array
+    {
+        try {
+            $rows = $this->pdo->query('SELECT a.domain, a.status, t.id AS tenant_id, t.name, t.domain AS tenant_domain FROM domain_aliases a JOIN tenants t ON t.id = a.tenant_id WHERE t.is_client_domain = 0 ORDER BY a.domain')->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            return []; // tabla de alias opcional
+        }
+        $seen = array_column($listed, 'domain');
+        foreach ($this->pdo->query('SELECT domain FROM tenants') as $t) {
+            $seen[] = self::normalizeHost($t['domain']);
+        }
+        $seen[] = self::mainDomain();
+        $out = [];
+        foreach ($rows as $a) {
+            $domain = self::normalizeHost($a['domain']);
+            if ($domain === '' || in_array($domain, $seen, true) || in_array($have[$domain]['status'] ?? null, ['active', 'archived'], true) || $this->parentProperty($credentialId, $domain) !== null) {
+                continue;
+            }
+            $seen[] = $domain;
+            $row = $have[$domain] ?? null;
+            $item = ['tenant_id' => (int) $a['tenant_id'], 'name' => $a['name'], 'domain' => $domain, 'alias_of' => $a['name'], 'alias_of_domain' => self::normalizeHost((string) $a['tenant_domain']),
+                'state' => $row['status'] ?? null, 'note' => $row['verification_note'] ?? null, 'checked_at' => $row['updated_at'] ?? null];
+            if ($a['status'] !== 'active') {
+                $item['disabled'] = 'Alias ' . ($a['status'] === 'suspended' ? 'suspendido' : 'sin activar (' . $a['status'] . ')') . ': su DNS puede no apuntar aquí. Se podrá dar de alta cuando esté activo.';
+            }
+            $out[] = $item;
+        }
+
+        return $out;
     }
 
     /**
