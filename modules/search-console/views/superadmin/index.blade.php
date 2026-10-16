@@ -167,7 +167,7 @@
                             <span class="{{ $delta >= 0 ? 'gsc-up' : 'gsc-down' }}">{{ ($delta >= 0 ? '+' : '') . number_format($delta * 100, 0, ',', '.') }} %</span>
                         @else — @endif
                     </td>
-                    <td style="font-size:.8rem;">{{ $p['last_sync_at'] ? date('d/m H:i', strtotime($p['last_sync_at'])) : 'Pendiente' }}
+                    <td style="font-size:.8rem;" data-sort="{{ $p['last_sync_at'] ?: '0000' }}">{{ $p['last_sync_at'] ? date('d/m H:i', strtotime($p['last_sync_at'])) : 'Pendiente' }}
                         @if(($p['page_filter'] ?? '') === '')<button type="button" class="btn btn-link btn-sm text-secondary p-0 ms-2 gsc-archive" data-property="{{ $p['id'] }}" data-domain="{{ $p['domain'] }}" title="Dar de baja sin borrar los datos"><i class="bi bi-archive"></i></button>@endif</td>
                 </tr>
             @empty
@@ -334,7 +334,7 @@
                     <td class="num">{{ $t ? number_format($t['ctr'] * 100, 1, ',', '.') . ' %' : '—' }}</td>
                     <td class="num">{{ ($t && $t['position'] !== null) ? number_format($t['position'], 1, ',', '.') : '—' }}</td>
                     <td class="num">@if($delta !== null)<span class="{{ $delta >= 0 ? 'gsc-up' : 'gsc-down' }}">{{ ($delta >= 0 ? '+' : '') . number_format($delta * 100, 0, ',', '.') }} %</span>@else — @endif</td>
-                    <td style="font-size:.8rem;">{{ $p['last_sync_at'] ? date('d/m H:i', strtotime($p['last_sync_at'])) : 'Pendiente' }}</td>
+                    <td style="font-size:.8rem;" data-sort="{{ $p['last_sync_at'] ?: '0000' }}">{{ $p['last_sync_at'] ? date('d/m H:i', strtotime($p['last_sync_at'])) : 'Pendiente' }}</td>
                 </tr>
             @endforeach
             </tbody>
@@ -636,6 +636,7 @@
         b.querySelector('i').className = 'bi ' + (open ? 'bi-chevron-down' : 'bi-chevron-right');
         var f = document.getElementById('gsc-filter-text'); if (f) { f.dispatchEvent(new Event('input')); }
     });
+    document.querySelectorAll('table.gsc-sortable thead th').forEach(function (th) { if (th.textContent.trim() && !th.title) { th.title = 'Clic para ordenar por esta columna'; } });
     // Ordenar tablas haciendo clic en la cabecera (vale también tras actualizar la tabla en vivo)
     document.addEventListener('click', function (e) {
         var th = e.target.closest('table.gsc-sortable thead th'); if (!th || e.target.closest('input,button,a')) { return; }
