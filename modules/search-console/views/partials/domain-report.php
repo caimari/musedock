@@ -99,6 +99,13 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
         <div class="col-6 col-lg-3"><div class="card gsc-kpi"><div class="l">Posición media</div><div class="v"><?= $pos($t['position']) ?></div><div style="font-size:.78rem;"><?= $t['position'] !== null && $p['position'] ? $delta($t['position'], $p['position'], true) : '' ?></div></div></div>
     </div>
 
+    <?php if (!empty($brand) && ($brand['brand']['impressions'] + $brand['other']['impressions']) > 0): $bt = $brand['brand']['impressions'] + $brand['other']['impressions']; ?>
+    <div class="card mb-3"><div class="card-body py-2 d-flex flex-wrap gap-3 align-items-center" style="font-size:.85rem;">
+        <span><i class="bi bi-person-badge"></i> <strong>Búsquedas de marca</strong> (<?= $e(implode(', ', $brand['tokens'])) ?>): <?= $n($brand['brand']['clicks']) ?> clics · <?= $n($brand['brand']['impressions']) ?> impr. (<?= number_format($brand['brand_share'] * 100, 0, ',', '.') ?> %)</span>
+        <span><i class="bi bi-search"></i> <strong>Sin marca</strong> (te descubren): <?= $n($brand['other']['clicks']) ?> clics · <?= $n($brand['other']['impressions']) ?> impr. (<?= number_format((1 - $brand['brand_share']) * 100, 0, ',', '.') ?> %)</span>
+        <span class="text-muted" style="font-size:.75rem;" title="Se cuenta sobre las consultas que Google muestra; las anónimas no están en la lista. Una búsqueda es «de marca» si contiene el nombre del sitio.">sobre las consultas visibles · heurística</span>
+    </div></div>
+    <?php endif; ?>
     <div class="card mb-3"><div class="card-body gsc-chart">
         <div class="d-flex gap-3 mb-2" style="font-size:.82rem;"><span><span style="display:inline-block;width:10px;height:10px;background:#1a73e8;border-radius:2px;"></span> Clics</span><span><span style="display:inline-block;width:10px;height:10px;background:#8a56c5;border-radius:2px;"></span> Impresiones</span></div>
         <div class="text-end"><?= $csvLink('daily') ?></div>
@@ -142,7 +149,7 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
                     <td style="white-space:nowrap;"><span class="badge bg-<?= $e($tc) ?>"><?= $e($tl) ?></span><div style="margin-top:3px;"><span class="badge bg-<?= $e($tierLabel[1]) ?> <?= $tierLabel[1] === 'warning' ? 'text-dark' : '' ?>" style="font-size:.62rem;" title="<?= $it['tier'] === 'explore' ? 'Pocas impresiones: mucha incertidumbre, no actúes sin más datos' : ($it['tier'] === 'high' ? 'Mucho peso en el sitio o caída de clics confirmada' : 'Volumen razonable') ?>"><?= $e($tierLabel[0]) ?></span></div></td>
                     <td class="gsc-trunc" style="max-width:260px;" title="<?= $e($it['name']) ?>">
                         <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;"><?= $it['kind'] === 'page' ? 'URL' : 'Palabra clave' ?></div>
-                        <strong><?= $it['kind'] === 'page' ? $pageLink($it['name'], $it['label']) : $e($it['label']) ?></strong></td>
+                        <strong><?= $it['kind'] === 'page' ? $pageLink($it['name'], $it['label']) : $e($it['label']) ?></strong><?php if (!empty($it['brand'])): ?> <span class="badge bg-light text-dark border" style="font-size:.62rem;" title="Búsqueda de marca: contiene el nombre del sitio">marca</span><?php endif; ?></td>
                     <td class="num"><?= $n($it['impressions']) ?></td><td class="num"><?= $n($it['clicks']) ?></td><td class="num"><?= $pos($it['position']) ?></td>
                     <td style="font-size:.82rem;min-width:240px;max-width:460px;"><strong><?= $e($it['detail']) ?></strong><div class="text-muted"><?= $e($it['advice']) ?></div>
                         <?php if (!empty($editorial['suggestions'][$it['name']])): $sg = $editorial['suggestions'][$it['name']]; ?>
@@ -164,7 +171,7 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
         <div class="card-body p-0"><div class="table-responsive"><table class="table table-sm mb-0">
             <thead><tr><th>Búsqueda</th><th class="num">Impr.</th><th>Páginas (posición)</th><th>Qué hacer</th></tr></thead><tbody>
             <?php foreach ($editorial['cannibal'] as $cn): ?>
-                <tr><td style="max-width:200px;"><strong><?= $e($cn['query']) ?></strong></td><td class="num"><?= $n($cn['impressions']) ?></td>
+                <tr><td style="max-width:200px;"><strong><?= $e($cn['query']) ?></strong><?php if (!empty($cn['brand'])): ?> <span class="badge bg-light text-dark border" style="font-size:.62rem;">marca</span><?php endif; ?></td><td class="num"><?= $n($cn['impressions']) ?></td>
                     <td style="font-size:.82rem;"><?php foreach ($cn['pages'] as $pg): ?><div><?= $pageLink($pg['url'], $pg['label']) ?> <span class="text-muted">· pos. <?= $pos($pg['position']) ?> · <?= $n($pg['impressions']) ?> impr.</span></div><?php endforeach; ?></td>
                     <td class="text-muted" style="font-size:.78rem;min-width:240px;max-width:380px;"><?= $e($cn['advice']) ?></td></tr>
             <?php endforeach; ?>

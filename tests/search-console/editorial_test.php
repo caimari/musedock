@@ -4,11 +4,11 @@
  *   php tests/search-console/editorial_test.php
  */
 define('APP_ROOT', dirname(__DIR__, 2));
-foreach (['Crypto', 'GoogleApiException', 'GoogleClient', 'PropertyService', 'UrlNormalizer', 'OpportunityService', 'ReportService', 'EditorialService', 'SyncService'] as $c) {
+foreach (['Crypto', 'GoogleApiException', 'GoogleClient', 'PropertyService', 'UrlNormalizer', 'OpportunityService', 'ReportService', 'EditorialService', 'BrandService', 'SyncService'] as $c) {
     require_once APP_ROOT . "/modules/search-console/services/{$c}.php";
 }
 
-use Modules\SearchConsole\Services\{EditorialService, GoogleClient, SyncService};
+use Modules\SearchConsole\Services\{BrandService, EditorialService, GoogleClient, SyncService};
 
 $fails = 0;
 function ok(bool $c, string $m): void { global $fails; if (!$c) { $fails++; echo "  FALLA: $m\n"; } }
@@ -96,6 +96,26 @@ $g->fail = true;
 $threw = false;
 try { $sync->syncQueryPages(['id' => 7, 'site_url' => 'sc-domain:x.test'], $g, '2026-10-16'); } catch (\Throwable $e) { $threw = true; }
 ok($threw && (int) $pdo2->query('SELECT COUNT(*) FROM gsc_query_page WHERE property_id = 7')->fetchColumn() === 1, 'si Google falla, la instantánea anterior se conserva');
+
+echo "== Marca / sin marca\n";
+ok(BrandService::tokens(['domain' => 'screenai.es']) === ['screenai'] && BrandService::tokens(['domain' => 'limpa.co.uk'], 'Londonfilmfestival') === ['limpa', 'londonfilmfestival'], 'la marca sale del dominio (sin extensión) y del nombre del tenant');
+ok(BrandService::tokens(['domain' => 'alexapost.musedock.com']) === ['alexapost'] && BrandService::tokens(['domain' => 'musedock.com']) === ['musedock'], 'un subdominio de musedock.com usa su propio nombre, no «musedock»');
+$tk = ['screenai'];
+ok(BrandService::isBrand('screen ai', $tk) && BrandService::isBrand('ScreenAI precio', $tk) && BrandService::isBrand('screen-ai gratis', $tk), '«screen ai», «ScreenAI precio» y «screen-ai» son marca');
+ok(!BrandService::isBrand('claude code precio', $tk) && !BrandService::isBrand('', $tk) && !BrandService::isBrand('algo', []), 'una búsqueda sin el nombre del sitio no es de marca');
+$pdo3 = new PDO('sqlite::memory:');
+$pdo3->exec('CREATE TABLE gsc_query_daily (property_id INT, date TEXT, query TEXT, page TEXT, clicks INT, impressions INT, ctr REAL, position REAL)');
+$i3 = $pdo3->prepare("INSERT INTO gsc_query_daily VALUES (1, '2026-10-01', ?, '', ?, ?, 0, 5)");
+$i3->execute(['screen ai', 10, 100]); $i3->execute(['claude code', 2, 300]); $i3->execute(['screenai gratis', 5, 100]);
+$sp = (new BrandService())->split($pdo3, 1, '2026-09-01', '2026-10-31', ['screenai']);
+ok($sp['brand'] === ['clicks' => 15, 'impressions' => 200] && $sp['other'] === ['clicks' => 2, 'impressions' => 300] && abs($sp['brand_share'] - 0.4) < 0.001, 'reparto marca / sin marca de clics e impresiones');
+$put('screen ai', 'https://x.test/', 5, 60, 3.0); $put('screen ai', 'https://x.test/screen-ai', 2, 40, 6.0);
+$cn = (new EditorialService($pdo))->cannibalization(['id' => 1, 'domain' => 'screenai.es']);
+$sa = array_values(array_filter($cn, fn ($x) => $x['query'] === 'screen ai'));
+ok($sa && $sa[0]['brand'] === true && str_contains($sa[0]['advice'], 'marca') && str_contains($sa[0]['advice'], 'normal'), 'una búsqueda de marca no se presenta como problema de canibalización');
+$other = array_values(array_filter((new EditorialService($pdo))->cannibalization($prop), fn ($x) => $x['query'] === 'claude code'));
+ok($other && $other[0]['brand'] === false && str_contains($other[0]['advice'], 'misma intención') && str_contains($other[0]['advice'], 'alterna') && str_contains($other[0]['advice'], 'distinto'), 'el resto recuerda las tres comprobaciones antes de fusionar o redirigir');
+ok(array_search(true, array_column($cn, 'brand')) === false || array_search(true, array_column($cn, 'brand')) >= array_search(false, array_column($cn, 'brand')), 'las de marca van detrás de las demás');
 
 echo $fails ? "RESULTADO: $fails comprobaciones FALLAN\n" : "RESULTADO: las comprobaciones pasan\n";
 exit($fails ? 1 : 0);

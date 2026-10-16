@@ -2,6 +2,7 @@
 
 namespace Modules\SearchConsole\Controllers;
 
+use Modules\SearchConsole\Services\BrandService;
 use Modules\SearchConsole\Services\ContentMapService;
 use Modules\SearchConsole\Services\CredentialStore;
 use Modules\SearchConsole\Services\DomainVerifier;
@@ -170,6 +171,24 @@ abstract class BaseController
         }
     }
 
+    /** Reparto marca / sin marca del periodo (sobre las consultas visibles). */
+    private function brandFor(array $property, array $report): ?array
+    {
+        if (!empty($report['empty'])) {
+            return null;
+        }
+        try {
+            $tokens = BrandService::tokens($property);
+            if (!$tokens) {
+                return null;
+            }
+
+            return ['tokens' => $tokens] + (new BrandService())->split($this->pdo, (int) $property['id'], $report['from'], $report['to'], $tokens);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
     /**
      * Canibalización y sugerencias editoriales (por reglas) para las oportunidades de página más relevantes.
      *
@@ -244,6 +263,7 @@ abstract class BaseController
             'report' => $report,
             'content' => $this->contentFor($property, $report),
             'editorial' => $this->editorialFor($property, $report, $opportunities),
+            'brand' => $this->brandFor($property, $report),
             'opportunities' => $opportunities,
             'periods' => ReportService::PERIODS,
             'baseUrl' => $this->baseUrl(),

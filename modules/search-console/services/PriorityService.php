@@ -35,6 +35,9 @@ class PriorityService
                 if ($it['tier'] !== 'high' || $it['type'] === 'rising') {
                     continue;
                 }
+                if (!empty($it['brand']) && $it['type'] !== 'drop') {
+                    continue; // en una búsqueda de marca, salir arriba es lo normal: solo importa si cae
+                }
                 $impact = $it['type'] === 'far' ? $it['impressions'] * 0.01 : (float) $it['score'];
                 $what = $it['kind'] === 'page' ? 'la página ' . $it['label'] : 'la búsqueda «' . $it['label'] . '»';
                 $text = match ($it['type']) {

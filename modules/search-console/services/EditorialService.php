@@ -77,6 +77,7 @@ class EditorialService
             $byQuery[$r['query']][] = $r;
         }
         $out = [];
+        $brand = BrandService::tokens($property);
         foreach ($byQuery as $query => $pages) {
             $total = array_sum(array_column($pages, 'impressions'));
             $relevant = array_values(array_filter($pages, fn ($p) => $p['impressions'] >= self::MIN_PAGE_IMPRESSIONS));
@@ -85,11 +86,14 @@ class EditorialService
             }
             usort($relevant, fn ($a, $b) => $a['position'] <=> $b['position']);
             $main = $relevant[0];
-            $out[] = ['query' => (string) $query, 'impressions' => $total, 'clicks' => array_sum(array_column($pages, 'clicks')),
+            $isBrand = BrandService::isBrand((string) $query, $brand);
+            $out[] = ['query' => (string) $query, 'brand' => $isBrand, 'impressions' => $total, 'clicks' => array_sum(array_column($pages, 'clicks')),
                 'pages' => array_map(fn ($p) => ['url' => $p['page'], 'label' => OpportunityService::shortPage($p['page'], (string) $property['domain']), 'impressions' => $p['impressions'], 'clicks' => $p['clicks'], 'position' => $p['position']], $relevant),
-                'advice' => 'Varias páginas tuyas aparecen para esta búsqueda y se reparten la visibilidad. Decide cuál debe ser la principal (ahora la mejor posicionada es ' . OpportunityService::shortPage($main['page'], (string) $property['domain']) . '), enlaza las otras hacia ella con ese texto o únelas. Compruébalo antes: puede que respondan a intenciones distintas.'];
+                'advice' => $isBrand
+                    ? 'Es una búsqueda de marca: que salgan la portada y otra página tuya suele ser normal y no es un problema por sí mismo. Solo mira si la que sale primero es la que quieres.'
+                    : 'Varias páginas tuyas aparecen para esta búsqueda. No demuestra un problema por sí sola: comprueba (1) si responden a la misma intención, (2) si Google alterna entre ellas con el tiempo y (3) si su contenido es realmente distinto. Solo si hay evidencia, elige una principal (ahora la mejor posicionada es ' . OpportunityService::shortPage($main['page'], (string) $property['domain']) . ') y enlaza, une o redirige las demás.'];
         }
-        usort($out, fn ($a, $b) => $b['impressions'] <=> $a['impressions']);
+        usort($out, fn ($a, $b) => [$a['brand'], $b['impressions']] <=> [$b['brand'], $a['impressions']]);
 
         return array_slice($out, 0, $limit);
     }

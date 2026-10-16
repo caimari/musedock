@@ -35,6 +35,9 @@ class OpportunityService
     /** Impresiones totales del periodo (para repartir las oportunidades por prioridad). */
     private int $total = 0;
 
+    /** Nombres de marca del sitio (para marcar las búsquedas de marca). */
+    private array $brand = [];
+
     public function __construct(private PDO $pdo)
     {
     }
@@ -73,6 +76,7 @@ class OpportunityService
             $notes[] = 'Aún no hay histórico para comparar con el periodo anterior (los datos empiezan el ' . date('d/m/Y', strtotime((string) $property['data_from'])) . '): no se muestran caídas ni subidas.';
         }
         $this->total = $total;
+        $this->brand = BrandService::tokens($property);
         $items = [];
         $excluded = 0;
         foreach (['query' => ['gsc_query_daily', 'query'], 'page' => ['gsc_page_daily', 'page']] as $kind => [$table, $col]) {
@@ -174,7 +178,7 @@ class OpportunityService
         $tier = $this->tierOf($type, $c, $p);
 
         return [
-            'type' => $type, 'kind' => $kind, 'name' => $name, 'label' => $label, 'tier' => $tier, 'variants' => (int) ($c['variants'] ?? 1),
+            'type' => $type, 'kind' => $kind, 'name' => $name, 'label' => $label, 'tier' => $tier, 'variants' => (int) ($c['variants'] ?? 1), 'brand' => $kind === 'query' && BrandService::isBrand($name, $this->brand),
             'clicks' => $c['clicks'], 'impressions' => $imp, 'ctr' => $imp > 0 ? $c['clicks'] / $imp : 0.0, 'position' => $c['position'],
             'prev_clicks' => $p['clicks'] ?? null, 'prev_impressions' => $p['impressions'] ?? null,
             'score' => round($score, 2), 'advice' => $tier === 'explore' ? 'Pocos datos: necesita revisión antes de actuar. Espera a tener más impresiones para decidir.' : $this->advice($type, $kind, $c, $p), 'detail' => $this->detail($type, $c, $p, $score),
