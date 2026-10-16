@@ -109,8 +109,8 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
     <?php endif; ?>
     <?php if (!empty($brand['lookalikes']['items'])): $lk = $brand['lookalikes']; ?>
     <div class="card mb-3" id="gsc-lookalikes">
-        <div class="card-header"><strong><i class="bi bi-intersect"></i> Búsquedas parecidas a tu marca</strong>
-            <span class="text-muted" style="font-size:.8rem;">se escriben casi como tu marca pero no la contienen: ¿error de escritura tuyo o marca de otra empresa?</span></div>
+        <div class="card-header"><strong><i class="bi bi-intersect"></i> Tráfico accidental: búsquedas parecidas a tu marca o a otro dominio</strong>
+            <span class="text-muted" style="font-size:.8rem;">se escriben casi como tu marca o son un dominio ajeno: ¿error de escritura, marca de otra empresa o algo tuyo?</span></div>
         <div class="card-body p-0"><div class="table-responsive"><table class="table table-sm mb-0 align-middle">
             <thead><tr><th>Búsqueda</th><th class="num">Impr.</th><th class="num">Clics</th><th class="num">CTR</th><th>Pista</th><th>Tú decides</th></tr></thead><tbody>
             <?php foreach ($lk['items'] as $li): ?>
@@ -118,6 +118,7 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
                     <td><strong><?= $e($li['query']) ?></strong></td><td class="num"><?= $n($li['impressions']) ?></td><td class="num"><?= $n($li['clicks']) ?></td><td class="num"><?= $pct($li['ctr']) ?></td>
                     <td style="font-size:.78rem;max-width:380px;">
                     <?php if ($li['kind'] === 'unexpected'): ?><span class="badge bg-warning text-dark">Coincidencia inesperada</span> <span class="text-muted">Su CTR (<?= $pct($li['ctr']) ?>) es muy inferior al de tu marca (<?= $pct($lk['brand_ctr']) ?>): quien busca esto probablemente no busca tu web (¿otra empresa o producto con nombre parecido?). Compruébalo en Google antes de actuar; a veces es una oportunidad de contenido.</span>
+                    <?php elseif ($li['kind'] === 'navigational'): ?><span class="badge bg-warning text-dark">Dominio escrito en el buscador</span> <span class="text-muted">Quien escribe solo un dominio busca ese sitio (búsqueda navegacional). No es una oportunidad propia ni se estiman clics: investiga si es una marca ajena, un error o algo relacionado con tu negocio.</span>
                     <?php elseif ($li['kind'] === 'variant'): ?><span class="badge bg-success">Parece una variante tuya</span> <span class="text-muted">Su CTR es parecido al de tu marca: probable error de escritura de quien te busca.</span>
                     <?php else: ?><span class="badge bg-secondary">Sin pista clara</span> <span class="text-muted">Pocos datos o CTR intermedio.</span><?php endif; ?></td>
                     <td><select class="form-select form-select-sm gsc-qlabel" style="font-size:.76rem;width:auto;max-width:210px;" data-query="<?= $e($li['query']) ?>" aria-label="Etiqueta de «<?= $e($li['query']) ?>»">
@@ -129,6 +130,11 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
         </tbody></table></div></div>
         <div class="card-footer text-muted" style="font-size:.74rem;">Es una pista por parecido de nombre y CTR, no un veredicto: el sistema no sabe qué empresas o productos existen. Lo que etiquetes corrige la clasificación de marca y evita proponer como oportunidad propia lo que es de otra empresa.</div>
     </div>
+    <?php endif; ?>
+    <?php if (!empty($geo)): ?>
+    <div class="alert alert-warning py-2 mb-3" style="font-size:.85rem;" id="gsc-geo"><i class="bi bi-globe-europe-africa"></i> <strong>Concentración geográfica inesperada.</strong>
+        <?php foreach ($geo as $g): ?><div><strong><?= $e(strtoupper($g['country'])) ?></strong> acumula el <?= number_format($g['share'] * 100, 0, ',', '.') ?> % de tus impresiones (<?= $n($g['impressions']) ?>) con <?= $n($g['clicks']) ?> clic(s): CTR <?= $pct($g['ctr']) ?> frente al <?= $pct($g['rest_ctr']) ?> del resto.</div><?php endforeach; ?>
+        <span class="text-muted" style="font-size:.78rem;">Puede ser búsquedas de otra empresa, tráfico irrelevante o un mercado nuevo. No sabemos qué consultas son (no cruzamos país y consulta): compruébalo antes de actuar y no lo trates como una oportunidad sin confirmarlo.</span></div>
     <?php endif; ?>
     <div class="card mb-3"><div class="card-body gsc-chart">
         <div class="d-flex gap-3 mb-2" style="font-size:.82rem;"><span><span style="display:inline-block;width:10px;height:10px;background:#1a73e8;border-radius:2px;"></span> Clics</span><span><span style="display:inline-block;width:10px;height:10px;background:#8a56c5;border-radius:2px;"></span> Impresiones</span></div>

@@ -130,15 +130,17 @@ class BrandService
             $label = $labels[QueryLabelService::key((string) $r['query'])] ?? null;
             $d = self::lookalike((string) $r['query'], $tokens);
             $imp = (int) $r['i'];
-            if ($d === null || ($imp < 20 && $label === null)) {
+            // Un dominio escrito en el buscador («8i8gent.com»): búsqueda navegacional de otro sitio, no una oportunidad propia
+            $isDomain = OpportunityService::looksLikeDomain((string) $r['query']) && !self::isBrand((string) $r['query'], $tokens);
+            if (($d === null && !$isDomain) || ($imp < 20 && $label === null)) {
                 continue;
             }
             $ctr = $imp > 0 ? (int) $r['c'] / $imp : 0.0;
             $ratio = ($brandCtr !== null && $brandCtr > 0) ? $ctr / $brandCtr : null;
-            $kind = $ratio === null ? 'unknown' : ($ratio >= 0.5 ? 'variant' : ($ratio < 0.25 && $imp >= 30 ? 'unexpected' : 'unclear'));
-            $items[] = ['query' => (string) $r['query'], 'clicks' => (int) $r['c'], 'impressions' => $imp, 'ctr' => $ctr, 'distance' => $d, 'ratio' => $ratio, 'kind' => $kind, 'label' => $label];
+            $kind = $isDomain ? 'navigational' : ($ratio === null ? 'unknown' : ($ratio >= 0.5 ? 'variant' : ($ratio < 0.25 && $imp >= 30 ? 'unexpected' : 'unclear')));
+            $items[] = ['query' => (string) $r['query'], 'clicks' => (int) $r['c'], 'impressions' => $imp, 'ctr' => $ctr, 'distance' => $d ?? 0, 'ratio' => $ratio, 'kind' => $kind, 'label' => $label];
         }
-        usort($items, fn ($a, $b) => [$a['kind'] === 'unexpected' ? 0 : 1, $b['impressions']] <=> [$b['kind'] === 'unexpected' ? 0 : 1, $a['impressions']]);
+        usort($items, fn ($a, $b) => [in_array($a['kind'], ['unexpected', 'navigational'], true) ? 0 : 1, $b['impressions']] <=> [in_array($b['kind'], ['unexpected', 'navigational'], true) ? 0 : 1, $a['impressions']]);
 
         return ['brand_ctr' => $brandCtr, 'items' => array_slice($items, 0, $limit)];
     }

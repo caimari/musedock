@@ -327,6 +327,7 @@ abstract class BaseController
             'content' => $this->contentFor($property, $report),
             'editorial' => $this->editorialFor($property, $report, $opportunities),
             'brand' => $this->brandFor($property, $report),
+            'geo' => $report['empty'] ?? true ? [] : \Modules\SearchConsole\Services\GeoService::concentration($report['countries'] ?? [], $report['totals'] ?? ['clicks' => 0, 'impressions' => 0]),
             'optimizations' => $this->optimizationsFor($property),
             'optimizationKinds' => OptimizationService::KINDS,
             'opportunities' => $opportunities,
