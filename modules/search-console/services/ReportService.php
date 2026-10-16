@@ -53,7 +53,7 @@ class ReportService
             'previous' => $this->totals($id, $prevFrom, $prevTo),
             'daily' => $this->rows('SELECT date, clicks, impressions FROM gsc_site_daily WHERE property_id = ? AND date >= ? AND date <= ? ORDER BY date', [$id, $from, $to]),
             'queries' => $this->grouped('gsc_query_daily', 'query', $id, $from, $to, 50),
-            'pages' => $this->grouped('gsc_page_daily', 'page', $id, $from, $to, 50),
+            'pages' => $this->groupedPages($id, $from, $to, 50),
             'countries' => $this->grouped('gsc_country_daily', 'country', $id, $from, $to, 15),
             'devices' => $this->grouped('gsc_device_daily', 'device', $id, $from, $to, 5),
         ];
@@ -86,6 +86,20 @@ class ReportService
         }
 
         return $rows;
+    }
+
+    /** Páginas con sus variantes agrupadas (www, #ancla, utm_*): una fila por página real. */
+    private function groupedPages(int $id, string $from, string $to, int $limit): array
+    {
+        $rows = $this->rows('SELECT page AS name, SUM(clicks) AS clicks, SUM(impressions) AS impressions, SUM(position * impressions) AS pw FROM gsc_page_daily WHERE property_id = ? AND date >= ? AND date <= ? GROUP BY page', [$id, $from, $to]);
+        $out = [];
+        foreach (UrlNormalizer::group($rows) as $g) {
+            $out[] = ['name' => $g['display'], 'clicks' => $g['clicks'], 'impressions' => $g['impressions'], 'ctr' => $g['impressions'] > 0 ? $g['clicks'] / $g['impressions'] : 0.0,
+                'position' => $g['impressions'] > 0 ? $g['pw'] / $g['impressions'] : null, 'variants' => $g['variants']];
+        }
+        usort($out, fn ($a, $b) => [$b['clicks'], $b['impressions']] <=> [$a['clicks'], $a['impressions']]);
+
+        return array_slice($out, 0, $limit);
     }
 
     private function rows(string $sql, array $args): array

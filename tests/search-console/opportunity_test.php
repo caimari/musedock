@@ -4,7 +4,7 @@
  *   php tests/search-console/opportunity_test.php
  */
 define('APP_ROOT', dirname(__DIR__, 2));
-foreach (['ReportService', 'OpportunityService'] as $c) {
+foreach (['ReportService', 'UrlNormalizer', 'OpportunityService'] as $c) {
     require_once APP_ROOT . "/modules/search-console/services/{$c}.php";
 }
 
@@ -86,10 +86,10 @@ $sorted = $scores; rsort($sorted);
 ok($scores === $sorted, 'ordenadas de más a menos potencial');
 ok(array_sum($r['counts']) === count($r['items']) && $r['counts']['drop'] === 2, 'contadores por tipo');
 ok(count(array_filter($r['items'], fn ($i) => $i['advice'] === '')) === 0, 'cada oportunidad trae qué hacer');
-ok($r['notes'] !== [] && str_contains($r['notes'][0], 'compiten'), 'avisa de que no detecta canibalización');
+ok($r['notes'] === [], 'con histórico suficiente y sin páginas excluidas no hay notas');
 
 $young = (new OpportunityService($pdo))->detect($prop + ['data_from' => '2026-09-10'], 28);
-ok(!array_filter($young['items'], fn ($i) => in_array($i['type'], ['drop', 'rising'], true)) && count($young['notes']) === 2 && str_contains($young['notes'][1], '10/09/2026'), 'sin histórico del periodo anterior no hay caídas ni subidas, y se explica por qué');
+ok(!array_filter($young['items'], fn ($i) => in_array($i['type'], ['drop', 'rising'], true)) && count($young['notes']) === 1 && str_contains($young['notes'][0], '10/09/2026'), 'sin histórico del periodo anterior no hay caídas ni subidas, y se explica por qué');
 ok(OpportunityService::shortPage('https://www.x.test/', 'x.test') === '[www] /' && OpportunityService::shortPage('https://x.test/a', 'x.test') === '/a' && OpportunityService::shortPage('https://x.test', 'x.test') === '/', 'las páginas con www se distinguen de las que no');
 
 echo "== 2. El umbral se adapta al volumen\n";
@@ -113,6 +113,33 @@ $none->exec('DELETE FROM gsc_site_daily');
 ok((new OpportunityService($none))->detect($prop, 28)['empty'] === true, 'sin datos → vacío, sin errores');
 ok((new OpportunityService($pdo))->detect($prop, 13)['days'] === 28, 'un periodo no permitido vuelve a 28 días');
 ok(OpportunityService::expectedCtr(1) === 0.28 && OpportunityService::expectedCtr(4.4) === 0.08 && OpportunityService::expectedCtr(55) === 0.01, 'tabla de CTR esperado por posición');
+
+echo "== 4. Variantes de una página, páginas legales y prioridades\n";
+$pdo = db();
+put($pdo, 'gsc_site_daily', $cur, null, 20, 2000, 8.0);
+foreach (['https://x.test/grok', 'https://x.test/grok#gratis', 'https://x.test/grok#precio', 'https://www.x.test/grok', 'https://x.test/grok/?utm_source=copilot.com'] as $v) {
+    put($pdo, 'gsc_page_daily', $cur, $v, 0, 120, 9.0); // 5 variantes × 120 = 600 impresiones
+}
+put($pdo, 'gsc_page_daily', $cur, 'https://x.test/cookie-policy', 0, 400, 5.0);
+put($pdo, 'gsc_page_daily', $cur, 'https://x.test/p/privacy', 0, 300, 5.0);
+put($pdo, 'gsc_page_daily', $cur, 'https://x.test/pequena', 0, 12, 7.0);
+put($pdo, 'gsc_page_daily', $cur, 'https://x.test/mediana', 0, 60, 7.0);
+$r = (new OpportunityService($pdo))->detect($prop, 28);
+$pages = array_values(array_filter($r['items'], fn ($i) => $i['kind'] === 'page'));
+$names = array_column($pages, 'name');
+ok(count(array_unique(array_filter($names, fn ($n) => str_contains($n, 'grok')))) === 1, 'las 5 variantes de /grok (www, #ancla, utm_*, barra final) salen como UNA sola página');
+$grok = array_values(array_filter($pages, fn ($i) => str_contains($i['name'], 'grok')))[0];
+ok($grok['impressions'] === 600 && $grok['variants'] === 5, 'suman sus impresiones: 600 en 5 variantes');
+ok(!array_filter($pages, fn ($i) => str_contains($i['name'], 'cookie') || str_contains($i['name'], 'privacy')), 'las páginas legales no se proponen como oportunidad');
+ok($r['notes'] !== [] && str_contains($r['notes'][0], '2 página'), 'se avisa de cuántas páginas se han excluido');
+ok($grok['tier'] === 'high', 'una página con mucho peso en el sitio es prioridad alta');
+$med = array_values(array_filter($pages, fn ($i) => str_contains($i['name'], 'mediana')));
+$small = array_values(array_filter($pages, fn ($i) => str_contains($i['name'], 'pequena')));
+ok($med && $med[0]['tier'] === 'medium', 'volumen razonable: prioridad media');
+ok($small && $small[0]['tier'] === 'explore' && str_contains($small[0]['advice'], 'Pocos datos') && !str_contains($small[0]['advice'], 'top 3'), 'pocas impresiones: exploración, sin consejo concreto');
+ok(array_sum($r['tiers']) === count($r['items']), 'los contadores de prioridad cuadran');
+$grokCtr = array_values(array_filter($pages, fn ($i) => str_contains($i['name'], 'grok') && $i['type'] === 'low_ctr'));
+ok($grokCtr && str_contains($grokCtr[0]['detail'], 'estimación'), 'las cifras de potencial se presentan como estimación');
 
 echo "\n" . ($fails ? "RESULTADO: $fails de $n comprobaciones FALLAN\n" : "RESULTADO: las $n comprobaciones pasan\n");
 exit($fails ? 1 : 0);

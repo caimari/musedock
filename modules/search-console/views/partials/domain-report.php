@@ -131,11 +131,15 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
                 <?php foreach ($oppTypes as $key => [$label, $color]): if (empty($o['counts'][$key])) { continue; } ?>
                     <button type="button" class="btn btn-sm btn-outline-<?= $e($color) ?>" data-type="<?= $e($key) ?>"><?= $e($label) ?> <span class="badge bg-<?= $e($color) ?>"><?= (int) $o['counts'][$key] ?></span></button>
                 <?php endforeach; ?>
+                <?php if (!empty($o['tiers']['explore'])): ?>
+                <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="gsc-opps-explore" title="Avisos con pocas impresiones: mucha incertidumbre"><i class="bi bi-eye"></i> Mostrar exploratorias (<?= (int) $o['tiers']['explore'] ?>)</button>
+                <?php endif; ?>
             </div>
             <div class="table-responsive"><table class="table table-sm mb-0 gsc-sortable" id="gsc-opps-table"><thead><tr><th>Oportunidad</th><th>URL / palabra clave</th><th class="num">Impr.</th><th class="num">Clics</th><th class="num">Pos.</th><th>Qué puedes ganar y qué hacer</th></tr></thead><tbody>
             <?php foreach ($o['items'] as $it): [$tl, $tc] = $oppTypes[$it['type']]; ?>
-                <tr data-type="<?= $e($it['type']) ?>">
-                    <td style="white-space:nowrap;"><span class="badge bg-<?= $e($tc) ?>"><?= $e($tl) ?></span></td>
+                <?php $tierLabel = ['high' => ['Prioridad alta', 'danger'], 'medium' => ['Prioridad media', 'warning'], 'explore' => ['Exploración', 'secondary']][$it['tier']]; ?>
+                <tr data-type="<?= $e($it['type']) ?>" data-tier="<?= $e($it['tier']) ?>" <?= $it['tier'] === 'explore' ? 'style="display:none;"' : '' ?>>
+                    <td style="white-space:nowrap;"><span class="badge bg-<?= $e($tc) ?>"><?= $e($tl) ?></span><div style="margin-top:3px;"><span class="badge bg-<?= $e($tierLabel[1]) ?> <?= $tierLabel[1] === 'warning' ? 'text-dark' : '' ?>" style="font-size:.62rem;" title="<?= $it['tier'] === 'explore' ? 'Pocas impresiones: mucha incertidumbre, no actúes sin más datos' : ($it['tier'] === 'high' ? 'Mucho peso en el sitio o caída de clics confirmada' : 'Volumen razonable') ?>"><?= $e($tierLabel[0]) ?></span></div></td>
                     <td class="gsc-trunc" style="max-width:260px;" title="<?= $e($it['name']) ?>">
                         <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;"><?= $it['kind'] === 'page' ? 'URL' : 'Palabra clave' ?></div>
                         <strong><?= $it['kind'] === 'page' ? $pageLink($it['name'], $it['label']) : $e($it['label']) ?></strong></td>
@@ -150,19 +154,29 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
     </div>
     <script>
     (function () {
-        var chips = document.querySelectorAll('#gsc-opps-chips [data-type]'), rows = document.querySelectorAll('#gsc-opps-table tbody tr');
+        var chips = document.querySelectorAll('#gsc-opps-chips [data-type]'), rows = document.querySelectorAll('#gsc-opps-table tbody tr'), showExplore = false, curType = '';
+        function applyOpps() {
+            rows.forEach(function (r) { r.style.display = ((!curType || r.dataset.type === curType) && (showExplore || r.dataset.tier !== 'explore')) ? '' : 'none'; });
+        }
         chips.forEach(function (b) {
             b.addEventListener('click', function () {
                 chips.forEach(function (x) { x.classList.toggle('btn-dark', x === b && !x.dataset.type); });
-                rows.forEach(function (r) { r.style.display = (!b.dataset.type || r.dataset.type === b.dataset.type) ? '' : 'none'; });
+                curType = b.dataset.type || '';
+                applyOpps();
             });
+        });
+        var ex = document.getElementById('gsc-opps-explore');
+        if (ex) ex.addEventListener('click', function () {
+            showExplore = !showExplore;
+            ex.innerHTML = showExplore ? '<i class="bi bi-eye-slash"></i> Ocultar exploratorias' : '<i class="bi bi-eye"></i> Mostrar exploratorias (' + <?= (int) ($o['tiers']['explore'] ?? 0) ?> + ')';
+            applyOpps();
         });
         var help = document.getElementById('gsc-opps-help');
         if (help) help.addEventListener('click', function () {
             var items = <?= json_encode(array_map(fn ($k) => [$oppTypes[$k][0], $oppHelp[$k]], array_keys($oppTypes)), JSON_UNESCAPED_UNICODE) ?>;
             var html = '<div style="text-align:left;font-size:.92rem"><p>Son reglas fijas (sin IA) sobre los datos que Google ya te ha dado. Se aplican a consultas y a páginas, y se ordenan por lo que podrías ganar.</p><ul>'
                 + items.map(function (i) { return '<li><strong>' + i[0] + '</strong>: ' + i[1] + '</li>'; }).join('')
-                + '</ul><p class="mb-1">El mínimo de impresiones se adapta al tamaño del sitio (entre 3 y 50). El CTR «normal» por posición es una referencia típica del sector (28 % en la 1.ª, 15 % en la 2.ª, 11 % en la 3.ª… 2 % en la 10.ª), no un dato de Google.</p></div>';
+                + '</ul><p class="mb-1">Cada aviso lleva una <strong>prioridad</strong> según los datos que lo respaldan: <strong>alta</strong> (mucho peso en el sitio o una caída de clics confirmada), <strong>media</strong> y <strong>exploración</strong> (pocas impresiones: se ocultan por defecto y no llevan consejo concreto). Las variantes de una misma página (con/sin www, #ancla, utm_*) se suman, y las páginas legales y de acceso se excluyen. Las cifras «≈ +N clics» son una <strong>estimación</strong>, no una previsión. El mínimo de impresiones se adapta al tamaño del sitio (entre 3 y 50). El CTR «normal» por posición es una referencia típica del sector (28 % en la 1.ª, 15 % en la 2.ª, 11 % en la 3.ª… 2 % en la 10.ª), no un dato de Google.</p></div>';
             if (window.Swal) { Swal.fire({ title: 'Cómo se detectan las oportunidades', html: html, icon: 'info', width: 680, confirmButtonText: 'Entendido' }); }
         });
     })();
@@ -177,7 +191,7 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
             </tbody></table></div></div></div>
         <div class="col-lg-6"><div class="card"><div class="card-header"><strong>Páginas</strong> <span class="text-muted" style="font-size:.8rem;">las que más tráfico de Google reciben</span> <?= $csvLink('pages') ?></div>
             <div class="table-responsive"><table class="table table-sm mb-0 gsc-sortable gsc-fit"><thead><tr><th>Página</th><th class="num">Clics</th><th class="num">Impr.</th><th class="num">CTR</th><th class="num">Pos.</th></tr></thead><tbody>
-            <?php foreach ($report['pages'] as $r): ?><tr><td class="gsc-trunc" title="<?= $e($r['name']) ?>"><?php $short = preg_replace('#^https?://(www\.)?' . preg_quote($property['domain'], '#') . '#i', '', $r['name']) ?: '/'; ?><?= $pageLink($r['name'], $short) ?><?php if (($property['status'] ?? '') === 'active' && preg_match('#^https?://#i', (string) $r['name'])): ?> <button type="button" class="btn btn-link p-0 ms-1 gsc-inspect-row" data-url="<?= $e($r['name']) ?>" title="Ver si Google la tiene indexada"><i class="bi bi-search" style="font-size:.72rem;opacity:.6;"></i></button><?php endif; ?><?php if (!empty($content[$r['name']])): $ct = $content[$r['name']]; ?><div class="text-muted" style="font-size:.72rem;line-height:1.2;overflow:hidden;text-overflow:ellipsis;" title="<?= $e($ct['title']) ?>"><i class="bi bi-file-earmark-text"></i> <?= $e($ct['type']) ?>: <?= $e($ct['title']) ?> · <a href="<?= $e($ct['edit']) ?>" target="_blank" rel="noopener noreferrer">Editar</a></div><?php endif; ?></td><td class="num"><?= $n($r['clicks']) ?></td><td class="num"><?= $n($r['impressions']) ?></td><td class="num"><?= $pct($r['ctr']) ?></td><td class="num"><?= $pos($r['position']) ?></td></tr><?php endforeach; ?>
+            <?php foreach ($report['pages'] as $r): ?><tr><td class="gsc-trunc" title="<?= $e($r['name']) ?>"><?php $short = preg_replace('#^https?://(www\.)?' . preg_quote($property['domain'], '#') . '#i', '', $r['name']) ?: '/'; ?><?= $pageLink($r['name'], $short) ?><?php if (($r['variants'] ?? 1) > 1): ?> <span class="badge bg-light text-dark border" style="font-size:.65rem;" title="Suma de <?= (int) $r['variants'] ?> variantes de esta URL en Google (con/sin www, con #ancla o con parámetros de seguimiento)"><?= (int) $r['variants'] ?> variantes</span><?php endif; ?><?php if (($property['status'] ?? '') === 'active' && preg_match('#^https?://#i', (string) $r['name'])): ?> <button type="button" class="btn btn-link p-0 ms-1 gsc-inspect-row" data-url="<?= $e($r['name']) ?>" title="Ver si Google la tiene indexada"><i class="bi bi-search" style="font-size:.72rem;opacity:.6;"></i></button><?php endif; ?><?php if (!empty($content[$r['name']])): $ct = $content[$r['name']]; ?><div class="text-muted" style="font-size:.72rem;line-height:1.2;overflow:hidden;text-overflow:ellipsis;" title="<?= $e($ct['title']) ?>"><i class="bi bi-file-earmark-text"></i> <?= $e($ct['type']) ?>: <?= $e($ct['title']) ?> · <a href="<?= $e($ct['edit']) ?>" target="_blank" rel="noopener noreferrer">Editar</a></div><?php endif; ?></td><td class="num"><?= $n($r['clicks']) ?></td><td class="num"><?= $n($r['impressions']) ?></td><td class="num"><?= $pct($r['ctr']) ?></td><td class="num"><?= $pos($r['position']) ?></td></tr><?php endforeach; ?>
             <?php if (!$report['pages']): ?><tr><td colspan="5" class="text-muted text-center p-3">Sin páginas en este periodo.</td></tr><?php endif; ?>
             </tbody></table></div></div></div>
         <div class="col-lg-6"><div class="card"><div class="card-header"><strong>Países</strong> <?= $csvLink('countries') ?></div>

@@ -14,7 +14,9 @@ use PDO;
  *  - rising    «En ascenso»: más impresiones que antes (o consulta nueva).
  *
  * Se aplican a consultas y a páginas. El umbral mínimo de impresiones se adapta al volumen del sitio.
- * No se puede detectar canibalización (varias páginas para la misma consulta): las consultas se guardan sin su página.
+ * Las variantes de una misma página (con/sin www, con #ancla, con utm_*) se agrupan; las páginas legales, de acceso y de
+ * panel se excluyen. Cada oportunidad lleva una prioridad (alta, media o exploración) según el volumen de datos que la
+ * respalda: con pocas impresiones el aviso es «exploración» y no se le da una recomendación concreta.
  */
 class OpportunityService
 {
@@ -29,6 +31,9 @@ class OpportunityService
     /** CTR orgánico típico por posición (aproximación del sector, no un dato de Google). */
     private const CTR = [1 => 0.28, 2 => 0.15, 3 => 0.11, 4 => 0.08, 5 => 0.06, 6 => 0.05, 7 => 0.04, 8 => 0.03, 9 => 0.025, 10 => 0.02];
     private const PER_TYPE = 15;
+
+    /** Impresiones totales del periodo (para repartir las oportunidades por prioridad). */
+    private int $total = 0;
 
     public function __construct(private PDO $pdo)
     {
@@ -63,25 +68,39 @@ class OpportunityService
 
         // Sin histórico descargado para el periodo anterior no se puede hablar de caídas ni de subidas
         $comparable = empty($property['data_from']) || (string) $property['data_from'] <= $prevFrom;
-        $notes = ['Las consultas se guardan sin su página, así que no se puede detectar si dos páginas tuyas compiten por la misma búsqueda.'];
+        $notes = [];
         if (!$comparable) {
             $notes[] = 'Aún no hay histórico para comparar con el periodo anterior (los datos empiezan el ' . date('d/m/Y', strtotime((string) $property['data_from'])) . '): no se muestran caídas ni subidas.';
         }
+        $this->total = $total;
         $items = [];
+        $excluded = 0;
         foreach (['query' => ['gsc_query_daily', 'query'], 'page' => ['gsc_page_daily', 'page']] as $kind => [$table, $col]) {
-            $cur = $this->aggregate($table, $col, $id, $from, $to);
-            $prev = $this->aggregate($table, $col, $id, $prevFrom, $prevTo);
+            $cur = $this->aggregate($table, $col, $id, $from, $to, $kind === 'page');
+            $prev = $this->aggregate($table, $col, $id, $prevFrom, $prevTo, $kind === 'page');
             foreach ($cur as $name => $c) {
-                foreach ($this->evaluate($kind, $name, $c, $prev[$name] ?? null, $min, $property['domain'], $comparable) as $item) {
+                $shown = $c['display'] ?? $name;
+                if ($kind === 'page' && UrlNormalizer::isExcluded($shown)) {
+                    $excluded++;
+                    continue;
+                }
+                foreach ($this->evaluate($kind, $shown, $c, $prev[$name] ?? null, $min, $property['domain'], $comparable) as $item) {
                     $items[] = $item;
                 }
             }
             // Cosas que existían antes y han desaparecido por completo
             foreach ($prev as $name => $p) {
                 if ($comparable && !isset($cur[$name]) && $p['clicks'] >= 3) {
-                    $items[] = $this->item('drop', $kind, $name, ['clicks' => 0, 'impressions' => 0, 'position' => null], $p, (float) $p['clicks'], $property['domain']);
+                    $shown = $p['display'] ?? $name;
+                    if ($kind === 'page' && UrlNormalizer::isExcluded($shown)) {
+                        continue;
+                    }
+                    $items[] = $this->item('drop', $kind, $shown, ['clicks' => 0, 'impressions' => 0, 'position' => null], $p, (float) $p['clicks'], $property['domain']);
                 }
             }
+        }
+        if ($excluded) {
+            $notes[] = $excluded . ' página(s) legales, de acceso o de panel se han excluido (no son oportunidades de captación).';
         }
 
         $counts = array_fill_keys(array_keys(self::TYPES), 0);
@@ -99,9 +118,14 @@ class OpportunityService
         }
         usort($final, fn ($a, $b) => $b['score'] <=> $a['score']);
 
+        $tiers = ['high' => 0, 'medium' => 0, 'explore' => 0];
+        foreach ($final as $it) {
+            $tiers[$it['tier']]++;
+        }
+
         return [
             'empty' => false, 'days' => $days, 'from' => $from, 'to' => $to, 'min_impressions' => $min,
-            'items' => $final, 'counts' => $counts, 'total_impressions' => $total,
+            'items' => $final, 'counts' => $counts, 'tiers' => $tiers, 'total_impressions' => $total,
             'notes' => $notes,
         ];
     }
@@ -147,20 +171,43 @@ class OpportunityService
     {
         $label = $kind === 'page' ? self::shortPage($name, $domain) : $name;
         $imp = $c['impressions'];
+        $tier = $this->tierOf($type, $c, $p);
 
         return [
-            'type' => $type, 'kind' => $kind, 'name' => $name, 'label' => $label,
+            'type' => $type, 'kind' => $kind, 'name' => $name, 'label' => $label, 'tier' => $tier, 'variants' => (int) ($c['variants'] ?? 1),
             'clicks' => $c['clicks'], 'impressions' => $imp, 'ctr' => $imp > 0 ? $c['clicks'] / $imp : 0.0, 'position' => $c['position'],
             'prev_clicks' => $p['clicks'] ?? null, 'prev_impressions' => $p['impressions'] ?? null,
-            'score' => round($score, 2), 'advice' => $this->advice($type, $kind, $c, $p), 'detail' => $this->detail($type, $c, $p, $score),
+            'score' => round($score, 2), 'advice' => $tier === 'explore' ? 'Pocos datos: necesita revisión antes de actuar. Espera a tener más impresiones para decidir.' : $this->advice($type, $kind, $c, $p), 'detail' => $this->detail($type, $c, $p, $score),
         ];
+    }
+
+    /**
+     * Prioridad según el volumen que respalda el aviso:
+     *  alta: mucho peso en el sitio (o una caída de clics confirmada con un mínimo de clics previos);
+     *  media: volumen razonable; exploración: pocas impresiones (mucha incertidumbre).
+     */
+    private function tierOf(string $type, array $c, ?array $p): string
+    {
+        $imp = (int) $c['impressions'];
+        $weight = max($imp, (int) ($p['impressions'] ?? 0));
+        if ($type === 'drop' && $p !== null && (int) $p['clicks'] >= 10 && (int) ($c['clicks'] ?? 0) <= 0.5 * (int) $p['clicks']) {
+            return 'high';
+        }
+        if ($weight >= max(50, (int) round($this->total * 0.03))) {
+            return 'high';
+        }
+        if ($weight >= max(15, (int) round($this->total * 0.01))) {
+            return 'medium';
+        }
+
+        return 'explore';
     }
 
     /** Cifra que acompaña a cada oportunidad (qué se puede ganar o qué ha cambiado). */
     private function detail(string $type, array $c, ?array $p, float $score): string
     {
         $n = fn ($v) => number_format((float) $v, 0, ',', '.');
-        $plus = '≈ +' . number_format(max(0.1, $score), 1, ',', '.') . ' clics';
+        $plus = 'estimación ≈ +' . number_format(max(0.1, $score), 1, ',', '.') . ' clics';
 
         return match ($type) {
             'low_ctr' => $plus . ' con un CTR normal',
@@ -201,13 +248,24 @@ class OpportunityService
         return $path === '' ? '/' : $path;
     }
 
-    /** @return array<string,array{clicks:int,impressions:int,position:?float}> */
-    private function aggregate(string $table, string $col, int $id, string $from, string $to): array
+    /**
+     * @param bool $group agrupa las variantes de una misma página (www, #ancla, utm_*)
+     * @return array<string,array{clicks:int,impressions:int,position:?float,display?:string,variants?:int}>
+     */
+    private function aggregate(string $table, string $col, int $id, string $from, string $to, bool $group = false): array
     {
         $stmt = $this->pdo->prepare("SELECT {$col} AS name, SUM(clicks) AS clicks, SUM(impressions) AS impressions, SUM(position * impressions) AS pw FROM {$table} WHERE property_id = ? AND date >= ? AND date <= ? GROUP BY {$col}");
         $stmt->execute([$id, $from, $to]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $out = [];
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        if ($group) {
+            foreach (UrlNormalizer::group($rows) as $key => $g) {
+                $out[$key] = ['clicks' => $g['clicks'], 'impressions' => $g['impressions'], 'position' => $g['impressions'] > 0 ? $g['pw'] / $g['impressions'] : null, 'display' => $g['display'], 'variants' => $g['variants']];
+            }
+
+            return $out;
+        }
+        foreach ($rows as $r) {
             $imp = (int) $r['impressions'];
             $out[(string) $r['name']] = ['clicks' => (int) $r['clicks'], 'impressions' => $imp, 'position' => $imp > 0 ? (float) $r['pw'] / $imp : null];
         }
