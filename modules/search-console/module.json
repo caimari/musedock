@@ -1,8 +1,16 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "changelog": [
+    {
+      "version": "0.1.3",
+      "date": "2026-10-16",
+      "changes": [
+        "Spinner en los botones y modal de progreso al leer propiedades de Search Console (tarda unos segundos).",
+        "El módulo tiene acceso directo en Ajustes → Search Console (superadmin), junto a «SEO y Social»."
+      ]
+    },
     {
       "version": "0.1.2",
       "date": "2026-10-16",

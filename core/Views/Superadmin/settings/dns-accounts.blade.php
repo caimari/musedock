@@ -160,7 +160,35 @@
                 inputAttributes: { autocomplete: 'current-password' }, showCancelButton: true,
                 confirmButtonText: 'Borrar', cancelButtonText: 'Cancelar', confirmButtonColor: '#dc3545',
                 inputValidator: function (v) { return v ? undefined : 'Escribe tu contraseña'; }
-            }).then(function (r) { if (r.isConfirmed) { f.querySelector('[name=confirm_password]').value = r.value; f.submit(); } });
+            }).then(function (r) {
+                if (r.isConfirmed) { f.querySelector('[name=confirm_password]').value = r.value; busy('Borrando la cuenta…'); f.submit(); }
+            });
+        });
+    });
+
+    // Al volver con «atrás» no se debe quedar el modal de progreso abierto
+    window.addEventListener('pageshow', function (e) { if (e.persisted) { location.reload(); } });
+
+    // Progreso: probar una cuenta o importar llama a Cloudflare y tarda unos segundos
+    function busy(text) {
+        if (!window.Swal) { return; }
+        Swal.fire({ title: text, text: 'Puede tardar unos segundos.', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false, didOpen: function () { Swal.showLoading(); } });
+    }
+    document.querySelectorAll('form[action^="/musedock/settings/dns-accounts"]').forEach(function (f) {
+        if (f.classList.contains('dnsa-delete')) { return; }
+        f.addEventListener('submit', function (e) {
+            if (e.defaultPrevented) { return; }
+            var a = f.getAttribute('action');
+            var text = /\/test$/.test(a) ? 'Probando la conexión con Cloudflare…'
+                : /\/import$/.test(a) ? 'Importando cuentas y comprobando sus tokens…'
+                : /dns-accounts$/.test(a) ? 'Guardando y probando la cuenta…'
+                : 'Aplicando el cambio…';
+            var btn = e.submitter || f.querySelector('button');
+            if (btn) {
+                btn.insertAdjacentHTML('afterbegin', '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>');
+                setTimeout(function () { btn.disabled = true; }, 0); // tras enviar, para no perder el envío
+            }
+            busy(text);
         });
     });
 })();

@@ -143,6 +143,15 @@
 </script>
 <script>
 (function () {
+    document.querySelectorAll('form[action$="/refresh"]').forEach(function (f) {
+        f.addEventListener('submit', function (e) {
+            var b = e.submitter || f.querySelector('button');
+            if (b) { b.insertAdjacentHTML('afterbegin', '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>'); setTimeout(function () { b.disabled = true; }, 0); }
+            if (window.Swal) { Swal.fire({ title: 'Leyendo las propiedades de Search Console…', text: 'Puede tardar unos segundos.', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false, didOpen: function () { Swal.showLoading(); } }); }
+        });
+    });
+    window.addEventListener('pageshow', function (e) { if (e.persisted) { location.reload(); } });
+
     var del = document.getElementById('gsc-delete-form');
     if (!del || !window.Swal) return;
     del.addEventListener('submit', function (e) {
