@@ -2674,6 +2674,11 @@ if (!function_exists('logo_variant_url')) {
         if ($url === '') {
             return $url;
         }
+        // Logos del Media Manager: su variante WebP de 800 px (nítida en retina)
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        if (str_starts_with($path, '/media/p/') || str_starts_with($path, '/media/t/')) {
+            return media_thumb_url($path, 'medium');
+        }
         try {
             return \Screenart\Musedock\Helpers\ImageVariant::forHeight($url, max(30, $maxDisplayHeight))['url'];
         } catch (\Throwable $e) {

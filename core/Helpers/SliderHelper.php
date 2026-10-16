@@ -7,6 +7,64 @@ use Screenart\Musedock\Models\Slide;
 
 class SliderHelper
 {
+    /** Swiper se incluye una sola vez por página aunque haya varios sliders. */
+    private static bool $swiperScriptIncluded = false;
+
+    private static function swiperScriptTag(string $appRoot): string
+    {
+        if (self::$swiperScriptIncluded) {
+            return '';
+        }
+        self::$swiperScriptIncluded = true;
+        $swiperJsPath = $appRoot . '/public/assets/js/swiper-bundle.min.js';
+        $swiperJsVersion = is_file($swiperJsPath) ? filemtime($swiperJsPath) : time();
+
+        return '<script src="/assets/js/swiper-bundle.min.js?v=' . $swiperJsVersion . '"></script>';
+    }
+
+    /**
+     * Variante WebP del Media Manager (thumb 420 px, medium 800 px, large 1600 px) en
+     * lugar del original, que a menudo es un PNG de cientos de KB.
+     */
+    private static function optimizedImage(?string $url, string $size): string
+    {
+        $url = (string) $url;
+        if (!str_starts_with($url, '/media/p/') && !str_starts_with($url, '/media/t/')) {
+            return $url;
+        }
+
+        return media_thumb_url(preg_replace('/[?&]size=[a-z]+/i', '', $url), $size);
+    }
+
+    /**
+     * CSS que reproduce el reparto de slides antes de que Swiper arranque, para que la
+     * página no salte (CLS) mientras se carga el script.
+     *
+     * @param array<int, array{0:int,1:int}> $breakpoints anchoMínimo => [slides, separación px]
+     */
+    private static function preInitCss(int $sliderId, array $breakpoints): string
+    {
+        $sel = '.slider-' . $sliderId . ':not(.swiper-initialized)';
+        $css = $sel . ' .swiper-wrapper{display:flex;overflow:hidden}';
+        foreach ($breakpoints as $min => [$perView, $gap]) {
+            $rule = $sel . ' .swiper-slide{flex:0 0 calc((100% - ' . (($perView - 1) * $gap) . 'px) / ' . $perView . ');margin-right:' . $gap . 'px}';
+            $css .= $min > 0 ? '@media (min-width:' . $min . 'px){' . $rule . '}' : $rule;
+        }
+
+        return '<style>' . $css . '</style>';
+    }
+
+    /** Configuración de breakpoints de Swiper a partir del mismo array. */
+    private static function breakpointsJs(array $breakpoints): string
+    {
+        $parts = [];
+        foreach ($breakpoints as $min => [$perView, $gap]) {
+            $parts[] = $min . ': { slidesPerView: ' . $perView . ', spaceBetween: ' . $gap . ' }';
+        }
+
+        return 'breakpoints: { ' . implode(', ', $parts) . ' },';
+    }
+
     private static function sanitizeColor($value, string $default): string
     {
         $value = is_string($value) ? trim($value) : '';
@@ -227,10 +285,10 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
 
         // Portrait-carousel: imagen con lightbox + caption debajo (mantener <img> para lightbox)
         if ($isPortraitCarousel) {
-            $imgUrl = \e($slide->image_url);
+            $imgUrl = \e(self::optimizedImage($slide->image_url, 'thumb'));
             $slideTitle = \e($slide->title ?? '');
             if ($lightboxEnabled) {
-                $output .= '<a href="' . $imgUrl . '" class="portrait-lightbox" data-title="' . $slideTitle . '">';
+                $output .= '<a href="' . \e(self::optimizedImage($slide->image_url, 'large')) . '" class="portrait-lightbox" data-title="' . $slideTitle . '">';
                 $output .= '<img src="' . $imgUrl . '" alt="' . $slideTitle . '" style="' . $imgStyle . '">';
                 $output .= '</a>';
             } else {
@@ -244,9 +302,10 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
         }
 
         // Usar div con background-image para control robusto de posición focal
-        $output .= '<div style="' . $bgStyle . 'background-image:url(\'' . \e($slide->image_url) . '\');"></div>';
-        // Mantener img oculta para accesibilidad/SEO
-        $output .= '<img src="' . \e($slide->image_url) . '" alt="" style="display:none;">';
+        $slideImage = \e(self::optimizedImage($slide->image_url, 'large'));
+        $output .= '<div style="' . $bgStyle . 'background-image:url(\'' . $slideImage . '\');"></div>';
+        // Mantener img oculta para accesibilidad/SEO (misma URL que el fondo: una sola descarga)
+        $output .= '<img src="' . $slideImage . '" alt="" style="display:none;">';
 
         // Verificar si hay botones configurados
         $linkText = isset($slide->link_text) ? trim((string) $slide->link_text) : '';
@@ -447,31 +506,34 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
             break;
     }
 
-    $swiperJsPath = $appRoot . '/public/assets/js/swiper-bundle.min.js';
-    $swiperJsVersion = is_file($swiperJsPath) ? filemtime($swiperJsPath) : time();
-    $output .= '<script src="/assets/js/swiper-bundle.min.js?v=' . $swiperJsVersion . '"></script>';
+    $output .= self::swiperScriptTag($appRoot);
     // Dual-view: 2 slides visibles con gap
     $isDualView = ($theme === 'dual-view');
     $isPortraitCarousel = ($theme === 'portrait-carousel');
     $isMultiSlide = ($isDualView || $isPortraitCarousel);
 
+    // anchoMínimo => [slides visibles, separación px] (los mismos valores de siempre)
+    $breakpoints = [];
     if ($isDualView) {
         $slidesPerViewConfig = 'slidesPerView: 2, spaceBetween: 16,';
-        $multiSlideResponsive = 'breakpoints: { 0: { slidesPerView: 1, spaceBetween: 8 }, 768: { slidesPerView: 2, spaceBetween: 16 } },';
+        $breakpoints = [0 => [1, 8], 768 => [2, 16]];
     } elseif ($isPortraitCarousel) {
         if ($slideSize === 'tiny') {
             $slidesPerViewConfig = 'slidesPerView: 8, spaceBetween: 8,';
-            $multiSlideResponsive = 'breakpoints: { 0: { slidesPerView: 4, spaceBetween: 3 }, 480: { slidesPerView: 5, spaceBetween: 3 }, 768: { slidesPerView: 6, spaceBetween: 4 }, 1024: { slidesPerView: 7, spaceBetween: 6 }, 1280: { slidesPerView: 8, spaceBetween: 8 } },';
+            $breakpoints = [0 => [4, 3], 480 => [5, 3], 768 => [6, 4], 1024 => [7, 6], 1280 => [8, 8]];
         } elseif ($slideSize === 'small') {
             $slidesPerViewConfig = 'slidesPerView: 6, spaceBetween: 12,';
-            $multiSlideResponsive = 'breakpoints: { 0: { slidesPerView: 3, spaceBetween: 3 }, 480: { slidesPerView: 3, spaceBetween: 4 }, 768: { slidesPerView: 4, spaceBetween: 6 }, 1024: { slidesPerView: 5, spaceBetween: 8 }, 1280: { slidesPerView: 6, spaceBetween: 12 } },';
+            $breakpoints = [0 => [3, 3], 480 => [3, 4], 768 => [4, 6], 1024 => [5, 8], 1280 => [6, 12]];
         } else {
             $slidesPerViewConfig = 'slidesPerView: 5, spaceBetween: 20,';
-            $multiSlideResponsive = 'breakpoints: { 0: { slidesPerView: 2, spaceBetween: 4 }, 480: { slidesPerView: 2, spaceBetween: 4 }, 768: { slidesPerView: 3, spaceBetween: 8 }, 1024: { slidesPerView: 4, spaceBetween: 12 }, 1280: { slidesPerView: 5, spaceBetween: 16 } },';
+            $breakpoints = [0 => [2, 4], 480 => [2, 4], 768 => [3, 8], 1024 => [4, 12], 1280 => [5, 16]];
         }
     } else {
         $slidesPerViewConfig = '';
-        $multiSlideResponsive = '';
+    }
+    $multiSlideResponsive = $breakpoints ? self::breakpointsJs($breakpoints) : '';
+    if ($breakpoints) {
+        $output .= self::preInitCss($sliderId, $breakpoints);
     }
 
     $output .= '<script>
@@ -635,9 +697,7 @@ protected static function renderSwiper(int $sliderId, array $slides, array $sett
             $output .= $customStyles;
         }
 
-        $swiperJsPath = $appRoot . '/public/assets/js/swiper-bundle.min.js';
-        $swiperJsVersion = is_file($swiperJsPath) ? filemtime($swiperJsPath) : time();
-        $output .= '<script src="/assets/js/swiper-bundle.min.js?v=' . $swiperJsVersion . '"></script>';
+        $output .= self::swiperScriptTag($appRoot);
         $output .= '<script>
         document.addEventListener("DOMContentLoaded", function () {
             var thumbs = new Swiper(".slider-' . $sliderId . '-thumbs", {

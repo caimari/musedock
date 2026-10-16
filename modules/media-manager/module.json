@@ -2,7 +2,7 @@
     "name": "Media Manager",
     "slug": "media-manager",
     "description": "Gestor de archivos y biblioteca de medios para MuseDock CMS.",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "author": "MuseDock Team (Adaptado)",
     "active": true,
     "cms_enabled": true,
@@ -14,6 +14,10 @@
         }
     },
     "changelog": {
+        "1.1.0": [
+            "Variante «large» (1600 px, WebP) con ?size=large para sliders y cabeceras a todo ancho.",
+            "Si falta una variante (imágenes importadas o anteriores a las variantes), se genera en WebP la primera vez que se pide y queda guardada; GIF y SVG se sirven tal cual."
+        ],
         "pendiente (auditoría 2026-10-05)": [
             "Seguridad: /media/id/{id} solo sirve medios del tenant actual o globales.",
             "Logs: mediamanager_table_exists usa la consulta de PostgreSQL (DATABASE() fallaba en cada visita).",

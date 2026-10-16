@@ -266,6 +266,9 @@ class MediaServeController
                 if ($size === 'medium') {
                     return $this->serveMedium($media->path);
                 }
+                if ($size === 'large') {
+                    return $this->serveLarge($media->path);
+                }
                 return $this->serve($media->path);
             }
 
@@ -322,6 +325,9 @@ class MediaServeController
                 }
                 if ($size === 'medium') {
                     return $this->serveMedium($media->path);
+                }
+                if ($size === 'large') {
+                    return $this->serveLarge($media->path);
                 }
                 return $this->serve($media->path);
             }
@@ -405,8 +411,77 @@ class MediaServeController
     }
 
     /**
-     * Sirve una variante redimensionada (thumb o medium).
-     * Si la variante no existe, sirve el original como fallback.
+     * Sirve la versión large (1600px, WebP) para sliders y cabeceras a todo ancho.
+     * Se genera la primera vez que se pide.
+     */
+    public function serveLarge($path = '')
+    {
+        return $this->serveResizedVariant($path, 'large', 'large', '_large');
+    }
+
+    /** Lado máximo de cada variante (caja en la que encaja la imagen). */
+    private const VARIANT_MAX = ['thumbs' => 420, 'medium' => 800, 'large' => 1600];
+
+    /**
+     * Genera una variante WebP que falta (imágenes importadas o subidas antes de que
+     * existieran las variantes). Devuelve la ruta creada o null si no se puede.
+     */
+    private function generateMissingVariant(string $sourceFile, string $targetFile, int $maxSide): ?string
+    {
+        if (!function_exists('imagewebp') || !is_file($sourceFile)) {
+            return null;
+        }
+        $info = @getimagesize($sourceFile);
+        if (!$info || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) {
+            return null; // GIF (animados), SVG y otros: se sirven tal cual
+        }
+        [$w, $h] = $info;
+        if ($w <= 0 || $h <= 0 || $w * $h > 40000000) {
+            return null; // demasiado grande para procesar en una petición
+        }
+
+        $dir = dirname($targetFile);
+        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+            return null;
+        }
+        // Una sola generación a la vez por variante
+        $lock = @fopen($targetFile . '.lock', 'x');
+        if (!$lock) {
+            return null;
+        }
+        try {
+            $src = match ($info[2]) {
+                IMAGETYPE_JPEG => @imagecreatefromjpeg($sourceFile),
+                IMAGETYPE_PNG => @imagecreatefrompng($sourceFile),
+                IMAGETYPE_WEBP => @imagecreatefromwebp($sourceFile),
+            };
+            if (!$src) {
+                return null;
+            }
+            $ratio = min($maxSide / $w, $maxSide / $h, 1);
+            $nw = max(1, (int) round($w * $ratio));
+            $nh = max(1, (int) round($h * $ratio));
+            $dst = imagecreatetruecolor($nw, $nh);
+            imagealphablending($dst, false);
+            imagesavealpha($dst, true);
+            imagefill($dst, 0, 0, imagecolorallocatealpha($dst, 0, 0, 0, 127));
+            imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+            $tmp = $targetFile . '.' . bin2hex(random_bytes(4)) . '.tmp';
+            $ok = @imagewebp($dst, $tmp, 80) && @rename($tmp, $targetFile);
+            @unlink($tmp);
+            imagedestroy($src);
+            imagedestroy($dst);
+
+            return $ok ? $targetFile : null;
+        } finally {
+            fclose($lock);
+            @unlink($targetFile . '.lock');
+        }
+    }
+
+    /**
+     * Sirve una variante redimensionada (thumb, medium o large).
+     * Si la variante no existe, la genera en WebP; si no se puede, sirve el original.
      */
     private function serveResizedVariant(string $path, string $metaKey, string $subDir, string $suffix)
     {
@@ -426,6 +501,15 @@ class MediaServeController
             $fullVariantPath = $storageRoot . '/' . $variantPath;
             if ($storageRoot && file_exists($fullVariantPath)) {
                 return $this->serveLocalFile($fullVariantPath);
+            }
+        }
+
+        // Generarla ahora (queda guardada para las siguientes visitas)
+        if ($storageRoot && isset(self::VARIANT_MAX[$subDir])) {
+            $target = $storageRoot . '/' . $dir . '/' . $subDir . '/' . $filename . $suffix . '.webp';
+            $generated = $this->generateMissingVariant($storageRoot . '/' . $path, $target, self::VARIANT_MAX[$subDir]);
+            if ($generated !== null) {
+                return $this->serveLocalFile($generated);
             }
         }
 
