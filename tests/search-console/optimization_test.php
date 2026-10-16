@@ -47,20 +47,20 @@ ok($e['before']['impressions'] === 280 && $e['after']['impressions'] === 560, 's
 ok(str_contains($e['note'], 'no prueba de causa'), 'dice que es una coincidencia, no una causa');
 
 // El sitio entero sube igual: no se atribuye a la optimización
-$fill(1, 'https://x.test/todo-sube', [1, 20, 9.0], [2, 40, 9.0], [100, 1000], [200, 2000]);
-$id2 = $svc->add($prop, 'https://x.test/todo-sube', 'content', '', $done, 'test');
+$fill(2, 'https://x.test/todo-sube', [1, 20, 9.0], [2, 40, 9.0], [100, 1000], [200, 2000]);
+$id2 = $svc->add(['id' => 2, 'domain' => 'y.test'], 'https://x.test/todo-sube', 'content', '', $done, 'test');
 $e2 = $svc->evaluate($pdo->query("SELECT * FROM gsc_optimizations WHERE id = $id2")->fetch(PDO::FETCH_ASSOC), $last);
 ok($e2['state'] === 'flat', 'si todo el sitio sube lo mismo (+100 %), la página no se presenta como mejora propia: sin cambio claro');
 
 // Empeora
-$fill(1, 'https://x.test/peor', [3, 100, 5.0], [0, 40, 9.0]);
-$id3 = $svc->add($prop, 'https://x.test/peor', 'links', '', $done, 'test');
+$fill(3, 'https://x.test/peor', [3, 100, 5.0], [0, 40, 9.0]);
+$id3 = $svc->add(['id' => 3, 'domain' => 'z.test'], 'https://x.test/peor', 'links', '', $done, 'test');
 $e3 = $svc->evaluate($pdo->query("SELECT * FROM gsc_optimizations WHERE id = $id3")->fetch(PDO::FETCH_ASSOC), $last);
 ok($e3['state'] === 'worse' && str_contains($e3['verdict'], 'empeoramiento'), 'perder posición y clics con el sitio estable coincide con un empeoramiento');
 
 // Pocos datos antes del cambio
-$fill(1, 'https://x.test/pequena', [0, 0, 20.0], [0, 1, 20.0]);
-$id4 = $svc->add($prop, 'https://x.test/pequena', 'other', '', $done, 'test');
+$fill(4, 'https://x.test/pequena', [0, 0, 20.0], [0, 1, 20.0]);
+$id4 = $svc->add(['id' => 4, 'domain' => 'w.test'], 'https://x.test/pequena', 'other', '', $done, 'test');
 $e4 = $svc->evaluate($pdo->query("SELECT * FROM gsc_optimizations WHERE id = $id4")->fetch(PDO::FETCH_ASSOC), $last);
 ok($e4['state'] === 'few_data' && $e4['verdict'] === 'Pocos datos', 'con menos de 20 impresiones antes del cambio no se valora');
 
@@ -79,12 +79,12 @@ ok($fut['state'] === 'tracking' && str_contains($fut['note'], 'posterior'), 'una
 $page->execute([1, $day($done, 3), 'https://www.x.test/mejora?utm_source=a', 0, 50, 7.0]);
 $m = $svc->pageMetrics(1, 'https://x.test/mejora', $done, $day($done, 27));
 ok($m['impressions'] === 560 + 50, 'las variantes de la URL (www, utm_*) cuentan como la misma página');
-ok($svc->forProperty($prop) !== [] && count($svc->forProperty($prop)) === 4, 'lista las optimizaciones del dominio con su valoración');
-ok(count($svc->recent([1, 2], 2)) === 2 && $svc->recent([]) === [], 'resumen reciente con límite y sin dominios');
+ok(count($svc->forProperty($prop)) === 1 && isset($svc->forProperty($prop)[0]['evaluation']['verdict']), 'lista las optimizaciones del dominio con su valoración');
+ok(count($svc->recent([1, 2, 3, 4], 2)) === 2 && $svc->recent([]) === [], 'resumen reciente con límite y sin dominios');
 $svc->delete($id, 99);
-ok(count($svc->forProperty($prop)) === 4, 'no se puede borrar una optimización de otro dominio');
+ok(count($svc->forProperty($prop)) === 1, 'no se puede borrar una optimización de otro dominio');
 $svc->delete($id, 1);
-ok(count($svc->forProperty($prop)) === 3, 'sí la del propio');
+ok(count($svc->forProperty($prop)) === 0, 'sí la del propio');
 ok($svc->add($prop, 'https://x.test/a', 'tipo-raro', str_repeat('x', 900), $done, 'test') > 0 && $pdo->query("SELECT kind FROM gsc_optimizations ORDER BY id DESC LIMIT 1")->fetchColumn() === 'other' && strlen($pdo->query("SELECT note FROM gsc_optimizations ORDER BY id DESC LIMIT 1")->fetchColumn()) === 500, 'un tipo desconocido pasa a «otro» y la nota se recorta a 500');
 
 echo $fails ? "RESULTADO: $fails comprobaciones FALLAN\n" : "RESULTADO: las comprobaciones pasan\n";
