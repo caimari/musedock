@@ -5,6 +5,7 @@ namespace Modules\SearchConsole\Controllers;
 use Modules\SearchConsole\Services\ContentMapService;
 use Modules\SearchConsole\Services\CredentialStore;
 use Modules\SearchConsole\Services\DomainVerifier;
+use Modules\SearchConsole\Services\EditorialService;
 use Modules\SearchConsole\Services\GoogleApiException;
 use Modules\SearchConsole\Services\GoogleClient;
 use Modules\SearchConsole\Services\OpportunityService;
@@ -169,6 +170,45 @@ abstract class BaseController
         }
     }
 
+    /**
+     * Canibalización y sugerencias editoriales (por reglas) para las oportunidades de página más relevantes.
+     *
+     * @return array{cannibal:array,suggestions:array<string,string[]>}
+     */
+    private function editorialFor(array $property, array $report, array $opportunities): array
+    {
+        $empty = ['cannibal' => [], 'suggestions' => []];
+        if (!empty($report['empty']) || !empty($opportunities['empty'])) {
+            return $empty;
+        }
+        try {
+            $svc = new EditorialService($this->pdo);
+            $targets = [];
+            foreach ($opportunities['items'] as $it) {
+                if ($it['kind'] === 'page' && in_array($it['tier'], ['high', 'medium'], true) && in_array($it['type'], ['low_ctr', 'striking', 'far', 'drop'], true) && count($targets) < 8) {
+                    $targets[$it['name']] = true;
+                }
+            }
+            $siblingUrls = array_slice(array_column($report['pages'] ?? [], 'name'), 0, 25);
+            $content = [];
+            if (empty($property['external'])) {
+                $content = (new ContentMapService($this->pdo))->resolve($property['tenant_id'] !== null ? (int) $property['tenant_id'] : null, (string) $property['domain'],
+                    array_merge(array_keys($targets), $siblingUrls), function_exists('admin_path') ? admin_path() : 'admin', $this->scopeTenantId !== null);
+            }
+            $suggestions = [];
+            foreach (array_keys($targets) as $url) {
+                $list = $svc->suggestionsForPage($property, $url, $content[$url] ?? null, array_diff_key($content, [$url => 1]));
+                if ($list) {
+                    $suggestions[$url] = $list;
+                }
+            }
+
+            return ['cannibal' => $svc->cannibalization($property), 'suggestions' => $suggestions];
+        } catch (\Throwable $e) {
+            return $empty;
+        }
+    }
+
     /** Contenido del CMS que corresponde a las URL del informe (título y enlace para editar). */
     private function contentFor(array $property, array $report): array
     {
@@ -196,12 +236,15 @@ abstract class BaseController
         $days = (int) ($_GET['days'] ?? 28);
         $report = (new ReportService($this->pdo))->report($property, $days);
 
+        $opportunities = (new OpportunityService($this->pdo))->detect($property, in_array($days, [7, 28, 90, 180, 365], true) ? $days : 365);
+
         return View::renderModule('search-console', ($this->scopeTenantId === null ? 'superadmin' : 'tenant') . '.domain', [
             'title' => 'SEO · ' . $property['domain'],
             'property' => $property,
             'report' => $report,
             'content' => $this->contentFor($property, $report),
-            'opportunities' => (new OpportunityService($this->pdo))->detect($property, in_array($days, [7, 28, 90, 180, 365], true) ? $days : 365),
+            'editorial' => $this->editorialFor($property, $report, $opportunities),
+            'opportunities' => $opportunities,
             'periods' => ReportService::PERIODS,
             'baseUrl' => $this->baseUrl(),
         ]);

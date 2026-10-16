@@ -144,7 +144,12 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
                         <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;"><?= $it['kind'] === 'page' ? 'URL' : 'Palabra clave' ?></div>
                         <strong><?= $it['kind'] === 'page' ? $pageLink($it['name'], $it['label']) : $e($it['label']) ?></strong></td>
                     <td class="num"><?= $n($it['impressions']) ?></td><td class="num"><?= $n($it['clicks']) ?></td><td class="num"><?= $pos($it['position']) ?></td>
-                    <td style="font-size:.82rem;min-width:240px;max-width:460px;"><strong><?= $e($it['detail']) ?></strong><div class="text-muted"><?= $e($it['advice']) ?></div></td>
+                    <td style="font-size:.82rem;min-width:240px;max-width:460px;"><strong><?= $e($it['detail']) ?></strong><div class="text-muted"><?= $e($it['advice']) ?></div>
+                        <?php if (!empty($editorial['suggestions'][$it['name']])): $sg = $editorial['suggestions'][$it['name']]; ?>
+                        <details class="mt-1"><summary class="text-primary" style="cursor:pointer;font-size:.78rem;"><i class="bi bi-lightbulb"></i> Sugerencias (<?= count($sg) ?>)</summary>
+                            <ul class="mb-1 mt-1 ps-3" style="font-size:.78rem;"><?php foreach ($sg as $line): ?><li><?= $e($line) ?></li><?php endforeach; ?></ul>
+                            <div class="text-muted" style="font-size:.7rem;">Sugerencias por reglas, no por IA: revísalas antes de aplicarlas. Los textos de Google se muestran tal cual, como datos.</div></details>
+                        <?php endif; ?></td>
                 </tr>
             <?php endforeach; ?>
             </tbody></table></div>
@@ -152,6 +157,20 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
         <?php foreach ($o['notes'] as $note): ?><div class="text-muted mt-2" style="font-size:.78rem;"><i class="bi bi-info-circle"></i> <?= $e($note) ?></div><?php endforeach; ?>
         </div>
     </div>
+    <?php if (!empty($editorial['cannibal'])): ?>
+    <div class="card mb-3" id="gsc-cannibal">
+        <div class="card-header"><strong><i class="bi bi-intersect"></i> Páginas que compiten entre sí</strong>
+            <span class="text-muted" style="font-size:.8rem;">varias páginas de este sitio aparecen para la misma búsqueda (últimos 28 días)</span></div>
+        <div class="card-body p-0"><div class="table-responsive"><table class="table table-sm mb-0">
+            <thead><tr><th>Búsqueda</th><th class="num">Impr.</th><th>Páginas (posición)</th><th>Qué hacer</th></tr></thead><tbody>
+            <?php foreach ($editorial['cannibal'] as $cn): ?>
+                <tr><td style="max-width:200px;"><strong><?= $e($cn['query']) ?></strong></td><td class="num"><?= $n($cn['impressions']) ?></td>
+                    <td style="font-size:.82rem;"><?php foreach ($cn['pages'] as $pg): ?><div><?= $pageLink($pg['url'], $pg['label']) ?> <span class="text-muted">· pos. <?= $pos($pg['position']) ?> · <?= $n($pg['impressions']) ?> impr.</span></div><?php endforeach; ?></td>
+                    <td class="text-muted" style="font-size:.78rem;min-width:240px;max-width:380px;"><?= $e($cn['advice']) ?></td></tr>
+            <?php endforeach; ?>
+        </tbody></table></div></div>
+    </div>
+    <?php endif; ?>
     <script>
     (function () {
         var chips = document.querySelectorAll('#gsc-opps-chips [data-type]'), rows = document.querySelectorAll('#gsc-opps-table tbody tr'), showExplore = false, curType = '';

@@ -5,7 +5,7 @@
  */
 define('APP_ROOT', dirname(__DIR__, 2));
 require APP_ROOT . '/vendor/autoload.php';
-foreach (['Crypto', 'GoogleApiException', 'GoogleClient', 'SyncService', 'ReportService'] as $c) {
+foreach (['Crypto', 'GoogleApiException', 'GoogleClient', 'SyncService', 'UrlNormalizer', 'ReportService'] as $c) {
     require_once APP_ROOT . "/modules/search-console/services/{$c}.php";
 }
 

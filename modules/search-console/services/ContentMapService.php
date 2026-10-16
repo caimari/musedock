@@ -18,7 +18,7 @@ class ContentMapService
 
     /**
      * @param string[] $urls URL completas de la propiedad
-     * @return array<string,array{type:string,title:string,edit:string,status:string}> url => contenido
+     * @return array<string,array{type:string,title:string,edit:string,status:string,seo_title:string,seo_description:string}> url => contenido
      */
     public function resolve(?int $tenantId, string $host, array $urls, string $adminPath = 'admin', bool $relative = false): array
     {
@@ -79,11 +79,11 @@ class ContentMapService
                 }
             }
         }
-        $posts = $this->fetch('blog_posts', 'id, title, post_type, status', $postIds, $tenantId);
-        $pages = $this->fetch('pages', 'id, title, status', $pageIds, $tenantId);
+        $posts = $this->fetch('blog_posts', 'id, title, post_type, status, seo_title, seo_description', $postIds, $tenantId);
+        $pages = $this->fetch('pages', 'id, title, status, seo_title, seo_description', $pageIds, $tenantId);
         $home = null;
         if (array_filter($parsed, fn ($s) => !$s)) {
-            $stmt = $this->pdo->prepare('SELECT id, title, status FROM pages WHERE is_homepage = 1 AND ' . ($tenantId === null ? 'tenant_id IS NULL' : 'tenant_id = ?') . ' LIMIT 1');
+            $stmt = $this->pdo->prepare('SELECT id, title, status, seo_title, seo_description FROM pages WHERE is_homepage = 1 AND ' . ($tenantId === null ? 'tenant_id IS NULL' : 'tenant_id = ?') . ' LIMIT 1');
             $stmt->execute($tenantId === null ? [] : [$tenantId]);
             $home = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
         }
@@ -93,17 +93,17 @@ class ContentMapService
         $out = [];
         foreach ($parsed as $url => $segs) {
             if (!$segs && $home) {
-                $out[$url] = ['type' => 'Página de inicio', 'title' => (string) $home['title'], 'status' => (string) $home['status'],
+                $out[$url] = ['type' => 'Página de inicio', 'title' => (string) $home['title'], 'status' => (string) $home['status'], 'seo_title' => (string) ($home['seo_title'] ?? ''), 'seo_description' => (string) ($home['seo_description'] ?? ''),
                     'edit' => $base . ($tenantId === null ? '/musedock/pages/' : $admin . '/pages/') . (int) $home['id'] . '/edit'];
             } elseif (isset($hit[$url])) {
                 $r = $hit[$url];
                 if ($r['module'] === 'blog' && isset($posts[(int) $r['reference_id']])) {
                     $p = $posts[(int) $r['reference_id']];
-                    $out[$url] = ['type' => self::TYPES[$p['post_type']] ?? 'Artículo', 'title' => (string) $p['title'], 'status' => (string) $p['status'],
+                    $out[$url] = ['type' => self::TYPES[$p['post_type']] ?? 'Artículo', 'title' => (string) $p['title'], 'status' => (string) $p['status'], 'seo_title' => (string) ($p['seo_title'] ?? ''), 'seo_description' => (string) ($p['seo_description'] ?? ''),
                         'edit' => $base . ($tenantId === null ? '/musedock/blog/posts/' : $admin . '/blog/posts/') . (int) $p['id'] . '/edit'];
                 } elseif ($r['module'] === 'pages' && isset($pages[(int) $r['reference_id']])) {
                     $p = $pages[(int) $r['reference_id']];
-                    $out[$url] = ['type' => 'Página', 'title' => (string) $p['title'], 'status' => (string) $p['status'],
+                    $out[$url] = ['type' => 'Página', 'title' => (string) $p['title'], 'status' => (string) $p['status'], 'seo_title' => (string) ($p['seo_title'] ?? ''), 'seo_description' => (string) ($p['seo_description'] ?? ''),
                         'edit' => $base . ($tenantId === null ? '/musedock/pages/' : $admin . '/pages/') . (int) $p['id'] . '/edit'];
                 }
             }
