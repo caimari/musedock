@@ -1,8 +1,16 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "changelog": [
+    {
+      "version": "0.9.2",
+      "date": "2026-10-16",
+      "changes": [
+        "Nuevo aviso de concentración geográfica inesperada: si un país acumula un cuarto o más de las impresiones con un CTR muy inferior al del resto (p. ej. Vietnam: 37 % de las impresiones y 1 clic), el informe lo avisa como pista, sin tratarlo como oportunidad. No cruza país y consulta, así que lo confirmas tú.",
+        "La tarjeta de búsquedas parecidas a la marca pasa a llamarse «Tráfico accidental» y también lista los dominios escritos en el buscador («8i8gent.com», 1.027 impresiones, 0 clics) con la pista «búsqueda navegacional»: no se estiman clics y puedes etiquetarlos como marca ajena, propia, ambigua o no relevante."
+      ]
+    },
     {
       "version": "0.9.1",
       "date": "2026-10-16",
