@@ -67,6 +67,7 @@ try {
     [$own, $client] = $pdo->query('SELECT id, domain FROM tenants WHERE is_client_domain = 0 ORDER BY id DESC LIMIT 2')->fetchAll(PDO::FETCH_ASSOC);
     $pdo->exec("DELETE FROM gsc_properties WHERE tenant_id IN ({$own['id']}, {$client['id']})");
     $pdo->exec("DELETE FROM domain_aliases WHERE tenant_id IN ({$own['id']}, {$client['id']})");
+    $pdo->exec('DELETE FROM gsc_properties WHERE external = 1'); // dominios fuera del CMS ya dados de alta (p. ej. muserelay.com): dentro de la transacción, se deshace
     $pdo->prepare('UPDATE tenants SET is_client_domain = 1 WHERE id = ?')->execute([$client['id']]);
     $ownDomain = PropertyService::normalizeHost($own['domain']);
     $clientDomain = PropertyService::normalizeHost($client['domain']);
