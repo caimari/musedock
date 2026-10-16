@@ -103,8 +103,32 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
     <div class="card mb-3"><div class="card-body py-2 d-flex flex-wrap gap-3 align-items-center" style="font-size:.85rem;">
         <span><i class="bi bi-person-badge"></i> <strong>Búsquedas de marca</strong> (<?= $e(implode(', ', $brand['tokens'])) ?>): <?= $n($brand['brand']['clicks']) ?> clics · <?= $n($brand['brand']['impressions']) ?> impr. (<?= number_format($brand['brand_share'] * 100, 0, ',', '.') ?> %)</span>
         <span><i class="bi bi-search"></i> <strong>Sin marca</strong> (te descubren): <?= $n($brand['other']['clicks']) ?> clics · <?= $n($brand['other']['impressions']) ?> impr. (<?= number_format((1 - $brand['brand_share']) * 100, 0, ',', '.') ?> %)</span>
+        <?php if (($brand['third']['impressions'] ?? 0) > 0): ?><span><i class="bi bi-building"></i> <strong>Marca de otra empresa</strong> (etiquetada por ti): <?= $n($brand['third']['clicks']) ?> clics · <?= $n($brand['third']['impressions']) ?> impr.</span><?php endif; ?>
         <span class="text-muted" style="font-size:.75rem;" title="Google oculta las consultas poco frecuentes por privacidad: cuentan en el total pero no aparecen en la lista, así que no se pueden clasificar. Una búsqueda es «de marca» si contiene el nombre del sitio (no palabras genéricas como «film» o «spain»).">Clasificación basada en <?= $n($brand['classified']) ?> de <?= $n($brand['site_impressions']) ?> impresiones (<?= number_format(($brand['coverage'] ?? 0) * 100, 0, ',', '.') ?> %): el resto no tiene consulta visible y no está clasificado.</span>
     </div></div>
+    <?php endif; ?>
+    <?php if (!empty($brand['lookalikes']['items'])): $lk = $brand['lookalikes']; ?>
+    <div class="card mb-3" id="gsc-lookalikes">
+        <div class="card-header"><strong><i class="bi bi-intersect"></i> Búsquedas parecidas a tu marca</strong>
+            <span class="text-muted" style="font-size:.8rem;">se escriben casi como tu marca pero no la contienen: ¿error de escritura tuyo o marca de otra empresa?</span></div>
+        <div class="card-body p-0"><div class="table-responsive"><table class="table table-sm mb-0 align-middle">
+            <thead><tr><th>Búsqueda</th><th class="num">Impr.</th><th class="num">Clics</th><th class="num">CTR</th><th>Pista</th><th>Tú decides</th></tr></thead><tbody>
+            <?php foreach ($lk['items'] as $li): ?>
+                <tr>
+                    <td><strong><?= $e($li['query']) ?></strong></td><td class="num"><?= $n($li['impressions']) ?></td><td class="num"><?= $n($li['clicks']) ?></td><td class="num"><?= $pct($li['ctr']) ?></td>
+                    <td style="font-size:.78rem;max-width:380px;">
+                    <?php if ($li['kind'] === 'unexpected'): ?><span class="badge bg-warning text-dark">Coincidencia inesperada</span> <span class="text-muted">Su CTR (<?= $pct($li['ctr']) ?>) es muy inferior al de tu marca (<?= $pct($lk['brand_ctr']) ?>): quien busca esto probablemente no busca tu web (¿otra empresa o producto con nombre parecido?). Compruébalo en Google antes de actuar; a veces es una oportunidad de contenido.</span>
+                    <?php elseif ($li['kind'] === 'variant'): ?><span class="badge bg-success">Parece una variante tuya</span> <span class="text-muted">Su CTR es parecido al de tu marca: probable error de escritura de quien te busca.</span>
+                    <?php else: ?><span class="badge bg-secondary">Sin pista clara</span> <span class="text-muted">Pocos datos o CTR intermedio.</span><?php endif; ?></td>
+                    <td><select class="form-select form-select-sm gsc-qlabel" style="font-size:.76rem;width:auto;max-width:210px;" data-query="<?= $e($li['query']) ?>" aria-label="Etiqueta de «<?= $e($li['query']) ?>»">
+                        <option value="">— sin etiquetar —</option>
+                        <?php foreach (\Modules\SearchConsole\Services\QueryLabelService::LABELS as $lv => $ll): ?><option value="<?= $e($lv) ?>" <?= ($li['label'] ?? null) === $lv ? 'selected' : '' ?>><?= $e($ll) ?></option><?php endforeach; ?>
+                    </select></td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody></table></div></div>
+        <div class="card-footer text-muted" style="font-size:.74rem;">Es una pista por parecido de nombre y CTR, no un veredicto: el sistema no sabe qué empresas o productos existen. Lo que etiquetes corrige la clasificación de marca y evita proponer como oportunidad propia lo que es de otra empresa.</div>
+    </div>
     <?php endif; ?>
     <div class="card mb-3"><div class="card-body gsc-chart">
         <div class="d-flex gap-3 mb-2" style="font-size:.82rem;"><span><span style="display:inline-block;width:10px;height:10px;background:#1a73e8;border-radius:2px;"></span> Clics</span><span><span style="display:inline-block;width:10px;height:10px;background:#8a56c5;border-radius:2px;"></span> Impresiones</span></div>
@@ -146,10 +170,10 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
             <?php foreach ($o['cards'] as $it): [$tl, $tc] = $oppTypes[$it['type']]; ?>
                 <?php $tierLabel = ['high' => ['Prioridad alta', 'danger'], 'medium' => ['Prioridad media', 'warning'], 'explore' => ['Exploración', 'secondary'], 'archive' => ['Archivo', 'secondary']][$it['tier']]; ?>
                 <tr data-type="<?= $e(implode(' ', array_unique($it['types']))) ?>" data-tier="<?= $e($it['tier']) ?>" <?= in_array($it['tier'], ['explore', 'archive'], true) ? 'style="display:none;"' : '' ?>>
-                    <td style="white-space:nowrap;"><span class="badge bg-<?= $e($tc) ?>"><?= $e($tl) ?></span><div style="margin-top:3px;"><span class="badge bg-<?= $e($tierLabel[1]) ?> <?= $tierLabel[1] === 'warning' ? 'text-dark' : '' ?>" style="font-size:.62rem;" title="<?= $it['tier'] === 'archive' ? 'Página de una edición pasada: mantenimiento y archivo, sin urgencia SEO' : ($it['tier'] === 'explore' ? 'Pocas impresiones: mucha incertidumbre, no actúes sin más datos' : ($it['tier'] === 'high' ? 'Mucho peso en el sitio o caída de clics confirmada' : 'Volumen razonable')) ?>"><?= $e($tierLabel[0]) ?></span><?php if (($it['context'] ?? null) === 'current'): ?> <span class="badge bg-success" style="font-size:.62rem;" title="Edición vigente (<?= (int) $it['year'] ?>)">vigente</span><?php endif; ?></div></td>
+                    <td style="white-space:nowrap;"><span class="badge bg-<?= $e($tc) ?>"><?= $e($tl) ?></span><div style="margin-top:3px;"><span class="badge bg-<?= $e($tierLabel[1]) ?> <?= $tierLabel[1] === 'warning' ? 'text-dark' : '' ?>" style="font-size:.62rem;" title="<?= $e($it['tier_why'] ?? '') ?>"><?= $e($tierLabel[0]) ?></span><?php if (($it['context'] ?? null) === 'current'): ?> <span class="badge bg-success" style="font-size:.62rem;" title="Edición vigente (<?= (int) $it['year'] ?>)">vigente</span><?php endif; ?><div class="text-muted" style="font-size:.66rem;max-width:210px;white-space:normal;line-height:1.2;margin-top:2px;"><?= $e($it['tier_why'] ?? '') ?></div></div></td>
                     <td class="gsc-trunc" style="max-width:260px;" title="<?= $e($it['name']) ?>">
                         <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;"><?= $it['kind'] === 'page' ? 'URL' : 'Palabra clave' ?></div>
-                        <strong><?= $it['kind'] === 'page' ? $pageLink($it['name'], $it['label']) : $e($it['label']) ?></strong><?php if (!empty($it['brand'])): ?> <span class="badge bg-light text-dark border" style="font-size:.62rem;" title="Búsqueda de marca: contiene el nombre del sitio">marca</span><?php endif; ?></td>
+                        <strong><?= $it['kind'] === 'page' ? $pageLink($it['name'], $it['label']) : $e($it['label']) ?></strong><?php if (!empty($it['brand'])): ?> <span class="badge bg-light text-dark border" style="font-size:.62rem;" title="Búsqueda de marca: contiene el nombre del sitio">marca</span><?php endif; ?><?php if (!empty($it['unexpected'])): ?> <span class="badge bg-warning text-dark" style="font-size:.62rem;" title="Se parece a tu marca pero su CTR es muy inferior: quien lo busca probablemente no busca tu web (otra empresa o un error). No se trata como pérdida propia.">coincidencia inesperada</span><?php endif; ?><?php if (!empty($it['third'])): ?> <span class="badge bg-secondary" style="font-size:.62rem;" title="Etiquetada por ti como marca de otra empresa o no relevante">de otra empresa</span><?php endif; ?></td>
                     <td class="num"><?= $n($it['impressions']) ?></td><td class="num"><?= $n($it['clicks']) ?></td><td class="num"><?= $pos($it['position']) ?></td>
                     <td style="font-size:.82rem;min-width:240px;max-width:460px;"><strong><?= $e($it['detail']) ?></strong><div class="text-muted"><?= $e($it['advice']) ?></div>
                         <?php if (!empty($it['reasons'])): ?><div class="mt-1" style="font-size:.74rem;"><span class="text-muted">También:</span> <?php foreach ($it['reasons'] as $rs): [, $rc] = $oppTypes[$rs['type']]; ?><span class="badge bg-<?= $e($rc) ?> bg-opacity-75" style="font-size:.62rem;"><?= $e($rs['label']) ?></span> <span class="text-muted"><?= $e($rs['detail']) ?></span>; <?php endforeach; ?></div><?php endif; ?>
@@ -368,6 +392,12 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
                 (r.link ? '<div class="mt-2"><a href="' + esc(r.link) + '" target="_blank" rel="noopener noreferrer">Abrir en Search Console ↗</a></div>' : '') + '</div>' });
         }).catch(function () { Swal.fire({ icon: 'error', title: 'Error de red' }); });
     }
+    document.addEventListener('change', function (e) {
+        var sel = e.target.closest ? e.target.closest('.gsc-qlabel') : null; if (!sel) { return; }
+        sel.disabled = true;
+        post('/query-label', { query: sel.dataset.query, label: sel.value }).then(function (r) { sel.style.outline = r.ok ? '2px solid #34a853' : '2px solid #dc3545'; setTimeout(function () { sel.style.outline = ''; }, 1200); })
+            .catch(function () { sel.style.outline = '2px solid #dc3545'; }).then(function () { sel.disabled = false; });
+    });
     var io = document.getElementById('gsc-inspect-open');
     if (io) io.addEventListener('click', function () {
         Swal.fire({ title: 'Inspeccionar una URL', input: 'url', inputValue: def, inputLabel: 'URL completa de una página de este dominio', showCancelButton: true, confirmButtonText: 'Inspeccionar', cancelButtonText: 'Cancelar',

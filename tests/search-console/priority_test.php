@@ -4,7 +4,7 @@
  *   php tests/search-console/priority_test.php
  */
 define('APP_ROOT', dirname(__DIR__, 2));
-foreach (['PropertyService', 'UrlNormalizer', 'ReportService', 'BrandService', 'OpportunityService', 'DropAlertService', 'GoalService', 'PriorityService'] as $c) {
+foreach (['PropertyService', 'UrlNormalizer', 'ReportService', 'QueryLabelService', 'BrandService', 'OpportunityService', 'DropAlertService', 'GoalService', 'PriorityService'] as $c) {
     require_once APP_ROOT . "/modules/search-console/services/{$c}.php";
 }
 
@@ -18,7 +18,7 @@ $mk = fn (string $type, string $tier, float $score, int $imp = 100, string $kind
 $items = [
     1 => [$mk('low_ctr', 'high', 40.0, 900, 'page', '/a'), $mk('striking', 'high', 30.0, 500, 'page', '/b'), $mk('striking', 'high', 20.0, 400, 'page', '/c'), $mk('low_ctr', 'medium', 90.0), $mk('rising', 'high', 99.0), $mk('far', 'explore', 80.0)],
     2 => [$mk('far', 'high', 668.0, 668, 'page', '/lejos')],
-    3 => [$mk('drop', 'high', 35.0, 300, 'query', 'marca'), array_merge($mk('far', 'high', 500.0, 900, 'query', 'tres'), ['brand' => true])],
+    3 => [$mk('drop', 'high', 35.0, 300, 'query', 'marca'), array_merge($mk('far', 'high', 500.0, 900, 'query', 'tres'), ['brand' => true]), array_merge($mk('striking', 'high', 90.0, 900, 'query', 'creen ai'), ['third' => true])],
 ];
 $opp = new class($pdo, $items) extends OpportunityService {
     public function __construct(PDO $pdo, private array $items) { parent::__construct($pdo); }
@@ -52,6 +52,7 @@ $dos = array_values(array_filter($top, fn ($t) => $t['domain'] === 'dos.test'))[
 ok(abs($dos['impact'] - 6.68) < 0.01, 'una oportunidad «lejos» (668 impresiones) se convierte a clics estimados (≈ 6,7), no compite con 668');
 ok($top === array_values($top) && array_column($top, 'impact') === (function ($a) { rsort($a); return $a; })(array_column($top, 'impact')), 'ordenadas de más a menos impacto');
 ok(!array_filter($top, fn ($t) => $t['domain'] === 'tres.test' && $t['kind'] === 'far'), 'una búsqueda de marca no es «oportunidad» (salir arriba es lo normal), salvo que caiga');
+ok(!array_filter($top, fn ($t) => str_contains($t['text'], 'creen ai')), 'una búsqueda etiquetada como marca de otra empresa no es oportunidad propia');
 ok(count($svc->top($props, 2)) === 2, 'respeta el límite pedido');
 ok($svc->top([], 5) === [], 'sin dominios, lista vacía');
 

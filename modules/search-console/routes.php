@@ -43,6 +43,7 @@ Route::get($gscAdminPath . '/search-console/domain/{id}', "{$gscTenantCtrl}@show
 Route::get($gscAdminPath . '/search-console/export', "{$gscTenantCtrl}@export")->middleware('auth');
 Route::post($gscAdminPath . '/search-console/optimization/add', "{$gscTenantCtrl}@optimizationAdd")->middleware('auth');
 Route::post($gscAdminPath . '/search-console/optimization/delete', "{$gscTenantCtrl}@optimizationDelete")->middleware('auth');
+Route::post($gscAdminPath . '/search-console/query-label', "{$gscTenantCtrl}@queryLabel")->middleware('auth');
 Route::post($gscAdminPath . '/search-console/sync', "{$gscTenantCtrl}@syncNow")->middleware('auth');
 Route::post($gscAdminPath . '/search-console/sitemap/submit', "{$gscTenantCtrl}@submitSitemap")->middleware('auth');
 Route::post($gscAdminPath . '/search-console/inspect', "{$gscTenantCtrl}@inspectUrl")->middleware('auth');
@@ -56,6 +57,7 @@ if (is_array($gscIndexNowCfg) && preg_match('/^[a-f0-9]{16,64}$/', (string) ($gs
 Route::post('/musedock/search-console/optimization/add', "{$gscSaCtrl}@optimizationAdd")->middleware('superadmin');
 Route::post('/musedock/search-console/optimization/delete', "{$gscSaCtrl}@optimizationDelete")->middleware('superadmin');
 Route::post('/musedock/search-console/task', "{$gscSaCtrl}@taskToggle")->middleware('superadmin');
+Route::post('/musedock/search-console/query-label', "{$gscSaCtrl}@queryLabel")->middleware('superadmin');
 Route::post('/musedock/search-console/goal', "{$gscSaCtrl}@goalSet")->middleware('superadmin');
 Route::post('/musedock/search-console/indexnow/scan', "{$gscSaCtrl}@indexNowScan")->middleware('superadmin');
 Route::post('/musedock/search-console/indexnow/toggle', "{$gscSaCtrl}@indexNowToggle")->middleware('superadmin');

@@ -42,6 +42,12 @@ class OpportunityService
     /** Nombres de marca del sitio (para marcar las búsquedas de marca). */
     private array $brand = [];
 
+    /** Etiquetas manuales de consultas del dominio (own / third / ignore). */
+    private array $labels = [];
+
+    /** CTR de las búsquedas de marca del periodo (para detectar parecidos inesperados), o null. */
+    private ?float $brandCtr = null;
+
     public function __construct(private PDO $pdo)
     {
     }
@@ -81,11 +87,22 @@ class OpportunityService
         }
         $this->total = $total;
         $this->brand = BrandService::tokens($property);
+        $this->labels = QueryLabelService::map($this->pdo, (string) $property['domain']);
         $items = [];
         $excluded = 0;
         foreach (['query' => ['gsc_query_daily', 'query'], 'page' => ['gsc_page_daily', 'page']] as $kind => [$table, $col]) {
             $cur = $this->aggregate($table, $col, $id, $from, $to, $kind === 'page');
             $prev = $this->aggregate($table, $col, $id, $prevFrom, $prevTo, $kind === 'page');
+            if ($kind === 'query') {
+                $bc = $bi = 0;
+                foreach ($cur as $q => $c) {
+                    if (BrandService::isBrand((string) $q, $this->brand) || ($this->labels[QueryLabelService::key((string) $q)] ?? null) === 'own') {
+                        $bc += $c['clicks'];
+                        $bi += $c['impressions'];
+                    }
+                }
+                $this->brandCtr = $bi >= 30 ? $bc / $bi : null;
+            }
             foreach ($cur as $name => $c) {
                 $shown = $c['display'] ?? $name;
                 if ($kind === 'page' && UrlNormalizer::isExcluded($shown)) {
@@ -162,6 +179,7 @@ class OpportunityService
     private function evaluate(string $kind, string $name, array $c, ?array $p, int $min, string $domain, bool $comparable = true): array
     {
         $out = [];
+        $unexpected = $kind === 'query' && $this->isUnexpected($name, $c, $p);
         $imp = $c['impressions'];
         $pos = $c['position'];
         $ctr = $imp > 0 ? $c['clicks'] / $imp : 0.0;
@@ -169,7 +187,7 @@ class OpportunityService
         if ($imp >= $min && $pos !== null) {
             $expected = $imp * self::expectedCtr($pos);
             $gap = $expected - $c['clicks'];
-            if ($pos <= 10 && $gap >= 0.5 && $c['clicks'] < 0.5 * $expected) {
+            if ($pos <= 10 && $gap >= 0.5 && $c['clicks'] < 0.5 * $expected && !$unexpected) {
                 $out[] = $this->item('low_ctr', $kind, $name, $c, $p, $gap, $domain);
             } elseif ($pos > 4 && $pos <= 20) {
                 $gain = $imp * (self::CTR[3] - $ctr);
@@ -180,7 +198,7 @@ class OpportunityService
                 $out[] = $this->item('far', $kind, $name, $c, $p, (float) $imp, $domain);
             }
         }
-        if ($comparable && $p !== null) {
+        if ($comparable && $p !== null && !$unexpected) {
             if ($p['clicks'] >= 3 && $c['clicks'] <= 0.5 * $p['clicks']) {
                 $out[] = $this->item('drop', $kind, $name, $c, $p, (float) ($p['clicks'] - $c['clicks']), $domain);
             } elseif ($p['impressions'] >= 20 && $imp <= 0.6 * $p['impressions']) {
@@ -195,25 +213,48 @@ class OpportunityService
         return $out;
     }
 
+    /**
+     * «creen ai» frente a «screenai»: se parece a tu marca sin contenerla y su CTR es muy inferior al de tu marca. Quien
+     * lo busca probablemente no busca tu web (otra empresa o un error), así que no se trata como pérdida ni como CTR bajo propio.
+     */
+    private function isUnexpected(string $query, array $c, ?array $p): bool
+    {
+        if ($this->brandCtr === null || $this->brandCtr <= 0 || BrandService::lookalike($query, $this->brand) === null) {
+            return false;
+        }
+        $imp = max((int) $c['impressions'], (int) ($p['impressions'] ?? 0));
+        $ctr = $c['impressions'] > 0 ? $c['clicks'] / $c['impressions'] : 0.0;
+
+        return $imp >= 30 && $ctr < 0.25 * $this->brandCtr;
+    }
+
     private function item(string $type, string $kind, string $name, array $c, ?array $p, float $score, string $domain): array
     {
         $label = $kind === 'page' ? self::shortPage($name, $domain) : $name;
         $imp = $c['impressions'];
-        $tier = $this->tierOf($type, $c, $p);
+        [$tier, $why] = $this->tierWhy($type, $c, $p);
         // Contexto: una página de una edición pasada (año en su URL, hace 2 o más años) es archivo, sin urgencia SEO;
         // la de la edición vigente (año actual o posterior) sube de prioridad media a alta.
         $year = $kind === 'page' ? self::yearOf($name) : null;
         $context = null;
         if ($year !== null && $year <= (int) date('Y') - 2) {
             $tier = 'archive';
+            $why = 'Página de una edición pasada (' . $year . '): mantenimiento y archivo, sin urgencia SEO.';
             $context = 'historic';
         } elseif ($year !== null && $year >= (int) date('Y')) {
             $context = 'current';
-            $tier = $tier === 'medium' ? 'high' : $tier;
+            if ($tier === 'medium') {
+                $tier = 'high';
+                $why = 'Alta por actualidad: es una página de la edición vigente (' . $year . '), aunque el volumen de datos sea limitado (' . number_format((int) $c['impressions'], 0, ',', '.') . ' impresiones, menos de ' . self::HIGH_MIN . ').';
+            }
+        } elseif ($tier === 'archive') {
+            $why = 'Página de una edición pasada (' . $year . '): mantenimiento y archivo.';
         }
 
         return [
-            'type' => $type, 'kind' => $kind, 'name' => $name, 'label' => $label, 'tier' => $tier, 'year' => $year, 'context' => $context, 'basis' => $type === 'drop' ? self::dropBasis($c, $p) : null, 'navigational' => $kind === 'query' && self::looksLikeDomain($name), 'confidence' => $this->confidenceOf($type, $kind, $name, $c, $p), 'variants' => (int) ($c['variants'] ?? 1), 'brand' => $kind === 'query' && BrandService::isBrand($name, $this->brand),
+            'type' => $type, 'kind' => $kind, 'name' => $name, 'label' => $label, 'tier' => $tier, 'tier_why' => $why, 'year' => $year, 'context' => $context, 'basis' => $type === 'drop' ? self::dropBasis($c, $p) : null, 'navigational' => $kind === 'query' && self::looksLikeDomain($name), 'confidence' => $this->confidenceOf($type, $kind, $name, $c, $p), 'variants' => (int) ($c['variants'] ?? 1), 'brand' => $kind === 'query' && (BrandService::isBrand($name, $this->brand) || ($this->labels[QueryLabelService::key($name)] ?? null) === 'own'),
+            'unexpected' => $kind === 'query' && $this->isUnexpected($name, $c, $p),
+            'third' => $kind === 'query' && in_array($this->labels[QueryLabelService::key($name)] ?? null, ['third', 'ignore'], true),
             'clicks' => $c['clicks'], 'impressions' => $imp, 'ctr' => $imp > 0 ? $c['clicks'] / $imp : 0.0, 'position' => $c['position'],
             'prev_clicks' => $p['clicks'] ?? null, 'prev_impressions' => $p['impressions'] ?? null,
             'score' => round($score, 2), 'advice' => $tier === 'archive' ? 'Página histórica (' . $year . '): mantenimiento y archivo, sin urgencia SEO. Mantenla accesible y enlázala desde la edición vigente.' : ($tier === 'explore' ? 'Pocos datos: necesita revisión antes de actuar. Espera a tener más impresiones para decidir.' : $this->advice($type, $kind, $c, $p)), 'detail' => $this->detail($type, $c, $p, $score),
@@ -228,19 +269,28 @@ class OpportunityService
      */
     private function tierOf(string $type, array $c, ?array $p): string
     {
+        return $this->tierWhy($type, $c, $p)[0];
+    }
+
+    /** @return array{0:string,1:string} prioridad y por qué (se muestra en la interfaz) */
+    private function tierWhy(string $type, array $c, ?array $p): array
+    {
         $imp = (int) $c['impressions'];
-        $weight = max($imp, (int) ($p['impressions'] ?? 0));
+        $prevImp = (int) ($p['impressions'] ?? 0);
+        $weight = max($imp, $prevImp);
+        $fromPrev = $prevImp > $imp;
         if ($type === 'drop' && $p !== null && (int) $p['clicks'] >= 10 && (int) ($c['clicks'] ?? 0) <= 0.5 * (int) $p['clicks']) {
-            return 'high';
+            return ['high', 'Caída de clics confirmada (' . (int) $p['clicks'] . ' → ' . (int) ($c['clicks'] ?? 0) . ').'];
         }
+        $volume = $fromPrev ? 'el volumen del periodo anterior (' . number_format($prevImp, 0, ',', '.') . ' impresiones; ahora ' . number_format($imp, 0, ',', '.') . ')' : number_format($imp, 0, ',', '.') . ' impresiones';
         if ($weight >= max(self::HIGH_MIN, (int) round($this->total * 0.03))) {
-            return 'high';
+            return ['high', 'Volumen alto: ' . $volume . ', al menos ' . self::HIGH_MIN . ' y el 3 % del sitio.'];
         }
         if ($weight >= max(self::MEDIUM_MIN, (int) round($this->total * 0.01))) {
-            return 'medium';
+            return ['medium', 'Volumen medio: ' . $volume . ', al menos ' . self::MEDIUM_MIN . ' y el 1 % del sitio.'];
         }
 
-        return 'explore';
+        return ['explore', 'Pocas impresiones (' . number_format($imp, 0, ',', '.') . '): mucha incertidumbre.'];
     }
 
     /** Cifra que acompaña a cada oportunidad (qué se puede ganar o qué ha cambiado). */

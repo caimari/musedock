@@ -12,6 +12,7 @@ use Modules\SearchConsole\Services\GoogleClient;
 use Modules\SearchConsole\Services\OpportunityService;
 use Modules\SearchConsole\Services\OptimizationService;
 use Modules\SearchConsole\Services\PropertyService;
+use Modules\SearchConsole\Services\QueryLabelService;
 use Modules\SearchConsole\Services\ReportService;
 use Modules\SearchConsole\Services\SitemapService;
 use Modules\SearchConsole\Services\SyncService;
@@ -181,6 +182,21 @@ abstract class BaseController
         }
     }
 
+    /** POST (AJAX): etiqueta una consulta del dominio (es mi marca / marca de otra empresa / no relevante). */
+    public function queryLabel()
+    {
+        $this->checkPermission('search_console.manage');
+        header('Content-Type: application/json; charset=utf-8');
+        $property = $this->visibleProperty((int) ($_POST['property_id'] ?? 0));
+        if (!$property || !QueryLabelService::set($this->pdo, (string) $property['domain'], (string) ($_POST['query'] ?? ''), (string) ($_POST['label'] ?? ''))) {
+            http_response_code(422);
+            echo json_encode(['ok' => false]);
+            exit;
+        }
+        echo json_encode(['ok' => true]);
+        exit;
+    }
+
     /** POST (AJAX): registra una optimización hecha en una página del dominio. */
     public function optimizationAdd()
     {
@@ -229,7 +245,8 @@ abstract class BaseController
                 return null;
             }
 
-            return ['tokens' => $tokens] + (new BrandService())->split($this->pdo, (int) $property['id'], $report['from'], $report['to'], $tokens, (int) ($report['totals']['impressions'] ?? 0));
+            return ['tokens' => $tokens] + (new BrandService())->split($this->pdo, (int) $property['id'], $report['from'], $report['to'], $tokens, (int) ($report['totals']['impressions'] ?? 0), QueryLabelService::map($this->pdo, (string) $property['domain']))
+                + ['lookalikes' => (new BrandService())->lookalikes($this->pdo, (int) $property['id'], $report['from'], $report['to'], $tokens, QueryLabelService::map($this->pdo, (string) $property['domain']))];
         } catch (\Throwable $e) {
             return null;
         }

@@ -4,7 +4,7 @@
  *   php tests/search-console/opportunity_test.php
  */
 define('APP_ROOT', dirname(__DIR__, 2));
-foreach (['PropertyService', 'ReportService', 'UrlNormalizer', 'BrandService', 'OpportunityService'] as $c) {
+foreach (['PropertyService', 'ReportService', 'UrlNormalizer', 'QueryLabelService', 'BrandService', 'OpportunityService'] as $c) {
     require_once APP_ROOT . "/modules/search-console/services/{$c}.php";
 }
 

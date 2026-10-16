@@ -4,11 +4,11 @@
  *   php tests/search-console/editorial_test.php
  */
 define('APP_ROOT', dirname(__DIR__, 2));
-foreach (['Crypto', 'GoogleApiException', 'GoogleClient', 'PropertyService', 'UrlNormalizer', 'OpportunityService', 'ReportService', 'EditorialService', 'BrandService', 'SyncService'] as $c) {
+foreach (['Crypto', 'GoogleApiException', 'GoogleClient', 'PropertyService', 'UrlNormalizer', 'OpportunityService', 'ReportService', 'EditorialService', 'QueryLabelService', 'BrandService', 'SyncService'] as $c) {
     require_once APP_ROOT . "/modules/search-console/services/{$c}.php";
 }
 
-use Modules\SearchConsole\Services\{BrandService, EditorialService, GoogleClient, SyncService};
+use Modules\SearchConsole\Services\{BrandService, EditorialService, GoogleClient, QueryLabelService, SyncService};
 
 $fails = 0;
 function ok(bool $c, string $m): void { global $fails; if (!$c) { $fails++; echo "  FALLA: $m\n"; } }
@@ -118,6 +118,34 @@ ok($sa && $sa[0]['brand'] === true && str_contains($sa[0]['advice'], 'marca') &&
 $other = array_values(array_filter((new EditorialService($pdo))->cannibalization($prop), fn ($x) => $x['query'] === 'claude code'));
 ok($other && $other[0]['brand'] === false && str_contains($other[0]['advice'], 'misma intención') && str_contains($other[0]['advice'], 'alterna') && str_contains($other[0]['advice'], 'distinto'), 'el resto recuerda las tres comprobaciones antes de fusionar o redirigir');
 ok(array_search(true, array_column($cn, 'brand')) === false || array_search(true, array_column($cn, 'brand')) >= array_search(false, array_column($cn, 'brand')), 'las de marca van detrás de las demás');
+
+echo "== Búsquedas parecidas a la marca y etiquetas\n";
+$tk = ['screenai'];
+ok(BrandService::lookalike('creen ai', $tk) === 1 && BrandService::lookalike('creen ia', $tk) === 2 && BrandService::lookalike('screen ia', $tk) === 1, '«creen ai», «creen ia» y «screen ia» se parecen a «screenai» (distancia 1-2) sin contenerla');
+ok(BrandService::lookalike('screen ai', $tk) === null && BrandService::lookalike('claude code precio', $tk) === null && BrandService::lookalike('', $tk) === null, 'la propia marca y lo que no se parece no son «parecidos»');
+ok(BrandService::lookalike('abcd', ['ab']) === null && BrandService::lookalike('screnai', ['limpa']) === null, 'marcas demasiado cortas no se comparan (mucho ruido)');
+$pdo4 = new PDO('sqlite::memory:');
+$pdo4->exec('CREATE TABLE gsc_query_daily (property_id INT, date TEXT, query TEXT, page TEXT, clicks INT, impressions INT, ctr REAL, position REAL)');
+$pdo4->exec('CREATE TABLE gsc_query_label (domain TEXT, query_key TEXT, query TEXT, label TEXT, updated_at TEXT, PRIMARY KEY (domain, query_key))');
+$i4 = $pdo4->prepare("INSERT INTO gsc_query_daily VALUES (1, '2026-10-01', ?, '', ?, ?, 0, 5)");
+foreach ([['screen ai', 14, 101], ['screenai', 10, 86], ['screen ia', 5, 45], ['creen ai', 3, 249], ['crreen ai', 2, 3], ['creen ia', 1, 125], ['claude code', 2, 300]] as [$q, $c, $im]) { $i4->execute([$q, $c, $im]); }
+$lk = (new BrandService())->lookalikes($pdo4, 1, '2026-09-01', '2026-10-31', ['screenai']);
+$by = []; foreach ($lk['items'] as $it) { $by[$it['query']] = $it; }
+ok(abs($lk['brand_ctr'] - 24 / 187) < 0.001, 'CTR de la marca: 24 clics de 187 impresiones («screen ai» y «screenai»)');
+ok(isset($by['creen ai']) && $by['creen ai']['kind'] === 'unexpected' && isset($by['creen ia']) && $by['creen ia']['kind'] === 'unexpected', '«creen ai» (249 impr., CTR 1,2 %) y «creen ia» salen como coincidencia inesperada');
+ok(isset($by['screen ia']) && $by['screen ia']['kind'] === 'variant', '«screen ia» (CTR como el de la marca) parece una variante tuya');
+ok(!isset($by['crreen ai']) && !isset($by['claude code']), 'con 3 impresiones no se saca ninguna conclusión; lo que no se parece, no aparece');
+ok(array_keys($by)[0] === 'creen ai', 'las coincidencias inesperadas van primero, de más a menos impresiones');
+ok(QueryLabelService::set($pdo4, 'screenai.es', 'Creen  AI', 'third') && QueryLabelService::map($pdo4, 'www.screenai.es')['creen ai'] === 'third', 'se puede etiquetar una consulta (sin importar mayúsculas ni espacios dobles)');
+ok(!QueryLabelService::set($pdo4, 'screenai.es', 'x', 'otra-cosa') && !QueryLabelService::set($pdo4, 'screenai.es', '  ', 'own'), 'una etiqueta o una consulta no válidas se rechazan');
+$sp = (new BrandService())->split($pdo4, 1, '2026-09-01', '2026-10-31', ['screenai'], null, QueryLabelService::map($pdo4, 'screenai.es'));
+ok($sp['third'] === ['clicks' => 3, 'impressions' => 249] && $sp['classified'] === 909, 'lo etiquetado como marca de otra empresa tiene su propio apartado');
+QueryLabelService::set($pdo4, 'screenai.es', 'creen ia', 'own');
+$sp2 = (new BrandService())->split($pdo4, 1, '2026-09-01', '2026-10-31', ['screenai'], null, QueryLabelService::map($pdo4, 'screenai.es'));
+ok($sp2['brand']['impressions'] === $sp['brand']['impressions'] + 125, 'lo etiquetado como «es mi marca» pasa a contar como marca');
+QueryLabelService::set($pdo4, 'screenai.es', 'creen ai', '');
+ok(!isset(QueryLabelService::map($pdo4, 'screenai.es')['creen ai']), 'quitar la etiqueta la borra');
+ok(QueryLabelService::map($pdo, 'otro.test') === [] && QueryLabelService::map(new PDO('sqlite::memory:'), 'x.test') === [], 'sin etiquetas (o sin tabla) no pasa nada');
 
 echo $fails ? "RESULTADO: $fails comprobaciones FALLAN\n" : "RESULTADO: las comprobaciones pasan\n";
 exit($fails ? 1 : 0);
