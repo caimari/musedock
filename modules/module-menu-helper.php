@@ -192,10 +192,10 @@ if (!function_exists('module_menu_epoch')) {
      * Huella del estado de los módulos (y de los habilitados para el tenant). Dos consultas pequeñas por petición,
      * compartidas por todos los menús: mucho menos que lo que se evita (decenas de UPDATE).
      */
-    function module_menu_epoch(int $tenantId): string
+    function module_menu_epoch(int $tenantId, bool $fresh = false): string
     {
         static $cache = [];
-        if (isset($cache[$tenantId])) {
+        if (!$fresh && isset($cache[$tenantId])) {
             return $cache[$tenantId];
         }
         try {
