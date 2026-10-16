@@ -17,6 +17,8 @@ $delta = function ($now, $before, $lowerIsBetter = false) {
     return '<span class="' . ($good ? 'gsc-up' : 'gsc-down') . '">' . ($d >= 0 ? '+' : '') . number_format($d, 0, ',', '.') . ' %</span> <span class="text-muted">vs. anterior</span>';
 };
 $empty = $report['empty'];
+$csv = fn (string $type) => $baseUrl . '/export?type=' . $type . '&property_id=' . (int) $property['id'] . '&days=' . (int) ($report['period'] ?? 28);
+$csvLink = fn (string $type) => '<a class="btn btn-link btn-sm py-0 float-end" style="font-size:.8rem;" href="' . $e($csv($type)) . '" title="Descargar esta tabla en CSV (Excel)"><i class="bi bi-download"></i> CSV</a>';
 // Las páginas son URL reales y se abren en otra pestaña; las consultas son palabras y no llevan enlace.
 $pageLink = fn ($url, $label) => preg_match('#^https?://[^\s"<>]+$#i', (string) $url)
     ? '<a href="' . $e($url) . '" target="_blank" rel="noopener noreferrer" title="Abrir ' . $e($url) . '">' . $e($label) . ' <i class="bi bi-box-arrow-up-right" style="font-size:.7em;opacity:.6;"></i></a>'
@@ -99,6 +101,7 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
 
     <div class="card mb-3"><div class="card-body gsc-chart">
         <div class="d-flex gap-3 mb-2" style="font-size:.82rem;"><span><span style="display:inline-block;width:10px;height:10px;background:#1a73e8;border-radius:2px;"></span> Clics</span><span><span style="display:inline-block;width:10px;height:10px;background:#8a56c5;border-radius:2px;"></span> Impresiones</span></div>
+        <div class="text-end"><?= $csvLink('daily') ?></div>
         <div id="gsc-chart"></div>
     </div></div>
 
@@ -167,21 +170,21 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
 <?php endif; ?>
 
     <div class="row g-3">
-        <div class="col-lg-6"><div class="card"><div class="card-header"><strong>Consultas</strong> <span class="text-muted" style="font-size:.8rem;">lo que la gente busca en Google</span></div>
+        <div class="col-lg-6"><div class="card"><div class="card-header"><strong>Consultas</strong> <span class="text-muted" style="font-size:.8rem;">lo que la gente busca en Google</span> <?= $csvLink('queries') ?></div>
             <div class="table-responsive"><table class="table table-sm mb-0 gsc-sortable gsc-fit"><thead><tr><th>Consulta</th><th class="num">Clics</th><th class="num">Impr.</th><th class="num">CTR</th><th class="num">Pos.</th></tr></thead><tbody>
             <?php foreach ($report['queries'] as $r): ?><tr><td class="gsc-trunc" title="<?= $e($r['name']) ?>"><?= $e($r['name']) ?></td><td class="num"><?= $n($r['clicks']) ?></td><td class="num"><?= $n($r['impressions']) ?></td><td class="num"><?= $pct($r['ctr']) ?></td><td class="num"><?= $pos($r['position']) ?></td></tr><?php endforeach; ?>
             <?php if (!$report['queries']): ?><tr><td colspan="5" class="text-muted text-center p-3">Sin consultas en este periodo.</td></tr><?php endif; ?>
             </tbody></table></div></div></div>
-        <div class="col-lg-6"><div class="card"><div class="card-header"><strong>Páginas</strong> <span class="text-muted" style="font-size:.8rem;">las que más tráfico de Google reciben</span></div>
+        <div class="col-lg-6"><div class="card"><div class="card-header"><strong>Páginas</strong> <span class="text-muted" style="font-size:.8rem;">las que más tráfico de Google reciben</span> <?= $csvLink('pages') ?></div>
             <div class="table-responsive"><table class="table table-sm mb-0 gsc-sortable gsc-fit"><thead><tr><th>Página</th><th class="num">Clics</th><th class="num">Impr.</th><th class="num">CTR</th><th class="num">Pos.</th></tr></thead><tbody>
-            <?php foreach ($report['pages'] as $r): ?><tr><td class="gsc-trunc" title="<?= $e($r['name']) ?>"><?php $short = preg_replace('#^https?://(www\.)?' . preg_quote($property['domain'], '#') . '#i', '', $r['name']) ?: '/'; ?><?= $pageLink($r['name'], $short) ?><?php if (($property['status'] ?? '') === 'active' && preg_match('#^https?://#i', (string) $r['name'])): ?> <button type="button" class="btn btn-link p-0 ms-1 gsc-inspect-row" data-url="<?= $e($r['name']) ?>" title="Ver si Google la tiene indexada"><i class="bi bi-search" style="font-size:.72rem;opacity:.6;"></i></button><?php endif; ?></td><td class="num"><?= $n($r['clicks']) ?></td><td class="num"><?= $n($r['impressions']) ?></td><td class="num"><?= $pct($r['ctr']) ?></td><td class="num"><?= $pos($r['position']) ?></td></tr><?php endforeach; ?>
+            <?php foreach ($report['pages'] as $r): ?><tr><td class="gsc-trunc" title="<?= $e($r['name']) ?>"><?php $short = preg_replace('#^https?://(www\.)?' . preg_quote($property['domain'], '#') . '#i', '', $r['name']) ?: '/'; ?><?= $pageLink($r['name'], $short) ?><?php if (($property['status'] ?? '') === 'active' && preg_match('#^https?://#i', (string) $r['name'])): ?> <button type="button" class="btn btn-link p-0 ms-1 gsc-inspect-row" data-url="<?= $e($r['name']) ?>" title="Ver si Google la tiene indexada"><i class="bi bi-search" style="font-size:.72rem;opacity:.6;"></i></button><?php endif; ?><?php if (!empty($content[$r['name']])): $ct = $content[$r['name']]; ?><div class="text-muted" style="font-size:.72rem;line-height:1.2;overflow:hidden;text-overflow:ellipsis;" title="<?= $e($ct['title']) ?>"><i class="bi bi-file-earmark-text"></i> <?= $e($ct['type']) ?>: <?= $e($ct['title']) ?> · <a href="<?= $e($ct['edit']) ?>" target="_blank" rel="noopener noreferrer">Editar</a></div><?php endif; ?></td><td class="num"><?= $n($r['clicks']) ?></td><td class="num"><?= $n($r['impressions']) ?></td><td class="num"><?= $pct($r['ctr']) ?></td><td class="num"><?= $pos($r['position']) ?></td></tr><?php endforeach; ?>
             <?php if (!$report['pages']): ?><tr><td colspan="5" class="text-muted text-center p-3">Sin páginas en este periodo.</td></tr><?php endif; ?>
             </tbody></table></div></div></div>
-        <div class="col-lg-6"><div class="card"><div class="card-header"><strong>Países</strong></div>
+        <div class="col-lg-6"><div class="card"><div class="card-header"><strong>Países</strong> <?= $csvLink('countries') ?></div>
             <div class="table-responsive"><table class="table table-sm mb-0 gsc-sortable gsc-fit"><thead><tr><th>País</th><th class="num">Clics</th><th class="num">Impr.</th><th class="num">CTR</th><th class="num">Pos.</th></tr></thead><tbody>
             <?php foreach ($report['countries'] as $r): ?><tr><td><?= $e(strtoupper($r['name'])) ?></td><td class="num"><?= $n($r['clicks']) ?></td><td class="num"><?= $n($r['impressions']) ?></td><td class="num"><?= $pct($r['ctr']) ?></td><td class="num"><?= $pos($r['position']) ?></td></tr><?php endforeach; ?>
             </tbody></table></div></div></div>
-        <div class="col-lg-6"><div class="card"><div class="card-header"><strong>Dispositivos</strong></div>
+        <div class="col-lg-6"><div class="card"><div class="card-header"><strong>Dispositivos</strong> <?= $csvLink('devices') ?></div>
             <div class="table-responsive"><table class="table table-sm mb-0 gsc-sortable gsc-fit"><thead><tr><th>Dispositivo</th><th class="num">Clics</th><th class="num">Impr.</th><th class="num">CTR</th><th class="num">Pos.</th></tr></thead><tbody>
             <?php foreach ($report['devices'] as $r): ?><tr><td><?= $e(['DESKTOP' => 'Ordenador', 'MOBILE' => 'Móvil', 'TABLET' => 'Tableta'][$r['name']] ?? $r['name']) ?></td><td class="num"><?= $n($r['clicks']) ?></td><td class="num"><?= $n($r['impressions']) ?></td><td class="num"><?= $pct($r['ctr']) ?></td><td class="num"><?= $pos($r['position']) ?></td></tr><?php endforeach; ?>
             </tbody></table></div></div></div>

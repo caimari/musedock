@@ -2,6 +2,7 @@
 
 namespace Modules\SearchConsole\Controllers;
 
+use Modules\SearchConsole\Services\ContentMapService;
 use Modules\SearchConsole\Services\CredentialStore;
 use Modules\SearchConsole\Services\DomainVerifier;
 use Modules\SearchConsole\Services\GoogleApiException;
@@ -168,6 +169,21 @@ abstract class BaseController
         }
     }
 
+    /** Contenido del CMS que corresponde a las URL del informe (título y enlace para editar). */
+    private function contentFor(array $property, array $report): array
+    {
+        if (!empty($property['external']) || !empty($report['empty'])) {
+            return [];
+        }
+        $urls = array_column($report['pages'] ?? [], 'name');
+        try {
+            return (new ContentMapService($this->pdo))->resolve($property['tenant_id'] !== null ? (int) $property['tenant_id'] : null, (string) $property['domain'], $urls,
+                function_exists('admin_path') ? admin_path() : 'admin', $this->scopeTenantId !== null);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
     /** GET: informe de SEO de una propiedad (solo las que este ámbito puede ver). */
     public function show($id)
     {
@@ -184,6 +200,7 @@ abstract class BaseController
             'title' => 'SEO · ' . $property['domain'],
             'property' => $property,
             'report' => $report,
+            'content' => $this->contentFor($property, $report),
             'opportunities' => (new OpportunityService($this->pdo))->detect($property, in_array($days, [7, 28, 90, 180, 365], true) ? $days : 365),
             'periods' => ReportService::PERIODS,
             'baseUrl' => $this->baseUrl(),
@@ -225,6 +242,75 @@ abstract class BaseController
             }
         }
         echo json_encode(['ok' => !$errors, 'rows' => $rows, 'message' => $errors ? implode(' · ', $errors) : "Descargadas {$rows} filas de " . count($targets) . ' propiedad(es).'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    /** Una celda de CSV: comillas dobles escapadas y protegida contra inyección de fórmulas en Excel (=, +, -, @). */
+    private static function csvCell($v): string
+    {
+        $v = (string) $v;
+        if ($v !== '' && strpbrk($v[0], "=+-@\t\r") !== false && !is_numeric($v)) {
+            $v = "'" . $v;
+        }
+
+        return '"' . str_replace('"', '""', $v) . '"';
+    }
+
+    private static function num($v, int $dec = 0): string
+    {
+        return number_format((float) $v, $dec, ',', '');
+    }
+
+    /** GET: exporta a CSV (UTF-8, separador «;», decimales con coma: se abre bien en Excel en español). */
+    public function export()
+    {
+        $this->checkPermission('search_console.view');
+        $type = (string) ($_GET['type'] ?? 'summary');
+        $period = $this->periodFromRequest();
+        $rows = [];
+        if ($type === 'summary') {
+            $props = array_filter($this->visibleProperties(), fn ($p) => $p['status'] !== 'pending');
+            $totals = $this->totals(array_map(fn ($p) => (int) $p['id'], $props), $period['key']);
+            $rows[] = ['Dominio', 'Clics', 'Impresiones', 'CTR %', 'Posición', 'Clics periodo anterior', 'Variación clics %', 'Estado', 'Última sincronización'];
+            foreach ($props as $p) {
+                $t = $totals[(int) $p['id']] ?? null;
+                $delta = ($t && $t['prev_clicks'] > 0) ? ($t['clicks'] - $t['prev_clicks']) / $t['prev_clicks'] * 100 : null;
+                $rows[] = [$p['domain'], $t ? $t['clicks'] : '', $t ? $t['impressions'] : '', $t ? self::num($t['ctr'] * 100, 2) : '', ($t && $t['position'] !== null) ? self::num($t['position'], 1) : '',
+                    $t ? $t['prev_clicks'] : '', $delta !== null ? self::num($delta, 1) : '', $p['status'], $p['last_sync_at'] ?? ''];
+            }
+            $name = 'seo-dominios';
+        } else {
+            $property = $this->visibleProperty((int) ($_GET['property_id'] ?? 0));
+            if (!$property || !in_array($type, ['queries', 'pages', 'countries', 'devices', 'daily'], true)) {
+                http_response_code(404);
+                exit('No disponible');
+            }
+            $report = (new ReportService($this->pdo))->report($property, $period['key']);
+            if (!empty($report['empty'])) {
+                http_response_code(404);
+                exit('Sin datos');
+            }
+            if ($type === 'daily') {
+                $rows[] = ['Fecha', 'Clics', 'Impresiones'];
+                foreach ($report['daily'] as $r) {
+                    $rows[] = [$r['date'], $r['clicks'], $r['impressions']];
+                }
+            } else {
+                $label = ['queries' => 'Consulta', 'pages' => 'Página', 'countries' => 'País', 'devices' => 'Dispositivo'][$type];
+                $rows[] = [$label, 'Clics', 'Impresiones', 'CTR %', 'Posición'];
+                foreach ($report[$type] as $r) {
+                    $rows[] = [$r['name'], $r['clicks'], $r['impressions'], self::num($r['ctr'] * 100, 2), $r['position'] !== null ? self::num($r['position'], 1) : ''];
+                }
+            }
+            $name = 'seo-' . preg_replace('/[^a-z0-9.-]+/i', '-', $property['domain']) . '-' . $type;
+        }
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . trim($name, '-') . '-' . date('Ymd') . '.csv"');
+        header('Cache-Control: no-store');
+        echo "\xEF\xBB\xBF"; // BOM para que Excel reconozca UTF-8
+        foreach ($rows as $row) {
+            echo implode(';', array_map([self::class, 'csvCell'], $row)), "\r\n";
+        }
         exit;
     }
 

@@ -127,7 +127,8 @@
         </div>
         <div class="px-3 pb-2 d-flex align-items-center flex-wrap gap-2" style="font-size:.82rem;">
             <span class="text-muted"><i class="bi bi-calendar-range"></i> Periodo: <strong>{{ $period['range']['from'] }} – {{ $period['range']['to'] }}</strong> ({{ $period['range']['days'] }} días) · comparado con <strong>{{ $period['range']['prev_from'] }} – {{ $period['range']['prev_to'] }}</strong>@if($period['key'] === 0) <em>(no hay datos anteriores)</em>@endif</span>
-            <button type="button" class="btn btn-outline-secondary btn-sm py-0 ms-auto" id="gsc-cols-info"><i class="bi bi-question-circle"></i> ¿Qué significa cada columna?</button>
+            <a class="btn btn-outline-secondary btn-sm py-0 ms-auto" href="{{ $baseUrl }}/export?type=summary&days={{ $period['key'] }}" title="Descarga la tabla de dominios del periodo elegido en CSV (Excel)"><i class="bi bi-download"></i> Exportar CSV</a>
+            <button type="button" class="btn btn-outline-secondary btn-sm py-0" id="gsc-cols-info"><i class="bi bi-question-circle"></i> ¿Qué significa cada columna?</button>
         </div>
         <div class="table-responsive">
         <table class="table table-hover mb-0 gsc-sortable" id="gsc-table">

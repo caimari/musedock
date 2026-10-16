@@ -20,6 +20,7 @@ Route::post('/musedock/search-console/refresh', "{$gscSaCtrl}@refresh")->middlew
 Route::post('/musedock/search-console/verify', "{$gscSaCtrl}@verifyDomain")->middleware('superadmin');
 Route::post('/musedock/search-console/external', "{$gscSaCtrl}@addExternalDomain")->middleware('superadmin');
 Route::get('/musedock/search-console/domain/{id}', "{$gscSaCtrl}@show")->name('search-console.sa.domain')->middleware('superadmin');
+Route::get('/musedock/search-console/export', "{$gscSaCtrl}@export")->middleware('superadmin');
 Route::post('/musedock/search-console/sync', "{$gscSaCtrl}@syncNow")->middleware('superadmin');
 Route::post('/musedock/search-console/syncq/{action}', "{$gscSaCtrl}@syncQueue")->middleware('superadmin');
 Route::post('/musedock/search-console/bulk/{action}', "{$gscSaCtrl}@bulkAction")->middleware('superadmin');
@@ -39,6 +40,7 @@ Route::post($gscAdminPath . '/search-console/credential/delete', "{$gscTenantCtr
 Route::post($gscAdminPath . '/search-console/refresh', "{$gscTenantCtrl}@refresh")->middleware('auth');
 Route::post($gscAdminPath . '/search-console/verify', "{$gscTenantCtrl}@verifyDomain")->middleware('auth');
 Route::get($gscAdminPath . '/search-console/domain/{id}', "{$gscTenantCtrl}@show")->name('search-console.tenant.domain')->middleware('auth');
+Route::get($gscAdminPath . '/search-console/export', "{$gscTenantCtrl}@export")->middleware('auth');
 Route::post($gscAdminPath . '/search-console/sync', "{$gscTenantCtrl}@syncNow")->middleware('auth');
 Route::post($gscAdminPath . '/search-console/sitemap/submit', "{$gscTenantCtrl}@submitSitemap")->middleware('auth');
 Route::post($gscAdminPath . '/search-console/inspect', "{$gscTenantCtrl}@inspectUrl")->middleware('auth');
