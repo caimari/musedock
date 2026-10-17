@@ -10,512 +10,164 @@
     $customerPanelLayoutMode = 'full';
   }
   $isCustomerPanelFull = $customerPanelLayoutMode !== 'compact';
+  // Tema de color del panel (Ajustes de Cloud): solo cambia el color de acento
   $customerPanelTheme = strtolower((string) setting('cloud_customer_panel_theme', 'slate_blue'));
-  $allowedCustomerPanelThemes = ['slate_blue', 'graphite_cyan', 'soft_blue_gray'];
-  if (!in_array($customerPanelTheme, $allowedCustomerPanelThemes, true)) {
+  $panelAccents = [
+    'slate_blue'     => ['#2563eb', '#1d4ed8', '#eaf1ff'],
+    'graphite_cyan'  => ['#0e7490', '#155e75', '#e6f6fa'],
+    'soft_blue_gray' => ['#3b6fd8', '#2f5bb8', '#ecf2fc'],
+  ];
+  if (!isset($panelAccents[$customerPanelTheme])) {
     $customerPanelTheme = 'slate_blue';
   }
+  [$cpAccent, $cpAccentHover, $cpAccentSoft] = $panelAccents[$customerPanelTheme];
 @endphp
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
-  @if($isCustomerPanelFull)
-  /* Modo panel completo: esconder layout público y usar pantalla completa */
-  .ziph-header_area,
-  .ziph-footer_area {
-    display: none !important;
-  }
-
-  #zipprich-wrapper {
-    min-height: 100vh !important;
-  }
-
-  .ziph-page_content.customer-panel-full {
-    padding: 0 !important;
-    margin: 0 !important;
-    background: #ffffff;
-  }
-
-  .ziph-page_content.customer-theme-slate_blue {
-    --cp-bg: #dfe8f7;
-    --cp-surface: #f3f7ff;
-    --cp-border: #ccdaef;
-    --cp-topbar-bg: linear-gradient(90deg, #dfeaff 0%, #edf4ff 100%);
-    --cp-topbar-border: #bfd0ea;
-    --cp-topbar-text: #243141;
-    --cp-sidebar-bg: #0f172a;
-    --cp-sidebar-text: #cbd5e1;
-    --cp-sidebar-hover: #1e293b;
-    --cp-sidebar-active: #2563eb;
-    --cp-topbar-panel-bg: #1e3a6b;
-    --cp-menu-text: #30445d;
-    --cp-menu-hover-bg: #f3f7fe;
-    --cp-menu-hover-text: #1f3248;
-    --cp-accent: #2563eb;
-    --cp-accent-hover: #1d4ed8;
-    --cp-user-btn-bg: #f6f9ff;
-    --cp-user-btn-border: #c8d8f7;
-    --cp-user-btn-text: #1f3d6b;
-    --cp-user-btn-hover-bg: #eaf1ff;
-    --cp-user-btn-hover-text: #15325a;
-    --cp-user-avatar-bg: #2d5fd4;
-  }
-
-  .ziph-page_content.customer-theme-graphite_cyan {
-    --cp-bg: #e5edf2;
+  /* ===== Panel de clientes: estilo app (barra lateral clara, tarjetas redondeadas) ===== */
+  .mdp-app {
+    --cp-accent: {{ $cpAccent }};
+    --cp-accent-hover: {{ $cpAccentHover }};
+    --cp-accent-soft: {{ $cpAccentSoft }};
+    --cp-bg: #f4f6fb;
     --cp-surface: #ffffff;
-    --cp-border: #d6dee8;
-    --cp-topbar-bg: linear-gradient(90deg, #e5f7fb 0%, #f1fbff 100%);
-    --cp-topbar-border: #c5e6ef;
-    --cp-topbar-text: #1f2a37;
-    --cp-sidebar-bg: #111827;
-    --cp-sidebar-text: #9ca3af;
-    --cp-sidebar-hover: #1f2937;
-    --cp-sidebar-active: #0891b2;
-    --cp-topbar-panel-bg: #1a4d5c;
-    --cp-menu-text: #1f3347;
-    --cp-menu-hover-bg: #ecfdff;
-    --cp-menu-hover-text: #155e75;
-    --cp-accent: #0891b2;
-    --cp-accent-hover: #0e7490;
-    --cp-user-btn-bg: #f0fbfe;
-    --cp-user-btn-border: #bfe6ef;
-    --cp-user-btn-text: #14556a;
-    --cp-user-btn-hover-bg: #e0f7fc;
-    --cp-user-btn-hover-text: #0f4758;
-    --cp-user-avatar-bg: #0b7f9c;
+    --cp-border: #e6eaf2;
+    --cp-text: #1f2937;
+    --cp-muted: #64748b;
+    --cp-radius: 16px;
+    --cp-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 6px 20px rgba(16, 24, 40, .05);
+    color: var(--cp-text);
   }
 
-  .ziph-page_content.customer-theme-soft_blue_gray {
-    --cp-bg: #eceff5;
-    --cp-surface: #fbfdff;
-    --cp-border: #dbe4f0;
-    --cp-topbar-bg: linear-gradient(90deg, #eaf0fb 0%, #f5f8fe 100%);
-    --cp-topbar-border: #d0dced;
-    --cp-topbar-text: #2c3e52;
-    --cp-sidebar-bg: #eaf0f8;
-    --cp-sidebar-text: #334155;
-    --cp-sidebar-hover: #dbe7f5;
-    --cp-sidebar-active: #3b82f6;
-    --cp-topbar-panel-bg: #2b3f5e;
-    --cp-menu-text: #2f4259;
-    --cp-menu-hover-bg: #eef4fb;
-    --cp-menu-hover-text: #1f3248;
-    --cp-accent: #3b82f6;
-    --cp-accent-hover: #2563eb;
-    --cp-user-btn-bg: #f4f8ff;
-    --cp-user-btn-border: #d2def0;
-    --cp-user-btn-text: #2b4669;
-    --cp-user-btn-hover-bg: #e8f0ff;
-    --cp-user-btn-hover-text: #1e3a5f;
-    --cp-user-avatar-bg: #3a78de;
-  }
-
-  .customer-panel-topbar {
-    height: 72px;
-    background: var(--cp-topbar-panel-bg, #1e3a6b);
-    color: #eef2f9;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 22px;
-    position: relative;
-    border-radius: 12px 12px 0 0;
-  }
-  /* Logo del panel: sobre fondo oscuro conviene el logo claro/monocromo */
-  .customer-panel-topbar .customer-panel-brand img {
-    filter: brightness(0) invert(1);
-    opacity: 0.96;
-  }
-
-  .customer-panel-brand {
-    display: inline-flex;
-    align-items: center;
-    text-decoration: none;
-  }
-
-  .customer-panel-brand img {
-    max-height: 46px;
-    width: auto;
-    display: block;
-  }
-
-  .customer-panel-topbar-right {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    position: relative;
-  }
-
-  .customer-top-user-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    height: 42px;
-    padding: 0 12px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 8px;
-    color: #eef2f9;
-    font-size: 0.82rem;
-    font-weight: 600;
-    text-decoration: none !important;
-    background: rgba(255, 255, 255, 0.06);
-    cursor: pointer;
-    min-width: 220px;
-    transition: background .15s ease, border-color .15s ease;
-  }
-
-  .customer-top-user-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.22);
-  }
-  .customer-top-user-btn .bi-chevron-down { color: #9fb2cc; }
-
-  .customer-top-user-avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
-    background: var(--cp-user-avatar-bg);
-    color: #fff;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 0.74rem;
-    flex: 0 0 28px;
-  }
-
-  .customer-top-user-text {
-    min-width: 0;
-    text-align: left;
-    flex: 1;
-  }
-
-  .customer-top-user-name {
-    color: #ffffff;
-    font-size: 0.78rem;
-    font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.1;
-  }
-
-  .customer-top-user-email {
-    color: #9fb2cc;
-    font-size: 0.66rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.1;
-    margin-top: 1px;
-  }
-
-  .customer-top-user-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    width: 250px;
-    background: #fff;
-    border: 1px solid var(--cp-border);
-    border-radius: 10px;
-    box-shadow: 0 8px 26px rgba(24, 39, 75, 0.15);
-    padding: 6px;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(8px);
-    transition: all 0.15s ease;
-    z-index: 220;
-  }
-
-  .customer-top-user-menu.show {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-  }
-
-  .customer-top-user-menu a {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 9px 10px;
-    border-radius: 7px;
-    color: var(--cp-menu-text);
-    font-size: 0.82rem;
-    font-weight: 600;
-    text-decoration: none;
-  }
-
-  .customer-top-user-menu a i {
-    width: 16px;
-    text-align: center;
-  }
-
-  .customer-top-user-menu a:hover {
-    background: var(--cp-menu-hover-bg);
-    color: var(--cp-menu-hover-text);
-  }
-
-  .customer-top-user-menu .menu-sep {
-    height: 1px;
-    margin: 4px 2px;
-    background: var(--cp-border);
-  }
-
-  .customer-top-user-menu a.menu-danger {
-    color: #c53030;
-  }
-
-  .customer-top-user-menu a.menu-danger:hover {
-    background: #fff1f1;
-    color: #9f1d1d;
-  }
+  @if($isCustomerPanelFull)
+  /* Pantalla completa: sin la cabecera ni el pie de la web pública */
+  .ziph-header_area, .ziph-footer_area { display: none !important; }
+  #zipprich-wrapper { min-height: 100vh !important; }
+  .ziph-page_content.customer-panel-full { padding: 0 !important; margin: 0 !important; background: var(--cp-bg); }
   @endif
 
-  /* ===== Customer Panel Layout ===== */
-  .customer-panel-wrapper {
-    display: flex;
-    gap: 0;
-    min-height: calc(100vh - 280px);
-  }
-  .customer-panel-wrapper.is-full {
-    min-height: calc(100vh - 72px);
-  }
+  .mdp-shell { display: flex; min-height: 100vh; background: var(--cp-bg); }
+  .mdp-shell.is-compact { min-height: calc(100vh - 280px); background: transparent; }
 
-  .customer-panel-container-full {
-    width: 100%;
-    max-width: 1700px;
-    margin: 0 auto;
-    padding-left: 18px;
-    padding-right: 18px;
-    padding-top: 18px;
-    padding-bottom: 18px;
-  }
-
-  /* El panel se lee como una tarjeta sobre el fondo blanco de la página */
-  .customer-panel-container-full > .customer-panel-topbar,
-  .customer-panel-container-full > .customer-panel-wrapper.is-full {
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.10);
-  }
-  .customer-panel-container-full > .customer-panel-wrapper.is-full {
-    border-radius: 0 0 12px 12px;
-  }
-
-  .customer-panel-wrapper.is-full .customer-sidebar {
-    width: 232px;
-    padding: 16px 12px 14px 12px;
-    background: var(--cp-sidebar-bg);
-    border: none;
-    border-radius: 0 0 0 12px;
-  }
-
-  .customer-panel-wrapper.is-full .customer-main {
-    padding: 24px 30px;
+  /* --- Barra lateral --- */
+  .mdp-sidebar {
+    width: 268px; flex: 0 0 268px;
     background: var(--cp-surface);
-    border: 1px solid var(--cp-border);
-    border-left: none;
-    border-top: none;
-    border-radius: 0 0 12px 0;
+    border-right: 1px solid var(--cp-border);
+    display: flex; flex-direction: column;
+    padding: 22px 16px 18px;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
   }
-  .customer-sidebar {
-    width: 190px;
-    flex-shrink: 0;
-    padding: 16px 0 12px 0;
-    border-right: 1px solid #edf0f5;
-    display: flex;
-    flex-direction: column;
+  .mdp-brand { display: flex; align-items: center; padding: 4px 10px 22px; text-decoration: none; }
+  .mdp-brand img { max-height: 40px; width: auto; display: block; }
+  .mdp-nav { display: flex; flex-direction: column; gap: 4px; }
+  .mdp-nav-label {
+    font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: #94a3b8; padding: 18px 14px 8px;
+  }
+  .mdp-nav-link {
+    display: flex; align-items: center; gap: 14px;
+    padding: 11px 14px; border-radius: 12px;
+    color: #475569; font-size: .95rem; font-weight: 500;
+    text-decoration: none; transition: background .15s ease, color .15s ease;
+  }
+  .mdp-nav-link i { font-size: 1.15rem; width: 22px; text-align: center; color: #94a3b8; transition: color .15s ease; }
+  .mdp-nav-link:hover { background: #f5f7fb; color: var(--cp-text); }
+  .mdp-nav-link:hover i { color: var(--cp-accent); }
+  .mdp-nav-link.active { background: var(--cp-accent-soft); color: var(--cp-accent); font-weight: 600; }
+  .mdp-nav-link.active i { color: var(--cp-accent); }
+  .mdp-sidebar-footer { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--cp-border); display: flex; flex-direction: column; gap: 4px; }
+  .mdp-nav-link.is-danger { color: #b42318; }
+  .mdp-nav-link.is-danger i { color: #d92d20; }
+  .mdp-nav-link.is-danger:hover { background: #fef3f2; }
+
+  /* --- Zona principal --- */
+  .mdp-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .mdp-topbar {
+    height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 0 32px; background: var(--cp-surface); border-bottom: 1px solid var(--cp-border);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .mdp-crumb { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .mdp-crumb-home {
+    width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--cp-border);
+    display: inline-flex; align-items: center; justify-content: center; color: #475569; text-decoration: none;
+  }
+  .mdp-crumb-home:hover { color: var(--cp-accent); border-color: #cfd8e6; }
+  .mdp-crumb-title { font-size: 1.05rem; font-weight: 600; color: var(--cp-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mdp-topbar-right { display: flex; align-items: center; gap: 14px; position: relative; }
+  .mdp-btn-new {
+    display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px;
+    border-radius: 12px; border: 0; background: var(--cp-accent); color: #fff;
+    font-weight: 600; font-size: .95rem; cursor: pointer; transition: background .15s ease;
+  }
+  .mdp-btn-new:hover { background: var(--cp-accent-hover); }
+  .mdp-avatar-btn {
+    width: 46px; height: 46px; border-radius: 50%; border: 0; cursor: pointer;
+    background: var(--cp-accent); color: #fff; font-weight: 700; font-size: .95rem;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .mdp-dropdown {
+    position: absolute; top: calc(100% + 10px); right: 0; min-width: 250px;
+    background: #fff; border: 1px solid var(--cp-border); border-radius: 14px;
+    box-shadow: 0 12px 32px rgba(16, 24, 40, .14); padding: 8px;
+    opacity: 0; visibility: hidden; transform: translateY(6px); transition: all .15s ease; z-index: 220;
+  }
+  .mdp-dropdown.show { opacity: 1; visibility: visible; transform: translateY(0); }
+  .mdp-dropdown-head { padding: 10px 12px 12px; border-bottom: 1px solid var(--cp-border); margin-bottom: 6px; }
+  .mdp-dropdown-head strong { display: block; font-size: .92rem; color: var(--cp-text); }
+  .mdp-dropdown-head span { font-size: .8rem; color: var(--cp-muted); }
+  .mdp-dropdown a {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
+    color: #334155; font-size: .9rem; font-weight: 500; text-decoration: none;
+  }
+  .mdp-dropdown a i { width: 18px; text-align: center; color: #94a3b8; }
+  .mdp-dropdown a:hover { background: #f5f7fb; color: var(--cp-text); }
+  .mdp-dropdown a.is-danger { color: #b42318; }
+  .mdp-dropdown a.is-danger i { color: #d92d20; }
+  .mdp-dropdown .mdp-sep { height: 1px; background: var(--cp-border); margin: 6px 4px; }
+
+  .mdp-content { padding: 32px; flex: 1; }
+  .mdp-content > .mdp-page { max-width: 1440px; margin: 0 auto; }
+
+  /* --- Componentes reutilizables --- */
+  .mdp-card { background: var(--cp-surface); border-radius: var(--cp-radius); box-shadow: var(--cp-shadow); padding: 28px; }
+  .mdp-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+  .mdp-card-title { display: flex; align-items: center; gap: 14px; font-size: 1.15rem; font-weight: 700; color: var(--cp-text); margin: 0; }
+  .mdp-icon-box {
+    width: 48px; height: 48px; border-radius: 12px; flex: 0 0 48px;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1.3rem; color: #fff;
+  }
+  .mdp-btn-outline {
+    display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 10px;
+    border: 1px solid #d5dce8; background: #fff; color: #334155; font-size: .88rem; font-weight: 600;
+    text-decoration: none; cursor: pointer; transition: border-color .15s ease, color .15s ease;
+  }
+  .mdp-btn-outline:hover { border-color: var(--cp-accent); color: var(--cp-accent); }
+  .mdp-alert {
+    background: #fff8e6; border: 1px solid #ffe2a8; color: #7a5b00;
+    border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; font-size: .9rem;
   }
 
-  .customer-main {
-    flex: 1;
-    min-width: 0;
-    padding: 16px 24px;
-  }
+  /* Contenido antiguo de otras pantallas (estilos en línea): mismo aire de tarjeta */
+  .mdp-content .card { border-radius: 14px; border-color: var(--cp-border); }
+  .mdp-content [style*="border:1px solid #edf0f5"] { box-shadow: var(--cp-shadow); border-color: var(--cp-border) !important; border-radius: 14px !important; }
 
-  /* Sidebar nav */
-  .cs-nav-link {
-    display: flex; align-items: center; gap: 9px;
-    padding: 7px 12px; border-radius: 7px;
-    font-size: 0.8rem; font-weight: 500; color: #4a5568;
-    text-decoration: none; transition: all 0.12s; margin-bottom: 1px;
-  }
-  .cs-nav-link:hover { background: #f3f4f6; color: #243141; }
-  .cs-nav-link.active { background: #4e73df; color: #fff; font-weight: 600; }
-  .cs-nav-link i { font-size: 0.9rem; width: 16px; text-align: center; }
-
-  .customer-panel-wrapper.is-full .cs-nav-link {
-    color: var(--cp-sidebar-text);
-  }
-  .customer-panel-wrapper.is-full .cs-nav-link:hover {
-    background: var(--cp-sidebar-hover);
-    color: #ffffff;
-  }
-  .customer-panel-wrapper.is-full .cs-nav-link.active {
-    background: var(--cp-sidebar-active);
-    color: #ffffff;
-  }
-  .cs-nav-logout { color: #dc3545; }
-  .cs-nav-logout:hover { background: #fef2f2; color: #dc3545; }
-
-  /* Content sizing inside panel */
-  .customer-main h1, .customer-main h2 { font-size: 1.15rem; font-weight: 700; color: #243141; margin-bottom: 4px; }
-  .customer-main h3, .customer-main h4 { font-size: 1rem; font-weight: 600; }
-  .customer-main .section-title { font-size: 1rem; }
-  .customer-main .stats-card { padding: 16px; border-radius: 10px; }
-  .customer-main .stats-card .number { font-size: 1.4rem; }
-  .customer-main .stats-card .label { font-size: 0.78rem; }
-  .customer-main .stats-card .icon { width: 38px; height: 38px; border-radius: 8px; font-size: 1rem; margin-bottom: 8px; }
-  .customer-main .tenant-card { padding: 14px; border-radius: 10px; margin-bottom: 12px; }
-  .customer-main .card { border-radius: 10px; border-color: #edf0f5; }
-  .customer-main .form-control, .customer-main .form-select { font-size: 0.88rem; }
-  .customer-main .btn { font-size: 0.82rem; }
-  .customer-main .alert { font-size: 0.85rem; padding: 10px 14px; border-radius: 8px; }
-  .customer-main .dashboard-header h2 { font-size: 1.15rem; margin-bottom: 2px; }
-  .customer-main .dashboard-header p { font-size: 0.82rem; }
-  .customer-main .action-buttons .btn { font-size: 0.8rem; padding: 8px 16px; }
-
-  /* Cards del dashboard (estilos inline con border #edf0f5): sombra + micro-hover */
-  .customer-main [style*="border:1px solid #edf0f5"] {
-    box-shadow: 0 2px 8px rgba(24, 39, 75, 0.05);
-    transition: box-shadow .16s ease, transform .16s ease, border-color .16s ease;
-  }
-  .customer-main [style*="border:1px solid #edf0f5"]:hover {
-    box-shadow: 0 8px 22px rgba(24, 39, 75, 0.10);
-    transform: translateY(-1px);
-    border-color: #dbe3ef !important;
-  }
-  /* Títulos de sección con un pequeño acento a la izquierda */
-  .customer-main > h3 {
-    position: relative;
-    padding-left: 12px;
-  }
-  .customer-main > h3::before {
-    content: "";
-    position: absolute;
-    left: 0; top: 50%;
-    transform: translateY(-50%);
-    width: 4px; height: 15px;
-    border-radius: 3px;
-    background: var(--cp-accent, #2563eb);
-  }
-
-  /* Pro polish for primary blue theme (fondo claro sutil, sin saturar) */
-  .ziph-page_content.customer-theme-slate_blue .customer-panel-wrapper.is-full .customer-main {
-    background: #fbfcfe;
-  }
-  .ziph-page_content.customer-theme-slate_blue .customer-main .card,
-  .ziph-page_content.customer-theme-slate_blue .customer-main .cp-card,
-  .ziph-page_content.customer-theme-slate_blue .customer-main .ct-card,
-  .ziph-page_content.customer-theme-slate_blue .customer-main .ct-empty {
-    background: #f8fbff;
-    border-color: #d7e4f8;
-    box-shadow: 0 7px 18px rgba(29, 78, 216, 0.06);
-  }
-  .ziph-page_content.customer-theme-slate_blue .customer-main .form-control,
-  .ziph-page_content.customer-theme-slate_blue .customer-main .form-select,
-  .ziph-page_content.customer-theme-slate_blue .customer-main input[type="text"],
-  .ziph-page_content.customer-theme-slate_blue .customer-main input[type="email"],
-  .ziph-page_content.customer-theme-slate_blue .customer-main input[type="password"],
-  .ziph-page_content.customer-theme-slate_blue .customer-main input[type="tel"],
-  .ziph-page_content.customer-theme-slate_blue .customer-main input[type="url"],
-  .ziph-page_content.customer-theme-slate_blue .customer-main textarea {
-    background: #f6faff;
-    border-color: #cfdbef;
-  }
-  .ziph-page_content.customer-theme-slate_blue .customer-main .table,
-  .ziph-page_content.customer-theme-slate_blue .customer-main .table-light th {
-    background-color: #f7faff;
-  }
-  .ziph-page_content.customer-theme-slate_blue .customer-main [style*="background:#fff"] {
-    background: #f8fbff !important;
-  }
-  .ziph-page_content.customer-theme-slate_blue .customer-main [style*="border:1px solid #edf0f5"] {
-    border-color: #d7e4f8 !important;
-  }
-
-  /* Reusable right-sidebar layout for customer pages */
-  .customer-main .cp-page-wrap {
-    max-width: 1380px;
-    margin: 0 auto;
-  }
-  .customer-main .cp-two-col {
-    display: grid;
-    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.95fr);
-    gap: 18px;
-    align-items: start;
-  }
-  .customer-main .cp-two-col-main,
-  .customer-main .cp-two-col-side {
-    min-width: 0;
-  }
-  .customer-main .cp-two-col .cp-two-col-main { order: 1; }
-  .customer-main .cp-two-col .cp-two-col-side { order: 2; }
-  @media (max-width: 1200px) {
-    .customer-main .cp-two-col {
-      grid-template-columns: minmax(0, 1fr) minmax(280px, 0.9fr);
-    }
-  }
-  @media (max-width: 700px) {
-    .customer-main .cp-two-col {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  /* Mobile */
-  @media (max-width: 768px) {
-    .customer-panel-topbar {
-      height: 64px;
-      padding: 0 12px;
-      border-radius: 10px 10px 0 0;
-    }
-    .customer-panel-brand img {
-      max-height: 40px;
-    }
-    .customer-panel-container-full {
-      padding-left: 10px;
-      padding-right: 10px;
-      padding-top: 10px;
-    }
-    .customer-top-user-btn {
-      min-width: 160px;
-      height: 34px;
-      padding: 0 8px;
-      font-size: 0.74rem;
-      gap: 6px;
-    }
-    .customer-top-user-avatar {
-      width: 24px;
-      height: 24px;
-      flex-basis: 24px;
-      border-radius: 6px;
-      font-size: 0.68rem;
-    }
-    .customer-top-user-email {
-      display: none;
-    }
-    .customer-panel-wrapper { flex-direction: column; }
-    .customer-sidebar {
-      width: 100%; border-right: none; border-bottom: 1px solid #edf0f5;
-      padding: 10px 0;
-    }
-    .customer-panel-wrapper.is-full .customer-sidebar {
-      border: 1px solid var(--cp-border);
-      border-top: none;
-      border-radius: 0;
-    }
-    .customer-panel-wrapper.is-full .customer-main {
-      border: 1px solid var(--cp-border);
-      border-top: none;
-      border-radius: 0 0 10px 10px;
-      padding: 14px 12px;
-    }
-    .customer-sidebar nav { display: flex; flex-wrap: wrap; gap: 3px; }
-    .customer-main { padding: 14px 0; }
-    .cs-user-name { display: none; }
-    .cs-header-user { right: 10px; }
+  /* --- Móvil --- */
+  @media (max-width: 992px) {
+    .mdp-shell { flex-direction: column; }
+    .mdp-sidebar { width: 100%; flex: none; height: auto; position: static; border-right: 0; border-bottom: 1px solid var(--cp-border); padding: 14px; }
+    .mdp-brand { padding: 0 6px 12px; }
+    .mdp-nav { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+    .mdp-nav-label, .mdp-sidebar-footer .mdp-nav-link:not(.is-danger) { display: none; }
+    .mdp-nav-link { padding: 8px 12px; font-size: .88rem; }
+    .mdp-sidebar-footer { flex-direction: row; border-top: 0; padding-top: 8px; margin-top: 0; }
+    .mdp-topbar { padding: 0 16px; height: 64px; }
+    .mdp-btn-new span { display: none; }
+    .mdp-content { padding: 18px 14px; }
+    .mdp-card { padding: 20px; }
   }
 </style>
 @endpush
@@ -526,102 +178,130 @@
   $customer = $customer ?? null;
   $currentUri = $_SERVER['REQUEST_URI'] ?? '';
   $siteName = site_setting('site_name', 'MuseDock');
-  $showLogo = site_setting('show_logo', '1') === '1';
   $logoPath = site_setting('site_logo', '');
-  if ($showLogo && !empty($logoPath)) {
-    $panelLogo = public_file_url($logoPath);
-  } else {
-    $panelLogo = url('/') . '/assets/logo-default.png';
-  }
+  $panelLogo = (site_setting('show_logo', '1') === '1' && !empty($logoPath)) ? public_file_url($logoPath) : url('/') . '/assets/logo-default.png';
+  $gateAllows = fn (string $channel) => class_exists(\Cloud\Services\SignupGate::class) && \Cloud\Services\SignupGate::allows($channel);
+
+  $navItems = [
+    ['page' => 'dashboard', 'url' => '/customer/dashboard', 'icon' => 'bi-house-door', 'label' => 'Inicio'],
+    ['page' => 'contacts', 'url' => '/customer/contacts', 'icon' => 'bi-person-lines-fill', 'label' => 'Contactos'],
+    ['page' => 'tenant-admins', 'url' => '/customer/tenant-admins', 'icon' => 'bi-people', 'label' => 'Administradores'],
+    ['page' => 'profile', 'url' => '/customer/profile', 'icon' => 'bi-person-circle', 'label' => 'Perfil'],
+  ];
+  // Altas: solo las abiertas (Cloud\Services\SignupGate)
+  $newItems = array_values(array_filter([
+    ['page' => 'free-subdomain', 'url' => '/customer/request-free-subdomain', 'icon' => 'bi-globe2', 'label' => 'Crear sitio', 'channel' => 'free_subdomain'],
+    ['page' => 'custom-domain', 'url' => '/customer/request-custom-domain', 'icon' => 'bi-link-45deg', 'label' => 'Conectar dominio', 'channel' => 'connect_domain'],
+    ['page' => 'register-domain', 'url' => '/customer/register-domain', 'icon' => 'bi-cart-plus', 'label' => 'Registrar dominio', 'channel' => 'register_domain'],
+  ], fn ($i) => $gateAllows($i['channel'])));
+  $isActive = fn (array $i) => $currentPage === $i['page'] || str_contains($currentUri, $i['url']);
+  $initial = strtoupper(mb_substr((string) ($customer['name'] ?? 'U'), 0, 1));
+  // Título de la cabecera sin el nombre del sitio (ya está en el logo) y sin «Dashboard»
+  $crumbTitle = trim((string) preg_replace('/\s*[-|–]\s*' . preg_quote($siteName, '/') . '\s*$/u', '', (string) ($page_title ?? '')));
+  $crumbTitle = ($crumbTitle === '' || strcasecmp($crumbTitle, 'Dashboard') === 0) ? __('Inicio') : $crumbTitle;
 @endphp
 
-<div class="padding-none ziph-page_content customer-theme-{{ $customerPanelTheme }} {{ $isCustomerPanelFull ? 'customer-panel-full' : '' }}">
+<div class="padding-none ziph-page_content mdp-app {{ $isCustomerPanelFull ? 'customer-panel-full' : '' }}">
   @if($customer)
-  <div class="{{ $isCustomerPanelFull ? 'container-fluid customer-panel-container-full' : 'container' }}">
-  @if($isCustomerPanelFull)
-  <header class="customer-panel-topbar">
-    <div class="customer-panel-topbar-left">
-      <a href="{{ url('/') }}" class="customer-panel-brand" aria-label="MuseDock">
+  <div class="mdp-shell {{ $isCustomerPanelFull ? '' : 'is-compact container' }}">
+
+    {{-- Barra lateral --}}
+    <aside class="mdp-sidebar" aria-label="Menú del panel">
+      @if($isCustomerPanelFull)
+      <a href="{{ url('/') }}" class="mdp-brand" aria-label="{{ $siteName }}">
         <img src="{{ $panelLogo }}" alt="{{ $siteName }}" onerror="this.onerror=null; this.src='{{ url('/') }}/assets/logo-default.png';">
       </a>
-    </div>
-    <div class="customer-panel-topbar-right">
-      <button type="button" class="customer-top-user-btn" onclick="toggleTopUserMenu(event)">
-        <span class="customer-top-user-avatar"><?= strtoupper(substr($customer['name'] ?? 'U', 0, 1)) ?></span>
-        <span class="customer-top-user-text">
-          <span class="customer-top-user-name"><?= htmlspecialchars($customer['name'] ?? '') ?></span>
-          <span class="customer-top-user-email"><?= htmlspecialchars($customer['email'] ?? '') ?></span>
-        </span>
-        <i class="bi bi-chevron-down" aria-hidden="true"></i>
-      </button>
-      <div class="customer-top-user-menu" id="customerTopUserMenu">
-        <a href="/customer/dashboard"><i class="bi bi-speedometer2"></i><span>Panel</span></a>
-        <a href="/soporte"><i class="bi bi-life-preserver"></i><span>Soporte</span></a>
-        <a href="/customer/profile"><i class="bi bi-person"></i><span>Mi perfil</span></a>
-        <div class="menu-sep"></div>
-        <a href="#" onclick="customerLogout(); return false;" class="menu-danger"><i class="bi bi-box-arrow-left"></i><span>Cerrar sesión</span></a>
-      </div>
-    </div>
-  </header>
-  @endif
-  <div class="customer-panel-wrapper {{ $isCustomerPanelFull ? 'is-full' : '' }}">
-
-    {{-- Sidebar --}}
-    <aside class="customer-sidebar">
-      {{-- Nav links --}}
-      <nav style="flex-grow:1;">
-        @php
-          $navItems = [
-            ['page' => 'dashboard', 'url' => '/customer/dashboard', 'icon' => 'bi-speedometer2', 'label' => 'Inicio'],
-            ['page' => 'free-subdomain', 'url' => '/customer/request-free-subdomain', 'icon' => 'bi-globe', 'label' => 'Crear sitio', 'channel' => 'free_subdomain'],
-            ['page' => 'custom-domain', 'url' => '/customer/request-custom-domain', 'icon' => 'bi-link-45deg', 'label' => 'Conectar dominio', 'channel' => 'connect_domain'],
-            ['page' => 'register-domain', 'url' => '/customer/register-domain', 'icon' => 'bi-cart-plus', 'label' => 'Registrar dominio', 'channel' => 'register_domain'],
-            ['page' => 'contacts', 'url' => '/customer/contacts', 'icon' => 'bi-person-lines-fill', 'label' => 'Contactos'],
-            ['page' => 'tenant-admins', 'url' => '/customer/tenant-admins', 'icon' => 'bi-people', 'label' => 'Administradores'],
-            ['page' => 'profile', 'url' => '/customer/profile', 'icon' => 'bi-person', 'label' => 'Perfil'],
-          ];
-          // Ocultar las acciones de alta cerradas (Cloud\Services\SignupGate)
-          $navItems = array_values(array_filter($navItems, fn($i) => empty($i['channel'])
-              || (class_exists(\Cloud\Services\SignupGate::class) && \Cloud\Services\SignupGate::allows($i['channel']))));
-        @endphp
+      @endif
+      <nav class="mdp-nav">
         @foreach($navItems as $item)
-          @php $isActive = $currentPage === $item['page'] || str_contains($currentUri, $item['url']); @endphp
-          <a href="{{ $item['url'] }}" class="cs-nav-link {{ $isActive ? 'active' : '' }}">
-            <i class="{{ $item['icon'] }}"></i><span>{{ __($item['label']) }}</span>
+          <a href="{{ $item['url'] }}" class="mdp-nav-link {{ $isActive($item) ? 'active' : '' }}" @if($isActive($item)) aria-current="page" @endif>
+            <i class="bi {{ $item['icon'] }}" aria-hidden="true"></i><span>{{ __($item['label']) }}</span>
           </a>
         @endforeach
+        @if(!empty($newItems))
+          <div class="mdp-nav-label">{{ __('Acceso rápido') }}</div>
+          @foreach($newItems as $item)
+            <a href="{{ $item['url'] }}" class="mdp-nav-link {{ $isActive($item) ? 'active' : '' }}" @if($isActive($item)) aria-current="page" @endif>
+              <i class="bi {{ $item['icon'] }}" aria-hidden="true"></i><span>{{ __($item['label']) }}</span>
+            </a>
+          @endforeach
+        @endif
       </nav>
+      <div class="mdp-sidebar-footer">
+        <a href="/soporte" class="mdp-nav-link"><i class="bi bi-life-preserver" aria-hidden="true"></i><span>{{ __('Soporte') }}</span></a>
+        <a href="{{ url('/') }}" class="mdp-nav-link"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i><span>{{ __('Ir a') }} {{ parse_url(url('/'), PHP_URL_HOST) }}</span></a>
+        <a href="#" onclick="customerLogout(); return false;" class="mdp-nav-link is-danger"><i class="bi bi-box-arrow-left" aria-hidden="true"></i><span>{{ __('Cerrar sesión') }}</span></a>
+      </div>
     </aside>
 
-    {{-- Main --}}
-    <div class="customer-main">
-      @php $gateWarning = consume_flash('warning'); @endphp
-      @if($gateWarning)
-        <div style="background:#fff8e6; border:1px solid #ffe2a8; color:#7a5b00; border-radius:8px; padding:10px 14px; margin-bottom:16px; font-size:0.88rem;">
-          <i class="bi bi-info-circle" style="margin-right:6px;"></i>{{ $gateWarning }}
+    {{-- Zona principal --}}
+    <div class="mdp-main">
+      <header class="mdp-topbar">
+        <div class="mdp-crumb">
+          <a href="/customer/dashboard" class="mdp-crumb-home" aria-label="{{ __('Inicio') }}"><i class="bi bi-house" aria-hidden="true"></i></a>
+          <span class="mdp-crumb-title">{{ $crumbTitle }}</span>
         </div>
-      @endif
-      @yield('panel_content')
+        <div class="mdp-topbar-right">
+          @if(!empty($newItems))
+          <div style="position:relative;">
+            <button type="button" class="mdp-btn-new" onclick="cpToggle(event, 'cpNewMenu')" aria-haspopup="true" aria-controls="cpNewMenu">
+              <span>{{ __('Nuevo') }}</span><i class="bi bi-plus-lg" aria-hidden="true"></i>
+            </button>
+            <div class="mdp-dropdown" id="cpNewMenu">
+              @foreach($newItems as $item)
+                <a href="{{ $item['url'] }}"><i class="bi {{ $item['icon'] }}" aria-hidden="true"></i><span>{{ __($item['label']) }}</span></a>
+              @endforeach
+            </div>
+          </div>
+          @endif
+          <div style="position:relative;">
+            <button type="button" class="mdp-avatar-btn" onclick="cpToggle(event, 'customerTopUserMenu')" aria-haspopup="true" aria-controls="customerTopUserMenu" aria-label="{{ __('Mi cuenta') }}">{{ $initial }}</button>
+            <div class="mdp-dropdown" id="customerTopUserMenu">
+              <div class="mdp-dropdown-head">
+                <strong>{{ $customer['name'] ?? '' }}</strong>
+                <span>{{ $customer['email'] ?? '' }}</span>
+              </div>
+              <a href="/customer/dashboard"><i class="bi bi-house-door" aria-hidden="true"></i><span>{{ __('Inicio') }}</span></a>
+              <a href="/customer/profile"><i class="bi bi-person-circle" aria-hidden="true"></i><span>{{ __('Mi perfil') }}</span></a>
+              <a href="/soporte"><i class="bi bi-life-preserver" aria-hidden="true"></i><span>{{ __('Soporte') }}</span></a>
+              <div class="mdp-sep"></div>
+              <a href="#" onclick="customerLogout(); return false;" class="is-danger"><i class="bi bi-box-arrow-left" aria-hidden="true"></i><span>{{ __('Cerrar sesión') }}</span></a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="mdp-content">
+        <div class="mdp-page">
+          @php $gateWarning = consume_flash('warning'); @endphp
+          @if($gateWarning)
+            <div class="mdp-alert"><i class="bi bi-info-circle" style="margin-right:6px;" aria-hidden="true"></i>{{ $gateWarning }}</div>
+          @endif
+          @yield('panel_content')
+        </div>
+      </main>
     </div>
   </div>
-  </div>
-
   @else
-  @yield('panel_content')
+    @yield('panel_content')
   @endif
 </div>
 
 @if($customer)
 <script>
-// Header user dropdown toggle
-function toggleTopUserMenu(e) {
+function cpToggle(e, id) {
   e.stopPropagation();
-  var m = document.getElementById('customerTopUserMenu');
+  document.querySelectorAll('.mdp-dropdown.show').forEach(function (m) { if (m.id !== id) m.classList.remove('show'); });
+  var m = document.getElementById(id);
   if (m) m.classList.toggle('show');
 }
-document.addEventListener('click', function() {
-  var m = document.getElementById('customerTopUserMenu');
-  if (m) m.classList.remove('show');
+// Compatibilidad con llamadas antiguas
+function toggleTopUserMenu(e) { cpToggle(e, 'customerTopUserMenu'); }
+document.addEventListener('click', function () {
+  document.querySelectorAll('.mdp-dropdown.show').forEach(function (m) { m.classList.remove('show'); });
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') document.querySelectorAll('.mdp-dropdown.show').forEach(function (m) { m.classList.remove('show'); });
 });
 </script>
 @endif
@@ -633,7 +313,7 @@ function customerLogout() {
     title: '{{ __("¿Cerrar sesión?") }}',
     icon: 'question',
     showCancelButton: true,
-    confirmButtonColor: '#4e73df',
+    confirmButtonColor: '{{ $cpAccent }}',
     cancelButtonColor: '#6c757d',
     confirmButtonText: '{{ __("Sí, salir") }}',
     cancelButtonText: '{{ __("Cancelar") }}'
