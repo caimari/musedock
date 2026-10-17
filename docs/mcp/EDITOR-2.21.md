@@ -126,3 +126,22 @@ adicional. Las categorías y etiquetas deben existir en el sitio autorizado.
 transacción de creación. Evita repetir la creación si se reinicia el procesador
 antes de guardar el checkpoint en la base privada de MCP. No se modifican las
 solicitudes antiguas de creación ni se convierten automáticamente en trabajos nuevos.
+
+### Sitemap tras publicar (MCP y editor manual)
+
+La invalidación común de artículos y páginas limpia inmediatamente el sitemap del
+sitio afectado, incluso si la caché HTML está desactivada. Las fechas `lastmod` de
+la portada y el índice del blog reflejan la última modificación real del contenido
+publicado; no cambian artificialmente al pasar el día.
+
+El cron central de Search Console revisa cada dominio conectado a la cuenta de la
+plataforma con un intervalo de ocho horas. `gsc_sitemap_dispatch` persiste la huella
+observada, la última aceptada, revisión, envío y errores por dominio. Solo un cambio
+semántico provoca `sitemaps.submit`; un fallo conserva el cambio pendiente hasta la
+siguiente revisión. Los sitios antiguos sin novedades establecen una referencia
+inicial sin reenviar su histórico. El panel principal muestra estos estados.
+
+No fuerza el rastreo diario ni equivale a solicitar indexación individual: Google
+decide cuándo descargar, rastrear e indexar. Los borradores no aparecen en el XML
+y no provocan envíos. Las credenciales de clientes no se utilizan para el proceso
+central de la plataforma.

@@ -118,6 +118,11 @@
             <li>Selección por filas y acciones masivas para color, clasificación de cliente e instalación o activación de plugins compartidos, con confirmación y resumen de resultados.</li>
             <li>Acceso a la web en una pestaña nueva, mejoras visuales de edición y almacenamiento y gestión de plugins compartidos por dominio.</li>
         </ul></div></div>
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">Sitemaps automáticos — 17 de octubre de 2026</h5></div><div class="card-body"><ul>
+            <li>Actualización del sitemap al guardar artículos o páginas, tanto desde MCP como desde el editor.</li>
+            <li>Control central por dominio cada ocho horas: solo se avisa a Google si cambian las URL públicas, sus fechas reales o imágenes.</li>
+            <li>Sin reenvíos para sitios sin novedades; errores conservados para reintento y estado visible en Search Console del CMS principal.</li>
+        </ul></div></div>
         <!-- v2.21.0 -->
         <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.21.0 — Editor completo por MCP</h5></div><div class="card-body">
             <p class="text-muted">11 de octubre de 2026</p>

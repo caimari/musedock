@@ -8,7 +8,7 @@
 // Todo dentro de una función: este fichero se incluye en el ámbito global y no debe
 // pisar variables del CMS ($pdo, $tenant...).
 (static function () {
-foreach (['Crypto', 'GoogleApiException', 'GoogleClient', 'PropertyService', 'CredentialStore', 'DomainVerifier'] as $class) {
+foreach (['Crypto', 'GoogleApiException', 'GoogleClient', 'PropertyService', 'CredentialStore', 'DomainVerifier', 'SitemapService', 'SitemapDispatchService'] as $class) {
     require_once __DIR__ . "/services/{$class}.php";
 }
 require_once __DIR__ . '/controllers/BaseController.php';

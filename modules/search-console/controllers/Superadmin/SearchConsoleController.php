@@ -53,6 +53,7 @@ class SearchConsoleController extends BaseController
             'expiry' => (new \Modules\SearchConsole\Services\DomainExpiryService($this->pdo))->listing(),
             'redirectPairs' => (new \Modules\SearchConsole\Services\RedirectService($this->pdo))->pairs(),
             'indexNow' => $this->indexNowView(),
+            'sitemapDispatch' => $this->sitemapDispatchView(),
             'priorities' => $credential ? $this->priorities($properties) : [],
             'goals' => (new \Modules\SearchConsole\Services\GoalService($this->pdo))->all(),
             'goalOptions' => \Modules\SearchConsole\Services\GoalService::GOALS,
@@ -67,6 +68,14 @@ class SearchConsoleController extends BaseController
             'baseUrl' => $this->baseUrl(),
             'focusTenant' => isset($_GET['tenant']) ? (int) $_GET['tenant'] : null,
         ]);
+    }
+
+    private function sitemapDispatchView(): array
+    {
+        try {
+            new \Modules\SearchConsole\Services\SitemapDispatchService($this->pdo);
+            return $this->pdo->query('SELECT host,checked_at,sent_at,status,error FROM gsc_sitemap_dispatch ORDER BY host')->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) { return []; }
     }
 
     private function bulk(): \Modules\SearchConsole\Services\BulkVerifyService

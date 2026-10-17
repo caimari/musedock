@@ -49,13 +49,21 @@ class SitemapController
             $pdo = Database::connect();
             $siteUrl = $this->getSiteUrl();
 
+            $pages = $this->getPages($pdo, $tenantId);
+            $posts = $this->getPosts($pdo, $tenantId);
+            $contentModified = 0;
+            foreach (array_merge($pages, $posts) as $item) {
+                $contentModified = max($contentModified, strtotime($item->updated_at ?? $item->published_at ?? '') ?: 0);
+            }
+            $listingLastmod = $contentModified ? gmdate('c', $contentModified) : '';
+
             // Recopilar todas las URLs
             $urls = [];
 
             // 1. Homepage
             $urls[] = [
                 'loc' => $siteUrl . '/',
-                'lastmod' => date('Y-m-d'),
+                'lastmod' => $listingLastmod,
                 'changefreq' => 'daily',
                 'priority' => '1.0'
             ];
@@ -65,14 +73,13 @@ class SitemapController
             if ($blogPrefix !== '') {
                 $urls[] = [
                     'loc' => $siteUrl . '/' . $blogPrefix,
-                    'lastmod' => date('Y-m-d'),
+                    'lastmod' => $listingLastmod,
                     'changefreq' => 'daily',
                     'priority' => '0.9'
                 ];
             }
 
             // 3. Páginas estáticas
-            $pages = $this->getPages($pdo, $tenantId);
             foreach ($pages as $page) {
                 $pageUrl = $this->getPageUrl($pdo, $page, $siteUrl, $tenantId);
                 if ($pageUrl) {
@@ -86,7 +93,6 @@ class SitemapController
             }
 
             // 4. Posts del blog
-            $posts = $this->getPosts($pdo, $tenantId);
             foreach ($posts as $post) {
                 // URL real de cada idioma (prefijo de la tabla slugs: docs, blog...) y
                 // enlaces hreflang entre versiones traducidas
@@ -427,10 +433,8 @@ class SitemapController
      */
     private function formatDate(?string $date): string
     {
-        if (empty($date)) {
-            return date('Y-m-d');
-        }
-        return date('Y-m-d', strtotime($date));
+        $timestamp = $date ? strtotime($date) : false;
+        return $timestamp === false ? '' : gmdate('c', $timestamp);
     }
 
     /**

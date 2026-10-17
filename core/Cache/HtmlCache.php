@@ -190,8 +190,15 @@ class HtmlCache
      * @param string   $tag       Tag to match (e.g., 'blog', 'page:7', 'home')
      * @param int|null $tenantId  Tenant ID
      */
+    private static function invalidateSitemap(?int $tenantId): void
+    {
+        $file=APP_ROOT.'/storage/cache/sitemaps/sitemap_'.($tenantId ?: 'global').'.xml';
+        if (is_file($file)) @unlink($file);
+    }
+
     public static function invalidateByTag(string $tag, ?int $tenantId): void
     {
+        if (in_array($tag,['blog','pages'],true)) self::invalidateSitemap($tenantId);
         $tenantDir = self::tenantDir($tenantId);
 
         if (!is_dir($tenantDir)) {
@@ -440,6 +447,7 @@ class HtmlCache
      */
     public static function onPageSaved(array $pageData, ?int $tenantId, bool $regenerate = true): void
     {
+        self::invalidateSitemap($tenantId);
         if (!self::isEnabled()) return;
 
         $slug = $pageData['slug'] ?? '';
@@ -478,6 +486,7 @@ class HtmlCache
      */
     public static function onPostSaved(array $postData, ?int $tenantId, bool $regenerate = true): void
     {
+        self::invalidateSitemap($tenantId);
         if (!self::isEnabled()) return;
 
         $slug = $postData['slug'] ?? '';

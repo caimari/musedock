@@ -20,7 +20,7 @@ require_once APP_ROOT . '/core/Env.php';
 \Screenart\Musedock\Env::load();
 require_once APP_ROOT . '/config/config.php';
 require_once APP_ROOT . '/core/helpers.php';
-foreach (['Crypto', 'GoogleApiException', 'GoogleClient', 'PropertyService', 'CredentialStore', 'DomainVerifier', 'SyncService', 'BulkVerifyService', 'DomainExpiryService', 'SitemapService', 'IndexNowService', 'SyncQueueService', 'DropAlertService', 'BrandService', 'UrlNormalizer', 'ReportService', 'OpportunityService', 'GoalService', 'PriorityService'] as $class) {
+foreach (['Crypto', 'GoogleApiException', 'GoogleClient', 'PropertyService', 'CredentialStore', 'DomainVerifier', 'SyncService', 'BulkVerifyService', 'DomainExpiryService', 'SitemapService', 'SitemapDispatchService', 'IndexNowService', 'SyncQueueService', 'DropAlertService', 'BrandService', 'UrlNormalizer', 'ReportService', 'OpportunityService', 'GoalService', 'PriorityService'] as $class) {
     require_once APP_ROOT . "/modules/search-console/services/{$class}.php";
 }
 
@@ -133,6 +133,15 @@ if (!$onlyProperty && !$loadHigh) {
     } catch (\Throwable $e) {
         $log('prioridades: ' . $e->getMessage());
     }
+}
+
+// Google: per-host 8-hour checks, submissions only for changed public material.
+if (!$onlyProperty && !$loadHigh) {
+    try {
+        foreach ((new \Modules\SearchConsole\Services\SitemapDispatchService($pdo))->run() as $dispatch) {
+            $log('sitemap Google '.$dispatch['host'].': '.$dispatch['status'].(!empty($dispatch['error'])?' — '.$dispatch['error']:''));
+        }
+    } catch (\Throwable $e) { $log('sitemap Google: '.$e->getMessage()); }
 }
 
 // 0c) IndexNow: cada hora, lee el sitemap de cada dominio propio y avisa a Bing/Yandex de lo nuevo o cambiado

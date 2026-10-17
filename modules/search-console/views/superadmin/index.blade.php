@@ -320,6 +320,20 @@
     </div></div>
     @endif
 
+    <details class="card mb-4">
+        <summary class="card-header"><strong>Sitemaps a Google · control central cada 8 horas</strong></summary>
+        <div class="card-body">
+            <p>Se agrupan cambios de artículos y páginas públicas de cada dominio conectado a la cuenta de la plataforma. Solo se envía si hay material nuevo o modificado. Sin cambios no hay llamadas de envío a Google; Google decide cuándo rastrear e indexar.</p>
+            <div class="table-responsive"><table class="table table-sm"><thead><tr><th>Dominio</th><th>Última revisión</th><th>Último envío confirmado</th><th>Estado</th></tr></thead><tbody>
+            @forelse(($sitemapDispatch ?? []) as $dispatch)
+                <tr><td>{{ $dispatch['host'] }}</td><td>{{ $dispatch['checked_at'] ? (new DateTimeImmutable('@'.$dispatch['checked_at']))->setTimezone(new DateTimeZone('Europe/Paris'))->format('d/m/Y H:i') : 'Pendiente' }}</td><td>{{ $dispatch['sent_at'] ? (new DateTimeImmutable('@'.$dispatch['sent_at']))->setTimezone(new DateTimeZone('Europe/Paris'))->format('d/m/Y H:i') : 'Sin envío nuevo' }}</td><td>{{ ['sent'=>'Enviado','baseline'=>'Referencia inicial sin novedades','unchanged'=>'Sin cambios','failed'=>'Error; se reintentará','pending'=>'Pendiente'][$dispatch['status']] ?? $dispatch['status'] }} @if(!empty($dispatch['error']))<small class="text-danger d-block">{{ $dispatch['error'] }}</small>@endif</td></tr>
+            @empty
+                <tr><td colspan="4">La primera revisión se realizará en el próximo ciclo del procesador.</td></tr>
+            @endforelse
+            </tbody></table></div>
+        </div>
+    </details>
+
     @if(!empty($indexNow['hosts']))
     <div class="card mb-4"><div class="card-body p-0" data-gsc-filter>
         <div class="p-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -327,7 +341,7 @@
                 <h6 class="mb-0" style="font-weight:700;"><i class="bi bi-lightning-charge"></i> IndexNow: aviso a Bing, Yandex y otros ({{ count($indexNow['hosts']) }} dominios)
                     <span class="badge bg-{{ $indexNow['enabled'] ? 'success' : 'secondary' }} ms-1">{{ $indexNow['enabled'] ? 'Activo' : 'Desactivado' }}</span></h6>
                 <div class="text-muted" style="font-size:.82rem;">
-                    Cada hora se lee el sitemap de cada dominio propio y se avisa de lo <strong>nuevo o modificado</strong> a los buscadores que usan IndexNow. <strong>Google no lo usa</strong>: para Google están «Enviar sitemap» e «Inspeccionar URL» en el informe de cada dominio.
+                    Cada hora se lee el sitemap de cada dominio propio y se avisa de lo <strong>nuevo o modificado</strong> a los buscadores que usan IndexNow. <strong>Google no lo usa</strong>: Google dispone del control central de sitemaps cada ocho horas, solo si hay cambios, y de «Enviar sitemap» e «Inspeccionar URL» en el informe del dominio.
                     La primera lectura de un dominio solo toma nota. Clave pública de verificación: <code>/{{ $indexNow['key'] }}.txt</code> en la raíz de cada dominio.
                 </div>
             </div>
