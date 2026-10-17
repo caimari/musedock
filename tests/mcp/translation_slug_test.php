@@ -13,3 +13,10 @@ denied(fn()=>$t->call('save_translation',$auth,array_replace($args,['slug'=>'pri
 denied(fn()=>$t->call('save_translation',$auth,array_replace($args,['slug'=>'another-address'])),'existing route cannot be silently broken');
 check($c->db->query('SELECT slug FROM blog_posts WHERE id=1')->fetchColumn()==='principal','original slug untouched');
 echo "PASS: localized docs slugs, approval, collisions, stable routes and verified result.\n";
+$client=$auth['client'];$client['auto_approve_translations']=true;$s->putClient($client);$auth['client']=$client;
+$automatic=$t->call('save_translation',$auth,$args);check($automatic['status']==='queued' && $automatic['auto_approved']===true,'translation opt-in automatically queues a new translation request');
+(new \Screenart\Musedock\Services\Mcp\Direct\ApprovalQueue($s,$c))->run();
+check($t->call('get_request_status',$auth,['request_id'=>$automatic['request_id']])['status']==='completed','automatic translation completes through existing queue');
+$limited=$auth;$limited['grant']['scopes']=[Policy::READ];
+denied(fn()=>$t->call('save_translation',$limited,$args),'automatic translation does not bypass translation scope');
+echo "PASS: independent translation auto approval and existing permissions.\n";

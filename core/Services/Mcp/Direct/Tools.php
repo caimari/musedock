@@ -182,6 +182,7 @@ final class Tools
     {
         if (in_array($tool,['create_category','update_category','create_tag','update_tag'],true)) return !empty($client['auto_approve_taxonomy']);
         if ($tool==='generate_image') return !empty($client['auto_approve_images']);
+        if ($tool==='save_translation') return !empty($client['auto_approve_translations']);
         return !empty($client['auto_approve_posts']) && in_array($tool,['create_draft','update_draft','create_post','update_post','publish_post','schedule_post','set_featured_image'],true);
     }
     private function assertPublishing(string $tool,array $plan,array $auth,int $actor): void
