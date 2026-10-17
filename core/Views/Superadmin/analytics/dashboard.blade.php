@@ -62,7 +62,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-2">
                         <div class="flex-grow-1">
-                            <p class="text-muted mb-1 small">Total Visitas</p>
+                            <p class="text-muted mb-1 small" title="Solo visitas de personas: los robots (buscadores, IA, scripts…) se cuentan aparte, más abajo">Visitas reales</p>
                             <h3 class="mb-0"><?= number_format($stats['total_visits']) ?></h3>
                         </div>
                         <div class="bg-primary p-3 rounded">
@@ -146,6 +146,37 @@
                     </small>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Robots: se guardan, pero no cuentan como visitas reales -->
+    <?php $botTotal = (int) ($bots['total'] ?? 0); $realTotal = (int) ($stats['total_visits'] ?? 0); ?>
+    <div class="card border-0 shadow-sm mb-4" id="analytics-bots">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0"><i class="bi bi-robot me-2"></i>Tráfico de robots</h5>
+            <span class="text-muted small">
+                <?= number_format($botTotal) ?> peticiones de robots · <?= number_format($realTotal) ?> visitas reales
+                <?php if ($botTotal + $realTotal > 0): ?>(<?= number_format($botTotal / ($botTotal + $realTotal) * 100, 0) ?> % del total es automático)<?php endif; ?>
+            </span>
+        </div>
+        <div class="card-body p-0">
+            <?php if (empty($bots['kinds'])): ?>
+                <p class="text-muted text-center p-4 mb-0">No se han registrado robots en este periodo.</p>
+            <?php else: ?>
+            <table class="table table-sm mb-0 align-middle">
+                <thead class="table-light"><tr><th>Tipo</th><th class="text-end">Peticiones</th><th>Quiénes son</th></tr></thead>
+                <tbody>
+                <?php foreach ($bots['kinds'] as $kind => $info): ?>
+                    <tr>
+                        <td><strong><?= htmlspecialchars($botKinds[$kind] ?? $kind) ?></strong></td>
+                        <td class="text-end"><?= number_format($info['visits']) ?></td>
+                        <td class="small text-muted"><?php foreach ($info['top'] as $i => $b): ?><?= $i ? ' · ' : '' ?><?= htmlspecialchars($b['name']) ?> (<?= number_format($b['visits']) ?>)<?php endforeach; ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            <p class="text-muted small p-3 mb-0">Se detectan por su user-agent. Un robot que se hace pasar por un navegador completo no se distingue aquí. Todo se guarda en la base de datos con su tipo, para estadísticas más avanzadas.</p>
+            <?php endif; ?>
         </div>
     </div>
 

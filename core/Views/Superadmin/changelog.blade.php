@@ -16,6 +16,11 @@
         <!-- v2.23.0 -->
         <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.23.0 — Search Console completo, caché HTML segura, URLs por idioma y cuentas DNS</h5></div><div class="card-body">
             <p class="text-muted">16 de octubre de 2026</p>
+            <h6 class="text-primary"><i class="bi bi-robot me-1"></i> Web Analytics: visitas reales y robots</h6>
+            <ul class="mb-3">
+                <li>El panel <code>/musedock/analytics</code> cuenta solo <strong>visitas reales</strong> (personas). Los robots se guardan igual, con su tipo, y se enseñan aparte en «Tráfico de robots»: IA (entrenamiento y asistentes), buscadores, herramientas SEO, redes sociales, monitorización, scripts (curl, python…) y navegadores sospechosos.</li>
+                <li>Detección por user-agent (<code>BotClassifier</code>); un robot que se hace pasar por un navegador completo no se distingue. Las visitas ya guardadas se reclasificaron (631.611 de 1,39 millones eran de robots). Hasta ahora los robots declarados (Googlebot, GPTBot…) se descartaban al guardar, así que su histórico empieza desde hoy.</li>
+            </ul>
             <h6 class="text-primary"><i class="bi bi-graph-up-arrow me-1"></i> Search Console</h6>
             <ul class="mb-3">
                 <li>Descarga automática de datos de Google (clics, impresiones, CTR y posición; sitio, países, dispositivos, páginas y consultas) cada ~12 h, con el cron cada 5 minutos. Informe por dominio con comparación frente al periodo anterior, gráfico, periodos de 7 a 365 días, tablas ordenables, enlaces reales en las páginas y un botón «¿Qué significan los datos?».</li>

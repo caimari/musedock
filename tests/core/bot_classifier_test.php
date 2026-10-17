@@ -1,0 +1,30 @@
+<?php
+require __DIR__ . '/../../core/Services/BotClassifier.php';
+use Screenart\Musedock\Services\BotClassifier as B;
+$f = 0;
+$t = function ($ua, $isBot, $kind = null) use (&$f) {
+    $r = B::classify($ua);
+    $ok = $r['is_bot'] === $isBot && ($kind === null || $r['kind'] === $kind);
+    echo ($ok ? 'OK   ' : 'FAIL ') . substr((string) $ua, 0, 70) . ' → ' . json_encode($r, JSON_UNESCAPED_UNICODE) . "\n";
+    if (!$ok) $f++;
+};
+$t('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', false);
+$t('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1', false);
+$t('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/120.0 Mobile/15E148 Safari/604.1', false);
+$t('Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36', false);
+$t('Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0', false);
+$t('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 YaBrowser/24.1 Safari/537.36', false);
+$t('Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.2; +https://openai.com/gptbot)', true, 'ai_training');
+$t('Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; ClaudeBot/1.0; +claudebot@anthropic.com)', true, 'ai_training');
+$t('Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; ChatGPT-User/1.0; +https://openai.com/bot', true, 'ai_assistant');
+$t('Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', true, 'search');
+$t('Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)', true, 'search');
+$t('Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)', true, 'seo');
+$t('facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)', true, 'social');
+$t('curl/8.7.1', true, 'tool');
+$t('python-requests/2.31.0', true, 'tool');
+$t('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', true, 'suspect');
+$t('', true, 'suspect');
+$t(null, true, 'suspect');
+$t('Mozilla/5.0 (compatible; SomethingCrawler/1.0)', true, 'other');
+exit($f ? 1 : 0);

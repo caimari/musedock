@@ -89,7 +89,7 @@ class AnalyticsController
                        AVG(w.session_duration) as avg_time
                 FROM web_analytics w
                 LEFT JOIN tenants t ON t.id = w.tenant_id
-                WHERE w.created_at >= {$dateExpr}
+                WHERE w.created_at >= {$dateExpr} AND w.is_bot = FALSE
                 {$whereTenant}
                 GROUP BY w.page_url, w.page_title, t.domain
                 ORDER BY visits DESC
@@ -127,7 +127,7 @@ class AnalyticsController
 
         // Las estadísticas recorren cientos de miles de filas (varios segundos): se guardan 10 minutos
         // por periodo y sitio. «?refresh=1» fuerza el recálculo. Tiempo real va siempre en directo.
-        $cacheFile = APP_ROOT . '/storage/cache/analytics/' . md5($period . '|' . ($tenantId ?? 'all')) . '.json';
+        $cacheFile = APP_ROOT . '/storage/cache/analytics/' . md5('v2|' . $period . '|' . ($tenantId ?? 'all')) . '.json';
         $cached = null;
         if (empty($_GET['refresh']) && is_file($cacheFile) && filemtime($cacheFile) > time() - 600) {
             $cached = json_decode((string) file_get_contents($cacheFile), true);
@@ -142,6 +142,7 @@ class AnalyticsController
                 'trafficSources' => $this->getTrafficSources($db, $period, $tenantId),
                 'devices' => $this->getDeviceStats($db, $period, $tenantId),
                 'browsers' => $this->getBrowserStats($db, $period, $tenantId),
+                'bots' => $this->getBotStats($db, $period, $tenantId),
             ];
             if (!is_dir(dirname($cacheFile))) {
                 @mkdir(dirname($cacheFile), 0775, true);
@@ -155,6 +156,7 @@ class AnalyticsController
         $trafficSources = $cached['trafficSources'];
         $devices = $cached['devices'];
         $browsers = $cached['browsers'];
+        $bots = $cached['bots'];
 
         // Tiempo real (últimos 5 minutos)
         $realtime = $this->getRealtimeStats($db, $tenantId);
@@ -175,12 +177,42 @@ class AnalyticsController
             'trafficSources' => $trafficSources,
             'devices' => $devices,
             'browsers' => $browsers,
+            'bots' => $bots,
+            'botKinds' => \Screenart\Musedock\Services\BotClassifier::KINDS,
             'realtime' => $realtime,
             'period' => $period,
             'generatedAt' => $cached['generated_at'],
             'tenantId' => $tenantId,
             'tenants' => $tenants
         ]);
+    }
+
+    /**
+     * Visitas de robots del periodo, por tipo y por nombre (se guardan, pero no cuentan como visitas reales).
+     */
+    private function getBotStats($db, $period, $tenantId): array
+    {
+        $days = (int) $period;
+        $d1 = $this->dateInterval((string) $days, 'DAY', true);
+        $whereTenant = $tenantId ? 'AND tenant_id = ?' : '';
+        $params = $tenantId ? [$tenantId] : [];
+
+        $stmt = $db->prepare("SELECT COALESCE(bot_kind, 'other') AS kind, COALESCE(bot_name, 'Sin clasificar') AS name, COUNT(*) AS visits
+            FROM web_analytics WHERE created_at >= {$d1} AND is_bot = TRUE {$whereTenant}
+            GROUP BY 1, 2 ORDER BY visits DESC");
+        $stmt->execute($params);
+        $kinds = [];
+        $total = 0;
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+            $kinds[$r['kind']]['visits'] = ($kinds[$r['kind']]['visits'] ?? 0) + (int) $r['visits'];
+            if (count($kinds[$r['kind']]['top'] ?? []) < 5) {
+                $kinds[$r['kind']]['top'][] = ['name' => $r['name'], 'visits' => (int) $r['visits']];
+            }
+            $total += (int) $r['visits'];
+        }
+        uasort($kinds, fn ($a, $b) => $b['visits'] <=> $a['visits']);
+
+        return ['total' => $total, 'kinds' => $kinds];
     }
 
     /**
@@ -205,7 +237,7 @@ class AnalyticsController
                    AVG(session_duration) AS avg_duration,
                    SUM(CASE WHEN {$bounce} THEN 1 ELSE 0 END) AS bounces
             FROM web_analytics
-            WHERE created_at >= {$d1}
+            WHERE created_at >= {$d1} AND is_bot = FALSE
             {$whereTenant}
         ");
         $stmt->execute($params);
@@ -215,7 +247,7 @@ class AnalyticsController
             SELECT COUNT(*) AS total_visits,
                    COUNT(DISTINCT visitor_id) AS unique_visitors
             FROM web_analytics
-            WHERE created_at >= {$d2} AND created_at < {$d1}
+            WHERE created_at >= {$d2} AND created_at < {$d1} AND is_bot = FALSE
             {$whereTenant}
         ");
         $stmt->execute($params);
@@ -251,7 +283,7 @@ class AnalyticsController
                    COUNT(*) as visits,
                    COUNT(DISTINCT visitor_id) as unique_visitors
             FROM web_analytics
-            WHERE created_at >= {$dateExpr}
+            WHERE created_at >= {$dateExpr} AND is_bot = FALSE
             {$whereTenant}
             GROUP BY DATE(created_at)
             ORDER BY date ASC
@@ -279,7 +311,7 @@ class AnalyticsController
                    AVG(w.session_duration) as avg_time
             FROM web_analytics w
             LEFT JOIN tenants t ON t.id = w.tenant_id
-            WHERE w.created_at >= {$dateExpr}
+            WHERE w.created_at >= {$dateExpr} AND w.is_bot = FALSE
             {$whereTenant}
             GROUP BY w.page_url, w.page_title, t.domain
             ORDER BY visits DESC
@@ -304,7 +336,7 @@ class AnalyticsController
                    COUNT(*) as visits,
                    COUNT(DISTINCT visitor_id) as unique_visitors
             FROM web_analytics
-            WHERE created_at >= {$dateExpr}
+            WHERE created_at >= {$dateExpr} AND is_bot = FALSE
             AND country IS NOT NULL
             {$whereTenant}
             GROUP BY country
@@ -332,7 +364,7 @@ class AnalyticsController
                    COUNT(*) as visits,
                    COUNT(DISTINCT visitor_id) as unique_visitors
             FROM web_analytics
-            WHERE created_at >= {$dateExpr}
+            WHERE created_at >= {$dateExpr} AND is_bot = FALSE
             {$whereTenant}
             GROUP BY referrer_type, search_engine, referrer_domain
             ORDER BY visits DESC
@@ -357,7 +389,7 @@ class AnalyticsController
                    COUNT(*) as visits,
                    COUNT(DISTINCT visitor_id) as unique_visitors
             FROM web_analytics
-            WHERE created_at >= {$dateExpr}
+            WHERE created_at >= {$dateExpr} AND is_bot = FALSE
             AND device_type IS NOT NULL
             {$whereTenant}
             GROUP BY device_type
@@ -381,7 +413,7 @@ class AnalyticsController
             SELECT browser,
                    COUNT(*) as visits
             FROM web_analytics
-            WHERE created_at >= {$dateExpr}
+            WHERE created_at >= {$dateExpr} AND is_bot = FALSE
             AND browser IS NOT NULL
             {$whereTenant}
             GROUP BY browser
@@ -406,7 +438,7 @@ class AnalyticsController
             SELECT COUNT(DISTINCT visitor_id) as active_visitors,
                    COUNT(*) as recent_pageviews
             FROM web_analytics
-            WHERE created_at >= {$dateExpr}
+            WHERE created_at >= {$dateExpr} AND is_bot = FALSE
             {$whereTenant}
         ");
         $stmt->execute($params);

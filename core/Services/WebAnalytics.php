@@ -31,10 +31,8 @@ class WebAnalytics
                 return false;
             }
 
-            // 3. Detectar si es un bot
-            if (self::isBot()) {
-                return false;
-            }
+            // 3. Los robots se guardan igual, marcados con su tipo (BotClassifier): el panel muestra las visitas
+            //    reales por separado y el desglose de robots sirve para estadísticas más avanzadas.
 
             // 4. Recopilar datos de la visita
             $visitData = self::collectVisitData($data);
@@ -72,28 +70,6 @@ class WebAnalytics
     }
 
     /**
-     * Detectar si el visitante es un bot
-     */
-    private static function isBot(): bool
-    {
-        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
-
-        $botPatterns = [
-            'bot', 'crawl', 'spider', 'slurp', 'mediapartners',
-            'facebookexternalhit', 'googlebot', 'bingbot', 'yandex',
-            'duckduckbot', 'baiduspider', 'applebot', 'semrushbot'
-        ];
-
-        foreach ($botPatterns as $pattern) {
-            if (stripos($userAgent, $pattern) !== false) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * Recopilar datos de la visita
      */
     private static function collectVisitData(array $customData = []): array
@@ -110,8 +86,9 @@ class WebAnalytics
         $referrer = $customData['referrer'] ?? $_SERVER['HTTP_REFERER'] ?? null;
         $referrerInfo = self::analyzeReferrer($referrer);
 
-        // Detectar dispositivo
+        // Detectar dispositivo y si es un robot
         $deviceInfo = self::detectDevice();
+        $bot = BotClassifier::classify($_SERVER['HTTP_USER_AGENT'] ?? null);
 
         // URL actual (priorizar la enviada desde JS)
         $pageUrl = $customData['page_url'] ?? $_SERVER['REQUEST_URI'] ?? '/';
@@ -139,7 +116,9 @@ class WebAnalytics
             'os' => $deviceInfo['os'],
             'language' => $customData['language'] ?? $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? null,
             'screen_resolution' => $customData['screen_resolution'] ?? null,
-            'is_bot' => false, // Ya filtrado antes
+            'is_bot' => $bot['is_bot'],
+            'bot_kind' => $bot['kind'],
+            'bot_name' => $bot['name'],
             'is_returning' => $customData['is_returning'] ?? self::isReturningVisitor($visitorId),
             'tracking_enabled' => true,
             'cf_ray' => $_SERVER['HTTP_CF_RAY'] ?? null,
@@ -359,13 +338,13 @@ class WebAnalytics
                     page_url, page_title, referrer, referrer_domain, referrer_type,
                     search_engine, search_query, user_agent, device_type, browser,
                     os, language, screen_resolution, is_bot, is_returning,
-                    tracking_enabled, cf_ray, created_at
+                    tracking_enabled, cf_ray, bot_kind, bot_name, created_at
                 ) VALUES (
                     :tenant_id, :session_id, :visitor_id, :ip_hash, :country,
                     :page_url, :page_title, :referrer, :referrer_domain, :referrer_type,
                     :search_engine, :search_query, :user_agent, :device_type, :browser,
                     :os, :language, :screen_resolution, :is_bot, :is_returning,
-                    :tracking_enabled, :cf_ray, NOW()
+                    :tracking_enabled, :cf_ray, :bot_kind, :bot_name, NOW()
                 )
             ";
 
@@ -392,6 +371,8 @@ class WebAnalytics
                 ':language'         => $data['language'],
                 ':screen_resolution'=> $data['screen_resolution'],
                 ':cf_ray'           => $data['cf_ray'],
+                ':bot_kind'         => $data['bot_kind'] ?? null,
+                ':bot_name'         => isset($data['bot_name']) ? mb_substr((string) $data['bot_name'], 0, 80) : null,
             ];
 
             $stmt->bindValue(':is_bot', (bool)($data['is_bot'] ?? false), \PDO::PARAM_BOOL);
