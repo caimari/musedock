@@ -43,7 +43,7 @@ final class Editor
         }
         if ($tool==='moderate_comment') { $p['comment_id']=$id; $p['status']=['type'=>'string','enum'=>['pending','approved','spam','delete']]; }
         if ($tool==='list_comments') { $p['post_id']=$id; $p['status']=['type'=>'string','enum'=>['pending','approved','spam']]; }
-        if ($tool==='save_translation') { foreach (['locale','title','content','excerpt','seo_title','seo_description','seo_keywords','seo_image','canonical_url','robots_directive','twitter_title','twitter_description','twitter_image'] as $f) $p[$f]=$s; }
+        if ($tool==='save_translation') { foreach (['slug','locale','title','content','excerpt','seo_title','seo_description','seo_keywords','seo_image','canonical_url','robots_directive','twitter_title','twitter_description','twitter_image'] as $f) $p[$f]=$s; }
         if (in_array($tool,['list_comments','list_media','list_image_prompts'],true)) { $p['limit']=['type'=>'integer','minimum'=>1,'maximum'=>50]; $p['offset']=['type'=>'integer','minimum'=>0,'maximum'=>1000000]; }
         if ($tool==='upload_image') { $p['url']=$s; $p['base64']=['type'=>'string','maxLength'=>2800000]; $p['filename']=['type'=>'string','maxLength'=>100]; $p['alt_text']=['type'=>'string','maxLength'=>250]; }
         if ($tool==='generate_image') { $p['prompt']=['type'=>'string','minLength'=>1,'maxLength'=>4000]; $p['size']=['type'=>'string','maxLength'=>9,'pattern'=>'^[0-9]{3,4}x[0-9]{3,4}$','description'=>'Consulta list_image_options. MiniMax admite dimensiones explícitas entre 512 y 2048 px, múltiplos de 8. Otros proveedores tienen sus propios límites.']; $p['quality']=['type'=>'string','enum'=>['standard','hd']]; $p['alt_text']=['type'=>'string','maxLength'=>250]; }
@@ -80,7 +80,7 @@ final class Editor
             foreach (['categories'=>'category_id','tags'=>'tag_id'] as $kind=>$col) $post[$kind]=$this->q("SELECT {$col} FROM blog_post_{$kind} WHERE post_id=?",[$post['id']]);
             return $post;
         }
-        if ($tool==='list_translations') { $this->post($args['post_id'],$site); return $this->q('SELECT locale,title,content,excerpt,seo_title,seo_description,seo_keywords,seo_image,canonical_url,robots_directive,twitter_title,twitter_description,twitter_image,updated_at FROM blog_post_translations WHERE post_id=? AND COALESCE(tenant_id,0)=?',[$args['post_id'],$site]); }
+        if ($tool==='list_translations') { $this->post($args['post_id'],$site); return $this->q("SELECT (SELECT slug FROM slugs s WHERE s.module='blog' AND s.reference_id=blog_post_translations.post_id AND s.locale=blog_post_translations.locale AND COALESCE(s.tenant_id,0)=COALESCE(blog_post_translations.tenant_id,0) ORDER BY s.id LIMIT 1) AS slug,locale,title,content,excerpt,seo_title,seo_description,seo_keywords,seo_image,canonical_url,robots_directive,twitter_title,twitter_description,twitter_image,updated_at FROM blog_post_translations WHERE post_id=? AND COALESCE(tenant_id,0)=?",[$args['post_id'],$site]); }
         if ($tool==='list_comments') {
             $where='COALESCE(tenant_id,0)=?'; $p=[$site];
             if (isset($args['post_id'])) { $this->post($args['post_id'],$site); $where.=' AND post_id=?';$p[]=$args['post_id']; }
@@ -206,6 +206,17 @@ final class Editor
             foreach (['seo_image','canonical_url','twitter_image'] as $key) if (isset($args[$key])) $fields[$key]=$this->url($args[$key]);
             foreach (['twitter_title','twitter_description'] as $key) if (isset($args[$key])) $fields[$key]=$this->text($args[$key],$key==='twitter_title'?255:200000);
             if (isset($args['robots_directive'])) { if (!in_array($args['robots_directive'],['index,follow','noindex,follow','index,nofollow','noindex,nofollow'],true)) throw new RuntimeException('Directiva de robots no válida.'); $fields['robots_directive']=$args['robots_directive']; }
+            if (array_key_exists('slug',$args)) {
+                if (!trim($args['slug'])) throw new RuntimeException('El slug traducido no puede estar vacío.');
+                $fields['translation_slug']=$this->slug($args['slug']);
+                $prefix=$post['post_type']==='docs'?'docs':($this->q("SELECT prefix FROM slugs WHERE module='blog' AND reference_id=? AND COALESCE(tenant_id,0)=? AND locale IS NULL",[$post['id'],$site])[0]['prefix']??'blog');
+                foreach ($this->q("SELECT module,reference_id,locale FROM slugs WHERE COALESCE(tenant_id,0)=? AND COALESCE(prefix,'')=? AND slug=?",[$site,$prefix??'',$fields['translation_slug']]) as $collision) {
+                    if ($collision['module']!=='blog' || (int)$collision['reference_id']!==(int)$post['id'] || $collision['locale']!==$locale) throw new RuntimeException('El slug traducido ya está en uso en este sitio.');
+                }
+                $source['slug_rows']=$this->q("SELECT id,slug,prefix,locale FROM slugs WHERE module='blog' AND reference_id=? AND COALESCE(tenant_id,0)=? AND locale=? ORDER BY id",[$post['id'],$site,$locale]);
+                if ($source['slug_rows'] && $source['slug_rows'][0]['slug']!==$fields['translation_slug']) throw new RuntimeException('Esta traducción ya tiene un slug propio. Su cambio necesita una redirección; conserva el slug existente.');
+                $fields['translation_prefix']=$prefix;
+            }
             $fields['content']=SafeHtml::clean($args['content']);
             if (trim($fields['title'])==='' || trim($fields['content'])==='') throw new RuntimeException('La traducción necesita título y contenido.');
         } elseif (in_array($tool,['upload_image','generate_image'],true)) $fields=(new Media($this->content))->plan($tool,$site,$args);
@@ -282,6 +293,10 @@ final class Editor
                 $db->prepare("UPDATE blog_posts SET comment_count=(SELECT COUNT(*) FROM blog_comments WHERE post_id=? AND status='approved') WHERE id=?")->execute([$source['post_id'],$source['post_id']]);
             } elseif ($tool==='save_translation') {
                 $id=(int)$source['post']['id']; $f['updated_at']=$now;
+                $translatedSlug=$f['translation_slug']??null;$translatedPrefix=$f['translation_prefix']??null;
+                unset($f['translation_slug'],$f['translation_prefix']);
+                if ($translatedSlug!==null && !$source['slug_rows']) $this->insert('slugs',['module'=>'blog','reference_id'=>$id,'tenant_id'=>$site?:null,'slug'=>$translatedSlug,'prefix'=>$translatedPrefix,'locale'=>$f['locale']]);
+                $this->update('blog_posts',$id,['updated_at'=>$now]);
                 if ($source['translation']) $this->update('blog_post_translations',(int)$source['translation']['id'],$f);
                 else $this->insert('blog_post_translations',$f+['post_id'=>$id,'tenant_id'=>$site?:null,'created_at'=>$now]);
             } else {
@@ -296,8 +311,23 @@ final class Editor
                 $cache::invalidateByTag('blog',$site?:null);$cache::invalidateByTag('blog-list',$site?:null);$cache::invalidate('/',$site?:null);
                 if (in_array($tool,['create_post','update_post','set_featured_image','publish_post','schedule_post'],true)) { if ($source) $cache::onPostSaved($source,$site?:null,false); $cache::onPostSaved($this->post($id,$site),$site?:null,false); }
             }
+            if ($tool==='save_translation') {
+                $cache::onPostSaved($this->post($id,$site),$site?:null,false);
+                try { foreach (\Screenart\Musedock\Services\LanguageUrl::postPaths((object)$this->post($id,$site)) as $path) $cache::invalidate($path,$site?:null); } catch (\Throwable $ignored) {}
+            }
             $terms=in_array($tool,['create_post','update_post'],true)?(new Taxonomy($this->content))->assigned($site,$id):[];
-            return ['id'=>$id,'post_id'=>in_array($tool,['create_post','update_post','set_featured_image','publish_post','schedule_post','save_translation'],true)?$id:null,'site_id'=>$site,'status'=>$tool==='schedule_post'?'scheduled':($f['status']??$source['status']??'saved')]+$terms;
+            $translationResult=[];
+            if ($tool==='save_translation') {
+                $route=$this->q("SELECT slug,prefix FROM slugs WHERE module='blog' AND reference_id=? AND COALESCE(tenant_id,0)=? AND locale=? ORDER BY id LIMIT 1",[$id,$site,$args['locale']])[0]??null;
+                $translationResult=['locale'=>$args['locale'],'slug'=>$route['slug']??$source['post']['slug']];
+                if ($route) {
+                    $default=function_exists('site_default_language')?site_default_language():'es';
+                    $path=($args['locale']===$default?'':'/'.$args['locale']).'/'.(!empty($route['prefix'])?trim($route['prefix'],'/').'/':'').$route['slug'];
+                    $host=$site?($this->q('SELECT domain FROM tenants WHERE id=?',[$site])[0]['domain']??null):parse_url($auth['resource']['url'],PHP_URL_HOST);
+                    if ($host) $translationResult['public_url']='https://'.$host.$path;
+                }
+            }
+            return ['id'=>$id,'post_id'=>in_array($tool,['create_post','update_post','set_featured_image','publish_post','schedule_post','save_translation'],true)?$id:null,'site_id'=>$site,'status'=>$tool==='schedule_post'?'scheduled':($f['status']??$source['status']??'saved')]+$terms+$translationResult;
         } catch (\Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
     }
 }

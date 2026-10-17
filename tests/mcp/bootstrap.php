@@ -30,7 +30,7 @@ function fixture(): PDO
         CREATE TABLE blog_tags(id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id INTEGER,name TEXT,slug TEXT,post_count INTEGER DEFAULT 0,description TEXT,color TEXT,created_at TEXT,updated_at TEXT,deleted_at TEXT);
         CREATE TABLE cross_publish_relations(id INTEGER PRIMARY KEY AUTOINCREMENT,source_post_id INTEGER,source_tenant_id INTEGER,target_post_id INTEGER,target_tenant_id INTEGER,sync_enabled INTEGER,created_at TEXT,UNIQUE(source_post_id,source_tenant_id,target_tenant_id));
         CREATE TABLE blog_post_categories(post_id INTEGER,category_id INTEGER); CREATE TABLE blog_post_tags(post_id INTEGER,tag_id INTEGER);
-        CREATE TABLE slugs(id INTEGER PRIMARY KEY AUTOINCREMENT,module TEXT,reference_id INTEGER,slug TEXT,tenant_id INTEGER,prefix TEXT);
+        CREATE TABLE slugs(id INTEGER PRIMARY KEY AUTOINCREMENT,module TEXT,reference_id INTEGER,slug TEXT,tenant_id INTEGER,prefix TEXT,locale TEXT);
         CREATE TABLE cross_publish_queue(id INTEGER PRIMARY KEY AUTOINCREMENT,source_post_id INTEGER,source_tenant_id INTEGER,target_tenant_id INTEGER,target_status TEXT,status TEXT,created_at TEXT);
         CREATE TABLE news_aggregator_items(id INTEGER PRIMARY KEY,tenant_id INTEGER,original_title TEXT,original_content TEXT,original_url TEXT,rewritten_title TEXT,rewritten_content TEXT,rewritten_excerpt TEXT,status TEXT,created_post_id INTEGER);
         INSERT INTO news_aggregator_items VALUES(1,1,'Noticia','Texto sin IA','https://source.example/news',NULL,NULL,NULL,'pending',NULL),(2,3,'Privada','Privada','https://source.example/private',NULL,NULL,NULL,'pending',NULL);";

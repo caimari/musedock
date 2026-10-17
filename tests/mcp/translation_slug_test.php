@@ -1,0 +1,15 @@
+<?php
+require __DIR__.'/run.php';
+use Screenart\Musedock\Services\Mcp\Direct\{Store,Content,Authorization,Tools,Policy};
+$s=new Store(new PDO('sqlite::memory:'));$c=new Content(fixture());$o=new Authorization($s);$t=new Tools($s,$c);$r=resource($s,'main','https://cms.example/mcp');$r['allow_publishing']=true;$r['require_featured_image']=false;$s->putResource($r);[$auth]=connection($o,'main',Policy::scopes('main'));
+$c->db->exec("INSERT INTO languages(code,active) VALUES('en',1); UPDATE blog_posts SET post_type='docs' WHERE id=1; INSERT INTO slugs(module,reference_id,tenant_id,slug,prefix) VALUES('blog',1,NULL,'principal','docs')");
+$args=['post_id'=>1,'locale'=>'en','title'=>'English guide','content'=>'<h2>Setup</h2><p>Guide</p>','slug'=>'Documentation Guide','apply'=>true];
+$req=$t->call('save_translation',$auth,$args);check($req['status']==='pending_approval','translation still requires approval');$result=$t->decide('main',$req['request_id'],7,true);
+check($result['slug']==='documentation-guide' && $result['public_url']==='https://cms.example/en/docs/documentation-guide','translated URL returned and normalized');
+$rows=$t->call('list_translations',$auth,['post_id'=>1]);check($rows[0]['slug']==='documentation-guide','translation listing exposes saved slug');
+$req=$t->call('save_translation',$auth,$args);$t->decide('main',$req['request_id'],7,true);check($c->db->query("SELECT COUNT(*) FROM slugs WHERE locale='en'")->fetchColumn()==1,'repeated save keeps one localized route');
+$without=$args;unset($without['slug']);$req=$t->call('save_translation',$auth,$without);$t->decide('main',$req['request_id'],7,true);check($t->call('list_translations',$auth,['post_id'=>1])[0]['slug']==='documentation-guide','omitting slug preserves current route');
+denied(fn()=>$t->call('save_translation',$auth,array_replace($args,['slug'=>'principal'])),'base route collision rejected');
+denied(fn()=>$t->call('save_translation',$auth,array_replace($args,['slug'=>'another-address'])),'existing route cannot be silently broken');
+check($c->db->query('SELECT slug FROM blog_posts WHERE id=1')->fetchColumn()==='principal','original slug untouched');
+echo "PASS: localized docs slugs, approval, collisions, stable routes and verified result.\n";
