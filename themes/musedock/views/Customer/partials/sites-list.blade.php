@@ -13,11 +13,11 @@
 <?php else: ?>
   <?php foreach ($tenants as $tenant): ?>
   <?php
-    // Calculate needs_retry without health check
-    $isCustomDomain = !empty($tenant['cloudflare_zone_id']) && empty($tenant['is_subdomain']);
-    $tenant['needs_retry'] = $isCustomDomain
-        ? ($tenant['status'] === 'waiting_ns_change' || !$tenant['caddy_route_id'] || ($tenant['caddy_status'] ?? '') !== 'active')
-        : (!($tenant['cloudflare_record_id'] ?? null) || !$tenant['caddy_route_id'] || ($tenant['caddy_status'] ?? '') !== 'active');
+    // «Reintentar» solo si el sitio de verdad no está funcionando. Antes se miraban
+    // caddy_route_id/cloudflare_record_id, que Customer::getTenants() no carga, y el
+    // botón salía en todos los sitios (también en los activos).
+    $tenant['needs_retry'] = in_array($tenant['status'] ?? '', ['pending', 'waiting_ns_change', 'error'], true)
+        || (($tenant['status'] ?? '') === 'active' && ($tenant['caddy_status'] ?? '') !== 'active');
   ?>
   <div class="mdp-list-row" id="site-<?= (int) $tenant['id'] ?>">
     <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
