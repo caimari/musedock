@@ -45,7 +45,10 @@ final class Authorization
     {
         $c=$this->store->client($id);
         if (!$c || $c['resource']!==$resource) throw new RuntimeException('Cliente no encontrado.');
-        $c['scopes']=Policy::requestedScopes(implode(' ',$scopes),Policy::scopes($resource));
+        $normalized=Policy::requestedScopes(implode(' ',$scopes),Policy::scopes($resource));
+        $previous=$c['scopes']; $compare=$normalized; sort($previous); sort($compare);
+        if ($previous===$compare && $c['enabled']===$enabled) return;
+        $c['scopes']=$normalized;
         $c['enabled']=$enabled; $c['revision']++; $this->store->putClient($c);
         $this->invalidateClient($id);
     }

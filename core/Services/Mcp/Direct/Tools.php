@@ -129,7 +129,7 @@ final class Tools
     public static function autoApprove(string $tool,array $client): bool
     {
         if ($tool==='generate_image') return !empty($client['auto_approve_images']);
-        return !empty($client['auto_approve_posts']) && in_array($tool,['create_post','update_post','publish_post','schedule_post','set_featured_image'],true);
+        return !empty($client['auto_approve_posts']) && in_array($tool,['create_draft','update_draft','create_post','update_post','publish_post','schedule_post','set_featured_image'],true);
     }
     private function assertPublishing(string $tool,array $plan,array $auth,int $actor): void
     {

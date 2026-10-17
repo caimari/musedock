@@ -191,6 +191,17 @@
       <details class="mb-3"><summary>Editar permisos de este acceso</summary>
       <form method="post" action="{{ $back }}" class="mb-2">
         {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="client" value="{{ $client['id'] }}"><input type="hidden" name="action" value="client_permissions">
+        @if($isPluginConnection)
+        <fieldset class="border rounded p-3 mb-3"><legend class="h6">Sitios de este acceso</legend>
+          <input type="hidden" name="edit_sites" value="1">
+          @foreach($sites as $site)
+            @if(in_array((int)$site['id'], $resource['owned_sites'] ?? [], true) && !empty($site['group_id']))
+              <label class="form-check"><input class="form-check-input" type="checkbox" name="sites[]" value="{{ $site['id'] }}" {{ in_array((int)$site['id'], $client['sites'] ?? [], true) ? 'checked' : '' }}> {{ $site['domain'] }}</label>
+            @endif
+          @endforeach
+          <p class="small text-muted mb-0">Puedes añadir o quitar sitios disponibles sin cambiar las credenciales ni desconectar. Los grupos se ajustan a los sitios seleccionados.</p>
+        </fieldset>
+        @endif
         <div class="border rounded p-3 mb-3">
           <h4 class="h6">Aprobación automática de este acceso</h4>
           <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_posts" {{ !empty($client['auto_approve_posts']) ? 'checked' : '' }}> Aprobar automáticamente artículos, publicación, programación y asignación de portada</label>
@@ -198,7 +209,8 @@
           <p class="small text-muted mb-0">Solo para este acceso y sus sitios autorizados. Se mantienen permisos, cuotas y requisito de portada. Generar imágenes puede consumir saldo. Se aplica a nuevas solicitudes; las pendientes conservan su aprobación manual.</p>
         </div>
         @foreach($scopes as $scope)<label class="form-check"><input class="form-check-input" type="checkbox" name="scopes[]" value="{{ $scope }}" {{ in_array($scope,$client['scopes'],true) ? 'checked' : '' }}> {{ \Screenart\Musedock\Services\Mcp\Direct\Policy::label($scope) }} <small class="text-muted">({{ $scope }})</small></label>@endforeach
-        <button class="btn btn-sm btn-outline-primary mt-2">Guardar permisos y exigir nuevo consentimiento</button>
+        <button class="btn btn-sm btn-outline-primary mt-2">Guardar cambios del acceso</button>
+        <p class="small text-muted">Solo cambiar los permisos OAuth exige nuevo consentimiento. Cambiar sitios o aprobación automática conserva la conexión.</p>
       </form>
       </details>
       <form method="post" action="{{ $back }}">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="client" value="{{ $client['id'] }}"><button class="btn btn-sm btn-outline-danger" name="action" value="revoke_client">Revocar cliente</button></form>

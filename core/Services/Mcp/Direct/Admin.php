@@ -90,6 +90,19 @@ final class Admin
                 } elseif ($action==='client_permissions' || $action==='revoke_client') {
                     $client=$ep->store->client((string)($_POST['client']??''));
                     if (!$client || $client['resource']!==$id) throw new \RuntimeException('Cliente no encontrado.');
+                    if ($action==='client_permissions' && isset($_POST['edit_sites']) && str_starts_with($id,'plugin:')) {
+                        $selected=array_values(array_unique(array_map('intval',(array)($_POST['sites']??[]))));
+                        if (!$selected || array_diff($selected,$r['owned_sites']??[])) throw new \RuntimeException('Selecciona sitios autorizados en Servicio y sitios.');
+                        $selectedGroups=[];
+                        foreach ($selected as $site) {
+                            $statement=Database::connect()->prepare("SELECT group_id FROM tenants WHERE id=? AND status='active'");
+                            $statement->execute([$site]); $group=$statement->fetchColumn();
+                            if (!$group) throw new \RuntimeException('El sitio debe pertenecer a un grupo editorial activo.');
+                            $selectedGroups[]=(int)$group;
+                        }
+                        $client['sites']=$selected; $client['groups']=array_values(array_unique($selectedGroups));
+                        $ep->store->putClient($client);
+                    }
                     $scopes=$action==='revoke_client'?$client['scopes']:(array)($_POST['scopes']??[]);
                     $ep->oauth->reviseClient($id,$client['id'],$scopes,$action!=='revoke_client');
                     if ($action==='client_permissions') {
