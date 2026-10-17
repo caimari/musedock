@@ -7,10 +7,10 @@
   // Product configurations
   $products = [
     'cms' => [
-      'badge' => 'MIT License · Self-Hostable · Gratis',
+      'badge' => 'Licencia propia · Self-hosting · Uso operativo gratuito',
       'badge_color' => '#28a745',
       'hero_title' => 'Tu web en segundos. Sin instalar nada.',
-      'hero_subtitle' => 'O instálalo en tu servidor con licencia MIT. Un CMS moderno con IA, SEO automático y sistema de documentación integrado. Construido sobre 20 años de experiencia real.',
+      'hero_subtitle' => 'O instálalo en tu servidor con licencia propia Source Available (Provider Use). Un CMS moderno con IA, SEO automático y sistema de documentación integrado. Construido sobre 20 años de experiencia real.',
       'cta_primary' => 'Crear mi sitio gratis',
       'cta_primary_url' => '/register',
       'cta_secondary' => 'Self-Hosting (GitHub)',
@@ -18,9 +18,9 @@
       'repo_url' => 'https://github.com/caimari/musedock',
       'docs_url' => '/blog/category/cms',
       'install_cmd' => "git clone https://github.com/caimari/musedock.git\ncomposer install\nphp muse install",
-      'license_label' => 'MIT',
-      'version_note' => 'Licencia MIT — Abril 2026',
-      'tagline' => 'El CMS libre que necesitas. Como WordPress, pero moderno.',
+      'license_label' => 'Source Available (Provider Use)',
+      'version_note' => 'Licencia propia — Source Available (Provider Use)',
+      'tagline' => 'Un CMS con código disponible para gestionar tus webs y las de tus clientes.',
       'features' => [
         ['icon' => 'fa-magic', 'title' => 'Blog con IA integrada', 'desc' => 'Genera artículos e imágenes con IA (OpenAI, Claude, Gemini). Asistente de escritura integrado en el editor.'],
         ['icon' => 'fa-search', 'title' => 'SEO automático', 'desc' => 'Meta tags, JSON-LD (Article, FAQPage, BreadcrumbList), Open Graph, canonical URLs, sitemap XML y RSS.'],
@@ -39,10 +39,10 @@
         '6 temas listos para usar',
         'Multi-idioma: ES, EN, FR',
         'API REST + hooks/filtros extensibles',
-        'Licencia MIT — uso comercial libre',
+        'Uso operativo gratuito, incluido para webs de clientes',
       ],
       'faq' => [
-        ['q' => '¿MuseDock CMS es realmente gratis?', 'a' => 'Sí. MuseDock CMS tiene licencia MIT, una de las licencias de código abierto más permisivas. Puedes usarlo, modificarlo y distribuirlo libremente, incluso con fines comerciales.'],
+        ['q' => '¿MuseDock CMS es realmente gratis?', 'a' => 'Sí, para operar tus propias webs y las de tus clientes, incluido el uso comercial. MuseDock CMS utiliza su propia licencia Source Available (Provider Use). Revender o sublicenciar el software, ofrecerlo como CMS white-label o como producto SaaS requiere un acuerdo comercial separado. Hosting, servicios externos y complementos pueden tener costes propios.'],
         ['q' => '¿Puedo instalarlo en mi propio servidor?', 'a' => 'Por supuesto. Descarga el código desde GitHub, ejecuta composer install y configura tu .env. Funciona con Caddy, Nginx o Apache en cualquier hosting con PHP 8.1+.'],
         ['q' => '¿Qué proveedores de IA soporta?', 'a' => 'OpenAI (GPT-4, GPT-3.5), Anthropic (Claude) y Google (Gemini). Configura tu API key desde el panel de administración y empieza a generar contenido.'],
         ['q' => '¿Es adecuado para hosting providers?', 'a' => 'Sí. Su arquitectura multi-tenant permite ofrecer hosting con CMS preinstalado a tus clientes, cada uno con su panel independiente y aislamiento de datos completo.'],
@@ -298,7 +298,7 @@
     <div class="container">
       <div class="text-center" style="margin-bottom:40px;">
         <h2 class="md-section-title">Instala en tu servidor</h2>
-        <p class="md-section-subtitle">{{ $slug === 'cms' ? 'Self-hosting con licencia MIT. Tu CMS, tu servidor, tu control.' : 'Descarga y ejecuta. Funciona en Ubuntu 22.04+ y Debian 12+.' }}</p>
+        <p class="md-section-subtitle">{{ $slug === 'cms' ? 'Self-hosting con licencia propia Source Available (Provider Use). Tu CMS, tu servidor, tu control.' : 'Descarga y ejecuta. Funciona en Ubuntu 22.04+ y Debian 12+.' }}</p>
       </div>
       <div class="row justify-content-center">
         <div class="col-md-8">
@@ -373,7 +373,7 @@
   <section class="md-product-cta-final">
     <div class="container text-center">
       <h2>{{ $slug === 'cms' ? 'Empieza hoy con MuseDock CMS' : ($slug === 'panel' ? 'Instala MuseDock Panel en tu servidor' : '¿Quieres ser de los primeros en probar el Portal?') }}</h2>
-      <p>{{ $slug === 'cms' ? 'Crea tu sitio gratis o instala en tu servidor con licencia MIT.' : ($slug === 'panel' ? 'Libérate de las licencias mensuales de cPanel y Plesk.' : 'Escríbenos y te avisaremos cuando MuseDock Portal esté listo.') }}</p>
+      <p>{{ $slug === 'cms' ? 'Crea tu sitio gratis o instala en tu servidor con licencia propia Source Available (Provider Use).' : ($slug === 'panel' ? 'Libérate de las licencias mensuales de cPanel y Plesk.' : 'Escríbenos y te avisaremos cuando MuseDock Portal esté listo.') }}</p>
       <div style="margin-top:30px;">
         <a href="{{ $product['cta_primary_url'] }}" class="md-btn md-btn-primary md-btn-lg">{{ $product['cta_primary'] }}</a>
         @if($slug === 'cms')
