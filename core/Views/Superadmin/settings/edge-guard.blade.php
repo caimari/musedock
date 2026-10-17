@@ -208,7 +208,7 @@ echo '* * * * * root flock -n /run/musedock-edge-probe.lock python3 -I /usr/loca
             <tbody>
             @foreach($domains as $d)
               <tr>
-                <td><strong>{{ $d['name'] }}</strong>@if($d['excluded']) <span class="badge bg-secondary">nunca tocar</span>@endif</td>
+                <td><a href="https://{{ $d['name'] }}/" target="_blank" rel="noopener noreferrer" class="fw-bold text-reset text-decoration-none" title="Abrir en una pestaña nueva">{{ $d['name'] }} <i class="bi bi-box-arrow-up-right" style="font-size:.7em;opacity:.6;"></i></a>@if($d['excluded']) <span class="badge bg-secondary">nunca tocar</span>@endif</td>
                 <td class="text-muted">{{ $d['type'] }} {{ $d['content'] }}</td>
                 <td>
                   @php
