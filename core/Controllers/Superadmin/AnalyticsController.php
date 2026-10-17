@@ -85,7 +85,7 @@ class AnalyticsController
                        w.page_title,
                        t.domain as tenant_domain,
                        COUNT(*) as visits,
-                       COUNT(DISTINCT w.visitor_id) as unique_visitors,
+                       COUNT(DISTINCT w.ip_hash) as unique_visitors,
                        AVG(w.session_duration) as avg_time
                 FROM web_analytics w
                 LEFT JOIN tenants t ON t.id = w.tenant_id
@@ -232,7 +232,7 @@ class AnalyticsController
 
         $stmt = $db->prepare("
             SELECT COUNT(*) AS total_visits,
-                   COUNT(DISTINCT visitor_id) AS unique_visitors,
+                   COUNT(DISTINCT ip_hash) AS unique_visitors,
                    COUNT(DISTINCT session_id) AS total_sessions,
                    AVG(session_duration) AS avg_duration,
                    SUM(CASE WHEN {$bounce} THEN 1 ELSE 0 END) AS bounces
@@ -245,7 +245,7 @@ class AnalyticsController
 
         $stmt = $db->prepare("
             SELECT COUNT(*) AS total_visits,
-                   COUNT(DISTINCT visitor_id) AS unique_visitors
+                   COUNT(DISTINCT ip_hash) AS unique_visitors
             FROM web_analytics
             WHERE created_at >= {$d2} AND created_at < {$d1} AND is_bot = FALSE
             {$whereTenant}
@@ -281,7 +281,7 @@ class AnalyticsController
         $stmt = $db->prepare("
             SELECT DATE(created_at) as date,
                    COUNT(*) as visits,
-                   COUNT(DISTINCT visitor_id) as unique_visitors
+                   COUNT(DISTINCT ip_hash) as unique_visitors
             FROM web_analytics
             WHERE created_at >= {$dateExpr} AND is_bot = FALSE
             {$whereTenant}
@@ -307,7 +307,7 @@ class AnalyticsController
                    w.page_title,
                    t.domain as tenant_domain,
                    COUNT(*) as visits,
-                   COUNT(DISTINCT w.visitor_id) as unique_visitors,
+                   COUNT(DISTINCT w.ip_hash) as unique_visitors,
                    AVG(w.session_duration) as avg_time
             FROM web_analytics w
             LEFT JOIN tenants t ON t.id = w.tenant_id
@@ -334,7 +334,7 @@ class AnalyticsController
         $stmt = $db->prepare("
             SELECT country,
                    COUNT(*) as visits,
-                   COUNT(DISTINCT visitor_id) as unique_visitors
+                   COUNT(DISTINCT ip_hash) as unique_visitors
             FROM web_analytics
             WHERE created_at >= {$dateExpr} AND is_bot = FALSE
             AND country IS NOT NULL
@@ -362,7 +362,7 @@ class AnalyticsController
                    search_engine,
                    referrer_domain,
                    COUNT(*) as visits,
-                   COUNT(DISTINCT visitor_id) as unique_visitors
+                   COUNT(DISTINCT ip_hash) as unique_visitors
             FROM web_analytics
             WHERE created_at >= {$dateExpr} AND is_bot = FALSE
             {$whereTenant}
@@ -387,7 +387,7 @@ class AnalyticsController
         $stmt = $db->prepare("
             SELECT device_type,
                    COUNT(*) as visits,
-                   COUNT(DISTINCT visitor_id) as unique_visitors
+                   COUNT(DISTINCT ip_hash) as unique_visitors
             FROM web_analytics
             WHERE created_at >= {$dateExpr} AND is_bot = FALSE
             AND device_type IS NOT NULL
@@ -435,7 +435,7 @@ class AnalyticsController
 
         $dateExpr = $this->dateInterval('5', 'MINUTE', true);
         $stmt = $db->prepare("
-            SELECT COUNT(DISTINCT visitor_id) as active_visitors,
+            SELECT COUNT(DISTINCT ip_hash) as active_visitors,
                    COUNT(*) as recent_pageviews
             FROM web_analytics
             WHERE created_at >= {$dateExpr} AND is_bot = FALSE

@@ -45,6 +45,8 @@ class AnalyticsMiddleware
         '/phpmyadmin', '/pma', '/admin.php', '/setup-config',
         '/xmlrpc', '/shell', '/webshell', '/backdoor', '/eval',
         '/passwd', '/etc/passwd', '/proc/', '/config.php',
+        '/.aws', '/aws/', '/credentials', '/.ssh', '/.svn', '/.ds_store', '/actuator', '/server-status',
+        '/cgi-bin', '/boaform', '/vendor/phpunit', '/telescope', '/_profiler', '/.vscode', '/id_rsa',
     ];
 
     /**
@@ -95,8 +97,8 @@ class AnalyticsMiddleware
      */
     private function shouldExcludePath(string $path): bool
     {
-        // Limpiar query string
-        $pathWithoutQuery = strtok($path, '?');
+        // Limpiar query string y decodificar (los escáneres piden «/%2e%2e/.env» y «/%2eenv» para esquivar la lista)
+        $pathWithoutQuery = strtolower(rawurldecode(rawurldecode((string) strtok($path, '?'))));
 
         // Verificar rutas excluidas (panel admin)
         foreach (self::EXCLUDED_PATHS as $excludedPath) {

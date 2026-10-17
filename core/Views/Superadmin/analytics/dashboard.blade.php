@@ -88,7 +88,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-2">
                         <div class="flex-grow-1">
-                            <p class="text-muted mb-1 small">Visitantes Únicos</p>
+                            <p class="text-muted mb-1 small" title="Sin cookies: una persona por día, contada por una huella de su conexión que cambia cada día (así no se la puede seguir de un día a otro). Dos días seguidos cuentan como dos.">Visitantes únicos (por día)</p>
                             <h3 class="mb-0"><?= number_format($stats['unique_visitors']) ?></h3>
                         </div>
                         <div class="bg-success p-3 rounded">
