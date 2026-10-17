@@ -166,7 +166,7 @@ final class Admin
         (new Scheduler($ep->store,$content));
         foreach ($ep->store->all('SELECT data FROM article_workflows WHERE resource=? ORDER BY rowid DESC LIMIT 15',[$id]) as $workflowRow) {
             $workflow=json_decode($workflowRow['data'],true);
-            $recentOperations[]=['id'=>$workflow['id'],'status'=>$workflow['status'],'tool'=>'publish_article_with_image · '.$workflow['stage'].' · post '.$workflow['post'],'error'=>$workflow['error']??null];
+            $recentOperations[]=['id'=>$workflow['id'],'status'=>$workflow['status'],'tool'=>(!empty($workflow['create'])?'create_and_publish_article':'publish_article_with_image').' · '.$workflow['stage'].' · post '.$workflow['post'],'error'=>$workflow['error']??null];
         }
         $data=['imageSites'=>$imageSites,'imageSite'=>$imageSite,'imageOptions'=>$imageOptions,'imagePrompts'=>$imagePrompts,'imageError'=>$imageError,'imageDiagnostics'=>$imageDiagnostics,'recentOperations'=>$recentOperations,'resourceOptions'=>$resourceOptions,'schedules'=>$ep->store->all("SELECT * FROM schedules WHERE resource=? AND status='scheduled' ORDER BY due",[$id]),'title'=>'(MCP) Conexiones IA','resource'=>$r,'clients'=>$clients,'grants'=>$grants,'requests'=>$requests,'newClient'=>$new,'error'=>$error,
             'base'=>$base,'back'=>$back,'tenantMode'=>$tenant,'scopes'=>Policy::scopes($id),'sites'=>$sites,'groups'=>$groups,

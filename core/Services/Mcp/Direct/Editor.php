@@ -212,7 +212,7 @@ final class Editor
     {
         $this->content->db->prepare('UPDATE '.$table.' SET '.implode(',',array_map(fn($k)=>$this->quote($k).'=?',array_keys($row))).' WHERE id=?')->execute(array_merge(array_values($row),[$id]));
     }
-    public function execute(array $plan,int $actor,?array $auth,array $args): array
+    public function execute(array $plan,int $actor,?array $auth,array $args,?callable $onSaved=null): array
     {
         if (!$auth) throw new RuntimeException('Consentimiento requerido.');
         $db=$this->content->db; $site=$plan['site_id']; $tool=$plan['tool']; $now=date('Y-m-d H:i:s');
@@ -267,6 +267,7 @@ final class Editor
                 $db->commit();
                 return (new Media($this->content))->execute($tool,$site,$actor,$args);
             }
+            if ($onSaved) $onSaved($id);
             $db->commit();
             $cache=\Screenart\Musedock\Cache\HtmlCache::class;
             {

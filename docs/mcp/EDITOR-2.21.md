@@ -87,3 +87,42 @@ si terminó: en ese caso se requiere recuperación del medio, no otra generació
 El flujo usa el proveedor, validación de tamaños y cuotas del sitio, y añade al prompt
 la instrucción de no incluir texto, letras, números, logotipos ni marcas de agua.
 Esta instrucción no constituye verificación visual automática de la imagen.
+
+### Creación completa con una llamada
+
+`create_and_publish_article` reutiliza `article_workflows`, el mismo cron y los
+servicios de `create_post`, generación de imágenes, portada y publicación.
+
+```json
+{
+  "site_id": 55,
+  "idempotency_key": "bootshell-articulo-encargo-2026-10-17-001",
+  "title": "Título del artículo",
+  "content": "<p>Contenido HTML revisado</p>",
+  "seo_title": "Título SEO",
+  "seo_description": "Descripción SEO",
+  "category_ids": [],
+  "tag_ids": [],
+  "prompt": "Descripción editorial de la portada",
+  "size": "1280x720",
+  "quality": "standard",
+  "mode": "publish",
+  "apply": true
+}
+```
+
+La clave de idempotencia debe mantenerse en los reintentos. Cambiar el contenido
+con la misma clave no crea otro encargo. La respuesta inicial entrega `job_id`;
+`post_id` vale cero hasta que se confirme la creación. Para consultar, basta
+`site_id`, `job_id` y `action: "status"`; para reanudar un fallo, añade
+`action: "resume", apply: true`. Usa `mode: "draft"` al iniciar para terminar
+con portada asignada pero sin publicar ni devolver URL pública.
+
+Los campos SEO proporcionados se guardan con el editor existente; si faltan,
+se derivan del título y del extracto o texto del artículo sin una llamada IA
+adicional. Las categorías y etiquetas deben existir en el sitio autorizado.
+
+`mcp_article_receipts` confirma `job_id`, `site_id` y `post_id` dentro de la misma
+transacción de creación. Evita repetir la creación si se reinicia el procesador
+antes de guardar el checkpoint en la base privada de MCP. No se modifican las
+solicitudes antiguas de creación ni se convierten automáticamente en trabajos nuevos.
