@@ -212,6 +212,7 @@
                   <a href="{{ $sortUrl('view_count') }}" class="sortable-link {{ $isActiveSort('view_count') }}">
                     {{ __('blog.views') }} {!! $sortIcon('view_count') !!}
                   </a>
+                  {!! \Screenart\Musedock\Helpers\VisitsHelp::button() !!}
                 </th>
                 <th>
                   <a href="{{ $sortUrl('published_at') }}" class="sortable-link {{ $isActiveSort('published_at') }}">
@@ -222,6 +223,7 @@
             </thead>
             <tbody>
             {{-- Bucle para mostrar los posts --}}
+            @php $bvStats = \Screenart\Musedock\Services\PageViewStats::blogPosts(is_array($posts) ? $posts : iterator_to_array($posts)); @endphp
             @foreach ($posts as $post)
               @php
                 // Obtenemos datos asociados
@@ -331,8 +333,9 @@
                   @endif
                 </td>
                 <td>{{ strtoupper($baseLang) }}</td>
-                <td class="text-center">
-                  <span class="badge bg-light text-dark"><i class="bi bi-eye"></i> {{ number_format($post->view_count ?? 0) }}</span>
+                <td class="text-center text-nowrap">
+                  <span class="badge bg-light text-dark" title="Visitantes únicos"><i class="bi bi-person"></i> {{ number_format($bvStats[(int) $post->id]['unique'] ?? 0) }}</span>
+                  <span class="badge bg-light text-muted" title="Cargas de página (incluye recargas)"><i class="bi bi-arrow-repeat"></i> {{ number_format($bvStats[(int) $post->id]['loads'] ?? 0) }}</span>
                 </td>
                 <td data-date="{{ $post->published_at ? $post->published_at->format('Y-m-d H:i:s') : ($post->created_at ? $post->created_at->format('Y-m-d H:i:s') : '') }}">
                   {{ $post->published_at ? $post->published_at->format($dateTimeFormat) : ($post->created_at ? $post->created_at->format($dateTimeFormat) : '—') }}

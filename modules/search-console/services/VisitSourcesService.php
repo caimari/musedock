@@ -12,7 +12,7 @@ use PDO;
 class VisitSourcesService
 {
     /**
-     * @return array{total:int,direct:int,search:int,internal:int,sources:array<int,array{domain:string,type:string,visits:int,page:?string}>}|null
+     * @return array{total:int,unique:int,direct:int,search:int,internal:int,sources:array<int,array{domain:string,type:string,visits:int,page:?string}>}|null
      *         null si no hay analítica para ese tenant
      */
     public static function forTenant(PDO $pdo, ?int $tenantId, string $from, string $to): ?array
@@ -32,6 +32,9 @@ class VisitSourcesService
             if ($total === 0) {
                 return null;
             }
+            $stmt = $pdo->prepare('SELECT COUNT(DISTINCT ip_hash) FROM web_analytics WHERE tenant_id = ? AND is_bot = FALSE AND created_at >= ? AND created_at <= ?');
+            $stmt->execute($args);
+            $unique = (int) $stmt->fetchColumn();
             $stmt = $pdo->prepare("SELECT referrer_domain AS d, referrer_type AS t, COUNT(*) AS n FROM web_analytics
                 WHERE tenant_id = ? AND is_bot = FALSE AND created_at >= ? AND created_at <= ? AND referrer_type IN ('referral', 'social') AND referrer_domain IS NOT NULL AND referrer_domain <> ''
                 GROUP BY referrer_domain, referrer_type ORDER BY n DESC LIMIT 12");
@@ -44,7 +47,7 @@ class VisitSourcesService
                 $sources[] = ['domain' => (string) $r['d'], 'type' => (string) $r['t'], 'visits' => (int) $r['n'], 'page' => $page === false ? null : (string) $page];
             }
 
-            return ['total' => $total, 'direct' => $types['direct'] ?? 0, 'search' => $types['search'] ?? 0, 'internal' => $types['internal'] ?? 0, 'sources' => $sources];
+            return ['total' => $total, 'unique' => $unique, 'direct' => $types['direct'] ?? 0, 'search' => $types['search'] ?? 0, 'internal' => $types['internal'] ?? 0, 'sources' => $sources];
         } catch (\Throwable $e) {
             return null; // sin tabla de analítica (otro CMS o instalación sin ella)
         }

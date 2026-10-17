@@ -217,11 +217,12 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
             <span class="badge bg-light text-dark border ms-1" title="Estos datos vienen de la analítica de tu CMS, no de Google">Fuente: tu CMS, no Google</span></div>
         <div class="card-body p-0">
             <div class="p-3 pb-2 text-muted" style="font-size:.82rem;">
-                <?= $n($visitSources['total']) ?> visitas reales en el periodo (sin robots):
+                <strong><?= $n($visitSources['unique'] ?? 0) ?></strong> visitantes únicos y <strong><?= $n($visitSources['total']) ?></strong> cargas de página en el periodo (sin robots)
+                <?= \Screenart\Musedock\Helpers\VisitsHelp::button() ?>. De esas cargas:
                 <?= $n($visitSources['direct']) ?> directas, <?= $n($visitSources['search']) ?> desde buscadores, <?= $n($visitSources['internal']) ?> navegando dentro del sitio.
             </div>
             <?php if (!empty($visitSources['sources'])): ?>
-            <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Sitio de origen</th><th class="text-end">Visitas</th><th>Página a la que llegan más</th></tr></thead><tbody>
+            <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Sitio de origen</th><th class="text-end">Cargas</th><th>Página a la que llegan más</th></tr></thead><tbody>
             <?php foreach ($visitSources['sources'] as $vs): ?>
                 <tr><td><?= $e($vs['domain']) ?> <?php if ($vs['type'] === 'social'): ?><span class="badge bg-info text-dark">red social</span><?php endif; ?></td><td class="num text-end"><?= $n($vs['visits']) ?></td><td class="text-muted" style="font-size:.8rem;word-break:break-all;"><?= $e((string) $vs['page']) ?></td></tr>
             <?php endforeach; ?>

@@ -152,7 +152,7 @@
                 <th class="sortable" data-sort-col="4">{{ __('pages.status') }} <i class="fas fa-sort text-muted ms-1"></i></th>
                 <th class="sortable" data-sort-col="5">{{ __('pages.template') }} <i class="fas fa-sort text-muted ms-1"></i></th>
                 <th class="sortable" data-sort-col="6">{{ __('pages.publish_date') }} <i class="fas fa-sort-down text-primary ms-1"></i></th>
-                <th class="sortable" data-sort-col="views" title="Visitas de personas (sin robots) según la analítica del sitio">{{ __('blog.views') }} <i class="fas fa-sort text-muted ms-1"></i></th>
+                <th class="sortable text-nowrap" data-sort-col="views" title="Visitantes únicos · cargas de página (personas, sin robots)">{{ __('blog.views') }} {!! \Screenart\Musedock\Helpers\VisitsHelp::button() !!} <i class="fas fa-sort text-muted ms-1"></i></th>
               </tr>
             </thead>
             <tbody>
@@ -162,11 +162,11 @@
               // Rutas posibles de cada página: la analítica guarda la URL real, que puede llevar
               // o no el prefijo de páginas (/precios o /p/precios); se suman ambas
               $pvPaths = fn ($pg) => (isset($homepageId) && $pg->id === $homepageId) ? ['/'] : array_values(array_unique(array_filter(['/' . $pg->slug, $pvPrefix !== '' ? '/' . $pvPrefix . '/' . $pg->slug : null])));
-              $pvItems = [];
+              $pvGroups = [];
               foreach ((is_array($pages) ? $pages : iterator_to_array($pages)) as $pg) {
-                foreach ($pvPaths($pg) as $pvP) { $pvItems[] = ['tenant_id' => $pg->tenant_id ? (int) $pg->tenant_id : null, 'path' => $pvP]; }
+                $pvGroups['p' . $pg->id] = ['tenant_id' => $pg->tenant_id ? (int) $pg->tenant_id : null, 'paths' => $pvPaths($pg)];
               }
-              $pvCounts = \Screenart\Musedock\Services\PageViewStats::counts($pvItems);
+              $pvStats = \Screenart\Musedock\Services\PageViewStats::stats($pvGroups);
             @endphp
             {{-- Bucle para mostrar las páginas --}}
             @foreach ($pages as $Page)
@@ -252,8 +252,11 @@
                 <td data-date="{{ $Page->published_at ? $Page->published_at->format('Y-m-d H:i:s') : ($Page->created_at ? $Page->created_at->format('Y-m-d H:i:s') : '') }}">
                   {{ $Page->published_at ? $Page->published_at->format($dateTimeFormat) : ($Page->created_at ? $Page->created_at->format($dateTimeFormat) : '—') }}
                 </td>
-                @php $pvViews = array_sum(array_map(fn ($pvP) => $pvCounts[($Page->tenant_id ? (int) $Page->tenant_id : '') . '|' . $pvP] ?? 0, $pvPaths($Page))); @endphp
-                <td data-views="{{ $pvViews }}"><span class="badge bg-light text-dark"><i class="bi bi-eye"></i> {{ number_format($pvViews) }}</span></td>
+                @php $pvS = $pvStats['p' . $Page->id] ?? ['unique' => 0, 'loads' => 0]; @endphp
+                <td data-views="{{ $pvS['unique'] }}" class="text-nowrap">
+                  <span class="badge bg-light text-dark" title="Visitantes únicos"><i class="bi bi-person"></i> {{ number_format($pvS['unique']) }}</span>
+                  <span class="badge bg-light text-muted" title="Cargas de página (incluye recargas)"><i class="bi bi-arrow-repeat"></i> {{ number_format($pvS['loads']) }}</span>
+                </td>
               </tr>
             @endforeach
             </tbody>

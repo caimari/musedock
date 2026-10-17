@@ -48,4 +48,98 @@ class PageViewStats
 
         return $out;
     }
+
+    /**
+     * Visitantes únicos y cargas por grupo de rutas (una página puede tener varias
+     * URL, p. ej. /precios y /p/precios: se cuentan juntas sin repetir personas).
+     * Visitante único = huella anónima diaria (ip_hash), como el resto de la analítica.
+     * La consulta de la URL (?utm=…, ?product=…) no cuenta: /docs/x?a=1 suma en /docs/x.
+     *
+     * @param array<string, array{tenant_id: ?int, paths: string[]}> $groups clave libre => rutas
+     * @return array<string, array{unique: int, loads: int}>
+     */
+    public static function stats(array $groups): array
+    {
+        $byTenant = [];
+        foreach ($groups as $key => $g) {
+            foreach ((array) ($g['paths'] ?? []) as $path) {
+                if ($path !== '') {
+                    $byTenant[$g['tenant_id'] === null ? '' : (string) (int) $g['tenant_id']][] = [(string) $key, (string) $path];
+                }
+            }
+        }
+
+        $out = [];
+        try {
+            $pdo = Database::connect();
+            foreach ($byTenant as $tenant => $pairs) {
+                $values = implode(',', array_fill(0, count($pairs), '(?::text, ?::text)'));
+                $params = array_merge(...$pairs);
+                $tenantSql = $tenant === '' ? 'w.tenant_id IS NULL' : 'w.tenant_id = ?';
+                if ($tenant !== '') {
+                    $params[] = (int) $tenant;
+                }
+                $stmt = $pdo->prepare("SELECT v.k, COUNT(DISTINCT w.ip_hash) AS u, COUNT(*) AS l
+                    FROM web_analytics w JOIN (VALUES {$values}) AS v(k, p) ON split_part(w.page_url, '?', 1) = v.p
+                    WHERE {$tenantSql} AND w.is_bot = false GROUP BY v.k");
+                $stmt->execute($params);
+                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                    $out[$r['k']] = ['unique' => (int) $r['u'], 'loads' => (int) $r['l']];
+                }
+            }
+        } catch (\Throwable $e) {
+            // Sin analítica disponible: se muestran ceros
+        }
+
+        return $out;
+    }
+
+    /**
+     * Visitantes únicos y cargas de entradas del blog, con todas sus URL: la de su
+     * prefijo actual, sin prefijo y con /blog/ (enlaces antiguos) y las traducidas (/en/…).
+     *
+     * @param iterable<object> $posts objetos con id y tenant_id
+     * @return array<int, array{unique: int, loads: int}> id de entrada => cifras
+     */
+    public static function blogPosts(iterable $posts): array
+    {
+        $tenantOf = [];
+        foreach ($posts as $post) {
+            $tenantOf[(int) $post->id] = $post->tenant_id ? (int) $post->tenant_id : null;
+        }
+        if (!$tenantOf) {
+            return [];
+        }
+
+        $groups = [];
+        try {
+            $ids = array_keys($tenantOf);
+            $stmt = Database::connect()->prepare("SELECT reference_id, slug, prefix, locale FROM slugs WHERE module = 'blog' AND reference_id IN (" . implode(',', array_fill(0, count($ids), '?')) . ')');
+            $stmt->execute($ids);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $s) {
+                $id = (int) $s['reference_id'];
+                $slug = trim((string) $s['slug'], '/');
+                if ($slug === '') {
+                    continue;
+                }
+                $lang = $s['locale'] ? '/' . $s['locale'] : '';
+                $prefix = trim((string) $s['prefix'], '/');
+                $paths = [$lang . '/' . $slug, $lang . '/blog/' . $slug];
+                if ($prefix !== '') {
+                    $paths[] = $lang . '/' . $prefix . '/' . $slug;
+                }
+                $groups[(string) $id]['tenant_id'] = $tenantOf[$id];
+                $groups[(string) $id]['paths'] = array_values(array_unique(array_merge($groups[(string) $id]['paths'] ?? [], $paths)));
+            }
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        $out = [];
+        foreach (self::stats($groups) as $id => $row) {
+            $out[(int) $id] = $row;
+        }
+
+        return $out;
+    }
 }

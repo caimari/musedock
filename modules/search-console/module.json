@@ -7,7 +7,8 @@
       "version": "0.9.4",
       "date": "2026-10-17",
       "changes": [
-        "Nueva tarjeta «De dónde llegan las visitas reales» en el informe de cada dominio que vive en este CMS: sitios desde los que llegan clics (con la página a la que llegan más), y cuántas visitas son directas, de buscadores o internas. Sale de la analítica del CMS (solo personas, sin robots) y lo rotula como «Fuente: tu CMS, no Google». No es la lista de todos los enlaces que apuntan al sitio: esa solo existe en la web de Search Console."
+        "Nueva tarjeta «De dónde llegan las visitas reales» en el informe de cada dominio que vive en este CMS: sitios desde los que llegan clics (con la página a la que llegan más), y cuántas visitas son directas, de buscadores o internas. Sale de la analítica del CMS (solo personas, sin robots) y lo rotula como «Fuente: tu CMS, no Google». No es la lista de todos los enlaces que apuntan al sitio: esa solo existe en la web de Search Console.",
+        "La tarjeta de visitas del CMS distingue visitantes únicos (personas distintas por día) y cargas de página (cada apertura o recarga), con un botón (i) que explica la diferencia y por qué no coincide con los clics de Google."
       ]
     },
     {
