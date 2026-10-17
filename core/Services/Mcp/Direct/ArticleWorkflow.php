@@ -31,7 +31,7 @@ final class ArticleWorkflow
         }
         if (($args['action']??'start')==='status') {
             if (!$row) throw new RuntimeException('Trabajo no encontrado.');
-            return $this->result($job);
+            return $this->result($this->reconcile($job));
         }
         if (empty($args['apply'])) return ['status'=>'plan','site_id'=>$site,'post_id'=>$args['post_id'],'next'=>'apply=true inicia la cola persistente; action=status consulta el resultado.'];
         if (!$row) {
@@ -41,6 +41,8 @@ final class ArticleWorkflow
             (new Media($this->content))->plan('generate_image',$site,$args);
             $this->store->run('INSERT OR IGNORE INTO article_workflows(id,resource,client,status,data) VALUES(?,?,?,?,?)',[$key,$job['resource'],$job['client'],'queued',Store::json($job)]);
         } elseif (($args['action']??'start')==='resume' && $job['status']==='failed') {
+            $job=$this->reconcile($job);
+            if ($job['status']==='completed') return $this->result($job);
             $job['grant']=$auth['grant']['id']; $this->auth($job);
             if ($job['stage']==='generating' && empty($job['media_id'])) {
                 if (empty($args['media_id'])) throw new RuntimeException('Generación incierta: revisa medios y proporciona media_id para recuperar sin otro cargo.');
@@ -61,11 +63,42 @@ final class ArticleWorkflow
     {
         return ['job_id'=>$job['id'],'site_id'=>$job['site'],'post_id'=>$job['post']]+array_intersect_key($job,array_flip(['id','status','stage','site','post','media_id','public_url','error']));
     }
+    /** Read-only CMS evidence reconciles lost checkpoints; never calls a provider or publishes. */
+    private function reconcile(array $job): array
+    {
+        if (!in_array($job['status'],['failed','executing'],true)) return $job;
+        $media=null;
+        if (!empty($job['media_id'])) {
+            $media=(new Media($this->content))->one((int)$job['media_id'],$job['site']);
+        } else {
+            $rows=$this->content->query('SELECT id,metadata FROM media WHERE COALESCE(tenant_id,0)=? AND created_at>=? ORDER BY id DESC',[$job['site'],gmdate('Y-m-d H:i:s',($job['created']??0)-60)]);
+            foreach ($rows as $row) {
+                $metadata=json_decode($row['metadata']??'{}',true);
+                if (($metadata['ai_generation']['request_id']??null)!==$job['id']) continue;
+                $media=(new Media($this->content))->one((int)$row['id'],$job['site']); break;
+            }
+        }
+        if (!$media) return $job;
+        $job['media_id']=(int)$media['id'];
+        if ($job['stage']==='generating') $job['stage']='image_saved';
+        $post=$this->content->query('SELECT slug,status,featured_image FROM blog_posts WHERE id=? AND COALESCE(tenant_id,0)=? AND deleted_at IS NULL',[$job['post'],$job['site']])[0]??null;
+        if ($post && $post['status']==='published' && ($post['featured_image']??null)===$media['url']) {
+            $route=$this->content->query("SELECT slug,prefix FROM slugs WHERE module='blog' AND reference_id=? AND COALESCE(tenant_id,0)=?",[$job['post'],$job['site']])[0]??null;
+            $domain=$job['site']?$this->content->query('SELECT domain FROM tenants WHERE id=?',[$job['site']])[0]['domain']:parse_url(\Screenart\Musedock\Env::get('APP_URL',''),PHP_URL_HOST);
+            $path=($route && !empty($route['prefix'])?trim($route['prefix'],'/').'/':'').($route['slug']??$post['slug']);
+            $job['public_url']='https://'.$domain.'/'.$path;
+            $job['status']='completed'; $job['stage']='published'; unset($job['error']);
+            $this->store->event($job['resource'],'article.workflow.reconciled',0,['job'=>$job['id'],'media_id'=>$job['media_id']]);
+        }
+        $this->save($job);
+        return $job;
+    }
     public function run(): int
     {
         foreach ($this->store->all("SELECT data FROM article_workflows WHERE status='executing'") as $row) {
             $j=json_decode($row['data'],true); $j['status']='failed'; $j['error']='Trabajo interrumpido; reanuda para continuar desde la última etapa confirmada.'; $this->save($j);
         }
+        foreach ($this->store->all("SELECT data FROM article_workflows WHERE status='failed' LIMIT 100") as $row) $this->reconcile(json_decode($row['data'],true));
         $count=0;
         foreach ($this->store->all("SELECT data FROM article_workflows WHERE status='queued' LIMIT 3") as $row) {
             $j=json_decode($row['data'],true);
