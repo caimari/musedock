@@ -24,3 +24,31 @@
     }));
     document.getElementById('mcp-new-access')?.addEventListener('click', () => document.getElementById('mcp-create-access').showModal());
 })();
+
+(function () {
+    document.querySelectorAll('[data-mcp-sites-editor]').forEach(editor => {
+        const dialog = editor.querySelector('dialog');
+        const summary = editor.querySelector('[data-mcp-sites-summary]');
+        const inputs = [...editor.querySelectorAll('input[name="sites[]"]')];
+        function render() {
+            summary.replaceChildren();
+            inputs.filter(input => input.checked).forEach(input => {
+                const button = document.createElement('button');
+                button.type = 'button'; button.className = 'btn btn-sm btn-outline-secondary';
+                button.textContent = input.dataset.domain + ' ×';
+                button.setAttribute('aria-label', 'Quitar ' + input.dataset.domain);
+                button.addEventListener('click', () => { input.checked = false; render(); });
+                summary.append(button);
+            });
+            if (!summary.childElementCount) summary.textContent = 'Ningún sitio seleccionado.';
+        }
+        editor.querySelector('[data-mcp-sites-open]').addEventListener('click', () => dialog.showModal());
+        editor.querySelectorAll('[data-mcp-sites-close]').forEach(button => button.addEventListener('click', () => dialog.close()));
+        editor.querySelector('[data-mcp-sites-search]').addEventListener('input', event => {
+            const query = event.target.value.trim().toLowerCase();
+            inputs.forEach(input => { input.closest('label').hidden = !input.dataset.domain.toLowerCase().includes(query); });
+        });
+        inputs.forEach(input => input.addEventListener('change', render));
+        render();
+    });
+})();

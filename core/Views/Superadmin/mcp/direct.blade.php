@@ -2,6 +2,14 @@
 @section('title', $title)
 @section('content')
 <style>
+.mcp-sites-dialog { width:min(600px,calc(100vw - 32px));max-height:85vh;overflow:auto;border:0;border-radius:14px;padding:24px;box-shadow:0 15px 60px #0003; }
+.mcp-sites-dialog::backdrop { background:#14243b77; }
+.mcp-sites-list { max-height:45vh;overflow:auto; }
+.mcp-site-choice { display:flex!important;align-items:center;gap:12px;padding:10px 0;margin:0!important; }
+.mcp-site-choice[hidden] { display:none!important; }
+.mcp-site-choice input { position:static!important;float:none!important;margin:0!important;flex:0 0 18px;width:18px;height:18px; }
+.mcp-site-choice span { overflow-wrap:anywhere; }
+
 .mcp-settings { max-width: 1500px; }
 .mcp-settings > h1 { margin-bottom: 18px; font-weight: 600; }
 .mcp-settings > .nav { gap: 6px; margin-bottom: 22px !important; }
@@ -192,14 +200,25 @@
       <form method="post" action="{{ $back }}" class="mb-2">
         {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="client" value="{{ $client['id'] }}"><input type="hidden" name="action" value="client_permissions">
         @if($isPluginConnection)
-        <fieldset class="border rounded p-3 mb-3"><legend class="h6">Sitios de este acceso</legend>
+        <fieldset class="border rounded p-3 mb-3" data-mcp-sites-editor>
+          <legend class="h6">Sitios de este acceso</legend>
           <input type="hidden" name="edit_sites" value="1">
-          @foreach($sites as $site)
-            @if(in_array((int)$site['id'], $resource['owned_sites'] ?? [], true) && !empty($site['group_id']))
-              <label class="form-check"><input class="form-check-input" type="checkbox" name="sites[]" value="{{ $site['id'] }}" {{ in_array((int)$site['id'], $client['sites'] ?? [], true) ? 'checked' : '' }}> {{ $site['domain'] }}</label>
-            @endif
-          @endforeach
-          <p class="small text-muted mb-0">Puedes añadir o quitar sitios disponibles sin cambiar las credenciales ni desconectar. Los grupos se ajustan a los sitios seleccionados.</p>
+          <div data-mcp-sites-summary class="d-flex flex-wrap gap-2 mb-3"></div>
+          <button type="button" class="btn btn-sm btn-outline-primary mb-2" data-mcp-sites-open><i class="bi bi-plus-lg"></i> Añadir sitios</button>
+          <dialog class="mcp-sites-dialog" aria-label="Seleccionar sitios del acceso">
+            <div class="d-flex justify-content-between align-items-center gap-3 mb-3"><h3 class="h5 mb-0">Sitios autorizados del acceso</h3><button type="button" class="btn btn-sm btn-outline-secondary" data-mcp-sites-close aria-label="Cerrar">Cerrar</button></div>
+            <input type="search" class="form-control mb-3" placeholder="Buscar dominio…" aria-label="Buscar dominio" data-mcp-sites-search>
+            <div class="mcp-sites-list">
+            @foreach($sites as $site)
+              @if(in_array((int)$site['id'], $resource['owned_sites'] ?? [], true) && !empty($site['group_id']))
+                <label class="mcp-site-choice"><input type="checkbox" name="sites[]" value="{{ $site['id'] }}" data-domain="{{ $site['domain'] }}" {{ in_array((int)$site['id'], $client['sites'] ?? [], true) ? 'checked' : '' }}><span>{{ $site['domain'] }}</span></label>
+              @endif
+            @endforeach
+            </div>
+            <p class="small text-muted mt-3">Aparecen los sitios autorizados en «Servicio y sitios». Para disponer de otros dominios, añádelos primero allí.</p>
+            <button type="button" class="btn btn-primary" data-mcp-sites-close>Usar selección</button>
+          </dialog>
+          <p class="small text-muted mb-0">Guarda los cambios del acceso para aplicar la selección. No cambia las credenciales ni desconecta. Los grupos se ajustan a los sitios seleccionados.</p>
         </fieldset>
         @endif
         <div class="border rounded p-3 mb-3">
@@ -316,7 +335,7 @@
 @endsection
 @push('scripts')
 <script src="/assets/superadmin/js/mcp-progress.js?v=5"></script>
-<script src="/assets/superadmin/js/mcp-access-tabs.js?v=2"></script>
+<script src="/assets/superadmin/js/mcp-access-tabs.js?v=3"></script>
 <script>
 document.querySelectorAll('[data-mcp-info]').forEach(button=>button.addEventListener('click',()=>document.getElementById('mcp-info-'+button.dataset.mcpInfo).showModal()));
 document.querySelectorAll('[data-mcp-close]').forEach(button=>button.addEventListener('click',()=>button.closest('dialog').close()));
