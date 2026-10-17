@@ -187,6 +187,19 @@ final class Tools
         if (!$r || !$c || !$g || empty($r['allow_drafts'])) throw new RuntimeException('Autorización revocada.');
         $auth=['resource'=>$r,'client'=>$c,'grant'=>$g]; $tool=$p['plan']['tool'];
         $this->validate($tool,$auth,$p['args'],true);
+        if ($tool==='create_post') {
+            $receipt=$this->content->query('SELECT post_id,site_id FROM mcp_article_receipts WHERE job_id=?',[$id])[0]??null;
+            if ($receipt) {
+                $post=$this->content->post($r,$c,(int)$receipt['post_id']);
+                if ((int)($post['tenant_id']??0)!==(int)$receipt['site_id']) throw new RuntimeException('Registro de creación fuera de sitio.');
+                $result=['id'=>(int)$post['id'],'post_id'=>(int)$post['id'],'site_id'=>(int)$receipt['site_id'],'status'=>$post['status'],'recovered'=>true];
+                $p['result']=$result;
+                $this->store->run("UPDATE requests SET status='completed',data=? WHERE id=?",[Store::json($p),$id]);
+                $this->store->run("UPDATE approval_jobs SET status='completed',error=NULL WHERE request_id=?",[$id]);
+                $this->store->event($resource,'request.creation.recovered',$actor,['request'=>$id,'post_id'=>$post['id']]);
+                return $result;
+            }
+        }
         $plan=$this->content->plan($tool,$r,$c,$p['args']);
         if (!hash_equals($p['fingerprint'],Policy::fingerprint($plan))) throw new RuntimeException('El plan ha cambiado. Solicita uno nuevo.');
         $this->assertPublishing($tool,$plan,$auth,$actor);
@@ -213,6 +226,11 @@ final class Tools
                 if (!$r || !$c || !$g || empty($r['allow_drafts'])) throw new RuntimeException('Autorización revocada antes de ejecutar.');
                 $auth=['resource'=>$r,'client'=>$c,'grant'=>$g]; $this->validate($tool,$auth,$p['args'],true);
                 $this->assertPublishing($tool,$plan,$auth,$actor);
+                if ($tool==='create_post') {
+                    return (new Editor($this->content))->execute($plan,$actor,$auth,$p['args'],function(int $post) use($row,$plan) {
+                        $this->content->db->prepare('INSERT INTO mcp_article_receipts(job_id,post_id,site_id) VALUES(?,?,?)')->execute([$row['id'],$post,$plan['site_id']]);
+                    });
+                }
                 return $this->content->execute($plan,$actor,$auth,$p['args']);
             });
             if ($tool==='schedule_post') (new Scheduler($this->store,$this->content))->register($auth,$result,$actor);
