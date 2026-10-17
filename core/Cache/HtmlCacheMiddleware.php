@@ -80,7 +80,7 @@ class HtmlCacheMiddleware
         $tenantId = self::resolveTenantFast();
 
         // Try to read cache from disk
-        $cachePath = HtmlCache::uriToPath($uri, $tenantId);
+        $cachePath = HtmlCache::uriToPath($uri, $tenantId, HtmlCache::requestHost());
 
         if (file_exists($cachePath)) {
             // Check TTL from meta file
@@ -103,6 +103,14 @@ class HtmlCacheMiddleware
             $wantLang = self::requestedLanguage();
             $cachedLang = isset($meta) && is_array($meta) ? ($meta['lang'] ?? null) : null;
             if ($wantLang !== null && $wantLang !== $cachedLang) {
+                self::startCapture($uri);
+                return;
+            }
+
+            // Copia generada para otro host (www/sin www, alias): sus URLs absolutas
+            // apuntan a ese host y las fuentes fallarían por CORS → regenerar
+            $cachedHost = isset($meta) && is_array($meta) ? ($meta['host'] ?? null) : null;
+            if ($cachedHost !== HtmlCache::requestHost()) {
                 self::startCapture($uri);
                 return;
             }
@@ -211,7 +219,7 @@ class HtmlCacheMiddleware
         }
 
         // Write to cache (HtmlCache handles locks and atomic writes)
-        HtmlCache::put(self::$uri, $htmlWithComment, $tenantId, $tags, 0, $lang);
+        HtmlCache::put(self::$uri, $htmlWithComment, $tenantId, $tags, 0, $lang, HtmlCache::requestHost());
 
         // Add cache MISS header (already sent via ob_get_flush, but useful for logs)
         if (!headers_sent()) {

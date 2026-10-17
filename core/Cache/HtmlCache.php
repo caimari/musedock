@@ -64,7 +64,7 @@ class HtmlCache
      * @param array    $tags      Cache tags for invalidation (e.g., ['blog', 'post:42'])
      * @param int      $ttl       Time-to-live in seconds (0 = no expiry, uses DEFAULT_TTL)
      */
-    public static function put(string $uri, string $html, ?int $tenantId, array $tags = [], int $ttl = 0, ?string $lang = null): void
+    public static function put(string $uri, string $html, ?int $tenantId, array $tags = [], int $ttl = 0, ?string $lang = null, ?string $host = null): void
     {
         if (!self::isEnabled()) {
             return;
@@ -74,7 +74,7 @@ class HtmlCache
             return;
         }
 
-        $cachePath = self::uriToPath($uri, $tenantId);
+        $cachePath = self::uriToPath($uri, $tenantId, $host);
         $cacheDir = dirname($cachePath);
 
         // Ensure directory exists
@@ -121,6 +121,10 @@ class HtmlCache
                 'created_at' => time(),
                 'ttl'        => $ttl ?: self::DEFAULT_TTL,
                 'lang'       => $lang, // idioma de la página: solo se sirve a quien pide ese idioma
+                // Host exacto (www o no, alias...): las URLs de CSS, fuentes e imágenes son
+                // absolutas; servir la copia en otro host carga las fuentes de otro origen y
+                // el navegador las bloquea por CORS (iconos rotos)
+                'host'       => $host,
             ];
             $metaPath = $cachePath . self::META_EXT;
             @file_put_contents($metaPath, json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
@@ -172,8 +176,11 @@ class HtmlCache
      */
     public static function invalidate(string $uri, ?int $tenantId): void
     {
-        $cachePath = self::uriToPath($uri, $tenantId);
-        self::removeFile($cachePath);
+        self::removeFile(self::uriToPath($uri, $tenantId));
+        // Copias por dirección (@screenai.es, @www.screenai.es, alias...)
+        foreach (glob(self::tenantDir($tenantId) . '/@*', GLOB_ONLYDIR) ?: [] as $hostDir) {
+            self::removeFile(self::uriToPath($uri, $tenantId, substr(basename($hostDir), 1)));
+        }
     }
 
     /**
@@ -569,6 +576,14 @@ class HtmlCache
     /** Parámetros de URL que no cambian el contenido (campañas y seguimiento). */
     private const IGNORED_QUERY_PARAMS = ['gclid', 'fbclid', 'msclkid', 'dclid', 'yclid', 'mc_cid', 'mc_eid', '_ga', '_gl', 'ref'];
 
+    /** Host de la petición normalizado (minúsculas, sin puerto). */
+    public static function requestHost(): string
+    {
+        $host = strtolower(trim((string) ($_SERVER['HTTP_HOST'] ?? '')));
+
+        return (string) preg_replace('/:\d+$/', '', $host);
+    }
+
     public static function isAnonymousSession(array $session): bool
     {
         foreach ($session as $key => $value) {
@@ -648,9 +663,14 @@ class HtmlCache
      *   "/b/my-post"   → .../_tenant_5/b/my-post.html
      *   "/b/page/2"    → .../_tenant_5/b/page/2.html
      */
-    public static function uriToPath(string $uri, ?int $tenantId): string
+    public static function uriToPath(string $uri, ?int $tenantId, ?string $host = null): string
     {
         $tenantDir = self::tenantDir($tenantId);
+        // Una copia por dirección: las páginas llevan URLs absolutas de su host
+        $host = $host !== null ? (string) preg_replace('/[^a-z0-9.-]/', '', strtolower($host)) : '';
+        if ($host !== '') {
+            $tenantDir .= '/@' . $host;
+        }
 
         // Normalize URI
         $uri = '/' . trim($uri, '/');
