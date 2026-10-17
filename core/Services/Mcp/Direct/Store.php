@@ -9,8 +9,16 @@ use RuntimeException;
 final class Store
 {
     public PDO $db;
+    private bool $postgres=false;
+    public const TABLES=['resources','clients','grants','codes','tokens','requests','events','approval_jobs','article_workflows','limits'];
     public function __construct(?PDO $db = null)
     {
+        if ($db === null && \Screenart\Musedock\Env::get('MCP_CMS_STATE_DRIVER','sqlite')==='pgsql') {
+            $config=require APP_ROOT.'/config/config.php';
+            $driver=\Screenart\Musedock\Database::getDriver();
+            $db=new PDO($driver->getDSN($config['db']['host']??'localhost',$config['db']['name']??'', $config['db']['port']??null),$config['db']['user']??'',$config['db']['pass']??'');
+            if ($db->getAttribute(PDO::ATTR_DRIVER_NAME)!=='pgsql') throw new RuntimeException('El estado compartido MCP requiere PostgreSQL.');
+        }
         if ($db === null) {
             $directory = (string) \Screenart\Musedock\Env::get('MCP_CMS_PRIVATE_DIRECTORY', dirname(APP_ROOT) . '/.musedock-cms');
             if (!str_starts_with($directory,'/')) throw new RuntimeException('El almacenamiento MCP debe usar una ruta privada absoluta.');
@@ -29,9 +37,9 @@ final class Store
         $this->db = $db;
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $db->exec('PRAGMA busy_timeout=5000');
-        $db->exec('PRAGMA foreign_keys=ON');
-        $db->exec("CREATE TABLE IF NOT EXISTS resources (id TEXT PRIMARY KEY, data TEXT NOT NULL);
+        $this->postgres=$db->getAttribute(PDO::ATTR_DRIVER_NAME)==='pgsql';
+        if (!$this->postgres) { $db->exec('PRAGMA busy_timeout=5000'); $db->exec('PRAGMA foreign_keys=ON'); }
+        $schema="CREATE TABLE IF NOT EXISTS resources (id TEXT PRIMARY KEY, data TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS clients (id TEXT PRIMARY KEY, resource TEXT NOT NULL, data TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS grants (id TEXT PRIMARY KEY, client TEXT NOT NULL, resource TEXT NOT NULL, data TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS codes (hash TEXT PRIMARY KEY, data TEXT NOT NULL);
@@ -40,24 +48,35 @@ final class Store
             CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, resource TEXT NOT NULL, action TEXT NOT NULL, actor INTEGER NOT NULL, detail TEXT NOT NULL, created INTEGER NOT NULL);
             CREATE TABLE IF NOT EXISTS approval_jobs (request_id TEXT PRIMARY KEY, resource TEXT NOT NULL, actor INTEGER NOT NULL, status TEXT NOT NULL, created INTEGER NOT NULL, started INTEGER, error TEXT);
             CREATE TABLE IF NOT EXISTS article_workflows (id TEXT PRIMARY KEY, resource TEXT NOT NULL, client TEXT NOT NULL, status TEXT NOT NULL, data TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS limits (id TEXT PRIMARY KEY, started INTEGER NOT NULL, count INTEGER NOT NULL);");
+            CREATE TABLE IF NOT EXISTS limits (id TEXT PRIMARY KEY, started INTEGER NOT NULL, count INTEGER NOT NULL);";
+        if ($this->postgres) $schema=str_replace('INTEGER PRIMARY KEY AUTOINCREMENT','BIGSERIAL PRIMARY KEY',$schema);
+        $db->exec($this->sql($schema));
+    }
+    private function sql(string $sql): string
+    {
+        if (!$this->postgres) return $sql;
+        $sql=str_replace("json_extract(data,'$.grant')","(data::jsonb->>'grant')",$sql);
+        $sql=str_replace('rowid',"(data::jsonb->>'created')::bigint",$sql);
+        if (str_contains($sql,'INSERT OR IGNORE')) $sql=str_replace('INSERT OR IGNORE','INSERT',$sql).' ON CONFLICT DO NOTHING';
+        return preg_replace('/\b('.implode('|',self::TABLES).')\b/','mcp_state_$1',$sql);
     }
     public function one(string $sql, array $args = []): ?array
     {
-        $s = $this->db->prepare($sql); $s->execute($args);
+        $s = $this->db->prepare($this->sql($sql)); $s->execute($args);
         return $s->fetch() ?: null;
     }
     public function all(string $sql, array $args = []): array
     {
-        $s = $this->db->prepare($sql); $s->execute($args); return $s->fetchAll();
+        $s = $this->db->prepare($this->sql($sql)); $s->execute($args); return $s->fetchAll();
     }
     public function run(string $sql, array $args = []): int
     {
-        $s = $this->db->prepare($sql); $s->execute($args); return $s->rowCount();
+        $s = $this->db->prepare($this->sql($sql)); $s->execute($args); return $s->rowCount();
     }
     public function atomic(callable $fn)
     {
-        $this->db->exec('BEGIN IMMEDIATE');
+        $this->db->exec($this->postgres?'BEGIN':'BEGIN IMMEDIATE');
+        if ($this->postgres) $this->db->exec("SELECT pg_advisory_xact_lock(hashtext('musedock-cms-mcp-state'))");
         try { $result = $fn(); $this->db->exec('COMMIT'); return $result; }
         catch (Throwable $e) { $this->db->exec('ROLLBACK'); throw $e; }
     }

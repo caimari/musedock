@@ -93,7 +93,7 @@ final class ArticleWorkflow
     private function result(array $job): array
     {
         $terms=!empty($job['post'])?(new Taxonomy($this->content))->assigned($job['site'],$job['post']):[];
-        return $terms+['job_id'=>$job['id'],'site_id'=>$job['site'],'post_id'=>$job['post']]+array_intersect_key($job,array_flip(['id','status','stage','mode','site','post','media_id','public_url','error','errors']));
+        return $terms+['job_id'=>$job['id'],'site_id'=>$job['site'],'post_id'=>$job['post']]+array_intersect_key($job,array_flip(['id','status','stage','mode','site','post','media_id','public_url','error','errors','created','updated']));
     }
     /** Read-only CMS evidence reconciles lost checkpoints; never calls a provider or publishes. */
     private function reconcile(array $job): array
@@ -133,7 +133,11 @@ final class ArticleWorkflow
     public function run(): int
     {
         foreach ($this->store->all("SELECT data FROM article_workflows WHERE status='executing'") as $row) {
-            $j=json_decode($row['data'],true); $j['status']='failed'; $j['error']='Trabajo interrumpido; reanuda para continuar desde la última etapa confirmada.'; $this->save($j);
+            $j=json_decode($row['data'],true);
+            // Another node may still be processing this shared job. Never mark
+            // a fresh worker as interrupted just because a second cron starts.
+            if (($j['updated']??$j['created']??0)>time()-600) { try { $this->reconcile($j); } catch (\Throwable $ignored) {} continue; }
+            $j['status']='failed'; $j['error']='Trabajo interrumpido; reanuda para continuar desde la última etapa confirmada.'; $this->save($j);
         }
         foreach ($this->store->all("SELECT data FROM article_workflows WHERE status='failed' LIMIT 100") as $row) {
             try { $this->reconcile(json_decode($row['data'],true)); }

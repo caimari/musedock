@@ -82,3 +82,31 @@ Hasta recibir autorización explícita después de presentar los resultados:
 Tras autorización: respaldar DB y almacenamiento privado, desplegar los commits de CMS y plugin, ejecutar las migraciones, verificar APP_URL HTTPS, preparar los clientes y permisos, activar el interruptor global con `MCP_CMS_DIRECT_ENABLED=true`, y después habilitar únicamente los recursos aprobados. Comprobar TLS, descubrimiento y consentimiento con cada cuenta. Empezar con lectura y un borrador de prueba.
 
 Rollback: desactivar el interruptor global y los recursos para impedir nuevos accesos, revocar clientes si procede y volver a los commits anteriores. No borrar a ciegas los artículos que ya se aprobaron ni retirar la columna origen mientras queden jobs API. Una restauración del SQLite debe mantener el acceso desactivado y revocar las concesiones restauradas antes de reabrir el servicio.
+
+## Estado compartido en instalaciones con varios nodos (17/10/2026)
+
+En instalaciones con `rsync`/replicación de archivos, no utilizar una SQLite viva
+replicada para clientes, tokens, solicitudes o trabajos. Se detectaron errores
+`attempt to write a readonly database` después de generar una imagen, con pérdida
+del checkpoint de publicación. La portada persistía en el CMS, pero el trabajo no
+podía recuperarse desde la copia del estado que recibía la siguiente petición.
+
+`MCP_CMS_STATE_DRIVER=pgsql` conserva ese estado en tablas `mcp_state_*` de la
+base PostgreSQL del CMS, utilizando una conexión independiente de las transacciones
+editoriales. No utiliza el código ni las credenciales del Panel. SQLite sigue
+siendo compatible para instalaciones de un nodo y pruebas aisladas.
+
+`php cli/migrate-mcp-shared-state.php` crea una copia privada del estado SQLite,
+importa sus registros conservando clientes, consentimientos y hashes de tokens,
+y activa el almacenamiento compartido. Antes de ejecutarlo, verificar que todos
+los nodos del CMS usan el mismo PostgreSQL escribible y disponer de backup. No
+sustituir el estado PostgreSQL activo con copias antiguas de SQLite.
+
+El trabajador reclama cada trabajo mediante actualización condicional. Un segundo
+cron no declara interrumpido un trabajo con actividad reciente de otro nodo. Las
+consultas de estado devuelven también `created` y `updated`. Los recursos, sitios,
+permisos y aprobaciones automáticas siguen comprobándose en cada fase.
+
+Prueba: `tests/mcp/shared_state_pg_test.php` utiliza un esquema PostgreSQL temporal
+con dos conexiones para comprobar persistencia, rollback, idempotencia y exclusión
+de trabajadores. No crea artículos ni llama a proveedores de IA.
