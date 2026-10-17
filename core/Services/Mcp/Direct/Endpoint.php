@@ -157,7 +157,7 @@ final class Endpoint
         $tools=new Tools($this->store,$content); $id=$msg['id'];
         try {
             $result=match($msg['method']) {
-                'initialize'=>['protocolVersion'=>$this->protocol($msg['params']['protocolVersion']??''),'capabilities'=>['tools'=>(object)[]],'serverInfo'=>['name'=>'MuseDock CMS — '.$r['name'],'version'=>'2.21.0']],
+                'initialize'=>['protocolVersion'=>$this->protocol($msg['params']['protocolVersion']??''),'capabilities'=>['tools'=>(object)[]],'serverInfo'=>['name'=>'MuseDock CMS — '.$r['name'],'version'=>'2.21.0'],'instructions'=>Instructions::forAccess($tools,$auth)],
                 'ping'=>(object)[],
                 'tools/list'=>$this->listTools($tools,$auth),
                 'tools/call'=>$this->callTool($tools,$auth,$msg['params']??[]),

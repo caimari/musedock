@@ -60,6 +60,7 @@ with tempfile.TemporaryDirectory(prefix='cms-mcp-http-') as directory:
         auth={'Authorization':'Bearer '+tokens['access_token'],'Content-Type':'application/json'}
         def rpc(method,args=None):return request('/mcp','POST',json.dumps({'jsonrpc':'2.0','id':1,'method':method,'params':args or {}}),auth)
         status,_,body=rpc('initialize',{'protocolVersion':'2025-11-25'});check(status==200 and json.loads(body)['result']['serverInfo']['name'].startswith('MuseDock CMS'),'MCP initialize')
+        instructions=json.loads(body)['result']['instructions'];check('Herramientas disponibles' in instructions and 'request_id' in instructions and 'no conceden permisos' in instructions,'MCP initialization delivers scoped operational instructions')
         status,_,body=rpc('tools/list');catalog=json.loads(body)['result']['tools'];check('create_draft' in [t['name'] for t in catalog],'authorized explicit tools')
         for tool in ['get_post','get_post_details']:
             status,_,body=rpc('tools/call',{'name':tool,'arguments':{'post_id':1}})
