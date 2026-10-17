@@ -42,9 +42,15 @@
                 <label for="password" style="font-size:0.8rem; font-weight:600; color:#4a5568; margin:0;">{{ __('Contraseña') }}</label>
                 <a href="/customer/forgot-password" style="font-size:0.75rem; color:#6b7280; text-decoration:none;" onmouseenter="this.style.color='#4e73df'" onmouseleave="this.style.color='#6b7280'">{{ __('¿Olvidaste?') }}</a>
               </div>
-              <input type="password" id="password" name="password" required placeholder="{{ __('Tu contraseña') }}"
-                     style="width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:0.9rem; outline:none; transition:border-color 0.2s;"
-                     onfocus="this.style.borderColor='#4e73df'" onblur="this.style.borderColor='#d1d5db'">
+              <div style="position:relative;">
+                <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="{{ __('Tu contraseña') }}"
+                       style="width:100%; padding:10px 46px 10px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:0.9rem; outline:none; transition:border-color 0.2s;"
+                       onfocus="this.style.borderColor='#4e73df'" onblur="this.style.borderColor='#d1d5db'">
+                <button type="button" id="togglePassword" onclick="toggleLoginPassword()" aria-controls="password" aria-pressed="false" aria-label="{{ __('Mostrar contraseña') }}" title="{{ __('Mostrar contraseña') }}"
+                        style="position:absolute; top:50%; right:6px; transform:translateY(-50%); width:36px; height:36px; border:0; background:transparent; color:#64748b; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;">
+                  <svg id="togglePasswordIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
             </div>
 
             <div style="display:flex; align-items:center; margin-bottom:20px;">
@@ -96,6 +102,22 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+function toggleLoginPassword() {
+  var input = document.getElementById('password');
+  var btn = document.getElementById('togglePassword');
+  var icon = document.getElementById('togglePasswordIcon');
+  var show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+  var label = show ? @json(__('Ocultar contraseña')) : @json(__('Mostrar contraseña'));
+  btn.setAttribute('aria-label', label);
+  btn.setAttribute('title', label);
+  icon.innerHTML = show
+    ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  input.focus();
+}
+
 let csrfRetryCount = 0;
 const MAX_CSRF_RETRIES = 1;
 
@@ -118,15 +140,9 @@ function submitLogin(formData, submitBtn) {
   })
   .then((data) => {
     if (data && data.success) {
-      Swal.fire({
-        icon: 'success',
-        title: '{{ __("¡Bienvenido!") }}',
-        text: '{{ __("Redirigiendo...") }}',
-        showConfirmButton: false,
-        timer: 1200
-      }).then(() => {
-        window.location.href = data.redirect || '/customer/dashboard';
-      });
+      // Directo al panel, sin ventana intermedia
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = @json(__('Entrando…')); }
+      window.location.href = data.redirect || '/customer/dashboard';
       return;
     }
 

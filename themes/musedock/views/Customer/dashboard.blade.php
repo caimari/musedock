@@ -25,6 +25,7 @@
   .mdp-quick a:hover { color: var(--cp-accent); }
   .mdp-list-row { padding: 18px 0; border-top: 1px solid #eef1f6; }
   .mdp-list-row:first-of-type { border-top: 0; padding-top: 4px; }
+  .mdp-list-row:target { background: var(--cp-accent-soft); border-radius: 12px; padding-left: 14px; padding-right: 14px; scroll-margin-top: 96px; }
   .mdp-empty { background: #f5f8ff; border-radius: 12px; padding: 16px 18px; font-size: .92rem; color: #1e3a8a; }
   @media (max-width: 1200px) { .mdp-dash-grid { grid-template-columns: 1fr; } }
   @media (max-width: 700px) { .mdp-tiles { grid-template-columns: 1fr; } .mdp-hello h2 { font-size: 1.5rem; } }
@@ -80,7 +81,7 @@
 </div>
 
 {{-- My Sites --}}
-<section class="mdp-card" style="margin-bottom:24px;">
+<section class="mdp-card" id="mdp-sites" style="margin-bottom:24px;">
 <div class="mdp-card-head">
   <h3 class="mdp-card-title"><span class="mdp-icon-box" style="background:linear-gradient(135deg,#0f8a83,#0b6e69);"><i class="bi bi-window-stack" aria-hidden="true"></i></span> Mis sitios</h3>
 </div>
@@ -99,7 +100,7 @@
         ? ($tenant['status'] === 'waiting_ns_change' || !$tenant['caddy_route_id'] || ($tenant['caddy_status'] ?? '') !== 'active')
         : (!($tenant['cloudflare_record_id'] ?? null) || !$tenant['caddy_route_id'] || ($tenant['caddy_status'] ?? '') !== 'active');
   ?>
-  <div class="mdp-list-row">
+  <div class="mdp-list-row" id="site-<?= (int) $tenant['id'] ?>">
     <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
       <i class="bi bi-globe" style="color:var(--cp-accent);"></i>
       <a href="https://<?= htmlspecialchars($tenant['domain']) ?>" target="_blank" style="color:var(--cp-accent); font-weight:700; font-size:1.05rem; text-decoration:none;">
