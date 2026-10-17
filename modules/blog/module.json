@@ -17,6 +17,7 @@
     },
     "changelog": {
         "pendiente (listados del superadmin)": [
+            "Nueva opción por entrada «Mostrar el número de visitas» (crear y editar, superadmin y tenant), desactivada por defecto: las entradas ya no enseñan «N Vistas» salvo que se active en cada una (y siga activado el ajuste general del sitio).",
             "Listado de entradas del superadmin: 25 por página por defecto (antes 10) y sin la opción de 10.",
             "Listados de entradas (superadmin y tenant): se quita la píldora gris vacía de «comentarios desactivados» (su icono bi-chat-slash no existe en la versión instalada de Bootstrap Icons).",
             "Listados de entradas (superadmin y tenant): la columna Vistas muestra visitantes únicos (personas distintas por día) y cargas de página (incluidas recargas), ambas de la analítica del sitio y sumando todas las URL de la entrada (con y sin prefijo, traducidas), con un botón (i) que explica la diferencia.",

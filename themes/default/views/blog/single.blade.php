@@ -174,7 +174,7 @@
                     @if($postAuthorName)
                         <span class="ms-3"><i class="far fa-user"></i> @if($postAuthorUrl)<a href="{{ $postAuthorUrl }}" class="text-muted">{{ $postAuthorName }}</a>@else{{ $postAuthorName }}@endif</span>
                     @endif
-                    @if($post->view_count > 0 && site_setting('blog_show_views', '1') === '1')
+                    @if(!empty($post->show_views) && $post->view_count > 0 && site_setting('blog_show_views', '1') === '1')
                         <span class="ms-3"><i class="far fa-eye"></i> {{ $post->view_count }} {{ __('blog.views') }}</span>
                     @endif
                 </div>

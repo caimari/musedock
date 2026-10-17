@@ -488,7 +488,9 @@
             "post_type": "Post type",
             "type_post": "Article",
             "type_brief": "News brief",
-            "featured_this_post": "Feature this post"
+            "featured_this_post": "Feature this post",
+            "show_views": "Show the view count",
+            "show_views_help": "Off by default: the number of views is not shown on the post."
         },
         "bulk": {
             "actions": "Bulk actions",

@@ -422,6 +422,8 @@
             "type_brief": "Noticia breve",
             "featured_this_post": "Destacar este post",
             "allow_comments": "Permitir comentarios",
+            "show_views": "Mostrar el número de visitas",
+            "show_views_help": "Desactivado por defecto: el número de visitas no se ve en la entrada.",
             "search_placeholder": "Buscar posts...",
             "no_posts_found": "No se encontraron posts.",
             "success_created": "Post creado correctamente",

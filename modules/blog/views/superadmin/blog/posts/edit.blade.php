@@ -353,6 +353,15 @@
                   {{ __('blog.post.allow_comments') }}
                 </label>
               </div>
+
+              {{-- Mostrar el número de visitas (desactivado por defecto) --}}
+              <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" value="1" id="show_views" name="show_views" @checked(old('show_views', $post->show_views ?? false))>
+                <label class="form-check-label" for="show_views">
+                  {{ __('blog.post.show_views') }}
+                </label>
+                <small class="text-muted d-block">{{ __('blog.post.show_views_help') }}</small>
+              </div>
             </div>
           </div>
 

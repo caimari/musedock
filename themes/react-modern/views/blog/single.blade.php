@@ -92,7 +92,7 @@
                         <span>@if($postAuthorUrl)<a href="{{ $postAuthorUrl }}" class="text-gray-500 hover:text-indigo-600 transition-colors">{{ $postAuthorName }}</a>@else{{ $postAuthorName }}@endif</span>
                     </div>
                     @endif
-                    @if($post->view_count > 0 && site_setting('blog_show_views', '1') === '1')
+                    @if(!empty($post->show_views) && $post->view_count > 0 && site_setting('blog_show_views', '1') === '1')
                     <div class="flex items-center">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>

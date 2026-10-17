@@ -251,6 +251,7 @@ class BlogPostController
         // Manejo de checkboxes
         $data['show_hero'] = isset($data['show_hero']) ? 1 : 0;
         $data['allow_comments'] = isset($data['allow_comments']) ? 1 : 0;
+        $data['show_views'] = isset($data['show_views']) ? 1 : 0;
         $data['featured'] = isset($data['featured']) ? 1 : 0;
         $data['hide_featured_image'] = isset($data['hide_featured_image']) ? 1 : 0;
         $data['hide_title'] = isset($data['hide_title']) ? 1 : 0;
@@ -547,6 +548,7 @@ class BlogPostController
         // Manejo de checkboxes
         $data['show_hero'] = isset($data['show_hero']) ? 1 : 0;
         $data['allow_comments'] = isset($data['allow_comments']) ? 1 : 0;
+        $data['show_views'] = isset($data['show_views']) ? 1 : 0;
         $data['featured'] = isset($data['featured']) ? 1 : 0;
         $data['hide_featured_image'] = isset($data['hide_featured_image']) ? 1 : 0;
         $data['hide_title'] = isset($data['hide_title']) ? 1 : 0;

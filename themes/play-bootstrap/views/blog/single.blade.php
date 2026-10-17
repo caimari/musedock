@@ -109,7 +109,7 @@
                                     <i class="lni lni-user"></i> <span>@if($postAuthorUrl)<a href="{{ $postAuthorUrl }}">{{ $postAuthorName }}</a>@else{{ $postAuthorName }}@endif</span>
                                 </p>
                                 @endif
-                                @if($post->view_count > 0 && site_setting('blog_show_views', '1') === '1')
+                                @if(!empty($post->show_views) && $post->view_count > 0 && site_setting('blog_show_views', '1') === '1')
                                 <p class="view">
                                     <i class="lni lni-eye"></i> <span>{{ $post->view_count }}</span>
                                 </p>

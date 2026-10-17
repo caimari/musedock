@@ -502,6 +502,8 @@
             "type_brief": "Noticia breve",
             "featured_this_post": "Destacar este post",
             "allow_comments": "Permitir comentarios",
+            "show_views": "Mostrar el número de visitas",
+            "show_views_help": "Desactivado por defecto: el número de visitas no se ve en la entrada.",
             "image_url": "URL de imagen",
             "image_placeholder": "https://ejemplo.com/imagen.jpg",
             "image_help": "URL completa de la imagen destacada",

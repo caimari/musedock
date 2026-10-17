@@ -35,6 +35,7 @@
                 <li>Entradas del blog: los «Posts relacionados» ya no mezclan guías (enlazaban mal, sin <code>/docs/</code>); nuevo bloque <strong>Guías relacionadas</strong> sin imagen, con enlaces a <code>/docs/…</code> o <code>/en/docs/…</code> según el idioma.</li>
                 <li>Categorías y etiquetas de guías: miga de pan como en las docs (Docs / Producto / Sección), imagen, título y «Leer más» enlazan a la guía, y portada por producto (MuseDock CMS, Panel o Portal) cuando la guía no tiene imagen.</li>
                 <li>Enlaces dentro del texto de las entradas en azul suave (antes salían en negro) y separación entre imagen y texto en los relacionados.</li>
+                <li>Nueva opción por entrada <strong>Mostrar el número de visitas</strong>, desactivada por defecto: las entradas ya no enseñan «N Vistas» salvo que se active en cada una.</li>
             </ul>
         </div></div>
 

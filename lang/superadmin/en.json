@@ -422,6 +422,8 @@
             "type_brief": "News brief",
             "featured_this_post": "Feature this post",
             "allow_comments": "Allow comments",
+            "show_views": "Show the view count",
+            "show_views_help": "Off by default: the number of views is not shown on the post.",
             "search_placeholder": "Search posts...",
             "no_posts_found": "No posts found.",
             "success_created": "Post created successfully",
