@@ -125,8 +125,7 @@
       <div class="pages-per-page-selector">
         <label for="perPage">{{ __('common.show') }}:</label>
         <select class="form-select form-select-sm" id="perPage">
-          <option value="10" {{ (isset($_GET['perPage']) && $_GET['perPage'] == 10) ? 'selected' : '' }}>10</option>
-          <option value="25" {{ (isset($_GET['perPage']) && $_GET['perPage'] == 25) ? 'selected' : '' }}>25</option>
+          <option value="25" {{ (!isset($_GET['perPage']) || $_GET['perPage'] == 25) ? 'selected' : '' }}>25</option>
           <option value="50" {{ (isset($_GET['perPage']) && $_GET['perPage'] == 50) ? 'selected' : '' }}>50</option>
           <option value="100" {{ (isset($_GET['perPage']) && $_GET['perPage'] == 100) ? 'selected' : '' }}>100</option>
           <option value="-1" {{ (isset($_GET['perPage']) && $_GET['perPage'] == -1) ? 'selected' : '' }}>{{ __('common.all') }}</option>
@@ -153,9 +152,22 @@
                 <th class="sortable" data-sort-col="4">{{ __('pages.status') }} <i class="fas fa-sort text-muted ms-1"></i></th>
                 <th class="sortable" data-sort-col="5">{{ __('pages.template') }} <i class="fas fa-sort text-muted ms-1"></i></th>
                 <th class="sortable" data-sort-col="6">{{ __('pages.publish_date') }} <i class="fas fa-sort-down text-primary ms-1"></i></th>
+                <th class="sortable" data-sort-col="views" title="Visitas de personas (sin robots) según la analítica del sitio">{{ __('blog.views') }} <i class="fas fa-sort text-muted ms-1"></i></th>
               </tr>
             </thead>
             <tbody>
+            {{-- Visitas por página (analítica propia: personas, también con caché HTML) --}}
+            @php
+              $pvPrefix = function_exists('page_prefix') ? page_prefix() : 'p';
+              // Rutas posibles de cada página: la analítica guarda la URL real, que puede llevar
+              // o no el prefijo de páginas (/precios o /p/precios); se suman ambas
+              $pvPaths = fn ($pg) => (isset($homepageId) && $pg->id === $homepageId) ? ['/'] : array_values(array_unique(array_filter(['/' . $pg->slug, $pvPrefix !== '' ? '/' . $pvPrefix . '/' . $pg->slug : null])));
+              $pvItems = [];
+              foreach ((is_array($pages) ? $pages : iterator_to_array($pages)) as $pg) {
+                foreach ($pvPaths($pg) as $pvP) { $pvItems[] = ['tenant_id' => $pg->tenant_id ? (int) $pg->tenant_id : null, 'path' => $pvP]; }
+              }
+              $pvCounts = \Screenart\Musedock\Services\PageViewStats::counts($pvItems);
+            @endphp
             {{-- Bucle para mostrar las páginas --}}
             @foreach ($pages as $Page)
               @php
@@ -240,6 +252,8 @@
                 <td data-date="{{ $Page->published_at ? $Page->published_at->format('Y-m-d H:i:s') : ($Page->created_at ? $Page->created_at->format('Y-m-d H:i:s') : '') }}">
                   {{ $Page->published_at ? $Page->published_at->format($dateTimeFormat) : ($Page->created_at ? $Page->created_at->format($dateTimeFormat) : '—') }}
                 </td>
+                @php $pvViews = array_sum(array_map(fn ($pvP) => $pvCounts[($Page->tenant_id ? (int) $Page->tenant_id : '') . '|' . $pvP] ?? 0, $pvPaths($Page))); @endphp
+                <td data-views="{{ $pvViews }}"><span class="badge bg-light text-dark"><i class="bi bi-eye"></i> {{ number_format($pvViews) }}</span></td>
               </tr>
             @endforeach
             </tbody>
@@ -494,7 +508,7 @@ document.addEventListener('DOMContentLoaded', function() {
     headers.forEach(header => {
       header.addEventListener('click', function() {
         const column = this.getAttribute('data-sort-col');
-        sortTable(table, parseInt(column), this);
+        sortTable(table, column === 'views' ? 'views' : parseInt(column), this);
       });
     });
     
@@ -533,7 +547,11 @@ document.addEventListener('DOMContentLoaded', function() {
       let aValue, bValue;
       
       // Obtener los valores según la columna
-      if (columnIndex === 1) { // Título
+      if (columnIndex === 'views') { // Vistas: numérico, de más a menos al primer clic
+        const av = parseInt(a.querySelector('td[data-views]')?.dataset.views || '0', 10);
+        const bv = parseInt(b.querySelector('td[data-views]')?.dataset.views || '0', 10);
+        return isAsc ? av - bv : bv - av;
+      } else if (columnIndex === 1) { // Título
         aValue = a.querySelector('td:nth-child(2) strong').textContent.trim();
         bValue = b.querySelector('td:nth-child(2) strong').textContent.trim();
       } else if (columnIndex === 6) { // Fecha (usamos el atributo data-date)

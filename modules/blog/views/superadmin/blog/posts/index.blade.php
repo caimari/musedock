@@ -174,8 +174,7 @@
       <div class="posts-per-page-selector">
         <label for="perPage">{{ __('common.show') }}</label>
         <select class="form-select form-select-sm" id="perPage">
-          <option value="10" {{ (isset($_GET['perPage']) && $_GET['perPage'] == 10) ? 'selected' : '' }}>10</option>
-          <option value="25" {{ (isset($_GET['perPage']) && $_GET['perPage'] == 25) ? 'selected' : '' }}>25</option>
+          <option value="25" {{ (!isset($_GET['perPage']) || $_GET['perPage'] == 25) ? 'selected' : '' }}>25</option>
           <option value="50" {{ (isset($_GET['perPage']) && $_GET['perPage'] == 50) ? 'selected' : '' }}>50</option>
           <option value="100" {{ (isset($_GET['perPage']) && $_GET['perPage'] == 100) ? 'selected' : '' }}>100</option>
           <option value="-1" {{ (isset($_GET['perPage']) && $_GET['perPage'] == -1) ? 'selected' : '' }}>{{ __('common.all') }}</option>
@@ -252,9 +251,6 @@
                   <strong>{{ e($post->title) }}</strong>
                   @if($post->featured)
                     <span class="badge rounded-pill bg-warning text-dark ms-1" style="font-size: 0.7em; vertical-align: middle;">{{ __('blog.post.featured') }}</span>
-                  @endif
-                  @if(!$post->allow_comments)
-                    <span class="badge rounded-pill bg-secondary ms-1" style="font-size: 0.7em; vertical-align: middle;"><i class="bi bi-chat-slash"></i></span>
                   @endif
                   @if(!empty($post->instagram_posted_at))
                     @php

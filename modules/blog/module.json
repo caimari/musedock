@@ -16,6 +16,10 @@
         }
     },
     "changelog": {
+        "pendiente (listados del superadmin)": [
+            "Listado de entradas del superadmin: 25 por página por defecto (antes 10) y sin la opción de 10.",
+            "Listados de entradas (superadmin y tenant): se quita la píldora gris vacía de «comentarios desactivados» (su icono bi-chat-slash no existe en la versión instalada de Bootstrap Icons)."
+        ],
         "pendiente (auditoría 2026-10-05)": [
             "Seguridad: suggest/batch-taxonomy solo aceptan tenant_id del cuerpo si es superadmin.",
             "Seguridad: la vista previa de revisiones del superadmin sanea el contenido con SafeHtml.",

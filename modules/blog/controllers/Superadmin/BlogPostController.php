@@ -39,7 +39,7 @@ class BlogPostController
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
         // Obtener registros por página (10 por defecto, -1 para todos)
-        $perPage = isset($_GET['perPage']) ? intval($_GET['perPage']) : 10;
+        $perPage = isset($_GET['perPage']) ? intval($_GET['perPage']) : 25;
         $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 
         // Capturar parámetros de ordenamiento (por defecto: fecha de publicación DESC)
