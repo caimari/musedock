@@ -249,7 +249,7 @@
   <div class="card mb-3"><div class="card-body"><h2 class="h5">Clientes y permisos</h2>
     @if($isPluginConnection)<p class="text-muted">Puedes crear varios accesos independientes con esta misma URL: por ejemplo, «ChatGPT · Grupo A» y «Claude · Grupo B». Selecciona los grupos y dominios de cada cliente al crearlo; sus credenciales solo permiten acceder a esa selección.</p>@endif
     @forelse($clients as $client)
-    <div class="border rounded p-3 mb-3"><h3 class="h6">{{ $client['name'] }} — {{ $client['enabled'] ? 'Habilitado' : 'Revocado' }}</h3><p class="small">ID: <code>{{ $client['id'] }}</code><br>Callback: {{ $client['callback'] }}</p>
+    <div class="border rounded p-3 mb-3"><h3 class="h6">{{ $client['name'] }} — {{ $client['enabled'] ? 'Habilitado' : 'Revocado' }}</h3><p class="small">ID: <code>{{ $client['id'] }}</code><br>Callback: {{ $client['callback'] }}<br>Creado: @if(!empty($client['created']))<time datetime="{{ (new DateTimeImmutable('@'.(int)$client['created']))->format('c') }}">{{ (new DateTimeImmutable('@'.(int)$client['created']))->setTimezone(new DateTimeZone('Europe/Paris'))->format('d/m/Y H:i:s') }}</time> (hora peninsular española)@else Fecha no disponible@endif</p>
       @php($hasClientConsent = count(array_filter($grants, fn($grant) => $grant['client'] === $client['id'] && !empty($grant['active']))) > 0)
       <p class="small text-muted">OAuth: {{ $hasClientConsent ? 'Con consentimiento registrado; sujeto a permisos vigentes' : 'Sin consentimiento activo: todavía no está conectado' }}</p>
       @if($isPluginConnection)
@@ -316,7 +316,7 @@
       <p class="small text-muted mt-2">Estos accesos ya no pueden conectarse. Se conservan para consulta y auditoría.</p>
       @foreach($revokedClients as $client)
         <div class="border rounded p-3 mb-2"><h3 class="h6">{{ $client['name'] }} — Revocado</h3>
-          <p class="small mb-2">ID: <code>{{ $client['id'] }}</code><br>Callback: {{ $client['callback'] }}</p>
+          <p class="small mb-2">ID: <code>{{ $client['id'] }}</code><br>Callback: {{ $client['callback'] }}<br>Creado: @if(!empty($client['created']))<time datetime="{{ (new DateTimeImmutable('@'.(int)$client['created']))->format('c') }}">{{ (new DateTimeImmutable('@'.(int)$client['created']))->setTimezone(new DateTimeZone('Europe/Paris'))->format('d/m/Y H:i:s') }}</time> (hora peninsular española)@else Fecha no disponible@endif</p>
           @if($isPluginConnection)<p class="small mb-2"><strong>Grupos:</strong> @foreach(($client['groups'] ?? []) as $groupId)<span class="badge bg-light text-dark">{{ $groupNames[(int)$groupId] ?? 'Grupo no disponible' }}</span> @endforeach<br><strong>Dominios:</strong> @foreach($sites as $site)@if(in_array((int)$site['id'], $client['sites'] ?? [], true))<span class="badge bg-light text-dark">{{ $site['domain'] }}</span> @endif @endforeach</p>@endif
           <details><summary>Consultar permisos anteriores</summary><ul class="small mt-2">@foreach($client['scopes'] as $scope)<li>{{ \Screenart\Musedock\Services\Mcp\Direct\Policy::label($scope) }}</li>@endforeach</ul></details>
         </div>
