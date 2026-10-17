@@ -308,6 +308,19 @@
         <p class="small text-muted">Solo cambiar los permisos OAuth exige nuevo consentimiento. Cambiar sitios o aprobación automática conserva la conexión.</p>
       </form>
       </details>
+      <details class="mb-3"><summary>Autorizaciones OAuth de este acceso</summary>
+        <p class="small text-muted mt-2">Revocar una autorización desconecta esa sesión sin eliminar el acceso ni sus credenciales. Para retirar el acceso completo, utiliza «Revocar cliente».</p>
+        @forelse(array_filter($grants, fn($grant) => $grant['client'] === $client['id']) as $grant)
+          <div class="border rounded p-2 mb-2">
+            <span class="small">{{ !empty($grant['active']) && $grant['resource_revision']===$resource['revision'] && $grant['revision']===$client['revision'] ? 'Concedida; sujeta a permisos vigentes' : 'Revocada o pendiente de renovación' }}</span>
+            @if(!empty($grant['active']))
+              <form method="post" action="{{ $back }}" class="mt-2">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="grant" value="{{ $grant['id'] }}"><button class="btn btn-sm btn-outline-danger" name="action" value="revoke_grant">Revocar esta autorización</button></form>
+            @endif
+          </div>
+        @empty
+          <p class="small text-muted">Todavía no hay autorizaciones OAuth para este acceso.</p>
+        @endforelse
+      </details>
       <form method="post" action="{{ $back }}">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="client" value="{{ $client['id'] }}"><button class="btn btn-sm btn-outline-danger" name="action" value="revoke_client">Revocar cliente</button></form>
     </div>
     @empty <p class="text-muted">No hay accesos activos.</p>@endforelse
@@ -323,13 +336,6 @@
       @endforeach
     </details>
     @endif
-    <h3 class="h6 mcp-consents-heading">Consentimientos</h3>
-    @forelse($grants as $grant)
-      <form method="post" action="{{ $back }}" class="mb-2">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="grant" value="{{ $grant['id'] }}">
-        <span>{{ $grant['client'] }} — {{ $grant['active'] && $grant['resource_revision']===$resource['revision'] ? 'Concedido (sujeto a permisos vigentes)' : 'Revocado o pendiente de renovación' }}</span>
-        <button class="btn btn-sm btn-outline-danger" name="action" value="revoke_grant">Revocar consentimiento</button>
-      </form>
-    @empty <p class="text-muted">Ningún asistente ha completado la autorización.</p>@endforelse
   </div></div>
   </section>
   <section data-mcp-panel="requests">
