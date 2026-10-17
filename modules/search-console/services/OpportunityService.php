@@ -49,7 +49,9 @@ class OpportunityService
     private ?float $brandCtr = null;
 
     /** Consultas apartadas porque no son una oportunidad propia, por motivo (para explicarlo en el informe). */
-    private array $skipped = ['navigational' => 0, 'third' => 0, 'unexpected' => 0];
+    private array $skipped = ['navigational' => 0, 'own_site' => 0, 'third' => 0, 'unexpected' => 0];
+    /** @var array<string,true> dominios de la plataforma (sin clientes) */
+    private array $ownHosts = [];
 
     public function __construct(private PDO $pdo)
     {
@@ -91,7 +93,8 @@ class OpportunityService
         $this->total = $total;
         $this->brand = BrandService::tokens($property);
         $this->labels = QueryLabelService::map($this->pdo, (string) $property['domain']);
-        $this->skipped = ['navigational' => 0, 'third' => 0, 'unexpected' => 0];
+        $this->skipped = ['navigational' => 0, 'own_site' => 0, 'third' => 0, 'unexpected' => 0];
+        $this->ownHosts = self::ownHostsOf($this->pdo);
         $items = [];
         $excluded = 0;
         foreach (['query' => ['gsc_query_daily', 'query'], 'page' => ['gsc_page_daily', 'page']] as $kind => [$table, $col]) {
@@ -133,7 +136,7 @@ class OpportunityService
         }
         if (array_sum($this->skipped)) {
             $parts = [];
-            foreach (['navigational' => 'dominios escritos en el buscador', 'third' => 'etiquetadas como de otra empresa o no relevantes', 'unexpected' => 'coincidencias inesperadas con tu marca'] as $k => $txt) {
+            foreach (['navigational' => 'dominios escritos en el buscador', 'own_site' => 'búsquedas navegacionales hacia otro de tus sitios', 'third' => 'etiquetadas como de otra empresa o no relevantes', 'unexpected' => 'coincidencias inesperadas con tu marca'] as $k => $txt) {
                 if ($this->skipped[$k]) {
                     $parts[] = $this->skipped[$k] . ' ' . $txt;
                 }
@@ -196,7 +199,7 @@ class OpportunityService
         if ($kind === 'query') {
             // Una sola clasificación para todos los detectores: lo que no es tráfico propio no es oportunidad ni pérdida propia
             $label = $this->labels[QueryLabelService::key($name)] ?? null;
-            $why = in_array($label, ['third', 'ignore'], true) ? 'third' : (self::looksLikeDomain($name) ? 'navigational' : ($unexpected ? 'unexpected' : null));
+            $why = in_array($label, ['third', 'ignore'], true) ? 'third' : (self::looksLikeDomain($name) ? ($this->isOwnHost($name) ? 'own_site' : 'navigational') : ($unexpected ? 'unexpected' : null));
             if ($why !== null) {
                 $this->skipped[$why]++;
 
@@ -355,6 +358,40 @@ class OpportunityService
     public static function dropBasis(array $c, ?array $p): string
     {
         return ($p !== null && (int) $p['clicks'] >= 3 && (int) ($c['clicks'] ?? 0) <= 0.5 * (int) $p['clicks']) ? 'clicks' : 'impressions';
+    }
+
+    /** Dominios de la plataforma (nunca los de clientes) para reconocer una búsqueda navegacional hacia otro sitio propio. */
+    public static function ownHostsOf(PDO $pdo): array
+    {
+        try {
+            $out = [];
+            foreach ((new PropertyService($pdo))->hostMap() as $host => $info) {
+                if (empty($info['client'])) {
+                    $out[(string) $host] = true;
+                }
+            }
+
+            return $out;
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    public static function hostIsOwn(string $query, array $ownHosts): bool
+    {
+        $host = PropertyService::normalizeHost(explode('/', (string) preg_replace('#^https?://#i', '', trim($query)))[0]);
+        foreach ($ownHosts as $own => $_) {
+            if ($host === $own || str_ends_with($host, '.' . $own)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isOwnHost(string $query): bool
+    {
+        return self::hostIsOwn($query, $this->ownHosts);
     }
 
     /** «8i8gent.com», «www.otra.es/ruta»: quien escribe un dominio en el buscador va a ese dominio (búsqueda navegacional). */

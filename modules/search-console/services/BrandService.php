@@ -117,6 +117,7 @@ class BrandService
         $stmt = $pdo->prepare('SELECT query, SUM(clicks) c, SUM(impressions) i FROM gsc_query_daily WHERE property_id = ? AND date >= ? AND date <= ? GROUP BY query');
         $stmt->execute([$propertyId, $from, $to]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $ownHosts = OpportunityService::ownHostsOf($pdo);
         $bc = $bi = 0;
         foreach ($rows as $r) {
             if (self::isBrand((string) $r['query'], $tokens) || (($labels[QueryLabelService::key((string) $r['query'])] ?? null) === 'own')) {
@@ -131,7 +132,7 @@ class BrandService
             $d = self::lookalike((string) $r['query'], $tokens);
             $imp = (int) $r['i'];
             // Un dominio escrito en el buscador («8i8gent.com»): búsqueda navegacional de otro sitio, no una oportunidad propia
-            $isDomain = OpportunityService::looksLikeDomain((string) $r['query']) && !self::isBrand((string) $r['query'], $tokens);
+            $isDomain = OpportunityService::looksLikeDomain((string) $r['query']) && !self::isBrand((string) $r['query'], $tokens) && !OpportunityService::hostIsOwn((string) $r['query'], $ownHosts);
             if (($d === null && !$isDomain) || ($imp < 20 && $label === null)) {
                 continue;
             }

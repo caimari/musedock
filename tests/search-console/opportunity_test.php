@@ -227,6 +227,9 @@ ok($q('dudosa') && $q('dudosa')[0]['pending'] === true, 'una consulta «pendient
 ok($q('normal') && $q('normal')[0]['pending'] === false, 'una consulta normal con la misma caída sí sale');
 ok($r['notes'] !== [] && str_contains(implode(' ', $r['notes']), '1 dominios escritos en el buscador') && str_contains(implode(' ', $r['notes']), 'etiquetadas'), 'el informe explica cuántas consultas se han apartado y por qué');
 ok(array_keys(\Modules\SearchConsole\Services\QueryLabelService::LABELS) === ['own', 'third', 'review', 'ignore'], 'tres estados de marca (propia, ajena, dudosa) más «no relevante»');
+$ownT = ['muserelay.com' => true];
+ok(\Modules\SearchConsole\Services\OpportunityService::hostIsOwn('https://www.muserelay.com/x', $ownT) && \Modules\SearchConsole\Services\OpportunityService::hostIsOwn('app.muserelay.com', $ownT), 'un dominio escrito que es tuyo (con www, ruta o subdominio) se reconoce como sitio propio');
+ok(!\Modules\SearchConsole\Services\OpportunityService::hostIsOwn('notmuserelay.com', $ownT) && !\Modules\SearchConsole\Services\OpportunityService::hostIsOwn('8i8gent.com', $ownT), 'uno parecido o ajeno no se confunde con uno propio');
 
 echo "\n" . ($fails ? "RESULTADO: $fails de $n comprobaciones FALLAN\n" : "RESULTADO: las $n comprobaciones pasan\n");
 exit($fails ? 1 : 0);

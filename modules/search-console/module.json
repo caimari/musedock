@@ -1,8 +1,16 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "changelog": [
+    {
+      "version": "0.9.3",
+      "date": "2026-10-17",
+      "changes": [
+        "Un dominio escrito en el buscador que es otro de tus sitios (muserelay.com buscado desde agent8ai.com, con www, ruta o subdominio) ya no se cuenta como tráfico de otra empresa: se aparta igual, pero el informe lo explica como «búsquedas navegacionales hacia otro de tus sitios» y la tarjeta de tráfico accidental no lo lista. Los dominios de clientes nunca entran en esta comprobación.",
+        "El aviso de concentración geográfica acepta umbrales propios (cuota mínima, impresiones mínimas y proporción de CTR) manteniendo los valores por defecto; todavía sin pantalla de ajustes."
+      ]
+    },
     {
       "version": "0.9.2",
       "date": "2026-10-16",

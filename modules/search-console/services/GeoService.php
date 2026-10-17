@@ -15,10 +15,14 @@ class GeoService
     /**
      * @param array<int,array{name:string,clicks:int,impressions:int}> $countries países del informe (con su nombre/código)
      * @param array{clicks:int,impressions:int}                         $totals    totales del periodo
+     * @param array{min_share?:float,min_impressions?:int,ctr_ratio?:float} $opts umbrales (por defecto 25 %, 100 impresiones, 0,2)
      * @return array<int,array{country:string,impressions:int,clicks:int,share:float,ctr:float,rest_ctr:float}>
      */
-    public static function concentration(array $countries, array $totals): array
+    public static function concentration(array $countries, array $totals, array $opts = []): array
     {
+        $minShare = (float) ($opts['min_share'] ?? self::MIN_SHARE);
+        $minImp = (int) ($opts['min_impressions'] ?? self::MIN_IMPRESSIONS);
+        $ctrRatio = (float) ($opts['ctr_ratio'] ?? 0.2);
         $totalImp = (int) $totals['impressions'];
         $totalClicks = (int) $totals['clicks'];
         $out = [];
@@ -26,12 +30,12 @@ class GeoService
             $imp = (int) $c['impressions'];
             $clicks = (int) $c['clicks'];
             $restImp = $totalImp - $imp;
-            if ($imp < self::MIN_IMPRESSIONS || $totalImp <= 0 || $imp / $totalImp < self::MIN_SHARE || $restImp < self::MIN_IMPRESSIONS) {
+            if ($imp < $minImp || $totalImp <= 0 || $imp / $totalImp < $minShare || $restImp < $minImp) {
                 continue;
             }
             $ctr = $clicks / $imp;
             $restCtr = ($totalClicks - $clicks) / $restImp;
-            if ($ctr < 0.2 * $restCtr || ($clicks <= 1 && $restCtr > 0.005)) {
+            if ($ctr < $ctrRatio * $restCtr || ($clicks <= 1 && $restCtr > 0.005)) {
                 $out[] = ['country' => (string) $c['name'], 'impressions' => $imp, 'clicks' => $clicks, 'share' => $imp / $totalImp, 'ctr' => $ctr, 'rest_ctr' => $restCtr];
             }
         }
