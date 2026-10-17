@@ -211,6 +211,26 @@ table.gsc-sortable thead th.gsc-desc::after { content:" ▼";font-size:.65em;col
     </div>
     <?php endif; ?>
     <?php if (isset($optimizations) && ($property['status'] ?? '') === 'active'): ?>
+    <?php if (!empty($visitSources)): ?>
+    <div class="card mb-3" id="gsc-visit-sources">
+        <div class="card-header"><strong><i class="bi bi-box-arrow-in-down-right"></i> De dónde llegan las visitas reales</strong>
+            <span class="badge bg-light text-dark border ms-1" title="Estos datos vienen de la analítica de tu CMS, no de Google">Fuente: tu CMS, no Google</span></div>
+        <div class="card-body p-0">
+            <div class="p-3 pb-2 text-muted" style="font-size:.82rem;">
+                <?= $n($visitSources['total']) ?> visitas reales en el periodo (sin robots):
+                <?= $n($visitSources['direct']) ?> directas, <?= $n($visitSources['search']) ?> desde buscadores, <?= $n($visitSources['internal']) ?> navegando dentro del sitio.
+            </div>
+            <?php if (!empty($visitSources['sources'])): ?>
+            <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Sitio de origen</th><th class="text-end">Visitas</th><th>Página a la que llegan más</th></tr></thead><tbody>
+            <?php foreach ($visitSources['sources'] as $vs): ?>
+                <tr><td><?= $e($vs['domain']) ?> <?php if ($vs['type'] === 'social'): ?><span class="badge bg-info text-dark">red social</span><?php endif; ?></td><td class="num text-end"><?= $n($vs['visits']) ?></td><td class="text-muted" style="font-size:.8rem;word-break:break-all;"><?= $e((string) $vs['page']) ?></td></tr>
+            <?php endforeach; ?>
+            </tbody></table></div>
+            <?php else: ?><p class="text-muted p-3 pt-0 mb-0" style="font-size:.85rem;">Ninguna visita llegó haciendo clic desde otro sitio en este periodo.</p><?php endif; ?>
+            <p class="text-muted p-3 pb-2 mb-0" style="font-size:.76rem;">Son visitas que llegaron con un clic desde otro sitio; no es la lista de todos los enlaces que apuntan a tu web (esa solo está en Search Console, en «Enlaces»). Un robot que se hace pasar por un navegador puede colarse.</p>
+        </div>
+    </div>
+    <?php endif; ?>
     <div class="card mb-3" id="gsc-optimizations">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div><strong><i class="bi bi-journal-check"></i> Seguimiento de optimizaciones</strong>

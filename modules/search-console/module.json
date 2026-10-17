@@ -1,8 +1,15 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "changelog": [
+    {
+      "version": "0.9.4",
+      "date": "2026-10-17",
+      "changes": [
+        "Nueva tarjeta «De dónde llegan las visitas reales» en el informe de cada dominio que vive en este CMS: sitios desde los que llegan clics (con la página a la que llegan más), y cuántas visitas son directas, de buscadores o internas. Sale de la analítica del CMS (solo personas, sin robots) y lo rotula como «Fuente: tu CMS, no Google». No es la lista de todos los enlaces que apuntan al sitio: esa solo existe en la web de Search Console."
+      ]
+    },
     {
       "version": "0.9.3",
       "date": "2026-10-17",

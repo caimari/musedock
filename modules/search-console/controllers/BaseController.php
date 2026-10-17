@@ -12,6 +12,7 @@ use Modules\SearchConsole\Services\GoogleClient;
 use Modules\SearchConsole\Services\OpportunityService;
 use Modules\SearchConsole\Services\OptimizationService;
 use Modules\SearchConsole\Services\PropertyService;
+use Modules\SearchConsole\Services\VisitSourcesService;
 use Modules\SearchConsole\Services\QueryLabelService;
 use Modules\SearchConsole\Services\ReportService;
 use Modules\SearchConsole\Services\SitemapService;
@@ -327,6 +328,7 @@ abstract class BaseController
             'content' => $this->contentFor($property, $report),
             'editorial' => $this->editorialFor($property, $report, $opportunities),
             'brand' => $this->brandFor($property, $report),
+            'visitSources' => ($report['empty'] ?? true) ? null : VisitSourcesService::forTenant($this->pdo, $property['tenant_id'] !== null ? (int) $property['tenant_id'] : null, $report['from'], $report['to']),
             'geo' => $report['empty'] ?? true ? [] : \Modules\SearchConsole\Services\GeoService::concentration($report['countries'] ?? [], $report['totals'] ?? ['clicks' => 0, 'impressions' => 0]),
             'optimizations' => $this->optimizationsFor($property),
             'optimizationKinds' => OptimizationService::KINDS,
