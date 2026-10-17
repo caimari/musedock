@@ -112,6 +112,15 @@ final class Admin
                     $saved['auto_approve_images']=isset($_POST['auto_approve_images']);
                     $saved['auto_approve_taxonomy']=isset($_POST['auto_approve_taxonomy']);
                     $ep->store->putClient($saved);
+                    if (!empty($saved['auto_approve_posts']) || !empty($saved['auto_approve_images']) || !empty($saved['auto_approve_taxonomy'])) {
+                        $current=$ep->store->resource($id)??$r;
+                        $current['enabled']=true;
+                        $current['allow_drafts']=true;
+                        if (!empty($saved['auto_approve_posts']) && in_array(Policy::POSTS,$saved['scopes'],true) && $content->actorActive($id,$actor,Policy::POSTS)) $current['allow_publishing']=true;
+                        $ep->store->putResource($current);
+                        $r=$current;
+                        $ep->store->event($id,'resource.auto_approval.requirements.enabled',$actor,['client'=>$saved['id'],'allow_publishing'=>!empty($current['allow_publishing'])]);
+                    }
                 } elseif ($action==='rotate_secret' || $action==='finish_secret_rotation') {
                     $clientId=(string)($_POST['client']??'');
                     if ($action==='rotate_secret') {
@@ -143,6 +152,15 @@ final class Admin
                         $saved['auto_approve_images']=isset($_POST['auto_approve_images']);
                         $saved['auto_approve_taxonomy']=isset($_POST['auto_approve_taxonomy']);
                         $ep->store->putClient($saved);
+                    if (!empty($saved['auto_approve_posts']) || !empty($saved['auto_approve_images']) || !empty($saved['auto_approve_taxonomy'])) {
+                        $current=$ep->store->resource($id)??$r;
+                        $current['enabled']=true;
+                        $current['allow_drafts']=true;
+                        if (!empty($saved['auto_approve_posts']) && in_array(Policy::POSTS,$saved['scopes'],true) && $content->actorActive($id,$actor,Policy::POSTS)) $current['allow_publishing']=true;
+                        $ep->store->putResource($current);
+                        $r=$current;
+                        $ep->store->event($id,'resource.auto_approval.requirements.enabled',$actor,['client'=>$saved['id'],'allow_publishing'=>!empty($current['allow_publishing'])]);
+                    }
                         $ep->store->event($id,'client.auto_approval.updated',$actor,['client'=>$client['id'],'posts'=>$saved['auto_approve_posts'],'images'=>$saved['auto_approve_images'],'taxonomy'=>$saved['auto_approve_taxonomy']]);
                     }
                     $ep->store->event($id,$action,$actor,['client'=>$client['id']]);
