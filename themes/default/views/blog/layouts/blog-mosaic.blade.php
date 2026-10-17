@@ -97,7 +97,7 @@
         {{-- Link principal: cubre toda la tarjeta vía ::after, pero permite
              que los chips de categoría (declarados después con mayor z-index)
              sean clicables independientemente. --}}
-        <a href="{{ blog_url($post->slug) }}" class="mosaic-card-link" aria-label="{{ $post->title }}">
+        <a href="{{ $post->public_url ?? blog_url($post->slug) }}" class="mosaic-card-link" aria-label="{{ $post->title }}">
             <img src="{{ $imageUrl }}" alt="{{ $post->title }}" loading="lazy" class="mosaic-card-img">
         </a>
         <div class="mosaic-card-overlay">
@@ -108,7 +108,7 @@
                 @endforeach
             </div>
             @endif
-            <h2 class="mosaic-card-title"><a href="{{ blog_url($post->slug) }}" class="mosaic-card-title-link">{{ $post->title }}</a></h2>
+            <h2 class="mosaic-card-title"><a href="{{ $post->public_url ?? blog_url($post->slug) }}" class="mosaic-card-title-link">{{ $post->title }}</a></h2>
             @if($__excerpt)
             <p class="mosaic-card-excerpt">{{ $__excerpt }}</p>
             @endif

@@ -30,6 +30,12 @@
                 <li>Bloqueos Cloudflare: los dominios de la lista se abren en una pestaña nueva.</li>
                 <li>Alerta de fuerza bruta: el email objetivo y las IPs se escapan en el HTML del correo.</li>
             </ul>
+            <h6 class="text-primary mt-3"><i class="bi bi-journal-richtext me-1"></i> Blog y guías</h6>
+            <ul class="mb-0">
+                <li>Entradas del blog: los «Posts relacionados» ya no mezclan guías (enlazaban mal, sin <code>/docs/</code>); nuevo bloque <strong>Guías relacionadas</strong> sin imagen, con enlaces a <code>/docs/…</code> o <code>/en/docs/…</code> según el idioma.</li>
+                <li>Categorías y etiquetas de guías: miga de pan como en las docs (Docs / Producto / Sección), imagen, título y «Leer más» enlazan a la guía, y portada por producto (MuseDock CMS, Panel o Portal) cuando la guía no tiene imagen.</li>
+                <li>Enlaces dentro del texto de las entradas en azul suave (antes salían en negro) y separación entre imagen y texto en los relacionados.</li>
+            </ul>
         </div></div>
 
         <!-- v2.24.0 -->

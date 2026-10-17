@@ -134,6 +134,12 @@
                 <div class="post-content">
                     {!! $translation->content ?? $post->content !!}
                 </div>
+                <style>
+                /* Enlaces del texto: azul suave para que se vean como enlaces (antes heredaban el negro del texto) */
+                .post-content a:not(.btn) { color: #2b6cb0; text-decoration: underline; text-decoration-color: rgba(43,108,176,.35); text-underline-offset: 3px; transition: color .15s, text-decoration-color .15s; }
+                .post-content a:not(.btn):hover, .post-content a:not(.btn):focus { color: #1e4e8c; text-decoration-color: currentColor; }
+                .post-content a:not(.btn) strong, .post-content strong a:not(.btn) { color: inherit; }
+                </style>
 
                 {{-- Categorías y etiquetas --}}
                 @if(!empty($post->categories) || !empty($post->tags))

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Guía de MuseDock CMS">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0f1b33"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient>
+    <linearGradient id="ac" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#3b82f6" stop-opacity=".35"/></linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g opacity=".07" stroke="#fff" stroke-width="1"><line x1="0" y1="0" x2="0" y2="630"/><line x1="60" y1="0" x2="60" y2="630"/><line x1="120" y1="0" x2="120" y2="630"/><line x1="180" y1="0" x2="180" y2="630"/><line x1="240" y1="0" x2="240" y2="630"/><line x1="300" y1="0" x2="300" y2="630"/><line x1="360" y1="0" x2="360" y2="630"/><line x1="420" y1="0" x2="420" y2="630"/><line x1="480" y1="0" x2="480" y2="630"/><line x1="540" y1="0" x2="540" y2="630"/><line x1="600" y1="0" x2="600" y2="630"/><line x1="660" y1="0" x2="660" y2="630"/><line x1="720" y1="0" x2="720" y2="630"/><line x1="780" y1="0" x2="780" y2="630"/><line x1="840" y1="0" x2="840" y2="630"/><line x1="900" y1="0" x2="900" y2="630"/><line x1="960" y1="0" x2="960" y2="630"/><line x1="1020" y1="0" x2="1020" y2="630"/><line x1="1080" y1="0" x2="1080" y2="630"/><line x1="1140" y1="0" x2="1140" y2="630"/><line x1="0" y1="0" x2="1200" y2="0"/><line x1="0" y1="60" x2="1200" y2="60"/><line x1="0" y1="120" x2="1200" y2="120"/><line x1="0" y1="180" x2="1200" y2="180"/><line x1="0" y1="240" x2="1200" y2="240"/><line x1="0" y1="300" x2="1200" y2="300"/><line x1="0" y1="360" x2="1200" y2="360"/><line x1="0" y1="420" x2="1200" y2="420"/><line x1="0" y1="480" x2="1200" y2="480"/><line x1="0" y1="540" x2="1200" y2="540"/><line x1="0" y1="600" x2="1200" y2="600"/></g>
+  <g transform="translate(820 150)">
+    <rect x="0" y="0" width="260" height="330" rx="18" fill="#fff" opacity=".08"/>
+    <rect x="22" y="22" width="216" height="286" rx="12" fill="#fff" opacity=".95"/>
+    <rect x="48" y="58" width="120" height="16" rx="8" fill="#3b82f6"/>
+    <rect x="48" y="96" width="164" height="10" rx="5" fill="#cbd5e1"/>
+    <rect x="48" y="120" width="150" height="10" rx="5" fill="#cbd5e1"/>
+    <rect x="48" y="144" width="164" height="10" rx="5" fill="#cbd5e1"/>
+    <rect x="48" y="182" width="96" height="12" rx="6" fill="#3b82f6" opacity=".6"/>
+    <rect x="48" y="212" width="164" height="10" rx="5" fill="#cbd5e1"/>
+    <rect x="48" y="236" width="130" height="10" rx="5" fill="#cbd5e1"/>
+    <rect x="48" y="260" width="150" height="10" rx="5" fill="#cbd5e1"/>
+  </g>
+  <g transform="translate(90 120)">
+    <path d="M0 52 h26 V0 h40 v52 h26 v88 H66 V96 H26 v44 H0 Z" fill="#fff"/>
+    <text x="112" y="104" font-family="Roboto, 'Segoe UI', Arial, sans-serif" font-size="44" font-weight="700" fill="#fff">MuseDock</text>
+  </g>
+  <rect x="90" y="300" width="150" height="44" rx="22" fill="url(#ac)"/>
+  <text x="165" y="330" text-anchor="middle" font-family="Roboto, 'Segoe UI', Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="4" fill="#fff">GUÍA</text>
+  <text x="90" y="418" font-family="Roboto, 'Segoe UI', Arial, sans-serif" font-size="64" font-weight="800" fill="#fff">MuseDock CMS</text>
+  <text x="90" y="470" font-family="Roboto, 'Segoe UI', Arial, sans-serif" font-size="28" fill="#cbd5e1">Sitios, blog, módulos y SEO</text>
+  <rect x="90" y="520" width="120" height="6" rx="3" fill="#3b82f6"/>
+</svg>

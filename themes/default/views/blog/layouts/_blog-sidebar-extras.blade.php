@@ -27,6 +27,10 @@
         $pdo = \Screenart\Musedock\Database::connect();
         $tenantId = tenant_id();
         $currentPostId = $post->id ?? 0;
+        // Las guías (docs) viven en /docs/ y van en su propio bloque: los «posts relacionados» de una entrada del blog son solo del blog
+        $__isDocs = ($post->post_type ?? 'post') === 'docs';
+        $__relTypeSql = $__isDocs ? "AND bp.post_type = 'docs'" : "AND COALESCE(bp.post_type, 'post') <> 'docs'";
+        $__relTypeSqlNoAlias = $__isDocs ? "AND post_type = 'docs'" : "AND COALESCE(post_type, 'post') <> 'docs'";
 
         // --- Related Posts ---
         if ($showRelatedPosts && $currentPostId) {
@@ -71,7 +75,7 @@
                             WHERE bp.id IN ({$unionSql})
                               AND bp.id != ?
                               AND bp.tenant_id = ?
-                              AND bp.status = 'published'
+                              AND bp.status = 'published' {$__relTypeSql}
                             ORDER BY RANDOM()
                             LIMIT {$limit}";
                     $stmt = $pdo->prepare($sql);
@@ -82,7 +86,7 @@
                             WHERE bp.id IN ({$unionSql})
                               AND bp.id != ?
                               AND bp.tenant_id IS NULL
-                              AND bp.status = 'published'
+                              AND bp.status = 'published' {$__relTypeSql}
                             ORDER BY RANDOM()
                             LIMIT {$limit}";
                     $stmt = $pdo->prepare($sql);
@@ -105,7 +109,7 @@
                         FROM blog_posts
                         WHERE id NOT IN ({$excludePlaceholders})
                           AND tenant_id = ?
-                          AND status = 'published'
+                          AND status = 'published' {$__relTypeSqlNoAlias}
                         ORDER BY RANDOM()
                         LIMIT {$remaining}
                     ");
@@ -116,7 +120,7 @@
                         FROM blog_posts
                         WHERE id NOT IN ({$excludePlaceholders})
                           AND tenant_id IS NULL
-                          AND status = 'published'
+                          AND status = 'published' {$__relTypeSqlNoAlias}
                         ORDER BY RANDOM()
                         LIMIT {$remaining}
                     ");
@@ -124,6 +128,43 @@
                 }
                 $fillPosts = $stmt->fetchAll(\PDO::FETCH_OBJ);
                 $sidebarRelatedPosts = array_merge($sidebarRelatedPosts, $fillPosts);
+            }
+        }
+
+        // --- Guías relacionadas (docs), en una entrada del blog: sin imagen, enlazando a /docs/… en el idioma de la página ---
+        $sidebarRelatedGuides = [];
+        if ($showRelatedPosts && $currentPostId && !$__isDocs) {
+            $__urlLang = \Screenart\Musedock\Services\LanguageUrl::prefixLanguage();
+            $__stmt = $pdo->prepare("SELECT p.id, p.tenant_id, p.slug, p.base_locale, p.title, p.published_at, p.created_at, tr.title AS tr_title
+                FROM blog_posts p
+                LEFT JOIN blog_post_translations tr ON tr.post_id = p.id AND tr.locale = ?
+                WHERE p.post_type = 'docs' AND p.status = 'published' AND " . ($tenantId ? 'p.tenant_id = ' . (int) $tenantId : 'p.tenant_id IS NULL') . "
+                ORDER BY COALESCE(p.published_at, p.created_at) DESC LIMIT 300");
+            $__stmt->execute([(string) ($__urlLang ?? '')]);
+            $__docs = $__stmt->fetchAll(\PDO::FETCH_OBJ);
+            if ($__urlLang !== null) {
+                $__docs = array_values(array_filter($__docs, fn ($d) => !empty($d->tr_title))); // en /en/…, solo guías traducidas
+            }
+            if ($__docs) {
+                // Relevancia: palabras de 5+ letras del título y las palabras clave de la entrada que aparecen en el título de la guía
+                $__norm = fn ($s) => strtr(mb_strtolower((string) $s), ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n']);
+                $__words = array_unique(array_filter(preg_split('/[^a-z0-9]+/', $__norm(($post->title ?? '') . ' ' . ($post->seo_keywords ?? ''))), fn ($w) => strlen($w) >= 5));
+                foreach ($__docs as $__i => $__d) {
+                    $__t = $__norm($__d->title . ' ' . $__d->tr_title . ' ' . $__d->slug);
+                    $__d->score = 0;
+                    foreach ($__words as $__w) {
+                        $__d->score += str_contains($__t, $__w) ? 1 : 0;
+                    }
+                    $__d->rank = $__i;
+                }
+                usort($__docs, fn ($a, $b) => [$b->score, $a->rank] <=> [$a->score, $b->rank]);
+                foreach (array_slice($__docs, 0, max(1, min(6, $relatedPostsCount))) as $__d) {
+                    $__paths = \Screenart\Musedock\Services\LanguageUrl::postPaths($__d);
+                    $__base = (string) ($__d->base_locale ?: site_default_language());
+                    $__d->url = ($__urlLang !== null && isset($__paths[$__urlLang])) ? $__paths[$__urlLang] : ($__paths[$__base] ?? ('/docs/' . $__d->slug));
+                    $__d->label = ($__urlLang !== null && $__d->tr_title) ? $__d->tr_title : $__d->title;
+                    $sidebarRelatedGuides[] = $__d;
+                }
             }
         }
 
@@ -228,13 +269,29 @@
                 <div class="sidebar-related-img flex-shrink-0" style="width: 80px; height: 80px; overflow: hidden; border-radius: 6px; background: #f0f2f5; display: flex; align-items: center; justify-content: center;">
                     <img src="{{ $relImg }}" alt="{{ $relatedPost->title }}" loading="lazy" style="width: 100%; height: 100%; object-fit: contain;">
                 </div>
-                <div class="ms-3 d-flex flex-column justify-content-center">
+                <div class="ms-3 d-flex flex-column justify-content-center" style="margin-left: 14px; min-width: 0;">
                     <h6 class="mb-1 sidebar-related-title">{{ $relatedPost->title }}</h6>
                     <small class="text-muted" style="font-size: .75rem;"><i class="far fa-calendar"></i> {{ $relDateStr }}</small>
                 </div>
             </a>
         </div>
         @endforeach
+    </div>
+    @endif
+
+    @if($__block['type'] === 'related' && !empty($sidebarRelatedGuides))
+    <div class="sidebar-extras-section mb-4">
+        <h5 class="sidebar-extras-title">{{ __('blog.related_guides') }}</h5>
+        <ul class="list-unstyled mb-0 sidebar-related-guides">
+            @foreach($sidebarRelatedGuides as $relatedGuide)
+            <li style="padding: 9px 0; border-bottom: 1px solid #eef0f3;">
+                <a href="{{ $relatedGuide->url }}" class="text-decoration-none d-flex" style="gap: 10px; align-items: flex-start;">
+                    <i class="far fa-file-alt" style="margin-top: 4px; opacity: .55;"></i>
+                    <span class="sidebar-related-title" style="font-weight: 600; line-height: 1.35;">{{ $relatedGuide->label }}</span>
+                </a>
+            </li>
+            @endforeach
+        </ul>
     </div>
     @endif
 

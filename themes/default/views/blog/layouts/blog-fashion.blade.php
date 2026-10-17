@@ -130,7 +130,7 @@
         <div class="col-md-6 col-lg-4 mb-5">
             <article class="fashion-card text-center">
                 @if(($post->post_type ?? 'post') !== 'brief')
-                <a href="{{ blog_url($post->slug) }}" class="fashion-circle-link mb-3">
+                <a href="{{ $post->public_url ?? blog_url($post->slug) }}" class="fashion-circle-link mb-3">
                     @php
                         if ($post->featured_image && !($post->hide_featured_image ?? false)) {
                             $imageUrl = (str_starts_with($post->featured_image, '/') || str_starts_with($post->featured_image, 'http'))
@@ -188,7 +188,7 @@
                 </div>
 
                 <h3 class="fashion-card-title mb-2">
-                    <a href="{{ blog_url($post->slug) }}" class="text-decoration-none">{{ $post->title }}</a>
+                    <a href="{{ $post->public_url ?? blog_url($post->slug) }}" class="text-decoration-none">{{ $post->title }}</a>
                 </h3>
 
                 @include('blog.layouts._taxonomy-chips', ['post' => $post])
@@ -199,7 +199,7 @@
                 @endphp
                 <p class="fashion-card-excerpt text-muted mb-3">{{ $__excerpt }}</p>
 
-                <a href="{{ blog_url($post->slug) }}" class="btn-read-more">{{ __('blog.read_more') }}</a>
+                <a href="{{ $post->public_url ?? blog_url($post->slug) }}" class="btn-read-more">{{ __('blog.read_more') }}</a>
             </article>
         </div>
         @endforeach

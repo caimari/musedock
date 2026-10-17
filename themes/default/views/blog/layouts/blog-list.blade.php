@@ -8,7 +8,7 @@
     <article class="row mb-4 pb-4 {{ !$loop->last ? 'border-bottom' : '' }}">
         @if(!$isBrief)
         <div class="col-md-4 mb-3 mb-md-0">
-            <a href="{{ blog_url($post->slug) }}" class="d-block overflow-hidden rounded" style="height: 200px; background-color: #f0f2f5;">
+            <a href="{{ $post->public_url ?? blog_url($post->slug) }}" class="d-block overflow-hidden rounded" style="height: 200px; background-color: #f0f2f5;">
                 @php
                     if ($post->featured_image && !($post->hide_featured_image ?? false)) {
                         $imageUrl = (str_starts_with($post->featured_image, '/') || str_starts_with($post->featured_image, 'http'))
@@ -25,7 +25,7 @@
         @endif
         <div class="{{ $isBrief ? 'col-12' : 'col-md-8' }} d-flex flex-column">
             <h2 class="h5 mb-2" style="line-height: 1.3;">
-                <a href="{{ blog_url($post->slug) }}" class="text-decoration-none text-dark">{{ $post->title }}</a>
+                <a href="{{ $post->public_url ?? blog_url($post->slug) }}" class="text-decoration-none text-dark">{{ $post->title }}</a>
             </h2>
 
             <div class="post-meta mb-2 text-muted small">
@@ -78,7 +78,7 @@
             <p class="text-muted mb-0 flex-grow-1">{{ $__excerpt }}</p>
 
             <div class="mt-2">
-                <a href="{{ blog_url($post->slug) }}" class="btn-read-more">{{ __('blog.read_more') }}</a>
+                <a href="{{ $post->public_url ?? blog_url($post->slug) }}" class="btn-read-more">{{ __('blog.read_more') }}</a>
             </div>
         </div>
     </article>

@@ -35,16 +35,7 @@
 <div class="container pt-3 pb-5">
     {{-- Cabecera de etiqueta --}}
     <div class="tag-header mb-4 pb-3 border-bottom">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-2" style="background: transparent; padding-left: 0;">
-                <li class="breadcrumb-item"><a href="/" style="color: #333;">{{ __('common.home') }}</a></li>
-                @if(blog_prefix() !== '')
-                <li class="breadcrumb-item"><a href="{{ blog_url() }}" style="color: #333;">{{ __('blog.title') }}</a></li>
-                @endif
-                <li class="breadcrumb-item"><a href="{{ blog_url('', 'tag') }}" style="color: #555;">{{ __('blog.frontend.tag') }}</a></li>
-                <li class="breadcrumb-item active" aria-current="page" style="color: #666;">{{ $tag->name }}</li>
-            </ol>
-        </nav>
+        @include('blog._docs-listing-prep', ['posts' => $posts ?? [], 'crumbCategory' => null, 'crumbType' => 'tag', 'crumbName' => $tag->name])
         <h1 class="mb-2" style="font-size: 1.75rem; margin-top: 0;">{{ $tag->name }}</h1>
         @if($tag->description)
         <p class="text-muted mb-0">{{ $tag->description }}</p>

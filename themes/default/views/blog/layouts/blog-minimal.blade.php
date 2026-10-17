@@ -46,7 +46,7 @@
             @endif
         </div>
         <h2 class="h5 mb-2" style="line-height: 1.4;">
-            <a href="{{ blog_url($post->slug) }}" class="text-decoration-none text-dark" style="font-weight: 600;">{{ $post->title }}</a>
+            <a href="{{ $post->public_url ?? blog_url($post->slug) }}" class="text-decoration-none text-dark" style="font-weight: 600;">{{ $post->title }}</a>
         </h2>
         @include('blog.layouts._taxonomy-chips', ['post' => $post])
         @php
@@ -55,7 +55,7 @@
             $__excerpt = mb_strlen($__excerpt) > 250 ? mb_substr($__excerpt, 0, 250) . '...' : $__excerpt;
         @endphp
         <p class="text-muted mb-2" style="line-height: 1.6;">{{ $__excerpt }}</p>
-        <a href="{{ blog_url($post->slug) }}" class="btn-read-more-minimal">{{ __('blog.read_more') }}</a>
+        <a href="{{ $post->public_url ?? blog_url($post->slug) }}" class="btn-read-more-minimal">{{ __('blog.read_more') }}</a>
     </article>
     @endforeach
 
