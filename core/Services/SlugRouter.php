@@ -115,7 +115,9 @@ class SlugRouter
 
         // If not found with given prefix, check if slug exists with a different prefix (cross-prefix redirect)
         if (!$entry && $prefix !== null) {
-            $crossSql = "SELECT prefix FROM slugs WHERE slug = :slug AND module = 'blog'";
+            // Entradas y páginas: una URL con el prefijo equivocado (/p/precios, /blog/x)
+            // redirige con 301 a la buena, también si la buena no lleva prefijo
+            $crossSql = "SELECT prefix FROM slugs WHERE slug = :slug AND module IN ('blog', 'pages')";
             $crossParams = [':slug' => $slug];
             if ($multiTenant) {
                 if ($tenantId !== null) {
@@ -128,8 +130,9 @@ class SlugRouter
             $crossSql .= " LIMIT 1";
             try {
                 $crossEntry = \Screenart\Musedock\Database::query($crossSql, $crossParams)->fetch(\PDO::FETCH_OBJ);
-                if ($crossEntry && $crossEntry->prefix && $crossEntry->prefix !== $prefix) {
-                    header('Location: /' . $crossEntry->prefix . '/' . $slug, true, 301);
+                if ($crossEntry && (string) $crossEntry->prefix !== $prefix) {
+                    $target = ($crossEntry->prefix !== null && $crossEntry->prefix !== '') ? '/' . $crossEntry->prefix . '/' . $slug : '/' . $slug;
+                    header('Location: ' . $target, true, 301);
                     exit;
                 }
             } catch (\Exception $e) {}

@@ -2504,8 +2504,9 @@ if (!function_exists('blog_prefix')) {
      */
     function blog_prefix(): string
     {
-        $prefix = tenant_setting('blog_url_prefix', 'blog');
-        return ($prefix === null || $prefix === false) ? 'blog' : $prefix;
+        // Igual que page_prefix(): en el sitio principal lee settings, no tenant_settings
+        $prefix = site_setting('blog_url_prefix', 'blog');
+        return ($prefix === null || $prefix === false) ? 'blog' : (string) $prefix;
     }
 }
 
@@ -2549,8 +2550,11 @@ if (!function_exists('page_prefix')) {
      */
     function page_prefix(): string
     {
-        $prefix = tenant_setting('page_url_prefix', 'p');
-        return ($prefix === null || $prefix === false) ? 'p' : $prefix;
+        // site_setting: en un tenant lee tenant_settings; en el sitio principal, settings.
+        // (tenant_setting() sin tenant devolvía siempre el valor por defecto y el sitio
+        // principal salía con /p/ aunque lo tuviera vacío.) Por defecto, sin prefijo.
+        $prefix = site_setting('page_url_prefix', '');
+        return ($prefix === null || $prefix === false) ? '' : (string) $prefix;
     }
 }
 
