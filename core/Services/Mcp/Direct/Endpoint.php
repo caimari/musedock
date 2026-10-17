@@ -159,12 +159,19 @@ final class Endpoint
             $result=match($msg['method']) {
                 'initialize'=>['protocolVersion'=>$this->protocol($msg['params']['protocolVersion']??''),'capabilities'=>['tools'=>(object)[]],'serverInfo'=>['name'=>'MuseDock CMS — '.$r['name'],'version'=>'2.21.0']],
                 'ping'=>(object)[],
-                'tools/list'=>['tools'=>$tools->catalog($auth)],
+                'tools/list'=>$this->listTools($tools,$auth),
                 'tools/call'=>$this->callTool($tools,$auth,$msg['params']??[]),
                 default=>throw new \RuntimeException('Método no admitido.'),
             };
             $this->json(200,['jsonrpc'=>'2.0','id'=>$id,'result'=>$result]);
         } catch (\Throwable $e) { $this->json(200,['jsonrpc'=>'2.0','id'=>$id,'error'=>['code'=>-32602,'message'=>$e instanceof \PDOException?'Operación no disponible.':$e->getMessage()]]); }
+    }
+    private function listTools(Tools $tools,array $auth): array
+    {
+        $catalog=$tools->catalog($auth);
+        $hash=hash('sha256',Store::json($catalog));
+        $this->store->event($auth['resource']['id'],'catalog.served',(int)$auth['grant']['actor'],['client'=>$auth['client']['id'],'count'=>count($catalog),'schema_hash'=>$hash,'translation_slug'=>in_array('save_translation',array_column($catalog,'name'),true) && isset(Editor::schema('save_translation')['slug'])]);
+        return ['tools'=>$catalog];
     }
     private function protocol(string $v): string { return in_array($v,['2025-11-25','2025-06-18','2025-03-26'],true)?$v:'2025-11-25'; }
     private function callTool(Tools $tools,array $auth,array $params): array

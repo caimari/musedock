@@ -132,7 +132,14 @@ final class Tools
         if ($tool==='get_request_status') {
             $row=$this->store->one('SELECT * FROM requests WHERE id=? AND resource=? AND client=?',[$args['request_id'],$r['id'],$c['id']]);
             $payload=$this->store->decode($row);
-            if (!$row || ($payload['grant']??'')!==$g['id']) throw new RuntimeException('Solicitud ajena o no disponible.');
+            if (!$row) {
+                $this->store->event($r['id'],'request.status.not_found',(int)$g['actor'],['client'=>$c['id'],'request'=>$args['request_id']]);
+                throw new RuntimeException('No hay una solicitud registrada con ese ID para este acceso. No confirma creación ni publicación; comprueba artículos y trabajos antes de repetir.');
+            }
+            $plan=$payload['plan']??[];
+            if (!isset($plan['site_id']) || empty($plan['tool']) || !isset(self::MAP[$plan['tool']])) throw new RuntimeException('Solicitud sin datos verificables.');
+            $this->content->siteArg($r,$c,['site_id'=>(int)$plan['site_id']]);
+            if (!Policy::allows($c,$g,self::MAP[$plan['tool']]) || !$this->content->actorActive($r['id'],$g['actor'],self::MAP[$plan['tool']])) throw new RuntimeException('No tienes permiso vigente para consultar esta operación.');
             $job=$this->store->one('SELECT status,error FROM approval_jobs WHERE request_id=?',[$row['id']]);
             return ['request_id'=>$row['id'],'status'=>$job['status']??$row['status'],'result'=>$payload['result']??null,'media_id'=>$payload['result']['media']['id']??null,'error'=>$job['error']??null];
         }

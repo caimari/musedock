@@ -16,6 +16,10 @@ check((new ApprovalQueue($store,$content))->run()===1,'worker consumes queued re
 check($tools->call('get_request_status',$auth,['request_id'=>$id])['status']==='completed','client can poll completion');
 check($content->db->query("SELECT COUNT(*) FROM blog_posts WHERE title='Queued draft'")->fetchColumn()==1,'worker creates draft once');
 check((new ApprovalQueue($store,$content))->run()===0,'worker does not repeat completed writes');
+$reconnected=$auth;$reconnected['grant']['id']=bin2hex(random_bytes(24));$store->putGrant($reconnected['grant']);
+check($tools->call('get_request_status',$reconnected,['request_id'=>$id])['status']==='completed','same authorized client can recover result under a new consent');
+$limited=$reconnected;$limited['grant']['scopes']=[Policy::READ];
+denied(fn()=>$tools->call('get_request_status',$limited,['request_id'=>$id]),'reconnected client must retain operation scope');
 [$other]=connection($oauth,'main',[Policy::READ,Policy::CREATE]);
 denied(fn()=>$tools->call('get_request_status',$other,['request_id'=>$id]),'other client cannot inspect request result');
 $request=$tools->call('create_draft',$auth,['title'=>'Revoked queue','content'=>'Queue test','apply'=>true]);
