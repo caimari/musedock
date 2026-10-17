@@ -19,6 +19,10 @@ final class ArticleWorkflow
         if (($job['mode']??'publish')==='publish') $required[]='publish_post';
         foreach ($required as $tool) if (!$tools->permitted($tool,$auth)) throw new RuntimeException('Permisos insuficientes para completar el flujo.');
         $this->content->siteArg($r,$c,['site_id'=>$job['site']]);
+        if (!empty($job['create']) && empty($job['post'])) {
+            $terms=new Taxonomy($this->content);$plan=$terms->prepare($job['site'],$job['args']);
+            if ($terms->missing($job['site'],$plan) && (empty($c['auto_approve_taxonomy']) || !$tools->permitted('create_tag',$auth))) throw new RuntimeException('Crear términos automáticamente requiere permiso de taxonomías y su aprobación automática.');
+        }
         return $auth;
     }
     public function call(array $auth,array $args,bool $create=false): array
@@ -88,7 +92,8 @@ final class ArticleWorkflow
     }
     private function result(array $job): array
     {
-        return ['job_id'=>$job['id'],'site_id'=>$job['site'],'post_id'=>$job['post']]+array_intersect_key($job,array_flip(['id','status','stage','mode','site','post','media_id','public_url','error','errors']));
+        $terms=!empty($job['post'])?(new Taxonomy($this->content))->assigned($job['site'],$job['post']):[];
+        return $terms+['job_id'=>$job['id'],'site_id'=>$job['site'],'post_id'=>$job['post']]+array_intersect_key($job,array_flip(['id','status','stage','mode','site','post','media_id','public_url','error','errors']));
     }
     /** Read-only CMS evidence reconciles lost checkpoints; never calls a provider or publishes. */
     private function reconcile(array $job): array
@@ -188,7 +193,7 @@ final class ArticleWorkflow
                 $j['errors']=array_slice($j['errors'],-20); $this->save($j);
             }
             unset($GLOBALS['mcp_request_id']);
-            $this->store->event($j['resource'],'article.workflow.'.$j['status'],(int)($actor??0),['job'=>$j['id'],'stage'=>$j['stage']]); $count++;
+            $this->store->event($j['resource'],'article.workflow.'.$j['status'],(int)($actor??0),['job'=>$j['id'],'stage'=>$j['stage'],'taxonomy'=>!empty($j['post'])?(new Taxonomy($this->content))->assigned($j['site'],$j['post']):[]]); $count++;
         }
         return $count;
     }

@@ -25,6 +25,9 @@ final class Editor
         if (in_array($tool,['create_post','update_post'],true)) {
             foreach (['title','content','excerpt','slug','base_locale','password','featured_image','template','post_type','visibility','status','published_at','seo_title','seo_description','seo_keywords','canonical_url','robots_directive','seo_image','twitter_title','twitter_description','twitter_image','hero_image'] as $f) $p[$f]=$s;
             foreach (['hide_featured_image','featured','allow_comments','show_hero','hide_title'] as $f) $p[$f]=['type'=>'boolean'];
+            foreach (['category_names','tag_names'] as $field) $p[$field]=['type'=>'array','items'=>['type'=>'string','minLength'=>1,'maxLength'=>255],'maxItems'=>20];
+            $p['create_missing_terms']=['type'=>'boolean','default'=>false,'description'=>'Crear los nombres que falten con permiso de taxonomías y política del sitio; reutilizar los existentes.'];
+            $p['taxonomy_mode']=['type'=>'string','enum'=>['merge','replace'],'default'=>'merge','description'=>'merge conserva términos actuales; replace sustituye solo los tipos de taxonomía indicados.'];
             $p['featured_image_id']=$id;
             $p['status']['enum']=['draft','published']; $p['visibility']['enum']=['public','private','password'];
             $p['post_type']['enum']=['post','brief','docs'];
@@ -144,8 +147,8 @@ final class Editor
     }
     private function taxonomy(int $site,array $args): array
     {
-        $out=[];
-        foreach (['category_ids'=>'blog_categories','tag_ids'=>'blog_tags'] as $key=>$table) if (isset($args[$key])) { foreach ($args[$key] as $id) $this->object($table,$id,$site); $out[$key]=array_values(array_unique($args[$key])); }
+        $out=(new Taxonomy($this->content))->prepare($site,$args);
+        foreach (['category_ids'=>'blog_categories','tag_ids'=>'blog_tags'] as $key=>$table) foreach ($out[$key]??[] as $term) if (is_int($term)) $this->object($table,$term,$site);
         return $out;
     }
     public function plan(string $tool,array $r,array $c,array $args): array
@@ -172,6 +175,13 @@ final class Editor
                 $fields[$key]=is_int($args[$key])?$args[$key]:$this->text($args[$key],$max);
             }
             if (isset($fields['name']) && trim($fields['name'])==='') throw new RuntimeException('Nombre vacío.');
+            $termService=new Taxonomy($this->content);$termKind=$table==='blog_tags'?'tags':'categories';
+            if (!$source) {
+                $termPlan=$termService->prepare($site,[$termKind==='tags'?'tag_names':'category_names'=>[$fields['name']],'create_missing_terms'=>true]);
+                $fields['name']=$termPlan[$termKind==='tags'?'tag_ids':'category_ids'][0]['name'];
+            }
+            $existingTerm=!$source?$termService->find($site,$termKind,$fields['name']):null;
+            if ($source && isset($fields['name'])) { $collision=$termService->find($site,$termKind,$fields['name']); if ($collision && (int)$collision['id']!==(int)$source['id']) throw new RuntimeException('Ya existe un término equivalente en este sitio.'); }
             if (!$source) $fields['slug']=$fields['slug']??substr($this->slug($fields['name']),0,$table==='blog_tags'?150:180);
             if (isset($fields['slug']) && !preg_match('/^[a-z0-9][a-z0-9-]{0,199}$/D',$fields['slug'])) throw new RuntimeException('Slug no válido.');
             if (isset($fields['color']) && $fields['color']!=='' && !preg_match('/^#[a-f0-9]{6}$/iD',$fields['color'])) throw new RuntimeException('Color no válido.');
@@ -181,7 +191,7 @@ final class Editor
                 while ($parent) { if (in_array($parent,$visited,true)) throw new RuntimeException('Una categoría no puede ser su propia ascendiente.'); $visited[]=$parent; $parent=(int)($this->object('blog_categories',$parent,$site)['parent_id']??0); }
                 $fields['parent_id']=$fields['parent_id']?:null;
             }
-            if (isset($fields['slug']) && $this->q("SELECT id FROM {$table} WHERE COALESCE(tenant_id,0)=? AND slug=? AND id<>?",[$site,$fields['slug'],$source['id']??0])) throw new RuntimeException('Slug de taxonomía duplicado.');
+            if (!$existingTerm && isset($fields['slug']) && $this->q("SELECT id FROM {$table} WHERE COALESCE(tenant_id,0)=? AND slug=? AND id<>?",[$site,$fields['slug'],$source['id']??0])) throw new RuntimeException('Slug de taxonomía duplicado.');
             if (!$fields) throw new RuntimeException('No hay cambios.');
         } elseif ($tool==='moderate_comment') {
             $source=$this->object('blog_comments',$args['comment_id'],$site); $this->post((int)$source['post_id'],$site);
@@ -242,9 +252,11 @@ final class Editor
                     $key=$this->quote('key'); $prefix=$site?($this->q("SELECT value FROM tenant_settings WHERE tenant_id=? AND {$key}=?",[$site,'blog_url_prefix'])[0]['value']??'blog'):(function_exists('setting')?setting('blog_url_prefix','blog'):'blog');
                     $this->insert('slugs',['module'=>'blog','reference_id'=>$id,'slug'=>$f['slug']??$source['slug'],'tenant_id'=>$site?:null,'prefix'=>$prefix?:null]);
                 }
-                foreach ($plan['taxonomy'] as $key=>$ids) {
+                $resolved=(new Taxonomy($this->content))->resolve($site,$plan['taxonomy'],$auth);
+                foreach ($resolved as $key=>$ids) {
                     $kind=$key==='category_ids'?'categories':'tags';$col=$kind==='categories'?'category_id':'tag_id';
                     $old=array_column($this->q("SELECT {$col} FROM blog_post_{$kind} WHERE post_id=?",[$id]),$col);
+                    if (($args['taxonomy_mode']??'merge')!=='replace') $ids=array_values(array_unique(array_merge(array_map('intval',$old),$ids)));
                     $db->prepare("DELETE FROM blog_post_{$kind} WHERE post_id=?")->execute([$id]);
                     foreach ($ids as $taxId) $db->prepare("INSERT INTO blog_post_{$kind}(post_id,{$col}) VALUES(?,?)")->execute([$id,$taxId]);
                     foreach (array_unique(array_merge($old,$ids)) as $taxId) $db->prepare("UPDATE blog_{$kind} SET post_count=(SELECT COUNT(*) FROM blog_post_{$kind} WHERE {$col}=?) WHERE id=?")->execute([$taxId,$taxId]);
@@ -252,7 +264,11 @@ final class Editor
             } elseif (str_contains($tool,'category') || str_contains($tool,'tag')) {
                 $table=str_contains($tool,'category')?'blog_categories':'blog_tags'; $f['updated_at']=$now;
                 if ($source) { $id=(int)$source['id'];$this->update($table,$id,$f); }
-                else $id=$this->insert($table,$f+['tenant_id'=>$site?:null,'created_at'=>$now]);
+                else {
+                    $termsService=new Taxonomy($this->content);$termsService->lock($site);
+                    $existing=$termsService->find($site,$table==='blog_tags'?'tags':'categories',$f['name']);
+                    $id=$existing?(int)$existing['id']:$this->insert($table,$f+['tenant_id'=>$site?:null,'created_at'=>$now]);
+                }
             } elseif ($tool==='moderate_comment') {
                 $id=(int)$source['id'];
                 if ($f['status']==='delete') $db->prepare('DELETE FROM blog_comments WHERE id=?')->execute([$id]);
@@ -274,7 +290,8 @@ final class Editor
                 $cache::invalidateByTag('blog',$site?:null);$cache::invalidateByTag('blog-list',$site?:null);$cache::invalidate('/',$site?:null);
                 if (in_array($tool,['create_post','update_post','set_featured_image','publish_post','schedule_post'],true)) { if ($source) $cache::onPostSaved($source,$site?:null,false); $cache::onPostSaved($this->post($id,$site),$site?:null,false); }
             }
-            return ['id'=>$id,'post_id'=>in_array($tool,['create_post','update_post','set_featured_image','publish_post','schedule_post','save_translation'],true)?$id:null,'site_id'=>$site,'status'=>$tool==='schedule_post'?'scheduled':($f['status']??$source['status']??'saved')];
+            $terms=in_array($tool,['create_post','update_post'],true)?(new Taxonomy($this->content))->assigned($site,$id):[];
+            return ['id'=>$id,'post_id'=>in_array($tool,['create_post','update_post','set_featured_image','publish_post','schedule_post','save_translation'],true)?$id:null,'site_id'=>$site,'status'=>$tool==='schedule_post'?'scheduled':($f['status']??$source['status']??'saved')]+$terms;
         } catch (\Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
     }
 }

@@ -1,0 +1,51 @@
+<?php
+require __DIR__.'/run.php';
+use Screenart\Musedock\Services\Mcp\Direct\{Store,Content,Authorization,Tools,Policy,Taxonomy,ApprovalQueue,ArticleWorkflow};
+$s=new Store(new PDO('sqlite::memory:'));$c=new Content(fixture());$o=new Authorization($s);$tools=new Tools($s,$c);
+$r=resource($s,'main','https://cms.example/mcp');$r['allow_publishing']=true;$s->putResource($r);
+[$auth]=connection($o,'main',Policy::scopes('main'));
+$client=$auth['client'];$client['auto_approve_posts']=true;$client['auto_approve_images']=true;$s->putClient($client);$auth['client']=$client;
+$pending=$tools->call('create_tag',$auth,['name'=>'Hackatones de IA','apply'=>true]);
+check($pending['status']==='pending_approval','publication preference does not silently approve taxonomy');
+$client['auto_approve_taxonomy']=true;$s->putClient($client);$auth['client']=$client;
+$execute=function($tool,$args)use($tools,&$auth,$s,$c){$request=$tools->call($tool,$auth,$args+['apply'=>true]);check($request['status']==='queued','taxonomy operation queued automatically');(new ApprovalQueue($s,$c))->run();$row=$s->one('SELECT data,status FROM requests WHERE id=?',[$request['request_id']]);check($row['status']==='completed','operation completed');return json_decode($row['data'],true)['result'];};
+$tag=$execute('create_tag',['name'=>'Hackatones de IA']);
+$again=$execute('create_tag',['name'=>'HACKATÓNES DE IA']);
+check($again['id']===$tag['id'],'case and accent variants reuse same term');
+$c->db->exec("INSERT INTO blog_tags(tenant_id,name,slug) VALUES(3,'Hackatones de IA','hackatones-de-ia')");
+check((int)(new Taxonomy($c))->find(0,'tags','Hackatones de IA')['id']===$tag['id'],'same term on another site is never reused across sites');
+check($c->db->query('SELECT COUNT(*) FROM blog_tags WHERE tenant_id IS NULL')->fetchColumn()==1,'no duplicate tag');
+// An older pending request safely reuses a term created by another completed request.
+$recovered=$tools->decide('main',$pending['request_id'],7,true);check($recovered['id']===$tag['id'],'pending creation recovers equivalent existing term');
+$c->db->exec("INSERT INTO media(id,tenant_id,filename,mime_type,public_token,slug,seo_filename) VALUES(10,NULL,'cover.jpg','image/jpeg','cover-token','cover','cover-token.jpg')");
+$post=$execute('create_post',['title'=>'Taxonomy only update','content'=>'<p>Keep this body</p>','featured_image_id'=>10,'status'=>'published','category_ids'=>[1],'tag_names'=>['HACKATONES DE IA'],'create_missing_terms'=>true]);
+$id=$post['post_id'];$before=$c->db->query('SELECT content,featured_image FROM blog_posts WHERE id='.$id)->fetch(PDO::FETCH_ASSOC);
+$updated=$execute('update_post',['post_id'=>$id,'tag_names'=>['Agentes de IA'],'create_missing_terms'=>true]);
+check(count($updated['tags'])===2 && count($updated['categories'])===1,'default merge preserves prior tags and categories');
+check($c->db->query('SELECT content,featured_image FROM blog_posts WHERE id='.$id)->fetch(PDO::FETCH_ASSOC)===$before,'taxonomy-only edit preserves content and image');
+$replace=$execute('update_post',['post_id'=>$id,'tag_names'=>['Hackatones de IA'],'taxonomy_mode'=>'replace']);
+check(count($replace['tags'])===1 && count($replace['categories'])===1,'explicit replace affects only supplied kind');
+// Site policies: equivalences, closed list, creation switch and per-operation cap.
+$policy=Taxonomy::DEFAULTS;$policy['aliases']=['Hackmaratón'=>'Hackatones de IA'];$policy['allowed_tags']=['Seguridad'];$policy['max_tags']=1;
+$c->db->prepare('UPDATE mcp_taxonomy_policies SET data=? WHERE site_id=0')->execute([json_encode($policy)]);
+$alias=$execute('update_post',['post_id'=>$id,'tag_names'=>['Hackmaratón']]);check($alias['tags'][0]['id']===$tag['id'],'configured equivalent resolves canonical existing tag');
+denied(fn()=>$tools->call('update_post',$auth,['post_id'=>$id,'tag_names'=>['No permitido'],'create_missing_terms'=>true,'apply'=>true]),'closed editorial list rejects unapproved new term');
+$policy['allowed_tags']=[];$c->db->prepare('UPDATE mcp_taxonomy_policies SET data=? WHERE site_id=0')->execute([json_encode($policy)]);
+denied(fn()=>$tools->call('update_post',$auth,['post_id'=>$id,'tag_names'=>['New one','New two'],'create_missing_terms'=>true,'apply'=>true]),'per-operation cap enforced');
+$policy['allow_tags']=false;$c->db->prepare('UPDATE mcp_taxonomy_policies SET data=? WHERE site_id=0')->execute([json_encode($policy)]);
+denied(fn()=>$tools->call('create_tag',$auth,['name'=>'New denied','apply'=>true]),'site policy blocks standalone creation');
+$policy=Taxonomy::DEFAULTS;$c->db->prepare('UPDATE mcp_taxonomy_policies SET data=? WHERE site_id=0')->execute([json_encode($policy)]);
+// Complete existing one-call workflow includes term creation without another tool call.
+$jobArgs=['idempotency_key'=>'terms-in-workflow-001','title'=>'Complete with terms','content'=>'<p>Body</p>','prompt'=>'Cover','tag_names'=>['Workflow term'],'category_names'=>['PRÍNCIPAL'],'create_missing_terms'=>true,'apply'=>true];
+$start=$tools->call('create_and_publish_article',$auth,$jobArgs);
+$workflow=new ArticleWorkflow($s,$c,fn()=>['media'=>['id'=>10]]);$workflow->run();$result=$workflow->call($auth,['job_id'=>$start['job_id'],'action'=>'status'],true);
+check($result['status']==='completed' && count($result['tags'])===1 && count($result['categories'])===1,'one-call workflow returns verified assigned terms');
+check($result['categories'][0]['id']===1,'workflow reuses accented category name');
+$workflow->call($auth,['job_id'=>$start['job_id'],'action'=>'resume','apply'=>true],true);$workflow->run();
+check($c->db->query("SELECT COUNT(*) FROM blog_tags WHERE name='Workflow term'")->fetchColumn()==1,'resume never duplicates terms');
+[$limited]=connection($o,'main',[Policy::READ,Policy::EDITOR,Policy::POSTS]);
+$limitedClient=$limited['client'];$limitedClient['auto_approve_posts']=true;$limitedClient['auto_approve_taxonomy']=true;$s->putClient($limitedClient);$limited['client']=$limitedClient;
+denied(fn()=>$workflow->call($auth,$jobArgs+['site_id'=>1],true),'foreign site denied');
+denied(fn()=>$tools->call('update_post',$limited,['post_id'=>$id,'tag_names'=>['No scope'],'create_missing_terms'=>true,'apply'=>true]),'missing taxonomy scope prevents new creation');
+check($c->db->query("SELECT COUNT(*) FROM blog_tags WHERE name='No scope'")->fetchColumn()==0,'failed permission leaves no term');
+echo "PASS: automatic taxonomy, reuse, accents, aliases, merge/replace, site policies, one-call workflow, recovery and permissions. No paid generation or real publications.\n";

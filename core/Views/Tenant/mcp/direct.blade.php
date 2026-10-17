@@ -132,6 +132,28 @@
     </form>
   </div></div>
   </section>
+  <section data-mcp-panel="connection">
+  @if(!empty($taxonomyPolicy))
+  <details class="card mb-3"><summary class="card-header">Política editorial de categorías y etiquetas por sitio</summary><div class="card-body">
+    <form method="get" action="{{ $base }}#mcp-connection" class="d-flex flex-wrap gap-2 mb-3"><input type="hidden" name="resource" value="{{ $resource['id'] }}"><label for="taxonomy-policy-site">Sitio</label><select id="taxonomy-policy-site" name="taxonomy_site" class="form-select">
+      @foreach(($imageSites ?? []) as $site)
+        <option value="{{ $site['id'] }}" {{ (int)$site['id'] === $taxonomySite ? 'selected' : '' }}>{{ $site['domain'] }}</option>
+      @endforeach
+    </select><button class="btn btn-outline-primary">Consultar política</button></form>
+    <form method="post" action="{{ $back }}">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="action" value="taxonomy_policy"><input type="hidden" name="policy_site" value="{{ $taxonomySite }}">
+      <p class="small text-muted">Se reutilizan términos existentes. Estos límites afectan a términos nuevos por operación. La aprobación automática se activa por separado en cada acceso.</p>
+      @foreach(['categories'=>'Categorías','tags'=>'Etiquetas'] as $kind=>$label)
+        <div class="border rounded p-3 mb-3"><h4 class="h6">{{ $label }}</h4><label class="form-check"><input class="form-check-input" type="checkbox" name="allow_{{ $kind }}" {{ $taxonomyPolicy['allow_'.$kind] ? 'checked' : '' }}> Permitir crear términos nuevos por MCP</label>
+        <label class="form-label">Máximo de términos nuevos por operación</label><input class="form-control mb-2" type="number" min="0" max="20" name="max_{{ $kind }}" value="{{ $taxonomyPolicy['max_'.$kind] }}">
+        <label class="form-label">Nombres permitidos, uno por línea (vacío: sin lista cerrada)</label><textarea class="form-control" name="allowed_{{ $kind }}" rows="3">{{ implode("
+",$taxonomyPolicy['allowed_'.$kind]) }}</textarea></div>
+      @endforeach
+      <label class="form-label">Equivalencias de nombres (JSON: nombre alternativo → nombre preferido)</label><textarea class="form-control mb-3" name="aliases" rows="3">{{ json_encode((object)$taxonomyPolicy['aliases'],JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE) }}</textarea>
+      <button class="btn btn-primary">Guardar política editorial</button>
+    </form>
+  </div></details>
+  @endif
+  </section>
   <section data-mcp-panel="access">
   <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h5 mb-0">Accesos independientes</h2><button type="button" class="btn btn-primary" id="mcp-new-access">+ Nuevo acceso MCP</button></div>
   @if($newClient)
@@ -232,6 +254,7 @@
           <h4 class="h6">Aprobación automática de este acceso</h4>
           <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_posts" {{ !empty($client['auto_approve_posts']) ? 'checked' : '' }}> Aprobar automáticamente artículos, publicación, programación y asignación de portada</label>
           <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_images" {{ !empty($client['auto_approve_images']) ? 'checked' : '' }}> Aprobar automáticamente generaciones de imágenes</label>
+          <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_taxonomy" {{ !empty($client['auto_approve_taxonomy']) ? 'checked' : '' }}> Aprobar automáticamente creación y edición de categorías y etiquetas</label>
           <p class="small text-muted mb-0">Solo para este acceso y sus sitios autorizados. Se mantienen permisos, cuotas y requisito de portada. Generar imágenes puede consumir saldo. Se aplica a nuevas solicitudes; las pendientes conservan su aprobación manual.</p>
         </div>
         @foreach($scopes as $scope)<label class="form-check"><input class="form-check-input" type="checkbox" name="scopes[]" value="{{ $scope }}" {{ in_array($scope,$client['scopes'],true) ? 'checked' : '' }}> {{ \Screenart\Musedock\Services\Mcp\Direct\Policy::label($scope) }} <small class="text-muted">({{ $scope }})</small></label>@endforeach

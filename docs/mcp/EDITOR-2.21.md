@@ -145,3 +145,42 @@ No fuerza el rastreo diario ni equivale a solicitar indexación individual: Goog
 decide cuándo descargar, rastrear e indexar. Los borradores no aparecen en el XML
 y no provocan envíos. Las credenciales de clientes no se utilizan para el proceso
 central de la plataforma.
+
+### Categorías y etiquetas por nombres
+
+`create_post`, `update_post` y `create_and_publish_article` admiten:
+
+```json
+{
+  "category_names": ["Tecnología"],
+  "tag_names": ["Hackatones de IA"],
+  "create_missing_terms": true,
+  "taxonomy_mode": "merge"
+}
+```
+
+Los IDs existentes siguen siendo compatibles. El modo por defecto `merge` conserva
+las asignaciones anteriores; `replace` sustituye solo los tipos indicados en esa
+petición. Con `create_missing_terms=false` se reutilizan términos existentes y se
+rechazan los nombres desconocidos. La creación requiere además el permiso OAuth
+`musedock-cms:taxonomy:manage` y la autorización del usuario del CMS.
+
+La casilla por acceso «Aprobar automáticamente creación y edición de categorías y
+etiquetas» es independiente de artículos e imágenes y está desactivada por defecto.
+Habilitarla no cambia ámbitos OAuth, credenciales ni revisiones de consentimiento.
+Las solicitudes antiguas no se aprueban retroactivamente.
+
+En «Servicio y sitios → Política editorial» se configura cada sitio: permitir o no
+crear términos, límites por operación (por defecto 3 categorías y 8 etiquetas),
+listas cerradas opcionales y equivalencias explícitas en JSON. Los nombres se
+comparan sin diferencias de mayúsculas, acentos o puntuación. No se deducen sinónimos
+mediante IA: se configuran equivalencias, por ejemplo `{"Hackmaratón":"Hackatones de IA"}`.
+No se fusionan ni eliminan automáticamente duplicados que existieran antes.
+
+El editor resuelve y crea términos bajo bloqueo por sitio, dentro de la misma
+transacción que guarda el artículo. Reintentar una creación independiente reutiliza
+el término existente sin cambiar sus metadatos. Las respuestas de artículos y
+trabajos incluyen `categories` y `tags` con IDs, nombres y slugs realmente asignados.
+`update_post` con solo taxonomías conserva contenido e imágenes y no genera medios.
+La aprobación automática de artículos sigue siendo necesaria para automatizar esa
+actualización; para términos nuevos se exige también la de taxonomías.

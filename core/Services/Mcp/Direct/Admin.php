@@ -31,6 +31,26 @@ final class Admin
                 if ($tenant && !userCan('settings.edit')) throw new \RuntimeException('No tienes permiso para modificar ajustes.');
                 if (empty($_SESSION['_csrf_token']) || !hash_equals($_SESSION['_csrf_token'],(string)($_POST['_token']??$_POST['_csrf']??''))) throw new \RuntimeException('CSRF no válido.');
                 $action=$_POST['action']??'';
+                if ($action==='taxonomy_policy') {
+                    if (!$content->actorActive($id,$actor,Policy::TAXONOMY)) throw new \RuntimeException('No tienes permiso para configurar taxonomías.');
+                    $site=(int)($_POST['policy_site']??-1);$fixed=Policy::site($id);
+                    if (($fixed!==null && $site!==$fixed) || ($fixed===null && !in_array($site,$r['owned_sites']??[],true))) throw new \RuntimeException('Sitio no autorizado.');
+                    $aliases=json_decode((string)($_POST['aliases']??'{}'),true);
+                    if (!is_array($aliases) || count($aliases)>50) throw new \RuntimeException('Las equivalencias deben ser un objeto JSON con hasta 50 entradas.');
+                    foreach ($aliases as $alias=>$target) if (!is_string($alias) || !is_string($target) || !trim($target) || mb_strlen($target)>255) throw new \RuntimeException('Equivalencia no válida.');
+                    $policy=['allow_categories'=>isset($_POST['allow_categories']),'allow_tags'=>isset($_POST['allow_tags']),'max_categories'=>max(0,min(20,(int)($_POST['max_categories']??3))),'max_tags'=>max(0,min(20,(int)($_POST['max_tags']??8))),'aliases'=>$aliases];
+                    foreach (['categories','tags'] as $kind) {
+                        $terms=array_values(array_filter(array_map('trim',preg_split('/\R/u',(string)($_POST['allowed_'.$kind]??'')))));
+                        if (count($terms)>100) throw new \RuntimeException('Demasiados términos permitidos.');
+                        foreach ($terms as $term) if (mb_strlen($term)>255) throw new \RuntimeException('Término demasiado largo.');
+                        $policy['allowed_'.$kind]=$terms;
+                    }
+                    $db=Database::connect();$mysql=$db->getAttribute(\PDO::ATTR_DRIVER_NAME)==='mysql';
+                    $sql=$mysql?'INSERT INTO mcp_taxonomy_policies(site_id,data) VALUES(?,?) ON DUPLICATE KEY UPDATE data=VALUES(data)':'INSERT INTO mcp_taxonomy_policies(site_id,data) VALUES(?,?) ON CONFLICT(site_id) DO UPDATE SET data=excluded.data';
+                    $db->prepare($sql)->execute([$site,Store::json($policy)]);
+                    $ep->store->event($id,'taxonomy.policy.updated',$actor,['site_id'=>$site,'policy'=>$policy]);
+                    flash('success','Política editorial guardada sin modificar OAuth.');header('Location: '.$back.($tenant?'?':'&').'taxonomy_site='.$site.'#mcp-connection');return;
+                }
                 if ($action==='operation_status') {
                     $row=$ep->store->one('SELECT id,status,data FROM requests WHERE id=? AND resource=?',[(string)($_POST['request']??''),$id]);
                     if (!$row) throw new \RuntimeException('Solicitud no encontrada.');
@@ -79,6 +99,7 @@ final class Admin
                     $saved=$ep->store->client($new['client']['id']);
                     $saved['auto_approve_posts']=isset($_POST['auto_approve_posts']);
                     $saved['auto_approve_images']=isset($_POST['auto_approve_images']);
+                    $saved['auto_approve_taxonomy']=isset($_POST['auto_approve_taxonomy']);
                     $ep->store->putClient($saved);
                 } elseif ($action==='rotate_secret' || $action==='finish_secret_rotation') {
                     $clientId=(string)($_POST['client']??'');
@@ -109,8 +130,9 @@ final class Admin
                         $saved=$ep->store->client($client['id']);
                         $saved['auto_approve_posts']=isset($_POST['auto_approve_posts']);
                         $saved['auto_approve_images']=isset($_POST['auto_approve_images']);
+                        $saved['auto_approve_taxonomy']=isset($_POST['auto_approve_taxonomy']);
                         $ep->store->putClient($saved);
-                        $ep->store->event($id,'client.auto_approval.updated',$actor,['client'=>$client['id'],'posts'=>$saved['auto_approve_posts'],'images'=>$saved['auto_approve_images']]);
+                        $ep->store->event($id,'client.auto_approval.updated',$actor,['client'=>$client['id'],'posts'=>$saved['auto_approve_posts'],'images'=>$saved['auto_approve_images'],'taxonomy'=>$saved['auto_approve_taxonomy']]);
                     }
                     $ep->store->event($id,$action,$actor,['client'=>$client['id']]);
                 } elseif ($action==='revoke_grant') {
@@ -148,6 +170,9 @@ final class Admin
         }
         $fixedSite=Policy::site($id);
         $imageSites=$fixedSite!==null?[['id'=>$fixedSite,'name'=>$r['name'],'domain'=>$parts['host']]]:array_values(array_filter($sites,fn($site)=>in_array((int)$site['id'],$r['owned_sites']??[],true)));
+        $taxonomySite=(int)($_GET['taxonomy_site']??($imageSites[0]['id']??0));
+        $taxonomyPolicy=null;
+        if (in_array($taxonomySite,array_map(fn($s)=>(int)$s['id'],$imageSites),true)) $taxonomyPolicy=(new Taxonomy($content))->policy($taxonomySite);
         $imageSite=(int)($_GET['image_site']??($imageSites[0]['id']??0));
         $imageOptions=null; $imagePrompts=[]; $imageError=null;
         if ($imageSites && in_array($imageSite,array_map(fn($site)=>(int)$site['id'],$imageSites),true)) {
@@ -168,7 +193,7 @@ final class Admin
             $workflow=json_decode($workflowRow['data'],true);
             $recentOperations[]=['id'=>$workflow['id'],'status'=>$workflow['status'],'tool'=>(!empty($workflow['create'])?'create_and_publish_article':'publish_article_with_image').' · '.$workflow['stage'].' · post '.$workflow['post'],'error'=>$workflow['error']??null];
         }
-        $data=['imageSites'=>$imageSites,'imageSite'=>$imageSite,'imageOptions'=>$imageOptions,'imagePrompts'=>$imagePrompts,'imageError'=>$imageError,'imageDiagnostics'=>$imageDiagnostics,'recentOperations'=>$recentOperations,'resourceOptions'=>$resourceOptions,'schedules'=>$ep->store->all("SELECT * FROM schedules WHERE resource=? AND status='scheduled' ORDER BY due",[$id]),'title'=>'(MCP) Conexiones IA','resource'=>$r,'clients'=>$clients,'grants'=>$grants,'requests'=>$requests,'newClient'=>$new,'error'=>$error,
+        $data=['taxonomySite'=>$taxonomySite,'taxonomyPolicy'=>$taxonomyPolicy,'imageSites'=>$imageSites,'imageSite'=>$imageSite,'imageOptions'=>$imageOptions,'imagePrompts'=>$imagePrompts,'imageError'=>$imageError,'imageDiagnostics'=>$imageDiagnostics,'recentOperations'=>$recentOperations,'resourceOptions'=>$resourceOptions,'schedules'=>$ep->store->all("SELECT * FROM schedules WHERE resource=? AND status='scheduled' ORDER BY due",[$id]),'title'=>'(MCP) Conexiones IA','resource'=>$r,'clients'=>$clients,'grants'=>$grants,'requests'=>$requests,'newClient'=>$new,'error'=>$error,
             'base'=>$base,'back'=>$back,'tenantMode'=>$tenant,'scopes'=>Policy::scopes($id),'sites'=>$sites,'groups'=>$groups,
             'canManageDeployment'=>!$tenant && \Screenart\Musedock\Helpers\PermissionHelper::isSuperAdminRoot($actor),
             'deploymentEnabled'=>filter_var(Env::get('MCP_CMS_DIRECT_ENABLED',false),FILTER_VALIDATE_BOOLEAN) && filter_var(Env::get('MCP_ENABLED',true),FILTER_VALIDATE_BOOLEAN),'pluginInstalled'=>Endpoint::installed($id),

@@ -13,7 +13,8 @@ function fixture(): PDO
 {
     $pg=getenv('MCP_TEST_PG_DSN'); $dsn=$pg?:getenv('MCP_TEST_MYSQL_DSN');
     $p=$dsn?new PDO($dsn,$pg?getenv('MCP_TEST_PG_USER'):'root',''):new PDO('sqlite::memory:'); $p->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
-    $schema="CREATE TABLE mcp_article_receipts(job_id VARCHAR(64) PRIMARY KEY,post_id BIGINT NOT NULL,site_id BIGINT NOT NULL);
+    $schema="CREATE TABLE mcp_taxonomy_policies(site_id BIGINT PRIMARY KEY,data TEXT NOT NULL);
+        CREATE TABLE mcp_article_receipts(job_id VARCHAR(64) PRIMARY KEY,post_id BIGINT NOT NULL,site_id BIGINT NOT NULL);
         CREATE TABLE settings(key TEXT,value TEXT); INSERT INTO settings VALUES('force_lang','es');
         CREATE TABLE languages(code TEXT,active INTEGER); INSERT INTO languages VALUES('es',1);
         CREATE TABLE domain_groups(id INTEGER PRIMARY KEY,name TEXT); INSERT INTO domain_groups VALUES(10,'Propios'),(20,'Clientes');

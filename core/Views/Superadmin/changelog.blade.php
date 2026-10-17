@@ -123,6 +123,12 @@
             <li>Control central por dominio cada ocho horas: solo se avisa a Google si cambian las URL públicas, sus fechas reales o imágenes.</li>
             <li>Sin reenvíos para sitios sin novedades; errores conservados para reintento y estado visible en Search Console del CMS principal.</li>
         </ul></div></div>
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">Taxonomías editoriales por MCP — 17 de octubre de 2026</h5></div><div class="card-body"><ul>
+            <li>Aprobación automática independiente de categorías y etiquetas, sin reconectar OAuth.</li>
+            <li>Creación y actualización por nombres en la misma operación del artículo, conservando las asignaciones existentes por defecto.</li>
+            <li>Reutilización de términos por mayúsculas y acentos, equivalencias configurables y políticas por sitio con límites y listas permitidas.</li>
+            <li>Resultados verificables con términos asignados y auditoría, sin regenerar imágenes al editar solo taxonomías.</li>
+        </ul></div></div>
         <!-- v2.21.0 -->
         <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.21.0 — Editor completo por MCP</h5></div><div class="card-body">
             <p class="text-muted">11 de octubre de 2026</p>
