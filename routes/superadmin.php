@@ -268,6 +268,15 @@ Route::post('/musedock/settings/dns-accounts/{id}/test', 'superadmin.DnsAccounts
 Route::post('/musedock/settings/dns-accounts/{id}/default', 'superadmin.DnsAccountsController@makeDefault')->name('settings.dns-accounts.default')->middleware('superadmin');
 Route::post('/musedock/settings/dns-accounts/{id}/toggle', 'superadmin.DnsAccountsController@toggle')->name('settings.dns-accounts.toggle')->middleware('superadmin');
 Route::post('/musedock/settings/dns-accounts/{id}/delete', 'superadmin.DnsAccountsController@delete')->name('settings.dns-accounts.delete')->middleware('superadmin');
+// Escudo ante bloqueos de Cloudflare
+Route::get('/musedock/settings/edge-guard', 'superadmin.EdgeGuardController@index')->name('settings.edge-guard')->middleware('superadmin');
+Route::post('/musedock/settings/edge-guard', 'superadmin.EdgeGuardController@save')->name('settings.edge-guard.save')->middleware('superadmin');
+Route::post('/musedock/settings/edge-guard/probe', 'superadmin.EdgeGuardController@createProbe')->name('settings.edge-guard.probe')->middleware('superadmin');
+Route::post('/musedock/settings/edge-guard/probe/revoke', 'superadmin.EdgeGuardController@revokeProbe')->name('settings.edge-guard.probe.revoke')->middleware('superadmin');
+Route::post('/musedock/settings/edge-guard/inventory', 'superadmin.EdgeGuardController@inventory')->name('settings.edge-guard.inventory')->middleware('superadmin');
+Route::get('/musedock/settings/edge-guard/probe.py', 'superadmin.EdgeGuardController@downloadProbe')->name('settings.edge-guard.probe.download')->middleware('superadmin');
+Route::post('/musedock/settings/edge-guard/original', 'superadmin.EdgeGuardController@setOriginal')->name('settings.edge-guard.original')->middleware('superadmin');
+Route::post('/musedock/settings/edge-guard/clear-log', 'superadmin.EdgeGuardController@clearLog')->name('settings.edge-guard.clear-log')->middleware('superadmin');
 
 Route::get('/musedock/settings/email', 'superadmin.SettingsController@email')->name('settings.email')->middleware('superadmin');
 Route::post('/musedock/settings/email', 'superadmin.SettingsController@updateEmail')->name('settings.email.update')->middleware('superadmin');

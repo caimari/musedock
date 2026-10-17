@@ -248,6 +248,8 @@ if (!defined('MUSEDOCK_STATELESS_REQUEST')) {
         || (preg_match('#^/mcp-auth/(cms|cross-publisher|news-aggregator)/authorize$#D', $__statelessPath) && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && !isset($_GET['_ss']))
         || in_array($__statelessPath, ['/mcp', '/oauth/register', '/oauth/token', '/oauth/revoke', '/.well-known/openid-configuration'], true)
         || str_starts_with($__statelessPath, '/.well-known/oauth-')
+        // Sondas del escudo ante bloqueos de Cloudflare (Bearer de sonda)
+        || str_starts_with($__statelessPath, '/api/v1/edge-guard/')
         // Primer paso de /oauth/authorize (rebote same-site): no debe tocar la cookie de sesión
         || ($__statelessPath === '/oauth/authorize' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && !isset($_GET['_ss']))
     );

@@ -28,6 +28,7 @@ final class SettingsNavigation
             $definitions[] = ['tenant-defaults', 'Defaults tenants', 'building-gear', '/settings/tenant-defaults'];
             $definitions[] = ['acme-assistant', 'Certificados', 'patch-check', '/settings/acme-assistant'];
             $definitions[] = ['dns-accounts', 'Cuentas DNS', 'cloud', '/settings/dns-accounts'];
+            $definitions[] = ['edge-guard', 'Bloqueos Cloudflare', 'shield-exclamation', '/settings/edge-guard'];
             $definitions[] = ['backups', 'Backups', 'database', '/settings/backups'];
         }
         return array_map(static fn($item) => [

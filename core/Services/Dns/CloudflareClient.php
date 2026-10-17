@@ -62,6 +62,72 @@ class CloudflareClient implements DnsZoneClient
         $this->call('POST', "/zones/{$zoneId}/dns_records", ['type' => 'TXT', 'name' => $name, 'content' => $content, 'ttl' => 1]);
     }
 
+    /** Todas las zonas que ve el token. @return array<int, array{id:string, name:string}> */
+    public function listZones(): array
+    {
+        $q = ['per_page' => 50];
+        if ($this->accountId) {
+            $q['account.id'] = $this->accountId;
+        }
+        $out = [];
+        foreach ($this->paginate('/zones', $q) as $z) {
+            $out[] = ['id' => (string) $z['id'], 'name' => strtolower((string) $z['name'])];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Registros A/AAAA/CNAME de una zona.
+     * @return array<int, array{id:string, type:string, name:string, content:string, proxied:bool, ttl:int}>
+     */
+    public function listRecords(string $zoneId): array
+    {
+        $out = [];
+        foreach ($this->paginate("/zones/{$zoneId}/dns_records", ['per_page' => 500]) as $r) {
+            if (!in_array($r['type'] ?? '', ['A', 'AAAA', 'CNAME'], true)) {
+                continue;
+            }
+            $out[] = [
+                'id' => (string) $r['id'], 'type' => (string) $r['type'], 'name' => strtolower((string) $r['name']),
+                'content' => (string) $r['content'], 'proxied' => (bool) ($r['proxied'] ?? false), 'ttl' => (int) ($r['ttl'] ?? 1),
+            ];
+        }
+
+        return $out;
+    }
+
+    /** Un registro tal como está ahora en Cloudflare. */
+    public function getRecord(string $zoneId, string $recordId): array
+    {
+        $r = $this->call('GET', "/zones/{$zoneId}/dns_records/{$recordId}")['result'] ?? [];
+
+        return [
+            'id' => (string) ($r['id'] ?? ''), 'type' => (string) ($r['type'] ?? ''), 'name' => strtolower((string) ($r['name'] ?? '')),
+            'content' => (string) ($r['content'] ?? ''), 'proxied' => (bool) ($r['proxied'] ?? false), 'ttl' => (int) ($r['ttl'] ?? 1),
+        ];
+    }
+
+    /** Activa o quita el proxy (nube naranja) de un registro. ttl 1 = automático (con proxy siempre lo es). */
+    public function setProxied(string $zoneId, string $recordId, bool $proxied, int $ttl): void
+    {
+        $this->call('PATCH', "/zones/{$zoneId}/dns_records/{$recordId}", ['proxied' => $proxied, 'ttl' => ($proxied || $ttl === 1) ? 1 : max(60, $ttl)]);
+    }
+
+    /** Recorre todas las páginas de un listado de la API. */
+    private function paginate(string $path, array $query): \Generator
+    {
+        $page = 1;
+        do {
+            $r = $this->call('GET', $path . '?' . http_build_query($query + ['page' => $page]));
+            foreach ($r['result'] ?? [] as $item) {
+                yield $item;
+            }
+            $pages = (int) ($r['result_info']['total_pages'] ?? 1);
+            $page++;
+        } while ($page <= $pages && $page <= 200);
+    }
+
     private function call(string $method, string $path, ?array $json = null): array
     {
         $headers = ['Authorization: Bearer ' . $this->token, 'Content-Type: application/json', 'Accept: application/json'];

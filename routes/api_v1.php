@@ -94,6 +94,19 @@ function api_v1_auth(string $toolName = ''): void
 // CORE ROUTES — Always available
 // ============================================================================
 
+// ---------- Sondas del escudo ante bloqueos de Cloudflare (token de sonda propio, no API key) ----------
+Route::get('/api/v1/edge-guard/targets', function () {
+    \Screenart\Musedock\Controllers\Api\EdgeGuardProbeController::targets();
+});
+Route::post('/api/v1/edge-guard/report', function () {
+    \Screenart\Musedock\Controllers\Api\EdgeGuardProbeController::report();
+});
+// Script de la sonda (código público, sin secretos) para instalarlo con curl
+Route::get('/api/v1/edge-guard/probe.py', function () {
+    header('Content-Type: text/x-python; charset=utf-8');
+    readfile(APP_ROOT . '/cli/edge-guard-probe.py');
+});
+
 // ---------- Tenants ----------
 Route::get('/api/v1/tenants', function () {
     api_v1_auth('list_tenants');
