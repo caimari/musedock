@@ -18,7 +18,10 @@
     "changelog": {
         "pendiente (listados del superadmin)": [
             "Listado de entradas del superadmin: 25 por página por defecto (antes 10) y sin la opción de 10.",
-            "Listados de entradas (superadmin y tenant): se quita la píldora gris vacía de «comentarios desactivados» (su icono bi-chat-slash no existe en la versión instalada de Bootstrap Icons)."
+            "Listados de entradas (superadmin y tenant): se quita la píldora gris vacía de «comentarios desactivados» (su icono bi-chat-slash no existe en la versión instalada de Bootstrap Icons).",
+            "Listados de entradas (superadmin y tenant): la columna Vistas muestra visitantes únicos (personas distintas por día) y cargas de página (incluidas recargas), ambas de la analítica del sitio y sumando todas las URL de la entrada (con y sin prefijo, traducidas), con un botón (i) que explica la diferencia.",
+            "El contador de vistas de cada entrada (view_count) ya no suma robots ni buscadores: misma regla que la analítica.",
+            "Entradas traducidas (/en/…): el <title>, la meta descripción y og:title salen en el idioma de la traducción (antes, en el idioma base)."
         ],
         "pendiente (auditoría 2026-10-05)": [
             "Seguridad: suggest/batch-taxonomy solo aceptan tenant_id del cuerpo si es superadmin.",

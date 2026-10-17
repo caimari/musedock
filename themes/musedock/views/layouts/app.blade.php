@@ -125,6 +125,10 @@ $_contactAddress = site_setting('contact_address', '');
   <link rel="stylesheet" href="{{ $themeAsset('css/css-extra2.css') }}">
   <link rel="stylesheet" href="{{ $themeAsset('css/bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ $themeAsset('css/font-awesome.min.css') }}">
+  {{-- El tema trae Font Awesome 4 (clases «fa fa-x»), pero algunas vistas (blog, panel de clientes,
+       posts relacionados) usan la sintaxis de Font Awesome 5 («far/fas/fab fa-x») y salían cuadrados
+       vacíos. Con esto usan la misma fuente; vale para todo icono que exista en la versión 4. --}}
+  <style>.far,.fas,.fab{display:inline-block;font:normal normal normal 14px/1 FontAwesome;font-size:inherit;text-rendering:auto;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}</style>
   <link rel="stylesheet" href="{{ $themeAsset('css/plugins.css') }}">
   <link rel="stylesheet" href="{{ $themeAsset('css/animated.css') }}">
   <link rel="stylesheet" href="{{ $themeAsset('css/owl.carousel.min.css') }}">

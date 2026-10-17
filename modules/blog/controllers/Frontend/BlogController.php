@@ -212,9 +212,11 @@ class BlogController
 
         if (!\Screenart\Musedock\Services\BlogAccess::guard(['id'=>(int)$post->id,'tenant_id'=>$post->tenant_id,'visibility'=>$post->visibility,'password'=>$post->password,'user_id'=>$post->user_id,'user_type'=>$post->user_type])) return;
 
-        // Track unique view per IP (GDPR-compliant)
+        // Track unique view per IP (GDPR-compliant); robots no cuentan (misma regla que la analítica)
         try {
-            $post->incrementViewCount();
+            if (\Screenart\Musedock\Analytics\RequestTracker::shouldTrack()) {
+                $post->incrementViewCount();
+            }
         } catch (\Throwable $e) {
             error_log("Blog view tracking error for post ID {$post->id}: " . $e->getMessage());
         }
@@ -286,6 +288,13 @@ class BlogController
         foreach (['seo_image', 'canonical_url', 'robots_directive', 'twitter_title', 'twitter_description', 'twitter_image'] as $field) {
             $displayData->$field = $translation->$field ?? $post->$field;
             $post->$field = $displayData->$field;
+        }
+        // <title>, meta description y og:title también salen del objeto del post: sin esto, la
+        // versión traducida mostraba el título SEO y la descripción del idioma base
+        if ($translation) {
+            foreach (['seo_title', 'seo_description', 'seo_keywords'] as $field) {
+                $post->$field = $displayData->$field;
+            }
         }
         $displayData->featured_image = $post->featured_image;
         $displayData->published_at = $post->published_at;

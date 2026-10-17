@@ -1,0 +1,45 @@
+/*
+ * Avisos (.alert) del panel superadmin.
+ * La hoja base (AdminKit) no trae estilo para .alert de Bootstrap: sin esto los avisos salían
+ * como texto suelto, sin fondo ni separación. Fondo suave, borde de color a la izquierda y aire debajo.
+ */
+.alert {
+  --md-alert-color: #334155;
+  --md-alert-bg: #f8fafc;
+  --md-alert-border: #cbd5e1;
+  --md-alert-accent: #64748b;
+  position: relative;
+  padding: .9rem 1.1rem;
+  margin-bottom: 1.25rem;
+  color: var(--md-alert-color);
+  background: var(--md-alert-bg);
+  border: 1px solid var(--md-alert-border);
+  border-left: 4px solid var(--md-alert-accent);
+  border-radius: .6rem;
+  font-size: .925rem;
+  line-height: 1.5;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+.alert > .bi:first-child,
+.alert > i:first-child,
+.alert .alert-icon { color: var(--md-alert-accent); }
+.alert.d-flex > .bi:first-child,
+.alert.d-flex > i:first-child { flex-shrink: 0; line-height: 1; }
+.alert strong { color: inherit; }
+.alert a:not(.btn) { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.alert .alert-heading { color: inherit; font-weight: 600; margin-bottom: .4rem; }
+.alert hr { border-color: var(--md-alert-border); opacity: 1; margin: .75rem 0; }
+.alert pre, .alert code.d-block { background: #fff; }
+.alert > :last-child { margin-bottom: 0; }
+.alert-dismissible { padding-right: 3rem; }
+.alert-dismissible .btn-close { position: absolute; top: .65rem; right: .75rem; opacity: .55; }
+.alert-dismissible .btn-close:hover { opacity: .9; }
+
+.alert-primary   { --md-alert-color: #1e3a8a; --md-alert-bg: #eff6ff; --md-alert-border: #bfdbfe; --md-alert-accent: #2563eb; }
+.alert-secondary { --md-alert-color: #334155; --md-alert-bg: #f8fafc; --md-alert-border: #e2e8f0; --md-alert-accent: #64748b; }
+.alert-success   { --md-alert-color: #14532d; --md-alert-bg: #f0fdf4; --md-alert-border: #bbf7d0; --md-alert-accent: #16a34a; }
+.alert-danger    { --md-alert-color: #7f1d1d; --md-alert-bg: #fef2f2; --md-alert-border: #fecaca; --md-alert-accent: #dc2626; }
+.alert-warning   { --md-alert-color: #78350f; --md-alert-bg: #fffbeb; --md-alert-border: #fde68a; --md-alert-accent: #d97706; }
+.alert-info      { --md-alert-color: #164e63; --md-alert-bg: #ecfeff; --md-alert-border: #a5f3fc; --md-alert-accent: #0891b2; }
+.alert-light     { --md-alert-color: #334155; --md-alert-bg: #ffffff; --md-alert-border: #e2e8f0; --md-alert-accent: #cbd5e1; }
+.alert-dark      { --md-alert-color: #f1f5f9; --md-alert-bg: #1e293b; --md-alert-border: #334155; --md-alert-accent: #94a3b8; }
