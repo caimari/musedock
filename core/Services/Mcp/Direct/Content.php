@@ -49,7 +49,19 @@ final class Content
         $ids=$this->sites($r,$c);
         if (!$ids) return [];
         if ($ids===[0]) return [['id'=>0,'name'=>'Dominio principal','domain'=>parse_url($r['url'],PHP_URL_HOST)]];
-        return $this->query('SELECT id,name,domain,group_id FROM tenants WHERE id IN ('.implode(',',array_fill(0,count($ids),'?')).')',$ids);
+        $sites=$this->query('SELECT id,name,domain,group_id FROM tenants WHERE id IN ('.implode(',',array_fill(0,count($ids),'?')).')',$ids);
+        $aliases=$this->query("SELECT tenant_id,domain,include_www FROM domain_aliases WHERE status='active' AND tenant_id IN (".implode(',',array_fill(0,count($ids),'?')).') ORDER BY domain',$ids);
+        foreach ($sites as &$site) {
+            $site['url']='https://'.$site['domain'];
+            $site['aliases']=[];
+            foreach ($aliases as $alias) {
+                if ((int)$alias['tenant_id']!==(int)$site['id']) continue;
+                $site['aliases'][]=['domain'=>$alias['domain'],'url'=>'https://'.$alias['domain'],'include_www'=>(bool)$alias['include_www']];
+            }
+            $site['public_urls']=array_merge([$site['url']],array_column($site['aliases'],'url'));
+        }
+        unset($site);
+        return $sites;
     }
     public function siteArg(array $r, array $c, array $args): int
     {
