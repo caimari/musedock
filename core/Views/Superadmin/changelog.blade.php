@@ -13,6 +13,31 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.24.0 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.24.0 — Conmutación automática ante bloqueos de Cloudflare, visitantes únicos y cargas</h5></div><div class="card-body">
+            <p class="text-muted">17 de octubre de 2026</p>
+            <h6 class="text-primary"><i class="bi bi-shield-exclamation me-1"></i> Bloqueos de Cloudflare (LaLiga y caídas)</h6>
+            <ul class="mb-3">
+                <li>Nueva pantalla <strong>Ajustes → Bloqueos Cloudflare</strong>, de serie en el núcleo (no es un módulo). Unas <strong>sondas</strong> en conexiones reales (p. ej. una máquina en España con dos operadoras) prueban cada minuto si llegan a las IPs de Cloudflare de los dominios del CMS. Si una IP deja de responder y el servidor responde directo con certificado válido, se quita la nube naranja solo de los dominios afectados; cuando la IP lleva un rato estable, se vuelve a poner.</li>
+                <li>Reglas: solo toca lo que tenía el proxy; al volver, solo si el registro sigue como lo dejó (los cambios manuales se respetan); sin sondas no cambia nada; modos Apagado / Simulación / Automático; aviso por correo de cada paso. No es un escudo: ir sin proxy expone la IP del servidor, por eso dura lo que dura el bloqueo.</li>
+                <li>Las sondas resuelven el DNS desde su país: Cloudflare da IPs distintas según dónde se pregunte (en España, 188.114.96.5/.97.5 en vez de .2/.3), y se vigilan todas antes de volver a poner el proxy.</li>
+                <li>Configuración original editable por dominio (con contraseña) y consciente del bloqueo: pasar a «con proxy» durante un bloqueo lo deja pendiente hasta que acabe.</li>
+                <li>Inicio y fin de cada bloqueo por IP (por operadora), horas en hora local y UTC, estado en directo, registro y botón para vaciarlo.</li>
+                <li>API de sondas <code>/api/v1/edge-guard/{targets,report}</code> con token propio (solo se guarda su huella; no da acceso a nada más) y cliente de sonda descargable (Python 3 + curl, sin datos de la instalación). Guías públicas: <a href="/docs/escudo-bloqueos-cloudflare">bloqueos de Cloudflare</a> y <a href="/docs/conectar-sonda-cms-wireguard">conectar la sonda por WireGuard</a>.</li>
+            </ul>
+            <h6 class="text-primary"><i class="bi bi-people me-1"></i> Visitantes únicos y cargas de página</h6>
+            <ul class="mb-3">
+                <li>Analytics, Search Console (tarjeta de visitas del CMS), listado de páginas y listados del blog muestran <strong>visitantes únicos</strong> (personas distintas por día) y <strong>cargas de página</strong> (incluidas recargas), con un botón (i) que explica la diferencia.</li>
+                <li>El contador de vistas de cada entrada ya no suma robots.</li>
+            </ul>
+            <h6 class="text-primary"><i class="bi bi-wrench me-1"></i> Arreglos</h6>
+            <ul class="mb-0">
+                <li>Entradas traducidas (<code>/en/…</code>): el título SEO, la meta descripción y og:title salen en el idioma de la traducción.</li>
+                <li>Iconos del tema musedock con sintaxis de Font Awesome 5 (<code>far</code>/<code>fas</code>/<code>fab</code>) que salían como cuadrados en el blog y el panel de clientes.</li>
+                <li>Avisos (<code>.alert</code>) del panel de administración con fondo, borde de color y separación (la hoja base no los traía).</li>
+            </ul>
+        </div></div>
+
         <!-- v2.23.0 -->
         <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.23.0 — Search Console completo, caché HTML segura, URLs por idioma y cuentas DNS</h5></div><div class="card-body">
             <p class="text-muted">16 de octubre de 2026</p>
