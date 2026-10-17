@@ -177,8 +177,23 @@ final class Endpoint
     private function callTool(Tools $tools,array $auth,array $params): array
     {
         if (!is_string($params['name']??null) || !is_array($params['arguments']??[])) throw new \RuntimeException('Argumentos no válidos.');
-        try { $result=$tools->call($params['name'],$auth,$params['arguments']??[]); $encoded=Store::json($result); if (strlen($encoded)>1000000) throw new \RuntimeException('Respuesta demasiado grande; reduce el límite de resultados.'); return ['content'=>[['type'=>'text','text'=>$encoded]],'isError'=>false]; }
-        catch (\Throwable $e) { return ['content'=>[['type'=>'text','text'=>$e instanceof \PDOException?'Contenido o plugin no disponible.':$e->getMessage()]],'isError'=>true]; }
+        try {
+            $result=$tools->call($params['name'],$auth,$params['arguments']??[]);
+            $encoded=Store::json($result);
+            if (strlen($encoded)>1000000) throw new \RuntimeException('Respuesta demasiado grande; reduce el límite de resultados.');
+            $response=['content'=>[['type'=>'text','text'=>$encoded]],'isError'=>false];
+            // Keep the existing text JSON, and also expose an object for clients
+            // that consume MCP structured results instead of parsing text blocks.
+            $response['structuredContent']=is_array($result) && !array_is_list($result)?$result:['items'=>$result];
+            if (in_array($params['name'],['get_post','get_post_details'],true)) {
+                $this->store->event($auth['resource']['id'],'post.content.served',(int)$auth['grant']['actor'],['client'=>$auth['client']['id'],'tool'=>$params['name'],'post_id'=>$result['id']??null,'content_bytes'=>strlen($result['content']??''),'content_hash'=>hash('sha256',$result['content']??'')]);
+            }
+            return $response;
+        } catch (\Throwable $e) {
+            $message=$e instanceof \PDOException?'Contenido o plugin no disponible.':$e->getMessage();
+            $this->store->event($auth['resource']['id'],'tool.failed',(int)$auth['grant']['actor'],['client'=>$auth['client']['id'],'tool'=>substr($params['name'],0,100),'error'=>mb_substr($message,0,500)]);
+            return ['content'=>[['type'=>'text','text'=>$message]],'isError'=>true];
+        }
     }
     private function json(int $status,$data): void
     {

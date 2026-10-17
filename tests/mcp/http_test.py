@@ -61,6 +61,10 @@ with tempfile.TemporaryDirectory(prefix='cms-mcp-http-') as directory:
         def rpc(method,args=None):return request('/mcp','POST',json.dumps({'jsonrpc':'2.0','id':1,'method':method,'params':args or {}}),auth)
         status,_,body=rpc('initialize',{'protocolVersion':'2025-11-25'});check(status==200 and json.loads(body)['result']['serverInfo']['name'].startswith('MuseDock CMS'),'MCP initialize')
         status,_,body=rpc('tools/list');catalog=json.loads(body)['result']['tools'];check('create_draft' in [t['name'] for t in catalog],'authorized explicit tools')
+        for tool in ['get_post','get_post_details']:
+            status,_,body=rpc('tools/call',{'name':tool,'arguments':{'post_id':1}})
+            result=json.loads(body)['result'];text_post=json.loads(result['content'][0]['text'])
+            check(status==200 and not result['isError'] and result['structuredContent']['content']==text_post['content'] and len(text_post['content'])>0,'HTTP full post is identical in structured and text responses')
         status,_,body=rpc('tools/call',{'name':'get_post','arguments':{'post_id':3}});check(json.loads(body)['result']['isError'],'HTTP foreign post denied')
         status,_,body=rpc('tools/call',{'name':'create_draft','arguments':{'title':'HTTP borrador','content':'Texto sin IA','apply':True}});check('pending_approval' in body,'HTTP write only creates approval request')
         pending=json.loads(json.loads(body)['result']['content'][0]['text'])
