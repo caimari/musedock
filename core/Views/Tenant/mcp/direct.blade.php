@@ -91,6 +91,9 @@
   <p>Conecta un asistente para gestionar el blog con los permisos que autorices en <strong>{{ $resource['name'] }}</strong>.</p>
   @if($error)<div class="alert alert-danger">{{ $error }}</div>@endif
   <p class="small text-muted">Servicio global: <strong>{{ $deploymentEnabled ? 'Activo' : 'Desactivado' }}</strong> · Esta conexión: <strong>{{ $resource['enabled'] ? 'Habilitada' : 'Desactivada' }}</strong>. Cada acceso conserva sus propios grupos, dominios y permisos.</p>
+  @if(!$resource['enabled'])
+    <div class="alert alert-warning" role="status"><strong>Esta conexión está desactivada: el proveedor no podrá detectar OAuth.</strong> Abre «Servicio y sitios», marca «Habilitar esta conexión» y guarda antes de conectarla en ChatGPT u otro asistente. Crear credenciales no habilita la conexión.</div>
+  @endif
   <nav class="nav nav-pills gap-2 mb-3" aria-label="Secciones de esta conexión">
     <button type="button" class="nav-link active" data-mcp-tab="access" aria-pressed="true">Accesos ({{ count($clients) }})</button>
     <button type="button" class="nav-link" data-mcp-tab="connection" aria-pressed="false">Servicio y sitios</button>
@@ -170,6 +173,18 @@
     <h2 class="h5">Credenciales nuevas</h2><p>Cópialas ahora. El secreto se muestra una sola vez.</p>
     <label for="client-id">ID del cliente</label><div class="input-group mb-2"><input id="client-id" readonly class="form-control" value="{{ $newClient['id'] }}"><button type="button" class="btn btn-outline-primary" data-copy="client-id">Copiar</button></div>
     <label for="client-secret">Secreto</label><div class="input-group mb-2"><input type="password" id="client-secret" readonly autocomplete="off" class="form-control" value="{{ $newClient['secret'] }}"><button type="button" class="btn btn-outline-secondary" id="show-secret">Mostrar/ocultar</button><button type="button" class="btn btn-outline-primary" data-copy="client-secret">Copiar</button></div>
+    <div class="border rounded p-3 mb-3">
+      <h3 class="h6">Dónde pegar estas credenciales en ChatGPT</h3>
+      <ul class="mb-2">
+        <li><strong>URL del servidor:</strong> <code>{{ $resource['url'] }}</code>.</li>
+        <li><strong>Autenticación:</strong> OAuth. En «Método de registro», elige «Cliente OAuth definido por el usuario».</li>
+        <li><strong>ID de cliente de OAuth:</strong> pega el «ID del cliente» de arriba.</li>
+        <li><strong>Secreto del cliente OAuth:</strong> pega el «Secreto» de arriba.</li>
+        <li><strong>Método de autenticación en el punto de acceso de tokens:</strong> selecciona <code>client_secret_basic</code> (Basic).</li>
+        <li><strong>URL de devolución de la llamada:</strong> la proporciona ChatGPT. Debe coincidir exactamente con el callback del acceso en MuseDock; no es la URL del servidor MCP.</li>
+      </ul>
+      <p class="small mb-0">Si ChatGPT muestra un callback distinto al predefinido, al crear el acceso elige «Personalizado» y pega esa URL HTTPS completa. El secreto no es tu contraseña de MuseDock ni una API key de OpenAI.</p>
+    </div>
     <button type="button" class="btn btn-success" id="dismiss-credentials">Ya las he guardado</button>
   </div></div>
   @endif
@@ -183,6 +198,7 @@
       <label for="mcp-provider" class="form-label">Asistente</label>
       <select id="mcp-provider" name="provider" class="form-select mb-2"><option value="chatgpt">ChatGPT — dirección de retorno automática</option><option value="claude">Claude — dirección de retorno automática</option><option value="custom">Personalizado — otro asistente o callback distinto</option></select>
       <label for="mcp-callback" class="form-label">Dirección de retorno OAuth (callback)</label><input id="mcp-callback" name="callback" type="url" class="form-control mb-2" readonly maxlength="500" value="https://chatgpt.com/connector_platform_oauth_redirect" placeholder="Pega la URL HTTPS exacta del asistente">
+      <p class="small text-muted">Comprueba la «URL de devolución de la llamada» que muestra ChatGPT. Si no coincide con la automática, selecciona «Personalizado» y pega aquí la URL exacta antes de crear el acceso. En ChatGPT usa OAuth, cliente definido por el usuario y <code>client_secret_basic</code> en el selector de autenticación del token.</p>
       <p class="small text-muted mb-3">Es la dirección del asistente a la que volverás después de autorizar el acceso en este CMS. ChatGPT y Claude se rellenan automáticamente. Si el asistente muestra otra URL, elige Personalizado y copia esa dirección exacta; en ese modo no puede quedar vacía. Cada asistente necesita sus propias credenciales.</p>
       <fieldset class="mb-3"><legend class="h6">Permisos de este acceso</legend>
       <div class="d-flex flex-wrap gap-2 mb-2"><button type="button" class="btn btn-sm btn-outline-secondary" data-mcp-permission-preset="read">Solo lectura</button><button type="button" class="btn btn-sm btn-outline-secondary" data-mcp-permission-preset="all">Todos los disponibles</button></div><p class="small text-muted">La selección solo se aplica al crear este acceso; el servicio mantiene sus límites y sitios autorizados.</p>
