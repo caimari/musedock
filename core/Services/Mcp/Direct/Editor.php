@@ -250,7 +250,13 @@ final class Editor
                 if (!$source || isset($f['slug'])) {
                     $db->prepare("DELETE FROM slugs WHERE module='blog' AND reference_id=?")->execute([$id]);
                     $key=$this->quote('key'); $prefix=$site?($this->q("SELECT value FROM tenant_settings WHERE tenant_id=? AND {$key}=?",[$site,'blog_url_prefix'])[0]['value']??'blog'):(function_exists('setting')?setting('blog_url_prefix','blog'):'blog');
+                    $prefix=($f['post_type']??$source['post_type']??'post')==='docs'?'docs':$prefix;
                     $this->insert('slugs',['module'=>'blog','reference_id'=>$id,'slug'=>$f['slug']??$source['slug'],'tenant_id'=>$site?:null,'prefix'=>$prefix?:null]);
+                }
+                if ($source && !isset($f['slug']) && isset($f['post_type']) && $f['post_type']!==($source['post_type']??'post')) {
+                    $key=$this->quote('key');
+                    $prefix=$f['post_type']==='docs'?'docs':($site?($this->q("SELECT value FROM tenant_settings WHERE tenant_id=? AND {$key}=?",[$site,'blog_url_prefix'])[0]['value']??'blog'):(function_exists('setting')?setting('blog_url_prefix','blog'):'blog'));
+                    $db->prepare("UPDATE slugs SET prefix=? WHERE module='blog' AND reference_id=?")->execute([$prefix?:null,$id]);
                 }
                 $resolved=(new Taxonomy($this->content))->resolve($site,$plan['taxonomy'],$auth);
                 foreach ($resolved as $key=>$ids) {

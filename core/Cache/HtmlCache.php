@@ -490,7 +490,8 @@ class HtmlCache
         if (!self::isEnabled()) return;
 
         $slug = $postData['slug'] ?? '';
-        $prefix = self::getTenantBlogPrefix($tenantId);
+        $prefix = ($postData['post_type'] ?? 'post') === 'docs' ? 'docs' : self::getTenantBlogPrefix($tenantId);
+        if ($prefix === 'docs') self::invalidate('/docs', $tenantId);
         $status = $postData['status'] ?? 'published';
 
         // Build the post URL
