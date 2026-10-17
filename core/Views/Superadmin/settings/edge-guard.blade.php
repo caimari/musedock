@@ -45,6 +45,11 @@
               <label class="form-label fw-semibold" for="eg-excluded">Nunca tocar estos dominios</label>
               <textarea class="form-control" id="eg-excluded" name="excluded" rows="3" placeholder="uno por línea (incluye sus subdominios)">{{ $excluded }}</textarea>
             </div>
+            <div class="col-md-8">
+              <label class="form-label fw-semibold" for="eg-notify">Enviar los avisos a</label>
+              <input type="text" class="form-control" id="eg-notify" name="notify_to" value="{{ $notifyTo }}" placeholder="vacío = los superadmins · varias direcciones separadas por comas">
+              <div class="form-text">Correo de cada cambio (proxy quitado o restaurado) y del principio y fin de cada bloqueo.</div>
+            </div>
           </div>
           <button class="btn btn-primary btn-sm mt-3" type="submit"><i class="bi bi-check2 me-1"></i> Guardar</button>
         </form>

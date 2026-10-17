@@ -84,7 +84,11 @@ if ($lines) {
     }
     $html .= '<p>Detalle e historial: Ajustes → Bloqueos Cloudflare.</p>';
     try {
-        $emails = $pdo->query("SELECT email FROM super_admins WHERE email IS NOT NULL AND email <> ''")->fetchAll(PDO::FETCH_COLUMN);
+        // Destinatarios: los de «Enviar los avisos a» en la pantalla; si no hay, los superadmins
+        $emails = array_values(array_filter(array_map('trim', explode(',', (string) $guard->setting('notify_to', '')))));
+        if (!$emails) {
+            $emails = $pdo->query("SELECT email FROM super_admins WHERE email IS NOT NULL AND email <> ''")->fetchAll(PDO::FETCH_COLUMN);
+        }
         ob_start(); // el Mailer escribe el diálogo SMTP por pantalla: fuera del log
         foreach ($emails as $to) {
             \Screenart\Musedock\Mail\Mailer::send($to, $subject, $html, implode("\n", $lines), null, 'MuseDock Avisos');
