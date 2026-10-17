@@ -28,6 +28,6 @@ final class ApprovalQueue
             unset($GLOBALS['mcp_request_id']);
             $count++;
         }
-        return $count;
+        return $count+(new ArticleWorkflow($this->store,$this->content))->run();
     }
 }

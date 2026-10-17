@@ -57,3 +57,33 @@ Las publicaciones programadas se muestran en la pantalla y se pueden cancelar al
 Suite con 139 comprobaciones en fixtures SQLite, MariaDB y PostgreSQL; 38 comprobaciones HTTP OAuth/MCP con aprobación remota, protección de transporte y acceso a artículos privados/protegidos; concurrencia de códigos OAuth; render Blade y escapes. Prueba adicional en una copia íntegra del backup PostgreSQL de producción, restaurada en una instancia temporal sin TCP: editor completo, publicación, taxonomías, comentarios, traducciones, programación y migración idempotente. No se escriben datos reales.
 
 La subida prueba validación, ámbito, aprobación y contexto contra un adaptador de persistencia de medios de prueba. No se llama a proveedores reales de imágenes, no se certifica la salida de cada modelo, ni se verifica una cuenta real de ChatGPT/Claude. La configuración de cada proveedor y el callback real se comprueban al conectar.
+
+### Flujo persistente de portada y publicación
+
+`publish_article_with_image` coordina los servicios existentes de medios y edición
+mediante el mismo procesador `cli/cron-mcp-approvals.php`. No sustituye las herramientas
+individuales. Requiere un artículo existente, permisos de medios, edición y publicación,
+el recurso habilitado para publicar y ambas preferencias de aprobación automática del acceso.
+
+Ejemplo de inicio (no realiza llamadas al proveedor con `apply=false`):
+
+```json
+{"site_id":28,"post_id":7332,"prompt":"Portada editorial de tecnología, estilo fotográfico","size":"1280x720","quality":"standard","apply":true}
+```
+
+Consulta con la misma herramienta y `action:"status"`, `site_id` y `post_id`.
+`status=completed` devuelve `media_id` y `public_url` tras comprobar la publicación.
+`action:"resume", apply:true` reanuda un fallo desde la etapa guardada. No crea otra
+operación para ese artículo y acceso, aunque cambie la sesión OAuth o el prompt de
+una consulta repetida. La consulta puede hacerse desde otra sesión del mismo acceso
+que conserve autorización al sitio; otro cliente no comparte el trabajo.
+
+Los estados se guardan en la base privada MCP. Si el proveedor quedó interrumpido
+sin medio confirmado, no se vuelve a llamar automáticamente. Tras comprobar la
+biblioteca, se puede reanudar indicando el `media_id` existente del mismo sitio.
+No es posible prometer una repetición sin cargos cuando el proveedor no confirma
+si terminó: en ese caso se requiere recuperación del medio, no otra generación.
+
+El flujo usa el proveedor, validación de tamaños y cuotas del sitio, y añade al prompt
+la instrucción de no incluir texto, letras, números, logotipos ni marcas de agua.
+Esta instrucción no constituye verificación visual automática de la imagen.
