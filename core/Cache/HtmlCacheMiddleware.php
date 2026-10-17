@@ -116,6 +116,12 @@ class HtmlCacheMiddleware
             }
 
             // CACHE HIT — serve directly and exit
+            // Analítica: la visita se registra después de entregar la página (si no, las
+            // servidas desde caché no contaban en ningún sitio). La cookie de visitante,
+            // antes de enviar nada.
+            require_once dirname(__DIR__) . '/Analytics/RequestTracker.php';
+            $trackVisit = \Screenart\Musedock\Analytics\RequestTracker::shouldTrack();
+            $visitorId = $trackVisit ? \Screenart\Musedock\Analytics\RequestTracker::visitorId() : null;
             $size = filesize($cachePath);
             http_response_code(200);
             header('Content-Type: text/html; charset=UTF-8');
@@ -124,6 +130,9 @@ class HtmlCacheMiddleware
             header('X-Cache-Date: ' . gmdate('D, d M Y H:i:s', filemtime($cachePath)) . ' GMT');
 
             readfile($cachePath);
+            if ($trackVisit) {
+                self::trackCachedVisit($tenantId, (string) $visitorId);
+            }
             exit; // No further PHP execution
         }
 
@@ -342,7 +351,33 @@ class HtmlCacheMiddleware
             ini_set('session.use_strict_mode', (string) $strict);
         }
 
+        self::$sessionData = $data;
+
         return !HtmlCache::isAnonymousSession($data);
+    }
+
+    /** Datos de sesión leídos (sin bloquear) al decidir si la visita es anónima. */
+    private static array $sessionData = [];
+
+    /**
+     * Registra en la analítica una visita servida desde caché, ya entregada la página
+     * (fastcgi_finish_request): no añade espera al visitante.
+     */
+    private static function trackCachedVisit(?int $tenantId, string $visitorId): void
+    {
+        if (function_exists('fastcgi_finish_request')) {
+            fastcgi_finish_request();
+        }
+        try {
+            require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
+            // Sesión de analítica: la de la sesión del visitante si existe; si no, una por visitante y día
+            $sessionId = (string) (self::$sessionData['_a_sid'] ?? hash('sha256', $visitorId . date('Y-m-d')));
+            $domain = (string) preg_replace('/^www\./', '', HtmlCache::requestHost());
+            \Screenart\Musedock\Analytics\RequestTracker::track($tenantId, $domain, substr($sessionId, 0, 64), $visitorId);
+            \Screenart\Musedock\Analytics\RequestTracker::countBlogView($tenantId, $_SERVER['REQUEST_URI'] ?? '/');
+        } catch (\Throwable $e) {
+            error_log('HtmlCache analytics: ' . $e->getMessage());
+        }
     }
 
     /**

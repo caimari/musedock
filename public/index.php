@@ -336,80 +336,17 @@ require_once __DIR__ . '/../routes/tenant.php';
 require_once __DIR__ . '/../routes/web.php';
 Logger::debug("Archivos de rutas cargados.");
 
-// 4. Analytics Middleware (tracking de visitas públicas)
+// 4. Analytics Middleware (tracking de visitas públicas): ver core/Analytics/RequestTracker.php
+// (la caché HTML usa la misma clase para las páginas que sirve sin pasar por aquí)
 try {
-    $__uri = strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
-    $__method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-    $__skip_prefixes = ['/musedock/', '/admin/', '/api/', '/assets/', '/vendor/', '/uploads/', '/media/', '/oauth/', '/.well-known/'];
-    $__skip_ext = ['.css','.js','.jpg','.jpeg','.png','.gif','.svg','.webp','.ico','.woff','.woff2','.ttf','.pdf','.zip','.xml','.json','.php','.php7','.env','.log','.yml'];
-    $__attack = ['/.env','/.git','/wp-','/phpmyadmin','/xmlrpc','/shell','/webshell','/passwd','/setup-config'];
-    $__should_skip = false;
-    if ($__method !== 'GET' || MUSEDOCK_STATELESS_REQUEST) $__should_skip = true;
-    foreach ($__skip_prefixes as $p) { if (str_starts_with($__uri, $p)) { $__should_skip = true; break; } }
-    if (!$__should_skip) foreach ($__skip_ext as $e) { if (str_ends_with($__uri, $e)) { $__should_skip = true; break; } }
-    if (!$__should_skip) foreach ($__attack as $a) { if (stripos($__uri, $a) !== false) { $__should_skip = true; break; } }
-    if (!$__should_skip) {
-        $__ua = strtolower($_SERVER['HTTP_USER_AGENT'] ?? '');
-        $__bots = ['bot','crawl','spider','slurp','googlebot','bingbot','yandex','baidu','facebookexternalhit'];
-        foreach ($__bots as $b) { if (strpos($__ua, $b) !== false) { $__should_skip = true; break; } }
-    }
-    if (!$__should_skip) {
-        // Detectar tenant desde $GLOBALS['tenant'] (ya resuelto por TenantResolver)
-        $__tenant_id = isset($GLOBALS['tenant']['id']) ? (int)$GLOBALS['tenant']['id'] : null;
-        // Session/visitor IDs
+    if (\Screenart\Musedock\Analytics\RequestTracker::shouldTrack()) {
         if (session_status() === PHP_SESSION_NONE) { try { session_start(); } catch (\Throwable $__e) {} }
         if (!isset($_SESSION['_a_sid'])) $_SESSION['_a_sid'] = bin2hex(random_bytes(16));
-        $__vid = $_COOKIE['_musedock_vid'] ?? null;
-        if (!$__vid) {
-            $__vid = bin2hex(random_bytes(16));
-            @setcookie('_musedock_vid', $__vid, ['expires'=>time()+63072000,'path'=>'/','secure'=>true,'httponly'=>true,'samesite'=>'Lax']);
-        }
-        // Referrer
-        $__ref = $_SERVER['HTTP_REFERER'] ?? null;
-        $__ref_type = 'direct';
-        $__ref_domain = null;
-        if ($__ref) {
-            $__ref_domain = parse_url($__ref, PHP_URL_HOST);
-            // Si el referrer es del mismo dominio del tenant, es navegación interna
-            $__tenant_domain = $GLOBALS['tenant']['domain'] ?? null;
-            if ($__ref_domain && $__tenant_domain && (strcasecmp($__ref_domain, $__tenant_domain) === 0 || strcasecmp($__ref_domain, 'www.' . $__tenant_domain) === 0)) {
-                $__ref_type = 'internal';
-            } else {
-                $__ref_type = 'referral';
-                foreach (['google','bing','yahoo','duckduckgo','baidu','yandex'] as $__se) {
-                    if ($__ref_domain && stripos($__ref_domain, $__se) !== false) { $__ref_type = 'search'; break; }
-                }
-                foreach (['facebook.com','twitter.com','x.com','instagram.com','linkedin.com','tiktok.com'] as $__sn) {
-                    if ($__ref_domain && stripos($__ref_domain, $__sn) !== false) { $__ref_type = 'social'; break; }
-                }
-            }
-        }
-        // Device/browser
-        $__ua_raw = $_SERVER['HTTP_USER_AGENT'] ?? null;
-        $__ua_l = strtolower($__ua_raw ?? '');
-        $__browser = 'Unknown';
-        if (stripos($__ua_raw, 'Edge') !== false) $__browser = 'Edge';
-        elseif (stripos($__ua_raw, 'Chrome') !== false) $__browser = 'Chrome';
-        elseif (stripos($__ua_raw, 'Safari') !== false) $__browser = 'Safari';
-        elseif (stripos($__ua_raw, 'Firefox') !== false) $__browser = 'Firefox';
-        $__os = 'Unknown';
-        if (stripos($__ua_raw, 'Windows') !== false) $__os = 'Windows';
-        elseif (stripos($__ua_raw, 'Mac OS X') !== false) $__os = 'macOS';
-        elseif (stripos($__ua_raw, 'Android') !== false) $__os = 'Android';
-        elseif (stripos($__ua_raw, 'iPhone') !== false || stripos($__ua_raw, 'iPad') !== false) $__os = 'iOS';
-        elseif (stripos($__ua_raw, 'Linux') !== false) $__os = 'Linux';
-        $__device = preg_match('/(ipad|tablet)/i', $__ua_raw ?? '') ? 'tablet' : (preg_match('/(android|iphone|mobile)/i', $__ua_raw ?? '') ? 'mobile' : 'desktop');
-        // IP hash
-        $__ip = \Screenart\Musedock\Security\IPHelper::getRealIP(); // Auditoría 2026-10-05: IP real solo vía IPHelper (cabeceras de proxy únicamente desde Cloudflare/proxies de confianza)
-        $__ip_hash = hash('sha256', trim($__ip) . date('Y-m-d'));
-        // INSERT
-        try {
-            $__db = \Screenart\Musedock\Database::connect();
-            $__ins = $__db->prepare("INSERT INTO web_analytics (tenant_id, session_id, visitor_id, ip_hash, page_url, referrer, referrer_domain, referrer_type, user_agent, device_type, browser, os, language, is_bot, is_returning, tracking_enabled, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,false,false,true,NOW())");
-            $__ins->execute([$__tenant_id, $_SESSION['_a_sid'], $__vid, $__ip_hash, $_SERVER['REQUEST_URI'] ?? '/', $__ref, $__ref_domain, $__ref_type, $__ua_raw, $__device, $__browser, $__os, $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? null]);
-        } catch (\Throwable $__e) {
-            Logger::error("Analytics INSERT error: " . $__e->getMessage());
-        }
+        \Screenart\Musedock\Analytics\RequestTracker::track(
+            isset($GLOBALS['tenant']['id']) ? (int) $GLOBALS['tenant']['id'] : null,
+            $GLOBALS['tenant']['domain'] ?? null,
+            (string) $_SESSION['_a_sid']
+        );
     }
 } catch (\Throwable $e) {
     Logger::error("AnalyticsMiddleware error: " . $e->getMessage());
