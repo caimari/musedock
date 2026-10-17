@@ -108,6 +108,8 @@
     <button type="button" class="nav-link" data-mcp-tab="help" aria-pressed="false">Ayuda</button>
   </nav>
   <section data-mcp-panel="connection">
+  <p class="small text-muted">Los accesos habilitados pueden recibir autorización OAuth. Revocar un consentimiento desconecta esa autorización; «Revocar cliente» deshabilita el acceso y lo mueve al historial. Renovar el secreto conserva el acceso.</p>
+
   @if(!empty($canManageDeployment))
   <div class="card mb-3"><div class="card-body">
     <h2 class="h5">Servicio global MCP</h2>
@@ -119,6 +121,11 @@
     </form>
   </div></div>
   @endif
+  <div class="border rounded p-3 mb-3">
+    <strong>Cómo se combinan los permisos</strong>
+    <p class="mb-1">Estos interruptores son los límites de toda la conexión. Los permisos y la aprobación automática de cada acceso solo funcionan dentro de esos límites.</p>
+    <ul class="small mb-0"><li>«Permitir solicitudes de cambios» debe estar activo para escribir, incluso con aprobación automática.</li><li>«Permitir publicar» debe estar activo para publicar o programar, además del permiso del acceso.</li><li>«Permitir aprobar solicitudes desde MCP» permite al asistente aprobar explícitamente una solicitud. No es necesario para las aprobaciones automáticas configuradas por acceso.</li><li>El requisito de portada sigue bloqueando publicaciones sin imagen aunque exista aprobación automática.</li></ul>
+  </div>
   @if(!$deploymentEnabled)<div class="mcp-activation-notice" role="status"><strong>El servicio global MCP está desactivado.</strong><span>Habilitar esta conexión guarda sus ajustes, pero no activa el servicio global. El administrador principal debe activarlo en esta página.</span></div>@endif
   @if(!$pluginInstalled)<div class="alert alert-warning">Este plugin debe estar instalado y activo para abrir su conexión MCP.</div>@endif
   <div class="card mb-3"><div class="card-body">
@@ -228,6 +235,13 @@
         @endif
       </fieldset>
       @endif
+        <div class="border rounded p-3 mb-3">
+          <h3 class="h6">Aprobación automática de este acceso</h3>
+          <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_posts" > Aprobar automáticamente artículos, publicación, programación y asignación de portada</label>
+          <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_images" > Aprobar automáticamente generaciones de imágenes</label>
+          <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_taxonomy" > Aprobar automáticamente creación y edición de categorías y etiquetas</label>
+          <p class="small text-muted mb-0">Solo para este acceso y sus sitios autorizados. Se mantienen permisos, cuotas y requisito de portada. Generar imágenes puede consumir saldo. Se aplica a nuevas solicitudes; las pendientes conservan su aprobación manual.</p>
+        </div>
       <details class="mt-3"><summary>Redes permitidas (opcional)</summary><label class="form-label">IPs o CIDR de salida fiables del cliente</label><textarea name="networks" class="form-control" rows="3"></textarea><p class="small text-muted">Por defecto, déjalo vacío: se exige OAuth válido desde cualquier IP. No desactiva el firewall ni abre puertos nuevos; esta conexión utiliza el HTTPS de tu web (443). Rellénalo únicamente si conoces las IPs o rangos de salida del asistente: una lista incorrecta impedirá conectar. Se aplica a MCP y al intercambio de tokens, no al consentimiento del navegador.</p></details>
       <button class="btn btn-primary mt-3" {{ $isPluginConnection && !count($clientSites) ? 'disabled' : '' }}>Crear credenciales del asistente</button>
     </form>
@@ -236,6 +250,8 @@
     @if($isPluginConnection)<p class="text-muted">Puedes crear varios accesos independientes con esta misma URL: por ejemplo, «ChatGPT · Grupo A» y «Claude · Grupo B». Selecciona los grupos y dominios de cada cliente al crearlo; sus credenciales solo permiten acceder a esa selección.</p>@endif
     @forelse($clients as $client)
     <div class="border rounded p-3 mb-3"><h3 class="h6">{{ $client['name'] }} — {{ $client['enabled'] ? 'Habilitado' : 'Revocado' }}</h3><p class="small">ID: <code>{{ $client['id'] }}</code><br>Callback: {{ $client['callback'] }}</p>
+      @php($hasClientConsent = count(array_filter($grants, fn($grant) => $grant['client'] === $client['id'] && !empty($grant['active']))) > 0)
+      <p class="small text-muted">OAuth: {{ $hasClientConsent ? 'Con consentimiento registrado; sujeto a permisos vigentes' : 'Sin consentimiento activo: todavía no está conectado' }}</p>
       @if($isPluginConnection)
       <p class="small"><strong>Grupos:</strong>
         @foreach(($client['groups'] ?? []) as $groupId)<span class="badge bg-light text-dark">{{ $groupNames[(int)$groupId] ?? 'Grupo no disponible' }}</span> @endforeach
