@@ -277,6 +277,13 @@ Route::post('/musedock/settings/edge-guard/inventory', 'superadmin.EdgeGuardCont
 Route::get('/musedock/settings/edge-guard/probe.py', 'superadmin.EdgeGuardController@downloadProbe')->name('settings.edge-guard.probe.download')->middleware('superadmin');
 Route::post('/musedock/settings/edge-guard/original', 'superadmin.EdgeGuardController@setOriginal')->name('settings.edge-guard.original')->middleware('superadmin');
 Route::post('/musedock/settings/edge-guard/clear-log', 'superadmin.EdgeGuardController@clearLog')->name('settings.edge-guard.clear-log')->middleware('superadmin');
+// Ajustes → Avisos (destinatarios, idioma y tipos de aviso de la plataforma)
+Route::get('/musedock/settings/notifications', 'superadmin.NotificationSettingsController@index')->name('settings.notifications')->middleware('superadmin');
+Route::post('/musedock/settings/notifications/recipient/add', 'superadmin.NotificationSettingsController@addRecipient')->name('settings.notifications.recipient.add')->middleware('superadmin');
+Route::post('/musedock/settings/notifications/recipient', 'superadmin.NotificationSettingsController@updateRecipient')->name('settings.notifications.recipient')->middleware('superadmin');
+Route::post('/musedock/settings/notifications/types', 'superadmin.NotificationSettingsController@saveTypes')->name('settings.notifications.types')->middleware('superadmin');
+Route::post('/musedock/settings/notifications/test', 'superadmin.NotificationSettingsController@test')->name('settings.notifications.test')->middleware('superadmin');
+Route::post('/musedock/profile/update-locale', 'superadmin.ProfileController@updateLocale')->middleware('superadmin')->name('profile.update-locale');
 
 Route::get('/musedock/settings/email', 'superadmin.SettingsController@email')->name('settings.email')->middleware('superadmin');
 Route::post('/musedock/settings/email', 'superadmin.SettingsController@updateEmail')->name('settings.email.update')->middleware('superadmin');

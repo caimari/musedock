@@ -96,6 +96,30 @@
           </div>
         </div>
 
+        @if(($userType ?? '') === 'super_admin' && !empty($noticeLocale))
+        {{-- Idioma de los avisos --}}
+        <div class="card mb-3">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Idioma de los avisos</h5>
+          </div>
+          <div class="card-body">
+            <form method="POST" action="/musedock/profile/update-locale">
+              @csrf
+              <div class="mb-3">
+                <label for="notice-locale" class="form-label">Recibir los avisos de la plataforma en</label>
+                <select class="form-select" id="notice-locale" name="locale">
+                  @foreach($noticeLocales as $lc => $ln)<option value="{{ $lc }}" @selected($noticeLocale === $lc)>{{ $ln }}</option>@endforeach
+                </select>
+                <small class="text-muted">Bloqueos de Cloudflare, dominios a punto de caducar, ataques… Se usa cuando los avisos van a los superadmins; si hay destinatarios propios en <a href="/musedock/settings/notifications">Ajustes → Avisos</a>, manda el idioma de cada uno.</small>
+              </div>
+              <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary">Guardar idioma</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        @endif
+
         {{-- Cambiar Email --}}
         <div class="card mb-3">
           <div class="card-header">

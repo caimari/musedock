@@ -74,19 +74,23 @@ if (!$onlyProperty) {
     }
     $due = $expiry->dueAlerts();
     if ($due) {
-        $emails = $pdo->query("SELECT email FROM super_admins WHERE email IS NOT NULL AND email <> ''")->fetchAll(PDO::FETCH_COLUMN);
-        $rows = '';
-        foreach ($due as $r) {
-            $when = in_array($r['status'], ['redemption', 'pending_delete', 'expired'], true)
-                ? '<strong style="color:#c62828">YA CADUCADO (' . htmlspecialchars($r['status']) . ') — se puede recuperar solo pagando redención, y poco tiempo</strong>'
-                : 'caduca el ' . htmlspecialchars((string) $r['expires_at']) . ' (' . $r['days'] . ' días)';
-            $rows .= '<li><strong>' . htmlspecialchars($r['domain']) . '</strong> — ' . $when . ' · ' . htmlspecialchars(implode(', ', $r['tenants'])) . '</li>';
+        // A quién y en qué idioma: Ajustes → Avisos («Caducidad de dominios»)
+        $esc = fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+        $msg = [];
+        foreach (['es', 'en'] as $lang) {
+            $en = $lang === 'en';
+            $rows = '';
+            foreach ($due as $r) {
+                $when = in_array($r['status'], ['redemption', 'pending_delete', 'expired'], true)
+                    ? '<strong style="color:#c62828">' . ($en ? 'ALREADY EXPIRED (' . $esc($r['status']) . ') — it can only be recovered by paying a redemption fee, and only for a short time' : 'YA CADUCADO (' . $esc($r['status']) . ') — se puede recuperar solo pagando redención, y poco tiempo') . '</strong>'
+                    : ($en ? 'expires on ' . $esc($r['expires_at']) . ' (' . $r['days'] . ' days)' : 'caduca el ' . $esc($r['expires_at']) . ' (' . $r['days'] . ' días)');
+                $rows .= '<li><strong>' . $esc($r['domain']) . '</strong> — ' . $when . ' · ' . $esc(implode(', ', $r['tenants'])) . '</li>';
+            }
+            $msg[$lang] = $en
+                ? ['subject' => '⚠ Domains about to expire (' . count($due) . ')', 'html' => '<p>These domains of your sites are about to expire or have already expired:</p><ul>' . $rows . '</ul><p>Renew them with your registrar. If a domain fully expires, its SEO cannot be redirected. More details in Settings → Search Console → «Domain expiry».</p>']
+                : ['subject' => '⚠ Dominios a punto de caducar (' . count($due) . ')', 'html' => '<p>Estos dominios de tus sitios están a punto de caducar o ya han caducado:</p><ul>' . $rows . '</ul><p>Renuévalos en tu registrador. Si un dominio caduca del todo, su SEO no se puede redirigir. Más detalle en Ajustes → Search Console → «Caducidad de dominios».</p>'];
         }
-        $html = '<p>Estos dominios de tus sitios están a punto de caducar o ya han caducado:</p><ul>' . $rows . '</ul><p>Renuévalos en tu registrador. Si un dominio caduca del todo, su SEO no se puede redirigir. Más detalle en Ajustes → Search Console → «Caducidad de dominios».</p>';
-        $sent = false;
-        foreach ($emails as $to) {
-            $sent = \Screenart\Musedock\Mail\Mailer::send($to, '⚠ Dominios a punto de caducar (' . count($due) . ')', $html) || $sent;
-        }
+        $sent = \Screenart\Musedock\Services\Notifications\NotificationCenter::send('domain_expiry', $msg) > 0;
         if ($sent) {
             foreach ($due as $r) {
                 $expiry->markAlerted($r['domain'], (int) $r['level']);
@@ -119,8 +123,16 @@ if (!$onlyProperty && !$loadHigh && $syncQueue->isStale()) {
 if (!$onlyProperty && !$loadHigh) {
     $drops = new DropAlertService($pdo);
     if ($drops->due()) {
-        $emails = $pdo->query("SELECT email FROM super_admins WHERE email IS NOT NULL AND email <> ''")->fetchAll(PDO::FETCH_COLUMN);
-        $r = $drops->run($props, static fn ($to, $subject, $html) => \Screenart\Musedock\Mail\Mailer::send($to, $subject, $html), $emails);
+        // Un solo envío a través de Ajustes → Avisos («Caídas de SEO»), que decide a quién y en qué idioma
+        $r = $drops->run($props, static function ($to, $subject, $html) {
+            $en = strtr($html, [
+                'El SEO de estos dominios ha caído de forma relevante en Google:' => 'The SEO of these domains has dropped significantly in Google (details in Spanish):',
+                'Mira el informe del dominio en Ajustes → Search Console para ver las consultas y páginas afectadas. Puede ser una caída real o estacional; compara con el mismo periodo del año anterior si tienes histórico.' => 'Check the domain report in Settings → Search Console to see the affected queries and pages. It may be a real or a seasonal drop; compare with the same period last year if you have history.',
+            ]);
+            $subjectEn = preg_replace('/^⚠ Caída de SEO en (\d+) dominio\(s\)$/u', '⚠ SEO drop in $1 domain(s)', $subject);
+
+            return \Screenart\Musedock\Services\Notifications\NotificationCenter::send('seo_drops', ['es' => ['subject' => $subject, 'html' => $html], 'en' => ['subject' => $subjectEn, 'html' => $en]]) > 0;
+        }, ['avisos']);
         $log("caídas de SEO: {$r['checked']} dominios revisados · {$r['alerts']} avisos" . ($r['alerts'] ? ($r['sent'] ? ' (correo enviado)' : ' (no se pudo enviar el correo)') : ''));
     }
 }

@@ -20,6 +20,7 @@ require_once APP_ROOT . '/core/Env.php';
 
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Services\EdgeGuard\EdgeGuard;
+use Screenart\Musedock\Services\Notifications\NotificationCenter;
 
 $opts = getopt('', ['inventory', 'status', 'new-probe:', 'token-file:']);
 
@@ -71,29 +72,33 @@ foreach ($lines as $l) {
     echo '[' . gmdate('Y-m-d H:i:s') . ' UTC' . "] {$l}\n";
 }
 
-// Aviso por correo a los superadmins cuando ha pasado algo
+// Aviso por correo cuando ha pasado algo (Ajustes → Avisos decide a quién y en qué idioma)
 if ($lines) {
-    $sim = $guard->mode() === 'simulate' ? '[Simulación] ' : '';
-    $subject = $sim . 'Bloqueos de Cloudflare: ' . ($report['applied'] ? count($report['applied']) . ' cambio(s)' : ($report['restored'] ? count($report['restored']) . ' vuelta(s) a la normalidad' : 'aviso'));
+    $sim = $guard->mode() === 'simulate';
     $esc = fn ($s) => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
-    $html = '<p>La conmutación automática ante bloqueos de Cloudflare ha hecho esto:</p>';
-    foreach (['applied' => 'Proxy quitado', 'restored' => 'Proxy restaurado', 'notes' => 'Avisos'] as $key => $title) {
-        if ($report[$key]) {
-            $html .= '<h4>' . $title . '</h4><ul><li>' . implode('</li><li>', array_map($esc, $report[$key])) . '</li></ul>';
+    $build = function (string $lang) use ($report, $sim, $esc) {
+        $en = $lang === 'en';
+        $tr = fn (array $l) => $en ? array_map([EdgeGuard::class, 'lineEn'], $l) : $l;
+        $n = $report['applied'] ? count($report['applied']) : ($report['restored'] ? count($report['restored']) : 0);
+        $what = $report['applied'] ? ($en ? "$n change(s)" : "$n cambio(s)") : ($report['restored'] ? ($en ? "$n back to normal" : "$n vuelta(s) a la normalidad") : ($en ? 'notice' : 'aviso'));
+        $subject = ($sim ? ($en ? '[Simulation] ' : '[Simulación] ') : '') . ($en ? 'Cloudflare blocks: ' : 'Bloqueos de Cloudflare: ') . $what;
+        $titles = $en ? ['applied' => 'Proxy turned off', 'restored' => 'Proxy turned back on', 'notes' => 'Notices']
+                      : ['applied' => 'Proxy quitado', 'restored' => 'Proxy restaurado', 'notes' => 'Avisos'];
+        $html = $en ? '<p>The automatic switching for Cloudflare blocks did this:</p>' : '<p>La conmutación automática ante bloqueos de Cloudflare ha hecho esto:</p>';
+        $text = [];
+        foreach ($titles as $key => $title) {
+            if ($report[$key]) {
+                $html .= '<h4>' . $title . '</h4><ul><li>' . implode('</li><li>', array_map($esc, $tr($report[$key]))) . '</li></ul>';
+                $text = array_merge($text, $tr($report[$key]));
+            }
         }
-    }
-    $html .= '<p>Detalle e historial: Ajustes → Bloqueos Cloudflare.</p>';
+        $html .= $en ? '<p>Details and history: Settings → Cloudflare blocks.</p>' : '<p>Detalle e historial: Ajustes → Bloqueos Cloudflare.</p>';
+
+        return ['subject' => $subject, 'html' => $html, 'text' => implode("\n", $text)];
+    };
     try {
-        // Destinatarios: los de «Enviar los avisos a» en la pantalla; si no hay, los superadmins
-        $emails = array_values(array_filter(array_map('trim', explode(',', (string) $guard->setting('notify_to', '')))));
-        if (!$emails) {
-            $emails = $pdo->query("SELECT email FROM super_admins WHERE email IS NOT NULL AND email <> ''")->fetchAll(PDO::FETCH_COLUMN);
-        }
-        ob_start(); // el Mailer escribe el diálogo SMTP por pantalla: fuera del log
-        foreach ($emails as $to) {
-            \Screenart\Musedock\Mail\Mailer::send($to, $subject, $html, implode("\n", $lines), null, 'MuseDock Avisos');
-        }
-        ob_end_clean();
+        NotificationCenter::importLegacy();
+        NotificationCenter::send('edge_guard', ['es' => $build('es'), 'en' => $build('en')]);
     } catch (\Throwable $e) {
         echo '[' . gmdate('Y-m-d H:i:s') . ' UTC' . '] No se pudo enviar el aviso: ' . $e->getMessage() . "\n";
     }

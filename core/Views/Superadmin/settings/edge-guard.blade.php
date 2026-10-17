@@ -46,9 +46,8 @@
               <textarea class="form-control" id="eg-excluded" name="excluded" rows="3" placeholder="uno por línea (incluye sus subdominios)">{{ $excluded }}</textarea>
             </div>
             <div class="col-md-8">
-              <label class="form-label fw-semibold" for="eg-notify">Enviar los avisos a</label>
-              <input type="text" class="form-control" id="eg-notify" name="notify_to" value="{{ $notifyTo }}" placeholder="vacío = los superadmins · varias direcciones separadas por comas">
-              <div class="form-text">Correo de cada cambio (proxy quitado o restaurado) y del principio y fin de cada bloqueo.</div>
+              <label class="form-label fw-semibold">Avisos por correo</label>
+              <div class="form-text mt-0">Quién recibe los avisos de cada cambio y de cada bloqueo, y en qué idioma, se elige en <a href="/musedock/settings/notifications">Ajustes → Avisos</a>.</div>
             </div>
           </div>
           <button class="btn btn-primary btn-sm mt-3" type="submit"><i class="bi bi-check2 me-1"></i> Guardar</button>

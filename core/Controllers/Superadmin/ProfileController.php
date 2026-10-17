@@ -5,6 +5,7 @@ namespace Screenart\Musedock\Controllers\Superadmin;
 use Screenart\Musedock\View;
 use Screenart\Musedock\Database;
 use Screenart\Musedock\Security\SessionSecurity;
+use Screenart\Musedock\Services\Notifications\NotificationCenter;
 
 class ProfileController
 {
@@ -92,8 +93,25 @@ class ProfileController
         return View::renderSuperadmin('profile.index', [
             'title' => 'Mi Perfil',
             'user' => $userData,
-            'userType' => $user['type']
+            'userType' => $user['type'],
+            'noticeLocale' => $user['type'] === 'super_admin' ? NotificationCenter::superadminLocale((int) $user['id']) : null,
+            'noticeLocales' => NotificationCenter::LOCALES,
         ]);
+    }
+
+    /** Idioma en que este superadmin recibe los avisos de la plataforma (Ajustes → Avisos). */
+    public function updateLocale()
+    {
+        $user = SessionSecurity::getAuthenticatedUser();
+        if (!$user || $user['type'] !== 'super_admin' || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            flash('error', 'No permitido.');
+            header('Location: /musedock/profile');
+            exit;
+        }
+        NotificationCenter::setSuperadminLocale((int) $user['id'], (string) ($_POST['locale'] ?? 'es'));
+        flash('success', 'Idioma de los avisos guardado.');
+        header('Location: /musedock/profile');
+        exit;
     }
 
     /**

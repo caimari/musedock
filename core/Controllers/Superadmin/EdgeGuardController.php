@@ -78,7 +78,6 @@ class EdgeGuardController
             'mode' => $guard->mode(),
             'restoreMinutes' => $guard->restoreMinutes(),
             'excluded' => (string) $guard->setting('excluded', ''),
-            'notifyTo' => (string) $guard->setting('notify_to', ''),
             'probes' => $guard->probes(),
             'probePaths' => $guard->probePaths(),
             'livePaths' => $guard->livePaths(),
@@ -110,12 +109,7 @@ class EdgeGuardController
         $guard->setSetting('restore_minutes', (string) max(10, min(240, (int) ($_POST['restore_minutes'] ?? 30))));
         $excluded = implode("\n", array_slice(array_filter(array_map(fn ($l) => strtolower(trim($l, " \t.")), preg_split('/[\r\n,]+/', (string) ($_POST['excluded'] ?? '')))), 0, 500));
         $guard->setSetting('excluded', $excluded !== '' ? $excluded : null);
-        // Destinatarios de los avisos: vacío = los superadmins
-        $raw = preg_split('/[\s,;]+/', (string) ($_POST['notify_to'] ?? ''), -1, PREG_SPLIT_NO_EMPTY);
-        $valid = array_values(array_unique(array_filter(array_map('strtolower', $raw), fn ($e) => filter_var($e, FILTER_VALIDATE_EMAIL))));
-        $bad = array_diff(array_map('strtolower', $raw), $valid);
-        $guard->setSetting('notify_to', $valid ? implode(', ', array_slice($valid, 0, 20)) : null);
-        flash($bad ? 'error' : 'success', 'Ajustes guardados.' . ($bad ? ' Se han descartado direcciones no válidas: ' . implode(', ', $bad) : ''));
+        flash('success', 'Ajustes guardados.');
 
         return $this->back();
     }

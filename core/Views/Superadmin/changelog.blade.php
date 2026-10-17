@@ -13,6 +13,25 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.25.0 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.25.0 — Avisos centralizados en español e inglés</h5></div><div class="card-body">
+            <p class="text-muted">17 de octubre de 2026</p>
+            <h6 class="text-primary"><i class="bi bi-bell me-1"></i> Ajustes → Avisos</h6>
+            <ul class="mb-3">
+                <li>Nueva pantalla <strong>Ajustes → Avisos</strong>: un solo sitio para decidir quién recibe los avisos de la plataforma y en qué idioma. Destinatarios propios con su idioma (español o inglés), cada tipo de aviso se puede silenciar o enviar solo a algunos, botón de prueba por tipo y registro de los últimos envíos (90 días).</li>
+                <li>Sin destinatarios propios, los avisos van a los superadmins, cada uno en el idioma elegido en <strong>Mi perfil → Idioma de los avisos</strong>.</li>
+                <li>Pasan por aquí: bloqueos de Cloudflare, caducidad de dominios, caídas de SEO y ataques de fuerza bruta (antes solo al superadmin root). Los módulos y plugins pueden registrar sus propios tipos con <code>NotificationCenter::register()</code>.</li>
+                <li>El campo «Enviar los avisos a» de Bloqueos Cloudflare se sustituye por esta pantalla; las direcciones que tuviera se importan solas.</li>
+                <li>Los correos a clientes y usuarios (activaciones, contraseñas, pedidos) no cambian.</li>
+            </ul>
+            <h6 class="text-primary"><i class="bi bi-wrench me-1"></i> Arreglos</h6>
+            <ul class="mb-0">
+                <li>Bloqueos Cloudflare: la sonda ya no confunde una web colgada detrás de Cloudflare con una IP bloqueada (basta con completar la conexión cifrada).</li>
+                <li>Bloqueos Cloudflare: los dominios de la lista se abren en una pestaña nueva.</li>
+                <li>Alerta de fuerza bruta: el email objetivo y las IPs se escapan en el HTML del correo.</li>
+            </ul>
+        </div></div>
+
         <!-- v2.24.0 -->
         <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.24.0 — Conmutación automática ante bloqueos de Cloudflare, visitantes únicos y cargas</h5></div><div class="card-body">
             <p class="text-muted">17 de octubre de 2026</p>

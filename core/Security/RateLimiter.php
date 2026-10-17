@@ -394,122 +394,68 @@ class RateLimiter
             $uniqueIPs = self::getUniqueIPsForEmail($targetEmail);
             $ipCount = count($uniqueIPs);
 
-            // Buscar al superadmin para notificar
-            $db = Database::connect();
-            $stmt = $db->prepare("SELECT email, name FROM super_admins WHERE is_root = 1 LIMIT 1");
-            $stmt->execute();
-            $superadmin = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-            if (!$superadmin) {
-                return false;
-            }
-
-            // Preparar email HTML
-            $subject = "⚠️ Alerta de Seguridad - Posible Ataque de Fuerza Bruta";
-            $htmlMessage = "
-                <!DOCTYPE html>
-                <html lang='es'>
-                <head>
-                    <meta charset='UTF-8'>
-                    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-                    <title>Alerta de Seguridad</title>
-                </head>
+            // A quién y en qué idioma: Ajustes → Avisos («Ataques de fuerza bruta»)
+            $e = fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+            $date = date('Y-m-d H:i:s');
+            $build = function (string $lang) use ($e, $targetEmail, $attempts, $ipCount, $ip, $uniqueIPs, $date) {
+                $t = $lang === 'en' ? [
+                    'subject' => '⚠️ Security alert - Possible brute-force attack', 'title' => '⚠️ Security alert',
+                    'intro' => 'A <strong>possible brute-force attack</strong> has been detected against the account:',
+                    'target' => 'Target email', 'attempts' => 'Failed attempts', 'ips' => 'Different IPs', 'last' => 'Last IP',
+                    'state' => 'Status', 'locked' => 'Account temporarily locked', 'seen' => 'Detected IPs', 'todo' => 'Recommended actions',
+                    'steps' => ['Check that the legitimate user is not having trouble with their password', 'Consider asking the user to change their password', 'Review the security logs at <strong>/musedock/audit-logs</strong>', 'If the attack is confirmed, consider blocking the IPs in the firewall'],
+                    'foot' => 'This email was generated automatically by the <strong>MuseDock</strong> security system', 'date' => 'Date',
+                ] : [
+                    'subject' => '⚠️ Alerta de Seguridad - Posible Ataque de Fuerza Bruta', 'title' => '⚠️ Alerta de Seguridad',
+                    'intro' => 'Se ha detectado un <strong>posible ataque de fuerza bruta</strong> contra la cuenta:',
+                    'target' => 'Email Objetivo', 'attempts' => 'Intentos Fallidos', 'ips' => 'IPs Diferentes', 'last' => 'Última IP',
+                    'state' => 'Estado', 'locked' => 'Cuenta bloqueada temporalmente', 'seen' => 'IPs Detectadas', 'todo' => 'Acciones Recomendadas',
+                    'steps' => ['Verifica que el usuario legítimo no esté teniendo problemas con su contraseña', 'Considera contactar al usuario para cambiar su contraseña', 'Revisa los logs de seguridad en <strong>/musedock/audit-logs</strong>', 'Si es un ataque confirmado, considera bloquear las IPs en el firewall'],
+                    'foot' => 'Este email fue generado automáticamente por el sistema de seguridad de <strong>MuseDock</strong>', 'date' => 'Fecha',
+                ];
+                $p = "style='margin: 0 0 10px; font-size: 15px; color: #991b1b;'";
+                $html = "<!DOCTYPE html><html lang='{$lang}'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>{$t['title']}</title></head>
                 <body style='margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif; background-color: #f3f4f6;'>
-                    <table role='presentation' style='width: 100%; border-collapse: collapse; background-color: #f3f4f6;'>
-                        <tr>
-                            <td align='center' style='padding: 40px 0;'>
-                                <table role='presentation' style='width: 600px; max-width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);'>
-                                    <!-- Header -->
-                                    <tr>
-                                        <td style='padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); border-radius: 8px 8px 0 0;'>
-                                            <h1 style='margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;'>
-                                                ⚠️ Alerta de Seguridad
-                                            </h1>
-                                        </td>
-                                    </tr>
+                <table role='presentation' style='width: 100%; border-collapse: collapse; background-color: #f3f4f6;'><tr><td align='center' style='padding: 40px 0;'>
+                <table role='presentation' style='width: 600px; max-width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);'>
+                    <tr><td style='padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); border-radius: 8px 8px 0 0;'>
+                        <h1 style='margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;'>{$t['title']}</h1></td></tr>
+                    <tr><td style='padding: 40px;'>
+                        <p style='margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;'>{$t['intro']}</p>
+                        <div style='background: #fee2e2; padding: 20px; border-left: 4px solid #dc2626; margin: 20px 0; border-radius: 4px;'>
+                            <p {$p}><strong>{$t['target']}:</strong> {$e($targetEmail)}</p>
+                            <p {$p}><strong>{$t['attempts']}:</strong> {$e($attempts)}</p>
+                            <p {$p}><strong>{$t['ips']}:</strong> {$ipCount}</p>
+                            <p {$p}><strong>{$t['last']}:</strong> {$e($ip)}</p>
+                            <p style='margin: 0; font-size: 15px; color: #991b1b;'><strong>{$t['state']}:</strong> {$t['locked']}</p>
+                        </div>
+                        <h3 style='color: #374151; font-size: 18px; margin: 30px 0 15px;'>{$t['seen']}:</h3>
+                        <ul style='margin: 0 0 30px; padding-left: 25px; color: #6b7280;'>" . implode('', array_map(fn ($x) => "<li style='margin: 5px 0;'>{$e($x)}</li>", $uniqueIPs)) . "</ul>
+                        <h3 style='color: #374151; font-size: 18px; margin: 30px 0 15px;'>{$t['todo']}:</h3>
+                        <ol style='margin: 0; padding-left: 25px; color: #6b7280; line-height: 1.8;'><li>" . implode('</li><li>', $t['steps']) . "</li></ol>
+                    </td></tr>
+                    <tr><td style='padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 8px 8px; border-top: 1px solid #e5e7eb;'>
+                        <p style='margin: 0; font-size: 13px; line-height: 1.6; color: #9ca3af; text-align: center;'>{$t['foot']}<br>{$t['date']}: {$date}</p></td></tr>
+                </table></td></tr></table></body></html>";
+                $text = strip_tags($t['title']) . "\n\n" . strip_tags($t['intro']) . "\n\n{$t['target']}: {$targetEmail}\n{$t['attempts']}: {$attempts}\n{$t['ips']}: {$ipCount}\n{$t['last']}: {$ip}\n{$t['state']}: {$t['locked']}\n\n{$t['seen']}:\n";
+                foreach ($uniqueIPs as $x) {
+                    $text .= "  - {$x}\n";
+                }
+                $text .= "\n{$t['todo']}:\n";
+                foreach ($t['steps'] as $i => $step) {
+                    $text .= ($i + 1) . '. ' . strip_tags($step) . "\n";
+                }
+                $text .= "\n---\n" . strip_tags($t['foot']) . "\n{$t['date']}: {$date}";
 
-                                    <!-- Contenido -->
-                                    <tr>
-                                        <td style='padding: 40px;'>
-                                            <p style='margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;'>
-                                                Se ha detectado un <strong>posible ataque de fuerza bruta</strong> contra la cuenta:
-                                            </p>
+                return ['subject' => $t['subject'], 'html' => $html, 'text' => $text];
+            };
 
-                                            <div style='background: #fee2e2; padding: 20px; border-left: 4px solid #dc2626; margin: 20px 0; border-radius: 4px;'>
-                                                <p style='margin: 0 0 10px; font-size: 15px; color: #991b1b;'><strong>Email Objetivo:</strong> {$targetEmail}</p>
-                                                <p style='margin: 0 0 10px; font-size: 15px; color: #991b1b;'><strong>Intentos Fallidos:</strong> {$attempts}</p>
-                                                <p style='margin: 0 0 10px; font-size: 15px; color: #991b1b;'><strong>IPs Diferentes:</strong> {$ipCount}</p>
-                                                <p style='margin: 0 0 10px; font-size: 15px; color: #991b1b;'><strong>Última IP:</strong> {$ip}</p>
-                                                <p style='margin: 0; font-size: 15px; color: #991b1b;'><strong>Estado:</strong> Cuenta bloqueada temporalmente</p>
-                                            </div>
-
-                                            <h3 style='color: #374151; font-size: 18px; margin: 30px 0 15px;'>IPs Detectadas:</h3>
-                                            <ul style='margin: 0 0 30px; padding-left: 25px; color: #6b7280;'>
-                                                " . implode('', array_map(fn($ip) => "<li style='margin: 5px 0;'>{$ip}</li>", $uniqueIPs)) . "
-                                            </ul>
-
-                                            <h3 style='color: #374151; font-size: 18px; margin: 30px 0 15px;'>Acciones Recomendadas:</h3>
-                                            <ol style='margin: 0; padding-left: 25px; color: #6b7280; line-height: 1.8;'>
-                                                <li>Verifica que el usuario legítimo no esté teniendo problemas con su contraseña</li>
-                                                <li>Considera contactar al usuario para cambiar su contraseña</li>
-                                                <li>Revisa los logs de seguridad en <strong>/musedock/audit-logs</strong></li>
-                                                <li>Si es un ataque confirmado, considera bloquear las IPs en el firewall</li>
-                                            </ol>
-                                        </td>
-                                    </tr>
-
-                                    <!-- Footer -->
-                                    <tr>
-                                        <td style='padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 8px 8px; border-top: 1px solid #e5e7eb;'>
-                                            <p style='margin: 0; font-size: 13px; line-height: 1.6; color: #9ca3af; text-align: center;'>
-                                                Este email fue generado automáticamente por el sistema de seguridad de <strong>MuseDock</strong><br>
-                                                Fecha: " . date('Y-m-d H:i:s') . "
-                                            </p>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                    </table>
-                </body>
-                </html>
-            ";
-
-            // Preparar texto plano alternativo
-            $textMessage = "ALERTA DE SEGURIDAD\n\n";
-            $textMessage .= "Se ha detectado un posible ataque de fuerza bruta:\n\n";
-            $textMessage .= "Email Objetivo: {$targetEmail}\n";
-            $textMessage .= "Intentos Fallidos: {$attempts}\n";
-            $textMessage .= "IPs Diferentes: {$ipCount}\n";
-            $textMessage .= "Última IP: {$ip}\n";
-            $textMessage .= "Estado: Cuenta bloqueada temporalmente\n\n";
-            $textMessage .= "IPs Detectadas:\n";
-            foreach ($uniqueIPs as $attackIP) {
-                $textMessage .= "  - {$attackIP}\n";
-            }
-            $textMessage .= "\nAcciones Recomendadas:\n";
-            $textMessage .= "1. Verifica que el usuario legítimo no esté teniendo problemas con su contraseña\n";
-            $textMessage .= "2. Considera contactar al usuario para cambiar su contraseña\n";
-            $textMessage .= "3. Revisa los logs de seguridad en /musedock/audit-logs\n";
-            $textMessage .= "4. Si es un ataque confirmado, considera bloquear las IPs en el firewall\n\n";
-            $textMessage .= "---\n";
-            $textMessage .= "Este email fue generado automáticamente por el sistema de seguridad de MuseDock\n";
-            $textMessage .= "Fecha: " . date('Y-m-d H:i:s');
-
-            // Enviar email usando Mailer con configuración SMTP desde .env
-            $sent = \Screenart\Musedock\Mail\Mailer::send(
-                $superadmin['email'],
-                $subject,
-                $htmlMessage,
-                $textMessage,
-                null, // from (usará .env)
-                'MuseDock Security' // fromName
-            );
+            $sent = \Screenart\Musedock\Services\Notifications\NotificationCenter::send('security_bruteforce', ['es' => $build('es'), 'en' => $build('en')], 'MuseDock Security') > 0;
 
             if ($sent) {
                 // Guardar en cache que se envió notificación
                 apcu_store($cacheKey, time(), 1800); // 30 minutos
-                Logger::log("Security notification sent to {$superadmin['email']} for attack on {$targetEmail}", 'SECURITY');
+                Logger::log("Security notification sent for attack on {$targetEmail}", 'SECURITY');
             }
 
             return $sent;

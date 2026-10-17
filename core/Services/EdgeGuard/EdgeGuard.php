@@ -904,6 +904,37 @@ class EdgeGuard
         return $msg;
     }
 
+    /** Versión en inglés de una línea del informe (para los avisos de quien los quiere en inglés). */
+    public static function lineEn(string $es): string
+    {
+        $es = strtr($es, [
+            'IP de Cloudflare bloqueada por operadoras; desde fuera responde' => 'Cloudflare IP blocked by ISPs; reachable from abroad',
+            'Cloudflare no responde, tampoco desde fuera' => 'Cloudflare not responding, not even from abroad',
+        ]);
+        $map = [
+            '/^IP (\S+) bloqueada desde las (.+)\.$/u' => 'IP $1 blocked since $2.',
+            '/^IP (\S+) vuelve a responder a las (.+)\. Bloqueada desde las (.+) \((.+)\)\.$/u' => 'IP $1 responds again at $2. Blocked since $3 ($4).',
+            '/^Ninguna sonda ha informado en los últimos (\d+) minutos: no se cambia nada hasta que vuelvan\.$/u' => 'No probe has reported in the last $1 minutes: nothing will be changed until they are back.',
+            '/^(.+): Cloudflare bloqueado, pero el servidor de origen no responde directo con un certificado válido; se deja como está\.$/u' => '$1: Cloudflare blocked, but the origin server does not answer directly with a valid certificate; left as it is.',
+            '/^(.+): cambió en Cloudflare desde la última lectura; no se toca\.$/u' => '$1: changed in Cloudflare since the last read; not touched.',
+            '/^(.+): no se pudo quitar el proxy \((.*)\)\.$/u' => '$1: could not turn the proxy off ($2).',
+            '/^(.+): se habría quitado el proxy \((.+); IPs (.+)\)\.$/u' => '$1: the proxy would have been turned off ($2; IPs $3).',
+            '/^(.+): proxy quitado \((.+); IPs (.+)\)\.$/u' => '$1: proxy turned off ($2; IPs $3).',
+            '/^(.+): se habría vuelto a poner el proxy \(sus IPs llevan (\d+) min respondiendo\)\.$/u' => '$1: the proxy would have been turned back on (its IPs have been responding for $2 min).',
+            '/^(.+): alguien lo cambió durante el bloqueo; se respeta su cambio y no se toca\.$/u' => '$1: someone changed it during the block; their change is kept and it is not touched.',
+            '/^(.+): proxy puesto de nuevo \(sus IPs llevan (\d+) min respondiendo\)\.$/u' => '$1: proxy turned back on (its IPs have been responding for $2 min).',
+            '/^(.+): no se pudo volver a poner el proxy \((.*)\); se reintentará\.$/u' => '$1: could not turn the proxy back on ($2); will retry.',
+        ];
+        foreach ($map as $re => $en) {
+            $out = preg_replace($re, $en, $es, 1, $n);
+            if ($n) {
+                return (string) $out;
+            }
+        }
+
+        return $es;
+    }
+
     private function restore(array $c): string
     {
         $mins = $this->restoreMinutes();
