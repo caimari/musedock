@@ -31,6 +31,17 @@ final class Admin
                 if ($tenant && !userCan('settings.edit')) throw new \RuntimeException('No tienes permiso para modificar ajustes.');
                 if (empty($_SESSION['_csrf_token']) || !hash_equals($_SESSION['_csrf_token'],(string)($_POST['_token']??$_POST['_csrf']??''))) throw new \RuntimeException('CSRF no válido.');
                 $action=$_POST['action']??'';
+                if ($action==='enable_connection') {
+                    if (!filter_var(Env::get('MCP_CMS_DIRECT_ENABLED',false),FILTER_VALIDATE_BOOLEAN) || !filter_var(Env::get('MCP_ENABLED',true),FILTER_VALIDATE_BOOLEAN)) throw new \RuntimeException('El administrador principal debe habilitar primero el servicio global MCP.');
+                    $ep->store->atomic(function() use ($ep,$id,$r,$url,$actor) {
+                        $current=$ep->store->resource($id)??$r;
+                        $current['url']=$url; $current['enabled']=true;
+                        $ep->store->putResource($current);
+                        $ep->store->event($id,'resource.enabled',$actor);
+                    });
+                    header('Content-Type: application/json');header('Cache-Control: no-store');
+                    echo json_encode(['ok'=>true]);return;
+                }
                 if ($action==='taxonomy_policy') {
                     if (!$content->actorActive($id,$actor,Policy::TAXONOMY)) throw new \RuntimeException('No tienes permiso para configurar taxonomías.');
                     $site=(int)($_POST['policy_site']??-1);$fixed=Policy::site($id);

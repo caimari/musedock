@@ -92,7 +92,13 @@
   @if($error)<div class="alert alert-danger">{{ $error }}</div>@endif
   <p class="small text-muted">Servicio global: <strong>{{ $deploymentEnabled ? 'Activo' : 'Desactivado' }}</strong> · Esta conexión: <strong>{{ $resource['enabled'] ? 'Habilitada' : 'Desactivada' }}</strong>. Cada acceso conserva sus propios grupos, dominios y permisos.</p>
   @if(!$resource['enabled'])
-    <div class="alert alert-warning" role="status"><strong>Esta conexión está desactivada: el proveedor no podrá detectar OAuth.</strong> Abre «Servicio y sitios», marca «Habilitar esta conexión» y guarda antes de conectarla en ChatGPT u otro asistente. Crear credenciales no habilita la conexión.</div>
+    <div class="alert alert-warning" role="status"><strong>Esta conexión está desactivada: el proveedor no podrá detectar OAuth.</strong> Crear credenciales no habilita la conexión. Puedes activarla aquí sin salir ni perder el ID o el secreto.
+      @if($deploymentEnabled)
+      <form method="post" action="{{ $back }}" data-mcp-enable class="mt-2">{!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="action" value="enable_connection"><button type="submit" class="btn btn-primary">Habilitar esta conexión sin salir</button><span class="d-block small mt-2" role="status" data-mcp-enable-status></span></form>
+      @else
+      <p class="mb-0">El administrador principal debe activar primero el servicio global en «Servicio y sitios».</p>
+      @endif
+    </div>
   @endif
   <nav class="nav nav-pills gap-2 mb-3" aria-label="Secciones de esta conexión">
     <button type="button" class="nav-link active" data-mcp-tab="access" aria-pressed="true">Accesos ({{ count($clients) }})</button>
@@ -417,6 +423,11 @@ providerSelect?.addEventListener('change',()=>{
   callbackInput.required=!automatic;
   callbackInput.value=automatic?callbacks[providerSelect.value]:customCallback;
 });
+document.querySelectorAll('[data-mcp-enable]').forEach(form=>form.addEventListener('submit',async event=>{
+  event.preventDefault();const button=form.querySelector('button');const status=form.querySelector('[data-mcp-enable-status]');button.disabled=true;status.textContent='Habilitando conexión…';
+  try { const response=await fetch(form.action,{method:'POST',body:new FormData(form),headers:{'X-MCP-Progress':'1'},credentials:'same-origin'});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||'No se pudo habilitar la conexión.');button.textContent='Conexión habilitada';status.textContent='Ya puedes reintentar OAuth en el proveedor. Las credenciales siguen siendo las mismas.';const notice=form.closest('[role="status"]');notice.querySelector('strong').textContent='Esta conexión está habilitada.';document.querySelectorAll('input[name="enabled"]').forEach(input=>input.checked=true);
+  } catch(error){button.disabled=false;status.textContent=error.message;}
+}));
 document.querySelectorAll('[data-copy]').forEach(button=>button.addEventListener('click',async()=>{const input=document.getElementById(button.dataset.copy);try{await navigator.clipboard.writeText(input.value);button.textContent='Copiado';}catch(e){input.focus();input.select();}}));
 document.getElementById('show-secret')?.addEventListener('click',()=>{const input=document.getElementById('client-secret');input.type=input.type==='password'?'text':'password';});
 document.getElementById('dismiss-credentials')?.addEventListener('click',()=>{document.getElementById('client-secret').value='';document.getElementById('new-credentials').remove();});
