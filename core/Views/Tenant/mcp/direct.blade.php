@@ -80,6 +80,14 @@
   @if($tenantMode)
     <p class="text-muted">Al activar esta modalidad, las conexiones anteriores de este sitio deberán reconectarse con sus nuevos clientes OAuth.</p>
   @endif
+  <div class="mb-3">
+    <label for="mcp-url" class="form-label fw-semibold">URL del servidor MCP</label>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <input id="mcp-url" class="form-control" style="flex:1 1 18rem;min-width:0;width:auto" type="url" readonly spellcheck="false" value="{{ $resource['url'] }}" aria-describedby="mcp-url-help">
+      <button class="btn btn-outline-primary" type="button" data-copy="mcp-url">Copiar URL</button>
+    </div>
+    <p id="mcp-url-help" class="small text-muted mt-2 mb-0">Pega esta dirección completa en ChatGPT, Claude u otro cliente MCP. Corresponde a la conexión seleccionada.</p>
+  </div>
   <p>Conecta un asistente para gestionar el blog con los permisos que autorices en <strong>{{ $resource['name'] }}</strong>.</p>
   @if($error)<div class="alert alert-danger">{{ $error }}</div>@endif
   <p class="small text-muted">Servicio global: <strong>{{ $deploymentEnabled ? 'Activo' : 'Desactivado' }}</strong> · Esta conexión: <strong>{{ $resource['enabled'] ? 'Habilitada' : 'Desactivada' }}</strong>. Cada acceso conserva sus propios grupos, dominios y permisos.</p>
@@ -108,7 +116,7 @@
     <h2 class="h5">{{ $isPluginConnection ? 'Paso 1 · Configurar la conexión y sus sitios disponibles' : 'Conexión directa HTTPS' }}</h2>
     @if($isPluginConnection)<p class="text-muted">Primero define los sitios propios que este plugin podrá gestionar por MCP. Después podrás dar a cada asistente acceso a todos o solo a algunos de ellos.</p>@endif
     <p>Servicio: <span class="mcp-status {{ $deploymentEnabled && $resource['enabled'] && $pluginInstalled ? 'is-enabled' : '' }}">{{ $deploymentEnabled && $resource['enabled'] && $pluginInstalled ? 'Habilitado' : 'Desactivado' }}</span>. La autorización de cada cliente se muestra por separado.</p>
-    <div class="input-group mb-3"><input id="mcp-url" class="form-control" readonly value="{{ $resource['url'] }}"><button class="btn btn-outline-primary" type="button" data-copy="mcp-url">Copiar URL</button></div>
+
     <form method="post" action="{{ $back }}">
       {!! csrf_field() !!}<input type="hidden" name="resource" value="{{ $resource['id'] }}"><input type="hidden" name="action" value="configure">
       <label class="form-check"><input class="form-check-input" type="checkbox" name="enabled" {{ $resource['enabled'] ? 'checked' : '' }}> Habilitar esta conexión</label>
