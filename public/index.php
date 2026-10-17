@@ -87,6 +87,11 @@ if (!$vendorExists) {
 require_once __DIR__ . '/../core/Env.php';
 \Screenart\Musedock\Env::load();
 
+// =========== DIRECCIÓN CANÓNICA: www.<dominio> → <dominio> (301) ===========
+// Una sola dirección por sitio para Google y una sola copia en la caché HTML.
+require_once __DIR__ . '/../core/Services/CanonicalHost.php';
+\Screenart\Musedock\Services\CanonicalHost::redirectWww();
+
 // =========== HTML CACHE: PHASE 1 — EARLY EXIT ===========
 // Try to serve a cached HTML file BEFORE any heavy bootstrap.
 // If cache hit: sends HTML and exits immediately (~0ms PHP).
