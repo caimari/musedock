@@ -26,6 +26,20 @@
 })();
 
 (function () {
+    function confirmRemoval(domain) {
+        return new Promise(resolve => {
+            const modal = document.createElement('dialog');
+            modal.className = 'mcp-sites-dialog';
+            modal.setAttribute('aria-label', 'Confirmar retirada de sitio');
+            modal.innerHTML = '<h3 class="h5">¿Quitar este sitio del acceso?</h3><p></p><div class="d-flex justify-content-end gap-2"><button type="button" class="btn btn-outline-secondary" data-cancel>Cancelar</button><button type="button" class="btn btn-danger" data-confirm>Quitar sitio</button></div>';
+            modal.querySelector('p').textContent = domain + ' dejará de estar seleccionado. El cambio se aplicará cuando guardes el acceso; no elimina el sitio ni sus artículos.';
+            const finish = value => { modal.close(); modal.remove(); resolve(value); };
+            modal.querySelector('[data-cancel]').addEventListener('click', () => finish(false));
+            modal.querySelector('[data-confirm]').addEventListener('click', () => finish(true));
+            modal.addEventListener('cancel', event => { event.preventDefault(); finish(false); });
+            document.body.append(modal); modal.showModal();
+        });
+    }
     document.querySelectorAll('[data-mcp-sites-editor]').forEach(editor => {
         const dialog = editor.querySelector('dialog');
         const summary = editor.querySelector('[data-mcp-sites-summary]');
@@ -34,10 +48,12 @@
             summary.replaceChildren();
             inputs.filter(input => input.checked).forEach(input => {
                 const button = document.createElement('button');
-                button.type = 'button'; button.className = 'btn btn-sm btn-outline-secondary';
-                button.textContent = input.dataset.domain + ' ×';
+                button.type = 'button'; button.className = 'mcp-site-chip';
+                const name = document.createElement('span'); name.textContent = input.dataset.domain;
+                const remove = document.createElement('span'); remove.className = 'mcp-site-remove'; remove.textContent = '×'; remove.setAttribute('aria-hidden', 'true');
+                button.append(name, remove);
                 button.setAttribute('aria-label', 'Quitar ' + input.dataset.domain);
-                button.addEventListener('click', () => { input.checked = false; render(); });
+                button.addEventListener('click', async () => { if (await confirmRemoval(input.dataset.domain)) { input.checked = false; render(); } });
                 summary.append(button);
             });
             if (!summary.childElementCount) summary.textContent = 'Ningún sitio seleccionado.';
@@ -48,7 +64,13 @@
             const query = event.target.value.trim().toLowerCase();
             inputs.forEach(input => { input.closest('label').hidden = !input.dataset.domain.toLowerCase().includes(query); });
         });
-        inputs.forEach(input => input.addEventListener('change', render));
+        inputs.forEach(input => input.addEventListener('change', async () => {
+            if (!input.checked) {
+                input.checked = true;
+                if (await confirmRemoval(input.dataset.domain)) input.checked = false;
+            }
+            render();
+        }));
         render();
     });
 })();
