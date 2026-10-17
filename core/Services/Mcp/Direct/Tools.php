@@ -169,7 +169,11 @@ final class Tools
         if ($automatic) {
             $result=$this->decide($r['id'],$id,(int)$g['actor'],true,true);
             $this->store->event($r['id'],'request.auto_approved',(int)$g['actor'],['client'=>$c['id'],'request'=>$id,'tool'=>$tool]);
-            return $result+['auto_approved'=>true,'plan'=>$plan,'next'=>'La solicitud se ejecutará en la cola. Consulta get_request_status; no repitas la operación.'];
+            $stored=$this->store->one('SELECT id,resource,client FROM requests WHERE id=?',[$id]);
+            $queued=$this->store->one('SELECT request_id,status FROM approval_jobs WHERE request_id=?',[$id]);
+            if (!$stored || $stored['resource']!==$r['id'] || $stored['client']!==$c['id'] || !$queued) throw new RuntimeException('No se pudo confirmar la persistencia de la solicitud y su cola. No repitas la operación hasta revisar su estado.');
+            $this->store->event($r['id'],'request.acceptance.confirmed',(int)$g['actor'],['client'=>$c['id'],'request'=>$id,'queue_status'=>$queued['status']]);
+            return $result+['auto_approved'=>true,'persistence_verified'=>true,'resource_url'=>$r['url'],'accepted_at'=>gmdate('c'),'plan'=>$plan,'next'=>'La solicitud se ejecutará en la cola. Consulta get_request_status; no repitas la operación.'];
         }
         return ['status'=>'pending_approval','request_id'=>$id,'expires_in'=>600,'plan'=>$plan,'next'=>'Aprueba o rechaza en (MCP) Conexiones IA del CMS.'];
     }

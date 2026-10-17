@@ -70,6 +70,18 @@ with tempfile.TemporaryDirectory(prefix='cms-mcp-http-') as directory:
         pending=json.loads(json.loads(body)['result']['content'][0]['text'])
         status,_,body=rpc('tools/call',{'name':'approve_request','arguments':{'request_id':pending['request_id']}});check(not json.loads(body)['result']['isError'] and json.loads(json.loads(body)['result']['content'][0]['text'])['status']=='draft','HTTP explicit remote approval creates real draft')
         status,_,body=rpc('tools/call',{'name':'approve_request','arguments':{'request_id':pending['request_id']}});check(json.loads(body)['result']['isError'],'HTTP remote approval cannot replay')
+        import sqlite3
+        with sqlite3.connect(env['MCP_CMS_PRIVATE_DIRECTORY']+'/mcp.sqlite') as db:
+            client=json.loads(db.execute('SELECT data FROM clients WHERE id=?',(credentials['client'],)).fetchone()[0]);client['auto_approve_posts']=True
+            db.execute('UPDATE clients SET data=? WHERE id=?',(json.dumps(client),credentials['client']))
+        status,_,body=rpc('tools/call',{'name':'create_draft','arguments':{'title':'Durable HTTP acceptance','content':'Isolated fixture only','apply':True}})
+        accepted=json.loads(body)['result']['structuredContent']
+        check(accepted['status']=='queued' and accepted['persistence_verified'] is True,'HTTP queued response confirms persistence')
+        with sqlite3.connect(env['MCP_CMS_PRIVATE_DIRECTORY']+'/mcp.sqlite') as db:
+            check(db.execute('SELECT COUNT(*) FROM requests WHERE id=?',(accepted['request_id'],)).fetchone()[0]==1,'accepted request survives a fresh database connection')
+            check(db.execute('SELECT COUNT(*) FROM approval_jobs WHERE request_id=?',(accepted['request_id'],)).fetchone()[0]==1,'accepted queue entry survives a fresh database connection')
+        status,_,body=rpc('tools/call',{'name':'get_request_status','arguments':{'request_id':accepted['request_id']}})
+        check(json.loads(body)['result']['structuredContent']['status']=='queued','separate HTTP request recovers the accepted ID')
         status,_,_=request('/mcp','GET',headers=auth);check(status==405,'authenticated GET has no SSE stream')
         status,_,_=request('/mcp','POST','not json',auth);check(status==400,'invalid JSON denied')
         status,_,_=request('/mcp','POST',json.dumps({'jsonrpc':'2.0','method':'notifications/initialized'}),auth);check(status==202,'MCP notification')
