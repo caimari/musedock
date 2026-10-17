@@ -78,24 +78,15 @@
   .mdp-nav-link:hover i { color: var(--cp-accent); }
   .mdp-nav-link.active { background: var(--cp-accent-soft); color: var(--cp-accent); font-weight: 600; }
   .mdp-nav-link.active i { color: var(--cp-accent); }
-  /* Grupo desplegable «Dominios» */
-  .mdp-group-toggle { width: 100%; border: 0; background: transparent; cursor: pointer; text-align: left; }
-  .mdp-group-toggle .mdp-chevron { margin-left: auto; font-size: .8rem; width: auto; transition: transform .2s ease; }
-  .mdp-group.is-open .mdp-group-toggle .mdp-chevron { transform: rotate(180deg); }
-  .mdp-count { font-size: .72rem; font-weight: 700; color: var(--cp-accent); background: var(--cp-accent-soft); border-radius: 999px; padding: 1px 8px; }
-  .mdp-group-body { display: none; flex-direction: column; gap: 2px; margin: 2px 0 6px 25px; padding-left: 14px; border-left: 2px solid #eef1f6; }
-  .mdp-group.is-open .mdp-group-body { display: flex; }
+  /* Secciones con hijos */
+  .mdp-nav-link .mdp-count { margin-left: auto; font-size: .72rem; font-weight: 700; color: var(--cp-accent); background: var(--cp-accent-soft); border-radius: 999px; padding: 1px 8px; }
+  .mdp-children { display: flex; flex-direction: column; gap: 2px; margin: 0 0 6px 25px; padding-left: 14px; border-left: 2px solid #eef1f6; }
   .mdp-sub-link { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; color: #475569; font-size: .88rem; font-weight: 500; text-decoration: none; min-width: 0; }
   .mdp-sub-link i { font-size: 1rem; width: 18px; text-align: center; color: #94a3b8; }
   .mdp-sub-link:hover { background: #f5f7fb; color: var(--cp-text); }
   .mdp-sub-link.active { background: var(--cp-accent-soft); color: var(--cp-accent); font-weight: 600; }
   .mdp-sub-link.active i { color: var(--cp-accent); }
   .mdp-sub-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-  .mdp-sub-more { color: var(--cp-accent); font-weight: 600; }
-  .mdp-sub-empty { font-size: .85rem; color: #94a3b8; padding: 8px 10px; }
-  .mdp-sub-sep { height: 1px; background: #eef1f6; margin: 6px 10px; }
-  .mdp-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; margin: 0 5px; }
-  .mdp-dot-ok { background: #16a34a; } .mdp-dot-wait { background: #f59e0b; } .mdp-dot-bad { background: #dc2626; }
   .mdp-sidebar-footer { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--cp-border); display: flex; flex-direction: column; gap: 4px; }
   .mdp-nav-link.is-danger { color: #b42318; }
   .mdp-nav-link.is-danger i { color: #d92d20; }
@@ -169,6 +160,12 @@
     border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; font-size: .9rem;
   }
 
+  /* Listas de sitios y dominios */
+  .mdp-list-row { padding: 18px 0; border-top: 1px solid #eef1f6; }
+  .mdp-list-row:first-of-type { border-top: 0; padding-top: 4px; }
+  .mdp-list-row:target { background: var(--cp-accent-soft); border-radius: 12px; padding-left: 14px; padding-right: 14px; scroll-margin-top: 96px; }
+  .mdp-empty { background: #f5f8ff; border-radius: 12px; padding: 16px 18px; font-size: .92rem; color: #1e3a8a; }
+
   /* Contenido antiguo de otras pantallas (estilos en línea): mismo aire de tarjeta */
   .mdp-content .card { border-radius: 14px; border-color: var(--cp-border); }
   .mdp-content [style*="border:1px solid #edf0f5"] { box-shadow: var(--cp-shadow); border-color: var(--cp-border) !important; border-radius: 14px !important; }
@@ -180,8 +177,7 @@
     .mdp-brand { padding: 0 6px 12px; }
     .mdp-nav { flex-direction: row; flex-wrap: wrap; gap: 6px; }
     .mdp-nav-label, .mdp-sidebar-footer .mdp-nav-link:not(.is-danger) { display: none; }
-    .mdp-group { width: 100%; }
-    .mdp-group-body { margin-left: 12px; }
+    .mdp-children { display: none; }
     .mdp-nav-link { padding: 8px 12px; font-size: .88rem; }
     .mdp-sidebar-footer { flex-direction: row; border-top: 0; padding-top: 8px; margin-top: 0; }
     .mdp-topbar { padding: 0 16px; height: 64px; }
@@ -204,41 +200,23 @@
 
   $homeItem = ['page' => 'dashboard', 'url' => '/customer/dashboard', 'icon' => 'bi-house-door', 'label' => 'Inicio'];
   $profileItem = ['page' => 'profile', 'url' => '/customer/profile', 'icon' => 'bi-person-circle', 'label' => 'Perfil'];
-  // Hijos de «Dominios»: gestión común a todos los dominios
-  $domainChildren = [
-    ['page' => 'contacts', 'url' => '/customer/contacts', 'icon' => 'bi-person-lines-fill', 'label' => 'Contactos'],
-    ['page' => 'tenant-admins', 'url' => '/customer/tenant-admins', 'icon' => 'bi-people', 'label' => 'Administradores'],
-  ];
-
-  // Todos los dominios del cliente: sitios (tenants) y dominios registrados
-  $panelDomains = [];
+  // Secciones con hijos: Mis sitios → Administradores, Mis dominios → Contactos
+  $siteCount = 0;
+  $domainCount = 0;
   if (!empty($customer['id']) && class_exists(\Cloud\Models\Customer::class)) {
     try {
-      $sitesSeen = [];
-      foreach (\Cloud\Models\Customer::getTenants((int) $customer['id']) as $t) {
-        $sitesSeen[strtolower((string) $t['domain'])] = true;
-        $panelDomains[] = [
-          'label' => $t['domain'],
-          'url' => '/customer/dashboard#site-' . (int) $t['id'],
-          'match' => '/customer/tenant/' . (int) $t['id'] . '/',
-          'state' => ($t['status'] ?? '') === 'active' ? 'ok' : (in_array($t['status'] ?? '', ['error', 'suspended'], true) ? 'bad' : 'wait'),
-        ];
-      }
-      foreach (\Cloud\Models\Customer::getDomainOrders((int) $customer['id']) as $o) {
-        $full = strtolower((string) ($o['full_domain'] ?? ''));
-        if ($full === '' || isset($sitesSeen[$full])) continue;
-        $panelDomains[] = [
-          'label' => $full,
-          'url' => '/customer/domain/' . (int) $o['id'] . '/manage',
-          'match' => '/customer/domain/' . (int) $o['id'] . '/',
-          'state' => in_array($o['status'] ?? '', ['registered', 'active'], true) ? 'ok' : (($o['status'] ?? '') === 'failed' ? 'bad' : 'wait'),
-        ];
-      }
+      $siteCount = count(\Cloud\Models\Customer::getTenants((int) $customer['id']));
+      $domainCount = count(\Cloud\Models\Customer::getDomainOrders((int) $customer['id']))
+        + count(\Cloud\Models\Customer::getDomainTransfers((int) $customer['id']));
     } catch (\Throwable $e) {
-      $panelDomains = [];
     }
   }
-  $domainsVisible = array_slice($panelDomains, 0, 8);
+  $navGroups = [
+    ['item' => ['page' => 'sites', 'url' => '/customer/sites', 'icon' => 'bi-window-stack', 'label' => 'Mis sitios'], 'count' => $siteCount,
+     'children' => [['page' => 'tenant-admins', 'url' => '/customer/tenant-admins', 'icon' => 'bi-people', 'label' => 'Administradores']]],
+    ['item' => ['page' => 'domains', 'url' => '/customer/domains', 'icon' => 'bi-globe2', 'label' => 'Mis dominios'], 'count' => $domainCount,
+     'children' => [['page' => 'contacts', 'url' => '/customer/contacts', 'icon' => 'bi-person-lines-fill', 'label' => 'Contactos']]],
+  ];
   // Altas: solo las abiertas (Cloud\Services\SignupGate)
   $newItems = array_values(array_filter([
     ['page' => 'free-subdomain', 'url' => '/customer/request-free-subdomain', 'icon' => 'bi-globe2', 'label' => 'Crear sitio', 'channel' => 'free_subdomain'],
@@ -268,33 +246,21 @@
           <i class="bi {{ $homeItem['icon'] }}" aria-hidden="true"></i><span>{{ __($homeItem['label']) }}</span>
         </a>
 
-        {{-- Dominios: todos los del cliente + su gestión común --}}
-        <div class="mdp-group is-open" id="mdpDomainsGroup">
-          <button type="button" class="mdp-nav-link mdp-group-toggle" aria-expanded="true" aria-controls="mdpDomainsList" onclick="mdpToggleGroup(this)">
-            <i class="bi bi-globe2" aria-hidden="true"></i><span>{{ __('Dominios') }}</span>
-            @if(count($panelDomains))<span class="mdp-count">{{ count($panelDomains) }}</span>@endif
-            <i class="bi bi-chevron-down mdp-chevron" aria-hidden="true"></i>
-          </button>
-          <div class="mdp-group-body" id="mdpDomainsList">
-            @forelse($domainsVisible as $d)
-              @php $dActive = str_contains($currentUri, $d['match']); @endphp
-              <a href="{{ $d['url'] }}" class="mdp-sub-link {{ $dActive ? 'active' : '' }}" title="{{ $d['label'] }}" @if($dActive) aria-current="page" @endif>
-                <span class="mdp-dot mdp-dot-{{ $d['state'] }}" aria-hidden="true"></span><span class="mdp-sub-text">{{ $d['label'] }}</span>
-              </a>
-            @empty
-              <span class="mdp-sub-empty">{{ __('Aún no tienes dominios') }}</span>
-            @endforelse
-            @if(count($panelDomains) > count($domainsVisible))
-              <a href="/customer/dashboard#mdp-sites" class="mdp-sub-link mdp-sub-more"><span class="mdp-sub-text">{{ __('Ver todos') }} ({{ count($panelDomains) }})</span></a>
-            @endif
-            <div class="mdp-sub-sep" role="presentation"></div>
-            @foreach($domainChildren as $item)
+        {{-- Mis sitios / Mis dominios, cada uno con su gestión como hijo --}}
+        @foreach($navGroups as $g)
+          @php $gActive = $isActive($g['item']); @endphp
+          <a href="{{ $g['item']['url'] }}" class="mdp-nav-link {{ $gActive ? 'active' : '' }}" @if($gActive) aria-current="page" @endif>
+            <i class="bi {{ $g['item']['icon'] }}" aria-hidden="true"></i><span>{{ __($g['item']['label']) }}</span>
+            @if($g['count'])<span class="mdp-count">{{ $g['count'] }}</span>@endif
+          </a>
+          <div class="mdp-children">
+            @foreach($g['children'] as $item)
               <a href="{{ $item['url'] }}" class="mdp-sub-link {{ $isActive($item) ? 'active' : '' }}" @if($isActive($item)) aria-current="page" @endif>
                 <i class="bi {{ $item['icon'] }}" aria-hidden="true"></i><span class="mdp-sub-text">{{ __($item['label']) }}</span>
               </a>
             @endforeach
           </div>
-        </div>
+        @endforeach
 
         <a href="{{ $profileItem['url'] }}" class="mdp-nav-link {{ $isActive($profileItem) ? 'active' : '' }}" @if($isActive($profileItem)) aria-current="page" @endif>
           <i class="bi {{ $profileItem['icon'] }}" aria-hidden="true"></i><span>{{ __($profileItem['label']) }}</span>
@@ -376,22 +342,6 @@ function cpToggle(e, id) {
   var m = document.getElementById(id);
   if (m) m.classList.toggle('show');
 }
-function mdpToggleGroup(btn) {
-  var g = btn.closest('.mdp-group');
-  var open = !g.classList.contains('is-open');
-  g.classList.toggle('is-open', open);
-  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-  try { localStorage.setItem('mdpDomainsOpen', open ? '1' : '0'); } catch (e) {}
-}
-(function () {
-  try {
-    var g = document.getElementById('mdpDomainsGroup');
-    if (g && localStorage.getItem('mdpDomainsOpen') === '0' && !g.querySelector('.mdp-sub-link.active')) {
-      g.classList.remove('is-open');
-      g.querySelector('.mdp-group-toggle').setAttribute('aria-expanded', 'false');
-    }
-  } catch (e) {}
-})();
 // Compatibilidad con llamadas antiguas
 function toggleTopUserMenu(e) { cpToggle(e, 'customerTopUserMenu'); }
 document.addEventListener('click', function () {
