@@ -45,4 +45,12 @@ for ($from = 0; $from < $max; $from += $batch) {
     $db->commit();
     usleep(100000); // respira entre lotes
 }
+// Referrers sospechosos (pages.dev / workers.dev: escáneres que simulan un origen) y visitas que vienen del propio sitio
+if (!$dry) {
+    $n1 = $db->exec("UPDATE web_analytics SET is_bot = TRUE, bot_kind = 'suspect', bot_name = 'Referrer sospechoso (pages.dev / workers.dev)'
+        WHERE is_bot = FALSE AND referrer_domain ~ '\\.(pages|workers)\\.dev$'");
+    $n2 = $db->exec("UPDATE web_analytics w SET referrer_type = 'internal' FROM tenants t
+        WHERE w.tenant_id = t.id AND w.referrer_type = 'referral' AND (w.referrer_domain = t.domain OR w.referrer_domain = 'www.' || t.domain)");
+    echo "referrers sospechosos marcados como robot: $n1 · visitas desde el propio sitio pasadas a internas: $n2\n";
+}
 echo ($dry ? '[simulación] ' : '') . "revisadas $seen visitas, $marked marcadas como robot\n";

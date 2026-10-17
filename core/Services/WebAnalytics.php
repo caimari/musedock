@@ -60,13 +60,10 @@ class WebAnalytics
      */
     private static function hasUserConsent(): bool
     {
-        // Verificar si el usuario aceptó cookies de analytics
-        // Usamos el nombre de cookie correcto del banner GDPR
-        if (!isset($_COOKIE['musedock_cookie_analytics'])) {
-            return true; // Asumir consentimiento si no ha visto el banner aún
-        }
-
-        return $_COOKIE['musedock_cookie_analytics'] === 'true';
+        // RGPD: sin consentimiento explícito de analítica no se registra nada (ni cookie ni visita).
+        // Mismo criterio que el endpoint /api/analytics/track: el banner debe haberse aceptado con analítica activada.
+        return ($_COOKIE['musedock_cookies_accepted'] ?? '') === 'true'
+            && ($_COOKIE['musedock_cookie_analytics'] ?? '') === 'true';
     }
 
     /**
@@ -84,7 +81,9 @@ class WebAnalytics
 
         // Detectar referrer (priorizar el enviado desde JS)
         $referrer = $customData['referrer'] ?? $_SERVER['HTTP_REFERER'] ?? null;
-        $referrerInfo = self::analyzeReferrer($referrer);
+        $referrerInfo = self::analyzeReferrer($referrer, (string) ($_SERVER['HTTP_HOST'] ?? ''));
+        // Los escáneres que simulan un referrer desde pages.dev / workers.dev no son visitas de personas
+        $fakeRef = (bool) preg_match('/\.(pages|workers)\.dev$/i', (string) $referrerInfo['domain']);
 
         // Detectar dispositivo y si es un robot
         $deviceInfo = self::detectDevice();
@@ -116,9 +115,9 @@ class WebAnalytics
             'os' => $deviceInfo['os'],
             'language' => $customData['language'] ?? $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? null,
             'screen_resolution' => $customData['screen_resolution'] ?? null,
-            'is_bot' => $bot['is_bot'],
-            'bot_kind' => $bot['kind'],
-            'bot_name' => $bot['name'],
+            'is_bot' => $bot['is_bot'] || $fakeRef,
+            'bot_kind' => $bot['kind'] ?? ($fakeRef ? 'suspect' : null),
+            'bot_name' => $bot['name'] ?? ($fakeRef ? 'Referrer sospechoso (pages.dev / workers.dev)' : null),
             'is_returning' => $customData['is_returning'] ?? self::isReturningVisitor($visitorId),
             'tracking_enabled' => true,
             'cf_ray' => $_SERVER['HTTP_CF_RAY'] ?? null,
@@ -171,7 +170,7 @@ class WebAnalytics
     /**
      * Analizar referrer y detectar fuente de tráfico
      */
-    private static function analyzeReferrer(?string $referrer): array
+    private static function analyzeReferrer(?string $referrer, string $ownHost = ''): array
     {
         if (empty($referrer)) {
             return [
@@ -182,7 +181,13 @@ class WebAnalytics
             ];
         }
 
-        $domain = parse_url($referrer, PHP_URL_HOST);
+        $domain = (string) parse_url($referrer, PHP_URL_HOST);
+
+        // Llegar desde el propio sitio es navegación interna, no un referral
+        $norm = fn (string $h) => preg_replace('/^www\./', '', strtolower($h));
+        if ($ownHost !== '' && $domain !== '' && $norm($domain) === $norm(preg_replace('/:\d+$/', '', $ownHost))) {
+            return ['domain' => $domain, 'type' => 'internal', 'search_engine' => null, 'search_query' => null];
+        }
 
         // Detectar buscadores
         $searchEngines = [

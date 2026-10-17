@@ -19,6 +19,8 @@
             <h6 class="text-primary"><i class="bi bi-robot me-1"></i> Web Analytics: visitas reales y robots</h6>
             <ul class="mb-3">
                 <li>El panel <code>/musedock/analytics</code> cuenta solo <strong>visitas reales</strong> (personas). Los robots se guardan igual, con su tipo, y se enseñan aparte en «Tráfico de robots»: IA (entrenamiento y asistentes), buscadores, herramientas SEO, redes sociales, monitorización, scripts (curl, python…) y navegadores sospechosos.</li>
+                <li><strong>RGPD</strong>: el registro de visitas desde el servidor ya no asume consentimiento: solo se guarda (y solo se crea la cookie de visitante) si el visitante aceptó el banner con la analítica activada, igual que el endpoint de seguimiento. Las cifras de visitas pasan a ser las de quienes aceptan.</li>
+                <li>Los escáneres que simulan un referrer desde <code>pages.dev</code>/<code>workers.dev</code> se marcan como robot, las visitas que llegan desde el propio sitio cuentan como navegación interna, los visitantes únicos se cuentan por día sin cookies y las rutas de escaneo codificadas (<code>/%2eenv</code>) no se registran.</li>
                 <li>Detección por user-agent (<code>BotClassifier</code>); un robot que se hace pasar por un navegador completo no se distingue. Las visitas ya guardadas se reclasificaron (631.611 de 1,39 millones eran de robots). Hasta ahora los robots declarados (Googlebot, GPTBot…) se descartaban al guardar, así que su histórico empieza desde hoy.</li>
             </ul>
             <h6 class="text-primary"><i class="bi bi-graph-up-arrow me-1"></i> Search Console</h6>
