@@ -230,8 +230,9 @@ function retryProvisioning(tenantId, domain) {
   Swal.fire({title:'Reintentando provisioning...',text:domain,allowOutsideClick:false,didOpen:()=>{Swal.showLoading()}});
   fetch('/customer/tenant/' + tenantId + '/retry', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-    body: JSON.stringify({ _csrf_token: '<?= csrf_token() ?>' })
+    // El controlador lee el token de $_POST: enviarlo como formulario (con JSON no llegaba → csrf_token_mismatch)
+    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    body: new URLSearchParams({ _csrf_token: '<?= csrf_token() ?>' })
   }).then(r => r.json()).then(data => {
     if (data.success) { Swal.fire({icon:'success',title:'Completado',text:data.message||''}).then(()=>location.reload()); }
     else Swal.fire({icon:'error',title:'Error',text:data.error||'No se pudo completar'});
