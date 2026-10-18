@@ -93,19 +93,33 @@ class NewsletterController
         $unsubscribeUrl = $this->absoluteUrl('/newsletter/unsubscribe/' . urlencode($unsubscribeToken));
         $siteName = function_exists('site_setting') ? site_setting('site_name', 'MuseDock') : 'MuseDock';
 
-        $html = "<h2>Confirma tu suscripción</h2>"
-              . "<p>Hola" . ($name ? ' ' . htmlspecialchars($name) : '') . ",</p>"
-              . "<p>Para completar tu alta en la newsletter de <strong>" . htmlspecialchars($siteName) . "</strong>, confirma tu email:</p>"
-              . "<p><a href='" . htmlspecialchars($confirmUrl) . "' style='display:inline-block;background:#0d6efd;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;'>Confirmar suscripción</a></p>"
-              . "<p>Si no fuiste tú, ignora este correo o date de baja aquí: <a href='" . htmlspecialchars($unsubscribeUrl) . "'>" . htmlspecialchars($unsubscribeUrl) . "</a></p>";
+        // Lista de espera del alta (/register): el correo habla del aviso de apertura, no de la newsletter
+        $isWaitlist = \Screenart\Musedock\Services\NewsletterCampaignService::isWaitlist($sourceUrl);
+        $hello = "<p>Hola" . ($name ? ' ' . htmlspecialchars($name) : '') . ",</p>";
+        $button = fn (string $label) => "<p><a href='" . htmlspecialchars($confirmUrl) . "' style='display:inline-block;background:#0d6efd;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;'>" . $label . "</a></p>";
+        $optOut = "<p>Si no fuiste tú, ignora este correo o date de baja aquí: <a href='" . htmlspecialchars($unsubscribeUrl) . "'>" . htmlspecialchars($unsubscribeUrl) . "</a></p>";
 
-        $text = "Confirma tu suscripción: " . $confirmUrl . "\n"
-              . "Baja directa: " . $unsubscribeUrl;
+        if ($isWaitlist) {
+            $subject = 'Confirma tu email y te avisamos cuando abra ' . $siteName;
+            $html = "<h2>Confirma tu email</h2>" . $hello
+                  . "<p>Te has apuntado a la lista de espera de <strong>" . htmlspecialchars($siteName) . "</strong>. Confirma tu email y te avisaremos en cuanto abra el alta de nuevos sitios.</p>"
+                  . $button('Confirmar mi email')
+                  . "<p>Solo te escribiremos para avisarte de la apertura. " . "</p>" . $optOut;
+            $text = "Confirma tu email y te avisaremos cuando abra el alta: " . $confirmUrl . "\n"
+                  . "Baja directa: " . $unsubscribeUrl;
+        } else {
+            $subject = 'Confirma tu suscripción';
+            $html = "<h2>Confirma tu suscripción</h2>" . $hello
+                  . "<p>Para completar tu alta en la newsletter de <strong>" . htmlspecialchars($siteName) . "</strong>, confirma tu email:</p>"
+                  . $button('Confirmar suscripción') . $optOut;
+            $text = "Confirma tu suscripción: " . $confirmUrl . "\n"
+                  . "Baja directa: " . $unsubscribeUrl;
+        }
 
-        $sent = Mailer::send($email, 'Confirma tu suscripción', $html, $text, null, null, $tenantId !== null ? (int)$tenantId : null);
+        $sent = Mailer::send($email, $subject, $html, $text, null, null, $tenantId !== null ? (int)$tenantId : null);
 
         if ($sent) {
-            flash('success', 'Revisa tu email para confirmar la suscripción (doble opt-in).');
+            flash('success', $isWaitlist ? 'Revisa tu email y confírmalo: te avisaremos en cuanto abra el alta.' : 'Revisa tu email para confirmar la suscripción (doble opt-in).');
         } else {
             flash('error', 'No se pudo enviar el email de confirmación. Revisa la configuración SMTP.');
         }
@@ -116,7 +130,7 @@ class NewsletterController
     public function confirm(string $token)
     {
         $pdo = Database::connect();
-        $stmt = $pdo->prepare("SELECT id, status FROM newsletter_subscribers WHERE confirm_token = ? LIMIT 1");
+        $stmt = $pdo->prepare("SELECT id, status, email, name, tenant_id, source_url FROM newsletter_subscribers WHERE confirm_token = ? LIMIT 1");
         $stmt->execute([$token]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
@@ -134,6 +148,33 @@ class NewsletterController
         if (!$already) {
             $up = $pdo->prepare("UPDATE newsletter_subscribers SET status = 'active', confirmed_at = NOW(), updated_at = NOW() WHERE id = ?");
             $up->execute([(int)$row['id']]);
+
+            // Lista de espera del alta (sitio principal): aviso al administrador por Ajustes → Avisos
+            if (empty($row['tenant_id']) && \Screenart\Musedock\Services\NewsletterCampaignService::isWaitlist($row['source_url'] ?? null)) {
+                try {
+                    $who = htmlspecialchars(trim(($row['name'] ? $row['name'] . ' ' : '') . '<' . $row['email'] . '>'), ENT_QUOTES, 'UTF-8');
+                    $total = (int) $pdo->query("SELECT COUNT(*) FROM newsletter_subscribers WHERE tenant_id IS NULL AND status = 'active' AND source_url LIKE '%" . \Screenart\Musedock\Services\NewsletterCampaignService::WAITLIST_MARK . "%'")->fetchColumn();
+                    $list = $this->absoluteUrl('/musedock/newsletter?source=waitlist');
+                    \Screenart\Musedock\Services\Notifications\NotificationCenter::send('signup_waitlist', [
+                        'es' => ['subject' => 'Lista de espera: nueva persona apuntada (' . $total . ')',
+                            'html' => "<p><strong>{$who}</strong> se ha apuntado a la lista de espera del alta de sitios y ha confirmado su email.</p><p>En la lista hay ya <strong>{$total}</strong> personas confirmadas.</p><p><a href=\"{$list}\">Ver la lista de espera</a> · Cuando abras el alta, crea una campaña con destinatarios «Solo la lista de espera».</p>"],
+                        'en' => ['subject' => 'Waiting list: new sign-up (' . $total . ')',
+                            'html' => "<p><strong>{$who}</strong> joined the site sign-up waiting list and confirmed their email.</p><p>There are now <strong>{$total}</strong> confirmed people on the list.</p><p><a href=\"{$list}\">View the waiting list</a> · When you open sign-ups, create a campaign with recipients “Only the waiting list”.</p>"],
+                    ]);
+                } catch (\Throwable $e) {
+                    error_log('Aviso de lista de espera: ' . $e->getMessage());
+                }
+            }
+        }
+
+        if (\Screenart\Musedock\Services\NewsletterCampaignService::isWaitlist($row['source_url'] ?? null)) {
+            echo $this->renderStatus(
+                'confirmed',
+                $already ? '¡Ya estabas en la lista!' : '¡Estás en la lista de espera!',
+                'Gracias por confirmar tu email. Te avisaremos en cuanto abra el alta de nuevos sitios. Puedes darte de baja cuando quieras desde el enlace del correo.',
+                false
+            );
+            exit;
         }
 
         echo $this->renderStatus(

@@ -127,10 +127,10 @@
                 </div>
 
                 <div class="text-right ziph-domainsrch_price">
-                  <span class="ziph-dsp_col"><strong>.com</strong> $5.75</span>
-                  <span class="ziph-dsp_col"><strong>.net</strong> $9.75</span>
-                  <span class="ziph-dsp_col"><strong>.org</strong> $7.75</span>
-                  <span class="ziph-dsp_col"><strong>.us</strong> $5.75</span>
+                  <span class="ziph-dsp_col"><strong>.com</strong> $12</span>
+                  <span class="ziph-dsp_col"><strong>.net</strong> $12</span>
+                  <span class="ziph-dsp_col"><strong>.org</strong> $12</span>
+                  <span class="ziph-dsp_col"><strong>.us</strong> $12</span>
                 </div>
               </div>
             </div>

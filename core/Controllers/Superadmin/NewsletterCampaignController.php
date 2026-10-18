@@ -119,6 +119,7 @@ class NewsletterCampaignController
             'from_name' => $_POST['from_name'] ?? '',
             'from_email' => $_POST['from_email'] ?? '',
             'reply_to' => $_POST['reply_to'] ?? '',
+            'audience' => $_POST['audience'] ?? 'all',
             'scheduled_at' => $_POST['scheduled_at'] ?? '',
             'created_by_type' => 'super_admin',
             'created_by_id' => (int)($auth['id'] ?? 0),
@@ -177,6 +178,7 @@ class NewsletterCampaignController
             'from_name' => $_POST['from_name'] ?? '',
             'from_email' => $_POST['from_email'] ?? '',
             'reply_to' => $_POST['reply_to'] ?? '',
+            'audience' => $_POST['audience'] ?? 'all',
             'scheduled_at' => $_POST['scheduled_at'] ?? '',
         ], null);
 

@@ -14,6 +14,41 @@
     <div class="row justify-content-center">
       <div class="col-lg-8 col-xl-7">
 
+        @php
+          // Alta cerrada (ningún canal abierto en SignupGate): en vez del formulario, lista de espera con el newsletter (doble opt-in)
+          $__gateEarly = class_exists(\Cloud\Services\SignupGate::class) ? \Cloud\Services\SignupGate::class : null;
+          $__waitlist = !($__gateEarly && ($__gateEarly::allows('free_subdomain') || $__gateEarly::allows('connect_domain')));
+        @endphp
+        @if($__waitlist)
+          <div class="text-center" style="margin-bottom:20px;">
+            <h1 style="color:#243141; font-size:1.4rem; font-weight:700; margin:0 0 6px;">{{ __('Estamos preparando la plataforma') }}</h1>
+            <p style="color:#5f6873; font-size:0.95rem; margin:0;">{{ __('El alta de nuevos sitios abrirá muy pronto. Déjanos tu email y te avisamos en cuanto abra.') }}</p>
+          </div>
+          <div style="background:#fff; border-radius:12px; box-shadow:0 2px 16px rgba(0,0,0,0.08); border:1px solid #edf0f5; padding:24px; max-width:520px; margin:0 auto;">
+            <form action="{{ url('/newsletter/subscribe') }}" method="POST">
+              {!! csrf_field() !!}
+              <input type="hidden" name="_page_url" value="/register#lista-espera">
+              <label for="wl-name" style="font-size:0.85rem; font-weight:600; color:#243141;">{{ __('Nombre') }} <span style="color:#8a94a6; font-weight:400;">({{ __('opcional') }})</span></label>
+              <input id="wl-name" type="text" name="name" class="form-control" style="margin:4px 0 12px;">
+              <label for="wl-email" style="font-size:0.85rem; font-weight:600; color:#243141;">{{ __('Email') }}</label>
+              <input id="wl-email" type="email" name="email" class="form-control" required style="margin:4px 0 12px;">
+              <label style="display:flex; align-items:flex-start; gap:8px; font-size:0.8rem; color:#4a5568; cursor:pointer;">
+                <input type="checkbox" name="newsletter_consent" value="1" required style="margin-top:3px; accent-color:#4e73df;">
+                <span>{{ __('Quiero que me aviséis cuando abra el alta y acepto la') }} <a href="/p/privacy" target="_blank" style="color:#3b5bdb; font-weight:600;">{{ __('política de privacidad') }}</a>.</span>
+              </label>
+              <button type="submit" style="margin-top:16px; width:100%; padding:11px 28px; background:#4e73df; color:#fff; border:none; border-radius:8px; font-size:0.95rem; font-weight:600; cursor:pointer;">
+                <i class="bi bi-bell" style="margin-right:6px;"></i>{{ __('Avisadme cuando abra') }}
+              </button>
+              <p style="font-size:0.75rem; color:#8a94a6; margin:10px 0 0; text-align:center;">{{ __('Te enviaremos un correo para confirmar tu email. Sin spam: solo el aviso de apertura.') }}</p>
+            </form>
+          </div>
+          <div style="text-align:center; margin-top:18px; font-size:0.85rem; color:#5f6873;">
+            {{ __('¿Prefieres instalarlo en tu propio servidor?') }}
+            <a href="https://github.com/caimari/musedock" target="_blank" rel="noopener" style="color:#3b5bdb; font-weight:600;">{{ __('Self-hosting en GitHub') }}</a>
+          </div>
+        @endif
+        @if($__waitlist)<div hidden>@endif
+
         {{-- Title --}}
         <div class="text-center" style="margin-bottom:20px;">
           <h1 style="color:#243141; font-size:1.4rem; font-weight:700; margin:0 0 4px;">{{ __('Crea tu sitio web') }}</h1>
@@ -201,6 +236,7 @@
           <span style="color:#5f6873;">{{ __('¿Ya tienes cuenta?') }}</span>
           <a href="/customer/login" style="color:#3b5bdb; font-weight:600; margin-left:4px; text-decoration:none;">{{ __('Inicia sesión') }}</a>
         </div>
+        @if($__waitlist)</div>@endif
 
       </div>
     </div>

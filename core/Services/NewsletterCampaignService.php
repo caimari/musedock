@@ -7,6 +7,38 @@ use Screenart\Musedock\Mail\Mailer;
 
 class NewsletterCampaignService
 {
+    /** Marca en source_url de quien se apunta desde la lista de espera del alta (/register#lista-espera). */
+    public const WAITLIST_MARK = 'lista-espera';
+
+    /** Destinatarios posibles de una campaña. */
+    public const AUDIENCES = [
+        'all' => 'Todos los suscriptores',
+        'waitlist' => 'Solo la lista de espera',
+        'newsletter' => 'Solo el newsletter (sin la lista de espera)',
+    ];
+
+    public static function isWaitlist(?string $sourceUrl): bool
+    {
+        return $sourceUrl !== null && str_contains($sourceUrl, self::WAITLIST_MARK);
+    }
+
+    /** Condición SQL (sobre newsletter_subscribers, alias opcional) para un público. */
+    public static function audienceSql(string $audience, string $alias = ''): string
+    {
+        $col = ($alias !== '' ? $alias . '.' : '') . 'source_url';
+        return match ($audience) {
+            'waitlist' => " AND {$col} LIKE '%" . self::WAITLIST_MARK . "%'",
+            'newsletter' => " AND ({$col} IS NULL OR {$col} NOT LIKE '%" . self::WAITLIST_MARK . "%')",
+            default => '',
+        };
+    }
+
+    private static function audienceOf(array $data, string $fallback = 'all'): string
+    {
+        $a = (string) ($data['audience'] ?? $fallback);
+        return isset(self::AUDIENCES[$a]) ? $a : 'all';
+    }
+
     public static function createCampaign(array $data, ?int $forcedTenantId = null): int
     {
         $pdo = Database::connect();
@@ -37,7 +69,20 @@ class NewsletterCampaignService
             !empty($data['created_by_id']) ? (int)$data['created_by_id'] : null,
         ]);
 
-        return (int)$pdo->lastInsertId();
+        $id = (int)$pdo->lastInsertId();
+        self::saveAudience($pdo, $id, self::audienceOf($data));
+
+        return $id;
+    }
+
+    /** Guarda el público de la campaña (columna audience; si aún no existe, la campaña va a todos). */
+    private static function saveAudience(\PDO $pdo, int $campaignId, string $audience): void
+    {
+        try {
+            $pdo->prepare('UPDATE newsletter_campaigns SET audience = ? WHERE id = ?')->execute([$audience, $campaignId]);
+        } catch (\Throwable $e) {
+            // sin la migración de audience
+        }
     }
 
     public static function updateCampaign(int $campaignId, array $data, ?int $forcedTenantId = null): bool
@@ -66,6 +111,10 @@ class NewsletterCampaignService
             WHERE id = ?");
 
         $scheduledAt = self::normalizeDateTime($data['scheduled_at'] ?? null);
+
+        if (array_key_exists('audience', $data)) {
+            self::saveAudience($pdo, $campaignId, self::audienceOf($data, (string) ($campaign['audience'] ?? 'all')));
+        }
 
         return $stmt->execute([
             trim((string)($data['name'] ?? $campaign['name'] ?? 'Campaña sin título')),
@@ -120,6 +169,9 @@ class NewsletterCampaignService
                     $subSql .= " AND tenant_id = ?";
                     $params[] = (int)$campaign['tenant_id'];
                 }
+
+                // Público: todos, solo la lista de espera o solo el newsletter
+                $subSql .= self::audienceSql((string) ($campaign['audience'] ?? 'all'));
 
                 $subSql .= " ORDER BY id ASC";
                 $subStmt = $pdo->prepare($subSql);

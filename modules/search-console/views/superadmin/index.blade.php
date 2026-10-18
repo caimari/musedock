@@ -284,11 +284,15 @@
                 <strong>«SEO aquí»</strong>, junto al nombre que quieres conservar, el otro pasa a redirigir (301, conservando la ruta) y el SEO se concentra en él. Pide tu contraseña, se verifica con una petición real y se deshace solo si falla.
                 Solo funciona mientras el dominio siga siendo tuyo.
             </div>
+            <div class="mt-2 p-2 rounded" style="font-size:.82rem;background:#fff8e1;border:1px solid #ffe08a;">
+                <i class="bi bi-info-circle"></i> Lo normal es concentrar el SEO en el <strong>dominio propio</strong> (p. ej. <em>screenart.es</em>), no en el subdominio de la plataforma (<em>screenart.musedock.com</em>).
+                Debajo de cada nombre ves qué es y su tráfico en Google; <span class="badge bg-success">★ más tráfico</span> marca el que Google ya prefiere. Si vas a mandar el SEO hacia el que tiene menos, se te pedirá confirmarlo.
+            </div>
         </div>
         <div id="gsc-rp-bar" class="px-3 py-2 border-bottom d-flex gap-2 align-items-center flex-wrap" style="background:rgba(26,115,232,.04);">
             <span class="text-muted" style="font-size:.85rem;"><strong id="gsc-rp-count">0</strong> seleccionados</span>
-            <button type="button" class="btn btn-outline-primary btn-sm gsc-rp-bulk" data-mode="to_alias" disabled>SEO → los alias</button>
-            <button type="button" class="btn btn-outline-primary btn-sm gsc-rp-bulk" data-mode="to_tenant" disabled>SEO → los dominios del tenant</button>
+            <button type="button" class="btn btn-outline-primary btn-sm gsc-rp-bulk" data-mode="to_alias" disabled title="El SEO se queda en el nombre de la columna «Alias» y el de «Dominio del tenant» redirige a él">SEO → columna «Alias»</button>
+            <button type="button" class="btn btn-outline-primary btn-sm gsc-rp-bulk" data-mode="to_tenant" disabled title="El SEO se queda en el nombre de la columna «Dominio del tenant» y el alias redirige a él">SEO → columna «Dominio del tenant»</button>
             <button type="button" class="btn btn-outline-danger btn-sm gsc-rp-bulk" data-mode="remove" disabled>Quitar redirecciones</button>
             <span class="text-muted ms-auto" style="font-size:.78rem;">Marca los sitios y aplica la acción a todos de una vez, con una sola contraseña.</span>
         </div>
@@ -297,20 +301,35 @@
             <thead><tr><th style="width:1%;"><input type="checkbox" id="gsc-rp-all" class="form-check-input" title="Seleccionar todos los visibles" aria-label="Seleccionar todos"></th><th>Sitio</th><th>Dominio del tenant</th><th>Alias</th><th>Estado</th></tr></thead>
             <tbody>
             @foreach($redirectPairs as $rp)
-                @php $rpOk = $rp['alias_status'] === 'active' && $rp['redirect'] === ''; @endphp
+                @php
+                    $rpOk = $rp['alias_status'] === 'active' && $rp['redirect'] === '';
+                    $rpInfo = function (string $side) use ($rp) {
+                        $i = $rp[$side . '_impressions'] ?? null;
+                        $c = $rp[$side . '_clicks'] ?? null;
+                        $kind = $rp[$side . '_kind'] ?? '';
+                        return '<div class="text-muted" style="font-size:.75rem;white-space:normal;">' . e(ucfirst($kind))
+                            . ' · Google: ' . ($i === null ? 'sin datos' : number_format((int) $c, 0, ',', '.') . ' clics, ' . number_format((int) $i, 0, ',', '.') . ' impr.')
+                            . (($rp['seo_side'] ?? null) === $side ? ' <span class="badge bg-success">★ más tráfico</span>' : '') . '</div>';
+                    };
+                @endphp
                 <tr>
-                    <td><input type="checkbox" class="form-check-input gsc-rp-check" value="{{ $rp['tenant_domain'] }}|{{ $rp['alias'] }}" data-redirect="{{ $rp['redirect'] }}" @if(!$rpOk && $rp['redirect'] === '')disabled title="El alias no está activo"@endif aria-label="Seleccionar {{ $rp['tenant_domain'] }} y {{ $rp['alias'] }}"></td>
+                    <td><input type="checkbox" class="form-check-input gsc-rp-check" value="{{ $rp['tenant_domain'] }}|{{ $rp['alias'] }}" data-redirect="{{ $rp['redirect'] }}" data-ti="{{ (int) ($rp['tenant_impressions'] ?? 0) }}" data-ai="{{ (int) ($rp['alias_impressions'] ?? 0) }}" @if(!$rpOk && $rp['redirect'] === '')disabled title="El alias no está activo"@endif aria-label="Seleccionar {{ $rp['tenant_domain'] }} y {{ $rp['alias'] }}"></td>
                     <td>{{ $rp['name'] }}</td>
                     <td style="white-space:nowrap;"><strong>{{ $rp['tenant_domain'] }}</strong>
-                        @if($rpOk)<button type="button" class="btn btn-outline-primary btn-sm py-0 px-2 ms-2 gsc-redirect" style="font-size:.78rem;" data-from="{{ $rp['alias'] }}" data-to="{{ $rp['tenant_domain'] }}" title="El SEO se concentra en {{ $rp['tenant_domain'] }}; {{ $rp['alias'] }} pasará a redirigir aquí"><i class="bi bi-bullseye"></i> SEO aquí</button>@endif</td>
+                        @if($rpOk)<button type="button" class="btn btn-outline-primary btn-sm py-0 px-2 ms-2 gsc-redirect" style="font-size:.78rem;" data-from="{{ $rp['alias'] }}" data-to="{{ $rp['tenant_domain'] }}" data-from-impr="{{ (int) ($rp['alias_impressions'] ?? 0) }}" data-to-impr="{{ (int) ($rp['tenant_impressions'] ?? 0) }}" title="El SEO se concentra en {{ $rp['tenant_domain'] }}; {{ $rp['alias'] }} pasará a redirigir aquí"><i class="bi bi-bullseye"></i> SEO aquí</button>@endif
+                        {!! $rpInfo('tenant') !!}</td>
                     <td style="white-space:nowrap;"><strong>{{ $rp['alias'] }}</strong>@if($rp['alias_status'] !== 'active') <span class="badge bg-secondary">{{ $rp['alias_status'] }}</span>@endif
-                        @if($rpOk)<button type="button" class="btn btn-outline-primary btn-sm py-0 px-2 ms-2 gsc-redirect" style="font-size:.78rem;" data-from="{{ $rp['tenant_domain'] }}" data-to="{{ $rp['alias'] }}" title="El SEO se concentra en {{ $rp['alias'] }}; {{ $rp['tenant_domain'] }} pasará a redirigir aquí"><i class="bi bi-bullseye"></i> SEO aquí</button>@endif</td>
+                        @if($rpOk)<button type="button" class="btn btn-outline-primary btn-sm py-0 px-2 ms-2 gsc-redirect" style="font-size:.78rem;" data-from="{{ $rp['tenant_domain'] }}" data-to="{{ $rp['alias'] }}" data-from-impr="{{ (int) ($rp['tenant_impressions'] ?? 0) }}" data-to-impr="{{ (int) ($rp['alias_impressions'] ?? 0) }}" title="El SEO se concentra en {{ $rp['alias'] }}; {{ $rp['tenant_domain'] }} pasará a redirigir aquí"><i class="bi bi-bullseye"></i> SEO aquí</button>@endif
+                        {!! $rpInfo('alias') !!}</td>
                     <td style="font-size:.85rem;white-space:nowrap;">
                         @if($rp['redirect'] === 'tenant')<span class="badge bg-success">{{ $rp['tenant_domain'] }} → {{ $rp['alias'] }}</span>
                             <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 ms-2 gsc-redirect-remove" style="font-size:.78rem;" data-from="{{ $rp['tenant_domain'] }}">Quitar redirección</button>
                         @elseif($rp['redirect'] === 'alias')<span class="badge bg-success">{{ $rp['alias'] }} → {{ $rp['tenant_domain'] }}</span>
                             <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 ms-2 gsc-redirect-remove" style="font-size:.78rem;" data-from="{{ $rp['alias'] }}">Quitar redirección</button>
                         @else<span class="badge bg-warning text-dark" title="Los dos nombres sirven el sitio: Google puede indexarlos por separado">Sirven los dos</span>@endif
+                        @if(($rp['redirect'] === 'tenant' && ($rp['seo_side'] ?? null) === 'tenant') || ($rp['redirect'] === 'alias' && ($rp['seo_side'] ?? null) === 'alias'))
+                            <div class="text-danger mt-1" style="font-size:.78rem;white-space:normal;"><i class="bi bi-exclamation-triangle-fill"></i> Redirige el nombre que Google prefiere hacia el que tiene menos tráfico: revisa si es lo que querías.</div>
+                        @endif
                     </td>
                 </tr>
             @endforeach
@@ -751,10 +770,22 @@
         })();
     });
 
+    // Mover el SEO hacia el nombre con menos tráfico en Google exige marcar una casilla (el 16-10-2026 se movieron 6 sitios al revés)
+    function rpNum(n) { return Number(n || 0).toLocaleString('es-ES'); }
+    function rpAgainst(fromImpr, toImpr) { return Number(fromImpr || 0) > Number(toImpr || 0); }
+    function rpAck(text) { return '<div class="mt-3 p-2 rounded" style="background:#fdecea;border:1px solid #f5c2c7;color:#842029;font-size:.88rem;"><i class="bi bi-exclamation-triangle-fill"></i> ' + text
+        + '<label class="d-block mt-2" style="font-weight:600;"><input type="checkbox" id="gsc-ack" class="form-check-input me-1"> Entiendo que el SEO se mueve al nombre con menos tráfico y lo quiero así</label></div>'; }
+    function rpValidator(v) {
+        if (!v) { return 'Escribe tu contraseña'; }
+        var ack = document.getElementById('gsc-ack');
+        if (ack && !ack.checked) { return 'Marca la casilla de confirmación (el SEO iría al nombre con menos tráfico)'; }
+        return undefined;
+    }
+
     function redirectCall(action, extra, title, html, confirmText, danger) {
         Swal.fire({ title: title, html: html, icon: danger ? 'warning' : 'question', input: 'password', inputPlaceholder: 'Contraseña de administrador',
             inputAttributes: { autocomplete: 'current-password' }, showCancelButton: true, confirmButtonText: confirmText, cancelButtonText: 'Cancelar',
-            confirmButtonColor: danger ? '#dc3545' : undefined, inputValidator: function (v) { return v ? undefined : 'Escribe tu contraseña'; } })
+            confirmButtonColor: danger ? '#dc3545' : undefined, inputValidator: rpValidator })
         .then(function (r) {
             if (!r.isConfirmed) { return; }
             Swal.fire({ title: 'Aplicando y verificando…', text: 'Unos segundos.', allowOutsideClick: false, showConfirmButton: false, didOpen: function () { Swal.showLoading(); } });
@@ -767,9 +798,13 @@
     document.addEventListener('click', function (e) {
         var b = e.target.closest('.gsc-redirect'), rm = e.target.closest('.gsc-redirect-remove');
         if (b) {
+            var against = rpAgainst(b.dataset.fromImpr, b.dataset.toImpr);
             redirectCall('apply', { from: b.dataset.from, to: b.dataset.to }, 'Mover el SEO a ' + b.dataset.to,
                 '<div style="text-align:left;font-size:.92rem;">Vas a hacer que <strong>' + b.dataset.from + '</strong> redirija (301) a <strong>' + b.dataset.to + '</strong>, conservando la ruta: ' +
-                '<code>' + b.dataset.from + '/blog</code> → <code>' + b.dataset.to + '/blog</code>.<ul class="mt-2"><li>Google traspasará poco a poco el SEO (semanas).</li><li>Se comprueba antes que ' + b.dataset.to + ' responde y se verifica después; si falla, se deshace solo.</li><li>Puedes quitar la redirección cuando quieras.</li></ul>Confirma con tu contraseña.</div>', 'Mover SEO', false);
+                '<code>' + b.dataset.from + '/blog</code> → <code>' + b.dataset.to + '/blog</code>.' +
+                '<div class="mt-2" style="font-size:.85rem;">Impresiones en Google: <strong>' + b.dataset.from + '</strong> ' + rpNum(b.dataset.fromImpr) + ' · <strong>' + b.dataset.to + '</strong> ' + rpNum(b.dataset.toImpr) + '</div>' +
+                (against ? rpAck('<strong>' + b.dataset.from + '</strong> tiene más tráfico en Google que <strong>' + b.dataset.to + '</strong>: con esto, el SEO se va al que tiene menos.') : '') +
+                '<ul class="mt-2"><li>Google traspasará poco a poco el SEO (semanas).</li><li>Se comprueba antes que ' + b.dataset.to + ' responde y se verifica después; si falla, se deshace solo.</li><li>Puedes quitar la redirección cuando quieras.</li></ul>Confirma con tu contraseña.</div>', 'Mover SEO', against);
         }
         if (rm) {
             redirectCall('remove', { from: rm.dataset.from }, 'Quitar la redirección de ' + rm.dataset.from, 'El dominio volverá a servir el sitio y ya no redirigirá. Confirma con tu contraseña.', 'Quitar redirección', true);
@@ -831,13 +866,25 @@
         document.addEventListener('click', function (e) {
             var b = e.target.closest('.gsc-rp-bulk'); if (!b || b.disabled) { return; }
             var mode = b.dataset.mode, remove = mode === 'remove';
-            var chosen = rpSelected().filter(function (c) { return remove ? c.dataset.redirect : !c.dataset.redirect; }).map(function (c) { return c.value; });
-            var what = remove ? 'quitar la redirección de' : (mode === 'to_alias' ? 'concentrar el SEO en el <strong>alias</strong> de' : 'concentrar el SEO en el <strong>dominio del tenant</strong> de');
-            Swal.fire({ title: (remove ? 'Quitar redirecciones' : 'Mover el SEO') + ' (' + chosen.length + ')', icon: remove ? 'warning' : 'question', showCancelButton: true, confirmButtonText: remove ? 'Quitar' : 'Mover SEO', cancelButtonText: 'Cancelar',
-                confirmButtonColor: remove ? '#dc3545' : undefined,
-                html: '<div style="text-align:left;font-size:.92rem;">Vas a ' + what + ' <strong>' + chosen.length + '</strong> sitios:<div class="mt-2" style="max-height:140px;overflow:auto;font-size:.85rem;">' + chosen.map(function (k) { return k.replace('|', ' ⇄ '); }).join('<br>') + '</div>' +
+            var boxes = rpSelected().filter(function (c) { return remove ? c.dataset.redirect : !c.dataset.redirect; });
+            var chosen = boxes.map(function (c) { return c.value; });
+            // Cada sitio, escrito tal cual va a quedar: «origen → destino», con las impresiones de cada nombre
+            var nAgainst = 0;
+            var lines = boxes.map(function (c) {
+                var parts = c.value.split('|'), tenant = parts[0], alias = parts[1];
+                if (remove) { return tenant + ' ⇄ ' + alias; }
+                var toAlias = mode === 'to_alias', from = toAlias ? tenant : alias, to = toAlias ? alias : tenant;
+                var fromImpr = toAlias ? c.dataset.ti : c.dataset.ai, toImpr = toAlias ? c.dataset.ai : c.dataset.ti;
+                var bad = rpAgainst(fromImpr, toImpr); if (bad) { nAgainst++; }
+                return (bad ? '<span style="color:#b02a37;">⚠ ' : '') + from + ' <span class="text-muted">(' + rpNum(fromImpr) + ' impr.)</span> → <strong>' + to + '</strong> <span class="text-muted">(' + rpNum(toImpr) + ' impr.)</span>' + (bad ? '</span>' : '');
+            });
+            var what = remove ? 'quitar la redirección de' : 'mover el SEO así en';
+            Swal.fire({ title: (remove ? 'Quitar redirecciones' : 'Mover el SEO') + ' (' + chosen.length + ')', icon: remove || nAgainst ? 'warning' : 'question', showCancelButton: true, confirmButtonText: remove ? 'Quitar' : 'Mover SEO', cancelButtonText: 'Cancelar',
+                confirmButtonColor: remove || nAgainst ? '#dc3545' : undefined, width: 720,
+                html: '<div style="text-align:left;font-size:.92rem;">Vas a ' + what + ' <strong>' + chosen.length + '</strong> sitios' + (remove ? '' : ' (el primero redirigirá al de la derecha, que se queda el SEO)') + ':<div class="mt-2" style="max-height:200px;overflow:auto;font-size:.85rem;">' + lines.join('<br>') + '</div>' +
+                    (nAgainst ? rpAck('En <strong>' + nAgainst + '</strong> de ellos (⚠) el nombre que redirige tiene más tráfico en Google que el destino: el SEO se iría al que tiene menos.') : '') +
                     (remove ? '' : '<div class="mt-2">Cada uno se comprueba antes, se verifica después y se deshace solo si falla; un fallo no impide los demás. Google traspasa el SEO en semanas.</div>') + '<div class="mt-2">Confirma con tu contraseña.</div></div>',
-                input: 'password', inputPlaceholder: 'Contraseña de administrador', inputAttributes: { autocomplete: 'current-password' }, inputValidator: function (v) { return v ? undefined : 'Escribe tu contraseña'; } })
+                input: 'password', inputPlaceholder: 'Contraseña de administrador', inputAttributes: { autocomplete: 'current-password' }, inputValidator: rpValidator })
             .then(function (r) {
                 if (!r.isConfirmed) { return; }
                 Swal.fire({ title: 'Aplicando…', text: 'Una por una; puede tardar unos segundos por sitio.', allowOutsideClick: false, showConfirmButton: false, didOpen: function () { Swal.showLoading(); } });

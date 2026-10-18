@@ -53,6 +53,15 @@
               <label class="form-label">Reply-to (opcional)</label>
               <input class="form-control" name="reply_to" type="email">
             </div>
+            <div class="col-md-6">
+              <label class="form-label">Destinatarios</label>
+              <select class="form-select" name="audience">
+                @foreach(\Screenart\Musedock\Services\NewsletterCampaignService::AUDIENCES as $__a => $__l)
+                  <option value="{{ $__a }}" @selected(($_GET['audience'] ?? 'all') === $__a)>{{ $__l }}</option>
+                @endforeach
+              </select>
+              <div class="form-text">«Solo la lista de espera»: quienes se apuntaron en /register para que les avisemos cuando abra el alta.</div>
+            </div>
             <div class="col-12">
               <label class="form-label">Contenido HTML</label>
               <textarea class="form-control" name="html_content" rows="12" placeholder="<h1>Hola</h1>"></textarea>

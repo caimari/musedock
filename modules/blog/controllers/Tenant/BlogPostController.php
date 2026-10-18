@@ -638,8 +638,8 @@ class BlogPostController
             unset($data['prefix']);
             $post->update($data);
 
-            // Actualizar slug
-            $deleteSlugStmt = $pdo->prepare("DELETE FROM slugs WHERE module = 'blog' AND reference_id = ?");
+            // Actualizar slug del idioma base (los slugs traducidos, con locale, se conservan: si no, /en/… daba 404)
+            $deleteSlugStmt = $pdo->prepare("DELETE FROM slugs WHERE module = 'blog' AND reference_id = ? AND (locale IS NULL OR locale = '')");
             $deleteSlugStmt->execute([$id]);
 
             $insertSlugStmt = $pdo->prepare(

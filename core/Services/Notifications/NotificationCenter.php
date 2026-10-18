@@ -42,6 +42,11 @@ class NotificationCenter
             'desc_es' => 'Resumen diario de caídas relevantes de clics o posiciones en Google.',
             'desc_en' => 'Daily summary of relevant drops in Google clicks or positions.',
         ],
+        'signup_waitlist' => [
+            'es' => 'Lista de espera', 'en' => 'Waiting list', 'group' => 'Altas',
+            'desc_es' => 'Alguien se apunta a la lista de espera del alta de sitios (/register) y confirma su email.',
+            'desc_en' => 'Someone joins the site sign-up waiting list (/register) and confirms their email.',
+        ],
         'security_bruteforce' => [
             'es' => 'Ataques de fuerza bruta', 'en' => 'Brute-force attacks', 'group' => 'Seguridad',
             'desc_es' => 'Muchos intentos fallidos de acceso contra una cuenta (se bloquea temporalmente).',

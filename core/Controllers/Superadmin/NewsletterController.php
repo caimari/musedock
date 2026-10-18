@@ -38,6 +38,13 @@ class NewsletterController
             $params[] = '%' . $q . '%';
             $params[] = '%' . $q . '%';
         }
+        // Origen: lista de espera del alta (/register) o newsletter normal
+        $source = trim((string)($_GET['source'] ?? ''));
+        if (in_array($source, ['waitlist', 'newsletter'], true)) {
+            $sql .= \Screenart\Musedock\Services\NewsletterCampaignService::audienceSql($source, 'ns');
+        } else {
+            $source = '';
+        }
 
         $sql .= " ORDER BY ns.created_at DESC LIMIT 500";
         $stmt = $pdo->prepare($sql);
@@ -49,6 +56,7 @@ class NewsletterController
             'items' => $items,
             'status' => $status,
             'q' => $q,
+            'source' => $source,
         ]);
     }
 }

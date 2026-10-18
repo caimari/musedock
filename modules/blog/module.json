@@ -17,6 +17,7 @@
     },
     "changelog": {
         "pendiente (listados del superadmin)": [
+            "Arreglo: guardar una entrada ya no cambia su URL. El superadmin ponía el prefijo «blog» por defecto (los artículos del sitio principal, que van sin prefijo, daban 404) y, al guardar, superadmin y tenants borraban los slugs traducidos (/en/… daba 404). Ahora se conserva el prefijo que tenía (o el del blog del sitio) y solo se reescribe el slug del idioma base; las entradas nuevas del sitio principal usan el prefijo de su blog.",
             "Nueva opción por entrada «Mostrar el número de visitas» (crear y editar, superadmin y tenant), desactivada por defecto: las entradas ya no enseñan «N Vistas» salvo que se active en cada una (y siga activado el ajuste general del sitio).",
             "Listado de entradas del superadmin: 25 por página por defecto (antes 10) y sin la opción de 10.",
             "Listados de entradas (superadmin y tenant): se quita la píldora gris vacía de «comentarios desactivados» (su icono bi-chat-slash no existe en la versión instalada de Bootstrap Icons).",

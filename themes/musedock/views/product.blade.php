@@ -3,6 +3,9 @@
 @php
   $page = $page ?? null;
   $slug = $page->slug ?? '';
+  // Alta de sitios abierta o cerrada (Cloud\Services\SignupGate): con el alta cerrada, /register es una lista de espera
+  $__gate = class_exists(\Cloud\Services\SignupGate::class) ? \Cloud\Services\SignupGate::class : null;
+  $__signupOpen = $__gate && ($__gate::allows('free_subdomain') || $__gate::allows('connect_domain'));
 
   // Product configurations
   $products = [
@@ -11,7 +14,7 @@
       'badge_color' => '#28a745',
       'hero_title' => 'Tu web en segundos. Sin instalar nada.',
       'hero_subtitle' => 'O instálalo en tu servidor con licencia propia Source Available (Provider Use). Un CMS moderno con IA, SEO automático y sistema de documentación integrado. Construido sobre 20 años de experiencia real.',
-      'cta_primary' => 'Crear mi sitio gratis',
+      'cta_primary' => $__signupOpen ? 'Crear mi sitio' : 'Avísame cuando abra',
       'cta_primary_url' => '/register',
       'cta_secondary' => 'Self-Hosting (GitHub)',
       'cta_secondary_url' => 'https://github.com/caimari/musedock',
@@ -373,11 +376,11 @@
   <section class="md-product-cta-final">
     <div class="container text-center">
       <h2>{{ $slug === 'cms' ? 'Empieza hoy con MuseDock CMS' : ($slug === 'panel' ? 'Instala MuseDock Panel en tu servidor' : '¿Quieres ser de los primeros en probar el Portal?') }}</h2>
-      <p>{{ $slug === 'cms' ? 'Crea tu sitio gratis o instala en tu servidor con licencia propia Source Available (Provider Use).' : ($slug === 'panel' ? 'Libérate de las licencias mensuales de cPanel y Plesk.' : 'Escríbenos y te avisaremos cuando MuseDock Portal esté listo.') }}</p>
+      <p>{{ $slug === 'cms' ? ($__signupOpen ? 'Crea tu sitio o instálalo en tu servidor con licencia propia Source Available (Provider Use).' : 'El alta de sitios abre muy pronto: apúntate y te avisamos. O instálalo ya en tu servidor con licencia propia Source Available (Provider Use).') : ($slug === 'panel' ? 'Libérate de las licencias mensuales de cPanel y Plesk.' : 'Escríbenos y te avisaremos cuando MuseDock Portal esté listo.') }}</p>
       <div style="margin-top:30px;">
         <a href="{{ $product['cta_primary_url'] }}" class="md-btn md-btn-primary md-btn-lg">{{ $product['cta_primary'] }}</a>
         @if($slug === 'cms')
-        <a href="/register" class="md-btn md-btn-secondary md-btn-lg" style="margin-left:12px;">Ver planes de hosting</a>
+        <a href="{{ $__signupOpen ? '/register' : $product['cta_secondary_url'] }}" class="md-btn md-btn-secondary md-btn-lg" style="margin-left:12px;">{{ $__signupOpen ? 'Ver planes de hosting' : $product['cta_secondary'] }}</a>
         @elseif($slug === 'panel')
         <a href="/blog/category/panel" class="md-btn md-btn-secondary md-btn-lg" style="margin-left:12px;">Leer documentación</a>
         @endif

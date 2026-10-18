@@ -350,7 +350,9 @@ class BlogPostController
             } elseif ($targetTenantId) {
                 $prefix = $this->getTenantBlogPrefixForScope($targetTenantId);
             } else {
-                $prefix = 'blog';
+                // Sitio principal: el prefijo de su blog (vacío = artículos en /slug)
+                $prefix = function_exists('blog_prefix') ? blog_prefix() : 'blog';
+                $prefix = $prefix !== '' ? $prefix : null;
             }
 
             $insertStmt = $pdo->prepare("INSERT INTO slugs (module, reference_id, slug, tenant_id, prefix) VALUES (?, ?, ?, ?, ?)");
@@ -638,13 +640,25 @@ class BlogPostController
 
         $newSlug = $data['slug'];
 
-        // Determinar el prefijo correcto
+        // Determinar el prefijo correcto. Guardar no debe cambiar la URL: se conserva el prefijo que ya tenía el slug
+        // (antes se ponía «blog» por defecto y los artículos del sitio principal, que van sin prefijo, daban 404).
+        $existingPrefix = false;
+        try {
+            $prefixStmt = Database::connect()->prepare("SELECT prefix FROM slugs WHERE module = 'blog' AND reference_id = ? AND (locale IS NULL OR locale = '') AND tenant_id " . ($originalTenantId ? "= ?" : "IS NULL") . " ORDER BY id LIMIT 1");
+            $prefixStmt->execute($originalTenantId ? [$id, $originalTenantId] : [$id]);
+            $existingPrefix = $prefixStmt->fetchColumn(); // false = no hay slug; null o '' = sin prefijo
+        } catch (\Throwable $e) {
+            $existingPrefix = false;
+        }
         if (($data['post_type'] ?? $post->post_type ?? 'post') === 'docs') {
             $prefix = 'docs';
         } elseif ($originalTenantId && is_cross_publisher_active()) {
             $prefix = $this->getTenantBlogPrefixForScope((int) $originalTenantId);
+        } elseif ($existingPrefix !== false && $existingPrefix !== 'docs') {
+            $prefix = ($existingPrefix === null || $existingPrefix === '') ? null : $existingPrefix;
         } else {
-            $prefix = $rawData['prefix'] ?? 'blog';
+            $prefix = function_exists('blog_prefix') ? blog_prefix() : 'blog';
+            $prefix = $prefix !== '' ? $prefix : null;
         }
 
         $pdo = null;
@@ -670,8 +684,8 @@ class BlogPostController
                 $updateCurrentStmt->execute([$id]);
             }
 
-            // 3. Actualizar slug
-            $deleteSlugStmt = $pdo->prepare("DELETE FROM slugs WHERE module = 'blog' AND reference_id = ? AND tenant_id " . ($originalTenantId ? "= ?" : "IS NULL"));
+            // 3. Actualizar slug del idioma base (los slugs traducidos, con locale, se conservan: si no, /en/… daba 404)
+            $deleteSlugStmt = $pdo->prepare("DELETE FROM slugs WHERE module = 'blog' AND reference_id = ? AND (locale IS NULL OR locale = '') AND tenant_id " . ($originalTenantId ? "= ?" : "IS NULL"));
             $deleteParams = [$id];
             if ($originalTenantId) $deleteParams[] = $originalTenantId;
             $deleteSlugStmt->execute($deleteParams);

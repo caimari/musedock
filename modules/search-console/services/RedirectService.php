@@ -69,6 +69,42 @@ class RedirectService
         return $out;
     }
 
+    /**
+     * Añade a cada pareja el tráfico de Google de cada nombre (clics e impresiones de todo el histórico descargado)
+     * y si es subdominio de la plataforma o dominio propio, para que la pantalla deje claro hacia dónde va el SEO.
+     */
+    public function withTraffic(array $pairs): array
+    {
+        $traffic = [];
+        try {
+            $rows = $this->pdo->query('SELECT p.domain, COALESCE(SUM(d.clicks), 0) AS clicks, COALESCE(SUM(d.impressions), 0) AS impressions
+                FROM gsc_properties p LEFT JOIN gsc_site_daily d ON d.property_id = p.id GROUP BY p.domain')->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($rows as $r) {
+                $h = PropertyService::normalizeHost((string) $r['domain']);
+                $traffic[$h] = ['clicks' => ($traffic[$h]['clicks'] ?? 0) + (int) $r['clicks'], 'impressions' => ($traffic[$h]['impressions'] ?? 0) + (int) $r['impressions']];
+            }
+        } catch (\Throwable $e) {
+            // sin datos de Search Console: la pantalla funciona igual, sin cifras
+        }
+        $platform = PropertyService::normalizeHost((string) parse_url((string) \Screenart\Musedock\Env::get('APP_URL', ''), PHP_URL_HOST));
+        $kind = fn (string $h) => ($platform !== '' && str_ends_with($h, '.' . $platform)) ? 'subdominio de la plataforma' : 'dominio propio';
+        foreach ($pairs as &$p) {
+            foreach (['tenant_domain' => 'tenant', 'alias' => 'alias'] as $field => $side) {
+                $t = $traffic[$p[$field]] ?? null;
+                $p[$side . '_clicks'] = $t ? $t['clicks'] : null;
+                $p[$side . '_impressions'] = $t ? $t['impressions'] : null;
+                $p[$side . '_kind'] = $kind($p[$field]);
+            }
+            // Hacia dónde debería ir el SEO según Google: el nombre con más impresiones (null si no hay datos o empatan)
+            $ti = (int) ($p['tenant_impressions'] ?? 0);
+            $ai = (int) ($p['alias_impressions'] ?? 0);
+            $p['seo_side'] = $ti === $ai ? null : ($ti > $ai ? 'tenant' : 'alias');
+        }
+        unset($p);
+
+        return $pairs;
+    }
+
     /** ¿Es un movimiento permitido? Devuelve null si sí, o el motivo. */
     public function validate(string $from, string $to): ?string
     {

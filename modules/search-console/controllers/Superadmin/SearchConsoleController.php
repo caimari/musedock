@@ -51,7 +51,7 @@ class SearchConsoleController extends BaseController
             'totals' => $totals,
             'period' => $period,
             'expiry' => (new \Modules\SearchConsole\Services\DomainExpiryService($this->pdo))->listing(),
-            'redirectPairs' => (new \Modules\SearchConsole\Services\RedirectService($this->pdo))->pairs(),
+            'redirectPairs' => (fn ($rs) => $rs->withTraffic($rs->pairs()))(new \Modules\SearchConsole\Services\RedirectService($this->pdo)),
             'indexNow' => $this->indexNowView(),
             'sitemapDispatch' => $this->sitemapDispatchView(),
             'priorities' => $credential ? $this->priorities($properties) : [],

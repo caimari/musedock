@@ -3,7 +3,7 @@
     "description": "MuseDock CMS - A modular, multi-tenant content management system with AI integration.",
     "type": "project",
     "license": "proprietary",
-    "version": "2.25.0",
+    "version": "2.26.0",
     "keywords": [
         "cms",
         "content-management",

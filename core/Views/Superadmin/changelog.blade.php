@@ -13,6 +13,28 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.26.0 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.26.0 — Lista de espera del alta, SEO entre dominio y alias más claro, y guardar sin romper enlaces</h5></div><div class="card-body">
+            <p class="text-muted">18 de octubre de 2026</p>
+            <h6 class="text-primary"><i class="bi bi-hourglass-split me-1"></i> Lista de espera del alta</h6>
+            <ul class="mb-3">
+                <li>Con el alta de sitios cerrada, <code>/register</code> muestra una <strong>lista de espera</strong> (nombre, email y consentimiento, con doble confirmación) en vez del formulario desactivado; el botón de la página del CMS pasa a «Avísame cuando abra». Al abrir el alta todo vuelve solo.</li>
+                <li>Correo de confirmación y página de «confirmado» propios de la lista de espera («te avisaremos en cuanto abra el alta»).</li>
+                <li>Nuevo tipo en <strong>Ajustes → Avisos</strong>: «Lista de espera», cuando alguien se apunta y confirma su email.</li>
+                <li>Newsletter: etiqueta «Lista de espera» y filtro por origen en el listado; las campañas eligen destinatarios (todos, solo la lista de espera o solo el newsletter).</li>
+            </ul>
+            <h6 class="text-primary"><i class="bi bi-signpost-split me-1"></i> Search Console: mover el SEO entre dominio y alias</h6>
+            <ul class="mb-3">
+                <li>Cada nombre indica si es subdominio de la plataforma o dominio propio y su tráfico en Google, con «★ más tráfico»; los botones masivos dicen la columna de destino y el diálogo lista cada «origen → destino».</li>
+                <li>Mandar el SEO hacia el nombre con menos tráfico exige una confirmación extra; las redirecciones ya activas en ese sentido salen en rojo.</li>
+            </ul>
+            <h6 class="text-primary"><i class="bi bi-wrench me-1"></i> Arreglos</h6>
+            <ul class="mb-0">
+                <li>Guardar una entrada ya no cambia su URL: se conserva el prefijo que tenía (antes el superadmin ponía «blog» y daba 404) y no se borran los slugs traducidos (antes /en/… daba 404).</li>
+                <li>Portada del tema musedock: precios de dominios actualizados.</li>
+            </ul>
+        </div></div>
+
         <!-- v2.25.0 -->
         <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.25.0 — Avisos centralizados en español e inglés</h5></div><div class="card-body">
             <p class="text-muted">17 de octubre de 2026</p>

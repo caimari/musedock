@@ -26,7 +26,7 @@
                         <label class="form-label">Buscar</label>
                         <input type="text" name="q" class="form-control" value="{{ $q }}" placeholder="email o nombre">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Estado</label>
                         <select name="status" class="form-select">
                             <option value="" {{ $status === '' ? 'selected' : '' }}>Todos</option>
@@ -35,7 +35,15 @@
                             <option value="unsubscribed" {{ $status === 'unsubscribed' ? 'selected' : '' }}>Baja</option>
                         </select>
                     </div>
-                    <div class="col-md-4 d-flex gap-2">
+                    <div class="col-md-2">
+                        <label class="form-label">Origen</label>
+                        <select name="source" class="form-select">
+                            <option value="" {{ ($source ?? '') === '' ? 'selected' : '' }}>Todos</option>
+                            <option value="waitlist" {{ ($source ?? '') === 'waitlist' ? 'selected' : '' }}>Lista de espera</option>
+                            <option value="newsletter" {{ ($source ?? '') === 'newsletter' ? 'selected' : '' }}>Newsletter</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex gap-2">
                         <button class="btn btn-primary" type="submit">
                             <i class="bi bi-search me-1"></i>Filtrar
                         </button>
@@ -85,7 +93,11 @@
                     <tbody>
                         @forelse($items as $item)
                             <tr>
-                                <td><code>{{ $item->email }}</code></td>
+                                <td><code>{{ $item->email }}</code>
+                                    @if(\Screenart\Musedock\Services\NewsletterCampaignService::isWaitlist($item->source_url ?? null))
+                                        <span class="badge bg-info text-dark ms-1" title="Se apuntó en /register para que le avisemos cuando abra el alta">Lista de espera</span>
+                                    @endif
+                                </td>
                                 <td>{{ $item->name ?: '-' }}</td>
                                 <td>{{ $item->tenant_name ?: 'Global' }}</td>
                                 <td>

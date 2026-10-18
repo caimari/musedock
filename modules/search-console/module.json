@@ -1,8 +1,17 @@
 {
   "name": "Search Console",
   "slug": "search-console",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "changelog": [
+    {
+      "version": "0.9.5",
+      "date": "2026-10-18",
+      "changes": [
+        "«Mover el SEO entre un dominio y su alias»: debajo de cada nombre se ve si es subdominio de la plataforma o dominio propio y su tráfico en Google (clics e impresiones), con «★ más tráfico» en el que Google ya prefiere.",
+        "Los botones masivos dicen la columna a la que va el SEO («SEO → columna Alias» / «SEO → columna Dominio del tenant») y el diálogo lista cada sitio tal como quedará, «origen → destino», con las impresiones de cada nombre.",
+        "Mandar el SEO hacia el nombre con menos tráfico (uno a uno o en bloque) exige marcar una casilla de confirmación además de la contraseña; las redirecciones ya activas en ese sentido salen marcadas en rojo. El 16-10-2026 se movieron así 6 sitios al revés (dominio propio → subdominio musedock), ya corregidos."
+      ]
+    },
     {
       "version": "0.9.4",
       "date": "2026-10-17",
