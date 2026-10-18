@@ -50,7 +50,24 @@ final class Store
             CREATE TABLE IF NOT EXISTS article_workflows (id TEXT PRIMARY KEY, resource TEXT NOT NULL, client TEXT NOT NULL, status TEXT NOT NULL, data TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS limits (id TEXT PRIMARY KEY, started INTEGER NOT NULL, count INTEGER NOT NULL);";
         if ($this->postgres) $schema=str_replace('INTEGER PRIMARY KEY AUTOINCREMENT','BIGSERIAL PRIMARY KEY',$schema);
-        $db->exec($this->sql($schema));
+        try {
+            $db->exec($this->sql($schema));
+        } catch (\PDOException $e) {
+            // Base de solo lectura (nodo réplica o cercado): CREATE TABLE IF NOT EXISTS falla aunque las tablas
+            // existan. Si ya están todas, se sigue; si falta alguna, el error es real.
+            if (!preg_match('/read-only|read only|readonly|solo lectura|recovery/i', $e->getMessage()) || !$this->tablesExist()) {
+                throw $e;
+            }
+        }
+    }
+    private function tablesExist(): bool
+    {
+        try {
+            foreach (self::TABLES as $t) $this->db->query($this->sql("SELECT 1 FROM {$t} LIMIT 0"));
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
     private function sql(string $sql): string
     {
