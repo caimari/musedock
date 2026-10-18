@@ -412,13 +412,8 @@ if ($_cspHost && file_exists(__DIR__ . '/../.env')) {
         $_dbUser = $_envVars['DB_USER'] ?? $_envVars['DB_USERNAME'] ?? '';
         $_dbPass = $_envVars['DB_PASS'] ?? $_envVars['DB_PASSWORD'] ?? '';
         if ($_dbName && $_dbUser) {
-            $_dsn = $_dbDriver === 'pgsql'
-                ? "pgsql:host={$_dbHost};port={$_dbPort};dbname={$_dbName}"
-                : "mysql:host={$_dbHost};port={$_dbPort};dbname={$_dbName};charset=utf8mb4";
-            $_pdo = new PDO($_dsn, $_dbUser, $_dbPass, [
-                PDO::ATTR_TIMEOUT => 2,
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            ]);
+            // Misma conexión que el resto del CMS (abrir otra costaba ~28 ms por petición)
+            $_pdo = \Screenart\Musedock\Database::connect();
             // Buscar tenant por dominio
             $_stmt = $_pdo->prepare("SELECT id, theme FROM tenants WHERE domain = :host LIMIT 1");
             $_stmt->execute([':host' => $_cspHost]);

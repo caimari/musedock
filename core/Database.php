@@ -37,6 +37,14 @@ class Database
 
     public static function connect(): PDO
     {
+        // La caché HTML y CanonicalHost se ejecutan antes de cargar el framework y abren la conexión;
+        // se reutiliza en vez de abrir otra (cada conexión cuesta ~28 ms de autenticación).
+        if (self::$connection === null && ($GLOBALS['__musedock_pdo'] ?? null) instanceof PDO) {
+            self::$connection = $GLOBALS['__musedock_pdo'];
+            self::$connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            self::$connection->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        }
+
         if (self::$connection === null) {
             $config = require __DIR__ . '/../config/config.php';
 

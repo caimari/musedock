@@ -42,10 +42,14 @@ class CanonicalHost
             $dsn = in_array($driver, ['pgsql', 'postgresql', 'postgres'], true)
                 ? "pgsql:host={$db['host']};dbname={$db['name']}{$port}"
                 : "mysql:host={$db['host']};dbname={$db['name']};charset=utf8mb4{$port}";
-            $pdo = new \PDO($dsn, (string) ($db['user'] ?? ''), (string) ($db['pass'] ?? ''), [
-                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-                \PDO::ATTR_TIMEOUT => 2,
-            ]);
+            // Conexión compartida con el resto de la petición (Database::connect() la adopta)
+            if (!(($GLOBALS['__musedock_pdo'] ?? null) instanceof \PDO)) {
+                $GLOBALS['__musedock_pdo'] = new \PDO($dsn, (string) ($db['user'] ?? ''), (string) ($db['pass'] ?? ''), [
+                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    \PDO::ATTR_TIMEOUT => 2,
+                ]);
+            }
+            $pdo = $GLOBALS['__musedock_pdo'];
             $stmt = $pdo->prepare("SELECT 1 FROM tenants WHERE domain = ? AND status = 'active' LIMIT 1");
             $stmt->execute([$domain]);
             if ($stmt->fetchColumn()) {

@@ -439,10 +439,14 @@ class HtmlCacheMiddleware
                 $dsn = "mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4" . ($dbPort ? ";port={$dbPort}" : '');
             }
 
-            $pdo = new \PDO($dsn, $dbUser, $dbPass, [
-                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-                \PDO::ATTR_TIMEOUT => 2,
-            ]);
+            // Conexión compartida con el resto de la petición (Database::connect() la adopta)
+            if (!(($GLOBALS['__musedock_pdo'] ?? null) instanceof \PDO)) {
+                $GLOBALS['__musedock_pdo'] = new \PDO($dsn, $dbUser, $dbPass, [
+                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    \PDO::ATTR_TIMEOUT => 2,
+                ]);
+            }
+            $pdo = $GLOBALS['__musedock_pdo'];
 
             // Try tenants table first (exact match or without www)
             $stmt = $pdo->prepare("SELECT id FROM tenants WHERE (domain = ? OR domain = ?) AND status = 'active' LIMIT 1");

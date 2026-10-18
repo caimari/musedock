@@ -33,6 +33,7 @@
             <ul class="mb-0">
                 <li>Guardar una entrada ya no cambia su URL: se conserva el prefijo que tenía (antes el superadmin ponía «blog» y daba 404) y no se borran los slugs traducidos (antes /en/… daba 404).</li>
                 <li>Portada del tema musedock: precios de dominios actualizados.</li>
+                <li>Rendimiento: una sola conexión a la base de datos por petición (la caché HTML, la redirección www y la CSP abrían cada una la suya; cada conexión cuesta ~28 ms de autenticación).</li>
             </ul>
         </div></div>
 
