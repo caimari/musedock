@@ -120,6 +120,8 @@ Route::get('/csrf-token', 'Frontend.CsrfController@token')->name('csrf.token');
 Route::post('/newsletter/subscribe', 'Frontend.NewsletterController@subscribe')->name('newsletter.subscribe');
 Route::get('/newsletter/confirm/{token}', 'Frontend.NewsletterController@confirm')->name('newsletter.confirm');
 Route::get('/newsletter/unsubscribe/{token}', 'Frontend.NewsletterController@unsubscribe')->name('newsletter.unsubscribe');
+// La baja se confirma con un botón (POST): abrir el enlace solo pregunta (antivirus y clics sin querer no dan de baja)
+Route::post('/newsletter/unsubscribe/{token}', 'Frontend.NewsletterController@unsubscribe')->name('newsletter.unsubscribe.confirm');
 Route::get('/newsletter/track/open/{token}', 'Frontend.NewsletterController@trackOpen')->name('newsletter.track.open');
 Route::get('/newsletter/track/click/{token}', 'Frontend.NewsletterController@trackClick')->name('newsletter.track.click');
 

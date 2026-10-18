@@ -191,7 +191,7 @@ class NewsletterController
     public function unsubscribe(string $token)
     {
         $pdo = Database::connect();
-        $stmt = $pdo->prepare("SELECT id, status FROM newsletter_subscribers WHERE unsubscribe_token = ? LIMIT 1");
+        $stmt = $pdo->prepare("SELECT id, status, email, source_url FROM newsletter_subscribers WHERE unsubscribe_token = ? LIMIT 1");
         $stmt->execute([$token]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
@@ -206,6 +206,25 @@ class NewsletterController
         }
 
         $already = ($row['status'] ?? '') === 'unsubscribed';
+        $isWaitlist = \Screenart\Musedock\Services\NewsletterCampaignService::isWaitlist($row['source_url'] ?? null);
+
+        // Abrir el enlace solo pregunta: la baja se hace al pulsar el botón (POST). Así un clic sin querer
+        // o el antivirus del correo, que abre los enlaces solo, no dan de baja a nadie.
+        if (!$already && ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            [$user, $domain] = array_pad(explode('@', (string) $row['email'], 2), 2, '');
+            $masked = mb_substr($user, 0, 2) . str_repeat('•', max(1, mb_strlen($user) - 2)) . '@' . $domain;
+            echo View::renderTheme('newsletter-status', [
+                'nl_state' => 'confirm_unsubscribe',
+                'nl_title' => $isWaitlist ? '¿Salir de la lista de espera?' : '¿Darte de baja de la newsletter?',
+                'nl_message' => $isWaitlist
+                    ? "Si confirmas, {$masked} saldrá de la lista de espera y no te avisaremos cuando abra el alta."
+                    : "Si confirmas, {$masked} dejará de recibir nuestros correos.",
+                'nl_showResubscribe' => false,
+                'nl_action' => $this->absoluteUrl('/newsletter/unsubscribe/' . urlencode($token)),
+            ]);
+            exit;
+        }
+
         if (!$already) {
             $up = $pdo->prepare("UPDATE newsletter_subscribers SET status = 'unsubscribed', unsubscribed_at = NOW(), updated_at = NOW() WHERE id = ?");
             $up->execute([(int)$row['id']]);
@@ -216,7 +235,9 @@ class NewsletterController
             $already ? 'Ya estabas dado de baja' : 'Te has dado de baja',
             $already
                 ? 'Este email ya no estaba suscrito. No recibirás más correos de nuestra newsletter.'
-                : 'Hemos procesado tu baja. No volverás a recibir correos de nuestra newsletter. Sentimos verte marchar.',
+                : ($isWaitlist
+                    ? 'Has salido de la lista de espera. No te escribiremos cuando abra el alta.'
+                    : 'Hemos procesado tu baja. No volverás a recibir correos de nuestra newsletter. Sentimos verte marchar.'),
             true
         );
         exit;

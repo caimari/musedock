@@ -20,6 +20,7 @@
             <ul class="mb-3">
                 <li>Con el alta de sitios cerrada, <code>/register</code> muestra una <strong>lista de espera</strong> (nombre, email y consentimiento, con doble confirmación) en vez del formulario desactivado; el botón de la página del CMS pasa a «Avísame cuando abra». Al abrir el alta todo vuelve solo.</li>
                 <li>Correo de confirmación y página de «confirmado» propios de la lista de espera («te avisaremos en cuanto abra el alta»).</li>
+                <li>Baja del newsletter en dos pasos: abrir el enlace del correo solo pregunta («¿Darte de baja?» / «¿Salir de la lista de espera?») y la baja se hace al pulsar el botón; un clic sin querer o el antivirus del correo ya no dan de baja a nadie.</li>
                 <li>Nuevo tipo en <strong>Ajustes → Avisos</strong>: «Lista de espera», cuando alguien se apunta y confirma su email.</li>
                 <li>Newsletter: etiqueta «Lista de espera» y filtro por origen en el listado; las campañas eligen destinatarios (todos, solo la lista de espera o solo el newsletter).</li>
             </ul>

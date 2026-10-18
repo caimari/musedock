@@ -89,12 +89,21 @@
     <div class="nl-status-icon {{ $iconClass }}"><i class="fa {{ $iconFa }}"></i></div>
     <h1>{{ $nl_title ?? 'Newsletter' }}</h1>
     <p>{{ $nl_message ?? '' }}</p>
+    @if($state === 'confirm_unsubscribe')
+    {{-- Paso de confirmación: la baja solo se hace al pulsar el botón --}}
+    <form method="POST" action="{{ $nl_action ?? '' }}" class="nl-status-actions">
+      {!! csrf_field() !!}
+      <button type="submit" class="nl-btn nl-btn-primary" style="background:#c0392b;cursor:pointer;">Sí, darme de baja</button>
+      <a href="{{ url('/') }}" class="nl-btn nl-btn-ghost">No, seguir suscrito</a>
+    </form>
+    @else
     <div class="nl-status-actions">
       <a href="{{ url('/') }}" class="nl-btn nl-btn-primary">Volver al inicio</a>
       @if(($nl_showResubscribe ?? false))
       <a href="{{ url('/') }}#newsletter" class="nl-btn nl-btn-ghost">Volver a suscribirme</a>
       @endif
     </div>
+    @endif
   </div>
 </div>
 @endsection
