@@ -196,6 +196,12 @@ class HtmlCache
         if (is_file($file)) @unlink($file);
     }
 
+    /** Category/tag archives are blog lists even when the blog prefix is empty. */
+    public static function isBlogArchive(string $uri): bool
+    {
+        return (bool)preg_match('#^/(?:[^/]+/){0,2}(?:category|tag)/[^/]+(?:/page/\d+)?/?$#',(string)parse_url($uri,PHP_URL_PATH));
+    }
+
     public static function invalidateByTag(string $tag, ?int $tenantId): void
     {
         if (in_array($tag,['blog','pages'],true)) self::invalidateSitemap($tenantId);
@@ -760,7 +766,8 @@ class HtmlCache
             $meta = @json_decode(file_get_contents($path), true);
             if (!$meta || !isset($meta['tags'])) continue;
 
-            if (in_array($tag, $meta['tags'], true)) {
+            $legacyArchive=in_array($tag,['blog','blog-list'],true) && self::isBlogArchive($meta['uri']??'');
+            if (in_array($tag, $meta['tags'], true) || $legacyArchive) {
                 // Remove .meta.json → get .html path
                 $htmlPath = substr($path, 0, -strlen(self::META_EXT));
                 self::removeFile($htmlPath);

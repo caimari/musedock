@@ -509,6 +509,11 @@ class HtmlCacheMiddleware
             $tags[] = 'pages';
         }
 
+        if (HtmlCache::isBlogArchive($uri)) {
+            $tags[] = 'blog';
+            $tags[] = 'blog-list';
+        }
+
         // If no prefix matched and not homepage, it could be either
         if (empty($tags) && $uri !== '/') {
             $tags[] = 'content';
