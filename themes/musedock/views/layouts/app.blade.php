@@ -349,7 +349,7 @@ $_contactAddress = site_setting('contact_address', '');
       </div>
     </div>
 
-    <script src="{{ asset('js/analytics.js') }}?v={{ @filemtime(APP_ROOT . '/public/assets/js/analytics.js') ?: '1' }}"></script>
+    <script src="{{ asset('js/analytics.js') }}?v={{ @filemtime(APP_ROOT . '/public/assets/js/analytics.js') ?: '1' }}" data-consent-required="{{ \Screenart\Musedock\Services\WebAnalytics::consentRequired() ? '1' : '0' }}"></script>
     <script src="{{ asset('themes/musedock/js/cookie-consent.js') }}?v={{ file_exists(public_path('assets/themes/musedock/js/cookie-consent.js')) ? filemtime(public_path('assets/themes/musedock/js/cookie-consent.js')) : cms_version() }}"></script>
   @endif
 </body>

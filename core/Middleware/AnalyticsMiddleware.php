@@ -54,6 +54,11 @@ class AnalyticsMiddleware
      */
     public function handle()
     {
+        // Las páginas vistas las registra solo el navegador (analytics.js → /api/analytics/track), con el
+        // consentimiento si el RGPD está activo. Registrarlas también aquí las contaba dos veces y, sin
+        // JavaScript, contaba robots y sondas (curl…) como personas.
+        return;
+
         // Verificar si el tracking está habilitado globalmente
         if (!$this->isTrackingEnabled()) {
             return;

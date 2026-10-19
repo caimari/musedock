@@ -13,6 +13,15 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.26.2 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.26.2 — Visitas reales y conformes al RGPD</h5></div><div class="card-body">
+            <p class="text-muted">19 de octubre de 2026</p>
+            <ul><li>Las visitas solo se cuentan de quien acepta la analítica en el banner de cookies, como exige el RGPD. Cada carga de página suma, y cada visitante cuenta como único una vez cada 24 horas.</li>
+            <li>Ya no cuentan como visitas los robots ni las herramientas automáticas que revisan las webs: las cifras de visitantes y cargas eran más altas de lo real. Las visitas antiguas de robots se han reclasificado.</li>
+            <li>Cada visita con cookies aceptadas se contaba dos veces. Ahora una.</li>
+            <li>El contador de cada entrada del blog solo sube con visitas reales.</li></ul>
+        </div></div>
+
         <!-- v2.26.1 -->
         <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.26.1 — Arreglos</h5></div><div class="card-body">
             <p class="text-muted">19 de octubre de 2026</p>

@@ -214,7 +214,7 @@ class BlogController
 
         // Track unique view per IP (GDPR-compliant); robots no cuentan (misma regla que la analítica)
         try {
-            if (\Screenart\Musedock\Analytics\RequestTracker::shouldTrack()) {
+            if (\Screenart\Musedock\Analytics\RequestTracker::countsAsHuman()) {
                 $post->incrementViewCount();
             }
         } catch (\Throwable $e) {

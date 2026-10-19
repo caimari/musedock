@@ -48,6 +48,18 @@ class RequestTracker
         return true;
     }
 
+    /**
+     * ¿Esta petición cuenta como visita de una persona? Además de shouldTrack(): consentimiento de analítica
+     * (si el RGPD está activo, ver WebAnalytics::consentRequired) y el detector de robots completo
+     * (curl, python, navegadores disfrazados…). Necesita el autoload.
+     */
+    public static function countsAsHuman(): bool
+    {
+        return self::shouldTrack()
+            && \Screenart\Musedock\Services\WebAnalytics::trackingAllowed()
+            && !\Screenart\Musedock\Services\BotClassifier::classify($_SERVER['HTTP_USER_AGENT'] ?? '')['is_bot'];
+    }
+
     /** Identificador de visitante (cookie de 2 años); la crea si falta y aún se puede. */
     public static function visitorId(): string
     {
@@ -93,7 +105,9 @@ class RequestTracker
                 return;
             }
             $ipHash = hash('sha256', \Screenart\Musedock\Security\IPHelper::getRealIP() . date('Y-m-d'));
-            $ins = $db->prepare('INSERT INTO blog_post_views (post_id, tenant_id, ip_hash, viewed_at) VALUES (?, ?, ?, NOW()) ON CONFLICT (post_id, ip_hash) DO NOTHING');
+            $ins = $db->prepare($db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql'
+                ? 'INSERT IGNORE INTO blog_post_views (post_id, tenant_id, ip_hash, viewed_at) VALUES (?, ?, ?, NOW())'
+                : 'INSERT INTO blog_post_views (post_id, tenant_id, ip_hash, viewed_at) VALUES (?, ?, ?, NOW()) ON CONFLICT (post_id, ip_hash) DO NOTHING');
             $ins->execute([(int) $post['id'], $post['tenant_id'], $ipHash]);
             if ($ins->rowCount() > 0) {
                 $db->prepare('UPDATE blog_posts SET view_count = view_count + 1 WHERE id = ?')->execute([(int) $post['id']]);

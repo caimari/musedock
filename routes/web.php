@@ -20,9 +20,8 @@ Route::post('/api/analytics/track', function() {
         // Defensa en profundidad RGPD: no registrar nada sin consentimiento de
         // analítica. El cliente (analytics.js) ya lo respeta, pero el servidor
         // no debe confiar en el cliente.
-        $analyticsConsent = ($_COOKIE['musedock_cookies_accepted'] ?? '') === 'true'
-            && ($_COOKIE['musedock_cookie_analytics'] ?? '') === 'true';
-        if (!$analyticsConsent) {
+        // (Si el sitio no está sujeto al RGPD, Ajustes → Avanzado permite no exigirlo.)
+        if (!\Screenart\Musedock\Services\WebAnalytics::trackingAllowed()) {
             http_response_code(200);
             echo json_encode(['success' => false, 'reason' => 'no_consent']);
             exit;

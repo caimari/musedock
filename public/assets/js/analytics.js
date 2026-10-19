@@ -7,6 +7,10 @@
 (function() {
     'use strict';
 
+    // data-consent-required="0" en la etiqueta del script: el sitio no exige consentimiento (no sujeto al RGPD).
+    // Por defecto (sin el atributo o con "1") se exige, como manda el RGPD.
+    const CONSENT_REQUIRED = !(document.currentScript && document.currentScript.getAttribute('data-consent-required') === '0');
+
     const MuseDockAnalytics = {
         // Configuración
         config: {
@@ -89,6 +93,10 @@
          * Verificar si el usuario ha dado consentimiento
          */
         hasConsent: function() {
+            // Sitio no sujeto al RGPD (Ajustes → Avanzado): no hace falta el consentimiento
+            if (CONSENT_REQUIRED === false) {
+                return true;
+            }
             // Verificar tanto la cookie general como la específica de analytics
             const generalConsent = this.getCookie(this.config.cookieConsent) === 'true';
             const analyticsConsent = this.getCookie('musedock_cookie_analytics') === 'true';

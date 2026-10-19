@@ -116,12 +116,11 @@ class HtmlCacheMiddleware
             }
 
             // CACHE HIT — serve directly and exit
-            // Analítica: la visita se registra después de entregar la página (si no, las
-            // servidas desde caché no contaban en ningún sitio). La cookie de visitante,
-            // antes de enviar nada.
+            // Analítica: la página vista la registra el navegador (analytics.js, con consentimiento si el RGPD
+            // está activo), también en las páginas de la caché. Aquí solo el contador de la entrada del blog,
+            // después de entregar la página y solo si cuenta como persona.
             require_once dirname(__DIR__) . '/Analytics/RequestTracker.php';
             $trackVisit = \Screenart\Musedock\Analytics\RequestTracker::shouldTrack();
-            $visitorId = $trackVisit ? \Screenart\Musedock\Analytics\RequestTracker::visitorId() : null;
             $size = filesize($cachePath);
             http_response_code(200);
             header('Content-Type: text/html; charset=UTF-8');
@@ -131,7 +130,7 @@ class HtmlCacheMiddleware
 
             readfile($cachePath);
             if ($trackVisit) {
-                self::trackCachedVisit($tenantId, (string) $visitorId);
+                self::trackCachedVisit($tenantId, '');
             }
             exit; // No further PHP execution
         }
@@ -370,11 +369,9 @@ class HtmlCacheMiddleware
         }
         try {
             require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
-            // Sesión de analítica: la de la sesión del visitante si existe; si no, una por visitante y día
-            $sessionId = (string) (self::$sessionData['_a_sid'] ?? hash('sha256', $visitorId . date('Y-m-d')));
-            $domain = (string) preg_replace('/^www\./', '', HtmlCache::requestHost());
-            \Screenart\Musedock\Analytics\RequestTracker::track($tenantId, $domain, substr($sessionId, 0, 64), $visitorId);
-            \Screenart\Musedock\Analytics\RequestTracker::countBlogView($tenantId, $_SERVER['REQUEST_URI'] ?? '/');
+            if (\Screenart\Musedock\Analytics\RequestTracker::countsAsHuman()) {
+                \Screenart\Musedock\Analytics\RequestTracker::countBlogView($tenantId, $_SERVER['REQUEST_URI'] ?? '/');
+            }
         } catch (\Throwable $e) {
             error_log('HtmlCache analytics: ' . $e->getMessage());
         }

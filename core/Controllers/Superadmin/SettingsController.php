@@ -843,10 +843,20 @@ public function deleteFavicon()
             }
         }
 
+        $consentBefore = \Screenart\Musedock\Services\WebAnalytics::consentRequired();
         $this->saveSettings([
             'force_lang',
-            'multi_tenant_enabled', 'main_domain'
+            'multi_tenant_enabled', 'main_domain',
+            'analytics_require_consent', // RGPD: exigir consentimiento para la analítica (casilla, por defecto marcada)
         ]);
+        // Las páginas en caché llevan el ajuste en la etiqueta de analytics.js: si cambia, se vacía la caché HTML
+        if ($consentBefore !== isset($_POST['analytics_require_consent'])) {
+            try {
+                \Screenart\Musedock\Cache\HtmlCache::purge();
+            } catch (\Throwable $e) {
+                // la caché caduca sola
+            }
+        }
 
         flash('success', 'Ajustes avanzados guardados correctamente.');
         header("Location: /musedock/settings/advanced");
@@ -861,7 +871,7 @@ public function deleteFavicon()
             $value = $_POST[$key] ?? '';
             
             // Checkbox se envía como "on" o no se envía
-            if (in_array($key, ['show_logo', 'show_title', 'show_subtitle', 'show_language_switcher', 'cookies_enabled', 'cookies_show_icon', 'site_has_economic_activity', 'legal_targets_eu', 'site_uses_analytics_cookies', 'site_has_user_registration', 'site_has_paid_services'])) {
+            if (in_array($key, ['show_logo', 'show_title', 'show_subtitle', 'show_language_switcher', 'cookies_enabled', 'cookies_show_icon', 'site_has_economic_activity', 'legal_targets_eu', 'site_uses_analytics_cookies', 'site_has_user_registration', 'site_has_paid_services', 'analytics_require_consent'])) {
                 $value = isset($_POST[$key]) ? '1' : '0';
             }
             

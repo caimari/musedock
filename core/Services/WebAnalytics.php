@@ -60,8 +60,44 @@ class WebAnalytics
      */
     private static function hasUserConsent(): bool
     {
-        // RGPD: sin consentimiento explícito de analítica no se registra nada (ni cookie ni visita).
-        // Mismo criterio que el endpoint /api/analytics/track: el banner debe haberse aceptado con analítica activada.
+        return self::trackingAllowed();
+    }
+
+    /** @var bool|null caché por petición del ajuste */
+    private static ?bool $consentRequired = null;
+
+    /**
+     * ¿Hace falta el consentimiento de analítica para registrar visitas? Por defecto sí (RGPD).
+     * Ajustes → Avanzado → «Exigir consentimiento para la analítica» (analytics_require_consent):
+     * solo desactivarlo si el sitio no está sujeto al RGPD.
+     */
+    public static function consentRequired(): bool
+    {
+        if (self::$consentRequired === null) {
+            self::$consentRequired = true;
+            try {
+                $stmt = \Screenart\Musedock\Database::connect()->prepare('SELECT value FROM settings WHERE ' . (\Screenart\Musedock\Database::connect()->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql' ? '`key`' : '"key"') . ' = ? LIMIT 1');
+                $stmt->execute(['analytics_require_consent']);
+                $v = $stmt->fetchColumn();
+                self::$consentRequired = $v === false || $v === null || (string) $v !== '0';
+            } catch (\Throwable $e) {
+                self::$consentRequired = true; // ante la duda, cumplir el RGPD
+            }
+        }
+
+        return self::$consentRequired;
+    }
+
+    /**
+     * ¿Se puede registrar la visita de esta petición? Con el RGPD activo, solo si el banner se aceptó
+     * con la analítica activada (mismo criterio en el servidor y en /api/analytics/track).
+     */
+    public static function trackingAllowed(): bool
+    {
+        if (!self::consentRequired()) {
+            return true;
+        }
+
         return ($_COOKIE['musedock_cookies_accepted'] ?? '') === 'true'
             && ($_COOKIE['musedock_cookie_analytics'] ?? '') === 'true';
     }

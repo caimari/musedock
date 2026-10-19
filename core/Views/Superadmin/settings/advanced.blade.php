@@ -199,6 +199,21 @@
               </div>
             </div>
 
+            {{-- Analítica y RGPD: por defecto solo se cuentan visitas con consentimiento --}}
+            <div class="mb-3">
+              <label class="form-label">Analítica de visitas</label>
+              @php $__consentReq = ($settings['analytics_require_consent'] ?? '1') !== '0'; @endphp
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="analytics_require_consent" name="analytics_require_consent" value="1" @checked($__consentReq)>
+                <label class="form-check-label" for="analytics_require_consent">Exigir el consentimiento de cookies para contar visitas (RGPD)</label>
+              </div>
+              <small class="form-text text-muted d-block">
+                Activado (recomendado y obligatorio en la UE): solo se cuentan las visitas de quien acepta la analítica en el banner de cookies.
+                Desactívalo únicamente si tu sitio no está sujeto al RGPD: entonces se cuenta a todos los visitantes.
+                En los dos casos cuenta el navegador (cada carga suma; el visitante único, una vez cada 24 h) y los robots no cuentan.
+              </small>
+            </div>
+
             <button class="btn btn-primary">{{ __('common.save') }}</button>
           </form>
 
