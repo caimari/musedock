@@ -236,6 +236,14 @@ class CronService
      * @param string $name
      * @return bool
      */
+    /** «Ahora + N segundos» en SQL del motor en uso (INTERVAL 'N seconds' solo existe en PostgreSQL). */
+    private static function nowPlus(\PDO $pdo, int $seconds): string
+    {
+        return $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql'
+            ? 'DATE_ADD(NOW(), INTERVAL ' . $seconds . ' SECOND)'
+            : "NOW() + INTERVAL '" . $seconds . " seconds'";
+    }
+
     private static function acquireLock(\PDO $pdo, string $name): bool
     {
         // Lock duration: 5 minutos (si una tarea tarda más, se considera colgada)
@@ -243,7 +251,7 @@ class CronService
 
         $stmt = $pdo->prepare("
             UPDATE scheduled_tasks
-            SET locked_until = NOW() + INTERVAL '{$lockDuration} seconds'
+            SET locked_until = " . self::nowPlus($pdo, $lockDuration) . "
             WHERE task_name = ?
             AND (locked_until IS NULL OR locked_until < NOW())
         ");
@@ -293,7 +301,7 @@ class CronService
             UPDATE scheduled_tasks
             SET status = 'idle',
                 last_run = NOW(),
-                next_run = NOW() + INTERVAL '{$interval} seconds',
+                next_run = " . self::nowPlus($pdo, $interval) . ",
                 last_error = NULL,
                 last_duration = ?,
                 run_count = run_count + 1,
