@@ -161,7 +161,9 @@
               $pvPrefix = function_exists('page_prefix') ? page_prefix() : 'p';
               // Rutas posibles de cada página: la analítica guarda la URL real, que puede llevar
               // o no el prefijo de páginas (/precios o /p/precios); se suman ambas
-              $pvPaths = fn ($pg) => (isset($homepageId) && $pg->id === $homepageId) ? ['/'] : array_values(array_unique(array_filter(['/' . $pg->slug, $pvPrefix !== '' ? '/' . $pvPrefix . '/' . $pg->slug : null])));
+              // También /p/<slug>: es el prefijo histórico y el que guardan los slugs de instalaciones antiguas
+              // aunque la configuración esté vacía (muselayer: páginas en /p/servicios y listado a 0)
+              $pvPaths = fn ($pg) => (isset($homepageId) && $pg->id === $homepageId) ? ['/'] : array_values(array_unique(array_filter(['/' . $pg->slug, $pvPrefix !== '' ? '/' . $pvPrefix . '/' . $pg->slug : null, '/p/' . $pg->slug])));
               $pvGroups = [];
               foreach ((is_array($pages) ? $pages : iterator_to_array($pages)) as $pg) {
                 $pvGroups['p' . $pg->id] = ['tenant_id' => $pg->tenant_id ? (int) $pg->tenant_id : null, 'paths' => $pvPaths($pg)];

@@ -2999,7 +2999,7 @@ document.querySelectorAll('.footer-area .widget-area').forEach(function(wa) {
 	
 	
 {{-- Web Analytics - debe cargarse ANTES que cookie-consent para que window.MuseDockAnalytics exista --}}
-<script src="{{ asset('js/analytics.js') }}"></script>
+<script src="{{ asset('js/analytics.js') }}?v={{ @filemtime(APP_ROOT . '/public/assets/js/analytics.js') ?: '1' }}"></script>
 
 @if(site_setting('cookies_enabled', '1') == '1')
 <script src="{{ asset('themes/default/js/cookie-consent.js') }}?v={{ filemtime(public_path('assets/themes/default/js/cookie-consent.js')) ?: time() }}"></script>

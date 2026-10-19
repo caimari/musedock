@@ -19,6 +19,8 @@
             <ul class="mb-0">
                 <li>La lista de comentarios del blog (superadmin y tenants) daba error 500 en cuanto había comentarios: las fechas llegan como DateTime y la vista las convertía con (string).</li>
                 <li>Tareas programadas: la duración se guardaba con decimales en una columna de enteros y PostgreSQL la rechazaba; cada tarea (envío del newsletter, agregador de noticias…) fallaba al anotar su resultado y se quedaba como «en ejecución». La columna admite ya decimales.</li>
+                <li>Analítica: cada visita con cookies aceptadas se registraba dos veces desde el navegador (analytics.js se iniciaba solo y cookie-consent.js lo volvía a iniciar al aplicar las preferencias). Ahora se inicia una sola vez, y el script lleva versión para que los navegadores no usen la copia antigua.</li>
+                <li>Listado de páginas: las vistas suman también la dirección con el prefijo histórico <code>/p/</code> (instalaciones cuyas páginas viven en /p/… aunque la configuración del prefijo esté vacía salían a 0).</li>
                 <li>Vistas (visitantes únicos y cargas) de páginas y entradas a 0 en instalaciones con MySQL/MariaDB: la consulta usaba <code>VALUES … ::text</code> y <code>split_part</code>, solo de PostgreSQL, y el error se callaba. Ahora cada motor usa su sintaxis.</li>
                 <li>Search Console ya no aparece duplicado en el menú: solo en Módulos (se quitó el acceso directo de Ajustes).</li>
                 <li>Etiquetas (badge) informativas y de aviso del panel con fondo suave y texto oscuro del mismo tono, en vez de letra negra sobre turquesa o amarillo fuerte.</li>

@@ -27,6 +27,12 @@
          * Inicializar analytics
          */
         init: function() {
+            // Una sola vez por página: este fichero se inicia solo y cookie-consent.js lo vuelve a llamar
+            // al aplicar las preferencias guardadas; sin esto cada visita se registraba dos veces.
+            if (this.active) {
+                return;
+            }
+
             // No trackear páginas de administración
             const path = window.location.pathname;
             if (path.startsWith('/musedock') || path.startsWith('/admin')) {
