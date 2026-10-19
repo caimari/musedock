@@ -17,7 +17,13 @@ ini_set('display_errors', 1);
 define('INSTALL_PATH', __DIR__);
 define('ROOT_PATH', dirname(dirname(__DIR__))); // public/install -> public -> root
 define('MIN_PHP_VERSION', '8.0.0');
-define('INSTALL_LOG', INSTALL_PATH . '/install.log');
+// El log va fuera de public/ (antes quedaba en public/install/install.log, descargable desde la web)
+define('INSTALL_LOG_LEGACY', INSTALL_PATH . '/install.log');
+$__installLogDir = ROOT_PATH . '/storage/logs';
+if (!is_dir($__installLogDir)) {
+    @mkdir($__installLogDir, 0775, true);
+}
+define('INSTALL_LOG', (is_dir($__installLogDir) && is_writable($__installLogDir) ? $__installLogDir : sys_get_temp_dir()) . '/install.log');
 
 // Load Composer autoloader if available (needed for Database classes)
 $autoloadPath = ROOT_PATH . '/vendor/autoload.php';
@@ -39,6 +45,33 @@ function logInstall($message, $level = 'INFO') {
     }
 
     file_put_contents(INSTALL_LOG, $logMessage, FILE_APPEND);
+}
+
+// Restos de instaladores anteriores dentro de public/: se borran siempre
+if (file_exists(INSTALL_LOG_LEGACY)) {
+    @unlink(INSTALL_LOG_LEGACY);
+}
+
+// Ya instalado: 404 sin escribir nada (antes cada visita a /install/ volvía a crear el log)
+if (file_exists(ROOT_PATH . '/.env') || file_exists(ROOT_PATH . '/install.lock')) {
+    http_response_code(404);
+    echo '<!DOCTYPE html><html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL was not found on this server.</p></body></html>';
+    exit;
+}
+
+// Descarga del log (botón «Descargar log» tras un fallo); solo mientras el CMS no está instalado
+if (isset($_GET['download_log'])) {
+    if (!file_exists(INSTALL_LOG)) {
+        http_response_code(404);
+        exit;
+    }
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Content-Disposition: attachment; filename="musedock-install.log"');
+    header('Cache-Control: no-store');
+    if ($_SERVER['REQUEST_METHOD'] !== 'HEAD') {
+        readfile(INSTALL_LOG);
+    }
+    exit;
 }
 
 // Clear old log at start
@@ -1474,7 +1507,7 @@ $step = max(1, min(5, $step));
                             <button type="button" class="btn btn-secondary" onclick="goToStep(2)">
                                 <i class="bi bi-arrow-left me-2"></i><?= __('back_to_database') ?>
                             </button>
-                            <a href="install.log" download="musedock-install.log" class="btn btn-info" id="btn-download-log" style="display:none">
+                            <a href="?download_log=1" download="musedock-install.log" class="btn btn-info" id="btn-download-log" style="display:none">
                                 <i class="bi bi-download me-2"></i><?= __('download_log') ?>
                             </a>
                         </div>
@@ -1873,7 +1906,7 @@ $step = max(1, min(5, $step));
         // Check if install.log exists and show download button
         async function checkLogFile() {
             try {
-                const response = await fetch('install.log', { method: 'HEAD' });
+                const response = await fetch('?download_log=1', { method: 'HEAD' });
                 if (response.ok) {
                     document.getElementById('btn-download-log').style.display = 'inline-block';
                 }

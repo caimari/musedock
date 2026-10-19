@@ -11,6 +11,11 @@
     RewriteRule ^ index.php [L]
 </IfModule>
 
+# Nunca servir logs ni ficheros ocultos (Apache 2.4)
+<FilesMatch "(\.log|^\..*)$">
+    Require all denied
+</FilesMatch>
+
 # Security headers
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"

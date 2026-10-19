@@ -22,6 +22,7 @@
                 <li>Etiquetas (badge) informativas y de aviso del panel con fondo suave y texto oscuro del mismo tono, en vez de letra negra sobre turquesa o amarillo fuerte.</li>
                 <li>Vaciado automático de la papelera (TRASH_RETENTION_DAYS, 30 días) y limpieza de revisiones antiguas: usaban SQL solo de MySQL (DATE_SUB, DATE_FORMAT, comillas invertidas) y nunca habían funcionado en PostgreSQL. Primera pasada: 3 elementos de la papelera y 101 revisiones antiguas eliminados (se conservan las 5 últimas, una por mes del último año y una por año de los últimos 3).</li>
                 <li>Changelog de los tenants puesto al día (v2.22.0 a v2.26.1), solo con lo que les afecta.</li>
+                <li>Seguridad del instalador: dejaba <code>public/install/install.log</code> descargable desde la web y lo volvía a crear en cada visita a /install/ aunque el CMS ya estuviera instalado (escribía antes de comprobarlo). Ahora el log va a <code>storage/logs/install.log</code>, con el CMS instalado no se escribe nada, los restos en public/ se borran solos, la descarga del log tras un fallo pasa por el instalador y <code>.htaccess</code> bloquea los .log.</li>
             </ul>
         </div></div>
 
