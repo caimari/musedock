@@ -43,3 +43,28 @@
 .alert-info      { --md-alert-color: #164e63; --md-alert-bg: #ecfeff; --md-alert-border: #a5f3fc; --md-alert-accent: #0891b2; }
 .alert-light     { --md-alert-color: #334155; --md-alert-bg: #ffffff; --md-alert-border: #e2e8f0; --md-alert-accent: #cbd5e1; }
 .alert-dark      { --md-alert-color: #f1f5f9; --md-alert-bg: #1e293b; --md-alert-border: #334155; --md-alert-accent: #94a3b8; }
+
+/*
+ * Etiquetas (.badge) informativas y de aviso: Bootstrap las pinta con color fuerte y letra negra
+ * (bg-info text-dark: negro sobre turquesa), poco legible. Fondo suave y texto del mismo tono, oscuro.
+ * Las de color sólido con letra blanca (success, danger, primary, secondary, dark) se quedan como están.
+ */
+.badge.bg-info,
+.badge.bg-info.text-dark {
+  background-color: #e0f2fe !important;
+  color: #075985 !important;
+  border: 1px solid #bae6fd;
+}
+.badge.bg-warning,
+.badge.bg-warning.text-dark {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border: 1px solid #fde68a;
+}
+.badge.bg-light,
+.badge.bg-light.text-dark {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1px solid #e2e8f0;
+}
+.badge.bg-info a, .badge.bg-warning a, .badge.bg-light a { color: inherit; }

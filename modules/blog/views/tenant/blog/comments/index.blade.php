@@ -92,13 +92,13 @@
                   <td>
                     @if((int)($comment->legal_consent ?? 0) === 1)
                       <span class="badge bg-success">Aceptado</span>
-                      <br><small class="text-muted">{{ !empty($comment->legal_consent_at) ? date('d/m/Y H:i', strtotime((string)$comment->legal_consent_at)) : '—' }}</small>
+                      <br><small class="text-muted">{{ !empty($comment->legal_consent_at) ? ($comment->legal_consent_at instanceof \DateTimeInterface ? $comment->legal_consent_at->format('d/m/Y H:i') : date('d/m/Y H:i', strtotime((string) $comment->legal_consent_at))) : '—' }}</small>
                     @else
                       <span class="badge bg-secondary">No</span>
                     @endif
                   </td>
                   <td>
-                    <small>{{ !empty($comment->created_at) ? date('d/m/Y H:i', strtotime((string)$comment->created_at)) : '—' }}</small>
+                    <small>{{ !empty($comment->created_at) ? ($comment->created_at instanceof \DateTimeInterface ? $comment->created_at->format('d/m/Y H:i') : date('d/m/Y H:i', strtotime((string) $comment->created_at))) : '—' }}</small>
                   </td>
                   <td>
                     <div class="d-flex gap-1 flex-wrap">

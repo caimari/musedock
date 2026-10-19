@@ -11,7 +11,7 @@
   <!-- AdminKit CSS (incluye Bootstrap 5) -->
 	  <link href="/assets/superadmin/css/app.css" rel="stylesheet">
 	  <link href="/assets/superadmin/css/pagination.css" rel="stylesheet">
-	  <link href="/assets/superadmin/css/alerts.css?v=1" rel="stylesheet">
+	  <link href="/assets/superadmin/css/alerts.css?v=2" rel="stylesheet">
 	  <link rel="preload" href="/assets/vendor/bootstrap-icons/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6" as="font" type="font/woff2" crossorigin>
 	  <link rel="stylesheet" href="/assets/vendor/bootstrap-icons/bootstrap-icons.min.css">
 	  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
