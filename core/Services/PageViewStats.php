@@ -72,15 +72,24 @@ class PageViewStats
         $out = [];
         try {
             $pdo = Database::connect();
+            // PostgreSQL: VALUES con tipo y split_part. MySQL/MariaDB no tiene ninguno de los dos (antes la
+            // consulta fallaba en silencio y las vistas salían a 0): tabla derivada con UNION ALL y SUBSTRING_INDEX.
+            $mysql = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql';
             foreach ($byTenant as $tenant => $pairs) {
-                $values = implode(',', array_fill(0, count($pairs), '(?::text, ?::text)'));
                 $params = array_merge(...$pairs);
                 $tenantSql = $tenant === '' ? 'w.tenant_id IS NULL' : 'w.tenant_id = ?';
                 if ($tenant !== '') {
                     $params[] = (int) $tenant;
                 }
+                if ($mysql) {
+                    $values = 'SELECT ? AS k, ? AS p' . str_repeat(' UNION ALL SELECT ?, ?', count($pairs) - 1);
+                    $join = "JOIN ({$values}) AS v ON SUBSTRING_INDEX(w.page_url, '?', 1) = v.p";
+                } else {
+                    $values = implode(',', array_fill(0, count($pairs), '(?::text, ?::text)'));
+                    $join = "JOIN (VALUES {$values}) AS v(k, p) ON split_part(w.page_url, '?', 1) = v.p";
+                }
                 $stmt = $pdo->prepare("SELECT v.k, COUNT(DISTINCT w.ip_hash) AS u, COUNT(*) AS l
-                    FROM web_analytics w JOIN (VALUES {$values}) AS v(k, p) ON split_part(w.page_url, '?', 1) = v.p
+                    FROM web_analytics w {$join}
                     WHERE {$tenantSql} AND w.is_bot = false GROUP BY v.k");
                 $stmt->execute($params);
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
