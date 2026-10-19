@@ -851,6 +851,17 @@ if (isset($options['status'])) {
     // Default: ejecutar migraciones pendientes
     $runner->runAll($modulePath);
 
+    // Sin --module: también las de cada módulo (modules/*/migrations). Antes solo corrían con --module=…
+    // y una instalación actualizada se quedaba sin las tablas de los módulos nuevos (p. ej. Search Console).
+    if ($modulePath === null) {
+        foreach (glob(APP_ROOT . '/modules/*/migrations', GLOB_ONLYDIR) ?: [] as $moduleMigrations) {
+            if (glob($moduleMigrations . '/*.php')) {
+                echo "\n\033[36mMódulo " . basename(dirname($moduleMigrations)) . "\033[0m\n";
+                $runner->runAll($moduleMigrations);
+            }
+        }
+    }
+
     // Si tiene --seed, ejecutar seeders después
     if (isset($options['seed'])) {
         echo "\n";
