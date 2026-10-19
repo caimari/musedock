@@ -17,6 +17,9 @@ class UpdatePermissionsScopeColumn
 
         if ($driver === 'mysql') {
             // MySQL: Modificar el ENUM para incluir 'superadmin'
+            // Primero con los tres valores (si no, MySQL recorta los 'global' existentes y falla), luego se cierra
+            $pdo->exec("ALTER TABLE permissions MODIFY COLUMN scope ENUM('global', 'superadmin', 'tenant') DEFAULT 'tenant'");
+            $pdo->exec("UPDATE permissions SET scope = 'superadmin' WHERE scope = 'global'");
             $pdo->exec("ALTER TABLE permissions MODIFY COLUMN scope ENUM('superadmin', 'tenant') DEFAULT 'tenant'");
 
             // Actualizar valores existentes: 'global' ya no existe, los NULL se convierten en 'tenant'

@@ -161,7 +161,8 @@ HTML;
     {
         $existing = $this->findCategoryId($pdo, $slug);
         if ($existing) {
-            $stmt = $pdo->prepare('UPDATE blog_categories SET parent_id = ?, name = ?, description = ?, "order" = ?, updated_at = ? WHERE id = ?');
+            $orderCol = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql' ? '`order`' : '"order"';
+            $stmt = $pdo->prepare("UPDATE blog_categories SET parent_id = ?, name = ?, description = ?, {$orderCol} = ?, updated_at = ? WHERE id = ?");
             $stmt->execute([$parentId, $name, $description, $order, $now, $existing]);
             return $existing;
         }

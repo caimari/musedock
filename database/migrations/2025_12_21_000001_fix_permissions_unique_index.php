@@ -21,7 +21,9 @@ class FixPermissionsUniqueIndex_2025_12_21_000001
         $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
 
         if ($driver === 'mysql') {
-            // 1. Modify scope ENUM to use correct values
+            // 1. Modify scope ENUM to use correct values (ampliar, convertir 'global' y cerrar: si no, MySQL recorta)
+            $pdo->exec("ALTER TABLE `permissions` MODIFY COLUMN `scope` enum('global','superadmin','tenant') DEFAULT 'tenant'");
+            $pdo->exec("UPDATE `permissions` SET `scope` = 'superadmin' WHERE `scope` = 'global'");
             $pdo->exec("
                 ALTER TABLE `permissions`
                 MODIFY COLUMN `scope` enum('superadmin','tenant') DEFAULT 'tenant'
