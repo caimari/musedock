@@ -320,6 +320,35 @@ class SettingsController
             $downloadUrl = null;
             $changelog = null;
 
+            // 0. Versión publicada en la rama principal de GitHub (composer.json). Es la fuente real:
+            //    las versiones se publican subiendo composer.json, sin etiqueta ni release (en GitHub solo
+            //    existe la etiqueta v1.0.0, y con ella una instalación en 2.0.0 decía «Actualizado»).
+            preg_match('/github\.com\/([^\/]+\/[^\/]+?)(?:\.git)?\/?$/', (string) $versionInfo['repository'], $repoMatch);
+            if (!empty($repoMatch[1])) {
+                foreach (['main', 'master'] as $branch) {
+                    // curl y no file_get_contents: raw.githubusercontent.com tiene IPv6 y, sin salida IPv6,
+                    // los streams de PHP esperan hasta agotar el tiempo; curl prueba también IPv4.
+                    $raw = false;
+                    if (function_exists('curl_init')) {
+                        $ch = curl_init("https://raw.githubusercontent.com/{$repoMatch[1]}/{$branch}/composer.json");
+                        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 6, CURLOPT_CONNECTTIMEOUT => 4,
+                            CURLOPT_USERAGENT => 'MuseDock-CMS/1.0', CURLOPT_FOLLOWLOCATION => true]);
+                        $raw = curl_exec($ch);
+                        if (curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 200) {
+                            $raw = false;
+                        }
+                        curl_close($ch);
+                    }
+                    $remote = $raw ? json_decode($raw, true) : null;
+                    if (!empty($remote['version']) && preg_match('/^\d+\.\d+(\.\d+)?$/', (string) $remote['version'])) {
+                        $latestVersion = (string) $remote['version'];
+                        $source = 'github-' . $branch;
+                        $downloadUrl = "https://github.com/{$repoMatch[1]}";
+                        break;
+                    }
+                }
+            }
+
             // 1. Intentar obtener versión desde Packagist (composer)
             $packagistUrl = "https://repo.packagist.org/p2/{$versionInfo['packagist']}.json";
             $context = stream_context_create([
