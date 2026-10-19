@@ -163,16 +163,21 @@ class CleanupRevisionsTask
     private static function cleanupRevisionsForItem(\PDO $pdo, string $table, string $column, int $itemId, int $keepRecent, int $keepMonthly, int $keepYearly): array
     {
         // Obtener todas las revisiones ordenadas por fecha descendente
+        // Sin DATE_FORMAT ni `comillas` (solo MySQL): el mes y el año se calculan aquí
         $stmt = $pdo->prepare("
-            SELECT id, created_at,
-                   DATE_FORMAT(created_at, '%Y-%m') as `year_month`,
-                   DATE_FORMAT(created_at, '%Y') as `rev_year`
-            FROM `{$table}`
-            WHERE `{$column}` = ?
+            SELECT id, created_at
+            FROM {$table}
+            WHERE {$column} = ?
             ORDER BY created_at DESC
         ");
         $stmt->execute([$itemId]);
         $revisions = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        foreach ($revisions as &$rev) {
+            $ts = strtotime((string) $rev['created_at']) ?: time();
+            $rev['year_month'] = date('Y-m', $ts);
+            $rev['rev_year'] = date('Y', $ts);
+        }
+        unset($rev);
 
         $totalRevisions = count($revisions);
 

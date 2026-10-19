@@ -79,9 +79,10 @@ class CleanupTrashTask
             FROM pages_trash pt
             INNER JOIN pages p ON p.id = pt.page_id
             WHERE pt.scheduled_permanent_delete <= NOW()
-            OR pt.deleted_at <= DATE_SUB(NOW(), INTERVAL ? DAY)
+            OR pt.deleted_at <= ?
         ");
-        $stmt->execute([$retentionDays]);
+        // Fecha límite calculada aquí: DATE_SUB(... INTERVAL ? DAY) solo existe en MySQL
+        $stmt->execute([date('Y-m-d H:i:s', time() - $retentionDays * 86400)]);
         $pagesToDelete = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         $deleted = 0;
@@ -144,9 +145,10 @@ class CleanupTrashTask
             FROM blog_posts_trash pt
             INNER JOIN blog_posts p ON p.id = pt.post_id
             WHERE pt.scheduled_permanent_delete <= NOW()
-            OR pt.deleted_at <= DATE_SUB(NOW(), INTERVAL ? DAY)
+            OR pt.deleted_at <= ?
         ");
-        $stmt->execute([$retentionDays]);
+        // Fecha límite calculada aquí: DATE_SUB(... INTERVAL ? DAY) solo existe en MySQL
+        $stmt->execute([date('Y-m-d H:i:s', time() - $retentionDays * 86400)]);
         $postsToDelete = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         $deleted = 0;

@@ -13,6 +13,61 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.26.1 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.26.1 — Arreglos</h5></div><div class="card-body">
+            <p class="text-muted">19 de octubre de 2026</p>
+            <ul><li>La lista de comentarios del blog daba error en cuanto había algún comentario. Ya se abre con normalidad.</li>
+            <li>Las tareas automáticas (envío de campañas del newsletter, agregador de noticias…) se quedaban «en ejecución» por un fallo al anotar su resultado. Ya terminan bien.</li>
+            <li>El vaciado automático de la papelera (lo que lleva más de 30 días) y la limpieza de revisiones antiguas no llegaban a funcionar. Ya funcionan: se conservan siempre las 5 últimas revisiones de cada contenido, una por mes del último año y una por año.</li>
+            <li>Etiquetas del panel más legibles: fondo suave y texto oscuro en vez de letra negra sobre turquesa o amarillo.</li></ul>
+        </div></div>
+
+        <!-- v2.26.0 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.26.0 — Enlaces que no se rompen y newsletter</h5></div><div class="card-body">
+            <p class="text-muted">18 de octubre de 2026</p>
+            <ul><li>Guardar una entrada ya no cambia su dirección: se conserva el prefijo que tenía y no se borran las direcciones de sus traducciones (antes la versión en otro idioma podía dar «página no encontrada»).</li>
+            <li>Newsletter: el enlace de baja del correo ya no da de baja con solo abrirlo; pregunta y se confirma con un botón. Un clic sin querer o el antivirus del correo ya no dan de baja a nadie.</li></ul>
+        </div></div>
+
+        <!-- v2.25.0 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.25.0 — Número de visitas por entrada</h5></div><div class="card-body">
+            <p class="text-muted">17 de octubre de 2026</p>
+            <ul><li>Nueva opción en cada entrada, «Mostrar el número de visitas», desactivada por defecto: las entradas ya no enseñan «N Vistas» salvo que la actives en cada una.</li>
+            <li>El contador de visitas sigue sumando aunque esté oculto, y lo ves igual en el listado del panel.</li></ul>
+        </div></div>
+
+        <!-- v2.24.0 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.24.0 — Visitantes únicos y cargas de página</h5></div><div class="card-body">
+            <p class="text-muted">17 de octubre de 2026</p>
+            <ul><li>Analytics, el listado de páginas y los listados del blog muestran visitantes únicos (personas distintas por día) y cargas de página (incluidas recargas), con un botón (i) que explica la diferencia.</li>
+            <li>El contador de vistas de cada entrada ya no suma robots.</li>
+            <li>Entradas traducidas (/en/…): el título SEO, la meta descripción y el título para redes salen en el idioma de la traducción.</li>
+            <li>Los avisos del panel tienen fondo, borde de color y separación; antes salían como texto suelto.</li></ul>
+        </div></div>
+
+        <!-- v2.23.0 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.23.0 — Visitas reales, velocidad y una dirección por idioma</h5></div><div class="card-body">
+            <p class="text-muted">16 de octubre de 2026</p>
+            <ul><li>Analytics cuenta solo personas: los robots (IA, buscadores, herramientas SEO, scripts…) se guardan aparte, en «Tráfico de robots».</li>
+            <li>RGPD: las visitas solo se registran si el visitante acepta la analítica en el banner de cookies.</li>
+            <li>Tu web va más rápida: la página se guarda en caché para los visitantes sin sesión (nunca para quien ha iniciado sesión), las imágenes de los sliders van en WebP y las imágenes del gestor de medios generan solas su versión WebP.</li>
+            <li>Cada idioma tiene su propia dirección (por ejemplo /en/…), con redirecciones desde las direcciones antiguas y avisos correctos a Google (hreflang y canonical).</li>
+            <li>Una sola dirección por sitio: www.tudominio redirige a tudominio, para que Google no vea dos copias de cada página.</li>
+            <li>El sitemap lleva la dirección real de cada contenido y sus traducciones.</li>
+            <li>Panel de clientes rediseñado, con accesos rápidos, tus sitios y tus dominios.</li>
+            <li>Los intentos fallidos de acceso a tu panel quedan registrados para bloquear a quien prueba contraseñas.</li></ul>
+        </div></div>
+
+        <!-- v2.22.0 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.22.0 — Rendimiento y SEO multi-idioma</h5></div><div class="card-body">
+            <p class="text-muted">15 de octubre de 2026</p>
+            <ul><li>El tema de los sitios carga más rápido: imagen destacada en WebP, fuentes sin bloquear la carga y carrusel solo cuando hace falta. Los logos se sirven en WebP mucho más ligeros.</li>
+            <li>Los artículos traducidos publican sus versiones en cada idioma para Google, con el idioma correcto en la página.</li>
+            <li>El selector de idioma recuerda la elección del visitante.</li>
+            <li>Search Console: puedes conectar tu propia cuenta de Google desde tu panel; tus datos son privados.</li>
+            <li>Corregido: los scripts externos de tu JavaScript personalizado se bloqueaban al entrar por un dominio alias.</li></ul>
+        </div></div>
+
         <!-- v2.21.0 -->
         <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.21.0 — Editor completo por MCP</h5></div><div class="card-body">
             <p class="text-muted">11 de octubre de 2026</p>
