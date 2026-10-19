@@ -11,10 +11,6 @@ final class SettingsNavigation
             ['reading', 'Lectura', 'book', '/settings/reading'],
             ['seo', 'SEO y Social', 'search', '/settings/seo'],
         ];
-        // Acceso directo al módulo Search Console (solo superadmin, si el módulo está instalado)
-        if (!$tenant && defined('APP_ROOT') && is_dir(APP_ROOT . '/modules/search-console')) {
-            $definitions[] = ['search-console', 'Search Console', 'graph-up', '/search-console'];
-        }
         $definitions = array_merge($definitions, [
             ['email', 'Email (SMTP)', 'envelope', '/settings/email'],
             ['cookies', 'Cookies', 'shield-check', '/settings/cookies'],

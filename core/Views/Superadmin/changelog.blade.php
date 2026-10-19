@@ -19,6 +19,7 @@
             <ul class="mb-0">
                 <li>La lista de comentarios del blog (superadmin y tenants) daba error 500 en cuanto había comentarios: las fechas llegan como DateTime y la vista las convertía con (string).</li>
                 <li>Tareas programadas: la duración se guardaba con decimales en una columna de enteros y PostgreSQL la rechazaba; cada tarea (envío del newsletter, agregador de noticias…) fallaba al anotar su resultado y se quedaba como «en ejecución». La columna admite ya decimales.</li>
+                <li>Search Console ya no aparece duplicado en el menú: solo en Módulos (se quitó el acceso directo de Ajustes).</li>
                 <li>Etiquetas (badge) informativas y de aviso del panel con fondo suave y texto oscuro del mismo tono, en vez de letra negra sobre turquesa o amarillo fuerte.</li>
                 <li>Vaciado automático de la papelera (TRASH_RETENTION_DAYS, 30 días) y limpieza de revisiones antiguas: usaban SQL solo de MySQL (DATE_SUB, DATE_FORMAT, comillas invertidas) y nunca habían funcionado en PostgreSQL. Primera pasada: 3 elementos de la papelera y 101 revisiones antiguas eliminados (se conservan las 5 últimas, una por mes del último año y una por año de los últimos 3).</li>
                 <li>Changelog de los tenants puesto al día (v2.22.0 a v2.26.1), solo con lo que les afecta.</li>
