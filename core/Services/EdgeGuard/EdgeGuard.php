@@ -33,6 +33,8 @@ class EdgeGuard
     private const FAILS_TO_BLOCK = 2;     // informes seguidos fallando para dar una IP por bloqueada
     private const ORIGIN_FRESH = 420;     // s: antigüedad máxima de la prueba directa al origen
     private const INVENTORY_EVERY = 1800; // s entre lecturas de Cloudflare
+    /** Ruta con la que se comprueba si un nombre redirige a otro conservando la ruta (mismo sitio con otro nombre) */
+    private const SITE_PROBE_PATH = '/musedock-edge-guard-same-site';
 
     private PDO $pdo;
     private string $driver;
@@ -381,10 +383,103 @@ class EdgeGuard
                 }
             }
         }
+        // Nombres que redirigen a otro conservando la ruta (www → raíz, dominio antiguo → nuevo): se siguen de verdad
+        $this->setSetting('site_links', json_encode(self::redirectLinks(array_column($this->records(), 'name'))));
         $this->setSetting('inventory_at', (string) time());
         $this->setSetting('inventory_errors', $errors ? implode("\n", $errors) : null);
 
         return ['records' => $count, 'proxied' => $proxied, 'errors' => $errors];
+    }
+
+    /**
+     * Parejas [origen, destino] en las que https://origen/<ruta> redirige (301/302/307/308) a destino conservando la
+     * ruta. Una portada que solo lleva a otra web no cuenta. En paralelo, sin seguir la redirección.
+     * @param string[] $names
+     * @return array<int, array{0:string, 1:string}>
+     */
+    private static function redirectLinks(array $names): array
+    {
+        $names = array_values(array_unique($names));
+        if (!$names || !function_exists('curl_multi_init')) {
+            return [];
+        }
+        $set = array_flip($names);
+        $mh = curl_multi_init();
+        $handles = [];
+        foreach ($names as $n) {
+            $ch = curl_init('https://' . $n . self::SITE_PROBE_PATH);
+            curl_setopt_array($ch, [CURLOPT_NOBODY => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_TIMEOUT => 8, CURLOPT_CONNECTTIMEOUT => 4, CURLOPT_USERAGENT => 'MuseDock-EdgeGuard/1.0']);
+            curl_multi_add_handle($mh, $ch);
+            $handles[$n] = $ch;
+        }
+        do {
+            $status = curl_multi_exec($mh, $running);
+            if ($running) {
+                curl_multi_select($mh, 1.0);
+            }
+        } while ($running && $status === CURLM_OK);
+        $links = [];
+        foreach ($handles as $n => $ch) {
+            $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+            $location = (string) curl_getinfo($ch, CURLINFO_REDIRECT_URL);
+            $to = strtolower((string) parse_url($location, PHP_URL_HOST));
+            $samePath = rtrim((string) parse_url($location, PHP_URL_PATH), '/') === self::SITE_PROBE_PATH;
+            if (in_array($code, [301, 302, 307, 308], true) && $samePath && $to !== '' && $to !== $n && isset($set[$to])) {
+                $links[] = [$n, $to];
+            }
+            curl_multi_remove_handle($mh, $ch);
+            curl_close($ch);
+        }
+        curl_multi_close($mh);
+
+        return $links;
+    }
+
+    /**
+     * Sitio de cada nombre: dominio ⇄ www.dominio (los dos sentidos). Las demás redirecciones son dependencias de un
+     * solo sentido (siteDependencies). No se agrupa por CNAME; los nombres de «Nunca tocar» van solos.
+     * @return array<string, string> nombre => sitio
+     */
+    public function siteGroups(array $records): array
+    {
+        $out = [];
+        $names = [];
+        foreach ($records as $r) {
+            $out[$r['name']] = $r['name'];
+            if (!$this->isExcluded($r['name'])) {
+                $names[$r['name']] = true;
+            }
+        }
+        foreach (array_keys($names) as $n) {
+            if (str_starts_with($n, 'www.') && isset($names[substr($n, 4)])) {
+                $out[$n] = substr($n, 4);
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Un nombre que redirige a otro sitio (dominio antiguo → nuevo) depende de él: si el destino se bloquea, el origen
+     * también pasa a directo y no vuelve al proxy hasta que el destino esté estable; si solo se bloquea el origen, el
+     * destino no se toca (no se deja a la vista la IP del sitio principal por un dominio antiguo).
+     * @return array<string, string[]> sitio origen => sitios destino
+     */
+    public function siteDependencies(array $groupOf): array
+    {
+        $deps = [];
+        foreach (json_decode((string) $this->setting('site_links', '[]'), true) ?: [] as $pair) {
+            if (!is_array($pair) || count($pair) !== 2) {
+                continue;
+            }
+            [$from, $to] = [(string) $pair[0], (string) $pair[1]];
+            if (isset($groupOf[$from], $groupOf[$to]) && !$this->isExcluded($from) && !$this->isExcluded($to) && $groupOf[$from] !== $groupOf[$to]) {
+                $deps[$groupOf[$from]][$groupOf[$to]] = true;
+            }
+        }
+
+        return array_map('array_keys', $deps);
     }
 
     private function upsertRecord(int $accountId, array $zone, array $r): void
@@ -790,11 +885,44 @@ class EdgeGuard
         $states = $this->edgeStates();
         $this->trackEpisodes($states, $report);
 
-        // 1. Volver a poner el proxy donde ya se puede (también en modo apagado: lo que cambió el sistema, lo deshace)
+        // Cada sitio (dominio y www.dominio) es una unidad, y un nombre que redirige a otro sitio depende de él: si uno
+        // va directo y el otro sigue con Cloudflare, la redirección vuelve a llevar al visitante a la IP bloqueada.
+        $records = $this->records();
+        $groupOf = $this->siteGroups($records);
+        $groupIps = [];
+        $groupNames = [];
+        foreach ($records as $r) {
+            $g = $groupOf[$r['name']];
+            $groupNames[$g][$r['name']] = true;
+            foreach (array_filter(explode(',', (string) $r['edge_ips'])) as $ip) {
+                $groupIps[$g][$ip] = true;
+            }
+        }
         foreach ($this->activeChanges() as $c) {
-            $ips = array_filter(explode(',', (string) $c['edge_ips']));
-            $clear = $ips && !array_filter($ips, fn ($ip) => ($states[$ip]['state'] ?? 'unknown') !== 'clear');
-            if ($clear) {
+            $g = $groupOf[$c['name']] ?? $c['name'];
+            foreach (array_filter(explode(',', (string) $c['edge_ips'])) as $ip) {
+                $groupIps[$g][$ip] = true;
+            }
+        }
+        $notClear = fn (string $g) => array_values(array_filter(array_keys($groupIps[$g] ?? []), fn ($ip) => ($states[$ip]['state'] ?? 'unknown') !== 'clear'));
+        $deps = $this->siteDependencies($groupOf);
+        $siteBad = function (string $g, array $seen = []) use (&$siteBad, $notClear, $deps): array {
+            if (isset($seen[$g])) {
+                return [];
+            }
+            $seen[$g] = true;
+            $bad = $notClear($g);
+            foreach ($deps[$g] ?? [] as $to) {
+                $bad = array_merge($bad, $siteBad($to, $seen));
+            }
+            return array_values(array_unique($bad));
+        };
+
+        // 1. Volver a poner el proxy cuando todas las IPs del sitio (y de los sitios a los que redirige) están estables
+        //    (también en modo apagado: lo que cambió el sistema, lo deshace)
+        foreach ($this->activeChanges() as $c) {
+            $g = $groupOf[$c['name']] ?? $c['name'];
+            if (!empty($groupIps[$g]) && !$siteBad($g)) {
                 $report['restored'][] = $this->restore($c);
             }
         }
@@ -803,12 +931,13 @@ class EdgeGuard
             return $report;
         }
 
-        // 2. Quitar el proxy donde hay bloqueo
+        // 2. Sitios que pasan (o siguen) en directo: con alguna IP bloqueada y origen bien, o con algún nombre ya sin proxy
         $active = [];
         foreach ($this->activeChanges() as $c) {
             $active[$c['record_id']] = true;
         }
-        foreach ($this->records() as $r) {
+        $trigger = [];
+        foreach ($records as $r) {
             if (!(int) $r['proxied'] || isset($active[$r['record_id']]) || $this->isExcluded($r['name'])) {
                 continue;
             }
@@ -825,7 +954,50 @@ class EdgeGuard
                 $this->noteOnce('origin:' . $r['record_id'], "{$r['name']}: Cloudflare bloqueado, pero el servidor de origen no responde directo con un certificado válido; se deja como está.", $report);
                 continue;
             }
-            $report['applied'][] = $this->unproxy($r, $blockedIps, $mode === 'simulate');
+            $g = $groupOf[$r['name']];
+            $trigger[$g] = array_values(array_unique(array_merge($trigger[$g] ?? [], $blockedIps)));
+        }
+        foreach ($this->activeChanges() as $c) {
+            $g = $groupOf[$c['name']] ?? $c['name'];
+            if (!isset($trigger[$g]) && ($bad = $siteBad($g))) {
+                $trigger[$g] = $bad;
+            }
+        }
+        // Un solo sentido: si el destino de una redirección pasa a directo, también el origen (nunca al revés)
+        $dragged = [];
+        do {
+            $changed = false;
+            foreach ($deps as $from => $tos) {
+                foreach ($tos as $to) {
+                    if (!isset($trigger[$from]) && isset($trigger[$to])) {
+                        $trigger[$from] = $trigger[$to];
+                        $dragged[$from] = $to;
+                        $changed = true;
+                    }
+                }
+            }
+        } while ($changed);
+
+        // 3. Quitar el proxy a todos los nombres de esos sitios que aún lo tengan
+        foreach ($records as $r) {
+            $g = $groupOf[$r['name']];
+            if (!isset($trigger[$g]) || !(int) $r['proxied'] || isset($active[$r['record_id']]) || $this->isExcluded($r['name'])) {
+                continue;
+            }
+            $ips = array_filter(explode(',', (string) $r['edge_ips']));
+            $own = array_values(array_filter($ips, fn ($ip) => ($states[$ip]['state'] ?? '') === 'blocked'));
+            $origin = $this->originOk($r['record_id']);
+            if ($origin === false) {
+                $this->noteOnce('origin:' . $r['record_id'], "{$r['name']}: su sitio pasa a conexión directa, pero el servidor de origen no responde directo con un certificado válido; se deja como está.", $report);
+                continue;
+            }
+            if ($origin === null && $own) {
+                continue;
+            }
+            $peers = array_values(array_diff(array_keys($groupNames[$g] ?? []), [$r['name']]));
+            $with = $own ? null : (isset($dragged[$g]) ? $dragged[$g] . ' (redirige a él)' : implode(', ', $peers));
+            $report['applied'][] = $this->unproxy($r, $own ?: $trigger[$g], $mode === 'simulate', $with);
+            $active[$r['record_id']] = true;
         }
 
         return $report;
@@ -869,7 +1041,7 @@ class EdgeGuard
         throw new \RuntimeException('la cuenta de Cloudflare ya no está disponible');
     }
 
-    private function unproxy(array $r, array $blockedIps, bool $simulated): string
+    private function unproxy(array $r, array $blockedIps, bool $simulated, ?string $sameSiteAs = null): string
     {
         $cause = $this->cause($blockedIps, $r['name']);
         $why = $cause === 'bloqueo' ? 'IP de Cloudflare bloqueada por operadoras; desde fuera responde' : 'Cloudflare no responde, tampoco desde fuera';
@@ -896,7 +1068,9 @@ class EdgeGuard
         $ipList = implode(', ', $blockedIps);
         $msg = match (true) {
             $status === 'failed' => "{$r['name']}: no se pudo quitar el proxy ({$note}).",
+            $simulated && $sameSiteAs => "{$r['name']}: se habría quitado el proxy junto con {$sameSiteAs} (mismo sitio; IPs {$ipList}).",
             $simulated => "{$r['name']}: se habría quitado el proxy ({$why}; IPs {$ipList}).",
+            $sameSiteAs !== null => "{$r['name']}: proxy quitado junto con {$sameSiteAs} (mismo sitio: si no, la redirección llevaría a la IP bloqueada; IPs {$ipList}).",
             default => "{$r['name']}: proxy quitado ({$why}; IPs {$ipList}).",
         };
         $this->event($status === 'failed' ? 'error' : 'info', $msg);
@@ -918,6 +1092,9 @@ class EdgeGuard
             '/^(.+): Cloudflare bloqueado, pero el servidor de origen no responde directo con un certificado válido; se deja como está\.$/u' => '$1: Cloudflare blocked, but the origin server does not answer directly with a valid certificate; left as it is.',
             '/^(.+): cambió en Cloudflare desde la última lectura; no se toca\.$/u' => '$1: changed in Cloudflare since the last read; not touched.',
             '/^(.+): no se pudo quitar el proxy \((.*)\)\.$/u' => '$1: could not turn the proxy off ($2).',
+            '/^(.+): se habría quitado el proxy junto con (.+) \(mismo sitio; IPs (.+)\)\.$/u' => '$1: the proxy would have been turned off together with $2 (same site; IPs $3).',
+            '/^(.+): proxy quitado junto con (.+) \(mismo sitio: si no, la redirección llevaría a la IP bloqueada; IPs (.+)\)\.$/u' => '$1: proxy turned off together with $2 (same site: otherwise the redirect would lead to the blocked IP; IPs $3).',
+            '/^(.+): su sitio pasa a conexión directa, pero el servidor de origen no responde directo con un certificado válido; se deja como está\.$/u' => '$1: its site goes direct, but the origin server does not answer directly with a valid certificate; left as it is.',
             '/^(.+): se habría quitado el proxy \((.+); IPs (.+)\)\.$/u' => '$1: the proxy would have been turned off ($2; IPs $3).',
             '/^(.+): proxy quitado \((.+); IPs (.+)\)\.$/u' => '$1: proxy turned off ($2; IPs $3).',
             '/^(.+): se habría vuelto a poner el proxy \(sus IPs llevan (\d+) min respondiendo\)\.$/u' => '$1: the proxy would have been turned back on (its IPs have been responding for $2 min).',
