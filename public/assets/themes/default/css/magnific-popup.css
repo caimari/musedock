@@ -1,10 +1,11 @@
+/* MuseDock: por encima del encabezado fijo del tema (z-index 9999) y del aviso de cookies (10001); sin esto la ventana de ampliación quedaba debajo del menú */
 /* Magnific Popup CSS */
 .mfp-bg {
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 1042;
+  z-index: 100042;
   overflow: hidden;
   position: fixed;
   background: #0b0b0b;
@@ -15,7 +16,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 1043;
+  z-index: 100043;
   position: fixed;
   outline: none !important;
   -webkit-backface-visibility: hidden; }
@@ -45,7 +46,7 @@
   vertical-align: middle;
   margin: 0 auto;
   text-align: left;
-  z-index: 1045; }
+  z-index: 100045; }
 
 .mfp-inline-holder .mfp-content,
 .mfp-ajax-holder .mfp-content {
@@ -92,7 +93,7 @@
   margin-top: -0.8em;
   left: 8px;
   right: 8px;
-  z-index: 1044; }
+  z-index: 100044; }
   .mfp-preloader a {
     color: #CCC; }
     .mfp-preloader a:hover {
@@ -114,7 +115,7 @@ button.mfp-arrow {
   display: block;
   outline: none;
   padding: 0;
-  z-index: 1046;
+  z-index: 100046;
   box-shadow: none;
   touch-action: manipulation; }
 
