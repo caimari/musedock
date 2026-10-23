@@ -262,7 +262,7 @@
     {{-- Patrón: media="print" + onload cambia a "all" = carga async sin bloquear --}}
     <link rel="stylesheet" href="{{ asset('themes/default/css/slicknav.css') }}" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="{{ asset('themes/default/css/animate.min.css') }}" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="{{ asset('themes/default/css/magnific-popup.css') }}" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ asset('themes/default/css/magnific-popup.css') }}?v={{ file_exists(public_path('assets/themes/default/css/magnific-popup.css')) ? filemtime(public_path('assets/themes/default/css/magnific-popup.css')) : time() }}" media="print" onload="this.media='all'">
     {{-- Swiper CSS (carousel) --}}
     <link rel="stylesheet" href="/assets/css/swiper-bundle.min.css?v={{ file_exists(public_path('assets/css/swiper-bundle.min.css')) ? filemtime(public_path('assets/css/swiper-bundle.min.css')) : time() }}" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="{{ asset('themes/default/css/slider-themes.css') }}?v={{ file_exists(public_path('assets/themes/default/css/slider-themes.css')) ? filemtime(public_path('assets/themes/default/css/slider-themes.css')) : time() }}" media="print" onload="this.media='all'">
@@ -282,7 +282,7 @@
     <noscript>
         <link rel="stylesheet" href="{{ asset('themes/default/css/slicknav.css') }}">
         <link rel="stylesheet" href="{{ asset('themes/default/css/animate.min.css') }}">
-        <link rel="stylesheet" href="{{ asset('themes/default/css/magnific-popup.css') }}">
+        <link rel="stylesheet" href="{{ asset('themes/default/css/magnific-popup.css') }}?v={{ file_exists(public_path('assets/themes/default/css/magnific-popup.css')) ? filemtime(public_path('assets/themes/default/css/magnific-popup.css')) : time() }}">
         <link rel="stylesheet" href="/assets/css/swiper-bundle.min.css">
         <link rel="stylesheet" href="{{ asset('themes/default/css/slider-themes.css') }}">
         <link rel="stylesheet" href="{{ asset('vendor/slick/slick.min.css') }}">
