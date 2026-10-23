@@ -7,7 +7,7 @@
  *   php modules/wp-importer/cli/import.php --site=https://nycinfest.com --tenant=60            # simulación (no escribe nada)
  *   php modules/wp-importer/cli/import.php --site=https://nycinfest.com --tenant=60 --run      # importa de verdad
  *
- * Opciones: --no-media, --no-styles, --no-sliders (por defecto se importa todo: media, categorías, tags, entradas,
+ * Opciones: --policy=skip|overwrite|rename (páginas ya existentes), --no-media, --no-styles, --no-sliders (por defecto se importa todo: media, categorías, tags, entradas,
  * páginas, menús, sliders y estilos). Las direcciones (slugs) de las páginas se conservan.
  */
 if (php_sapi_name() !== 'cli') {
@@ -20,14 +20,14 @@ require_once APP_ROOT . '/core/Env.php';
 require_once APP_ROOT . '/config/config.php';
 require_once APP_ROOT . '/core/helpers.php';
 \Screenart\Musedock\ModuleAutoloader::init();
-foreach (['WpImporter\\Services\\' => '/services', 'WpImporter\\Controllers\\' => '/controllers', 'MediaManager\\Controllers\\' => '/../media-manager/controllers', 'MediaManager\\Models\\' => '/../media-manager/models'] as $ns => $dir) {
+foreach (['Blog\\Models\\' => '/../blog/models', 'WpImporter\\Services\\' => '/services', 'WpImporter\\Controllers\\' => '/controllers', 'MediaManager\\Controllers\\' => '/../media-manager/controllers', 'MediaManager\\Models\\' => '/../media-manager/models'] as $ns => $dir) {
     \Screenart\Musedock\ModuleAutoloader::registerNamespace($ns, dirname(__DIR__) . $dir);
 }
 
 use Screenart\Musedock\Database;
 use WpImporter\Services\{WpApiClient, WpContentImporter, WpMediaImporter, WpStyleExtractor};
 
-$o = getopt('', ['site:', 'tenant:', 'run', 'no-media', 'no-styles', 'no-sliders']);
+$o = getopt('', ['site:', 'tenant:', 'policy:', 'run', 'no-media', 'no-styles', 'no-sliders']);
 $site = rtrim((string) ($o['site'] ?? ''), '/');
 $tenantId = (int) ($o['tenant'] ?? 0);
 $run = isset($o['run']);
@@ -75,6 +75,10 @@ $extract = function (string $html): array {
     preg_match_all('#<img[^>]+src=["\']([^"\']+)["\']#i', $html, $m);
     return array_values(array_filter($m[1], fn ($u) => preg_match('#^https?://#', $u)));
 };
+$guessMime = function (string $url): string {
+    $ext = strtolower(pathinfo((string) parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION));
+    return ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif', 'webp' => 'image/webp', 'svg' => 'image/svg+xml'][$ext] ?? 'image/jpeg';
+};
 $media = [];
 foreach (array_merge($pages, $posts) as $p) {
     if (!empty($p['featured_media'])) {
@@ -107,7 +111,7 @@ if (!isset($o['no-media'])) {
                 $items[] = $md;
             }
         } else {
-            $items[] = ['id' => null, 'source_url' => $value, 'mime_type' => '', 'title' => ['rendered' => pathinfo(parse_url($value, PHP_URL_PATH) ?: '', PATHINFO_FILENAME)], 'alt_text' => '', 'caption' => ['rendered' => '']];
+            $items[] = ['id' => null, 'source_url' => $value, 'mime_type' => $guessMime($value), 'title' => ['rendered' => pathinfo(parse_url($value, PHP_URL_PATH) ?: '', PATHINFO_FILENAME)], 'alt_text' => '', 'caption' => ['rendered' => '']];
         }
     }
     $seen = [];
@@ -124,7 +128,7 @@ if (!isset($o['no-media'])) {
     printf("  imágenes: %d importadas, %d omitidas, %d errores\n", $mr['imported'], $mr['skipped'], count($mr['errors']));
 }
 $ci = new WpContentImporter($client, $mediaImporter, $tenantId);
-$ci->setDuplicatePolicy('skip');
+$ci->setDuplicatePolicy(in_array($o['policy'] ?? '', ['skip', 'overwrite', 'rename'], true) ? $o['policy'] : 'skip');
 $structure = $ci->detectAndApplyUrlStructure($posts, $pages, $site);
 $ci->importCategories($cats);
 $ci->importTags($tags);

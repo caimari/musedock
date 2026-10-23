@@ -15,7 +15,8 @@
     },
     "changelog": {
         "1.2.0 (2026-10-23)": [
-            "Nuevo importador por línea de comandos (cli/import.php): clona un WordPress en un tenant ya creado con la API REST pública (páginas, entradas, categorías, etiquetas, imágenes, carruseles/sliders y estilos), conservando las direcciones de las páginas. Sin --run solo simula y cuenta lo que importaría; con --run importa. Los menús que WordPress no publica sin credenciales no se importan y se rehacen a mano."
+            "Nuevo importador por línea de comandos (cli/import.php): clona un WordPress en un tenant ya creado con la API REST pública (páginas, entradas, categorías, etiquetas, imágenes, carruseles/sliders y estilos), conservando las direcciones de las páginas. Sin --run solo simula y cuenta lo que importaría; con --run importa. Los menús que WordPress no publica sin credenciales no se importan y se rehacen a mano.",
+            "CLI: las imágenes que solo aparecen en el contenido ya se importan (se deduce su tipo por la extensión), el módulo de blog se carga en la línea de comandos y --policy=skip|overwrite|rename elige qué hacer con las páginas ya existentes."
         ],
         "pendiente (auditoría 2026-10-05)": [
             "Seguridad: todas las descargas del importador solo van a http(s) hacia IPs públicas (nada de red interna ni file://), también en redirecciones de protocolo."
