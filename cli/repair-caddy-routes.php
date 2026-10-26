@@ -115,10 +115,44 @@ function caddyRequest(string $method, string $path, $body = null): array {
  * and concatenate them into a valid JSON array string.
  */
 function buildMergedRoutesJson(string $existingRoutesJson, array $newRoutes): string {
+    // Rutas marcadas '__before' (hosts que ya sirve otra ruta, p. ej. un hosting del panel): van justo delante de la
+    // primera ruta existente que sirve alguno de esos hosts. Se decodifica como objetos para conservar los {} vacíos.
+    $before = array_values(array_filter($newRoutes, fn ($r) => !empty($r['__before'])));
+    if ($before) {
+        $newRoutes = array_values(array_filter($newRoutes, fn ($r) => empty($r['__before'])));
+        $existing = json_decode($existingRoutesJson, false);
+        if (is_array($existing)) {
+            foreach ($before as $route) {
+                $wanted = array_flip($route['__before']);
+                unset($route['__before']);
+                $at = null;
+                foreach ($existing as $i => $er) {
+                    foreach (routeHostsObj($er) as $h) {
+                        if (isset($wanted[$h]) && !isRedirectRouteObj($er)) {
+                            $at = $i;
+                            break 2;
+                        }
+                    }
+                }
+                $obj = json_decode(json_encode($route), false);
+                if ($at === null) {
+                    $existing[] = $obj;
+                } else {
+                    array_splice($existing, $at, 0, [$obj]);
+                }
+            }
+            $existingRoutesJson = json_encode($existing, JSON_UNESCAPED_SLASHES);
+        } else {
+            foreach ($before as $route) {
+                unset($route['__before']);
+                $newRoutes[] = $route;
+            }
+        }
+    }
     // Las rutas marcadas '__first' (redirects sobre hosts de tenants) van al principio de la lista
     $first = array_values(array_filter($newRoutes, fn ($r) => !empty($r['__first'])));
     $rest = array_values(array_filter($newRoutes, fn ($r) => empty($r['__first'])));
-    $strip = static function (array $routes): array { foreach ($routes as &$r) { unset($r['__first']); } return $routes; };
+    $strip = static function (array $routes): array { foreach ($routes as &$r) { unset($r['__first'], $r['__before']); } return $routes; };
     $first = $strip($first);
     $newRoutes = $strip($rest);
     $existingRoutesJson = trim($existingRoutesJson);
@@ -141,6 +175,23 @@ function buildMergedRoutesJson(string $existingRoutesJson, array $newRoutes): st
     if ($newInner === '') return "[{$inner}]";
 
     return "[{$inner},{$newInner}]";
+}
+
+/** Hosts exactos de una ruta decodificada como objeto. */
+function routeHostsObj($route): array {
+    $out = [];
+    foreach ((array) ($route->match ?? []) as $m) {
+        foreach ((array) ($m->host ?? []) as $h) {
+            $out[] = strtolower((string) $h);
+        }
+    }
+    return $out;
+}
+
+/** ¿Es una redirección (static_response con Location)? Esas deben seguir delante de la ruta del tenant. */
+function isRedirectRouteObj($route): bool {
+    $h = $route->handle[0] ?? null;
+    return is_object($h) && ($h->handler ?? '') === 'static_response' && isset($h->headers->Location);
 }
 
 // Check Caddy API — wait for it to come up instead of giving up immediately.
@@ -179,6 +230,15 @@ foreach ($existingRoutes as $route) {
 }
 echo "Rutas existentes en Caddy: " . count($existingRoutes) . " (" . count($existingRouteIds) . " con @id)\n";
 
+$servedByOthers = [];
+foreach (json_decode($existingRoutesRaw, false) ?: [] as $er) {
+    if (!isRedirectRouteObj($er)) {
+        foreach (routeHostsObj($er) as $h) {
+            $servedByOthers[$h] = true;
+        }
+    }
+}
+
 // ═══════════════════════════════════════════════════════
 // PHASE 1: COLLECT all missing routes (no API calls yet)
 // ═══════════════════════════════════════════════════════
@@ -199,10 +259,12 @@ $tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 echo "Tenants con dominio propio: " . count($tenants) . "\n\n";
 
 foreach ($tenants as $tenant) {
-    $routeId = $tenant['caddy_route_id'];
     $domain = $tenant['domain'];
+    // Sin caddy_route_id (tenant creado sin pasar por el Domain Manager) se usa el nombre de siempre
+    // (CaddyService::generateRouteId): con un @id vacío nunca se encontraba y se añadía otra copia en cada pasada.
+    $routeId = trim((string) $tenant['caddy_route_id']) ?: 'route_' . preg_replace('/[^a-z0-9]/', '_', strtolower($domain));
 
-    if (in_array($routeId, $existingRouteIds)) {
+    if (in_array($routeId, $existingRouteIds, true)) {
         echo "  [OK]  {$domain} — ruta '{$routeId}' existe\n";
         $skipped++;
         continue;
@@ -223,8 +285,13 @@ foreach ($tenants as $tenant) {
         if (wwwOk($alias['domain'], $alias['include_www'])) $hosts[] = 'www.' . $alias['domain'];
     }
 
+    // Si otra ruta ya sirve alguno de estos nombres (p. ej. el hosting del panel con la web antigua), al final
+    // quedaría tapada: se inserta delante de ella.
+    $shadowed = array_values(array_filter($hosts, fn ($h) => isset($servedByOthers[strtolower($h)])));
+
     // Build route config (same as CaddyService::generateCaddyConfig)
     $missingRoutes[] = [
+        '__before' => $shadowed,
         '@id' => $routeId,
         'match' => [['host' => $hosts]],
         'terminal' => true,
@@ -310,6 +377,8 @@ try {
         echo "  [MISS] {$st['tenant_domain']} + aliases: " . implode(', ', $aliasNames) . "\n";
 
         $missingRoutes[] = [
+            // Un alias que aún sirve otra ruta (p. ej. el hosting del panel con la web antigua) quedaría tapado al final
+            '__before' => array_values(array_filter($hosts, fn ($h) => isset($servedByOthers[strtolower($h)]))),
             '@id' => $stRouteId,
             'match' => [['host' => $hosts]],
             'terminal' => true,
