@@ -515,6 +515,12 @@ class HtmlCacheMiddleware
             $tags[] = 'blog-list';
         }
 
+        // Sin prefijo de blog, /blog (y /en/blog) sigue siendo el listado de entradas
+        if ($blogPrefix === '' && preg_match('#^(?:/[a-z]{2})?/blog/?$#', (string) parse_url($uri, PHP_URL_PATH))) {
+            $tags[] = 'blog';
+            $tags[] = 'blog-list';
+        }
+
         // If no prefix matched and not homepage, it could be either
         if (empty($tags) && $uri !== '/') {
             $tags[] = 'content';
