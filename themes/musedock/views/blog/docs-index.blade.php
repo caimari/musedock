@@ -1,18 +1,27 @@
 @extends('layouts.app')
 
-@section('title', 'Documentación | ' . site_setting('site_name', ''))
-@section('description', 'Documentación técnica de ' . site_setting('site_name', ''))
+@php
+    // Idioma de esta versión del índice (/docs en el idioma por defecto, /en/docs en inglés)
+    $__isEn = detectLanguage() === 'en';
+    $__t = fn (string $es, string $en) => $__isEn ? $en : $es;
+@endphp
+
+@section('title', $__t('Documentación', 'Documentation') . ' | ' . site_setting('site_name', ''))
+@section('description', tenant_id() === null
+    ? $__t('Guías de instalación, configuración y uso de ' . site_setting('site_name', '') . ': CMS, panel de servidores y portal de clientes, paso a paso.',
+           'Installation, configuration and usage guides for ' . site_setting('site_name', '') . ': CMS, server control panel and client portal, step by step.')
+    : 'Documentación técnica de ' . site_setting('site_name', ''))
 
 @section('content')
 <div class="docs-index-layout" style="background:#fff; min-height:80vh;">
     <div class="container" style="padding-top:2rem; padding-bottom:3rem;">
         <div class="docs-index-header" style="margin-bottom:2.5rem;">
-            <h1 style="font-size:2.2rem; font-weight:700; color:#111827; margin-bottom:0.5rem;">Documentación</h1>
-            <p style="font-size:1.05rem; color:#6b7280; max-width:600px;">Todo lo que necesitas para configurar, personalizar y sacar el máximo partido a {{ site_setting('site_name', 'MuseDock') }}.</p>
+            <h1 style="font-size:2.2rem; font-weight:700; color:#111827; margin-bottom:0.5rem;">{{ $__t('Documentación', 'Documentation') }}</h1>
+            <p style="font-size:1.05rem; color:#6b7280; max-width:600px;">{{ $__t('Todo lo que necesitas para configurar, personalizar y sacar el máximo partido a', 'Everything you need to set up, customize and get the most out of') }} {{ site_setting('site_name', 'MuseDock') }}.</p>
         </div>
 
         @if(empty($products))
-            <p class="text-muted">No hay documentación disponible todavía.</p>
+            <p class="text-muted">{{ $__t('No hay documentación disponible todavía.', 'No documentation available yet.') }}</p>
         @else
             {{-- Product cards --}}
             <div class="docs-products-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap:1.5rem; margin-bottom:2rem;">
@@ -69,10 +78,13 @@
                             </div>
                             @endif
                             <div style="font-size:0.82rem; font-weight:500; color:var(--header-link-hover-color, #2563eb);">
-                                {{ $product->postCount }} {{ $product->postCount === 1 ? 'artículo' : 'artículos' }} →
+                                {{ $product->postCount }} {{ $product->postCount === 1 ? $__t('artículo', 'article') : $__t('artículos', 'articles') }} →
                             </div>
+                            @if(!empty($product->fallback))
+                            <div style="font-size:0.75rem; color:#9ca3af; margin-top:0.35rem;">{{ $__t('', 'Available in Spanish') }}</div>
+                            @endif
                         @else
-                            <p style="font-size:0.85rem; color:#d1d5db; font-style:italic; margin:0.5rem 0 0;">Próximamente</p>
+                            <p style="font-size:0.85rem; color:#d1d5db; font-style:italic; margin:0.5rem 0 0;">{{ $__t('Próximamente', 'Coming soon') }}</p>
                         @endif
                     </div>
                 </a>
@@ -82,7 +94,7 @@
             {{-- General (uncategorized) docs if any --}}
             @if(isset($products['_general']) && $products['_general']->postCount > 0)
             <div style="margin-top:1.5rem;">
-                <h2 style="font-size:1.1rem; font-weight:600; color:#6b7280; margin-bottom:0.75rem;">Otros</h2>
+                <h2 style="font-size:1.1rem; font-weight:600; color:#6b7280; margin-bottom:0.75rem;">{{ $__t('Otros', 'Other') }}</h2>
                 @foreach($products['_general']->sections as $section)
                     @foreach($section->posts as $docPost)
                     <a href="{{ $docPost->url }}" style="display:block; padding:0.3rem 0; font-size:0.9rem; color:var(--header-link-hover-color, #2563eb); text-decoration:none;">

@@ -33,6 +33,7 @@ class EdgeGuard
     private const FAILS_TO_BLOCK = 2;     // informes seguidos fallando para dar una IP por bloqueada
     private const ORIGIN_FRESH = 420;     // s: antigüedad máxima de la prueba directa al origen
     private const INVENTORY_EVERY = 1800; // s entre lecturas de Cloudflare
+    private const INVENTORY_MIN_GAP = 60; // s mínimos entre dos lecturas, aunque haya nombres nuevos
     /** Ruta con la que se comprueba si un nombre redirige a otro conservando la ruta (mismo sitio con otro nombre) */
     private const SITE_PROBE_PATH = '/musedock-edge-guard-same-site';
 
@@ -387,8 +388,25 @@ class EdgeGuard
         $this->setSetting('site_links', json_encode(self::redirectLinks(array_column($this->records(), 'name'))));
         $this->setSetting('inventory_at', (string) time());
         $this->setSetting('inventory_errors', $errors ? implode("\n", $errors) : null);
+        // Nombres que ya se han mirado (estén o no en Cloudflare): lo que aparezca después pide una lectura inmediata
+        $this->setSetting('hosts_seen', json_encode(array_keys($hosts)));
 
         return ['records' => $count, 'proxied' => $proxied, 'errors' => $errors];
+    }
+
+    /**
+     * Nombres del CMS que no estaban cuando se leyó Cloudflare por última vez (un tenant, alias o redirección recién creados).
+     * Sin esto, un dominio nuevo con proxy quedaba sin vigilar hasta la siguiente lectura periódica (hasta 30 min).
+     * @return string[]
+     */
+    public function newHostnames(): array
+    {
+        $seen = json_decode((string) $this->setting('hosts_seen', ''), true);
+        if (!is_array($seen)) {
+            return []; // primera vez tras actualizar: la lectura periódica lo deja anotado
+        }
+
+        return array_values(array_diff($this->cmsHostnames(), $seen));
     }
 
     /**
@@ -855,7 +873,15 @@ class EdgeGuard
     {
         $report = ['applied' => [], 'restored' => [], 'notes' => []];
         $mode = $this->mode();
-        if ($forceInventory || time() - (int) $this->setting('inventory_at', '0') >= self::INVENTORY_EVERY) {
+        $due = $forceInventory || time() - (int) $this->setting('inventory_at', '0') >= self::INVENTORY_EVERY;
+        if (!$due && time() - (int) $this->setting('inventory_at', '0') >= self::INVENTORY_MIN_GAP) {
+            $new = $this->newHostnames();
+            if ($new) {
+                $due = true;
+                $this->event('info', 'Nombre nuevo en el CMS (' . implode(', ', array_slice($new, 0, 5)) . (count($new) > 5 ? '…' : '') . '): se leen ya los registros de Cloudflare.');
+            }
+        }
+        if ($due) {
             $inv = $this->refreshInventory();
             if ($inv['errors']) {
                 $this->noteOnce('inventory', 'Lectura de Cloudflare con errores: ' . implode('; ', $inv['errors']), $report);

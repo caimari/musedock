@@ -10,10 +10,29 @@
   $__showSupportContactForm = in_array($__requestPath, ['soporte', 'support'], true)
     || in_array($__pageSlug, ['soporte', 'support'], true)
     || in_array($__translationSlug, ['soporte', 'support'], true);
+
+  // Contenido de la página. Sitio principal: cada página lleva un único H1 (SEO). Si el contenido no trae ninguno,
+  // el primer H2 pasa a H1 conservando su aspecto (clase h2) y, si no hay títulos, se antepone el de la página.
+  $__pageBody = apply_filters('the_content', $translation->content);
+  if (tenant_id() === null && empty($page->banner_image ?? null) && stripos((string) $__pageBody, '<h1') === false) {
+      if (preg_match('/<h2\b/i', (string) $__pageBody)) {
+          $__pageBody = preg_replace_callback('/<h2\b([^>]*)>/i', function ($m) {
+              $attrs = preg_match('/\bclass="/i', $m[1]) ? preg_replace('/\bclass="/i', 'class="h2 ', $m[1], 1) : $m[1] . ' class="h2"';
+              return '<h1' . $attrs . '>';
+          }, (string) $__pageBody, 1);
+          $__pageBody = preg_replace('/<\/h2>/i', '</h1>', (string) $__pageBody, 1);
+      } elseif (trim((string) ($translation->title ?? '')) !== '') {
+          $__pageBody = '<h1 class="h2">' . e($translation->title) . '</h1>' . $__pageBody;
+      }
+  }
 @endphp
 
 @section('title') 
+@if(tenant_id() === null)
+{{ seo_title_with_suffix((string) ($translation->seo_title ?: $translation->title ?: 'Página'), [site_setting('site_name', '')]) }}
+@else
 {{ ($translation->seo_title ?: $translation->title ?: 'Página') . ' | ' . site_setting('site_name', '') }}
+@endif
 @endsection
 
 @section('keywords') 
@@ -87,7 +106,7 @@
               @endif
               
               <div class="ziph-page_content_body">
-                {!! apply_filters('the_content', $translation->content) !!}
+                {!! $__pageBody !!}
               </div>
 
               @if($__showSupportContactForm)
@@ -163,7 +182,7 @@
               @endif
               
               <div class="ziph-page_content_body">
-                {!! apply_filters('the_content', $translation->content) !!}
+                {!! $__pageBody !!}
               </div>
 
               @if($__showSupportContactForm)

@@ -628,6 +628,7 @@
         },
         "recent_posts": "Publicaciones Recientes",
         "view_all": "Ver Todos",
+        "meta_description": "Artículos, guías y novedades de MuseDock sobre hosting, CMS, panel de servidores, correo y seguridad.",
         "read_more": "Leer Más",
         "no_posts": "No hay posts publicados.",
         "no_posts_category": "No hay posts en esta categoría.",
@@ -661,7 +662,9 @@
         "captcha_help": "Introduce los caracteres de la imagen para enviar el comentario.",
         "captcha_refresh": "Actualizar código",
         "previous_post": "Anterior",
-        "next_post": "Siguiente"
+        "next_post": "Siguiente",
+        "heading": "Blog de MuseDock",
+        "meta_title": "Blog de hosting, CMS y seguridad"
     },
     "image_gallery": {
         "title": "Galería de Imágenes",

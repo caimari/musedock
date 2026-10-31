@@ -503,6 +503,13 @@ class AuthController
         $tenantId = tenant_id();
         $adminPath = '/' . admin_path();
 
+        // Mismo mensaje que si no existiera la cuenta: no se envía nada ni se revela el bloqueo
+        if (!\Screenart\Musedock\Security\RateLimiter::allowPasswordReset($email, 'tenant_' . $tenantId)) {
+            flash('success', 'Si el correo existe en nuestro sistema, recibirás un enlace de recuperación.');
+            header("Location: {$adminPath}/password/forgot");
+            exit;
+        }
+
         try {
             $db = Database::connect();
 

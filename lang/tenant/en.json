@@ -490,7 +490,26 @@
             "type_brief": "News brief",
             "featured_this_post": "Feature this post",
             "show_views": "Show the view count",
-            "show_views_help": "Off by default: the number of views is not shown on the post."
+            "show_views_help": "Off by default: the number of views is not shown on the post.",
+            "new_post": "New post",
+            "write_title": "Enter the title",
+            "excerpt_placeholder": "Write a short excerpt of the post...",
+            "excerpt_help": "Short summary shown in post lists and cards",
+            "base_language": "Base language",
+            "create_post": "Create post",
+            "published_immediately": "Published immediately",
+            "password": "Password",
+            "password_protected": "Password protected",
+            "options": "Options",
+            "allow_comments": "Allow comments",
+            "image_url": "Image URL",
+            "image_placeholder": "https://example.com/image.jpg",
+            "image_help": "Full URL of the featured image",
+            "image_load_error": "Error loading the image",
+            "categories": "Categories",
+            "select_multiple": "Hold Ctrl/Cmd to select multiple options",
+            "back_to_posts": "Back to Posts",
+            "publish": "Publish"
         },
         "bulk": {
             "actions": "Bulk actions",
@@ -572,7 +591,8 @@
             "error_tenant_not_identified": "Could not identify tenant",
             "error_image_upload": "Error uploading image",
             "error_update": "Error updating category",
-            "error_delete": "Error deleting category"
+            "error_delete": "Error deleting category",
+            "error_no_permission": "You don't have permission to manage categories"
         },
         "tag": {
             "title": "Tags",
@@ -601,10 +621,12 @@
             "error_has_posts": "Cannot delete tag because it has associated posts",
             "error_tenant_not_identified": "Could not identify tenant",
             "error_update": "Error updating tag",
-            "error_delete": "Error deleting tag"
+            "error_delete": "Error deleting tag",
+            "error_no_permission": "You don't have permission to manage tags"
         },
         "recent_posts": "Recent Posts",
         "view_all": "View All",
+        "meta_description": "Articles, guides and news from MuseDock about hosting, CMS, server control panel, email and security.",
         "read_more": "Read More",
         "no_posts": "No posts published yet.",
         "no_posts_category": "No posts in this category.",
@@ -640,7 +662,9 @@
         "previous_post": "Previous",
         "next_post": "Next",
         "briefs_title": "News Briefs",
-        "briefs_view_all": "View all"
+        "briefs_view_all": "View all",
+        "heading": "MuseDock Blog",
+        "meta_title": "Hosting, CMS and security blog"
     },
     "users": {
         "title": "Users",
@@ -752,7 +776,8 @@
         "version": "Version",
         "author": "Author",
         "description": "Description",
-        "requirements": "Requirements"
+        "requirements": "Requirements",
+        "updated": "Modules settings updated"
     },
     "plugins": {
         "title": "Plugins",
@@ -1338,5 +1363,100 @@
     "csp_example_forms": "Forms (Calendly, Typeform)",
     "csp_example_video": "Video (Wistia)",
     "csp_warning_title": "Security Notice",
-    "csp_warning_text": "Only add domains you trust. Each domain added to CSP can load content on your site. Never add domains you don't control. If unsure, contact support before making changes."
+    "csp_warning_text": "Only add domains you trust. Each domain added to CSP can load content on your site. Never add domains you don't control. If unsure, contact support before making changes.",
+    "image_gallery": {
+        "title": "Image Gallery",
+        "list": "Galleries List",
+        "create": "Create Gallery",
+        "edit": "Edit Gallery",
+        "delete": "Delete Gallery",
+        "view": "View Gallery",
+        "galleries": "Galleries",
+        "gallery": "Gallery",
+        "images": "Images",
+        "upload_images": "Upload Images",
+        "no_galleries_found": "No galleries found.",
+        "create_first_gallery": "Create the first gallery",
+        "success_created": "Gallery created successfully",
+        "success_updated": "Gallery updated successfully",
+        "success_deleted": "Gallery deleted successfully",
+        "error_not_found": "Gallery not found",
+        "error_no_permission": "You don't have permission to manage galleries"
+    },
+    "seo_social": {
+        "title": "SEO and Social Media",
+        "meta_title": "Meta Title",
+        "meta_description": "Meta Description",
+        "og_image": "Social Media Image",
+        "canonical_url": "Canonical URL"
+    },
+    "settings_email": {
+        "title": "Email",
+        "smtp_settings": "SMTP Settings",
+        "from_email": "From email",
+        "from_name": "From name"
+    },
+    "settings_storage": {
+        "title": "Storage",
+        "storage_driver": "Storage driver",
+        "local": "Local",
+        "s3": "Amazon S3",
+        "r2": "Cloudflare R2"
+    },
+    "audit_logs": {
+        "title": "Audit Logs",
+        "action": "Action",
+        "user": "User",
+        "date": "Date",
+        "details": "Details"
+    },
+    "email_settings": {
+        "title": "Email Settings",
+        "test_email": "Send Test Email"
+    },
+    "admin_menus": {
+        "title": "Admin Menus",
+        "manage_menus": "Manage Menus"
+    },
+    "storage_settings": {
+        "title": "Storage Settings",
+        "quota": "Quota",
+        "used": "Used"
+    },
+    "marketplace": {
+        "title": "Marketplace",
+        "browse": "Browse",
+        "install": "Install"
+    },
+    "settings_reading": {
+        "title": "Reading",
+        "posts_per_page": "Posts per page",
+        "homepage_settings": "Homepage Settings"
+    },
+    "ai_dashboard": {
+        "title": "AI Dashboard",
+        "usage": "Usage",
+        "tokens": "Tokens"
+    },
+    "ai_settings": {
+        "title": "AI Settings",
+        "api_key": "API Key",
+        "model": "Model"
+    },
+    "ai_providers": {
+        "title": "AI Providers",
+        "openai": "OpenAI",
+        "anthropic": "Anthropic"
+    },
+    "ai_logs": {
+        "title": "AI Logs",
+        "request": "Request",
+        "response": "Response"
+    },
+    "caddy_domain_manager": {
+        "title": "Domain Manager",
+        "domains": "Domains",
+        "add_domain": "Add Domain"
+    },
+    "modules_updated": "Modules settings updated"
 }

@@ -45,6 +45,11 @@ class SitemapController
             exit;
         }
 
+        // El sitemap no depende del idioma del visitante (el idioma del navegador de quien lo pida primero no puede
+        // colarse en las URL de categorías y etiquetas que se guardan en la caché)
+        $GLOBALS['__request_lang'] = site_default_language();
+        detectLanguage(true);
+
         try {
             $pdo = Database::connect();
             $siteUrl = $this->getSiteUrl();
@@ -59,6 +64,43 @@ class SitemapController
 
             // Recopilar todas las URLs
             $urls = [];
+
+            // 0. Listado del blog por idioma (solo sitios con blog_language_lists=1): /blog y /en/blog con hreflang
+            if (function_exists('blog_language_lists_enabled') && blog_language_lists_enabled()) {
+                $default = site_default_language();
+                $listPaths = [];
+                foreach (\Screenart\Musedock\Services\LanguageUrl::activeLanguages() as $locale) {
+                    if ($locale === $default || \Screenart\Musedock\Services\LanguageUrl::siteHasPostsIn($locale)) {
+                        $listPaths[$locale] = $siteUrl . ($locale === $default ? '' : '/' . $locale) . '/blog';
+                    }
+                }
+                foreach ($listPaths as $locale => $loc) {
+                    $entry = [
+                        'loc' => $loc,
+                        'lastmod' => $listingLastmod,
+                        'changefreq' => 'daily',
+                        'priority' => '0.8',
+                    ];
+                    if (count($listPaths) > 1) {
+                        $entry['alternates'] = $listPaths + ['x-default' => $listPaths[$default] ?? reset($listPaths)];
+                    }
+                    $urls[] = $entry;
+                }
+                // Índice de la documentación por idioma: /docs y /en/docs
+                $docsPaths = [];
+                foreach (\Screenart\Musedock\Services\LanguageUrl::activeLanguages() as $locale) {
+                    if (\Screenart\Musedock\Services\LanguageUrl::siteHasPostsIn($locale, true)) {
+                        $docsPaths[$locale] = $siteUrl . ($locale === $default ? '' : '/' . $locale) . '/docs';
+                    }
+                }
+                foreach ($docsPaths as $locale => $loc) {
+                    $entry = ['loc' => $loc, 'lastmod' => $listingLastmod, 'changefreq' => 'weekly', 'priority' => '0.8'];
+                    if (count($docsPaths) > 1) {
+                        $entry['alternates'] = $docsPaths + ['x-default' => $docsPaths[$default] ?? reset($docsPaths)];
+                    }
+                    $urls[] = $entry;
+                }
+            }
 
             // 1. Homepage
             $urls[] = [

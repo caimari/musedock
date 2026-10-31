@@ -81,12 +81,9 @@ class TranslationService
         // Buscar en el idioma actual
         $translation = self::findTranslation($key, $locale, $context);
 
-        // Si no existe, buscar en fallback
-        if ($translation === null && $locale !== self::$fallbackLocale) {
-            if (!isset(self::$translations[$context][self::$fallbackLocale])) {
-                self::load(self::$fallbackLocale, $context);
-            }
-            $translation = self::findTranslation($key, self::$fallbackLocale, $context);
+        // Si no existe, buscar la etiqueta en otro idioma que sí la tenga (por defecto el español)
+        if ($translation === null) {
+            $translation = self::fallbackTranslation($key, $locale, $context);
         }
 
         // Si aún no existe, retornar la clave
@@ -100,6 +97,45 @@ class TranslationService
         }
 
         return $translation;
+    }
+
+    /**
+     * Texto de una etiqueta que falta en el idioma actual: lo toma del idioma de respaldo (español) y, si
+     * tampoco está, de cualquier otro idioma del mismo contexto que sí la tenga.
+     *
+     * Carga esos idiomas SIN cambiar el idioma actual de la página: load() lo fija, y antes una sola etiqueta
+     * sin traducir dejaba el resto de la página en el idioma de respaldo.
+     */
+    private static function fallbackTranslation(string $key, string $locale, string $context): ?string
+    {
+        $currentLocale = self::$currentLocale;
+        $currentContext = self::$context;
+        try {
+            $order = [self::$fallbackLocale];
+            foreach (glob(__DIR__ . "/../../lang/{$context}/*.json") ?: [] as $file) {
+                $code = basename($file, '.json');
+                if (!in_array($code, $order, true)) {
+                    $order[] = $code;
+                }
+            }
+            foreach ($order as $code) {
+                if ($code === $locale) {
+                    continue;
+                }
+                if (!isset(self::$translations[$context][$code])) {
+                    self::load($code, $context);
+                }
+                $translation = self::findTranslation($key, $code, $context);
+                if ($translation !== null) {
+                    return $translation;
+                }
+            }
+
+            return null;
+        } finally {
+            self::$currentLocale = $currentLocale;
+            self::$context = $currentContext;
+        }
     }
 
     /**

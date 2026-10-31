@@ -16,7 +16,7 @@
         : $postImage;
 @endphp
 
-@section('title', $seoTitle . ' | ' . site_setting('site_name', ''))
+@section('title', tenant_id() === null ? seo_title_with_suffix($seoTitle, [site_setting('site_name', '')]) : $seoTitle . ' | ' . site_setting('site_name', ''))
 @section('description', $seoDesc)
 @section('keywords', $post->seo_keywords ?? '')
 @section('og_title', $seoTitle)
@@ -35,6 +35,62 @@
 @endif
 @if($post->robots_directive)
 @section('robots', $post->robots_directive)
+@endif
+
+{{-- SEO del sitio principal: imagen social por idioma, metadatos de artículo y datos estructurados (BlogPosting + migas) --}}
+@if(tenant_id() === null)
+@php
+    $__abs = fn ($u) => $u ? (str_starts_with($u, 'http') ? $u : url($u)) : '';
+    $__ldLang = detectLanguage();
+    $__ldUrl = seo_language_canonical() ?: url(\Screenart\Musedock\Services\LanguageUrl::originalPath());
+    $__ldImage = $__abs($post->seo_image) ?: $postImage;
+    // El modelo entrega las fechas como DateTime o como texto, según de dónde venga el artículo
+    $__ldTs = fn ($d) => $d instanceof \DateTimeInterface ? $d->getTimestamp() : ($d ? (strtotime((string) $d) ?: null) : null);
+    $__ldPublished = $__ldTs($post->published_at) ? date('c', $__ldTs($post->published_at)) : null;
+    $__ldModified = $__ldTs($post->updated_at ?? null) ? date('c', $__ldTs($post->updated_at)) : $__ldPublished;
+    $__ldSite = site_setting('site_name', 'MuseDock');
+    $__ldLogo = $__abs(site_setting('site_logo', ''));
+    $__ldBlog = (blog_language_lists_enabled() && $__ldLang !== site_default_language()) ? '/' . $__ldLang . '/blog' : '/blog';
+    $__ld = [
+        '@context' => 'https://schema.org',
+        '@graph' => [
+            array_filter([
+                '@type' => 'BlogPosting',
+                '@id' => $__ldUrl . '#article',
+                'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => $__ldUrl],
+                'url' => $__ldUrl,
+                'headline' => mb_substr((string) $postTitle, 0, 110),
+                'description' => (string) $seoDesc,
+                'inLanguage' => $__ldLang,
+                'image' => $__ldImage ?: null,
+                'datePublished' => $__ldPublished,
+                'dateModified' => $__ldModified,
+                'keywords' => $post->seo_keywords ?: null,
+                'author' => ['@type' => 'Organization', 'name' => $__ldSite, 'url' => url('/')],
+                'publisher' => array_filter(['@type' => 'Organization', 'name' => $__ldSite, 'url' => url('/'),
+                    'logo' => $__ldLogo ? ['@type' => 'ImageObject', 'url' => $__ldLogo] : null]),
+            ]),
+            [
+                '@type' => 'BreadcrumbList',
+                'itemListElement' => [
+                    ['@type' => 'ListItem', 'position' => 1, 'name' => $__ldSite, 'item' => url('/')],
+                    ['@type' => 'ListItem', 'position' => 2, 'name' => __('blog.title'), 'item' => url($__ldBlog)],
+                    ['@type' => 'ListItem', 'position' => 3, 'name' => (string) $postTitle, 'item' => $__ldUrl],
+                ],
+            ],
+        ],
+    ];
+@endphp
+@if($__ldImage && $__ldImage !== $postImage)
+@section('og_image', $__ldImage)
+@endif
+@section('head_extra')
+  @if($__ldPublished)<meta property="article:published_time" content="{{ $__ldPublished }}">@endif
+  @if($__ldModified)<meta property="article:modified_time" content="{{ $__ldModified }}">@endif
+@endsection
+@section('json_ld')
+  <script type="application/ld+json">{!! json_encode($__ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
+@endsection
 @endif
 
 @section('content')

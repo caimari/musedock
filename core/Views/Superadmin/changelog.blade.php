@@ -13,6 +13,32 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.27.0 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.27.0 — Dominios nuevos vigilados en minutos, blog por idioma y límite en «olvidé mi contraseña»</h5></div><div class="card-body">
+            <p class="text-muted">31 de octubre de 2026</p>
+            <h6 class="text-primary"><i class="bi bi-shield-check me-1"></i> Bloqueos Cloudflare</h6>
+            <ul class="mb-3">
+                <li><strong>Un dominio nuevo se vigila en unos minutos, no en media hora.</strong> Hasta ahora el escudo leía los registros de Cloudflare cada 30 minutos y nada lo avisaba al crear un tenant, un alias o una redirección: si el dominio nacía con el proxy naranja y la IP de Cloudflare estaba bloqueada por las operadoras, la web quedaba caída hasta la siguiente lectura (un subdominio recién creado tardó 21 minutos en cambiarse). Ahora, en cada vuelta del cron (2 minutos), el escudo compara los nombres del CMS con los que ya conocía y, si hay alguno nuevo, lee Cloudflare enseguida y lo deja anotado en el registro de eventos. Los nombres que no están en Cloudflare no provocan lecturas repetidas, y entre dos lecturas pasa al menos un minuto.</li>
+            </ul>
+            <h6 class="text-primary"><i class="bi bi-translate me-1"></i> Blog y guías por idioma</h6>
+            <ul class="mb-3">
+                <li>Nuevo ajuste <code>blog_language_lists</code> (apagado por defecto, cada sitio lo activa): los listados del blog (<code>/blog</code>, categorías, etiquetas, autor e índice de guías) van por idioma. <code>/blog</code> muestra el idioma por defecto y <code>/en/blog</code> el inglés, cada uno solo con sus artículos, títulos traducidos y hreflang. Un contenido es un único artículo con sus traducciones, no dos artículos.</li>
+                <li>Categorías con traducción propia (nombre y descripción por idioma), tabla <code>blog_category_translations</code> y servicio <code>CategoryTranslation</code>. Migración nueva: <code>php cli/migrate.php</code>.</li>
+                <li>Los enlaces del blog respetan el idioma de la página (<code>blog_url</code>), el sitemap lleva los listados en cada idioma y el título SEO añade el nombre del sitio solo si cabe en 60 caracteres.</li>
+                <li>Plantillas del tema musedock (entradas, guías, listados, páginas y producto) con metadatos, JSON-LD y enlaces por idioma.</li>
+                <li>MCP del tenant: las instrucciones y las herramientas explican el reparto base/traducción, y piden título SEO de hasta 60 caracteres, descripción de hasta 155 y de 4 a 8 palabras clave. Los límites de longitud cuentan caracteres, no bytes (los acentos ya no restan).</li>
+            </ul>
+            <h6 class="text-primary"><i class="bi bi-lock me-1"></i> Seguridad</h6>
+            <ul class="mb-3">
+                <li>«Olvidé mi contraseña» (panel superadmin y administración de cada tenant) tiene límite de peticiones: 5 cada 15 minutos por IP, 3 cada hora por correo y 60 cada hora por ámbito. Cada petición cuenta, se envíe o no el correo, y al superar el límite se responde con el mismo mensaje de siempre: no se revela si la cuenta existe ni que hay bloqueo. Evita que el formulario sirva para inundar un buzón o para sondear cuentas.</li>
+            </ul>
+            <h6 class="text-primary"><i class="bi bi-wrench me-1"></i> Arreglos</h6>
+            <ul class="mb-0">
+                <li>Si a un idioma le faltaba una clave de traducción, la página entera pasaba a mostrarse en español. Ahora solo esa clave cae al español y el resto sigue en el idioma pedido.</li>
+                <li>Entradas del blog: el JSON-LD fallaba al recibir fechas como objeto (<code>strtotime</code> sobre un <code>DateTime</code>) y la página inglesa salía vacía con un 200.</li>
+            </ul>
+        </div></div>
+
         <!-- v2.26.2 -->
         <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.26.2 — Analítica conforme al RGPD, MySQL/MariaDB y seguridad del instalador</h5></div><div class="card-body">
             <p class="text-muted">19 de octubre de 2026</p>

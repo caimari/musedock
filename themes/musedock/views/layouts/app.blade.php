@@ -66,7 +66,13 @@ $_contactAddress = site_setting('contact_address', '');
   @if($ogDescription)
   <meta property="og:description" content="{{ $ogDescription }}">
   @endif
-  <meta property="og:url" content="{{ url($_SERVER['REQUEST_URI']) }}">
+  @php
+  // Sitio principal: URL propia de la versión que se ve (con su prefijo /en/), sin parámetros de seguimiento.
+  // REQUEST_URI ya llega sin el prefijo de idioma, por eso og:url y el canonical se calculan aparte.
+  $__selfPath = $_isTenant ? '/' : \Screenart\Musedock\Services\LanguageUrl::originalPath();
+  $__selfUrl = $_isTenant ? '' : ($__selfPath === '/' ? url('/') : rtrim(url($__selfPath), '/')) . ((int) ($_GET['page'] ?? 1) > 1 ? '?page=' . (int) $_GET['page'] : '');
+  @endphp
+  <meta property="og:url" content="{{ $_isTenant ? url($_SERVER['REQUEST_URI']) : ($canonicalUrl ?: (seo_language_canonical() ?: $__selfUrl)) }}">
   @if($_siteName)
   <meta property="og:site_name" content="{{ $_siteName }}">
   @endif
@@ -79,9 +85,28 @@ $_contactAddress = site_setting('contact_address', '');
   @if($canonicalUrl)
   <link rel="canonical" href="{{ $canonicalUrl }}">
   @else
-  <link rel="canonical" href="{{ seo_language_canonical() ?: url($_SERVER['REQUEST_URI']) }}">
+  <link rel="canonical" href="{{ seo_language_canonical() ?: ($_isTenant ? url($_SERVER['REQUEST_URI']) : $__selfUrl) }}">
   @endif
   {!! seo_language_tags() !!}
+  @if(!$_isTenant)
+  {{-- Sitio principal: robots (antes la directriz de cada página se ignoraba), idioma de Open Graph y datos estructurados --}}
+  @php
+  $__robots = trim(\Screenart\Musedock\View::yieldSection('robots'));
+  $__lang = detectLanguage();
+  $__ogLocales = ['es' => 'es_ES', 'en' => 'en_US', 'ca' => 'ca_ES', 'fr' => 'fr_FR', 'de' => 'de_DE', 'it' => 'it_IT', 'pt' => 'pt_PT'];
+  @endphp
+  @if($__robots)
+  <meta name="robots" content="{{ $__robots }}{{ str_starts_with($__robots, 'index') ? ',max-image-preview:large,max-snippet:-1' : '' }}">
+  @endif
+  <meta property="og:locale" content="{{ $__ogLocales[$__lang] ?? $__lang }}">
+  @foreach(array_keys(seo_language_alternates()) as $__alt)
+  @if($__alt !== $__lang)
+  <meta property="og:locale:alternate" content="{{ $__ogLocales[$__alt] ?? $__alt }}">
+  @endif
+  @endforeach
+  {!! trim(\Screenart\Musedock\View::yieldSection('head_extra')) !!}
+  {!! trim(\Screenart\Musedock\View::yieldSection('json_ld')) !!}
+  @endif
 
   {{-- Twitter/X Cards --}}
   <meta name="twitter:card" content="summary_large_image">

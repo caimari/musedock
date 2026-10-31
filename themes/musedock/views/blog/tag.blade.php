@@ -6,7 +6,11 @@
 @endsection
 
 @section('description')
-    {{ $tag->description ?? site_setting('site_description', '') }}
+    @if(tenant_id() === null)
+        {{ $tag->description ?: __('blog.meta_description') }}
+    @else
+        {{ $tag->description ?? site_setting('site_description', '') }}
+    @endif
 @endsection
 
 @section('content')

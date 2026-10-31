@@ -37,6 +37,8 @@ class BlogController
             ");
             $stmt->execute($postIds);
             $catRows = $stmt->fetchAll(\PDO::FETCH_OBJ);
+            // Idioma distinto del por defecto (listados por idioma): nombres de categoría traducidos
+            \Screenart\Musedock\Services\CategoryTranslation::apply($catRows);
 
             // Batch-load tags
             $stmt2 = $pdo->prepare("
@@ -70,6 +72,110 @@ class BlogController
     }
 
     /**
+     * Listados por idioma (solo sitios con blog_language_lists=1 y más de un idioma activo): una URL = un idioma.
+     * El idioma por defecto va en la URL limpia (/blog) y el resto con prefijo (/en/blog), como los artículos.
+     * Cada listado solo trae los artículos de su idioma (escritos en él o con traducción), con el título traducido.
+     * Redirige ?lang=xx y la cookie de idioma a la URL de ese idioma y publica los hreflang entre versiones.
+     *
+     * @param callable(string):bool $hasPostsIn ¿este listado tiene artículos en ese idioma?
+     * @return string|null idioma del listado; null = el sitio no usa listados por idioma (todo sigue como siempre)
+     */
+    private function listLanguage(callable $hasPostsIn): ?string
+    {
+        if (!function_exists('blog_language_lists_enabled') || !blog_language_lists_enabled()) {
+            return null;
+        }
+        $active = \Screenart\Musedock\Services\LanguageUrl::activeLanguages();
+        if (count($active) < 2) {
+            return null;
+        }
+        $default = site_default_language();
+        // LanguageUrl::handleRequest() ya quitó el prefijo de idioma de REQUEST_URI
+        $clean = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+        $query = $_GET;
+        unset($query['lang']);
+        $qs = $query ? '?' . http_build_query($query) : '';
+
+        $paths = [];
+        foreach ($active as $locale) {
+            if ($locale === $default || $hasPostsIn($locale)) {
+                $paths[$locale] = ($locale === $default ? '' : '/' . $locale) . $clean;
+            }
+        }
+
+        $requested = $_GET['lang'] ?? null;
+        if (is_string($requested) && $requested !== '') {
+            \Screenart\Musedock\Services\LanguageUrl::rememberChoice($requested);
+            \Screenart\Musedock\Services\LanguageUrl::redirect(($paths[$requested] ?? $paths[$default]) . $qs, 301);
+        }
+        $prefixLang = \Screenart\Musedock\Services\LanguageUrl::prefixLanguage();
+        if ($prefixLang !== null) {
+            if (!isset($paths[$prefixLang])) {
+                // /en/ de un listado sin artículos en inglés → su URL limpia
+                \Screenart\Musedock\Services\LanguageUrl::redirect($paths[$default] . $qs, 301);
+            }
+            $lang = $prefixLang;
+        } else {
+            $chosen = $_COOKIE['lang'] ?? null;
+            if (is_string($chosen) && $chosen !== $default && isset($paths[$chosen])) {
+                // El visitante eligió otro idioma: llevarle a su listado (Google no lleva cookies)
+                \Screenart\Musedock\Services\LanguageUrl::redirect($paths[$chosen] . $qs, 302);
+            }
+            // La URL limpia siempre es el idioma por defecto, sea cual sea el navegador
+            $GLOBALS['__request_lang'] = $default;
+            detectLanguage(true);
+            $lang = $default;
+        }
+        if ((int) ($_GET['page'] ?? 1) <= 1) {
+            seo_set_language_urls($paths);
+        }
+
+        return $lang;
+    }
+
+    /**
+     * Artículos de un listado en un idioma: escritos en él (base_locale) o con traducción.
+     * El título, el extracto y el contenido salen ya traducidos y cada artículo lleva su public_url
+     * (URL de ese idioma). $join/$where añaden la categoría, etiqueta o autor del listado.
+     *
+     * @return array{0: array, 1: int} [artículos de la página, total]
+     */
+    private function languagePosts(string $lang, ?int $tenantId, int $limit, int $offset, string $join = '', string $where = '', array $whereParams = [], bool $onlyPosts = false): array
+    {
+        $pdo = \Screenart\Musedock\Database::connect();
+        $from = "FROM blog_posts p {$join}
+                 LEFT JOIN blog_post_translations ltr ON ltr.post_id = p.id AND ltr.locale = ?
+                 WHERE p.status = 'published' AND (p.visibility = 'public' OR p.visibility IS NULL) AND p.deleted_at IS NULL
+                   AND " . ($onlyPosts ? "COALESCE(p.post_type, 'post') NOT IN ('brief', 'docs') AND " : '')
+                   . ($tenantId !== null ? 'p.tenant_id = ' . (int) $tenantId : '(p.tenant_id IS NULL OR p.tenant_id = 0)') . "
+                   AND (COALESCE(NULLIF(p.base_locale, ''), ?) = ? OR ltr.id IS NOT NULL) {$where}";
+        $params = array_merge([$lang, site_default_language(), $lang], $whereParams);
+
+        $count = $pdo->prepare("SELECT COUNT(DISTINCT p.id) {$from}");
+        $count->execute($params);
+        $total = (int) $count->fetchColumn();
+
+        $stmt = $pdo->prepare("SELECT p.*, COALESCE(ltr.title, p.title) AS title, COALESCE(ltr.excerpt, p.excerpt) AS excerpt,
+                                      COALESCE(ltr.content, p.content) AS content
+                               {$from} ORDER BY p.published_at DESC LIMIT " . (int) $limit . ' OFFSET ' . (int) $offset);
+        $stmt->execute($params);
+        $posts = $stmt->fetchAll(\PDO::FETCH_OBJ);
+
+        foreach ($posts as $post) {
+            try {
+                $paths = \Screenart\Musedock\Services\LanguageUrl::postPaths($post);
+                if (isset($paths[$lang])) {
+                    $post->public_url = $paths[$lang];
+                }
+            } catch (\Throwable $e) {
+                error_log('Blog listing language URL: ' . $e->getMessage());
+            }
+        }
+
+        return [$posts, $total];
+    }
+
+    /**
      * Listado de posts del blog
      */
     public function index()
@@ -83,6 +189,13 @@ class BlogController
         $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $offset = ($currentPage - 1) * $postsPerPage;
 
+        // Listado por idioma (null = el sitio no lo usa y todo va como siempre)
+        $listLang = $this->listLanguage(static fn (string $l): bool => \Screenart\Musedock\Services\LanguageUrl::siteHasPostsIn($l));
+
+        if ($listLang !== null) {
+            [$posts, $totalPosts] = $this->languagePosts($listLang, $tenantId, $postsPerPage, $offset, '', '', [], true);
+            $totalPages = ceil($totalPosts / $postsPerPage);
+        } else {
         // Contar total de posts (excluir briefs y docs del listado principal)
         $countQuery = BlogPost::where('status', 'published')->whereRaw("(visibility = 'public' OR visibility IS NULL)")
             ->where('post_type', '!=', 'brief')
@@ -109,6 +222,7 @@ class BlogController
 
         // Aplicar límite y offset para paginación
         $posts = $query->limit($postsPerPage)->offset($offset)->get();
+        }
 
         // Cargar categorías y etiquetas de cada post en batch (2 queries)
         $this->loadPostTaxonomy($posts);
@@ -121,6 +235,7 @@ class BlogController
             $categoriesQuery->whereRaw('(tenant_id IS NULL OR tenant_id = 0)');
         }
         $categories = $categoriesQuery->get();
+        \Screenart\Musedock\Services\CategoryTranslation::apply($categories);
 
         // Preparar datos de paginación
         $pagination = [
@@ -148,6 +263,9 @@ class BlogController
 
         // Cargar posts destacados (featured) para layouts con hero/carousel
         $featuredPosts = [];
+        if ($listLang !== null) {
+            [$featuredPosts] = $this->languagePosts($listLang, $tenantId, 10, 0, '', ' AND p.featured = 1', [], true);
+        } else {
         $featuredQuery = BlogPost::where('status', 'published')->whereRaw("(visibility = 'public' OR visibility IS NULL)")
             ->where('featured', 1)
             ->where('post_type', '!=', 'brief')
@@ -159,6 +277,7 @@ class BlogController
             $featuredQuery->whereRaw('(tenant_id IS NULL OR tenant_id = 0)');
         }
         $featuredPosts = $featuredQuery->limit(10)->get();
+        }
         if (!empty($featuredPosts)) {
             $this->loadPostTaxonomy($featuredPosts);
         }
@@ -341,6 +460,8 @@ class BlogController
             $categoriesQuery->whereRaw('(tenant_id IS NULL OR tenant_id = 0)');
         }
         $categories = $categoriesQuery->get();
+        \Screenart\Musedock\Services\CategoryTranslation::apply($categories);
+        \Screenart\Musedock\Services\CategoryTranslation::apply($post->categories ?? []);
 
         // Navegación prev/next (misma categoría de post_type: brief↔brief, post↔post)
         $prevPost = null;
@@ -509,6 +630,11 @@ class BlogController
         $tf = $tenantId ? "p.tenant_id = $tenantId" : "p.tenant_id IS NULL";
         $sf = $tenantId ? "s.tenant_id = $tenantId" : "s.tenant_id IS NULL";
 
+        // Índice por idioma (solo sitios con blog_language_lists=1): /docs en el idioma por defecto y /en/docs
+        // en inglés, con solo las guías traducidas a ese idioma. null = el sitio no lo usa y todo va como siempre.
+        $docsLang = $this->listLanguage(static fn (string $l): bool => \Screenart\Musedock\Services\LanguageUrl::siteHasPostsIn($l, true));
+        $docsTranslated = $docsLang !== null && $docsLang !== site_default_language() && preg_match('/^[a-z]{2}$/', $docsLang) === 1;
+
         // 1. Load docs category tree (docs -> product -> section)
         $docsRootStmt = $pdo->query("SELECT id FROM blog_categories WHERE slug = 'docs' AND $catTf LIMIT 1");
         $docsRootId = (int)($docsRootStmt->fetchColumn() ?: 0);
@@ -517,6 +643,9 @@ class BlogController
         $catRowsStmt = $pdo->query("SELECT id, parent_id, name, slug, description, \"order\" FROM blog_categories WHERE $catTf");
         foreach ($catRowsStmt->fetchAll(\PDO::FETCH_OBJ) as $catRow) {
             $allCategories[(int)$catRow->id] = $catRow;
+        }
+        if ($docsTranslated) {
+            \Screenart\Musedock\Services\CategoryTranslation::apply($allCategories, $docsLang);
         }
 
         $products = [];
@@ -556,17 +685,26 @@ class BlogController
         }
 
         // 2. Load all published docs posts and assign to products/sections
+        // Con índice por idioma: las guías traducidas salen con su título, extracto y URL en ese idioma; las que no
+        // tienen traducción conservan el original (más abajo, un producto sin ninguna traducida se muestra entero en
+        // el idioma original y uno con alguna traducida solo enseña las traducidas)
+        $trJoin = $docsTranslated ? "LEFT JOIN blog_post_translations dt ON dt.post_id = p.id AND dt.locale = '{$docsLang}'" : '';
+        $trHas = $docsTranslated ? '(CASE WHEN dt.id IS NOT NULL THEN 1 ELSE 0 END)' : '0';
+        $trSlug = $docsTranslated ? 'AND s.locale IS NULL' : ''; // el prefijo sale de la ruta base, no de la traducida
+        $trTitle = $docsTranslated ? 'COALESCE(dt.title, p.title)' : 'p.title';
+        $trExcerpt = $docsTranslated ? 'COALESCE(dt.excerpt, p.excerpt)' : 'p.excerpt';
         $postStmt = $pdo->query("
-            SELECT p.id, p.title, p.slug, p.excerpt,
+            SELECT p.id, {$trTitle} AS title, p.slug, {$trExcerpt} AS excerpt, p.tenant_id, p.base_locale, {$trHas} AS has_tr,
                    c.id as cat_id,
                    c.slug as cat_slug, c.parent_id as cat_parent_id,
                    COALESCE(s.prefix, 'docs') as url_prefix
             FROM blog_posts p
+            {$trJoin}
             LEFT JOIN blog_post_categories bpc ON bpc.post_id = p.id
             LEFT JOIN blog_categories c ON c.id = bpc.category_id
-            LEFT JOIN slugs s ON s.reference_id = p.id AND s.module = 'blog' AND $sf
+            LEFT JOIN slugs s ON s.reference_id = p.id AND s.module = 'blog' {$trSlug} AND $sf
             WHERE p.post_type = 'docs' AND p.status = 'published' AND (p.visibility = 'public' OR p.visibility IS NULL) AND $tf
-            ORDER BY p.title ASC
+            ORDER BY {$trTitle} ASC
         ");
         $postRows = $postStmt->fetchAll(\PDO::FETCH_OBJ);
 
@@ -637,8 +775,22 @@ class BlogController
             $postObj = (object)[
                 'title' => $primary->title,
                 'slug' => $primary->slug,
-                'url' => '/' . $primary->url_prefix . '/' . $primary->slug
+                'url' => '/' . $primary->url_prefix . '/' . $primary->slug,
+                'translated' => $docsTranslated && (int) $primary->has_tr === 1,
             ];
+            if ($postObj->translated) {
+                // URL de la guía en ese idioma (/en/docs/slug-traducido)
+                try {
+                    $paths = \Screenart\Musedock\Services\LanguageUrl::postPaths((object)[
+                        'id' => (int) $postId, 'tenant_id' => $primary->tenant_id, 'slug' => $primary->slug, 'base_locale' => $primary->base_locale,
+                    ]);
+                    if (isset($paths[$docsLang])) {
+                        $postObj->url = $paths[$docsLang];
+                    }
+                } catch (\Throwable $e) {
+                    error_log('Docs index language URL: ' . $e->getMessage());
+                }
+            }
 
             $chosenPath = null;
             foreach ($rows as $r) {
@@ -696,6 +848,35 @@ class BlogController
             }
         }
 
+        // 2b. Índice traducido: un producto con alguna guía traducida enseña solo las traducidas; uno sin ninguna
+        // se muestra con sus guías en el idioma original (marcado para avisarlo en la tarjeta)
+        if ($docsTranslated) {
+            foreach ($products as $prod) {
+                $anyTranslated = false;
+                foreach ($prod->sections as $sec) {
+                    foreach ($sec->posts as $pp) {
+                        if (!empty($pp->translated)) {
+                            $anyTranslated = true;
+                            break 2;
+                        }
+                    }
+                }
+                if ($anyTranslated) {
+                    $prod->postCount = 0;
+                    foreach ($prod->sections as $sk => $sec) {
+                        $sec->posts = array_values(array_filter($sec->posts, static fn ($pp): bool => !empty($pp->translated)));
+                        if (!$sec->posts) {
+                            unset($prod->sections[$sk]);
+                            continue;
+                        }
+                        $prod->postCount += count($sec->posts);
+                    }
+                } elseif ($prod->postCount > 0) {
+                    $prod->fallback = true;
+                }
+            }
+        }
+
         // 3. Normalize section post ordering for deterministic entry links.
         // Priority: explicit intro doc first, license docs always last.
         foreach ($products as $productSlug => $product) {
@@ -748,7 +929,8 @@ class BlogController
 
         return View::renderTheme('blog/docs-index', [
             'products' => $products,
-            'totalDocs' => count($rowsByPost)
+            'totalDocs' => count($rowsByPost),
+            'docsLang' => $docsLang,
         ]);
     }
 
@@ -777,6 +959,26 @@ class BlogController
         $postsPerPage = (int) tenant_setting('posts_per_page', setting('posts_per_page', 10));
         $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $offset = ($currentPage - 1) * $postsPerPage;
+
+        // Listado por idioma (null = el sitio no lo usa y todo va como siempre)
+        $join = 'INNER JOIN blog_post_categories lpc ON lpc.post_id = p.id';
+        $where = ' AND lpc.category_id = ?';
+        $listLang = $this->listLanguage(fn (string $l): bool => $this->languagePosts($l, $tenantId, 1, 0, $join, $where, [$category->id])[1] > 0);
+        if ($listLang !== null) {
+            [$posts, $totalPosts] = $this->languagePosts($listLang, $tenantId, $postsPerPage, $offset, $join, $where, [$category->id]);
+            $this->loadPostTaxonomy($posts);
+            \Screenart\Musedock\Services\CategoryTranslation::apply([$category]);
+            return View::renderTheme('blog/category', [
+                'category' => $category,
+                'posts' => $posts,
+                'pagination' => [
+                    'current_page' => $currentPage,
+                    'total_pages' => ceil($totalPosts / $postsPerPage),
+                    'total_posts' => $totalPosts,
+                    'per_page' => $postsPerPage,
+                ],
+            ]);
+        }
 
         // Obtener posts de esta categoría mediante la tabla pivot
         $pdo = \Screenart\Musedock\Database::connect();
@@ -866,6 +1068,25 @@ class BlogController
         $postsPerPage = (int) tenant_setting('posts_per_page', setting('posts_per_page', 10));
         $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $offset = ($currentPage - 1) * $postsPerPage;
+
+        // Listado por idioma (null = el sitio no lo usa y todo va como siempre)
+        $join = 'INNER JOIN blog_post_tags lpt ON lpt.post_id = p.id';
+        $where = ' AND lpt.tag_id = ?';
+        $listLang = $this->listLanguage(fn (string $l): bool => $this->languagePosts($l, $tenantId, 1, 0, $join, $where, [$tag->id])[1] > 0);
+        if ($listLang !== null) {
+            [$posts, $totalPosts] = $this->languagePosts($listLang, $tenantId, $postsPerPage, $offset, $join, $where, [$tag->id]);
+            $this->loadPostTaxonomy($posts);
+            return View::renderTheme('blog/tag', [
+                'tag' => $tag,
+                'posts' => $posts,
+                'pagination' => [
+                    'current_page' => $currentPage,
+                    'total_pages' => ceil($totalPosts / $postsPerPage),
+                    'total_posts' => $totalPosts,
+                    'per_page' => $postsPerPage,
+                ],
+            ]);
+        }
 
         // Obtener posts con esta etiqueta mediante la tabla pivot
         $pdo = \Screenart\Musedock\Database::connect();
@@ -961,6 +1182,24 @@ class BlogController
         $postsPerPage = (int) tenant_setting('posts_per_page', setting('posts_per_page', 10));
         $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $offset = ($currentPage - 1) * $postsPerPage;
+
+        // Listado por idioma (null = el sitio no lo usa y todo va como siempre)
+        $where = " AND p.user_id = ? AND p.user_type = 'admin'";
+        $listLang = $this->listLanguage(fn (string $l): bool => $this->languagePosts($l, $tenantId, 1, 0, '', $where, [$author->id])[1] > 0);
+        if ($listLang !== null) {
+            [$posts, $totalPosts] = $this->languagePosts($listLang, $tenantId, $postsPerPage, $offset, '', $where, [$author->id]);
+            $this->loadPostTaxonomy($posts);
+            return View::renderTheme('blog/author', [
+                'author' => $author,
+                'posts' => $posts,
+                'pagination' => [
+                    'current_page' => $currentPage,
+                    'total_pages' => ceil($totalPosts / $postsPerPage),
+                    'total_posts' => $totalPosts,
+                    'per_page' => $postsPerPage,
+                ],
+            ]);
+        }
 
         // Contar posts del autor
         $countSql = "SELECT COUNT(*) as total FROM blog_posts WHERE user_id = ? AND user_type = 'admin' AND status = 'published' AND (visibility = 'public' OR visibility IS NULL) AND deleted_at IS NULL";

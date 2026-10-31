@@ -93,9 +93,65 @@ class LanguageUrl
         }
     }
 
-    /** ¿La ruta (sin prefijo) es un post con traducción a $locale? */
+    /**
+     * ¿La ruta (sin prefijo de idioma) es un listado del blog: /blog, categoría, etiqueta o autor?
+     * Solo en los sitios con blog_language_lists=1 (el resto no cambia).
+     */
+    public static function isBlogListPath(string $path): bool
+    {
+        if (!function_exists('blog_language_lists_enabled') || !blog_language_lists_enabled()) {
+            return false;
+        }
+        $prefix = trim((string) blog_prefix(), '/');
+        $path = '/' . trim($path, '/');
+        if ($path === '/docs' || $path === '/' . ($prefix !== '' ? $prefix : 'blog')) {
+            return true;
+        }
+
+        return (bool) preg_match('#^/' . ($prefix !== '' ? preg_quote($prefix, '#') . '/' : '') . '(category|tag|author)/[^/]+$#', $path);
+    }
+
+    /** ¿La ruta (sin prefijo de idioma) es el índice de la documentación (/docs)? */
+    public static function isDocsIndexPath(string $path): bool
+    {
+        return '/' . trim($path, '/') === '/docs';
+    }
+
+    /**
+     * ¿Hay artículos publicados en ese idioma (escritos en él o con traducción)? Alcanza para que exista su listado.
+     * $docs = true mira solo la documentación (post_type docs), para el índice /docs.
+     */
+    public static function siteHasPostsIn(string $locale, bool $docs = false): bool
+    {
+        static $cache = [];
+        $tenantId = function_exists('tenant_id') ? tenant_id() : null;
+        $key = ($tenantId ?? 0) . ':' . $locale . ':' . ($docs ? 'docs' : 'posts');
+        if (isset($cache[$key])) {
+            return $cache[$key];
+        }
+        try {
+            $sql = "SELECT 1 FROM blog_posts p
+                    WHERE p.status = 'published' AND (p.visibility = 'public' OR p.visibility IS NULL) AND p.deleted_at IS NULL
+                      AND " . ($docs ? "p.post_type = 'docs'" : "COALESCE(p.post_type, 'post') NOT IN ('brief', 'docs')") . "
+                      AND " . ($tenantId === null ? '(p.tenant_id IS NULL OR p.tenant_id = 0)' : 'p.tenant_id = ' . (int) $tenantId) . "
+                      AND (COALESCE(NULLIF(p.base_locale, ''), ?) = ?
+                           OR EXISTS (SELECT 1 FROM blog_post_translations t WHERE t.post_id = p.id AND t.locale = ?))
+                    LIMIT 1";
+            $stmt = Database::connect()->prepare($sql);
+            $stmt->execute([site_default_language(), $locale, $locale]);
+
+            return $cache[$key] = (bool) $stmt->fetchColumn();
+        } catch (\Throwable $e) {
+            return $cache[$key] = false;
+        }
+    }
+
+    /** ¿La ruta (sin prefijo) es un post con traducción a $locale (o un listado del blog con artículos en ese idioma)? */
     private static function hasTranslation(string $path, string $locale): bool
     {
+        if (self::isBlogListPath($path)) {
+            return self::siteHasPostsIn($locale, self::isDocsIndexPath($path));
+        }
         $segments = array_values(array_filter(explode('/', trim($path, '/')), 'strlen'));
         if (!$segments) {
             return false;

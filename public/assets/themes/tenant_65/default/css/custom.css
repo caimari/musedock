@@ -1,0 +1,189 @@
+:root {
+  --topbar-bg-color: #222222;
+  --topbar-text-color: #ffffff;
+  --hero-title-color: #ffffff;
+  --hero-title-font: 'Open Sans', sans-serif;
+  --header-logo-max-height: 150px;
+  --header-bg-color: #ffffff;
+  --header-logo-font: 'Open Sans', sans-serif;
+  --header-link-color: #000000;
+  --header-link-hover-color: #03a9f4;
+  --content-heading-font: 'Open Sans', sans-serif;
+  --content-body-font: 'Open Sans', sans-serif;
+  --footer-bg-color: #fafafa;
+  --footer-text-color: #6b7c93;
+  --footer-link-color: #03a9f4;
+  --content-h1-size: 36px;
+  --content-h2-size: 28px;
+  --content-h3-size: 24px;
+  --content-h4-size: 20px;
+  --content-h5-size: 18px;
+  --content-h6-size: 16px;
+  --content-body-size: 16px;
+  --content-line-height: 1.7;
+}
+
+
+/* --- CSS Personalizado --- */
+/* NYC Films Infest: adaptación aislada de Highlight/Mesmerize, 23-10-2026. */
+html {font-size:16px;}
+body,body p,body li {font-family:'Open Sans',Helvetica,Arial,sans-serif;color:#6b7c93;font-weight:400;}
+body h1,body h2,body h3,body h4 {font-family:'Open Sans',Helvetica,Arial,sans-serif;font-weight:400;color:#3c424f;}
+body h1,.page-content-wrapper h1.page-title {font-size:2rem!important;}
+body h2 {font-size:2.5rem;line-height:1.2;}
+a {color:#03a9f4;}
+.header-area {background:#222!important;}
+.header-area .header-top {height:40px;min-height:40px;padding:0 5%;background:#222!important;}
+.header-area .header-top .container {max-width:none;width:100%;padding:0;}
+.header-area .header-top a,.header-area .header-top li {color:#fff;font-size:14px;}
+#main-header {background:#fff;box-shadow:none;border:0;position:relative;z-index:100;}
+#main-header>.container {width:90%;max-width:none;padding:0;}
+#main-header .header-container {min-height:146px;padding:16px 0;gap:30px;}
+#main-header .header-brand-logo {width:200px;max-width:200px;max-height:150px;height:auto;}
+#main-header .header-right-content {gap:0;}
+#main-header #main-menu {gap:24px;}
+#main-header #main-menu>li>a {font-family:'Open Sans',sans-serif;font-size:14px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#000;padding:10px 0;line-height:1.6;border-radius:0;}
+#main-header #main-menu>li.current>a,#main-header #main-menu>li>a:hover {color:#03a9f4;background:none;}
+#main-header #main-menu .submenu a {font-family:'Open Sans',sans-serif;font-size:14px;font-weight:400;text-transform:none;letter-spacing:0;color:#333;}
+#main-header .lang-select {display:none;}
+body:has(.nyc-home-hero) #main-header {position:absolute;left:0;right:0;background:transparent!important;}
+body:has(.nyc-home-hero) #main-header #main-menu>li>a {color:#fff;}
+body:has(.nyc-home-hero) #main-header #main-menu>li.current>a {border-bottom:2px solid #03a9f4;}
+body:has(.nyc-home-hero) #main-header .menu-toggle span {background:#fff;}
+.page-container {max-width:1232px;width:90%;padding-top:60px;padding-bottom:60px!important;}
+body:has(.nyc-home-hero) main>.page-container {width:100%;max-width:none;padding:0!important;}
+.nyc-home-hero {position:relative;isolation:isolate;min-height:100svh;background:#b49b00;overflow:hidden;}
+.nyc-home-hero>.swiper {height:100svh!important;min-height:700px;}
+.nyc-home-hero .swiper-slide img {display:block!important;margin:0!important;width:100%!important;height:100%!important;object-fit:cover;border-radius:0!important;}
+.nyc-home-hero:after {content:'';position:absolute;inset:0;background:rgba(0,0,0,.18);z-index:1;pointer-events:none;}
+.nyc-hero-copy {position:absolute;z-index:2;left:10%;right:10%;top:64%;text-align:center;pointer-events:none;}
+body .nyc-hero-copy h1 {font-size:3.5rem!important;line-height:1.14;font-weight:300;letter-spacing:.9px;color:#fff;margin:0 0 24px;}
+body .nyc-hero-copy p {font-size:1.3rem;line-height:1.3;font-weight:300;color:#fff;margin:0 0 22px;}
+.nyc-hero-buttons {display:flex;justify-content:center;gap:30px;flex-wrap:wrap;}
+.nyc-hero-buttons a {pointer-events:auto;display:inline-block;color:#fff!important;border:2px solid #fff;border-radius:56px;padding:14px 32px;font-size:14px;font-weight:600;letter-spacing:1px;line-height:1.6;text-decoration:none;background:transparent;}
+.nyc-hero-buttons a:first-child {background:#03a9f4;border-color:#03a9f4;}
+.nyc-hero-buttons a:hover {filter:brightness(1.1);}
+#portfolio-1 {padding:50px 0 0;}
+#portfolio-1>.row,#portfolio-1>div>.row {margin:0;}
+#portfolio-1 .section-title-col {width:100%;text-align:center;padding:0 20px 36px;}
+#portfolio-1 h2 {margin:0;font-size:2.5rem;}
+#portfolio-1 .lead:empty {display:none;}
+#portfolio-1 .no-gutter-col {padding:0;width:25%;flex:0 0 25%;}
+#portfolio-1 .contentswap-effect {position:relative;overflow:hidden;}
+#portfolio-1 .initial-image img {display:block;width:100%;height:auto;margin:0;border-radius:0;}
+#portfolio-1 .overlay,#portfolio-1 .swap-inner {position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .2s;}
+#portfolio-1 .overlay {background:#03a9f4;z-index:1;}
+#portfolio-1 .swap-inner {z-index:2;}
+#portfolio-1 .swap-inner .row {height:100%;align-items:center;margin:0;}
+#portfolio-1 .swap-inner a {display:flex;align-items:center;justify-content:center;position:absolute;inset:0;color:#fff;font-size:42px;}
+#portfolio-1 .contentswap-effect:hover .overlay {opacity:.7;}
+#portfolio-1 .contentswap-effect:hover .swap-inner {opacity:1;}
+.page-body table {max-width:100%;border-collapse:collapse;margin:24px 0;font-size:14px;line-height:1.5;}
+.page-body table td,.page-body table th {border:1px solid #ddd;padding:8px;vertical-align:top;}
+.page-body {overflow-wrap:break-word;}
+.page-body hr {border:0;border-top:1px solid #e8e8e8;margin:32px 0;opacity:1;}
+footer .footer-area {display:none;}
+footer .footer-bottom-area {background:#fafafa!important;padding:25px 0;}
+footer .footer-border {border:0!important;padding:0!important;}
+footer .footer-copy-right p {font-family:'Open Sans',sans-serif;font-size:14px;color:#6b7c93!important;margin:0;}
+footer .footer-legal-links {margin-top:8px;}
+
+@media(max-width:1199px){#main-header .header-container{min-height:115px;}#main-header .header-brand-logo{width:160px;max-width:160px;}#main-header #main-menu{gap:14px;}#main-header #main-menu>li>a{font-size:12px;letter-spacing:.4px;}.nyc-hero-copy{left:5%;right:5%;top:auto;bottom:10%;}body .nyc-hero-copy h1{font-size:42px!important;}}
+@media(max-width:767px){.nyc-home-hero>.swiper{height:85svh!important;min-height:620px;}.nyc-home-hero{min-height:620px;}.nyc-hero-copy{bottom:9%;}body .nyc-hero-copy h1{font-size:34px!important;}body .nyc-hero-copy p{font-size:18px;}.nyc-hero-buttons{gap:12px;}.nyc-hero-buttons a{padding:12px 20px;font-size:12px;}#portfolio-1 .no-gutter-col{width:50%;flex-basis:50%;}#portfolio-1 h2{font-size:30px;}.page-body table{display:block;overflow-x:auto;}#main-header .header-container{min-height:100px;}#main-header .header-brand-logo{width:135px;max-width:135px;}}
+@media(prefers-reduced-motion:reduce){.nyc-home-hero .swiper-wrapper{transition-duration:0ms!important;}}
+/* Contenedores reales del CMS y banda superior. */
+body>.header-top{height:40px;min-height:40px;background:#222!important;padding:0 5%;}
+body>.header-top>.container{max-width:none;width:100%;padding:0;}
+body>.header-top .topbar-flex{min-height:40px;}
+body>.header-top li,body>.header-top a{color:#fff!important;font-size:14px;}
+body:has(.nyc-home-hero) main>.has-slider-content{width:100%!important;max-width:none!important;padding:0!important;margin:0!important;}
+main>.has-slider-content:has(.festival-inner-hero){width:100%!important;max-width:none!important;padding:0!important;}
+.festival-inner-hero{background-color:#6a73da;background-position:center;background-size:cover;min-height:373px;display:flex;flex-direction:column;justify-content:center;text-align:center;padding:70px 5%;}
+body .festival-inner-hero h1{font-size:2rem!important;font-weight:300;line-height:1.14;color:#fff;margin:0 0 24px;}
+body .festival-inner-hero p{color:#fff;font-size:1.3rem;font-weight:300;line-height:1.3;}
+.festival-page-content{max-width:1232px;width:90%;margin:auto;padding:80px 15px;}
+
+body .page-body .nyc-hero-buttons a,body .page-body .nyc-hero-buttons a:visited,body .page-body .nyc-hero-buttons a:hover{color:#fff!important;text-decoration:none!important;}
+
+/* Cabeceras interiores NYC: valores del WordPress original, 26-10-2026. */
+.festival-inner-hero {
+    position:relative;
+    isolation:isolate;
+    padding:8% 5%;
+    min-height:373px;
+}
+.festival-inner-hero::before {
+    content:'';
+    position:absolute;
+    inset:0;
+    z-index:-1;
+    background:linear-gradient(135deg,rgba(102,126,234,.8) 0%,rgba(118,75,162,.8) 100%);
+    pointer-events:none;
+}
+body .festival-inner-hero h1 {
+    font-family:'Open Sans',Helvetica,Arial,sans-serif;
+    font-size:3.5rem!important;
+    font-weight:300;
+    line-height:1.14;
+    letter-spacing:.9px;
+    margin:0 0 1.25rem;
+    color:#fff;
+}
+body .festival-inner-hero p {
+    font-family:'Open Sans',Helvetica,Arial,sans-serif;
+    font-size:1.3rem;
+    font-weight:300;
+    line-height:1.3;
+    margin:0 0 1.25rem;
+    color:#fff;
+}
+@media(max-width:767px) {
+    .festival-inner-hero {min-height:280px;padding:65px 5%;}
+    body .festival-inner-hero h1 {font-size:2.25rem!important;}
+    body .festival-inner-hero p {font-size:1.05rem;}
+}
+/* Menú NYC: portada blanca y desplegables del original, 26-10-2026. */
+body:has(.nyc-home-hero) #main-header #main-menu>li>a,
+body:has(.nyc-home-hero) #main-header #main-menu>li>a:visited,
+body:has(.nyc-home-hero) #main-header #main-menu>li:hover>a,
+body:has(.nyc-home-hero) #main-header #main-menu>li>a:focus-visible {
+    color:#fff!important;
+    background:transparent!important;
+}
+#main-header #main-menu .submenu {
+    background:#fff!important;
+    border-radius:2px;
+    padding:0;
+    gap:0;
+    min-width:200px;
+    box-shadow:1px 1px 4px 2px rgba(0,0,0,.11);
+}
+#main-header #main-menu .submenu::before {
+    display:none!important;
+    background:none!important;
+}
+#main-header #main-menu .submenu>li {
+    margin:0;
+    border:0;
+    border-bottom:1px solid rgba(128,128,128,.2);
+}
+#main-header #main-menu .submenu>li:last-child {border-bottom:0;}
+#main-header #main-menu .submenu>li>a,
+#main-header #main-menu .submenu>li>a:visited {
+    font-family:'Open Sans',Helvetica,Arial,sans-serif;
+    font-size:14px;
+    font-weight:600;
+    line-height:1.2;
+    letter-spacing:0;
+    text-transform:none;
+    color:#6b7c93!important;
+    background:#fff!important;
+    padding:12px 24px;
+    text-decoration:none!important;
+}
+#main-header #main-menu .submenu>li:hover>a,
+#main-header #main-menu .submenu>li>a:focus-visible {
+    background:#f8f8f8!important;
+    color:#000!important;
+}
+#main-header #main-menu li:focus-within>.submenu {display:block;}

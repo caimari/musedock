@@ -138,6 +138,31 @@ class SlugRouter
             } catch (\Exception $e) {}
         }
 
+        // Slug de una traducción pedido sin su prefijo de idioma (p. ej. /guide-en en la URL limpia): 301 a la URL de ese idioma
+        if (!$entry) {
+            try {
+                $trSql = "SELECT s.prefix, s.locale FROM slugs s
+                          JOIN blog_post_translations t ON t.post_id = s.reference_id AND t.locale = s.locale
+                          WHERE s.module = 'blog' AND s.slug = :slug AND s.locale IS NOT NULL AND s.locale <> ''";
+                $trParams = [':slug' => $slug];
+                if ($multiTenant) {
+                    $trSql .= $tenantId !== null ? ' AND s.tenant_id = :tid' : ' AND s.tenant_id IS NULL';
+                    if ($tenantId !== null) {
+                        $trParams[':tid'] = $tenantId;
+                    }
+                }
+                $trEntry = \Screenart\Musedock\Database::query($trSql . ' LIMIT 1', $trParams)->fetch(\PDO::FETCH_OBJ);
+                if ($trEntry && $trEntry->locale !== $currentLang && class_exists(\Screenart\Musedock\Services\LanguageUrl::class)) {
+                    $isDefault = function_exists('site_default_language') && $trEntry->locale === site_default_language();
+                    $target = ($isDefault ? '' : '/' . $trEntry->locale)
+                        . (($trEntry->prefix ?? '') !== '' ? '/' . trim((string) $trEntry->prefix, '/') : '') . '/' . $slug;
+                    header('Location: ' . $target, true, 301);
+                    exit;
+                }
+            } catch (\Throwable $e) {
+            }
+        }
+
         // Redirect 301 si el slug resuelve a la página de inicio (evitar contenido duplicado)
         if ($entry && $entry->module === 'pages') {
             $homepageId = self::getHomepagePageId($tenantId);

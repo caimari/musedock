@@ -39,6 +39,13 @@ class PasswordResetController
             ]);
         }
 
+        // Mismo mensaje que si no existiera la cuenta: no se envía nada ni se revela el bloqueo
+        if (!\Screenart\Musedock\Security\RateLimiter::allowPasswordReset($email, 'superadmin')) {
+            return View::renderSuperadmin('auth.forgot-password', [
+                'success' => 'Si el correo existe en nuestra base de datos, recibirás un enlace de recuperación.'
+            ]);
+        }
+
         // Verificar si el email existe en super_admins
         try {
             $pdo = Database::connect();

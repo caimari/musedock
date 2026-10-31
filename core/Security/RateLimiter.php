@@ -116,6 +116,35 @@ class RateLimiter
     }
 
     /**
+     * Límite para «olvidé mi contraseña»: cada petición cuenta, se envíe o no el correo,
+     * para que no sirva de cañón de correo ni de sondeo de cuentas.
+     * Por IP (5 / 15 min), por correo destino (3 / 60 min) y por ámbito (60 / 60 min).
+     *
+     * @param string $email Correo pedido en el formulario
+     * @param string $scope Ámbito (tenant o superadmin)
+     * @return bool True si puede continuar
+     */
+    public static function allowPasswordReset($email, $scope = 'global')
+    {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $limits = [
+            ['pwreset_ip|' . $scope . '|' . $ip, 5, 15],
+            ['pwreset_mail|' . $scope . '|' . hash('sha256', strtolower($email)), 3, 60],
+            ['pwreset_scope|' . $scope, 60, 60],
+        ];
+
+        $allowed = true;
+        foreach ($limits as [$key, $max, $minutes]) {
+            if (!self::check($key, $max, $minutes)) {
+                $allowed = false;
+            }
+            self::increment($key, $minutes);
+        }
+
+        return $allowed;
+    }
+
+    /**
      * Limpia los intentos de un identificador
      *
      * @param string $identifier Identificador único

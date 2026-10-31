@@ -114,7 +114,7 @@ final class Tools
         foreach ($args as $key=>$v) {
             $p=$props[$key]; $type=$p['type'];
             if (($type==='integer' && !is_int($v)) || ($type==='string' && !is_string($v)) || ($type==='boolean' && !is_bool($v)) || ($type==='array' && (!is_array($v)||!array_is_list($v)))) throw new RuntimeException('Tipo de argumento no válido.');
-            if ($type==='string' && (strlen($v)>($p['maxLength']??200000) || strlen($v)<($p['minLength']??0))) throw new RuntimeException('Longitud no válida.');
+            if ($type==='string' && (mb_strlen($v)>($p['maxLength']??200000) || mb_strlen($v)<($p['minLength']??0))) throw new RuntimeException(isset($p['maxLength'])&&mb_strlen($v)>$p['maxLength']?"Longitud no válida en {$key}: {$p['maxLength']} caracteres como máximo (son ".mb_strlen($v).'). Acórtalo y reenvía.':'Longitud no válida.');
             if (isset($p['minimum']) && $v<$p['minimum'] || isset($p['maximum']) && $v>$p['maximum'] || isset($p['enum']) && !in_array($v,$p['enum'],true)) throw new RuntimeException('Valor no válido.');
             if ($type==='array') {
                 if (count($v)>($p['maxItems']??50)) throw new RuntimeException('Demasiados elementos.');

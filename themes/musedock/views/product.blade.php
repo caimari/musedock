@@ -19,7 +19,7 @@
       'cta_secondary' => 'Self-Hosting (GitHub)',
       'cta_secondary_url' => 'https://github.com/caimari/musedock',
       'repo_url' => 'https://github.com/caimari/musedock',
-      'docs_url' => '/blog/category/cms',
+      'docs_url' => '/docs/introduccion-musedock-cms?product=cms',
       'install_cmd' => "git clone https://github.com/caimari/musedock.git\ncomposer install\nphp muse install",
       'license_label' => 'Source Available (Provider Use)',
       'version_note' => 'Licencia propia — Source Available (Provider Use)',
@@ -60,9 +60,9 @@
       'cta_primary' => 'Instalar ahora',
       'cta_primary_url' => 'https://github.com/caimari/musedock-panel',
       'cta_secondary' => 'Ver documentación',
-      'cta_secondary_url' => '/blog/category/panel',
+      'cta_secondary_url' => '/docs/introduccion-musedock-panel?product=panel',
       'repo_url' => 'https://github.com/caimari/musedock-panel',
-      'docs_url' => '/blog/category/panel',
+      'docs_url' => '/docs/introduccion-musedock-panel?product=panel',
       'install_cmd' => "git clone https://github.com/caimari/musedock-panel.git /opt/musedock-panel\nbash /opt/musedock-panel/install.sh",
       'license_label' => 'Source Available',
       'version_note' => 'v1.0.183 — Abril 2026',
@@ -110,7 +110,7 @@
       'cta_secondary' => 'Conocer MuseDock Panel',
       'cta_secondary_url' => '/panel',
       'repo_url' => '#',
-      'docs_url' => '/blog/category/portal',
+      'docs_url' => '/docs/musedock-portal-proximamente?product=portal',
       'install_cmd' => "# Próximamente — en desarrollo activo",
       'license_label' => 'Módulo Pro',
       'version_note' => 'En desarrollo — Abril 2026',
@@ -145,7 +145,11 @@
 @endphp
 
 @section('title') 
+@if(tenant_id() === null)
+{{ seo_title_with_suffix((string) ($translation->seo_title ?: $translation->title ?: $product['hero_title']), [site_setting('site_name', '')]) }}
+@else
 {{ ($translation->seo_title ?: $translation->title ?: $product['hero_title']) . ' | ' . site_setting('site_name', '') }}
+@endif
 @endsection
 
 @section('keywords') 
@@ -382,7 +386,7 @@
         @if($slug === 'cms')
         <a href="{{ $__signupOpen ? '/register' : $product['cta_secondary_url'] }}" class="md-btn md-btn-secondary md-btn-lg" style="margin-left:12px;">{{ $__signupOpen ? 'Ver planes de hosting' : $product['cta_secondary'] }}</a>
         @elseif($slug === 'panel')
-        <a href="/blog/category/panel" class="md-btn md-btn-secondary md-btn-lg" style="margin-left:12px;">Leer documentación</a>
+        <a href="/docs/introduccion-musedock-panel?product=panel" class="md-btn md-btn-secondary md-btn-lg" style="margin-left:12px;">Leer documentación</a>
         @endif
       </div>
     </div>

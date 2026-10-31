@@ -1489,6 +1489,41 @@ if (!function_exists('site_default_language')) {
     }
 }
 
+if (!function_exists('seo_title_with_suffix')) {
+    /**
+     * Título de la página con el nombre del sitio detrás («Título | Sitio») sin pasar de $max caracteres:
+     * Google corta los títulos a unos 60. Prueba los sufijos por orden de preferencia y usa el primero que
+     * cabe; si ninguno cabe, el título propio va solo (manda más que el nombre del sitio).
+     *
+     * @param string[] $suffixes p. ej. ['Docs | MuseDock', 'MuseDock']
+     */
+    function seo_title_with_suffix(string $title, array $suffixes, int $max = 60): string
+    {
+        $title = trim($title);
+        foreach ($suffixes as $suffix) {
+            $suffix = trim((string) $suffix);
+            if ($suffix !== '' && mb_strlen($title . ' | ' . $suffix) <= $max) {
+                return $title . ' | ' . $suffix;
+            }
+        }
+
+        return $title;
+    }
+}
+
+if (!function_exists('blog_language_lists_enabled')) {
+    /**
+     * ¿Los listados del blog (/blog, categoría, etiqueta, autor) van por idioma?
+     * Con el ajuste blog_language_lists=1 cada idioma tiene su listado (/blog en el idioma por defecto,
+     * /en/blog en inglés…) con solo los artículos de ese idioma, títulos traducidos y hreflang.
+     * Apagado por defecto: cada sitio lo activa por su cuenta y sin él el listado es el de siempre.
+     */
+    function blog_language_lists_enabled(): bool
+    {
+        return (string) site_setting('blog_language_lists', '0') === '1';
+    }
+}
+
 if (!function_exists('format_date')) {
     /**
      * Formatea una fecha según las preferencias del sistema (date_format y timezone)
@@ -2537,6 +2572,15 @@ if (!function_exists('blog_url')) {
 
         if ($slug !== '') {
             $path .= '/' . $slug;
+        }
+
+        // Listados por idioma (blog_language_lists=1): en una página en otro idioma, las categorías, etiquetas y
+        // autores enlazan a su listado en ese idioma (/en/category/x), no al del idioma por defecto
+        if ($slug !== '' && in_array($type, ['category', 'tag', 'author'], true) && blog_language_lists_enabled()) {
+            $lang = detectLanguage();
+            if ($lang !== site_default_language() && \Screenart\Musedock\Services\LanguageUrl::siteHasPostsIn($lang)) {
+                $path = '/' . $lang . $path;
+            }
         }
 
         return $path ?: '/';

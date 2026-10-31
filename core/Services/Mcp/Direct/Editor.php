@@ -29,6 +29,10 @@ final class Editor
             $p['create_missing_terms']=['type'=>'boolean','default'=>false,'description'=>'Crear los nombres que falten con permiso de taxonomías y política del sitio; reutilizar los existentes.'];
             $p['taxonomy_mode']=['type'=>'string','enum'=>['merge','replace'],'default'=>'merge','description'=>'merge conserva términos actuales; replace sustituye solo los tipos de taxonomía indicados.'];
             $p['featured_image_id']=$id;
+            $p['seo_title']=['type'=>'string','maxLength'=>60,'description'=>'Título SEO: 60 caracteres como máximo (el nombre del sitio se añade solo).'];
+            $p['seo_description']=['type'=>'string','maxLength'=>155,'description'=>'Meta descripción: 155 caracteres como máximo, con la idea principal al principio.'];
+            $p['seo_keywords']=['type'=>'string','maxLength'=>255,'description'=>'Palabras clave separadas por comas (de 4 a 8).'];
+            $p['base_locale']=['type'=>'string','description'=>'Idioma ORIGINAL del artículo (código de 2 letras habilitado en el CMS). Un contenido = un artículo: los demás idiomas se añaden con save_translation sobre este mismo post_id, nunca con otro create_post.'];
             $p['status']['enum']=['draft','published']; $p['visibility']['enum']=['public','private','password'];
             $p['post_type']['enum']=['post','brief','docs'];
             $p['template']['enum']=['template-sidebar-right','page','template-sidebar-left'];
@@ -43,7 +47,16 @@ final class Editor
         }
         if ($tool==='moderate_comment') { $p['comment_id']=$id; $p['status']=['type'=>'string','enum'=>['pending','approved','spam','delete']]; }
         if ($tool==='list_comments') { $p['post_id']=$id; $p['status']=['type'=>'string','enum'=>['pending','approved','spam']]; }
-        if ($tool==='save_translation') { foreach (['slug','locale','title','content','excerpt','seo_title','seo_description','seo_keywords','seo_image','canonical_url','robots_directive','twitter_title','twitter_description','twitter_image'] as $f) $p[$f]=$s; }
+        if ($tool==='save_translation') {
+            foreach (['slug','locale','title','content','excerpt','seo_title','seo_description','seo_keywords','seo_image','canonical_url','robots_directive','twitter_title','twitter_description','twitter_image'] as $f) $p[$f]=$s;
+            $p['locale']=['type'=>'string','description'=>'Idioma de ESTA traducción (código de 2 letras habilitado en el CMS y distinto del base_locale del artículo).'];
+            $p['slug']=['type'=>'string','description'=>'Slug en el idioma traducido (p. ej. en inglés), distinto del slug base. Omítelo para conservar la ruta ya existente.'];
+            $p['excerpt']=['type'=>'string','description'=>'Resumen del artículo en este idioma (1 o 2 frases).'];
+            $p['seo_title']=['type'=>'string','maxLength'=>60,'description'=>'Título SEO en este idioma: 60 caracteres como máximo.'];
+            $p['seo_description']=['type'=>'string','maxLength'=>155,'description'=>'Meta descripción en este idioma: 155 caracteres como máximo.'];
+            $p['seo_keywords']=['type'=>'string','maxLength'=>255,'description'=>'Palabras clave de este idioma separadas por comas (de 4 a 8).'];
+            $p['seo_image']=['type'=>'string','description'=>'Imagen para redes sociales de esta versión (ruta o URL); omítela para usar la portada del artículo.'];
+        }
         if (in_array($tool,['list_comments','list_media','list_image_prompts'],true)) { $p['limit']=['type'=>'integer','minimum'=>1,'maximum'=>50]; $p['offset']=['type'=>'integer','minimum'=>0,'maximum'=>1000000]; }
         if ($tool==='upload_image') { $p['url']=$s; $p['base64']=['type'=>'string','maxLength'=>2800000]; $p['filename']=['type'=>'string','maxLength'=>100]; $p['alt_text']=['type'=>'string','maxLength'=>250]; }
         if ($tool==='generate_image') { $p['prompt']=['type'=>'string','minLength'=>1,'maxLength'=>4000]; $p['size']=['type'=>'string','maxLength'=>9,'pattern'=>'^[0-9]{3,4}x[0-9]{3,4}$','description'=>'Consulta list_image_options. MiniMax admite dimensiones explícitas entre 512 y 2048 px, múltiplos de 8. Otros proveedores tienen sus propios límites.']; $p['quality']=['type'=>'string','enum'=>['standard','hd']]; $p['alt_text']=['type'=>'string','maxLength'=>250]; }

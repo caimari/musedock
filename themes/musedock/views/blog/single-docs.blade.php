@@ -8,6 +8,9 @@
     $__lang = detectLanguage();
     $__isEn = $__lang === 'en';
     $__t = fn (string $es, string $en) => $__isEn ? $en : $es;
+    // Índice de la documentación en el idioma de esta guía (/en/docs si hay índice en ese idioma)
+    $__docsBase = ($__lang !== site_default_language() && blog_language_lists_enabled()
+        && \Screenart\Musedock\Services\LanguageUrl::siteHasPostsIn($__lang, true)) ? '/' . $__lang . '/docs' : '/docs';
     // Nombres de secciones en inglés (las categorías no tienen traducciones propias)
     $__sectionEn = [
         'Documentación' => 'Documentation', 'Presentación' => 'Getting started', 'Configuración' => 'Configuration',
@@ -22,11 +25,60 @@
     $seoDesc = $__doc->seo_description ?: ($__doc->excerpt ?: mb_substr(strip_tags((string) $__doc->content), 0, 160));
 @endphp
 
-@section('title', $seoTitle . ' | Docs | ' . site_setting('site_name', ''))
+@section('title', tenant_id() === null ? seo_title_with_suffix($seoTitle, ['Docs | ' . site_setting('site_name', ''), site_setting('site_name', '')]) : $seoTitle . ' | Docs | ' . site_setting('site_name', ''))
 @section('description', $seoDesc)
 @section('keywords', $post->seo_keywords ?? '')
 @section('og_title', $seoTitle)
 @section('og_description', $seoDesc)
+@section('og_type', 'article')
+@if(!empty($post->robots_directive))
+@section('robots', $post->robots_directive)
+@endif
+
+{{-- SEO del sitio principal: datos estructurados de la guía (TechArticle + migas) --}}
+@if(tenant_id() === null)
+@php
+    $__ldTs = fn ($d) => $d instanceof \DateTimeInterface ? $d->getTimestamp() : ($d ? (strtotime((string) $d) ?: null) : null);
+    $__ldUrl = seo_language_canonical() ?: url(\Screenart\Musedock\Services\LanguageUrl::originalPath());
+    $__ldPub = $__ldTs($post->published_at) ? date('c', $__ldTs($post->published_at)) : null;
+    $__ldMod = $__ldTs($post->updated_at ?? null) ? date('c', $__ldTs($post->updated_at)) : $__ldPub;
+    $__ldSite = site_setting('site_name', 'MuseDock');
+    $__ldDocs = [
+        '@context' => 'https://schema.org',
+        '@graph' => [
+            array_filter([
+                '@type' => 'TechArticle',
+                '@id' => $__ldUrl . '#article',
+                'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => $__ldUrl],
+                'url' => $__ldUrl,
+                'headline' => mb_substr((string) $__doc->title, 0, 110),
+                'description' => (string) $seoDesc,
+                'inLanguage' => $__lang,
+                'datePublished' => $__ldPub,
+                'dateModified' => $__ldMod,
+                'keywords' => $__doc->seo_keywords ?: null,
+                'author' => ['@type' => 'Organization', 'name' => $__ldSite, 'url' => url('/')],
+                'publisher' => ['@type' => 'Organization', 'name' => $__ldSite, 'url' => url('/')],
+            ]),
+            [
+                '@type' => 'BreadcrumbList',
+                'itemListElement' => [
+                    ['@type' => 'ListItem', 'position' => 1, 'name' => $__ldSite, 'item' => url('/')],
+                    ['@type' => 'ListItem', 'position' => 2, 'name' => $__t('Documentación', 'Documentation'), 'item' => url($__docsBase)],
+                    ['@type' => 'ListItem', 'position' => 3, 'name' => (string) $__doc->title, 'item' => $__ldUrl],
+                ],
+            ],
+        ],
+    ];
+@endphp
+@section('head_extra')
+  <meta property="article:published_time" content="{{ $__ldPub }}">
+  <meta property="article:modified_time" content="{{ $__ldMod }}">
+@endsection
+@section('json_ld')
+  <script type="application/ld+json">{!! json_encode($__ldDocs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
+@endsection
+@endif
 
 @section('content')
 @php
@@ -266,17 +318,17 @@
                 break;
             }
         }
-        if (!isset($productSwitcherUrls[$pk])) $productSwitcherUrls[$pk] = '/docs/?product=' . urlencode($pk);
+        if (!isset($productSwitcherUrls[$pk])) $productSwitcherUrls[$pk] = $__docsBase . '/?product=' . urlencode($pk);
     }
 
     // Breadcrumb links (all clickable)
-    $docsIndexUrl = '/docs/' . (!empty($selectedProduct) ? '?product=' . urlencode($selectedProduct) : '');
+    $docsIndexUrl = $__docsBase . '/' . (!empty($selectedProduct) ? '?product=' . urlencode($selectedProduct) : '');
     $productCrumbUrl = null;
     $sectionCrumbUrl = null;
     $currentDocUrl = null;
 
     if (!empty($currentProduct) && isset($docsNav[$currentProduct])) {
-        $productCrumbUrl = $productSwitcherUrls[$currentProduct] ?? ('/docs/?product=' . urlencode($currentProduct));
+        $productCrumbUrl = $productSwitcherUrls[$currentProduct] ?? ($__docsBase . '/?product=' . urlencode($currentProduct));
 
         if (!empty($currentSection) && $currentSection !== '_root' && isset($docsNav[$currentProduct]['sections'][$currentSection])) {
             $sectionPosts = $docsNav[$currentProduct]['sections'][$currentSection]['posts'] ?? [];
@@ -324,7 +376,7 @@
             <aside class="col-lg-3 docs-sidebar-col">
                 <nav class="docs-sidebar" id="docs-sidebar">
                     <div class="docs-sidebar-header">
-                        <a href="/docs/" class="docs-sidebar-title">
+                        <a href="{{ $__docsBase }}/" class="docs-sidebar-title">
                             <i class="bi bi-book"></i> {{ $__t('Documentación', 'Documentation') }}
                         </a>
                     </div>

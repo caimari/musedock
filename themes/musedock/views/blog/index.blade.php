@@ -5,13 +5,19 @@
     @if(!empty($is_home))
         @php $__subtitle = site_setting('site_subtitle', ''); @endphp
         {{ site_setting('site_name', '') . ($__subtitle ? ' | ' . $__subtitle : '') }}
+    @elseif(tenant_id() === null && blog_language_lists_enabled())
+        {{ seo_title_with_suffix(__('blog.meta_title'), [site_setting('site_name', '')]) }}
     @else
         {{ __('blog.title') . ' | ' . site_setting('site_name', '') }}
     @endif
 @endsection
 
 @section('description')
-    {{ site_setting('site_description', '') }}
+    @if(empty($is_home) && tenant_id() === null && blog_language_lists_enabled())
+        {{ __('blog.meta_description') }}
+    @else
+        {{ site_setting('site_description', '') }}
+    @endif
 @endsection
 
 @section('content')
@@ -38,6 +44,13 @@
 @endphp
 
 <div class="container pt-3 pb-5">
+    @if(empty($is_home) && tenant_id() === null && blog_language_lists_enabled())
+        {{-- Sitio principal: el listado lleva su H1 (antes no tenía ninguno) --}}
+        <header class="mb-4 pt-3">
+            <h1 class="h2 mb-2">{{ __('blog.heading') }}</h1>
+            <p class="text-muted mb-0">{{ __('blog.meta_description') }}</p>
+        </header>
+    @endif
     @include($blogLayoutPartial, [
         'posts' => $posts ?? [],
         'pagination' => $pagination ?? [],
