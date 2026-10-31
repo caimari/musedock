@@ -110,9 +110,14 @@ public/uploads/*
 storage/app/*
 !storage/app/.gitkeep
 
-# Temas y recursos de cada tenant: son privados del cliente y no van a GitHub (solo los temas generales)
+# Material de cada tenant: es privado del cliente y no va a GitHub. El repo es solo el CMS general,
+# para que quien lo instale en su servidor parta de un MuseDock limpio.
 /themes/tenant_*
 /public/assets/themes/tenant_*
+/public/assets/demos/
+/public/media/file/*/tenant-*
+/storage/tenants/
+/storage/backups/
 
 # Development and documentation (not for production)
 docs/

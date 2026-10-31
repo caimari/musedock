@@ -1,4 +1,0 @@
-'use strict';
-const sample=document.getElementById('sample-message');
-document.querySelectorAll('[data-message]').forEach(button=>button.addEventListener('click',()=>{sample.value=button.dataset.message;document.getElementById('try').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});sample.focus({preventScroll:true});}));
-document.getElementById('copy-message')?.addEventListener('click',async event=>{const button=event.currentTarget;try{await navigator.clipboard.writeText(sample.value);document.getElementById('copy-status').textContent=button.dataset.copied;}catch{sample.focus();sample.select();document.getElementById('copy-status').textContent=document.documentElement.lang==='es'?'Selecciona y copia el mensaje.':'Select and copy the message.';}});
