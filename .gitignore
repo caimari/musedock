@@ -110,6 +110,10 @@ public/uploads/*
 storage/app/*
 !storage/app/.gitkeep
 
+# Temas y recursos de cada tenant: son privados del cliente y no van a GitHub (solo los temas generales)
+/themes/tenant_*
+/public/assets/themes/tenant_*
+
 # Development and documentation (not for production)
 docs/
 .claude/
