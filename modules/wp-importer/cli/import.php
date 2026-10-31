@@ -4,8 +4,8 @@
  * WP Importer por línea de comandos: clona un WordPress (API REST pública) en un tenant ya creado.
  *
  * Uso:
- *   php modules/wp-importer/cli/import.php --site=https://nycinfest.com --tenant=60            # simulación (no escribe nada)
- *   php modules/wp-importer/cli/import.php --site=https://nycinfest.com --tenant=60 --run      # importa de verdad
+ *   php modules/wp-importer/cli/import.php --site=https://ejemplo.com --tenant=60            # simulación (no escribe nada)
+ *   php modules/wp-importer/cli/import.php --site=https://ejemplo.com --tenant=60 --run      # importa de verdad
  *
  * Opciones: --policy=skip|overwrite|rename (páginas ya existentes), --no-media, --no-styles, --no-sliders (por defecto se importa todo: media, categorías, tags, entradas,
  * páginas, menús, sliders y estilos). Las direcciones (slugs) de las páginas se conservan.

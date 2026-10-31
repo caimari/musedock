@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $actorName . ' — Filmografía | ' . site_setting('site_name', 'IberoFilms'))
+@section('title', $actorName . ' — Filmografía | ' . site_setting('site_name', 'Películas'))
 
 @section('content')
 

@@ -257,7 +257,7 @@ class BlogShareController
      * Construye la URL pública del post usando el dominio y el prefijo
      * de blog del tenant al que pertenece, NO el del request actual
      * (el superadmin publica desde musedock.com, pero el link debe ir al
-     * dominio real del tenant, ej. freenet.es).
+     * dominio real del tenant, ej. ejemplo.es).
      */
     private function buildPublicPostUrl(array $post): string
     {

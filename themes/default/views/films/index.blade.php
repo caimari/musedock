@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $title . ' | ' . site_setting('site_name', 'IberoFilms'))
+@section('title', $title . ' | ' . site_setting('site_name', 'Películas'))
 @section('description', 'Descubre películas del cine iberoamericano. Fichas editoriales con contexto, director, reparto y dónde verlas.')
 
 @section('content')

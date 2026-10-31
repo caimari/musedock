@@ -29,7 +29,7 @@ class DomainExpiryService
         $this->http = $http ?? [self::class, 'fetch'];
     }
 
-    /** Dominio registrable: sub.alexapost.musedock.com → musedock.com; x.co.uk → x.co.uk */
+    /** Dominio registrable: sub.miweb.musedock.com → musedock.com; x.co.uk → x.co.uk */
     public static function registrable(string $host): string
     {
         $labels = explode('.', PropertyService::normalizeHost($host));

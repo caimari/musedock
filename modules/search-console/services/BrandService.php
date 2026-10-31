@@ -6,8 +6,8 @@ use PDO;
 
 /**
  * Búsquedas de marca frente a búsquedas sin marca. Una búsqueda es «de marca» si contiene el nombre del sitio
- * (su dominio sin extensión o el nombre del tenant), con o sin espacios y acentos: «screen ai» y «screenai» son la
- * marca de screenai.es; «claude code precio» no lo es. Es una heurística: sirve para no mezclar a quien ya te
+ * (su dominio sin extensión o el nombre del tenant), con o sin espacios y acentos: «screen ai» y «ejemplo» son la
+ * marca de ejemplo.es; «claude code precio» no lo es. Es una heurística: sirve para no mezclar a quien ya te
  * conoce con quien te descubre.
  */
 class BrandService
@@ -18,8 +18,8 @@ class BrandService
 
     /**
      * Nombres de marca compactos (minúsculas, sin acentos ni separadores, 5+ caracteres, no genéricos): el dominio sin
-     * extensión, el nombre del tenant y, solo en subdominios de la plataforma (alexapost.musedock.com), el subdominio.
-     * En otros subdominios (spain.filmconnect.org) la etiqueta «spain» NO es la marca: lo es «filmconnect».
+     * extensión, el nombre del tenant y, solo en subdominios de la plataforma (miweb.musedock.com), el subdominio.
+     * En otros subdominios (spain.filmejemplo.org) la etiqueta «spain» NO es la marca: lo es «filmejemplo».
      *
      * @return string[]
      */
@@ -36,7 +36,7 @@ class BrandService
         $apex = $labels[max(0, $apexIdx)] ?? '';
         $platform = $n >= 3 && $labels[$n - 2] . '.' . $labels[$n - 1] === 'musedock.com';
         if ($platform) {
-            $out[] = self::compact($labels[0]);        // alexapost.musedock.com → alexapost (el «musedock» no es su marca)
+            $out[] = self::compact($labels[0]);        // miweb.musedock.com → miweb (el «musedock» no es su marca)
         } else {
             $out[] = self::compact($apex);
         }
@@ -73,7 +73,7 @@ class BrandService
 
     /**
      * Distancia (1 o 2) entre una consulta y tu marca cuando se PARECEN pero la consulta no la contiene: «creen ai» frente
-     * a «screenai». null si es marca, si no se parece o si la marca es demasiado corta para comparar con fiabilidad.
+     * a «ejemplo». null si es marca, si no se parece o si la marca es demasiado corta para comparar con fiabilidad.
      */
     public static function lookalike(string $query, array $tokens): ?int
     {

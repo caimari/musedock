@@ -79,7 +79,7 @@ class WpStyleExtractor
 
     /**
      * Detectar layout del header basado en la estructura HTML
-     * - logo-above: logo en bloque separado arriba, nav debajo (ej: ibestff.com)
+     * - logo-above: logo en bloque separado arriba, nav debajo (ej: ejemplo.com)
      * - centered: logo centrado entre menús izq/der
      * - default: logo izquierda + menú derecha
      */

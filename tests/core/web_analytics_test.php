@@ -15,10 +15,10 @@ $t($call('hasUserConsent') === false, 'analítica rechazada: no se registra');
 $_COOKIE = ['musedock_cookies_accepted' => 'true', 'musedock_cookie_analytics' => 'true'];
 $t($call('hasUserConsent') === true, 'con analítica aceptada sí');
 
-$r = $call('analyzeReferrer', 'https://www.agent8ai.com/blog', 'agent8ai.com');
+$r = $call('analyzeReferrer', 'https://www.ejemplo.com/blog', 'ejemplo.com');
 $t($r['type'] === 'internal', 'venir del propio sitio (con o sin www) es navegación interna');
-$r = $call('analyzeReferrer', 'https://otro.example/x', 'agent8ai.com');
+$r = $call('analyzeReferrer', 'https://otro.example/x', 'ejemplo.com');
 $t($r['type'] === 'referral', 'otro sitio sigue siendo referral');
-$r = $call('analyzeReferrer', 'https://www.google.com/', 'agent8ai.com');
+$r = $call('analyzeReferrer', 'https://www.google.com/', 'ejemplo.com');
 $t($r['type'] === 'search', 'buscador sigue siendo search');
 exit($f ? 1 : 0);

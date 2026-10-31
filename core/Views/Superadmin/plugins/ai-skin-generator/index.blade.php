@@ -41,11 +41,11 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Nombre del proyecto/dominio</label>
-                            <input type="text" id="consultant_name" class="form-control" placeholder="Ej: freenet.es, muse diary, screenai...">
+                            <input type="text" id="consultant_name" class="form-control" placeholder="Ej: mi-sitio.com, mi marca, mi proyecto...">
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Describe tu proyecto</label>
-                            <textarea id="consultant_desc" class="form-control" rows="4" placeholder="Ej: 'freenet.es era una red social, ahora queremos convertirla en un medio editorial o blog. No tenemos claro a que sector enfocarlo. Que opinas? Que tipo de contenido funcionaria? Que estilo visual le iria bien?'"></textarea>
+                            <textarea id="consultant_desc" class="form-control" rows="4" placeholder="Ej: 'mi-sitio.com era una red social, ahora queremos convertirla en un medio editorial o blog. No tenemos claro a que sector enfocarlo. Que opinas? Que tipo de contenido funcionaria? Que estilo visual le iria bien?'"></textarea>
                         </div>
                         <div class="col-12">
                             <button type="button" class="btn btn-outline-primary" onclick="consultProject()">

@@ -185,7 +185,7 @@
                                                 <li>Entra en <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener">Meta for Developers → Mis aplicaciones</a>.</li>
                                                 <li>Pulsa <strong>«Crear aplicación»</strong>.</li>
                                                 <li><strong>Tipo de aplicación:</strong> selecciona <code>Empresa</code>.</li>
-                                                <li>Ponle un nombre (ej. <code>FreeNetPrivate-IG</code>).</li>
+                                                <li>Ponle un nombre (ej. <code>MiMarca-IG</code>).</li>
                                                 <li>Deja <strong>Modo de la aplicación</strong> en <code>En desarrollo</code> (no hace falta pasar a producción para que funcione contigo y los testers).</li>
                                             </ol>
                                         </div>

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $title . ' | ' . site_setting('site_name', 'IberoFilms'))
+@section('title', $title . ' | ' . site_setting('site_name', 'Películas'))
 
 @section('content')
 <div class="container py-5">

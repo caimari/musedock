@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $title . ' | ' . site_setting('site_name', 'FestivalNews'))
+@section('title', $title . ' | ' . site_setting('site_name', 'Festivales'))
 @section('description', 'Descubre festivales de cine, música, artes y más. Directorio completo con información actualizada.')
 
 @section('content')

@@ -199,15 +199,15 @@ echo "== 7. Coincidencias inesperadas (otra marca o error de escritura)\n";
 $pdo = db();
 put($pdo, 'gsc_site_daily', $cur, null, 30, 3000, 8.0);
 put($pdo, 'gsc_site_daily', $prev, null, 30, 3000, 8.0);
-foreach ([['screen ai', 14, 101, 4.3], ['screenai', 10, 86, 2.5], ['creen ai', 3, 249, 8.4], ['screen ia', 5, 45, 4.4]] as [$q, $c, $i, $ps]) { put($pdo, 'gsc_query_daily', $cur, $q, $c, $i, $ps); }
-put($pdo, 'gsc_query_daily', $prev, 'creen ai', 12, 1191, 8.0);   // antes tenía mucho más: sin la regla sería una «caída» de prioridad alta
-$r = (new OpportunityService($pdo))->detect(['id' => 1, 'domain' => 'screenai.es'], 28);
+foreach ([['brannd xy', 14, 101, 4.3], ['branndxy', 10, 86, 2.5], ['rannd xy', 3, 249, 8.4], ['brannd yx', 5, 45, 4.4]] as [$q, $c, $i, $ps]) { put($pdo, 'gsc_query_daily', $cur, $q, $c, $i, $ps); }
+put($pdo, 'gsc_query_daily', $prev, 'rannd xy', 12, 1191, 8.0);   // antes tenía mucho más: sin la regla sería una «caída» de prioridad alta
+$r = (new OpportunityService($pdo))->detect(['id' => 1, 'domain' => 'branndxy.es'], 28);
 $names = array_column(array_filter($r['items'], fn ($i) => $i['kind'] === 'query'), 'name');
-ok(!in_array('creen ai', $names, true), '«creen ai» (parecida a la marca, CTR 1,2 % frente al 12,8 % de la marca) no sale como oportunidad ni como caída propia');
-$brandItems = array_filter($r['items'], fn ($i) => $i['kind'] === 'query' && $i['name'] === 'screenai');
+ok(!in_array('rannd xy', $names, true), '«rannd xy» (parecida a la marca, CTR 1,2 % frente al 12,8 % de la marca) no sale como oportunidad ni como caída propia');
+$brandItems = array_filter($r['items'], fn ($i) => $i['kind'] === 'query' && $i['name'] === 'branndxy');
 ok(!$brandItems || $brandItems && array_values($brandItems)[0]['brand'] === true, 'las búsquedas de marca siguen su curso normal (marcadas como marca)');
 $tail = (new OpportunityService($pdo))->detect(['id' => 1, 'domain' => 'x.test'], 28);
-ok(in_array('creen ai', array_column(array_filter($tail['items'], fn ($i) => $i['kind'] === 'query'), 'name'), true), 'sin marca conocida (dominio corto) no se hace esta distinción y se trata como cualquier consulta');
+ok(in_array('rannd xy', array_column(array_filter($tail['items'], fn ($i) => $i['kind'] === 'query'), 'name'), true), 'sin marca conocida (dominio corto) no se hace esta distinción y se trata como cualquier consulta');
 
 echo "== 8. Una sola clasificación: dominios escritos, marcas ajenas etiquetadas y dudosas\n";
 $pdo = db();
@@ -227,9 +227,9 @@ ok($q('dudosa') && $q('dudosa')[0]['pending'] === true, 'una consulta «pendient
 ok($q('normal') && $q('normal')[0]['pending'] === false, 'una consulta normal con la misma caída sí sale');
 ok($r['notes'] !== [] && str_contains(implode(' ', $r['notes']), '1 dominios escritos en el buscador') && str_contains(implode(' ', $r['notes']), 'etiquetadas'), 'el informe explica cuántas consultas se han apartado y por qué');
 ok(array_keys(\Modules\SearchConsole\Services\QueryLabelService::LABELS) === ['own', 'third', 'review', 'ignore'], 'tres estados de marca (propia, ajena, dudosa) más «no relevante»');
-$ownT = ['muserelay.com' => true];
-ok(\Modules\SearchConsole\Services\OpportunityService::hostIsOwn('https://www.muserelay.com/x', $ownT) && \Modules\SearchConsole\Services\OpportunityService::hostIsOwn('app.muserelay.com', $ownT), 'un dominio escrito que es tuyo (con www, ruta o subdominio) se reconoce como sitio propio');
-ok(!\Modules\SearchConsole\Services\OpportunityService::hostIsOwn('notmuserelay.com', $ownT) && !\Modules\SearchConsole\Services\OpportunityService::hostIsOwn('8i8gent.com', $ownT), 'uno parecido o ajeno no se confunde con uno propio');
+$ownT = ['otrosito.com' => true];
+ok(\Modules\SearchConsole\Services\OpportunityService::hostIsOwn('https://www.otrosito.com/x', $ownT) && \Modules\SearchConsole\Services\OpportunityService::hostIsOwn('app.otrosito.com', $ownT), 'un dominio escrito que es tuyo (con www, ruta o subdominio) se reconoce como sitio propio');
+ok(!\Modules\SearchConsole\Services\OpportunityService::hostIsOwn('nototrosito.com', $ownT) && !\Modules\SearchConsole\Services\OpportunityService::hostIsOwn('8i8gent.com', $ownT), 'uno parecido o ajeno no se confunde con uno propio');
 
 echo "\n" . ($fails ? "RESULTADO: $fails de $n comprobaciones FALLAN\n" : "RESULTADO: las $n comprobaciones pasan\n");
 exit($fails ? 1 : 0);

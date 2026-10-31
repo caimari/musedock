@@ -96,7 +96,7 @@ servicios de `create_post`, generación de imágenes, portada y publicación.
 ```json
 {
   "site_id": 55,
-  "idempotency_key": "bootshell-articulo-encargo-2026-10-17-001",
+  "idempotency_key": "mi-sitio-articulo-encargo-2026-10-17-001",
   "title": "Título del artículo",
   "content": "<p>Contenido HTML revisado</p>",
   "seo_title": "Título SEO",

@@ -5,7 +5,7 @@
  *
  * Guarda hashtags fijos por cuenta (uno por línea o separados por espacio)
  * que se añaden al caption al publicar posts del blog, con prioridad sobre
- * los dinámicos. Ej: "#freenetes #tecnologia #madrid".
+ * los dinámicos. Ej: "#mimarca #tecnologia #madrid".
  */
 class HashtagsPreset_2026_04_12_000001
 {

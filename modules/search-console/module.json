@@ -24,7 +24,7 @@
       "version": "0.9.3",
       "date": "2026-10-17",
       "changes": [
-        "Un dominio escrito en el buscador que es otro de tus sitios (muserelay.com buscado desde agent8ai.com, con www, ruta o subdominio) ya no se cuenta como tráfico de otra empresa: se aparta igual, pero el informe lo explica como «búsquedas navegacionales hacia otro de tus sitios» y la tarjeta de tráfico accidental no lo lista. Los dominios de clientes nunca entran en esta comprobación.",
+        "Un dominio escrito en el buscador que es otro de tus sitios (otrosito.com buscado desde ejemplo.com, con www, ruta o subdominio) ya no se cuenta como tráfico de otra empresa: se aparta igual, pero el informe lo explica como «búsquedas navegacionales hacia otro de tus sitios» y la tarjeta de tráfico accidental no lo lista. Los dominios de clientes nunca entran en esta comprobación.",
         "El aviso de concentración geográfica acepta umbrales propios (cuota mínima, impresiones mínimas y proporción de CTR) manteniendo los valores por defecto; todavía sin pantalla de ajustes.",
         "La tarjeta «Otros dominios de Search Console» sube justo debajo de la tabla principal de dominios (antes estaba casi al final de la página)."
       ]
@@ -41,7 +41,7 @@
       "version": "0.9.1",
       "date": "2026-10-16",
       "changes": [
-        "Inspector de URL: una variante que Google no indexa por separado porque eligió correctamente otra como canónica (p. ej. www.agent8ai.com/screen-ai → agent8ai.com/screen-ai) ya no dice «Google aún no la tiene indexada, envía el sitemap»: explica que no es un error y ofrece inspeccionar directamente la canónica.",
+        "Inspector de URL: una variante que Google no indexa por separado porque eligió correctamente otra como canónica (p. ej. www.ejemplo.com/screen-ai → ejemplo.com/screen-ai) ya no dice «Google aún no la tiene indexada, envía el sitemap»: explica que no es un error y ofrece inspeccionar directamente la canónica.",
         "Una sola clasificación compartida por todos los detectores: las consultas que son un dominio escrito en el buscador («8i8gent.com»), las etiquetadas como marca de otra empresa o no relevantes y las coincidencias inesperadas con tu marca ya no salen como oportunidad ni como caída en el informe (antes solo se excluían de «Esta semana merece tu tiempo»), y el informe cuenta cuántas ha apartado y por qué.",
         "Tres estados para la marca en lugar de dos: marca propia (o variante) confirmada, marca de otra empresa confirmada y ambigua pendiente de investigar (visible, marcada y fuera de las prioridades hasta que la decidas), más «no relevante»."
       ]
@@ -50,7 +50,7 @@
       "version": "0.9.0",
       "date": "2026-10-16",
       "changes": [
-        "Búsquedas parecidas a tu marca: detecta consultas que se escriben casi como tu marca sin contenerla («creen ai» frente a «screenai») y las separa por su CTR frente al de tu marca: «Parece una variante tuya» (CTR parecido), «Coincidencia inesperada» (CTR muy inferior con volumen: probablemente otra empresa o un error) o «Sin pista clara». Es una pista, no un veredicto: el sistema no sabe qué productos existen.",
+        "Búsquedas parecidas a tu marca: detecta consultas que se escriben casi como tu marca sin contenerla («mimarka» frente a «mimarca») y las separa por su CTR frente al de tu marca: «Parece una variante tuya» (CTR parecido), «Coincidencia inesperada» (CTR muy inferior con volumen: probablemente otra empresa o un error) o «Sin pista clara». Es una pista, no un veredicto: el sistema no sabe qué productos existen.",
         "Las coincidencias inesperadas no se tratan como pérdida ni como oportunidad propia (ya no salen como «caída» de prioridad alta) y quedan en su tarjeta aparte.",
         "Etiquetas manuales por dominio (tabla gsc_query_label): «es mi marca (o una variante)», «marca de otra empresa» o «no relevante». Corrigen la clasificación de marca (con apartado propio «marca de otra empresa» en el reparto) y las excluyen de «Esta semana merece tu tiempo».",
         "La prioridad explica por qué se asignó, en el propio aviso: «Volumen alto: …», «Volumen medio: el volumen del periodo anterior (134 impresiones; ahora 61)…», «Alta por actualidad: edición vigente, aunque el volumen de datos sea limitado (83 impresiones, menos de 500)», «Caída de clics confirmada (14 → 3)»."
@@ -90,7 +90,7 @@
       "date": "2026-10-16",
       "changes": [
         "Contexto de la página (a raíz de otra revisión): las páginas de ediciones pasadas (un año de hace 2 o más en su URL, p. ej. seleccion-oficial-2020, ganadores-2023) pasan a prioridad «Archivo»: mantenimiento y archivo, sin urgencia SEO, ocultas por defecto junto a las exploratorias. Las de la edición vigente (año actual o posterior) suben de media a alta y llevan la etiqueta «vigente».",
-        "Marca: la clasificación indica sobre cuántas impresiones se ha podido hacer («238 de 912 impresiones»: el resto no tiene consulta visible) y deja de tomar como marca palabras genéricas (spain, film, news, festival…) o la etiqueta de un subdominio ajeno (spain.filmconnect.org → la marca es «filmconnect», no «spain»)."
+        "Marca: la clasificación indica sobre cuántas impresiones se ha podido hacer («238 de 912 impresiones»: el resto no tiene consulta visible) y deja de tomar como marca palabras genéricas (spain, film, news, festival…) o la etiqueta de un subdominio ajeno (spain.filmejemplo.org → la marca es «filmejemplo», no «spain»)."
       ]
     },
     {
@@ -99,14 +99,14 @@
       "changes": [
         "Búsquedas de marca frente a sin marca (BrandService): reparto de clics e impresiones en el informe (heurística sobre el nombre del sitio, sobre las consultas visibles) y etiqueta «marca» en oportunidades y canibalización. Las búsquedas de marca no entran en «Esta semana merece tu tiempo» salvo que caigan.",
         "Canibalización: en las búsquedas de marca se explica que es normal; en el resto se recuerdan las tres comprobaciones antes de fusionar o redirigir (¿misma intención?, ¿Google alterna entre ellas?, ¿contenido realmente distinto?).",
-        "Verificado contra Google: la suma de las filas de las variantes de una URL coincide con el agregado de Search Console filtrado por esa página (laraflex.org: 1.023 impresiones en ambos; screenai.es: 721 en ambos), así que no se cuentan impresiones dos veces."
+        "Verificado contra Google: la suma de las filas de las variantes de una URL coincide con el agregado de Search Console filtrado por esa página (un sitio: 1.023 impresiones en ambos; otro: 721 en ambos), así que no se cuentan impresiones dos veces."
       ]
     },
     {
       "version": "0.6.0",
       "date": "2026-10-16",
       "changes": [
-        "Detector de oportunidades 2.0 (a raíz de una revisión externa): las variantes de una misma página (con/sin www, con #ancla, con utm_*, con barra final) se agrupan en una sola (UrlNormalizer; el dato original no se toca) y las páginas legales, de acceso y de panel se excluyen. En laraflex.org, la portada del artículo principal pasó de 654 a 1.004 impresiones al sumar sus 16 variantes.",
+        "Detector de oportunidades 2.0 (a raíz de una revisión externa): las variantes de una misma página (con/sin www, con #ancla, con utm_*, con barra final) se agrupan en una sola (UrlNormalizer; el dato original no se toca) y las páginas legales, de acceso y de panel se excluyen. En un sitio de producción, la portada del artículo principal pasó de 654 a 1.004 impresiones al sumar sus 16 variantes.",
         "Prioridades: cada aviso es de prioridad alta, media o exploración según el volumen que lo respalda. Las exploratorias (pocas impresiones) se ocultan por defecto y no llevan consejo concreto («Pocos datos: necesita revisión»). Las cifras de potencial se rotulan como estimación.",
         "Canibalización: nueva instantánea consulta+página de los últimos 28 días (tabla gsc_query_page, se reemplaza en cada descarga) y tarjeta «Páginas que compiten entre sí».",
         "Sugerencias editoriales por reglas (EditorialService, sin IA): incluir la búsqueda principal en el título, completar o ajustar la descripción SEO, otras búsquedas que ya trae la página y enlaces internos desde páginas relacionadas. Solo proponen; los textos de Google se tratan como datos (escapados).",
@@ -121,7 +121,7 @@
         "Exportar a CSV (UTF-8, «;» y decimales con coma, listo para Excel): la tabla de dominios del periodo elegido y, en cada informe, consultas, páginas, países, dispositivos y la serie diaria. Las celdas que empiezan por =, +, - o @ se protegen contra inyección de fórmulas.",
         "El informe relaciona cada URL con su contenido del CMS (ContentMapService): tipo (artículo, página, documentación, inicio), título y enlace «Editar». Solo del propio tenant; no se cruzan tenants.",
         "Aviso por correo de caídas de SEO (DropAlertService): una vez al día (desde las 8:00) si los clics o impresiones de un dominio caen a la mitad, o una página con tráfico pierde la mitad de sus clics, frente a los 28 días anteriores. Sin histórico suficiente o con poco tráfico no avisa; cada aviso se repite como mucho una vez por semana.",
-        "Dominios fuera del CMS (p. ej. muserelay.com, en otro servidor) se dan de alta con «Añadir un dominio que no está en el CMS»; si su DNS está en una cuenta de Cloudflare del registro, el TXT se publica solo."
+        "Dominios fuera del CMS (p. ej. otrosito.com, en otro servidor) se dan de alta con «Añadir un dominio que no está en el CMS»; si su DNS está en una cuenta de Cloudflare del registro, el TXT se publica solo."
       ]
     },
     {

@@ -25,7 +25,7 @@
                         {!! csrf_field() !!}
                         <div class="mb-3">
                             <label for="name" class="form-label">Nombre del grupo <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="name" name="name" required placeholder="Ej: Red CulturaPost, Grupo Editorial X...">
+                            <input type="text" class="form-control" id="name" name="name" required placeholder="Ej: Red de blogs, Grupo editorial X...">
                         </div>
 
                         <div class="mb-3">

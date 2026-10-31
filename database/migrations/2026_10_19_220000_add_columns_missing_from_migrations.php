@@ -4,7 +4,7 @@ use Screenart\Musedock\Database;
 /**
  * Columnas que el código usa y que ninguna migración creaba (en musedock.com se añadieron por otro camino).
  * Las instalaciones antiguas o nuevas no las tenían: p. ej. /blog daba 500 por falta de blog_posts.post_type
- * (muselayer.com, MariaDB, 2026-10-19). Solo añade lo que falta; PostgreSQL y MySQL/MariaDB.
+ * (instalación con MariaDB, 2026-10-19). Solo añade lo que falta; PostgreSQL y MySQL/MariaDB.
  */
 class AddColumnsMissingFromMigrations_2026_10_19_220000
 {

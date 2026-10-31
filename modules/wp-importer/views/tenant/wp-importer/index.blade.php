@@ -350,7 +350,7 @@
                 <div class="row align-items-end">
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Dominio externo</label>
-                        <input type="text" class="form-control" id="relocalize-domain" placeholder="ejemplo.com o limpa.co.uk">
+                        <input type="text" class="form-control" id="relocalize-domain" placeholder="ejemplo.com o otro.co.uk">
                         <div class="form-text">Sin https:// — solo el dominio</div>
                     </div>
                     <div class="col-md-3">

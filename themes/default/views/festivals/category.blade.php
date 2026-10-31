@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', ($category->seo_title ?: $category->name . ' — Festivales') . ' | ' . site_setting('site_name', 'FestivalNews'))
+@section('title', ($category->seo_title ?: $category->name . ' — Festivales') . ' | ' . site_setting('site_name', 'Festivales'))
 @section('description', $category->seo_description ?: 'Festivales en la categoría ' . $category->name)
 
 @section('content')

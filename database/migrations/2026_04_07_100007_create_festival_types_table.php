@@ -52,34 +52,7 @@ class CreateFestivalTypesTable_2026_04_07_100007
             $pdo->exec("CREATE INDEX IF NOT EXISTS ftype_idx_tenant ON festival_types(tenant_id)");
         }
 
-        // Seed default types for tenant 53 (festivalnews)
-        $defaults = [
-            ['Festival de Cine', 'film_festival', 'bi-camera-reels', '#dc3545'],
-            ['Festival de Cortometrajes', 'short_film_festival', 'bi-film', '#fd7e14'],
-            ['Festival de Documentales', 'documentary_festival', 'bi-journal-richtext', '#6f42c1'],
-            ['Festival de Animación', 'animation_festival', 'bi-stars', '#e83e8c'],
-            ['Festival de Música', 'music_festival', 'bi-music-note-beamed', '#20c997'],
-            ['Festival de Artes', 'arts_festival', 'bi-palette', '#0dcaf0'],
-            ['Multidisciplinar', 'multidisciplinary', 'bi-grid-3x3', '#6c757d'],
-            ['Festival de Teatro', 'theater_festival', 'bi-mask', '#ffc107'],
-            ['Festival de Danza', 'dance_festival', 'bi-person-arms-up', '#198754'],
-            ['Festival Literario', 'literary_festival', 'bi-book', '#0d6efd'],
-            ['Festival Gastronómico', 'food_festival', 'bi-cup-hot', '#795548'],
-            ['Festival de Tecnología', 'tech_festival', 'bi-cpu', '#607D8B'],
-            ['Certamen', 'certamen', 'bi-trophy', '#ff9800'],
-            ['Concurso', 'contest', 'bi-award', '#9c27b0'],
-            ['Premio', 'award', 'bi-star', '#ffd700'],
-            ['Otro', 'other', 'bi-three-dots', '#adb5bd'],
-        ];
-
-        $stmt = $pdo->prepare("INSERT INTO festival_types (tenant_id, name, slug, icon, color, sort_order) VALUES (53, ?, ?, ?, ?, ?)");
-        foreach ($defaults as $i => $type) {
-            try {
-                $stmt->execute([$type[0], $type[1], $type[2], $type[3], $i]);
-            } catch (\Exception $e) {
-                // Skip if already exists
-            }
-        }
+        // Los tipos de festival se crean desde el plugin de cada sitio (sin datos de un tenant concreto)
     }
 
     public function down()

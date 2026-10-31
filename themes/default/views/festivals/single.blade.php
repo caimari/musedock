@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $seoTitle . ' | ' . site_setting('site_name', 'FestivalNews'))
+@section('title', $seoTitle . ' | ' . site_setting('site_name', 'Festivales'))
 @section('description', $seoDesc)
 @section('og_title', $seoTitle)
 @section('og_description', $seoDesc)

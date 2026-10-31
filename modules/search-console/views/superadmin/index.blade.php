@@ -280,12 +280,12 @@
         <div class="p-3 border-bottom">
             <h6 class="mb-0" style="font-weight:700;"><i class="bi bi-signpost-split"></i> Mover el SEO entre un dominio y su alias ({{ count($redirectPairs) }})</h6>
             <div class="text-muted" style="font-size:.82rem;">
-                Si un sitio responde por dos nombres (por ejemplo <em>alexapost.musedock.com</em> y <em>alexapost.com</em>), Google puede indexar los dos y repartirse el SEO. Con
+                Si un sitio responde por dos nombres (por ejemplo <em>miweb.musedock.com</em> y <em>miweb.com</em>), Google puede indexar los dos y repartirse el SEO. Con
                 <strong>«SEO aquí»</strong>, junto al nombre que quieres conservar, el otro pasa a redirigir (301, conservando la ruta) y el SEO se concentra en él. Pide tu contraseña, se verifica con una petición real y se deshace solo si falla.
                 Solo funciona mientras el dominio siga siendo tuyo.
             </div>
             <div class="mt-2 p-2 rounded" style="font-size:.82rem;background:#fff8e1;border:1px solid #ffe08a;">
-                <i class="bi bi-info-circle"></i> Lo normal es concentrar el SEO en el <strong>dominio propio</strong> (p. ej. <em>screenart.es</em>), no en el subdominio de la plataforma (<em>screenart.musedock.com</em>).
+                <i class="bi bi-info-circle"></i> Lo normal es concentrar el SEO en el <strong>dominio propio</strong> (p. ej. <em>ejemplo.es</em>), no en el subdominio de la plataforma (<em>ejemplo.musedock.com</em>).
                 Debajo de cada nombre ves qué es y su tráfico en Google; <span class="badge bg-success">★ más tráfico</span> marca el que Google ya prefiere. Si vas a mandar el SEO hacia el que tiene menos, se te pedirá confirmarlo.
             </div>
         </div>

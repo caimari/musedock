@@ -456,7 +456,7 @@
                 </p>
                 <label class="form-label" style="font-size:0.82rem;"><strong>Tus hashtags de marca</strong></label>
                 <textarea class="form-control" id="swal-hashtags" rows="5"
-                    placeholder="#freenetes #tecnologia #madrid"
+                    placeholder="#mimarca #tecnologia #madrid"
                     style="font-family:monospace;font-size:0.85rem;">${escapeAttr(current)}</textarea>
                 <small class="text-muted" style="display:block;margin-top:6px;font-size:0.78rem;">
                     Separa con espacios, comas o saltos de línea. El <code>#</code> inicial es opcional. Se normalizan: sin tildes, sin ñ, sin espacios, minúsculas. Se descartan los que empiezan por número (los rechaza Instagram).

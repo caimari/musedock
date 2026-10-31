@@ -336,7 +336,7 @@ foreach ($tenants as $tenant) {
 }
 
 // --- CMS Subdomain tenants with custom domain aliases ---
-// These are *.musedock.com tenants that have custom domain aliases (e.g. screenart.es → screenart.musedock.com)
+// These are *.musedock.com tenants that have custom domain aliases (e.g. ejemplo.es → ejemplo.musedock.com)
 // They get their own Caddy route when aliases are added via upsertDomainWithAliases()
 echo "\n--- CMS Subdomain Tenants with Aliases ---\n";
 try {

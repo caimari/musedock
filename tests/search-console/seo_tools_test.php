@@ -36,8 +36,8 @@ class FakeG extends GoogleClient
 echo "== Sitemap\n";
 $g = new FakeG();
 $sm = new SitemapService(fn ($u) => 200);
-$r = $sm->submit($g, 'sc-domain:alexapost.com', 'alexapost.com');
-ok($r['ok'] && $g->calls[0][0] === 'PUT' && str_contains($g->calls[0][1], rawurlencode('sc-domain:alexapost.com') . '/sitemaps/' . rawurlencode('https://alexapost.com/sitemap.xml')), 'PUT a sitemaps con la propiedad y el sitemap codificados');
+$r = $sm->submit($g, 'sc-domain:miweb.com', 'miweb.com');
+ok($r['ok'] && $g->calls[0][0] === 'PUT' && str_contains($g->calls[0][1], rawurlencode('sc-domain:miweb.com') . '/sitemaps/' . rawurlencode('https://miweb.com/sitemap.xml')), 'PUT a sitemaps con la propiedad y el sitemap codificados');
 $g2 = new FakeG();
 $r = (new SitemapService(fn ($u) => 404))->submit($g2, 'sc-domain:x.com', 'x.com');
 ok(!$r['ok'] && $g2->calls === [], 'si el sitemap no responde, no se envía nada a Google');
@@ -57,13 +57,13 @@ ok($good['indexed'] && !$good['canonical_differs'], 'indexada y sin canonical di
 $es = UrlInspectionService::parse(['inspectionResult' => ['indexStatusResult' => ['verdict' => 'PASS', 'coverageState' => 'Enviada e indexada']]], 'https://a.com/');
 $esRedir = UrlInspectionService::parse(['inspectionResult' => ['indexStatusResult' => ['verdict' => 'NEUTRAL', 'coverageState' => 'Página con redirección']]], 'https://a.com/');
 ok($es['tone'] === 'success' && $esRedir['tone'] === 'info', 'Google responde en español (languageCode=es): los colores no dependen del texto en inglés');
-$alt = UrlInspectionService::parse(['inspectionResult' => ['indexStatusResult' => ['verdict' => 'NEUTRAL', 'coverageState' => 'Página alternativa con etiqueta canónica adecuada', 'googleCanonical' => 'https://agent8ai.com/screen-ai', 'userCanonical' => 'https://agent8ai.com/screen-ai', 'pageFetchState' => 'SUCCESSFUL']]], 'https://www.agent8ai.com/screen-ai');
-ok($alt['is_alternate'] === true && !$alt['indexed'] && !$alt['canonical_differs'] && $alt['google_canonical'] === 'https://agent8ai.com/screen-ai', 'una variante (www) con canónica correcta se reconoce como «alternativa», no como un fallo de indexación');
+$alt = UrlInspectionService::parse(['inspectionResult' => ['indexStatusResult' => ['verdict' => 'NEUTRAL', 'coverageState' => 'Página alternativa con etiqueta canónica adecuada', 'googleCanonical' => 'https://ejemplo.com/screen-ai', 'userCanonical' => 'https://ejemplo.com/screen-ai', 'pageFetchState' => 'SUCCESSFUL']]], 'https://www.ejemplo.com/screen-ai');
+ok($alt['is_alternate'] === true && !$alt['indexed'] && !$alt['canonical_differs'] && $alt['google_canonical'] === 'https://ejemplo.com/screen-ai', 'una variante (www) con canónica correcta se reconoce como «alternativa», no como un fallo de indexación');
 $notAlt = UrlInspectionService::parse(['inspectionResult' => ['indexStatusResult' => ['verdict' => 'NEUTRAL', 'coverageState' => 'Duplicate, Google chose different canonical than user', 'googleCanonical' => 'https://b.com/', 'userCanonical' => 'https://a.com/']]], 'https://a.com/');
 ok($notAlt['is_alternate'] === false, 'si Google eligió una canónica distinta a la declarada, no es una variante «correcta»');
 ok(UrlInspectionService::parse([], 'x')['ok'] === false, 'sin datos de Google, error controlado');
-ok(UrlInspectionService::belongsTo('https://www.alexapost.com/blog', 'alexapost.com') && UrlInspectionService::belongsTo('https://sub.alexapost.com/', 'alexapost.com'), 'URL del dominio (con www o subdominio)');
-ok(!UrlInspectionService::belongsTo('https://otro.com/', 'alexapost.com') && !UrlInspectionService::belongsTo('https://evilalexapost.com/', 'alexapost.com') && !UrlInspectionService::belongsTo('javascript:alert(1)', 'alexapost.com'), 'URL de otro dominio o con esquema raro: no');
+ok(UrlInspectionService::belongsTo('https://www.miweb.com/blog', 'miweb.com') && UrlInspectionService::belongsTo('https://sub.miweb.com/', 'miweb.com'), 'URL del dominio (con www o subdominio)');
+ok(!UrlInspectionService::belongsTo('https://otro.com/', 'miweb.com') && !UrlInspectionService::belongsTo('https://evilmiweb.com/', 'miweb.com') && !UrlInspectionService::belongsTo('javascript:alert(1)', 'miweb.com'), 'URL de otro dominio o con esquema raro: no');
 ok(UrlInspectionService::belongsTo('https://s.musedock.com/a', 'musedock.com', 'https://s.musedock.com/') && !UrlInspectionService::belongsTo('https://t.musedock.com/a', 'musedock.com', 'https://s.musedock.com/'), 'un subdominio virtual solo inspecciona URL de su prefijo (no las de otros tenants)');
 $g5 = new FakeG(); $g5->reply = ['inspectionResult' => ['indexStatusResult' => ['verdict' => 'PASS', 'coverageState' => 'Submitted and indexed']]];
 (new UrlInspectionService())->inspect($g5, 'sc-domain:a.com', 'https://a.com/');

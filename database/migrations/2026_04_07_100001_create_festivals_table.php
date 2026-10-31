@@ -1,7 +1,7 @@
 <?php
 /**
  * Migration: Create festivals table
- * Plugin: Festival Directory (tenant: festivalnews.org)
+ * Plugin: Festival Directory
  */
 
 use Screenart\Musedock\Database;

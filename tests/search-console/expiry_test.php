@@ -18,7 +18,7 @@ use Modules\SearchConsole\Services\DomainExpiryService as D;
 $fails = 0;
 function ok(bool $c, string $m): void { global $fails; if (!$c) { $fails++; echo "  FALLA: $m\n"; } }
 
-ok(D::registrable('alexapost.musedock.com') === 'musedock.com' && D::registrable('www.x.co.uk') === 'x.co.uk' && D::registrable('spain.filmconnect.org') === 'filmconnect.org' && D::registrable('shortsinfest.com') === 'shortsinfest.com', 'dominio registrable');
+ok(D::registrable('miweb.musedock.com') === 'musedock.com' && D::registrable('www.x.co.uk') === 'x.co.uk' && D::registrable('spain.filmejemplo.org') === 'filmejemplo.org' && D::registrable('cortosejemplo.com') === 'cortosejemplo.com', 'dominio registrable');
 
 $redemption = ['status' => ['client transfer prohibited', 'redemption period'], 'events' => [['eventAction' => 'registration', 'eventDate' => '2015-08-10T18:54:04Z'], ['eventAction' => 'expiration', 'eventDate' => '2026-08-10T18:54:04Z']],
     'entities' => [['roles' => ['registrar'], 'vcardArray' => ['vcard', [['version', [], 'text', '4.0'], ['fn', [], 'text', 'Domain.com, LLC']]]]]];

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $seoTitle . ' | ' . site_setting('site_name', 'IberoFilms'))
+@section('title', $seoTitle . ' | ' . site_setting('site_name', 'Películas'))
 @section('description', $seoDesc)
 @section('og_title', $seoTitle)
 @section('og_description', $seoDesc)

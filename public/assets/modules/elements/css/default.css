@@ -136,7 +136,7 @@
     width: 100%;
 }
 
-/* Tipografía (estética HispanoLLC) */
+/* Tipografía (estética del sitio) */
 .element-hero:not(.layout-background) .hero-title {
     display: block !important;
     font-weight: 800;

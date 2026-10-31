@@ -5,7 +5,7 @@ namespace Modules\SearchConsole\Services;
 use PDO;
 
 /**
- * Mover el SEO entre un dominio de un tenant y su alias (por ejemplo alexapost.musedock.com → alexapost.com)
+ * Mover el SEO entre un dominio de un tenant y su alias (por ejemplo miweb.musedock.com → miweb.com)
  * con una redirección 301 que conserva la ruta.
  *
  * La ruta de Caddy se inserta AL PRINCIPIO de la lista: la del tenant (y la del comodín *.musedock.com)

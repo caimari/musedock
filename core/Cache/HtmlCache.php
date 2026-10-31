@@ -177,7 +177,7 @@ class HtmlCache
     public static function invalidate(string $uri, ?int $tenantId): void
     {
         self::removeFile(self::uriToPath($uri, $tenantId));
-        // Copias por dirección (@screenai.es, @www.screenai.es, alias...)
+        // Copias por dirección (@ejemplo.es, @www.ejemplo.es, alias...)
         foreach (glob(self::tenantDir($tenantId) . '/@*', GLOB_ONLYDIR) ?: [] as $hostDir) {
             self::removeFile(self::uriToPath($uri, $tenantId, substr(basename($hostDir), 1)));
         }

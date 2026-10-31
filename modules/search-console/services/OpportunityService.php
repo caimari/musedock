@@ -240,7 +240,7 @@ class OpportunityService
     }
 
     /**
-     * «creen ai» frente a «screenai»: se parece a tu marca sin contenerla y su CTR es muy inferior al de tu marca. Quien
+     * «mimarka» frente a «mimarca»: se parece a tu marca sin contenerla y su CTR es muy inferior al de tu marca. Quien
      * lo busca probablemente no busca tu web (otra empresa o un error), así que no se trata como pérdida ni como CTR bajo propio.
      */
     private function isUnexpected(string $query, array $c, ?array $p): bool
