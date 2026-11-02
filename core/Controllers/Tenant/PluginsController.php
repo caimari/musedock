@@ -347,7 +347,20 @@ class PluginsController
                 // Check if already registered
                 $check = $pdo->prepare("SELECT id FROM tenant_menus WHERE tenant_id = ? AND slug = ?");
                 $check->execute([$tenantId, $parentSlug]);
-                if ($check->fetch()) return; // Already exists
+                $existingParent = $check->fetch(\PDO::FETCH_ASSOC);
+                if ($existingParent) {
+                    // Ya registrado: solo añade los hijos que el plugin.json declara y aún no están (plugins que crecen)
+                    foreach (($menu['children'] ?? []) as $child) {
+                        $childSlug = $child['slug'] ?? null;
+                        if (!$childSlug) continue;
+                        $has = $pdo->prepare("SELECT id FROM tenant_menus WHERE tenant_id = ? AND slug = ?");
+                        $has->execute([$tenantId, $childSlug]);
+                        if ($has->fetch()) continue;
+                        $pdo->prepare("INSERT INTO tenant_menus (tenant_id, parent_id, module_id, title, slug, url, icon, icon_type, order_position, is_active, created_at) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, 1, NOW())")
+                            ->execute([$tenantId, $existingParent['id'], $child['title'], $childSlug, $child['url'] ?? '#', $child['icon'] ?? 'bi-circle', $child['icon_type'] ?? 'bi', $child['order'] ?? 0]);
+                    }
+                    return;
+                }
 
                 // Insert parent
                 $stmt = $pdo->prepare("

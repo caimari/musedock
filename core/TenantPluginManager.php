@@ -546,6 +546,7 @@ class TenantPluginManager
             }
 
             Logger::info("TenantPluginManager: Plugin compartido {$slug} activado para tenant {$tenantId}");
+            (new \Screenart\Musedock\Controllers\Tenant\PluginsController())->syncPluginMenus($tenantId, $slug, true);
             return true;
 
         } catch (\Exception $e) {
@@ -571,6 +572,7 @@ class TenantPluginManager
             $stmt->execute(['tenant_id' => $tenantId, 'slug' => $slug]);
 
             Logger::info("TenantPluginManager: Plugin compartido {$slug} desactivado para tenant {$tenantId}");
+            (new \Screenart\Musedock\Controllers\Tenant\PluginsController())->syncPluginMenus($tenantId, $slug, false);
             return true;
 
         } catch (\Exception $e) {
