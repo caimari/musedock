@@ -258,6 +258,8 @@ class SlugRouter
         // Determinar qué controlador y método llamar según el prefijo
         // Obtener prefijo de páginas configurable
         $pagePrefix = function_exists('page_prefix') ? page_prefix() : 'p';
+        // Prefijo del blog del tenant (p. ej. «interviews» o «noticias»): su raíz muestra el listado del blog
+        $blogPrefix = function_exists('blog_prefix') ? blog_prefix() : 'blog';
 
         switch ($prefix) {
             case ($pagePrefix !== '' ? $pagePrefix : '___none___'):
@@ -268,6 +270,10 @@ class SlugRouter
             case 'docs':
                 $controller = new \Blog\Controllers\Frontend\BlogController();
                 return $controller->docsIndex();
+                break;
+            case ($blogPrefix !== '' ? $blogPrefix : '___none___'):
+                $controller = new \Blog\Controllers\Frontend\BlogController();
+                return $controller->index();
                 break;
             default:
                 // Prefijo no reconocido: intentar resolver como slug sin prefijo

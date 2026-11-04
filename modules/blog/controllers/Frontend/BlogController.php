@@ -180,6 +180,16 @@ class BlogController
      */
     public function index()
     {
+        // /blog es un alias fijo del listado; si el sitio usa otro prefijo (p. ej. /interviews), /blog redirige
+        // a él con un 301 para no tener el mismo listado en dos direcciones (contenido duplicado).
+        $reqPath = rtrim((string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH), '/');
+        $sitePrefix = function_exists('blog_prefix') ? trim((string) blog_prefix(), '/') : 'blog';
+        if ($reqPath === '/blog' && $sitePrefix !== '' && $sitePrefix !== 'blog' && !headers_sent()) {
+            $qs = (string) parse_url((string) $_SERVER['REQUEST_URI'], PHP_URL_QUERY);
+            header('Location: /' . $sitePrefix . '/' . ($qs !== '' ? '?' . $qs : ''), true, 301);
+            exit;
+        }
+
         $tenantId = TenantManager::currentTenantId();
 
         // Obtener número de posts por página desde settings
