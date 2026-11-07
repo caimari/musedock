@@ -1,0 +1,28 @@
+{
+  "name": "MuseDock Forms",
+  "slug": "musedock-forms",
+  "version": "1.0.0",
+  "author": "MuseDock",
+  "description": "Formularios multi-tenant, campos configurables, solicitudes e importación Form Maker.",
+  "active": true,
+  "cms_enabled": true,
+  "tenant_enabled_default": false,
+  "autoload": {
+    "psr-4": {
+      "MuseDockForms\\": "src/"
+    }
+  },
+  "requires": {
+    "php": ">=8.1",
+    "musedock": ">=1.0.0"
+  },
+  "permissions": [
+    "custom_forms.manage"
+  ],
+  "changelog": {
+    "1.0.0": [
+      "Implementación propia para CMS, datos y acceso aislados por tenant."
+    ]
+  },
+  "database": "PostgreSQL (importador WordPress); runtime preparado para PostgreSQL y MySQL, validado en PostgreSQL"
+}

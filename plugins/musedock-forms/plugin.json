@@ -1,0 +1,15 @@
+{
+  "name": "MuseDock Forms",
+  "slug": "musedock-forms",
+  "version": "1.0.0",
+  "description": "Formularios multi-tenant, campos configurables, solicitudes e importación Form Maker.",
+  "author": "MuseDock",
+  "location": "modules/musedock-forms",
+  "status": "implemented",
+  "requires": [],
+  "provides": [
+    "forms",
+    "submissions"
+  ],
+  "source_of_truth": "modules/musedock-forms"
+}

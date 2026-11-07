@@ -1,0 +1,31 @@
+{
+  "name": "MuseDock Members",
+  "slug": "musedock-members",
+  "version": "1.0.0",
+  "author": "MuseDock",
+  "description": "Cuentas de socios, aprobación, perfiles privados e importación Ultimate Member.",
+  "active": true,
+  "cms_enabled": true,
+  "tenant_enabled_default": false,
+  "autoload": {
+    "psr-4": {
+      "MuseDockMembers\\": "src/"
+    }
+  },
+  "requires": {
+    "php": ">=8.1",
+    "musedock": ">=1.0.0"
+  },
+  "permissions": [
+    "custom_forms.manage"
+  ],
+  "changelog": {
+    "1.0.0": [
+      "Implementación propia para CMS, datos y acceso aislados por tenant."
+    ]
+  },
+  "database": "PostgreSQL (importador WordPress); runtime preparado para PostgreSQL y MySQL, validado en PostgreSQL",
+  "dependencies": [
+    "musedock-forms"
+  ]
+}

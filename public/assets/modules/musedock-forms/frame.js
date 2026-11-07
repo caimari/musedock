@@ -1,0 +1,1 @@
+(()=>{if(window.parent===window)return;let last=0;const notify=()=>{const h=Math.ceil(document.documentElement.scrollHeight);if(h!==last){last=h;window.parent.postMessage({type:'musedock-form-height',height:h},location.origin);}};new ResizeObserver(notify).observe(document.body);window.addEventListener('load',notify);notify();})();

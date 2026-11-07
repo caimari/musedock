@@ -1,0 +1,8 @@
+<?php
+return static function(\PDO $db): void {
+    $pg=$db->getAttribute(\PDO::ATTR_DRIVER_NAME)==='pgsql';$id=$pg?'BIGSERIAL PRIMARY KEY':'BIGINT AUTO_INCREMENT PRIMARY KEY';$text=$pg?'TEXT':'LONGTEXT';
+    $db->exec("CREATE TABLE IF NOT EXISTS md_members (id $id,tenant_id BIGINT NOT NULL,email VARCHAR(254) NOT NULL,username VARCHAR(190) NOT NULL,password_hash VARCHAR(255) NOT NULL,display_name VARCHAR(255) NOT NULL,status VARCHAR(80) NOT NULL DEFAULT 'awaiting_admin_review',member_type VARCHAR(100) NOT NULL DEFAULT 'associate',profile $text NOT NULL,public_profile SMALLINT NOT NULL DEFAULT 0,source VARCHAR(80),source_id VARCHAR(120),legacy_data $text,created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,session_version INT NOT NULL DEFAULT 1,UNIQUE(tenant_id,email),UNIQUE(tenant_id,username),UNIQUE(tenant_id,source,source_id))");
+    $db->exec("CREATE TABLE IF NOT EXISTS md_member_tokens (id $id,tenant_id BIGINT NOT NULL,member_id BIGINT NOT NULL,token_hash VARCHAR(64) NOT NULL UNIQUE,expires_at TIMESTAMP NOT NULL,used_at TIMESTAMP,FOREIGN KEY(member_id) REFERENCES md_members(id))");
+    $db->exec("CREATE TABLE IF NOT EXISTS md_member_definitions (id $id,tenant_id BIGINT NOT NULL,source VARCHAR(80) NOT NULL,source_id VARCHAR(120) NOT NULL,title VARCHAR(255) NOT NULL,mode VARCHAR(80) NOT NULL,definition $text NOT NULL,UNIQUE(tenant_id,source,source_id))");
+    $db->exec("CREATE TABLE IF NOT EXISTS md_member_audit (id $id,tenant_id BIGINT NOT NULL,member_id BIGINT NOT NULL,actor_id BIGINT,action VARCHAR(80) NOT NULL,created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)");
+};

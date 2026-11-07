@@ -1,0 +1,17 @@
+{
+  "name": "MuseDock Members",
+  "slug": "musedock-members",
+  "version": "1.0.0",
+  "description": "Cuentas de socios, aprobación, perfiles privados e importación Ultimate Member.",
+  "author": "MuseDock",
+  "location": "modules/musedock-members",
+  "status": "implemented",
+  "requires": [
+    "musedock-forms"
+  ],
+  "provides": [
+    "membership",
+    "member-accounts"
+  ],
+  "source_of_truth": "modules/musedock-members"
+}

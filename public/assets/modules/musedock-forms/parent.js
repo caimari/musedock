@@ -1,0 +1,1 @@
+(()=>{if(window.mdFormsResize)return;window.mdFormsResize=true;window.addEventListener('message',(e)=>{if(e.origin!==location.origin||e.data?.type!=='musedock-form-height'||!Number.isFinite(e.data.height))return;document.querySelectorAll('iframe.md-form-frame').forEach(f=>{if(f.contentWindow===e.source)f.style.height=Math.min(12000,Math.max(200,e.data.height+8))+'px';});});})();
