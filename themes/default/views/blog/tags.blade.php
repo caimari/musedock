@@ -2,7 +2,7 @@
 
 {{-- SEO --}}
 @section('title')
-    {{ __('blog.frontend.tag') . ' | ' . __('blog.title') . ' | ' . site_setting('site_name', '') }}
+    {{ __('blog.frontend.tag') . ' | ' . blog_section_title() . ' | ' . site_setting('site_name', '') }}
 @endsection
 
 @section('description')
@@ -18,7 +18,7 @@
             <ol class="breadcrumb mb-2" style="background: transparent; padding-left: 0;">
                 <li class="breadcrumb-item"><a href="/" style="color: #333;">{{ __('common.home') }}</a></li>
                 @if(blog_prefix() !== '')
-                <li class="breadcrumb-item"><a href="{{ blog_url() }}" style="color: #333;">{{ __('blog.title') }}</a></li>
+                <li class="breadcrumb-item"><a href="{{ blog_url() }}" style="color: #333;">{{ blog_section_title() }}</a></li>
                 @endif
                 <li class="breadcrumb-item active" aria-current="page" style="color: #666;">{{ __('blog.tags') }}</li>
             </ol>

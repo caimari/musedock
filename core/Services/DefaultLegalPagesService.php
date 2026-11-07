@@ -485,9 +485,10 @@ HTML
 <li>Nombre y apellidos</li>
 <li>Dirección de correo electrónico</li>
 <li>Número de teléfono (si se facilita)</li>
-<li>Datos de comentarios en el blog (nombre, email, web opcional y contenido del comentario)</li>
+<li>Datos de comentarios en el blog (nombre, email, web opcional, contenido del comentario y, de forma automática, la dirección IP y el navegador desde los que se envía)</li>
 <li>Cualquier otra información que decidas proporcionarnos voluntariamente</li>
 </ul>
+<p>El email de un comentario se usa únicamente para moderarlo y prevenir el spam (por ejemplo, para reconocer a quien ya tiene comentarios aprobados). No se muestra públicamente ni se utiliza para enviarte comunicaciones, salvo que te suscribas aparte mediante su propio formulario y consentimiento.</p>
 
 <h3>Datos recopilados automáticamente</h3>
 <p>Al navegar por este sitio web, podemos recopilar automáticamente cierta información técnica:</p>
@@ -519,7 +520,7 @@ HTML
 <p>Los datos personales se conservarán durante el tiempo necesario para cumplir con la finalidad para la que fueron recabados y, posteriormente, durante los plazos de prescripción legal aplicables:</p>
 <ul>
 <li><strong>Datos de contacto:</strong> mientras se mantenga la relación con el usuario o hasta que solicite su supresión.</li>
-<li><strong>Datos de comentarios:</strong> mientras el comentario permanezca publicado o hasta solicitud de supresión, salvo obligación legal de conservación.</li>
+<li><strong>Datos de comentarios:</strong> mientras el comentario permanezca publicado o hasta solicitud de supresión, salvo obligación legal de conservación. Los comentarios, tanto publicados como pendientes, y los datos asociados (email, dirección IP y navegador) no se eliminan salvo que la persona que los escribió lo solicite expresamente (puedes pedirlo en cualquier momento escribiendo al contacto indicado en esta política). Nos reservamos el derecho de retirar comentarios que incumplan las normas del sitio, como el spam o los contenidos ilícitos u ofensivos.</li>
 <li><strong>Datos de navegación:</strong> según la duración de las cookies utilizadas (consulta la Política de Cookies).</li>
 <li><strong>Datos fiscales:</strong> durante los plazos exigidos por la normativa tributaria aplicable.</li>
 </ul>
@@ -644,7 +645,7 @@ HTML
 <h2>1. Identifying information</h2>
 <p>In compliance with article 10 of Spanish Law 34/2002, of July 11, on Information Society Services and Electronic Commerce (LSSI-CE), users are informed of the data of the owner of this website:</p>
 <ul>
-<li><strong>Name:</strong> {{site_name}}</li>
+<li><strong>Name:</strong> {{legal_name}}</li>
 <li><strong>Email:</strong> <a href="mailto:{{contact_email}}">{{contact_email}}</a></li>
 </ul>
 
@@ -686,9 +687,10 @@ HTML
 <li>First and last name</li>
 <li>Email address</li>
 <li>Phone number</li>
-<li>Blog comment data (name, email, optional website, and comment content)</li>
+<li>Blog comment data (name, email, optional website, comment content and, automatically, the IP address and browser used to submit it)</li>
 <li>Any other information you choose to provide</li>
 </ul>
+<p>The email address of a comment is used only to moderate it and prevent spam (for example, to recognize commenters who already have approved comments). It is not displayed publicly and is not used to send you communications, unless you subscribe separately through its own form and consent. Comments, whether published or pending, and their associated data (email, IP address and browser) are not deleted unless the person who wrote them expressly requests it (you can ask at any time by writing to the contact address in this policy). We reserve the right to remove comments that break the site's rules, such as spam or unlawful or offensive content.</p>
 
 <h3>Automatically collected information</h3>
 <p>When you visit our website, we may automatically collect certain information, including:</p>

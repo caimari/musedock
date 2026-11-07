@@ -6,7 +6,7 @@
         @php $__subtitle = site_setting('site_subtitle', ''); @endphp
         {{ site_setting('site_name', '') . ($__subtitle ? ' | ' . $__subtitle : '') }}
     @else
-        {{ __('blog.title') . ' | ' . site_setting('site_name', '') }}
+        {{ blog_section_title() . ' | ' . site_setting('site_name', '') }}
     @endif
 @endsection
 

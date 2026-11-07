@@ -2,7 +2,7 @@
 
 {{-- SEO --}}
 @section('title')
-    {{ __('blog.posts_by') . ' ' . $author->name . ' | ' . __('blog.title') . ' | ' . site_setting('site_name', '') }}
+    {{ __('blog.posts_by') . ' ' . $author->name . ' | ' . blog_section_title() . ' | ' . site_setting('site_name', '') }}
 @endsection
 
 @section('description')
@@ -42,7 +42,7 @@
         <ol class="breadcrumb mb-3" style="background: transparent; padding-left: 0;">
             <li class="breadcrumb-item"><a href="/" style="color: #333;">{{ __('common.home') }}</a></li>
             @if(blog_prefix() !== '')
-            <li class="breadcrumb-item"><a href="{{ blog_url() }}" style="color: #333;">{{ __('blog.title') }}</a></li>
+            <li class="breadcrumb-item"><a href="{{ blog_url() }}" style="color: #333;">{{ blog_section_title() }}</a></li>
             @endif
             <li class="breadcrumb-item active" aria-current="page" style="color: #666;">{{ $author->name }}</li>
         </ol>

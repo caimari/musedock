@@ -554,13 +554,22 @@ private static function renderGeneric404Html(): void
         $siteName = htmlspecialchars($GLOBALS['tenant']['name'], ENT_QUOTES, 'UTF-8');
     }
 
+    // Textos en el idioma del sitio (inglés si es «en»; español en cualquier otro caso, como hasta ahora)
+    $en = function_exists('detectLanguage') && detectLanguage() === 'en';
+    $lang = $en ? 'en' : 'es';
+    $tTitle = $en ? 'Page not found' : 'Página no encontrada';
+    $tMsg1 = $en ? 'Sorry, the page you are looking for does not exist or has been moved.' : 'Lo sentimos, la página que buscas no existe o ha sido movida.';
+    $tMsg2 = $en ? 'The link may be broken or the address may be wrong.' : 'Puede que el enlace esté roto o la dirección sea incorrecta.';
+    $tHome = $en ? 'Back to home' : 'Ir al inicio';
+    $tBack = $en ? 'Go back' : 'Volver atrás';
+
     echo <<<HTML
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{$lang}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 - Página no encontrada</title>
+    <title>404 - {$tTitle}</title>
     <style>
         * {
             margin: 0;
@@ -701,11 +710,11 @@ private static function renderGeneric404Html(): void
 
         <div class="error-code">404</div>
 
-        <h1 class="error-title">Página no encontrada</h1>
+        <h1 class="error-title">{$tTitle}</h1>
 
         <p class="error-message">
-            Lo sentimos, la página que buscas no existe o ha sido movida.<br>
-            Puede que el enlace esté roto o la dirección sea incorrecta.
+            {$tMsg1}<br>
+            {$tMsg2}
         </p>
 
         <div class="buttons">
@@ -714,14 +723,14 @@ private static function renderGeneric404Html(): void
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                     <polyline points="9 22 9 12 15 12 15 22"/>
                 </svg>
-                Ir al inicio
+                {$tHome}
             </a>
             <button onclick="history.back()" class="btn btn-secondary">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="19" y1="12" x2="5" y2="12"/>
                     <polyline points="12 19 5 12 12 5"/>
                 </svg>
-                Volver atrás
+                {$tBack}
             </button>
         </div>
 

@@ -267,7 +267,7 @@
                     $relDateStr = $relDate instanceof \DateTime ? $relDate->format('d/m/Y') : date('d/m/Y', strtotime($relDate));
                 @endphp
                 <div class="sidebar-related-img flex-shrink-0" style="width: 80px; height: 80px; overflow: hidden; border-radius: 6px; background: #f0f2f5; display: flex; align-items: center; justify-content: center;">
-                    <img src="{{ $relImg }}" alt="{{ $relatedPost->title }}" loading="lazy" style="width: 100%; height: 100%; object-fit: contain;">
+                    <img src="{{ $relImg }}" alt="{{ $relatedPost->title }}" loading="lazy" style="width: 100% !important; height: 100% !important; object-fit: cover; object-position: center;">
                 </div>
                 <div class="ms-3 d-flex flex-column justify-content-center" style="margin-left: 14px; min-width: 0;">
                     <h6 class="mb-1 sidebar-related-title">{{ $relatedPost->title }}</h6>

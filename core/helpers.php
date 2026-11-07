@@ -2545,6 +2545,18 @@ if (!function_exists('blog_prefix')) {
     }
 }
 
+if (!function_exists('blog_section_title')) {
+    /**
+     * Nombre de la sección del blog en migas de pan y títulos («Blog» por defecto).
+     * Un sitio que publica otra cosa (p. ej. entrevistas) lo cambia con el ajuste «blog_section_title».
+     */
+    function blog_section_title(): string
+    {
+        $t = trim((string) site_setting('blog_section_title', ''));
+        return $t !== '' ? $t : (string) __('blog.title');
+    }
+}
+
 if (!function_exists('blog_url')) {
     /**
      * Genera una URL de blog con el prefijo correcto.

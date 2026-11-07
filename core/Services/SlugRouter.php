@@ -304,14 +304,22 @@ class SlugRouter
         $siteName = isset($GLOBALS['tenant']['name'])
             ? htmlspecialchars($GLOBALS['tenant']['name'], ENT_QUOTES, 'UTF-8')
             : 'Este sitio';
+        // Textos en el idioma del sitio (inglés si es «en»; español en cualquier otro caso, como hasta ahora)
+        $en = function_exists('detectLanguage') && detectLanguage() === 'en';
+        $lang = $en ? 'en' : 'es';
+        $tTitle = $en ? 'Page not found' : 'Página no encontrada';
+        $tMsg1 = $en ? 'Sorry, the page you are looking for does not exist or has been moved.' : 'Lo sentimos, la página que buscas no existe o ha sido movida.';
+        $tMsg2 = $en ? 'The link may be broken or the address may be wrong.' : 'Puede que el enlace esté roto o la dirección sea incorrecta.';
+        $tHome = $en ? 'Back to home' : 'Ir al inicio';
+        $tBack = $en ? 'Go back' : 'Volver atrás';
 
         return <<<HTML
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{$lang}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 - Página no encontrada</title>
+    <title>404 - {$tTitle}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -353,14 +361,14 @@ class SlugRouter
 <body>
     <div class="container">
         <div class="error-code">404</div>
-        <h1 class="error-title">Página no encontrada</h1>
+        <h1 class="error-title">{$tTitle}</h1>
         <p class="error-message">
-            Lo sentimos, la página que buscas no existe o ha sido movida.<br>
-            Puede que el enlace esté roto o la dirección sea incorrecta.
+            {$tMsg1}<br>
+            {$tMsg2}
         </p>
         <div>
-            <a href="/" class="btn">Ir al inicio</a>
-            <a href="javascript:history.back()" class="btn btn-secondary">Volver atrás</a>
+            <a href="/" class="btn">{$tHome}</a>
+            <a href="javascript:history.back()" class="btn btn-secondary">{$tBack}</a>
         </div>
         <p class="site-name">{$siteName}</p>
     </div>

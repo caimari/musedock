@@ -791,6 +791,14 @@ if ($blogPrefix !== '') {
     Route::get('/' . $blogPrefix, 'Blog\Controllers\Frontend\BlogController@index')
         ->name('blog.index');
 
+    // Listados de todas las etiquetas y categorías bajo el prefijo (las migas de pan enlazan aquí).
+    // Van antes de /{prefijo}/{slug} para que no los tome como una entrada.
+    Route::get('/' . $blogPrefix . '/tag', 'Blog\Controllers\Frontend\BlogController@tags')
+        ->name('blog.tags.prefixed');
+
+    Route::get('/' . $blogPrefix . '/category', 'Blog\Controllers\Frontend\BlogController@categories')
+        ->name('blog.categories.prefixed');
+
     Route::get('/' . $blogPrefix . '/category/{slug}', 'Blog\Controllers\Frontend\BlogController@category')
         ->name('blog.category');
 
