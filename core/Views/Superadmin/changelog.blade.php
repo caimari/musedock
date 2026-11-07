@@ -13,6 +13,18 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.28.0 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.28.0 — Sistema de comentarios del blog: apagado, o apagado por defecto</h5></div><div class="card-body">
+            <p class="text-muted">7 de noviembre de 2026</p>
+            <h6 class="text-primary"><i class="bi bi-chat-dots me-1"></i> Comentarios</h6>
+            <ul class="mb-0">
+                <li>Nuevo ajuste <code>blog_comments_mode</code> (Ajustes → Lectura), independiente en el CMS principal y en cada tenant, con tres valores: <strong>Activado</strong> (por defecto, como hasta ahora), <strong>Apagado por defecto</strong> (las entradas nuevas salen con «Permitir comentarios» sin marcar y se pueden activar entrada a entrada) y <strong>Desactivado del todo</strong> (no se muestran ni se aceptan comentarios en ninguna entrada, aunque tenga la casilla marcada; los ya recibidos se conservan).</li>
+                <li>La casilla «Permitir comentarios» de una entrada nueva parte del valor del ajuste, en el editor del CMS principal y en el de cada tenant, y avisa debajo cuando el ajuste del sitio la modifica. Las entradas ya creadas no cambian.</li>
+                <li>Las entradas creadas por MCP o por la API respetan el mismo valor inicial (antes salían siempre con los comentarios activados).</li>
+                <li>El envío de comentarios también se rechaza en el servidor cuando el sistema está desactivado, no solo se oculta el formulario.</li>
+            </ul>
+        </div></div>
+
         <!-- v2.27.0 -->
         <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.27.0 — Dominios nuevos vigilados en minutos, blog por idioma y límite en «olvidé mi contraseña»</h5></div><div class="card-body">
             <p class="text-muted">31 de octubre de 2026</p>

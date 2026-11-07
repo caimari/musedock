@@ -289,10 +289,15 @@
 
               {{-- Permitir comentarios --}}
               <div class="form-check form-switch mb-3">
-                <input class="form-check-input" type="checkbox" value="1" id="allow_comments" name="allow_comments" @checked(old('allow_comments', true))>
+                <input class="form-check-input" type="checkbox" value="1" id="allow_comments" name="allow_comments" @checked(old('allow_comments', (bool) \Blog\Models\BlogComment::defaultAllowForNewPosts()))>
                 <label class="form-check-label" for="allow_comments">
                   {{ __('blog.post.allow_comments') }}
                 </label>
+                @if(\Blog\Models\BlogComment::commentsMode() === 'off')
+                  <small class="text-muted d-block">El sistema de comentarios está apagado en el CMS principal (Ajustes → Lectura): no se mostrarán aunque la marques.</small>
+                @elseif(\Blog\Models\BlogComment::commentsMode() === 'off_default')
+                  <small class="text-muted d-block">Por defecto apagados en el CMS principal (Ajustes → Lectura); márcala para activarlos en esta entrada.</small>
+                @endif
               </div>
 
               {{-- Mostrar el número de visitas (desactivado por defecto) --}}

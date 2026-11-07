@@ -13,6 +13,16 @@
             <span class="badge bg-primary fs-6">v{{ cms_version('version') }}</span>
         </div>
 
+        <!-- v2.28.0 -->
+        <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.28.0 — Sistema de comentarios del blog: apagado, o apagado por defecto</h5></div><div class="card-body">
+            <p class="text-muted">7 de noviembre de 2026</p>
+            <h6 class="text-primary"><i class="bi bi-chat-dots me-1"></i> Comentarios</h6>
+            <ul class="mb-0">
+                <li>Nuevo ajuste en Ajustes → Lectura, «Sistema de comentarios», con tres opciones: <strong>Activado</strong> (como hasta ahora), <strong>Apagado por defecto</strong> (las entradas nuevas salen sin comentarios y se pueden activar en cada entrada que quieras) y <strong>Desactivado del todo</strong> (no se muestran ni se aceptan comentarios en ninguna entrada; los ya recibidos se conservan).</li>
+                <li>La casilla «Permitir comentarios» de una entrada nueva parte del valor de ese ajuste. Las entradas ya creadas no cambian.</li>
+            </ul>
+        </div></div>
+
         <!-- v2.26.2 -->
         <div class="card mb-4"><div class="card-header"><h5 class="mb-0">v2.26.2 — Visitas reales y conformes al RGPD</h5></div><div class="card-body">
             <p class="text-muted">19 de octubre de 2026</p>

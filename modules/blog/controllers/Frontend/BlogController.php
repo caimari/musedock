@@ -448,6 +448,10 @@ class BlogController
             ['terms-and-conditions', 'terminos-y-condiciones', 'terminos-y-condiciones-de-uso', 'terminos', 'terms', 'condiciones-de-uso'],
             'terms-and-conditions'
         );
+        // Sistema de comentarios apagado en el sitio: ninguna entrada los muestra (la plantilla lee $post->allow_comments)
+        if (!BlogComment::commentsSystemEnabled()) {
+            $post->allow_comments = 0;
+        }
         if ((bool)($post->allow_comments ?? false)) {
             try {
                 $comments = BlogComment::approvedForPost((int) $post->id, $tenantId, 300);

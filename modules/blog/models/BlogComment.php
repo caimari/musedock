@@ -69,6 +69,55 @@ class BlogComment extends Model
             ->count();
     }
 
+    /**
+     * Sistema de comentarios del sitio (ajuste blog_comments_mode):
+     *  - on          (por defecto) comentarios activos; las entradas nuevas los traen activados.
+     *  - off_default los comentarios siguen disponibles, pero las entradas nuevas los traen apagados; se activan entrada a entrada.
+     *  - off         sistema apagado: no se muestran ni se aceptan comentarios en ninguna entrada.
+     * Sin argumento usa el sitio actual (tenant o CMS principal); con $tenantId lee el de ese sitio (null/0 = CMS principal).
+     */
+    public const COMMENTS_ON = 'on';
+    public const COMMENTS_OFF_DEFAULT = 'off_default';
+    public const COMMENTS_OFF = 'off';
+
+    public static function commentsMode(?int $tenantId = null): string
+    {
+        try {
+            if (func_num_args() === 0) {
+                $mode = (string) site_setting('blog_comments_mode', self::COMMENTS_ON);
+            } else {
+                $pdo = Database::connect();
+                $keyCol = Database::qi('key');
+                if ($tenantId) {
+                    $st = $pdo->prepare("SELECT value FROM tenant_settings WHERE tenant_id = ? AND {$keyCol} = 'blog_comments_mode'");
+                    $st->execute([$tenantId]);
+                } else {
+                    $st = $pdo->prepare("SELECT value FROM settings WHERE {$keyCol} = 'blog_comments_mode'");
+                    $st->execute();
+                }
+                $mode = (string) ($st->fetchColumn() ?: self::COMMENTS_ON);
+            }
+        } catch (\Throwable $e) {
+            return self::COMMENTS_ON;
+        }
+
+        return in_array($mode, [self::COMMENTS_ON, self::COMMENTS_OFF_DEFAULT, self::COMMENTS_OFF], true) ? $mode : self::COMMENTS_ON;
+    }
+
+    /** ¿El sistema de comentarios del sitio está encendido? (apagado = ninguna entrada los muestra ni los acepta) */
+    public static function commentsSystemEnabled(): bool
+    {
+        return self::commentsMode() !== self::COMMENTS_OFF;
+    }
+
+    /** Valor de «Permitir comentarios» para una entrada nueva (1/0) según el ajuste del sitio. */
+    public static function defaultAllowForNewPosts(?int $tenantId = null): int
+    {
+        $mode = func_num_args() === 0 ? self::commentsMode() : self::commentsMode($tenantId);
+
+        return $mode === self::COMMENTS_ON ? 1 : 0;
+    }
+
     public static function moderationMode(): string
     {
         $mode = (string) site_setting('blog_comments_approval_mode', self::MODERATION_TRUSTED_AUTHORS);

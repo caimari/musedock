@@ -250,6 +250,19 @@
         </div>
         <div class="card-body">
           <div class="mb-3" style="max-width: 560px;">
+            <label class="form-label" for="blog_comments_mode">Sistema de comentarios</label>
+            @php
+              $commentsMode = (string)($settings['blog_comments_mode'] ?? 'on');
+            @endphp
+            <select class="form-select" id="blog_comments_mode" name="blog_comments_mode">
+              <option value="on" @if($commentsMode === 'on') selected @endif>Activado: las entradas nuevas admiten comentarios</option>
+              <option value="off_default" @if($commentsMode === 'off_default') selected @endif>Apagado por defecto: las entradas nuevas no los traen, pero se pueden activar entrada a entrada</option>
+              <option value="off" @if($commentsMode === 'off') selected @endif>Desactivado del todo: no se muestran ni se aceptan comentarios en ninguna entrada</option>
+            </select>
+            <small class="text-muted d-block mt-1">«Apagado por defecto» no cambia las entradas ya publicadas; solo el valor inicial de las nuevas. Con «Desactivado del todo» los comentarios ya recibidos se conservan, pero dejan de mostrarse.</small>
+          </div>
+
+          <div class="mb-3" style="max-width: 560px;">
             <label class="form-label" for="blog_comments_approval_mode">Aprobación de comentarios</label>
             @php
               $approvalMode = (string)($settings['blog_comments_approval_mode'] ?? 'trusted_authors');

@@ -126,6 +126,19 @@ class PostController
     // =========================================================================
     // POST /api/v1/posts — Create post
     // =========================================================================
+    /** «Permitir comentarios» inicial de una entrada nueva según el ajuste blog_comments_mode del sitio (1 si no se puede leer). */
+    private function defaultAllowComments(int $tenantId): int
+    {
+        try {
+            if (!class_exists('Blog\Models\BlogComment', false)) {
+                require_once dirname(__DIR__, 4) . '/modules/blog/models/BlogComment.php';
+            }
+            return \Blog\Models\BlogComment::defaultAllowForNewPosts($tenantId);
+        } catch (\Throwable $e) {
+            return 1;
+        }
+    }
+
     public function store()
     {
         ApiKeyAuth::requirePermission('posts.create');
@@ -188,7 +201,7 @@ class PostController
             'visibility'           => 'public',
             'published_at'         => $publishedAt,
             'base_locale'          => $input['base_locale'] ?? 'es',
-            'allow_comments'       => 1,
+            'allow_comments'       => $this->defaultAllowComments((int) $tenantId),
             'featured'             => 0,
             'seo_title'            => ContentPolicy::plain($input['seo_title'] ?? null),
             'seo_description'      => ContentPolicy::plain($input['seo_description'] ?? null),

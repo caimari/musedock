@@ -71,7 +71,7 @@ class BlogCommentController
 
         $postUrl = blog_url($post->slug) . '#comments';
 
-        if (!(bool) $post->allow_comments) {
+        if (!(bool) $post->allow_comments || !\Blog\Models\BlogComment::commentsSystemEnabled()) {
             flash('error', 'Los comentarios están desactivados para este post.');
             header('Location: ' . $postUrl);
             exit;

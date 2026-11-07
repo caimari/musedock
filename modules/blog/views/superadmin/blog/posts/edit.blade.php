@@ -352,6 +352,9 @@
                 <label class="form-check-label" for="allow_comments">
                   {{ __('blog.post.allow_comments') }}
                 </label>
+                @if(\Blog\Models\BlogComment::commentsMode() === 'off')
+                  <small class="text-muted d-block">El sistema de comentarios está apagado en el CMS principal (Ajustes → Lectura): no se mostrarán aunque la marques.</small>
+                @endif
               </div>
 
               {{-- Mostrar el número de visitas (desactivado por defecto) --}}

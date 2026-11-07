@@ -100,6 +100,18 @@ final class Content
         }
         throw new RuntimeException('Herramienta no autorizada.');
     }
+    /** «Permitir comentarios» inicial de una entrada nueva según el ajuste blog_comments_mode del sitio (1 si no se puede leer). */
+    private function defaultAllowComments(?int $site): int
+    {
+        try {
+            if (!class_exists('Blog\Models\BlogComment', false)) {
+                require_once dirname(__DIR__, 4) . '/modules/blog/models/BlogComment.php';
+            }
+            return \Blog\Models\BlogComment::defaultAllowForNewPosts($site);
+        } catch (\Throwable $e) {
+            return 1;
+        }
+    }
     private function fields(array $args): array
     {
         $data=[];
@@ -170,7 +182,7 @@ final class Content
             } else {
                 $slug=$this->slug($f['title']); $base=$slug; $n=1;
                 while ($this->query('SELECT id FROM blog_posts WHERE COALESCE(tenant_id,0)=? AND slug=?',[$site,$slug])) $slug=$base.'-'.++$n;
-                $row=$f+['tenant_id'=>$site?:null,'user_id'=>abs($actor),'user_type'=>($auth && !str_starts_with($auth['resource']['id'],'tenant:')) || $site===0 ? 'superadmin' : ($actor>0?'admin':'user'),'slug'=>$slug,'status'=>'draft','visibility'=>'public','published_at'=>null,'allow_comments'=>1,'created_at'=>$now,'updated_at'=>$now];
+                $row=$f+['tenant_id'=>$site?:null,'user_id'=>abs($actor),'user_type'=>($auth && !str_starts_with($auth['resource']['id'],'tenant:')) || $site===0 ? 'superadmin' : ($actor>0?'admin':'user'),'slug'=>$slug,'status'=>'draft','visibility'=>'public','published_at'=>null,'allow_comments'=>\Blog\Models\BlogComment::defaultAllowForNewPosts($site?:null),'created_at'=>$now,'updated_at'=>$now];
                 $driver=$this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
                 $insert=$this->db->prepare('INSERT INTO blog_posts('.implode(',',array_keys($row)).') VALUES('.implode(',',array_fill(0,count($row),'?')).')'.($driver==='pgsql'?' RETURNING id':''));
                 $insert->execute(array_values($row));
