@@ -73,6 +73,11 @@ class Database
             }
         }
 
+        // Medición de consultas SQL de la instrumentación (solo si la petición está muestreada)
+        if (class_exists(\Screenart\Musedock\Observability\RequestProfiler::class, false)) {
+            \Screenart\Musedock\Observability\RequestProfiler::attach(self::$connection);
+        }
+
         return self::$connection;
     }
 

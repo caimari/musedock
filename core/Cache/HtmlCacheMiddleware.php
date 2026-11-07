@@ -125,6 +125,9 @@ class HtmlCacheMiddleware
             http_response_code(200);
             header('Content-Type: text/html; charset=UTF-8');
             header('Content-Length: ' . $size);
+            if (class_exists(\Screenart\Musedock\Observability\RequestProfiler::class, false)) {
+                \Screenart\Musedock\Observability\RequestProfiler::cache('hit', $tenantId);
+            }
             header('X-Cache: HIT');
             header('X-Cache-Date: ' . gmdate('D, d M Y H:i:s', filemtime($cachePath)) . ' GMT');
 
@@ -246,6 +249,9 @@ class HtmlCacheMiddleware
     {
         self::$uri = $uri;
         self::$capturing = true;
+        if (class_exists(\Screenart\Musedock\Observability\RequestProfiler::class, false)) {
+            \Screenart\Musedock\Observability\RequestProfiler::cache('miss');
+        }
         ob_start();
     }
 
@@ -444,6 +450,9 @@ class HtmlCacheMiddleware
                 ]);
             }
             $pdo = $GLOBALS['__musedock_pdo'];
+            if (class_exists(\Screenart\Musedock\Observability\RequestProfiler::class, false)) {
+                \Screenart\Musedock\Observability\RequestProfiler::attach($pdo);
+            }
 
             // Try tenants table first (exact match or without www)
             $stmt = $pdo->prepare("SELECT id FROM tenants WHERE (domain = ? OR domain = ?) AND status = 'active' LIMIT 1");

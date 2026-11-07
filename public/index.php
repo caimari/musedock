@@ -87,6 +87,10 @@ if (!$vendorExists) {
 require_once __DIR__ . '/../core/Env.php';
 \Screenart\Musedock\Env::load();
 
+// Instrumentación opcional (PERF_SAMPLE_RATE en .env; apagada por defecto): ver core/Observability/RequestProfiler.php
+require_once __DIR__ . '/../core/Observability/RequestProfiler.php';
+\Screenart\Musedock\Observability\RequestProfiler::start();
+
 // =========== DIRECCIÓN CANÓNICA: www.<dominio> → <dominio> (301) ===========
 // Una sola dirección por sitio para Google y una sola copia en la caché HTML.
 require_once __DIR__ . '/../core/Services/CanonicalHost.php';
@@ -283,6 +287,7 @@ if (!MUSEDOCK_STATELESS_REQUEST && session_status() !== PHP_SESSION_ACTIVE) {
 
 // 2. Resolver tenant
 // Asegúrate que TenantResolver no genere excepciones fatales no capturadas
+\Screenart\Musedock\Observability\RequestProfiler::mark('tenant_start');
 try {
     $tenantResolved = (new \Screenart\Musedock\Middlewares\TenantResolver())->handle();
     Logger::debug("TenantResolver ejecutado.", ['resolved' => $tenantResolved, 'tenant_global' => isset($GLOBALS['tenant']) ? $GLOBALS['tenant']['id'] ?? 'N/A' : 'No']);
@@ -292,6 +297,7 @@ try {
      // Por ahora, solo logueamos y continuamos.
      $tenantResolved = false;
 }
+\Screenart\Musedock\Observability\RequestProfiler::mark('tenant_end');
 
 
 // 3. Cargar módulos SIEMPRE (tanto para tenant como para superadmin)
@@ -301,12 +307,15 @@ if (isset($GLOBALS['tenant'])) {
 } else {
     Logger::debug("Cargando módulos para modo superadmin/global");
 }
+\Screenart\Musedock\Observability\RequestProfiler::mark('modules_start');
 require_once __DIR__ . '/../core/modules_loader.php';
+\Screenart\Musedock\Observability\RequestProfiler::mark('modules_end');
 
 // 3.1 Cargar plugins por tenant (aislados)
 // Los plugins son módulos privados específicos de cada tenant
 Logger::debug("Cargando plugins por tenant...");
 require_once __DIR__ . '/../core/plugins_loader.php';
+\Screenart\Musedock\Observability\RequestProfiler::mark('plugins_end');
 Logger::debug("Plugins por tenant cargados.");
 
 // 3.2 Cargar plugins de superadmin (aislados del dominio base)

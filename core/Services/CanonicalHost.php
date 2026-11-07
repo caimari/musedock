@@ -50,6 +50,9 @@ class CanonicalHost
                 ]);
             }
             $pdo = $GLOBALS['__musedock_pdo'];
+            if (class_exists(\Screenart\Musedock\Observability\RequestProfiler::class, false)) {
+                \Screenart\Musedock\Observability\RequestProfiler::attach($pdo);
+            }
             $stmt = $pdo->prepare("SELECT 1 FROM tenants WHERE domain = ? AND status = 'active' LIMIT 1");
             $stmt->execute([$domain]);
             if ($stmt->fetchColumn()) {
