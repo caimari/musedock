@@ -93,14 +93,14 @@
     {{-- Paso de confirmación: la baja solo se hace al pulsar el botón --}}
     <form method="POST" action="{{ $nl_action ?? '' }}" class="nl-status-actions">
       {!! csrf_field() !!}
-      <button type="submit" class="nl-btn nl-btn-primary" style="background:#c0392b;cursor:pointer;">Sí, darme de baja</button>
-      <a href="{{ url('/') }}" class="nl-btn nl-btn-ghost">No, seguir suscrito</a>
+      <button type="submit" class="nl-btn nl-btn-primary" style="background:#c0392b;cursor:pointer;">{{ ($nl_lang ?? 'es') === 'en' ? 'Yes, unsubscribe me' : 'Sí, darme de baja' }}</button>
+      <a href="{{ url('/') }}" class="nl-btn nl-btn-ghost">{{ ($nl_lang ?? 'es') === 'en' ? 'No, keep me subscribed' : 'No, seguir suscrito' }}</a>
     </form>
     @else
     <div class="nl-status-actions">
-      <a href="{{ url('/') }}" class="nl-btn nl-btn-primary">Volver al inicio</a>
+      <a href="{{ url('/') }}" class="nl-btn nl-btn-primary">{{ ($nl_lang ?? 'es') === 'en' ? 'Back to home' : 'Volver al inicio' }}</a>
       @if(($nl_showResubscribe ?? false))
-      <a href="{{ url('/') }}#newsletter" class="nl-btn nl-btn-ghost">Volver a suscribirme</a>
+      <a href="{{ url('/') }}#newsletter" class="nl-btn nl-btn-ghost">{{ ($nl_lang ?? 'es') === 'en' ? 'Subscribe again' : 'Volver a suscribirme' }}</a>
       @endif
     </div>
     @endif

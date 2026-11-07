@@ -95,9 +95,12 @@ class NewsletterController
 
         // Lista de espera del alta (/register): el correo habla del aviso de apertura, no de la newsletter
         $isWaitlist = \Screenart\Musedock\Services\NewsletterCampaignService::isWaitlist($sourceUrl);
-        $hello = "<p>Hola" . ($name ? ' ' . htmlspecialchars($name) : '') . ",</p>";
+        $en = $this->nlLang() === 'en';
+        $confirmUrl .= (strpos($confirmUrl, '?') === false ? '?' : '&') . 'lang=' . ($en ? 'en' : 'es');
+        $hello = "<p>" . ($en ? 'Hello' : 'Hola') . ($name ? ' ' . htmlspecialchars($name) : '') . ",</p>";
         $button = fn (string $label) => "<p><a href='" . htmlspecialchars($confirmUrl) . "' style='display:inline-block;background:#0d6efd;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;'>" . $label . "</a></p>";
-        $optOut = "<p>Si no fuiste tú, ignora este correo o date de baja aquí: <a href='" . htmlspecialchars($unsubscribeUrl) . "'>" . htmlspecialchars($unsubscribeUrl) . "</a></p>";
+        // Correo de confirmación: solo el enlace para confirmar; la baja va en los envíos de la newsletter
+        $optOut = "<p>" . ($en ? 'If it was not you, just ignore this email and you will not be subscribed.' : 'Si no fuiste tú, ignora este correo y no se te suscribirá.') . "</p>";
 
         if ($isWaitlist) {
             $subject = 'Confirma tu email y te avisamos cuando abra ' . $siteName;
@@ -108,12 +111,14 @@ class NewsletterController
             $text = "Confirma tu email y te avisaremos cuando abra el alta: " . $confirmUrl . "\n"
                   . "Baja directa: " . $unsubscribeUrl;
         } else {
-            $subject = 'Confirma tu suscripción';
-            $html = "<h2>Confirma tu suscripción</h2>" . $hello
-                  . "<p>Para completar tu alta en la newsletter de <strong>" . htmlspecialchars($siteName) . "</strong>, confirma tu email:</p>"
-                  . $button('Confirmar suscripción') . $optOut;
-            $text = "Confirma tu suscripción: " . $confirmUrl . "\n"
-                  . "Baja directa: " . $unsubscribeUrl;
+            $subject = $en ? 'Confirm your subscription' : 'Confirma tu suscripción';
+            $html = "<h2>" . ($en ? 'Confirm your subscription' : 'Confirma tu suscripción') . "</h2>" . $hello
+                  . ($en
+                      ? "<p>To complete your sign-up to the <strong>" . htmlspecialchars($siteName) . "</strong> newsletter, please confirm your email:</p>"
+                      : "<p>Para completar tu alta en la newsletter de <strong>" . htmlspecialchars($siteName) . "</strong>, confirma tu email:</p>")
+                  . $button($en ? 'Confirm subscription' : 'Confirmar suscripción') . $optOut;
+            $text = ($en ? 'Confirm your subscription: ' : 'Confirma tu suscripción: ') . $confirmUrl . "\n"
+                  . ($en ? 'If it was not you, ignore this email.' : 'Si no fuiste tú, ignora este correo.');
         }
 
         $sent = Mailer::send($email, $subject, $html, $text, null, null, $tenantId !== null ? (int)$tenantId : null);
@@ -127,6 +132,68 @@ class NewsletterController
         exit;
     }
 
+    /** Idioma de las páginas de confirmación/baja: ?lang=es|en del enlace del correo, si no el del navegador y, por defecto, español. */
+    private function nlLang(): string
+    {
+        $l = strtolower((string) ($_GET['lang'] ?? $_POST['lang'] ?? ''));
+        if (in_array($l, ['es', 'en'], true)) {
+            return $l;
+        }
+        foreach (explode(',', (string) ($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '')) as $part) {
+            $c = strtolower(substr(trim(explode(';', $part)[0]), 0, 2));
+            if (in_array($c, ['es', 'en'], true)) {
+                return $c;
+            }
+        }
+
+        return 'es';
+    }
+
+    /** Texto de las páginas de estado en el idioma de la persona. */
+    private function nlText(string $key, string $masked = ''): string
+    {
+        static $T = [
+            'es' => [
+                'bad_confirm_t' => 'Enlace no válido',
+                'bad_confirm' => 'Este enlace de confirmación no es válido o ya ha caducado. Si quieres suscribirte, vuelve a introducir tu email desde la página de inicio.',
+                'wl_already_t' => '¡Ya estabas en la lista!', 'wl_done_t' => '¡Estás en la lista de espera!',
+                'wl_done' => 'Gracias por confirmar tu email. Te avisaremos en cuanto abra el alta de nuevos sitios. Puedes darte de baja cuando quieras desde el enlace del correo.',
+                'ok_already_t' => '¡Ya estabas suscrito!', 'ok_done_t' => '¡Suscripción confirmada!',
+                'ok_already' => 'Tu email ya estaba confirmado. Seguirás recibiendo nuestras novedades.',
+                'ok_done' => 'Gracias por confirmar. A partir de ahora recibirás nuestras novedades por email. Puedes darte de baja cuando quieras desde cualquier correo.',
+                'bad_unsub_t' => 'Enlace no válido',
+                'bad_unsub' => 'Este enlace de baja no es válido o ya ha caducado. Si sigues recibiendo correos, contáctanos y lo resolvemos.',
+                'ask_wl_t' => '¿Salir de la lista de espera?', 'ask_t' => '¿Darte de baja de la newsletter?',
+                'ask_wl' => 'Si confirmas, %s saldrá de la lista de espera y no te avisaremos cuando abra el alta.',
+                'ask' => 'Si confirmas, %s dejará de recibir nuestros correos.',
+                'un_already_t' => 'Ya estabas dado de baja', 'un_done_t' => 'Te has dado de baja',
+                'un_already' => 'Este email ya no estaba suscrito. No recibirás más correos de nuestra newsletter.',
+                'un_wl' => 'Has salido de la lista de espera. No te escribiremos cuando abra el alta.',
+                'un_done' => 'Hemos procesado tu baja. No volverás a recibir correos de nuestra newsletter. Sentimos verte marchar.',
+            ],
+            'en' => [
+                'bad_confirm_t' => 'Invalid link',
+                'bad_confirm' => 'This confirmation link is not valid or has expired. If you want to subscribe, enter your email again from the home page.',
+                'wl_already_t' => 'You were already on the list!', 'wl_done_t' => 'You are on the waiting list!',
+                'wl_done' => 'Thanks for confirming your email. We will let you know as soon as sign-ups open. You can unsubscribe at any time from the link in the email.',
+                'ok_already_t' => 'You were already subscribed!', 'ok_done_t' => 'Subscription confirmed!',
+                'ok_already' => 'Your email was already confirmed. You will keep receiving our news.',
+                'ok_done' => 'Thanks for confirming. From now on you will receive our news by email. You can unsubscribe at any time from any email.',
+                'bad_unsub_t' => 'Invalid link',
+                'bad_unsub' => 'This unsubscribe link is not valid or has expired. If you keep receiving emails, contact us and we will sort it out.',
+                'ask_wl_t' => 'Leave the waiting list?', 'ask_t' => 'Unsubscribe from the newsletter?',
+                'ask_wl' => 'If you confirm, %s will leave the waiting list and we will not notify you when sign-ups open.',
+                'ask' => 'If you confirm, %s will stop receiving our emails.',
+                'un_already_t' => 'You were already unsubscribed', 'un_done_t' => 'You have unsubscribed',
+                'un_already' => 'This email was not subscribed. You will not receive any more emails from our newsletter.',
+                'un_wl' => 'You have left the waiting list. We will not write to you when sign-ups open.',
+                'un_done' => 'Your unsubscription has been processed. You will not receive any more emails from our newsletter. We are sorry to see you go.',
+            ],
+        ];
+
+        return sprintf($T[$this->nlLang()][$key] ?? $T['es'][$key] ?? $key, $masked);
+    }
+
     public function confirm(string $token)
     {
         $pdo = Database::connect();
@@ -137,8 +204,8 @@ class NewsletterController
         if (!$row) {
             echo $this->renderStatus(
                 'error',
-                'Enlace no válido',
-                'Este enlace de confirmación no es válido o ya ha caducado. Si quieres suscribirte, vuelve a introducir tu email desde la página de inicio.',
+                $this->nlText('bad_confirm_t'),
+                $this->nlText('bad_confirm'),
                 true
             );
             exit;
@@ -170,8 +237,8 @@ class NewsletterController
         if (\Screenart\Musedock\Services\NewsletterCampaignService::isWaitlist($row['source_url'] ?? null)) {
             echo $this->renderStatus(
                 'confirmed',
-                $already ? '¡Ya estabas en la lista!' : '¡Estás en la lista de espera!',
-                'Gracias por confirmar tu email. Te avisaremos en cuanto abra el alta de nuevos sitios. Puedes darte de baja cuando quieras desde el enlace del correo.',
+                $this->nlText($already ? 'wl_already_t' : 'wl_done_t'),
+                $this->nlText('wl_done'),
                 false
             );
             exit;
@@ -179,10 +246,8 @@ class NewsletterController
 
         echo $this->renderStatus(
             'confirmed',
-            $already ? '¡Ya estabas suscrito!' : '¡Suscripción confirmada!',
-            $already
-                ? 'Tu email ya estaba confirmado. Seguirás recibiendo nuestras novedades.'
-                : 'Gracias por confirmar. A partir de ahora recibirás nuestras novedades por email. Puedes darte de baja cuando quieras desde cualquier correo.',
+            $this->nlText($already ? 'ok_already_t' : 'ok_done_t'),
+            $this->nlText($already ? 'ok_already' : 'ok_done'),
             false
         );
         exit;
@@ -198,8 +263,8 @@ class NewsletterController
         if (!$row) {
             echo $this->renderStatus(
                 'error',
-                'Enlace no válido',
-                'Este enlace de baja no es válido o ya ha caducado. Si sigues recibiendo correos, contáctanos y lo resolvemos.',
+                $this->nlText('bad_unsub_t'),
+                $this->nlText('bad_unsub'),
                 false
             );
             exit;
@@ -215,12 +280,11 @@ class NewsletterController
             $masked = mb_substr($user, 0, 2) . str_repeat('•', max(1, mb_strlen($user) - 2)) . '@' . $domain;
             echo View::renderTheme('newsletter-status', [
                 'nl_state' => 'confirm_unsubscribe',
-                'nl_title' => $isWaitlist ? '¿Salir de la lista de espera?' : '¿Darte de baja de la newsletter?',
-                'nl_message' => $isWaitlist
-                    ? "Si confirmas, {$masked} saldrá de la lista de espera y no te avisaremos cuando abra el alta."
-                    : "Si confirmas, {$masked} dejará de recibir nuestros correos.",
+                'nl_title' => $this->nlText($isWaitlist ? 'ask_wl_t' : 'ask_t'),
+                'nl_message' => $this->nlText($isWaitlist ? 'ask_wl' : 'ask', $masked),
                 'nl_showResubscribe' => false,
-                'nl_action' => $this->absoluteUrl('/newsletter/unsubscribe/' . urlencode($token)),
+                'nl_lang' => $this->nlLang(),
+                'nl_action' => $this->absoluteUrl('/newsletter/unsubscribe/' . urlencode($token)) . '?lang=' . $this->nlLang(),
             ]);
             exit;
         }
@@ -232,12 +296,10 @@ class NewsletterController
 
         echo $this->renderStatus(
             'unsubscribed',
-            $already ? 'Ya estabas dado de baja' : 'Te has dado de baja',
+            $this->nlText($already ? 'un_already_t' : 'un_done_t'),
             $already
-                ? 'Este email ya no estaba suscrito. No recibirás más correos de nuestra newsletter.'
-                : ($isWaitlist
-                    ? 'Has salido de la lista de espera. No te escribiremos cuando abra el alta.'
-                    : 'Hemos procesado tu baja. No volverás a recibir correos de nuestra newsletter. Sentimos verte marchar.'),
+                ? $this->nlText('un_already')
+                : ($isWaitlist ? $this->nlText('un_wl') : $this->nlText('un_done')),
             true
         );
         exit;
@@ -253,6 +315,7 @@ class NewsletterController
             'nl_title' => $title,
             'nl_message' => $message,
             'nl_showResubscribe' => $showResubscribe,
+            'nl_lang' => $this->nlLang(),
         ]);
     }
 
