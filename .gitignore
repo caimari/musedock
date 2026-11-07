@@ -150,3 +150,9 @@ public/assets/cache/
 
 # IndexNow: fichero de clave generado por instalación (Search Console)
 /public/????????????????????????????????.txt
+
+# Datos y medios del servidor (no son código): ni de tenants ni del CMS principal
+/storage/storage/
+/public/storage/
+/storage/caddy-cache-update.txt
+/modules/*.zip
