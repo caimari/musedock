@@ -84,23 +84,20 @@
 
                             @if($showFooterLangSelector)
                             <div class="language-selector my-4 text-left">
-                                <form action="" method="get" id="language-form" class="d-inline-block">
-                                    <select name="lang" id="language-select" aria-label="{{ $currentLang === 'en' ? 'Select language' : 'Seleccionar idioma' }}" onchange="this.form.submit();" style="
-                                        border: 1px solid #000;
-                                        border-radius: 4px;
-                                        padding: 8px 12px;
-                                        font-size: 14px;
-                                        color: #000;
-                                        background-color: transparent;
-                                        cursor: pointer;
-                                    ">
+                                <div class="lang-select footer-language-select">
+                                    <button type="button" class="lang-btn">
                                         @foreach($activeLanguages as $lang)
-                                            <option value="{{ $lang['code'] }}" {{ $currentLang == $lang['code'] ? 'selected' : '' }}>
-                                                {{ $lang['name'] }}
-                                            </option>
+                                            @if($currentLang == $lang['code'])
+                                                {{ $lang['name'] ?? strtoupper($lang['code']) }}
+                                            @endif
                                         @endforeach
-                                    </select>
-                                </form>
+                                    </button>
+                                    <div class="lang-dropdown">
+                                        @foreach($activeLanguages as $lang)
+                                            <a href="?lang={{ $lang['code'] }}" class="lang-option {{ $currentLang == $lang['code'] ? 'active' : '' }}">{{ $lang['name'] ?? strtoupper($lang['code']) }}</a>
+                                        @endforeach
+                                    </div>
+                                </div>
                             </div>
                             @endif
                          </div>

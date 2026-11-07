@@ -731,6 +731,18 @@
           "depends_on": "blog.blog_layout=newspaper",
           "description": "Muestra el titulo, categorias, autor y fecha superpuestos sobre la imagen en los posts grandes de portada"
         },
+        "comment_button_bg": {
+          "type": "color",
+          "label": "Comentarios: fondo del botón",
+          "default": "#f1f3f5",
+          "description": "Color del botón Publicar comentario en este sitio"
+        },
+        "comment_button_text": {
+          "type": "color",
+          "label": "Comentarios: texto del botón",
+          "default": "#111111",
+          "description": "Color del texto elegido para el botón de comentarios"
+        },
         "blog_header_ticker": {
           "type": "toggle",
           "label": "Mostrar barra de Top Tags + Latest Post",

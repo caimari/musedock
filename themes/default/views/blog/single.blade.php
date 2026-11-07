@@ -197,7 +197,13 @@
                 {{-- Comentarios --}}
                 @if($post->allow_comments)
                 <div id="comments" class="mt-5 pt-4 border-top">
-                    <h3 class="mb-4">{{ __('blog.comments') }} ({{ (int)($commentsCount ?? 0) }})</h3>
+                    <style>
+                    #comments .md-comments-heading { display: flex; align-items: center; gap: 9px; font-size: 1.125rem !important; font-weight: 600; line-height: 1.5; margin: 0 0 18px; letter-spacing: normal; text-transform: none; }
+                    #comments .md-comments-count { display: inline-flex; align-items: center; justify-content: center; min-width: 25px; height: 25px; padding: 0 7px; border-radius: 20px; background: #f1f3f5; color: #596273; font-size: .75rem; font-weight: 500; line-height: 1; }
+                    #comments .md-comments-empty { font-size: .875rem; margin-bottom: 20px; }
+                    #comments .md-comments-form-heading { font-size: 1rem !important; font-weight: 500; line-height: 1.5; }
+                    </style>
+                    <h3 class="md-comments-heading">{{ __('blog.comments') }} <span class="md-comments-count">{{ (int)($commentsCount ?? 0) }}</span></h3>
 
                     @if (session('success'))
                         <div class="alert alert-success">{{ session('success') }}</div>
@@ -223,12 +229,42 @@
                             @endforeach
                         </div>
                     @else
-                        <p class="text-muted">{{ __('blog.no_comments') }}</p>
+                        <p class="text-muted md-comments-empty">{{ __('blog.no_comments') }}</p>
                     @endif
 
                     <div class="mt-4">
-                        <h4 class="h5 mb-3">{{ __('blog.leave_comment') }}</h4>
-                        <form method="POST" action="/blog/comments" class="row g-3">
+                        <h4 class="md-comments-form-heading mb-3">{{ __('blog.leave_comment') }}</h4>
+                        @php
+                            $commentAccent = (string) themeOption('blog.comment_button_bg', '#f1f3f5');
+                            if (!preg_match('/^#[0-9a-f]{6}$/i', $commentAccent)) $commentAccent = '#f1f3f5';
+                            $commentRgb = sscanf($commentAccent, '#%02x%02x%02x');
+                            $commentLuminance = 0;
+                            foreach ([0.2126, 0.7152, 0.0722] as $i => $weight) {
+                                $channel = $commentRgb[$i] / 255;
+                                $commentLuminance += $weight * ($channel <= 0.04045 ? $channel / 12.92 : pow(($channel + 0.055) / 1.055, 2.4));
+                            }
+                            $commentInk = $commentLuminance > 0.179 ? '#111111' : '#ffffff';
+                            $commentText = (string) themeOption('blog.comment_button_text', '');
+                            // Respect an explicit tenant text color; otherwise use automatic contrast.
+                            if (preg_match('/^#[0-9a-f]{6}$/i', $commentText)) $commentInk = $commentText;
+                        @endphp
+                        <style>
+                        .md-comment-form { --comment-accent: {{ $commentAccent }}; --comment-ink: {{ $commentInk }}; }
+                        .md-comment-form .form-label { font-size: .875rem; margin-bottom: 6px; }
+                        .md-comment-form .form-control { min-height: 42px; padding: 9px 12px; font-size: .9375rem; border-radius: 8px; }
+                        .md-comment-form textarea.form-control { min-height: 120px; height: 120px; resize: vertical; }
+                        .md-comment-form .form-control:focus { border-color: var(--comment-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--comment-accent) 20%, transparent); }
+                        .md-comment-website summary { cursor: pointer; font-size: .875rem; width: fit-content; }
+                        .md-comment-form .form-check-label { font-size: .875rem; line-height: 1.5; }
+                        .md-comment-form small { font-size: .8125rem; }
+                        .md-comment-form .md-comment-submit { appearance: none; display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 10px 20px; border: 1px solid color-mix(in srgb, var(--comment-accent) 65%, #64748b); border-radius: 6px; background: var(--comment-accent); color: var(--comment-ink); font: inherit; font-size: .875rem; font-weight: 500; line-height: 1.4; text-transform: none; letter-spacing: normal; cursor: pointer; transition: box-shadow .15s ease; }
+                        .md-comment-form .md-comment-submit:hover { background: var(--comment-accent); color: var(--comment-ink); box-shadow: inset 0 0 0 100px rgba(0,0,0,.04); }
+                        .md-comment-form .md-comment-submit::before, .md-comment-form .md-comment-submit::after { content: none !important; display: none !important; }
+                        .md-comment-form .md-comment-submit:focus-visible { outline: 2px solid var(--comment-accent); outline-offset: 3px; }
+                        @media(max-width: 575px) { .md-comment-form .md-comment-submit { width: 100%; } }
+                        @media(prefers-reduced-motion: reduce) { .md-comment-form .md-comment-submit { transition: none; } }
+                        </style>
+                        <form method="POST" action="/blog/comments" class="row g-3 md-comment-form">
                             @csrf
                             <input type="hidden" name="post_id" value="{{ (int)$post->id }}">
                             <div style="position:absolute;left:-9999px;" aria-hidden="true">
@@ -244,12 +280,14 @@
                                 <input type="email" name="author_email" class="form-control" maxlength="190" required>
                             </div>
                             <div class="col-12">
-                                <label class="form-label">{{ __('blog.comment_website_optional') }}</label>
-                                <input type="url" name="author_url" class="form-control" maxlength="500" placeholder="https://">
+                                <details class="md-comment-website">
+                                    <summary>{{ __('blog.comment_website_optional') }}</summary>
+                                    <input type="url" name="author_url" aria-label="{{ __('blog.comment_website_optional') }}" class="form-control mt-2" maxlength="500" placeholder="https://">
+                                </details>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">{{ __('blog.your_comment') }}</label>
-                                <textarea name="content" rows="5" class="form-control" maxlength="3000" required></textarea>
+                                <textarea name="content" rows="4" class="form-control" maxlength="3000" required></textarea>
                             </div>
                             @if(!empty($commentsCaptchaRequired))
                             <div class="col-12">
@@ -275,7 +313,7 @@
                                 <small class="text-muted d-block mt-1">{{ __('blog.comment_email_privacy_notice') }}</small>
                             </div>
                             <div class="col-12">
-                                <button type="submit" class="btn btn-primary">{{ __('blog.post_comment') }}</button>
+                                <button type="submit" class="md-comment-submit">{{ __('blog.post_comment') }}</button>
                             </div>
                         </form>
                     </div>

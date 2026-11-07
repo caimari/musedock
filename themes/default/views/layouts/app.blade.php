@@ -1675,15 +1675,9 @@ body.header-boxed main > .container-fluid {
     box-shadow: 0 8px 24px rgba(0,0,0,0.15);
     overflow: hidden;
 }
-/* Dark overlay layer on top of inherited bg */
+/* El desplegable usa el color de fondo de la cabecera (sin capa oscura encima) */
 .main-navigation .submenu::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.25);
-    border-radius: 6px;
-    pointer-events: none;
-    z-index: 0;
+    display: none;
 }
 .main-navigation li:hover > .submenu {
     display: block;
@@ -1699,6 +1693,12 @@ body.header-boxed main > .container-fluid {
     margin: 0;
     position: relative;
     z-index: 1;
+    /* línea sutil entre elementos, del color del texto del menú */
+    border-bottom: 1px solid rgba(128,128,128,0.22);
+    border-bottom-color: color-mix(in srgb, var(--header-link-color, #333) 14%, transparent);
+}
+.main-navigation .submenu li:last-child {
+    border-bottom: 0;
 }
 .main-navigation .submenu a {
     padding: 10px 18px;
@@ -1709,7 +1709,7 @@ body.header-boxed main > .container-fluid {
     display: block;
 }
 .main-navigation .submenu a:hover {
-    background: rgba(255,255,255,0.1);
+    background: rgba(128,128,128,0.10);
     color: var(--header-link-hover-color, #ff5e15);
 }
 /* Nested submenus (sub-sub) */
@@ -1791,107 +1791,50 @@ body.header-boxed main > .container-fluid {
     position: relative; /* Para posicionar el dropdown */
 }
 
-/* Botón que muestra el idioma actual */
-.lang-btn {
-    border: 1px solid var(--header-link-color, #333);
-    background: transparent;
-    padding: 6px 30px 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    position: relative;
-    min-width: 65px;
-    text-align: left;
-    font-size: 14px;
-    color: var(--header-link-color, #333);
-    opacity: 0.8;
+/* Selector de idioma neutro compartido por las cabeceras modulares. */
+.lang-select .lang-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+    background: transparent; padding: 7px 28px 7px 10px;
+    border-radius: 8px; cursor: pointer; position: relative;
+    min-width: 84px; min-height: 38px; text-align: left;
+    font-family: inherit; font-size: 13px; font-weight: 500; line-height: 1.4;
+    color: var(--header-link-color, #374151); opacity: 1;
+    transition: background-color .15s ease;
 }
-.lang-btn:hover { opacity: 1; }
+footer .lang-select .lang-btn, .footer-area .lang-select .lang-btn { color: var(--footer-text-color, #374151); }
+.lang-select .lang-btn::before {
+    content: ''; display: inline-block; width: 16px; height: 16px; flex-shrink: 0;
+    background: currentColor;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cellipse cx='12' cy='12' rx='4' ry='9'/%3E%3Cpath d='M3 12h18'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.lang-select .lang-btn::after {
+    content: ''; position: absolute; right: 11px; top: 50%; width: 6px; height: 6px;
+    border: 0; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+    transform: translateY(-70%) rotate(45deg); pointer-events: none;
+}
+.lang-select .lang-btn:hover { background: color-mix(in srgb, currentColor 5%, transparent); }
+.lang-select .lang-btn:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.lang-select .lang-dropdown {
+    position: absolute; top: calc(100% + 6px); right: 0; left: auto;
+    min-width: 148px; max-width: calc(100vw - 24px); background: #fff !important;
+    color: #374151 !important; border: 1px solid #e5e7eb !important;
+    border-radius: 8px; box-shadow: 0 6px 20px rgba(15,23,42,.09) !important;
+    z-index: 1000; display: none; padding: 4px; overflow: hidden !important;
+}
+.lang-select .lang-option {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 9px 10px; min-height: 38px; border-radius: 5px; text-decoration: none;
+    color: #374151 !important; background: transparent !important;
+    font-size: 14px; white-space: nowrap; text-align: left; line-height: 1.4;
+    transition: background-color .15s ease;
+}
+.lang-select .lang-option.active { color: #111827 !important; font-weight: 600; }
+.lang-select .lang-option.active::after { content: '\2713'; font-size: 14px; }
+.lang-select .lang-option:hover, .lang-select .lang-option:focus-visible { background: #f3f4f6 !important; color: #111827 !important; }
+@media(prefers-reduced-motion: reduce) { .lang-select .lang-btn, .lang-select .lang-option { transition: none; } }
 
-/* Header lang selector: adapt to header colors */
-.musedock-header .lang-btn {
-    color: var(--header-link-color, #333);
-    border-color: var(--header-link-color, #333);
-}
-.musedock-header .lang-btn::after {
-    border-color: var(--header-link-color, #333) transparent transparent transparent;
-}
-
-/* Footer lang selector: adapt to footer colors */
-.footer-area .lang-btn,
-footer .lang-btn {
-    color: var(--footer-text-color, #333);
-    border-color: var(--footer-text-color, #333);
-}
-footer .lang-btn::after,
-.footer-area .lang-btn::after {
-    border-color: var(--footer-text-color, #333) transparent transparent transparent;
-}
-
-/* Lang dropdown — siempre neutro */
-.lang-dropdown {
-    background: #fff !important;
-    color: #1f2937 !important;
-    border: 1px solid #e5e7eb !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
-}
-.lang-option {
-    color: #374151 !important;
-}
-.lang-option:hover {
-    background: #f3f4f6 !important;
-    color: #111827 !important;
-}
-.lang-option.active {
-    color: #2563eb !important;
-    font-weight: 600;
-    background: #eff6ff !important;
-}
-
-/* Flecha del dropdown */
-.lang-btn::after {
-    content: '';
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    border-width: 4px 4px 0 4px;
-    border-style: solid;
-    border-color: currentColor transparent transparent transparent;
-    pointer-events: none;
-}
-
-/* Contenedor del dropdown de idiomas */
-.lang-dropdown {
-    position: absolute;
-    top: calc(100% + 5px); /* Posición debajo del botón con un pequeño espacio */
-    left: 0;
-    min-width: 100%; /* Mismo ancho que el botón como mínimo */
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    z-index: 1000; /* Encima de otros elementos */
-    display: none; /* Oculto por defecto */
-    padding: 0; /* Evitar espacio extra encima/debajo de la primera opción */
-}
-
-/* Opciones individuales de idioma en el dropdown */
-.lang-option {
-    display: block;
-    padding: 10px 12px;
-    text-decoration: none;
-    color: #333;
-    font-size: 14px;
-    white-space: nowrap;
-    text-align: center; /* Centrar el texto para alinear los idiomas visualmente */
-    transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.lang-option.active, /* Estilo para el idioma actual */
-.lang-option:hover {  /* Estilo al pasar el ratón */
-    background-color: #f5f5f5;
-    color: var(--header-link-hover-color, #ff5e15);
-}
+.footer-language-select .lang-dropdown { top: auto; bottom: calc(100% + 6px); left: 0; right: auto; }
 
 /* Botón "Hamburguesa" para menú móvil */
 .menu-toggle {
@@ -2667,34 +2610,31 @@ document.querySelectorAll('.mobile-nav .mobile-item').forEach(function(item) {
 });
 
 // --- Control del Dropdown de Idioma (Escritorio) ---
-var langBtn = document.querySelector('.lang-btn');
-var langDropdown = document.querySelector('.lang-dropdown');
-
-if (langBtn && langDropdown) {
-    // Abrir/cerrar al hacer clic en el botón
-    langBtn.addEventListener('click', function(event) {
-        // Detiene la propagación para que el clic no llegue al 'document'
-        // y cierre el menú inmediatamente.
+document.querySelectorAll('.lang-select').forEach(function(selector) {
+    var button = selector.querySelector('.lang-btn');
+    var dropdown = selector.querySelector('.lang-dropdown');
+    if (!button || !dropdown) return;
+    button.setAttribute('aria-expanded', 'false');
+    button.setAttribute('aria-label', {!! json_encode(__('mobile_menu.select_language'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!});
+    selector.querySelectorAll('.lang-option.active').forEach(function(link) { link.setAttribute('aria-current', 'true'); });
+    function closeLanguageMenu() {
+        dropdown.style.display = 'none';
+        button.setAttribute('aria-expanded', 'false');
+    }
+    button.addEventListener('click', function(event) {
         event.stopPropagation();
-
-        // Comprueba si está visible y alterna
-        var isVisible = langDropdown.style.display === 'block';
-        langDropdown.style.display = isVisible ? 'none' : 'block';
+        var open = button.getAttribute('aria-expanded') === 'true';
+        document.querySelectorAll('.lang-select .lang-btn[aria-expanded="true"]').forEach(function(other) { if (other !== button) other.click(); });
+        dropdown.style.display = open ? 'none' : 'block';
+        button.setAttribute('aria-expanded', String(!open));
     });
-
-    // Cerrar al hacer clic en una opción dentro del dropdown
-    langDropdown.addEventListener('click', function() {
-         langDropdown.style.display = 'none';
+    dropdown.addEventListener('click', closeLanguageMenu);
+    document.addEventListener('click', function(event) { if (!selector.contains(event.target)) closeLanguageMenu(); });
+    selector.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') { closeLanguageMenu(); button.focus(); }
     });
-
-    // Cerrar al hacer clic fuera del botón y del dropdown
-    document.addEventListener('click', function(event) {
-        // Comprueba si el clic NO fue en el botón Y NO fue dentro del dropdown
-        if (!langBtn.contains(event.target) && !langDropdown.contains(event.target)) {
-            langDropdown.style.display = 'none';
-        }
-    });
-}
+    selector.addEventListener('focusout', function(event) { if (!selector.contains(event.relatedTarget)) closeLanguageMenu(); });
+});
 
 // --- Control del Select de Idioma (Móvil) ---
 // La lógica principal ya está en el atributo `onchange` del HTML:
