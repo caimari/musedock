@@ -7,6 +7,19 @@
 .env.local
 .env.production
 .env.backup
+# Copias de seguridad del .env (.env.bak-FECHA, .env.bak.FECHA, .env.bak-mail-FECHA…): llevan claves
+.env.bak*
+
+# Archivos generados en el servidor (no son código)
+storage/logs/*
+!storage/logs/.gitkeep
+!storage/logs/.htaccess
+storage/packages/
+storage/edge-guard.lock
+storage/indexnow.json
+__pycache__/
+*.pyc
+/p404.html
 
 
 # Excepciones: mantener estos archivos de seguridad en control de versiones
