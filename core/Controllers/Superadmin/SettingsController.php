@@ -115,6 +115,11 @@ class SettingsController
                 $blogCommentsCaptchaThreshold = 200;
             }
 
+            $blogCommentsMode = (string)($_POST['blog_comments_mode'] ?? 'on');
+            if (!in_array($blogCommentsMode, ['on', 'off_default', 'off'], true)) {
+                $blogCommentsMode = 'on';
+            }
+
             $blogCommentsApprovalMode = (string)($_POST['blog_comments_approval_mode'] ?? 'trusted_authors');
             $validApprovalModes = ['manual', 'trusted_authors', 'auto_approve'];
             if (!in_array($blogCommentsApprovalMode, $validApprovalModes, true)) {
@@ -136,6 +141,7 @@ class SettingsController
                 'posts_per_page' => $_POST['posts_per_page'] ?? '10',
                 'posts_per_rss' => $_POST['posts_per_rss'] ?? '10',
                 'blog_public' => isset($_POST['blog_public']) ? '0' : '1',
+                'blog_comments_mode' => $blogCommentsMode,
                 'blog_comments_approval_mode' => $blogCommentsApprovalMode,
                 'blog_comments_spam_links_threshold' => (string)$blogCommentsSpamLinksThreshold,
                 'blog_comments_captcha_enabled' => isset($_POST['blog_comments_captcha_enabled']) ? '1' : '0',
