@@ -90,22 +90,8 @@
           <h5 class="mb-0">Política SMTP para tenants</h5>
         </div>
         <div class="card-body">
-          <div class="form-check form-switch">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              id="smtp_require_tenant_own"
-              name="smtp_require_tenant_own"
-              value="1"
-              {{ ($smtpRequireTenantOwn ?? '0') === '1' ? 'checked' : '' }}>
-            <label class="form-check-label" for="smtp_require_tenant_own">
-              Obligar SMTP propio por tenant
-            </label>
-          </div>
-          <small class="text-muted d-block mt-2">
-            Si está activo, los tenants no podrán usar el SMTP global del CMS y deberán configurar su propio proveedor.
-            Si está desactivado, por defecto usarán el SMTP global y podrán cambiar a SMTP propio desde su panel.
-          </small>
+          <p>Los tenants deben configurar SMTP propio. Los servidores del CMS están bloqueados por defecto, también como respaldo.</p>
+          <p class="mb-0">Para autorizar una excepción concreta, abre <a href="/musedock/tenants">Tenants → Editar tenant → Permiso de SMTP del CMS</a>. El tenant no puede concederse ese permiso desde su panel.</p>
         </div>
       </div>
 

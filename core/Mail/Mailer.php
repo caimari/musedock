@@ -57,8 +57,7 @@ class Mailer
                 return self::sendViaMail($to, $from, $fromName, $subject, $htmlBody, $textBody, $replyTo);
             }
 
-            // Failover: se prueba el SMTP configurado y, si falla (conexión, cuota, autenticación…),
-            // los servidores globales en orden (SMTP_* y SMTP_FALLBACK_*).
+            // El respaldo global solo está disponible en contexto CMS o con autorización del superadmin.
             $tried = [];
             foreach (self::smtpCandidates($config) as $i => $smtp) {
                 $id = strtolower($smtp['smtp_host'] . '|' . $smtp['smtp_username']);
@@ -95,6 +94,18 @@ class Mailer
         }
     }
 
+    /** ¿Puede este tenant (o el global si es null) enviar correo ahora mismo? No envía nada. */
+    public static function canSend(?int $tenantId = null): bool
+    {
+        try {
+            $config = self::resolveMailConfig(self::resolveTenantId($tenantId));
+
+            return (bool) ($config['enabled'] ?? true);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
     /**
      * Servidores SMTP a probar en orden: el configurado (tenant o global) y después
      * los globales (SMTP_* y SMTP_FALLBACK_*) como respaldo.
@@ -102,6 +113,7 @@ class Mailer
     private static function smtpCandidates(array $config): array
     {
         $list = [$config];
+        if (empty($config['allow_global_fallback'])) return $list;
 
         $global = self::globalMailConfig();
         if ($global['smtp_host'] !== '' && $global['smtp_username'] !== '' && $global['smtp_password'] !== '') {
@@ -417,21 +429,6 @@ class Mailer
     }
 
     /**
-     * Determina si el sistema obliga SMTP propio por tenant.
-     */
-    private static function requiresTenantSmtp(): bool
-    {
-        $raw = null;
-        if (function_exists('setting')) {
-            $raw = setting('smtp_require_tenant_own', '0');
-        } else {
-            $raw = getenv('SMTP_REQUIRE_TENANT_OWN') ?: '0';
-        }
-
-        return in_array((string)$raw, ['1', 'true', 'on', 'yes'], true);
-    }
-
-    /**
      * Configuración global de correo (.env).
      */
     private static function globalMailConfig(): array
@@ -442,6 +439,7 @@ class Mailer
         return [
             'enabled' => true,
             'source' => 'global',
+            'allow_global_fallback' => true,
             'mail_driver' => (string)(getenv('MAIL_DRIVER') ?: 'smtp'),
             'smtp_host' => (string)(getenv('SMTP_HOST') ?: ''),
             'smtp_port' => (int)(getenv('SMTP_PORT') ?: 587),
@@ -499,13 +497,19 @@ class Mailer
                 $tenantSettings[(string)$row['k']] = (string)($row['value'] ?? '');
             }
 
-            $forceOwn = self::requiresTenantSmtp();
-            $useGlobal = (($tenantSettings['smtp_use_global'] ?? '1') === '1') && !$forceOwn;
+            $allowGlobal = TenantSmtpPolicy::allowsGlobal($tenantId);
+            $forceOwn = !$allowGlobal;
+            $useGlobal = (($tenantSettings['smtp_use_global'] ?? '0') === '1') && $allowGlobal;
 
             if ($useGlobal) {
                 $global['source'] = 'global-fallback';
                 if (!empty($tenantSettings['mail_reply_to'])) {
                     $global['mail_reply_to'] = $tenantSettings['mail_reply_to'];
+                }
+                // El correo sale por la dirección del CMS, pero con el nombre visible del propio tenant
+                $tenantName = trim(preg_replace('/[\r\n]+/', ' ', (string)($tenantSettings['mail_from_name'] ?? '')));
+                if ($tenantName !== '') {
+                    $global['mail_from_name'] = $tenantName;
                 }
                 return $global;
             }
@@ -513,20 +517,21 @@ class Mailer
             $tenantConfig = [
                 'enabled' => true,
                 'source' => $forceOwn ? 'tenant-required' : 'tenant',
-                'mail_driver' => (string)($tenantSettings['mail_driver'] ?? $global['mail_driver']),
+                'allow_global_fallback' => $allowGlobal,
+                'mail_driver' => $forceOwn ? 'smtp' : (string)($tenantSettings['mail_driver'] ?? 'smtp'),
                 'smtp_host' => (string)($tenantSettings['smtp_host'] ?? ''),
                 'smtp_port' => (int)($tenantSettings['smtp_port'] ?? 587),
                 'smtp_username' => (string)($tenantSettings['smtp_username'] ?? ''),
-                'smtp_password' => (string)($tenantSettings['smtp_password'] ?? ''),
+                'smtp_password' => SmtpSecret::decrypt((string)($tenantSettings['smtp_password'] ?? '')),
                 'smtp_encryption' => (string)($tenantSettings['smtp_encryption'] ?? 'tls'),
-                'mail_from_address' => (string)($tenantSettings['mail_from_address'] ?? ('noreply@' . $hostFromAppUrl)),
-                'mail_from_name' => (string)($tenantSettings['mail_from_name'] ?? ($global['mail_from_name'] ?: 'MuseDock CMS')),
+                'mail_from_address' => (string)($tenantSettings['mail_from_address'] ?? ''),
+                'mail_from_name' => (string)($tenantSettings['mail_from_name'] ?? 'MuseDock'),
                 'mail_reply_to' => (string)($tenantSettings['mail_reply_to'] ?? ''),
                 'ehlo_domain' => $hostFromAppUrl,
             ];
 
             if (strtolower($tenantConfig['mail_driver']) === 'smtp' &&
-                (empty($tenantConfig['smtp_host']) || empty($tenantConfig['smtp_username']) || empty($tenantConfig['smtp_password']))) {
+                (empty($tenantConfig['smtp_host']) || empty($tenantConfig['smtp_username']) || empty($tenantConfig['smtp_password']) || !filter_var($tenantConfig['mail_from_address'], FILTER_VALIDATE_EMAIL) || $tenantConfig['smtp_port'] < 1 || $tenantConfig['smtp_port'] > 65535)) {
                 $tenantConfig['enabled'] = false;
             }
 
@@ -538,8 +543,8 @@ class Mailer
 
             return $tenantConfig;
         } catch (\Throwable $e) {
-            error_log('Mailer::resolveMailConfig error: ' . $e->getMessage());
-            return $global;
+            error_log('Mailer::resolveMailConfig: error leyendo configuración del tenant; envío bloqueado');
+            return ['enabled'=>false,'source'=>'tenant-config-error','allow_global_fallback'=>false];
         }
     }
 

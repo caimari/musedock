@@ -22,8 +22,8 @@
             <div class="row">
                 <div class="col-lg-8">
                     @php
-                        $smtpRequireTenantOwn = ($smtpRequireTenantOwn ?? '0') === '1';
-                        $smtpUseGlobal = ($settings['smtp_use_global'] ?? '1') === '1';
+                        $smtpRequireTenantOwn = ($smtpRequireTenantOwn ?? '1') === '1';
+                        $smtpUseGlobal = ($settings['smtp_use_global'] ?? '0') === '1';
                         if ($smtpRequireTenantOwn) {
                             $smtpUseGlobal = false;
                         }
@@ -37,7 +37,7 @@
                         <div class="card-body">
                             @if($smtpRequireTenantOwn)
                                 <div class="alert alert-warning mb-3">
-                                    El superadmin ha configurado este entorno para requerir SMTP propio por tenant.
+                                    Este tenant debe usar SMTP propio. Si falta configuración o el servidor falla, el correo no se enviará mediante los servidores del CMS.
                                 </div>
                             @endif
                             <div class="form-check form-switch">
@@ -57,7 +57,7 @@
                                 <input type="hidden" name="smtp_use_global" value="0">
                             @endif
                             <small class="text-muted d-block mt-2">
-                                Si lo desactivas, este tenant enviará con su propia configuración SMTP.
+                                Esta opción solo está disponible con autorización del superadministrador. Cuando está autorizada, los servidores del CMS también pueden actuar como respaldo.
                             </small>
                         </div>
                     </div>
@@ -72,10 +72,12 @@
                                 <div class="col-md-6">
                                     <label class="form-label">Driver de Email</label>
                                     <select name="mail_driver" class="form-select" {{ $smtpUseGlobal ? 'disabled' : '' }}>
-                                        @php $mailDriver = $settings['mail_driver'] ?? 'smtp'; @endphp
+                                        @php $mailDriver = $smtpRequireTenantOwn ? 'smtp' : ($settings['mail_driver'] ?? 'smtp'); @endphp
                                         <option value="smtp" {{ $mailDriver === 'smtp' ? 'selected' : '' }}>SMTP</option>
+                                        @if(!$smtpRequireTenantOwn)
                                         <option value="sendmail" {{ $mailDriver === 'sendmail' ? 'selected' : '' }}>Sendmail</option>
                                         <option value="mail" {{ $mailDriver === 'mail' ? 'selected' : '' }}>PHP Mail</option>
+                                        @endif
                                     </select>
                                     @if($smtpUseGlobal)
                                         <input type="hidden" name="mail_driver" value="{{ $mailDriver }}">

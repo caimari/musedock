@@ -901,7 +901,7 @@ class SettingsController
         return View::renderTenantAdmin('settings/email', [
             'title' => 'Configuración de Email',
             'settings' => $settings,
-            'smtpRequireTenantOwn' => (string)setting('smtp_require_tenant_own', '0'),
+            'smtpRequireTenantOwn' => \Screenart\Musedock\Mail\TenantSmtpPolicy::allowsGlobal((int)$tenantId) ? '0' : '1',
         ]);
     }
 
@@ -927,7 +927,7 @@ class SettingsController
             $currentSettings = $this->getTenantSettings($tenantId);
 
             $emailSettings = [
-                'smtp_use_global'    => isset($_POST['smtp_use_global']) ? '1' : '0',
+                'smtp_use_global'    => ($_POST['smtp_use_global'] ?? '0') === '1' ? '1' : '0',
                 'mail_driver'       => in_array($_POST['mail_driver'] ?? 'smtp', ['smtp', 'mail', 'sendmail'], true)
                     ? ($_POST['mail_driver'] ?? 'smtp')
                     : 'smtp',
@@ -942,9 +942,10 @@ class SettingsController
             ];
 
             // Política global: si superadmin obliga SMTP propio, desactivar uso global en tenant
-            $smtpRequireTenantOwn = (string)setting('smtp_require_tenant_own', '0') === '1';
+            $smtpRequireTenantOwn = !\Screenart\Musedock\Mail\TenantSmtpPolicy::allowsGlobal((int)$tenantId);
             if ($smtpRequireTenantOwn) {
                 $emailSettings['smtp_use_global'] = '0';
+                $emailSettings['mail_driver'] = 'smtp';
             }
 
             // Si el tenant usa SMTP global, no machacar su configuración propia guardada
@@ -965,6 +966,11 @@ class SettingsController
             // Solo actualizar contraseña si se proporcionó una nueva
             if (!empty($_POST['smtp_password'])) {
                 $emailSettings['smtp_password'] = $_POST['smtp_password'];
+            }
+
+            // La contraseña SMTP se guarda cifrada (también la que estaba en claro de antes)
+            if (!empty($emailSettings['smtp_password'])) {
+                $emailSettings['smtp_password'] = \Screenart\Musedock\Mail\SmtpSecret::encrypt((string)$emailSettings['smtp_password']);
             }
 
             foreach ($emailSettings as $key => $value) {

@@ -1068,7 +1068,6 @@ public function deleteFavicon()
         return View::renderSuperadmin('settings.email', [
             'title' => 'Configuración de Email',
             'envConfig' => $envConfig,
-            'smtpRequireTenantOwn' => (string)setting('smtp_require_tenant_own', '0'),
         ]);
     }
 
@@ -1101,22 +1100,7 @@ public function deleteFavicon()
 
         $this->updateEnvFile($envPath, $emailSettings);
 
-        // Política global SMTP para tenants
-        try {
-            $pdo = \Screenart\Musedock\Database::connect();
-            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
-            $smtpRequireTenantOwn = isset($_POST['smtp_require_tenant_own']) ? '1' : '0';
-            if ($driver === 'mysql') {
-                $stmt = $pdo->prepare("INSERT INTO settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)");
-                $stmt->execute(['smtp_require_tenant_own', $smtpRequireTenantOwn]);
-            } else {
-                $stmt = $pdo->prepare("INSERT INTO settings (\"key\", value) VALUES (?, ?) ON CONFLICT (\"key\") DO UPDATE SET value = EXCLUDED.value");
-                $stmt->execute(['smtp_require_tenant_own', $smtpRequireTenantOwn]);
-            }
-            clear_settings_cache();
-        } catch (\Throwable $e) {
-            error_log('Error guardando smtp_require_tenant_own: ' . $e->getMessage());
-        }
+        // Las excepciones SMTP de tenants se administran en Tenants → Editar.
 
         flash('success', 'Configuración de email guardada correctamente.');
         header('Location: ' . route('settings.email'));

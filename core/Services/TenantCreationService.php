@@ -849,7 +849,7 @@ class TenantCreationService
             'blog_comments_captcha_enabled' => '0',
             'blog_comments_captcha_spam_threshold' => '5',
             // SMTP: por defecto usar proveedor global del CMS principal
-            'smtp_use_global' => '1',
+            'smtp_use_global' => '0',
             'mail_driver' => 'smtp',
         ];
 

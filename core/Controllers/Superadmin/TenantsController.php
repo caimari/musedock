@@ -309,10 +309,35 @@ public function store()
         return View::renderSuperadmin('tenants.edit', [
             'title' => __('tenant_edit_title') ?? 'Editar Tenant',
             'tenant' => $tenant,
+            'smtpGlobalAllowed' => \Screenart\Musedock\Mail\TenantSmtpPolicy::allowsGlobal((int)$id),
             'labelColors' => self::LABEL_COLORS,
             'sharedPlugins' => \Screenart\Musedock\TenantPluginManager::getAvailableSharedPlugins(),
             'tenantPlugins' => \Screenart\Musedock\TenantPluginManager::getAllPlugins((int)$id)
         ]);
+    }
+
+    /** Only the superadmin route can grant use of the CMS mail servers. */
+    public function smtpPermission($id)
+    {
+        $this->checkMultitenancyEnabled();
+        SessionSecurity::startSession();
+        $this->checkPermission('tenants.manage');
+        $token=$_POST['_csrf']??'';
+        if(!is_string($token)||!validate_csrf($token)){http_response_code(403);echo 'Token CSRF inválido';return;}
+        $tenant=Database::table('tenants')->where('id',(int)$id)->first();
+        if(!$tenant){http_response_code(404);return;}
+        $allowed=($_POST['smtp_global_allowed']??'0')==='1'?1:0;
+        $db=Database::connect();$actor=SessionSecurity::getAuthenticatedUser();$actorId=$actor['id']??null;
+        if($db->getAttribute(\PDO::ATTR_DRIVER_NAME)==='mysql'){
+            $q=$db->prepare('INSERT INTO tenant_smtp_permissions (tenant_id,global_allowed,updated_by) VALUES (?,?,?) ON DUPLICATE KEY UPDATE global_allowed=VALUES(global_allowed),updated_by=VALUES(updated_by),updated_at=CURRENT_TIMESTAMP');
+        }else{
+            $q=$db->prepare('INSERT INTO tenant_smtp_permissions (tenant_id,global_allowed,updated_by) VALUES (?,?,?) ON CONFLICT (tenant_id) DO UPDATE SET global_allowed=EXCLUDED.global_allowed,updated_by=EXCLUDED.updated_by,updated_at=CURRENT_TIMESTAMP');
+        }
+        $q->execute([(int)$id,$allowed,$actorId]);
+        Logger::info('Permiso SMTP global del tenant '.(int)$id.': '.($allowed?'permitido':'bloqueado').'; superadmin '.(string)$actorId);
+        flash('success',$allowed?'Excepción de SMTP global autorizada para este tenant.':'SMTP global bloqueado: este tenant debe usar SMTP propio.');
+        header('Location: /musedock/tenants/'.(int)$id.'/edit#tenant-smtp',true,303);
+        exit;
     }
 
     public function sharedPlugin($id)

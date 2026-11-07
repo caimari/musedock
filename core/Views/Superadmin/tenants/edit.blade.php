@@ -114,6 +114,20 @@
                 </form>
             </div>
 
+            <div class="card mt-4" id="tenant-smtp">
+                <div class="card-header"><h3 class="h5 mb-0"><i class="bi bi-envelope me-2"></i>Permiso de SMTP del CMS</h3></div>
+                <form class="card-body" method="post" action="/musedock/tenants/{{ $tenant->id }}/smtp-permission">
+                    {!! csrf_field() !!}
+                    <p>Por defecto, cada tenant debe usar su SMTP propio. Sin esta excepción, los servidores del CMS no se usan ni como respaldo si la configuración está incompleta o falla.</p>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="smtp_global_allowed" name="smtp_global_allowed" value="1" {{ !empty($smtpGlobalAllowed) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="smtp_global_allowed">Permitir a este tenant usar el SMTP del CMS y sus servidores de respaldo</label>
+                    </div>
+                    <p class="text-muted">Solo el superadministrador puede conceder esta excepción. Al desactivarla, los envíos sin SMTP propio operativo fallarán; no se borran las credenciales del tenant.</p>
+                    <button class="btn btn-primary" type="submit">Guardar permiso SMTP</button>
+                </form>
+            </div>
+
             <div class="card mt-4" id="tenant-plugins">
                 <div class="card-header"><h3 class="h5 mb-0"><i class="bi bi-puzzle me-2"></i>Plugins compartidos de este dominio</h3></div>
                 <div class="card-body">
