@@ -1,22 +1,23 @@
 @extends('layouts.app')
 
 @section('title', $title . ' | ' . site_setting('site_name', 'Festivales'))
-@section('description', 'Festivales con el tag ' . $tag->name)
+@section('description', fd_t('Festivales con el tag ') . fd_t($tag->name))
 
 @section('content')
-<div class="container py-5">
+@include('festivals/partials/_assets')
+<div class="container py-5 fd-scope">
 
   <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb small">
-      <li class="breadcrumb-item"><a href="/">Inicio</a></li>
-      <li class="breadcrumb-item"><a href="/festivals">Festivales</a></li>
+      <li class="breadcrumb-item"><a href="{{ fd_path('/') }}">{{ fd_t('Inicio') }}</a></li>
+      <li class="breadcrumb-item"><a href="{{ fd_path('/festivals') }}">{{ fd_t('Festivales') }}</a></li>
       <li class="breadcrumb-item active">{{ $tag->name }}</li>
     </ol>
   </nav>
 
   <div class="mb-4">
     <h1 class="h3">{{ $title }}</h1>
-    <p class="text-muted small">{{ $pagination['total_posts'] ?? 0 }} festivales</p>
+    <p class="text-muted small">{{ $pagination['total_posts'] ?? 0 }} {{ fd_t('festivales') }}</p>
   </div>
 
   @if(!empty($festivals) && count($festivals) > 0)
@@ -47,8 +48,8 @@
   @endif
   @else
   <div class="text-center py-5">
-    <p class="text-muted">No se encontraron festivales con este tag.</p>
-    <a href="/festivals" class="btn btn-outline-primary">Ver todos los festivales</a>
+    <p class="text-muted">{{ fd_t('No se encontraron festivales con este tag.') }}</p>
+    <a href="{{ fd_path('/festivals') }}" class="btn btn-outline-primary">{{ fd_t('Ver todos los festivales') }}</a>
   </div>
   @endif
 

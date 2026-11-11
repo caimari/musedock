@@ -1,16 +1,17 @@
 @extends('layouts.app')
 
-@section('title', ($category->seo_title ?: $category->name . ' — Festivales') . ' | ' . site_setting('site_name', 'Festivales'))
-@section('description', $category->seo_description ?: 'Festivales en la categoría ' . $category->name)
+@section('title', ($category->seo_title ?: fd_t($category->name) . fd_t(' — Festivales')) . ' | ' . site_setting('site_name', 'Festivales'))
+@section('description', $category->seo_description ?: fd_t('Festivales en la categoría ') . fd_t($category->name))
 
 @section('content')
-<div class="container py-5">
+@include('festivals/partials/_assets')
+<div class="container py-5 fd-scope">
 
   <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb small">
-      <li class="breadcrumb-item"><a href="/">Inicio</a></li>
-      <li class="breadcrumb-item"><a href="/festivals">Festivales</a></li>
-      <li class="breadcrumb-item active">{{ $category->name }}</li>
+      <li class="breadcrumb-item"><a href="{{ fd_path('/') }}">{{ fd_t('Inicio') }}</a></li>
+      <li class="breadcrumb-item"><a href="{{ fd_path('/festivals') }}">{{ fd_t('Festivales') }}</a></li>
+      <li class="breadcrumb-item active">{{ fd_t($category->name) }}</li>
     </ol>
   </nav>
 
@@ -19,7 +20,7 @@
     @if($category->description)
       <p class="text-muted">{{ $category->description }}</p>
     @endif
-    <p class="text-muted small">{{ $pagination['total_posts'] ?? 0 }} festivales</p>
+    <p class="text-muted small">{{ $pagination['total_posts'] ?? 0 }} {{ fd_t('festivales') }}</p>
   </div>
 
   @if(!empty($festivals) && count($festivals) > 0)
@@ -50,8 +51,8 @@
   @endif
   @else
   <div class="text-center py-5">
-    <p class="text-muted">No se encontraron festivales en esta categoría.</p>
-    <a href="/festivals" class="btn btn-outline-primary">Ver todos los festivales</a>
+    <p class="text-muted">{{ fd_t('No se encontraron festivales en esta categoría.') }}</p>
+    <a href="{{ fd_path('/festivals') }}" class="btn btn-outline-primary">{{ fd_t('Ver todos los festivales') }}</a>
   </div>
   @endif
 
