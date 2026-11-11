@@ -653,6 +653,9 @@ class HtmlCache
             '/customer/',
             '/.well-known/',
             '/mcp',
+            '/organizer',
+            '/md-members',
+            '/md-forms',
         ];
 
         $uriLower = strtolower($uri);

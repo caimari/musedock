@@ -36,6 +36,18 @@
                             </select>
                         </div>
 
+                        <fieldset class="mb-3">
+                            <legend class="h6">Colaborador editorial opcional</legend>
+                            <label><input type="checkbox" name="create_blog_contributor" value="1"> Crear un editor de blog restringido</label>
+                            <p class="text-muted">Cuenta adicional para gestionar sus artículos, fotografías y galerías.</p>
+                            <label for="editor_name">Nombre del colaborador</label>
+                            <input class="form-control mb-2" id="editor_name" name="editor_name" maxlength="255" autocomplete="off">
+                            <label for="editor_email">Correo del colaborador</label>
+                            <input class="form-control mb-2" type="email" id="editor_email" name="editor_email" autocomplete="off">
+                            <label for="editor_password">Contraseña inicial del colaborador</label>
+                            <input class="form-control" type="password" id="editor_password" name="editor_password" minlength="12" autocomplete="new-password">
+                        </fieldset>
+
                         {{-- Campos del admin que se rellenan en el modal --}}
                         <input type="hidden" name="admin_name" id="admin_name">
                         <input type="hidden" name="admin_email" id="admin_email">

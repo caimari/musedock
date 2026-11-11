@@ -2,6 +2,8 @@
 
 namespace ImageGallery\Controllers\Tenant;
 
+use Screenart\Musedock\Security\Content\GalleryAccess;
+
 use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Services\TenantManager;
 use Screenart\Musedock\Env;
@@ -30,6 +32,7 @@ class ImageController
      */
     public function upload($galleryId)
     {
+        GalleryAccess::authorize('edit', $galleryId, true, false);
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 
@@ -96,7 +99,7 @@ class ImageController
             ]);
 
         } catch (\Exception $e) {
-            error_log("ImageGallery tenant upload error: " . $e->getMessage());
+            error_log("ImageGallery tenant upload error: " . get_class($e));
             echo json_encode([
                 'success' => false,
                 'error' => __gallery('image.upload_error')
@@ -110,6 +113,7 @@ class ImageController
      */
     private function processUpload(array $file, Gallery $gallery, int $tenantId, int $maxSize, array $settings): array
     {
+        if (!userCan('image_gallery.edit') && !userCan('image_gallery.manage')) \Screenart\Musedock\Security\Content\MediaAccess::imageFile($file);
         // Validar errores de subida
         if ($file['error'] !== UPLOAD_ERR_OK) {
             return ['success' => false, 'error' => $this->getUploadError($file['error'])];
@@ -179,6 +183,7 @@ class ImageController
         Media::create([
             'tenant_id' => $tenantId,
             'user_id' => $userId,
+            ...\Screenart\Musedock\Security\Content\MediaAccess::ownership($tenantId),
             'folder_id' => null,
             'disk' => $diskName,
             'path' => $relativePath,
@@ -339,7 +344,7 @@ class ImageController
 
             return new \League\Flysystem\Filesystem($adapter);
         } catch (\Exception $e) {
-            error_log("Error creating S3 filesystem (tenant gallery): " . $e->getMessage());
+            error_log("Error creating S3 filesystem (tenant gallery): " . get_class($e));
             return null;
         }
     }
@@ -448,7 +453,7 @@ class ImageController
             return str_replace(rtrim($_SERVER['DOCUMENT_ROOT'], '/'), '', $thumbPath);
 
         } catch (\Exception $e) {
-            error_log("Error generating thumbnail: " . $e->getMessage());
+            error_log("Error generating thumbnail: " . get_class($e));
             return null;
         }
     }
@@ -458,6 +463,7 @@ class ImageController
      */
     public function update($imageId)
     {
+        GalleryAccess::authorize('edit', $imageId, true, true);
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 
@@ -492,7 +498,7 @@ class ImageController
         }
 
         // Obtener datos del body (JSON)
-        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $input = GalleryAccess::imageInput(json_decode(file_get_contents('php://input'), true) ?: $_POST);
 
         $image->update([
             'title' => trim($input['title'] ?? $image->title),
@@ -515,6 +521,7 @@ class ImageController
      */
     public function destroy($imageId)
     {
+        GalleryAccess::authorize('delete', $imageId, true, true);
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 
@@ -578,6 +585,7 @@ class ImageController
      */
     public function reorder($galleryId)
     {
+        GalleryAccess::authorize('edit', $galleryId, true, false);
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 
@@ -625,6 +633,7 @@ class ImageController
      */
     public function setThumbnail($imageId)
     {
+        GalleryAccess::authorize('edit', $imageId, true, true);
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 

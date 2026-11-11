@@ -72,48 +72,48 @@ Route::post('/musedock/image-gallery/check-slug', 'ImageGallery\Controllers\Supe
 
 // Verificar disponibilidad de slug (AJAX)
 Route::post('/admin/image-gallery/check-slug', 'ImageGallery\Controllers\Tenant\GalleryController@checkSlug')
-    ->name('tenant.image-gallery.check-slug');
+    ->name('tenant.image-gallery.check-slug')->middleware('auth');
 
 // Selector de galerías para editor (AJAX)
 Route::get('/admin/image-gallery/selector', 'ImageGallery\Controllers\Tenant\GalleryController@selector')
-    ->name('tenant.image-gallery.selector');
+    ->name('tenant.image-gallery.selector')->middleware('auth');
 
 // Crear galería
 Route::get('/admin/image-gallery/create', 'ImageGallery\Controllers\Tenant\GalleryController@create')
-    ->name('tenant.image-gallery.create');
+    ->name('tenant.image-gallery.create')->middleware('auth');
 
 // Listar galerías
 Route::get('/admin/image-gallery', 'ImageGallery\Controllers\Tenant\GalleryController@index')
-    ->name('tenant.image-gallery.index');
+    ->name('tenant.image-gallery.index')->middleware('auth');
 
 // Guardar nueva galería
 Route::post('/admin/image-gallery', 'ImageGallery\Controllers\Tenant\GalleryController@store')
-    ->name('tenant.image-gallery.store');
+    ->name('tenant.image-gallery.store')->middleware('auth');
 
 // Editar galería
 Route::get('/admin/image-gallery/{id}/edit', 'ImageGallery\Controllers\Tenant\GalleryController@edit')
-    ->name('tenant.image-gallery.edit');
+    ->name('tenant.image-gallery.edit')->middleware('auth');
 
 // Actualizar galería
 Route::put('/admin/image-gallery/{id}', 'ImageGallery\Controllers\Tenant\GalleryController@update')
-    ->name('tenant.image-gallery.update');
+    ->name('tenant.image-gallery.update')->middleware('auth');
 
 // Eliminar galería
 Route::post('/admin/image-gallery/{id}/delete', 'ImageGallery\Controllers\Tenant\GalleryController@destroy')
-    ->name('tenant.image-gallery.destroy');
+    ->name('tenant.image-gallery.destroy')->middleware('auth');
 
 // Imágenes - Tenant
 Route::post('/admin/image-gallery/{gallery_id}/images/upload', 'ImageGallery\Controllers\Tenant\ImageController@upload')
-    ->name('tenant.image-gallery.images.upload');
+    ->name('tenant.image-gallery.images.upload')->middleware('auth');
 
 Route::put('/admin/image-gallery/images/{id}', 'ImageGallery\Controllers\Tenant\ImageController@update')
-    ->name('tenant.image-gallery.images.update');
+    ->name('tenant.image-gallery.images.update')->middleware('auth');
 
 Route::delete('/admin/image-gallery/images/{id}', 'ImageGallery\Controllers\Tenant\ImageController@destroy')
-    ->name('tenant.image-gallery.images.destroy');
+    ->name('tenant.image-gallery.images.destroy')->middleware('auth');
 
 Route::post('/admin/image-gallery/{gallery_id}/images/reorder', 'ImageGallery\Controllers\Tenant\ImageController@reorder')
-    ->name('tenant.image-gallery.images.reorder');
+    ->name('tenant.image-gallery.images.reorder')->middleware('auth');
 
 Route::post('/admin/image-gallery/images/{id}/thumbnail', 'ImageGallery\Controllers\Tenant\ImageController@setThumbnail')
-    ->name('tenant.image-gallery.images.thumbnail');
+    ->name('tenant.image-gallery.images.thumbnail')->middleware('auth');

@@ -4,7 +4,10 @@ use MuseDockForms\Forms;
 use PDO;
 final class Controller
 {
-    private function nav(): string { return '<nav><a href="/">Inicio</a><a href="/md-members/login">Acceder</a><a href="/md-members/account">Mi cuenta</a><a href="/md-members/reset">Recuperar contraseña</a></nav>'; }
+    private function nav(): string {
+        $html='<nav><a href="/">Inicio</a><a href="/md-members/login">Acceder</a><a href="/md-members/account">Mi cuenta</a><a href="/md-members/reset">Recuperar contraseña</a></nav>';
+        return function_exists('apply_filters')?(string)apply_filters('musedock_members_navigation',$html):$html;
+    }
     public function login(): string { return Forms::page('Acceso de socios',$this->nav().'<form method="post" action="/md-members/login">'.csrf_field().'<label>Email o usuario<input name="identifier" required autocomplete="username" maxlength="254"></label><label>Contraseña<input type="password" name="password" required autocomplete="current-password" maxlength="4096"></label><button>Acceder</button></form>'); }
     public function authenticate(): string {
         Forms::csrf();Forms::throttle('member-login',6);$m=Members::login(trim((string)($_POST['identifier']??'')),(string)($_POST['password']??''));
@@ -28,10 +31,12 @@ final class Controller
     }
     public function logout(): string { Forms::csrf();unset($_SESSION['md_members'][Forms::tenant()]);session_regenerate_id(true);header('Location: /',true,303);return ''; }
     public function register(): string {
+        if(!Members::registrationEnabled())return Forms::page('Registro no disponible','',404);
         $f=Forms::form((string)site_setting('musedock_members_registration_form','international-associate'));if(!$f)return Forms::page('Registration unavailable','',404);
         return Forms::page('International associate registration',$this->nav().'<p>Your application is subject to approval by the association.</p><form method="post" action="/md-members/register">'.csrf_field().Forms::fields(json_decode($f['fields'],true)?:[]).'<label>Password (minimum 12 characters)<input type="password" name="password" minlength="12" maxlength="4096" required autocomplete="new-password"></label><label>Repeat password<input type="password" name="password_confirmation" required autocomplete="new-password"></label><div class="md-trap"><input name="contact_website" tabindex="-1" autocomplete="off"></div><p><a href="/privacy" target="_top">Privacy information</a></p><label><input type="checkbox" name="privacy_ack" value="1" required> I have read the privacy information.</label><button>Apply for membership</button></form>');
     }
     public function create(): string {
+        if(!Members::registrationEnabled())return Forms::page('Registro no disponible','',404);
         Forms::csrf();Forms::throttle('member-register',4);$f=Forms::form((string)site_setting('musedock_members_registration_form','international-associate'));if(!$f)return Forms::page('Unavailable','',404);
         if(!empty($_POST['contact_website']))return Forms::page('Application received','Thank you.');
         [$values,$errors]=Forms::validate(json_decode($f['fields'],true)?:[],$_POST);

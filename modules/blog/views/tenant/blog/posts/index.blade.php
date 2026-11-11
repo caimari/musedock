@@ -75,6 +75,13 @@
 @endphp
 
 @section('content')
+@if(userCan('media.view.own') || userCan('image_gallery.view.own'))
+<div class="container-fluid pt-3 d-flex gap-2">
+  @if(userCan('media.view.own'))<a class="btn btn-outline-secondary btn-sm" href="{{ admin_url('media') }}">Mis fotografías</a>@endif
+  @if(userCan('image_gallery.view.own'))<a class="btn btn-outline-secondary btn-sm" href="{{ admin_url('image-gallery') }}">Mis galerías</a>@endif
+</div>
+@endif
+
 <div class="app-content">
   <div class="container-fluid">
 

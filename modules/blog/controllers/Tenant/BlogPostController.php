@@ -16,6 +16,7 @@ use Screenart\Musedock\Services\AuditLogger;
 use Screenart\Musedock\Helpers\FileUploadValidator;
 use Screenart\Musedock\Cache\HtmlCache;
 use Screenart\Musedock\Traits\RequiresPermission;
+use Screenart\Musedock\Security\Content\BlogAccess;
 
 class BlogPostController
 {
@@ -27,7 +28,7 @@ class BlogPostController
      */
     private function checkPermission(string $permission): void
     {
-        if (!userCan($permission)) {
+        if (!userCan($permission) && !($permission === 'blog.edit' && (userCan('blog.edit.own') || userCan('blog.edit.all')))) {
             flash('error', __('blog.post.error_no_permission'));
             header('Location: ' . admin_url('dashboard'));
             exit;
@@ -39,6 +40,7 @@ class BlogPostController
      */
     public function index()
     {
+        BlogAccess::authorize('blog.view', null, false);
         $this->checkPermission('blog.view');
         $tenantId = TenantManager::currentTenantId();
 
@@ -72,6 +74,8 @@ class BlogPostController
             ->where('tenant_id', $tenantId)
             ->whereRaw("(status != ? OR status IS NULL)", ['trash'])
             ->orderBy($orderBy, $order);
+
+        BlogAccess::scope($query);
 
         // Aplicar búsqueda si existe
         if (!empty($search)) {
@@ -133,7 +137,7 @@ class BlogPostController
                 $processedPosts[] = $post;
             }
         } catch (\Exception $e) {
-            error_log("Error al cargar datos adicionales: " . $e->getMessage());
+            error_log("Error al cargar datos adicionales: " . get_class($e));
             $processedPosts = array_map(fn($row) => ($row instanceof BlogPost) ? $row : new BlogPost((array) $row), $posts);
         }
 
@@ -166,6 +170,7 @@ class BlogPostController
      */
     public function create()
     {
+        BlogAccess::authorize('blog.create', null, false);
         $this->checkPermission('blog.create');
         $tenantId = TenantManager::currentTenantId();
 
@@ -202,6 +207,8 @@ class BlogPostController
      */
     public function store()
     {
+        BlogAccess::authorize('blog.create', null, true);
+        BlogAccess::terms();
         $this->checkPermission('blog.create');
         $tenantId = TenantManager::currentTenantId();
 
@@ -211,25 +218,27 @@ class BlogPostController
             exit;
         }
 
-        $rawData = $_POST;
+        $rawData = BlogAccess::sanitize($_POST);
         $data = $rawData;
-        unset($data['_token'], $data['_csrf']);
+        unset($data['_token'], $data['_csrf'], $data['id'], $data['created_at'], $data['view_count'], $data['revision_count']);
 
         // Asignar tenant_id actual
         $data['tenant_id'] = $tenantId;
 
         // Usuario actual del tenant (admin)
-        $data['user_id'] = $_SESSION['admin']['id'] ?? null;
-        $data['user_type'] = 'admin';
+        $actor = \Screenart\Musedock\Security\Content\Access::actor((int)$tenantId);
+        $data['user_id'] = $actor['id'];
+        $data['user_type'] = $actor['type'] === 'super_admin' ? 'superadmin' : 'admin';
 
         // Tipo de post (post o brief)
-        $data['post_type'] = in_array($data['post_type'] ?? 'post', ['post', 'brief', 'docs']) ? $data['post_type'] : 'post';
+        $data['post_type'] = in_array($data['post_type'] ?? 'post', ['post', 'brief', 'docs']) ? ($data['post_type'] ?? 'post') : 'post';
 
         // Manejo de checkboxes
         $data['show_hero'] = isset($data['show_hero']) ? 1 : 0;
         $data['allow_comments'] = isset($data['allow_comments']) ? 1 : 0;
         $data['show_views'] = isset($data['show_views']) ? 1 : 0;
         $data['featured'] = isset($data['featured']) ? 1 : 0;
+        if (BlogAccess::ownOnly()) $data['featured'] = 0;
         $data['hide_featured_image'] = isset($data['hide_featured_image']) ? 1 : 0;
         $data['hide_title'] = isset($data['hide_title']) ? 1 : 0;
 
@@ -319,7 +328,7 @@ class BlogPostController
             $insertStmt->execute(['blog', $post->id, $data['slug'], $tenantId, $prefix]);
 
         } catch (\Exception $e) {
-            error_log("ERROR AL CREAR SLUG: " . $e->getMessage());
+            error_log("ERROR AL CREAR SLUG: " . get_class($e));
         }
 
         // Sincronizar etiquetas
@@ -335,7 +344,7 @@ class BlogPostController
         try {
             \Blog\Models\BlogPostRevision::createFromPost($post, 'initial', 'Versión inicial del post');
         } catch (\Exception $e) {
-            error_log("Error al crear revisión inicial: " . $e->getMessage());
+            error_log("Error al crear revisión inicial: " . get_class($e));
         }
 
         // Invalidar caché del feed RSS y sitemap si el post está publicado
@@ -360,6 +369,7 @@ class BlogPostController
      */
     public function edit($id)
     {
+        BlogAccess::authorize('blog.edit', $id, false);
         $this->checkPermission('blog.edit');
         $tenantId = TenantManager::currentTenantId();
 
@@ -402,7 +412,7 @@ class BlogPostController
                 $post->visibility = 'public';
             }
         } catch (\Exception $e) {
-            error_log("Error al obtener visibility: " . $e->getMessage());
+            error_log("Error al obtener visibility: " . get_class($e));
             $post->visibility = 'public';
         }
 
@@ -436,7 +446,7 @@ class BlogPostController
                 }
             }
         } catch (\Exception $e) {
-            error_log("Error al formatear fechas: " . $e->getMessage());
+            error_log("Error al formatear fechas: " . get_class($e));
         }
 
         // Preparar published_at
@@ -497,6 +507,8 @@ class BlogPostController
      */
     public function update($id)
     {
+        BlogAccess::authorize('blog.edit', $id, true);
+        BlogAccess::terms();
         $this->checkPermission('blog.edit');
         $tenantId = TenantManager::currentTenantId();
 
@@ -529,18 +541,19 @@ class BlogPostController
         $oldContent = $post->content;
         $oldStatus = $post->status;
 
-        $rawData = $_POST;
+        $rawData = BlogAccess::sanitize($_POST);
         $data = $rawData;
-        unset($data['_token'], $data['_csrf'], $data['_method']);
+        unset($data['_token'], $data['_csrf'], $data['_method'], $data['user_id'], $data['user_type'], $data['id'], $data['created_at'], $data['view_count'], $data['revision_count']);
 
         // Tipo de post (post o brief)
-        $data['post_type'] = in_array($data['post_type'] ?? 'post', ['post', 'brief', 'docs']) ? $data['post_type'] : 'post';
+        $data['post_type'] = in_array($data['post_type'] ?? 'post', ['post', 'brief', 'docs']) ? ($data['post_type'] ?? 'post') : 'post';
 
         // Manejo de checkboxes
         $data['show_hero'] = isset($data['show_hero']) ? 1 : 0;
         $data['allow_comments'] = isset($data['allow_comments']) ? 1 : 0;
         $data['show_views'] = isset($data['show_views']) ? 1 : 0;
         $data['featured'] = isset($data['featured']) ? 1 : 0;
+        if (BlogAccess::ownOnly()) $data['featured'] = (int)($post->featured ?? 0);
         $data['hide_featured_image'] = isset($data['hide_featured_image']) ? 1 : 0;
         $data['hide_title'] = isset($data['hide_title']) ? 1 : 0;
 
@@ -584,7 +597,7 @@ class BlogPostController
         } else {
             // Guardar la URL tal cual viene del Media Manager
             $data['hero_image'] = $heroImage;
-            error_log("HERO_IMAGE: URL guardada - " . $heroImage);
+            // Image URLs may contain private query parameters; do not log them.
         }
 
         // Guardar categorías y etiquetas seleccionadas
@@ -673,7 +686,7 @@ class BlogPostController
 
                 \Blog\Models\BlogPostRevision::createFromPost($post, 'manual', $summary);
             } catch (\Exception $revError) {
-                error_log("Error al crear revisión: " . $revError->getMessage());
+                error_log("Error al crear revisión: " . get_class($revError));
             }
 
             // 🔒 SECURITY: Audit log - registrar actualización de post
@@ -696,7 +709,7 @@ class BlogPostController
 
         } catch (\Throwable $e) {
             if ($pdo && $pdo->inTransaction()) { $pdo->rollBack(); }
-            error_log("ERROR en transacción update post {$id}: " . $e->getMessage());
+            error_log("ERROR en transacción update post {$id}: " . get_class($e));
             $_SESSION['_old_input'] = $rawData;
             $sqlState = (string) $e->getCode();
             $isUnique = in_array($sqlState, ['23505', '23000'], true)
@@ -725,6 +738,7 @@ class BlogPostController
      */
     public function destroy($id)
     {
+        BlogAccess::authorize('blog.delete', $id, true);
         $this->checkPermission('blog.delete');
         $tenantId = TenantManager::currentTenantId();
 
@@ -791,7 +805,7 @@ class BlogPostController
                 try {
                     \Blog\Models\BlogPostRevision::createFromPost($post, 'manual', 'Movido a papelera');
                 } catch (\Exception $revError) {
-                    error_log("Error al crear revisión de papelera: " . $revError->getMessage());
+                    error_log("Error al crear revisión de papelera: " . get_class($revError));
                 }
             }
 
@@ -818,7 +832,7 @@ class BlogPostController
 
             flash('success', __('blog.post.success_moved_to_trash'));
         } catch (\Exception $e) {
-            error_log("Error al eliminar post: " . $e->getMessage());
+            error_log("Error al eliminar post: " . get_class($e));
             flash('error', __('blog.post.error_delete', ['error' => $e->getMessage()]));
         }
 
@@ -831,6 +845,7 @@ class BlogPostController
      */
     public function bulk()
     {
+        BlogAccess::bulk();
         $action = $_POST['action'] ?? null;
         $selected = $_POST['selected'] ?? [];
 
@@ -875,22 +890,7 @@ class BlogPostController
                     try {
                         $pdo = Database::connect();
 
-                        // Eliminar imágenes
-                        if (!empty($post->featured_image)) {
-                            $fileName = basename($post->featured_image);
-                            $fullPath = APP_ROOT . "/public/assets/uploads/blog/{$fileName}";
-                            if (file_exists($fullPath)) {
-                                @unlink($fullPath);
-                            }
-                        }
-
-                        if (!empty($post->hero_image)) {
-                            $fileName = basename($post->hero_image);
-                            $fullPath = APP_ROOT . "/public/assets/uploads/blog/hero/{$fileName}";
-                            if (file_exists($fullPath)) {
-                                @unlink($fullPath);
-                            }
-                        }
+                        // Shared physical files remain under the authorized media lifecycle.
 
                         // Eliminar relaciones
                         $stmt = $pdo->prepare("DELETE FROM blog_post_categories WHERE post_id = ?");
@@ -910,7 +910,7 @@ class BlogPostController
                         $post->delete();
                         $deletedCount++;
                     } catch (\Exception $e) {
-                        error_log("Error al eliminar post #{$id}: " . $e->getMessage());
+                        error_log("Error al eliminar post #{$id}: " . get_class($e));
                         continue;
                     }
                 }
@@ -967,6 +967,7 @@ class BlogPostController
      */
     public function editTranslation($id, $locale)
     {
+        BlogAccess::authorize('blog.edit', $id, false);
         $this->checkPermission('blog.edit');
         $tenantId = TenantManager::currentTenantId();
 
@@ -1022,6 +1023,7 @@ class BlogPostController
      */
     public function updateTranslation($id, $locale)
     {
+        BlogAccess::authorize('blog.edit', $id, true);
         $this->checkPermission('blog.edit');
         $tenantId = TenantManager::currentTenantId();
 
@@ -1042,7 +1044,7 @@ class BlogPostController
             exit;
         }
 
-        $data = $_POST;
+        $data = BlogAccess::sanitize($_POST);
         unset($data['_token'], $data['_method'], $data['_csrf']);
 
         $data['post_id'] = $id;
@@ -1127,7 +1129,7 @@ class BlogPostController
                 flash('success', __('blog.post.success_translation_created'));
             }
         } catch (\Exception $e) {
-            error_log("Error al guardar traducción para post {$id}, locale {$locale}: " . $e->getMessage());
+            error_log("Error al guardar traducción para post {$id}, locale {$locale}: " . get_class($e));
             flash('error', __('blog.post.error_translation_save', ['error' => $e->getMessage()]));
             header("Location: /" . admin_path() . "/blog/posts/{$id}/translations/{$locale}");
             exit;
@@ -1189,6 +1191,7 @@ class BlogPostController
      */
     private function processFeaturedImageUpload($file, $currentImage = null)
     {
+        if (BlogAccess::ownOnly()) \Screenart\Musedock\Security\Content\MediaAccess::imageFile($file);
         // 🔒 SECURITY: Validación robusta de archivos de imagen
         // Previene: Polyglot file upload, MIME spoofing, RCE
         $validation = FileUploadValidator::validateImage($file, 10 * 1024 * 1024);
@@ -1295,12 +1298,7 @@ class BlogPostController
             }
         }
 
-        if ($currentImage && !empty($currentImage)) {
-            $oldPath = APP_ROOT . '/public/' . $currentImage;
-            if (file_exists($oldPath)) {
-                @unlink($oldPath);
-            }
-        }
+        // Shared physical files are removed only through the authorized media lifecycle.
 
         return ['path' => $relativePath . $filename];
     }
@@ -1310,6 +1308,7 @@ class BlogPostController
      */
     private function processHeroImageUpload($file, $currentImage = null)
     {
+        if (BlogAccess::ownOnly()) \Screenart\Musedock\Security\Content\MediaAccess::imageFile($file);
         // 🔒 SECURITY: Validación robusta de archivos de imagen
         // Previene: Polyglot file upload, MIME spoofing, RCE
         $validation = FileUploadValidator::validateImage($file, 10 * 1024 * 1024);
@@ -1416,12 +1415,7 @@ class BlogPostController
             }
         }
 
-        if ($currentImage && !empty($currentImage)) {
-            $oldPath = APP_ROOT . '/public/' . $currentImage;
-            if (file_exists($oldPath)) {
-                @unlink($oldPath);
-            }
-        }
+        // Shared physical files are removed only through the authorized media lifecycle.
 
         return ['path' => $relativePath . $filename];
     }
@@ -1444,7 +1438,7 @@ class BlogPostController
             ");
             $stmt->execute([$tenantId]);
         } catch (\Exception $e) {
-            error_log("Error al actualizar contadores de categorías: " . $e->getMessage());
+            error_log("Error al actualizar contadores de categorías: " . get_class($e));
         }
     }
 
@@ -1466,7 +1460,7 @@ class BlogPostController
             ");
             $stmt->execute([$tenantId]);
         } catch (\Exception $e) {
-            error_log("Error al actualizar contadores de etiquetas: " . $e->getMessage());
+            error_log("Error al actualizar contadores de etiquetas: " . get_class($e));
         }
     }
 
@@ -1479,6 +1473,7 @@ class BlogPostController
      */
     public function revisions($id)
     {
+        BlogAccess::authorize('blog.edit', $id, false);
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
         $tenantId = getTenantId();
@@ -1510,6 +1505,7 @@ class BlogPostController
      */
     public function restoreRevision($postId, $revisionId)
     {
+        BlogAccess::authorize('blog.edit', $postId, true);
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
         $tenantId = getTenantId();
@@ -1543,6 +1539,7 @@ class BlogPostController
      */
     public function deleteRevision($postId, $revisionId)
     {
+        BlogAccess::authorize('blog.edit', $postId, true);
         $this->checkPermission('blog.edit');
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
@@ -1583,7 +1580,7 @@ class BlogPostController
             if (isset($pdo) && $pdo instanceof \PDO && $pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            error_log("Error al eliminar revisión {$revisionId} del post {$postId}: " . $e->getMessage());
+            error_log("Error al eliminar revisión {$revisionId} del post {$postId}: " . get_class($e));
             flash('error', __('blog.post.error_revision_delete'));
         }
 
@@ -1599,6 +1596,7 @@ class BlogPostController
      */
     public function bulkRevisions($postId)
     {
+        BlogAccess::authorize('blog.edit', $postId, true);
         $this->checkPermission('blog.edit');
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
@@ -1680,7 +1678,7 @@ class BlogPostController
             if (isset($pdo) && $pdo instanceof \PDO && $pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            error_log("Error en bulkRevisions post {$postId} tenant {$tenantId}: " . $e->getMessage());
+            error_log("Error en bulkRevisions post {$postId} tenant {$tenantId}: " . get_class($e));
             flash('error', __('blog.post.error_revision_delete'));
         }
 
@@ -1693,6 +1691,7 @@ class BlogPostController
      */
     public function previewRevision($postId, $revisionId)
     {
+        BlogAccess::authorize('blog.edit', $postId, false);
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
         $tenantId = getTenantId();
@@ -1723,6 +1722,7 @@ class BlogPostController
      */
     public function compareRevisions($postId, $id1, $id2)
     {
+        BlogAccess::authorize('blog.edit', $postId, false);
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
         $tenantId = getTenantId();
@@ -1758,6 +1758,7 @@ class BlogPostController
      */
     public function trash()
     {
+        BlogAccess::authorize('blog.delete', null, false);
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
         $tenantId = getTenantId();
@@ -1768,10 +1769,11 @@ class BlogPostController
         }
 
         // Obtener posts en papelera
-        $posts = BlogPost::where('status', 'trash')
+        $query = BlogPost::where('status', 'trash')
                         ->where('tenant_id', $tenantId)
-                        ->orderBy('updated_at', 'DESC')
-                        ->get();
+                        ->orderBy('updated_at', 'DESC');
+        BlogAccess::scope($query);
+        $posts = $query->get();
 
         // Obtener info de papelera
         $pdo = Database::connect();
@@ -1794,6 +1796,7 @@ class BlogPostController
      */
     public function restoreFromTrash($id)
     {
+        BlogAccess::authorize('blog.delete', $id, true);
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
         $tenantId = getTenantId();
@@ -1842,6 +1845,7 @@ class BlogPostController
      */
     public function forceDelete($id)
     {
+        BlogAccess::authorize('blog.delete', $id, true);
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
         $tenantId = getTenantId();
@@ -1891,7 +1895,7 @@ class BlogPostController
 
             flash('success', __('blog.post.success_permanently_deleted'));
         } catch (\Exception $e) {
-            error_log("Error al eliminar permanentemente el post: " . $e->getMessage());
+            error_log("Error al eliminar permanentemente el post: " . get_class($e));
             flash('error', __('blog.post.error_delete', ['error' => '']));
         }
 
@@ -1904,6 +1908,7 @@ class BlogPostController
      */
     public function autosave($id)
     {
+        BlogAccess::authorize('blog.edit', $id, true);
         if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
         header('Content-Type: application/json');
@@ -1923,6 +1928,7 @@ class BlogPostController
         // Obtener datos JSON del body
         $rawData = file_get_contents('php://input');
         $data = json_decode($rawData, true);
+        if (is_array($data)) $data = BlogAccess::sanitize($data);
 
         if (!$data) {
             echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
@@ -1947,7 +1953,7 @@ class BlogPostController
                 'timestamp' => date('Y-m-d H:i:s')
             ]);
         } catch (\Exception $e) {
-            error_log("Error en autosave: " . $e->getMessage());
+            error_log("Error en autosave: " . get_class($e));
             echo json_encode(['success' => false, 'message' => 'Error al autoguardar']);
         }
 

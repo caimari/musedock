@@ -2,6 +2,8 @@
 
 namespace ImageGallery\Controllers\Tenant;
 
+use Screenart\Musedock\Security\Content\GalleryAccess;
+
 use Screenart\Musedock\View;
 use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Services\TenantManager;
@@ -21,6 +23,7 @@ class GalleryController
      */
     public function index()
     {
+        GalleryAccess::authorize('view', null, false, false);
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 
@@ -30,7 +33,7 @@ class GalleryController
             exit;
         }
 
-        $galleries = Gallery::getByTenant($tenantId, false);
+        $galleries = GalleryAccess::filter(Gallery::getByTenant($tenantId, false));
 
         return View::renderModule('image-gallery', 'tenant/galleries/index', [
             'title' => __gallery('gallery.my_galleries'),
@@ -44,6 +47,7 @@ class GalleryController
      */
     public function create()
     {
+        GalleryAccess::authorize('create', null, false, false);
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 
@@ -65,6 +69,7 @@ class GalleryController
      */
     public function store()
     {
+        GalleryAccess::authorize('create', null, true, false);
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 
@@ -98,7 +103,7 @@ class GalleryController
         }
 
         // Crear galería
-        $gallery = Gallery::create([
+        $gallery = Gallery::create(array_merge(GalleryAccess::ownership(), [
             'tenant_id' => $tenantId,
             'name' => trim($_POST['name']),
             'slug' => $slug,
@@ -110,7 +115,7 @@ class GalleryController
             'is_active' => isset($_POST['is_active']),
             'featured' => isset($_POST['featured']),
             'sort_order' => (int) ($_POST['sort_order'] ?? 0)
-        ]);
+        ]));
 
         if ($gallery) {
             flash('success', __gallery('gallery.created'));
@@ -128,6 +133,7 @@ class GalleryController
      */
     public function edit($id)
     {
+        GalleryAccess::authorize('edit', $id, false, false);
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 
@@ -165,6 +171,7 @@ class GalleryController
      */
     public function update($id)
     {
+        GalleryAccess::authorize('edit', $id, true, false);
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 
@@ -231,6 +238,7 @@ class GalleryController
      */
     public function destroy($id)
     {
+        GalleryAccess::authorize('delete', $id, true, false);
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 
@@ -268,12 +276,13 @@ class GalleryController
      */
     public function selector()
     {
+        GalleryAccess::authorize('view', null, false, false);
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 
         header('Content-Type: application/json');
 
-        $galleries = Gallery::getActive($tenantId, false);
+        $galleries = GalleryAccess::filter(Gallery::getActive($tenantId, false));
 
         $data = array_map(function ($gallery) {
             return [
@@ -299,6 +308,7 @@ class GalleryController
      */
     public function checkSlug()
     {
+        GalleryAccess::authorize('create', null, true, false);
         SessionSecurity::startSession();
         $tenantId = TenantManager::currentTenantId();
 

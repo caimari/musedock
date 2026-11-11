@@ -229,6 +229,8 @@ class BlogPostRevision extends Model
                 $meta = json_decode($this->meta_data, true);
             }
 
+            $restored = \Screenart\Musedock\Security\Content\BlogAccess::sanitize(['content'=>$this->content,'excerpt'=>$this->excerpt,'featured_image'=>$this->featured_image]);
+
             // 4. 🔒 SECURITY: Actualizar post con prepared statement
             $stmt = $pdo->prepare("
                 UPDATE blog_posts SET
@@ -250,14 +252,14 @@ class BlogPostRevision extends Model
 
             $stmt->execute([
                 $this->title,
-                $this->content,
-                $this->excerpt,
-                $this->featured_image,
+                $restored['content'],
+                $restored['excerpt'],
+                $restored['featured_image'],
                 $meta['seo_title'] ?? null,
                 $meta['seo_description'] ?? null,
                 $meta['seo_keywords'] ?? null,
                 $meta['visibility'] ?? 'public',
-                $meta['featured'] ?? 0,
+                \Screenart\Musedock\Security\Content\BlogAccess::ownOnly() ? (int)($currentPost['featured'] ?? 0) : ($meta['featured'] ?? 0),
                 $meta['allow_comments'] ?? 1,
                 $meta['canonical_url'] ?? null,
                 $meta['robots_directive'] ?? null,

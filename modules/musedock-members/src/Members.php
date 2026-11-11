@@ -4,12 +4,17 @@ use MuseDockForms\Forms;
 use PDO;
 final class Members
 {
-    public static function current(): ?array {
+    public static function current(bool $lock = false): ?array {
         if(session_status()!==PHP_SESSION_ACTIVE)\Screenart\Musedock\Security\SessionSecurity::startSession();
         $s=$_SESSION['md_members'][Forms::tenant()]??null;
         if(!is_array($s)||($s['expires']??0)<time())return null;
-        $m=Forms::query('SELECT * FROM md_members WHERE id=? AND tenant_id=?',[(int)$s['id'],Forms::tenant()])->fetch(PDO::FETCH_ASSOC);
+        $m=Forms::query('SELECT * FROM md_members WHERE id=? AND tenant_id=?'.($lock && Forms::db()->inTransaction()?' FOR UPDATE':''),[(int)$s['id'],Forms::tenant()])->fetch(PDO::FETCH_ASSOC);
         if(!$m||$m['status']!=='approved'||(int)$m['session_version']!==(int)$s['version'])return null;return $m;
+    }
+    /** Minimal tenant-scoped identity for integrations; never exposes profile or credentials. */
+    public static function findApproved(int $id, bool $lock = false): ?array {
+        $q=Forms::query("SELECT id,tenant_id,email,display_name,member_type FROM md_members WHERE id=? AND tenant_id=? AND status='approved'".($lock && Forms::db()->inTransaction()?' FOR UPDATE':''),[$id,Forms::tenant()]);
+        $row=$q->fetch(PDO::FETCH_ASSOC);return $row?:null;
     }
     public static function safePublic(array $m): array {
         // Deliberate allowlist. Sensitive and legacy metadata never leave the private area.
@@ -23,7 +28,13 @@ final class Members
         if(password_needs_rehash($m['password_hash'],PASSWORD_DEFAULT)||str_starts_with($m['password_hash'],'$P$')||str_starts_with($m['password_hash'],'$wp$'))Forms::query('UPDATE md_members SET password_hash=? WHERE id=? AND tenant_id=?',[password_hash($password,PASSWORD_DEFAULT),$m['id'],Forms::tenant()]);
         session_regenerate_id(true);$_SESSION['md_members'][Forms::tenant()]=['id'=>(int)$m['id'],'version'=>(int)$m['session_version'],'expires'=>time()+7200];return $m;
     }
+    /** Existing tenants retain registration unless explicitly closed by their administrator. */
+    public static function registrationEnabled(): bool {
+        $q=Forms::query('SELECT value FROM tenant_settings WHERE tenant_id=? AND '.\Screenart\Musedock\Database::qi('key')."='musedock_members_registration_enabled'",[Forms::tenant()]);
+        $value=$q->fetchColumn();return $value===false || (string)$value==='1';
+    }
     public static function register(array $form,array $values,string $password): int {
+        if(!self::registrationEnabled())throw new \RuntimeException('Registro no disponible.');
         if(strlen($password)<12||strlen($password)>4096)throw new \InvalidArgumentException('Contraseña: entre 12 y 4096 caracteres');
         $email=strtolower(trim((string)($values['user_email']??'')));if(!filter_var($email,FILTER_VALIDATE_EMAIL))throw new \InvalidArgumentException('Email inválido');
         $name=trim(($values['first_name']??'').' '.($values['last_name']??''));

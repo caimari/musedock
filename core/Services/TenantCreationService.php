@@ -118,7 +118,7 @@ class TenantCreationService
      * @param array $adminData Datos del administrador (email, name, password)
      * @return array ['success' => bool, 'tenant_id' => int|null, 'admin_id' => int|null, 'error' => string|null]
      */
-    public function createTenant(array $tenantData, array $adminData): array
+    public function createTenant(array $tenantData, array $adminData, ?array $editorData = null): array
     {
         try {
             $this->pdo->beginTransaction();
@@ -157,12 +157,15 @@ class TenantCreationService
             // 8. Crear ajustes de lectura por defecto (sin prefijo de página)
             $this->createDefaultReadingSettings($tenantId);
 
+            // Optional additional non-root account; legacy tenant creation is unchanged.
+            $editorId = $editorData === null ? null : (new RestrictedEditorProvisioner($this->pdo))->create($tenantId, $editorData);
             $this->pdo->commit();
 
             return [
                 'success' => true,
                 'tenant_id' => $tenantId,
                 'admin_id' => $adminId,
+                'editor_id' => $editorId,
                 'admin_role_id' => $adminRoleId,
                 'error' => null
             ];

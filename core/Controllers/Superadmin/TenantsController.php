@@ -252,6 +252,11 @@ public function store()
                 'email' => $adminEmail,
                 'name' => $adminName,
                 'password' => $adminPassword
+            ],
+            empty($_POST['create_blog_contributor']) ? null : [
+                'name' => $_POST['editor_name'] ?? '',
+                'email' => $_POST['editor_email'] ?? '',
+                'password' => $_POST['editor_password'] ?? ''
             ]
         );
 

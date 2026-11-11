@@ -11,6 +11,7 @@ class BlogCommentController
 {
     private function checkPermission(string $permission): void
     {
+        if (\Screenart\Musedock\Security\Content\BlogAccess::ownOnly()) \Screenart\Musedock\Security\Content\Access::deny();
         if (!userCan($permission)) {
             flash('error', __('blog.post.error_no_permission'));
             header('Location: ' . admin_url('dashboard'));

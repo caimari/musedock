@@ -7,6 +7,8 @@ use Screenart\Musedock\Security\SessionSecurity;
 use Screenart\Musedock\Logger;
 use MediaManager\Models\Media;
 use Screenart\Musedock\Database;
+use Screenart\Musedock\Security\Content\MediaAccess;
+use Screenart\Musedock\Security\Content\Access;
 
 if (!function_exists('slugify')) {
     function slugify($text)
@@ -35,6 +37,11 @@ class MediaController
      * - Superadmin (/musedock/*): null (global)
      * - Tenant (/admin/*): ID del tenant
      */
+    private function mediaOwnership(?int $tenant): array
+    {
+        return \Screenart\Musedock\Security\Content\MediaAccess::ownership($tenant);
+    }
+
     private function getContextTenantId(): ?int
     {
         if (!$this->isTenantContext()) {
@@ -76,6 +83,7 @@ class MediaController
     {
         $query = Media::query()->where('id', $id);
         $this->applyMediaTenantScope($query);
+        MediaAccess::scope($query, $this->getContextTenantId());
         $media = $query->first();
         return $media instanceof Media ? $media : ($media ? new Media((array)$media) : null);
     }
@@ -283,6 +291,7 @@ class MediaController
 
     public function index()
     {
+        MediaAccess::authorize('read', $this->getContextTenantId(), null, false);
         SessionSecurity::startSession();
 
         // Obtener discos disponibles para el selector
@@ -693,6 +702,7 @@ class MediaController
 
     public function getMediaData()
     {
+        MediaAccess::authorize('read', $this->getContextTenantId(), null, false);
         SessionSecurity::startSession();
 
         // Obtener parámetros con seguridad
@@ -707,6 +717,7 @@ class MediaController
             // Construir consulta
             $query = Media::query()->orderBy('created_at', 'DESC');
             $this->applyMediaTenantScope($query);
+            MediaAccess::scope($query, $this->getContextTenantId());
 
             // Filtrar por disco (si se especifica)
             if ($diskFilter && in_array($diskFilter, ['local', 'media', 'r2', 's3'])) {
@@ -836,6 +847,7 @@ class MediaController
  */
 public function getMediaDetails($id)
 {
+        MediaAccess::authorize('read', $this->getContextTenantId(), $id, false);
     SessionSecurity::startSession();
 
     try {
@@ -1013,6 +1025,7 @@ private function getFileTypeDescription($mimeType)
  */
 public function upload()
 {
+        MediaAccess::authorize('upload', $this->getContextTenantId(), null, true);
     SessionSecurity::startSession();
 
     // Verificar si se ha enviado al menos un archivo
@@ -1084,6 +1097,8 @@ public function upload()
             'type'     => $_FILES['file']['type'][$i],
             'size'     => $_FILES['file']['size'][$i],
         ];
+
+        if (!userCan('media.manage')) MediaAccess::imageFile($file);
 
         // Verificar errores de subida
         if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -1298,6 +1313,7 @@ public function upload()
             $media = Media::create([
                 'tenant_id'    => $tenantId,
                 'user_id'      => $userId,
+                ...$this->mediaOwnership($tenantId),
                 'folder_id'    => $folderId,
                 'disk'         => $diskName,
                 'path'         => $relativePath,
@@ -1576,7 +1592,7 @@ public function uploadFromFile(string $filePath, string $mimeType, ?int $tenantI
         ];
 
     } catch (\Exception $e) {
-        error_log("[MediaManager::uploadFromFile] Error: " . $e->getMessage());
+        error_log("[MediaManager::uploadFromFile] Error: " . get_class($e));
         return null;
     }
 }
@@ -1607,6 +1623,7 @@ private function getUploadErrorMessage($errorCode)
 }
     public function updateMeta($id)
     {
+        MediaAccess::authorize('edit', $this->getContextTenantId(), $id, true);
         SessionSecurity::startSession();
 
         try {
@@ -1631,6 +1648,7 @@ private function getUploadErrorMessage($errorCode)
     
     public function delete($id)
     {
+        MediaAccess::authorize('delete', $this->getContextTenantId(), $id, true);
         SessionSecurity::startSession();
 
         try {
@@ -1689,6 +1707,7 @@ private function getUploadErrorMessage($errorCode)
      */
     public function renameMedia($id)
     {
+        MediaAccess::authorize('edit', $this->getContextTenantId(), $id, true);
         SessionSecurity::startSession();
 
         try {
@@ -1738,6 +1757,8 @@ private function getUploadErrorMessage($errorCode)
             $baseDir = dirname($oldPath);
             $baseDir = $baseDir === '.' ? '' : $baseDir;
             $extension = strtolower(pathinfo($newFilename, PATHINFO_EXTENSION));
+            $originalExtension = strtolower(pathinfo((string)$media->filename, PATHINFO_EXTENSION));
+            if ($extension !== $originalExtension || in_array($extension, ['php','phtml','phar','html','htm','js','cgi','sh'], true)) return $this->jsonResponse(['success'=>false,'message'=>'No se puede cambiar el tipo de archivo.'],422);
             $baseName = pathinfo($newFilename, PATHINFO_FILENAME);
             $safeBase = slugify($baseName);
             $suffix = substr((string)$media->public_token, 0, 6);
@@ -1747,6 +1768,7 @@ private function getUploadErrorMessage($errorCode)
             // Renombrar objeto real en el disco activo
             [$filesystem] = $this->createFilesystemForDisk($media->disk ?: 'media');
             if ($newPath !== $oldPath) {
+                if ($filesystem->fileExists($newPath)) return $this->jsonResponse(['success'=>false,'message'=>'El archivo destino ya existe.'],409);
                 try {
                     // Flysystem move para S3/R2 = COPY + DELETE
                     $filesystem->move($oldPath, $newPath);
@@ -1799,6 +1821,8 @@ private function getUploadErrorMessage($errorCode)
      */
     public function getFolderStructure()
     {
+        MediaAccess::authorize('read', $this->getContextTenantId(), null, false);
+        if (!userCan('media.manage')) return $this->jsonResponse(['success'=>true,'folders'=>[],'disk'=>'media']);
         SessionSecurity::startSession();
 
         // Establecer headers JSON PRIMERO antes de cualquier procesamiento
@@ -1876,11 +1900,7 @@ private function getUploadErrorMessage($errorCode)
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Error al cargar carpetas: ' . $e->getMessage(),
-                'debug' => [
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine()
-                ]
+                'message' => 'Error al cargar carpetas.'
             ]);
             exit;
         }
@@ -1891,6 +1911,7 @@ private function getUploadErrorMessage($errorCode)
      */
     public function createFolder()
     {
+        MediaAccess::authorize('folders', $this->getContextTenantId(), null, true);
         SessionSecurity::startSession();
 
         try {
@@ -1979,6 +2000,7 @@ private function getUploadErrorMessage($errorCode)
      */
     public function renameFolder($id)
     {
+        MediaAccess::authorize('folders', $this->getContextTenantId(), null, true);
         SessionSecurity::startSession();
 
         try {
@@ -2032,6 +2054,7 @@ private function getUploadErrorMessage($errorCode)
      */
     public function deleteFolderContents($id)
     {
+        MediaAccess::authorize('folders', $this->getContextTenantId(), null, true);
         SessionSecurity::startSession();
 
         try {
@@ -2092,6 +2115,7 @@ private function getUploadErrorMessage($errorCode)
 
     public function deleteFolder($id)
     {
+        MediaAccess::authorize('folders', $this->getContextTenantId(), null, true);
         SessionSecurity::startSession();
 
         try {
@@ -2135,6 +2159,7 @@ private function getUploadErrorMessage($errorCode)
      */
     public function moveItems()
     {
+        MediaAccess::authorize('folders', $this->getContextTenantId(), null, true);
         SessionSecurity::startSession();
 
         try {
@@ -2203,6 +2228,10 @@ private function getUploadErrorMessage($errorCode)
      */
     public function copyMedia()
     {
+        MediaAccess::authorize('upload', $this->getContextTenantId(), null, true);
+        $ids = $_POST['media_ids'] ?? [];
+        if (!is_array($ids) || !$ids || count($ids)>100 || (!userCan('media.manage') && !empty($_POST['target_folder_id']))) Access::deny();
+        foreach ($ids as $mediaId) MediaAccess::authorize('read', $this->getContextTenantId(), $mediaId);
         SessionSecurity::startSession();
 
         try {
@@ -2274,7 +2303,8 @@ private function getUploadErrorMessage($errorCode)
 
                 $copy = Media::create([
                     'tenant_id' => $media->tenant_id,
-                    'user_id' => $media->user_id,
+                    'user_id' => (int)Access::actor($this->getContextTenantId())['id'],
+                    ...$this->mediaOwnership($this->getContextTenantId()),
                     'folder_id' => $targetFolderId,
                     'disk' => $media->disk,
                     'path' => $newPath,
@@ -2390,6 +2420,7 @@ private function getUploadErrorMessage($errorCode)
      */
     public function getAvailableDisksApi()
     {
+        MediaAccess::authorize('read', $this->getContextTenantId(), null, false);
         SessionSecurity::startSession();
 
         $disks = $this->getAvailableDisks();
@@ -2405,6 +2436,7 @@ private function getUploadErrorMessage($errorCode)
      */
     public function getStorageQuotaApi()
     {
+        MediaAccess::authorize('read', $this->getContextTenantId(), null, false);
         SessionSecurity::startSession();
 
         $storageInfo = $this->getTenantStorageInfo();

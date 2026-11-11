@@ -16,7 +16,7 @@ class Media extends Model
     protected static bool $timestamps = true;
 
     protected array $fillable = [
-        'tenant_id', 'user_id', 'folder_id', 'disk', 'path', 'public_token',
+        'tenant_id', 'user_id', 'owner_admin_id', 'folder_id', 'disk', 'path', 'public_token',
         'slug', 'seo_filename', 'filename', 'mime_type', 'size', 'alt_text', 'caption', 'metadata'
     ];
 

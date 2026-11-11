@@ -12,7 +12,7 @@ class AuthMiddleware {
 
     // Solo logging en modo debug
     if (defined('APP_DEBUG') && APP_DEBUG === true) {
-        error_log("AuthMiddleware - {$requestMethod} {$requestUri}");
+        error_log("AuthMiddleware - {$requestMethod} [ruta omitida]");
     }
 
     SessionSecurity::startSession();
@@ -44,7 +44,7 @@ class AuthMiddleware {
                 error_log("⚠️ SECURITY ALERT: Admin not found in database");
             }
         } catch (\Exception $e) {
-            error_log("AuthMiddleware - Database error: " . $e->getMessage());
+            error_log("AuthMiddleware - Database error: " . get_class($e));
         }
     }
     
@@ -89,7 +89,7 @@ class AuthMiddleware {
                     error_log("AuthMiddleware - ¿Existe token remember? " . ($rememberExists ? 'Sí' : 'No'));
                 }
 
-                error_log("AuthMiddleware - Admin accediendo: {$_SESSION['admin']['email']}");
+                // Do not log the administrator email.
                 error_log("AuthMiddleware - Acceso permitido para admin");
                 error_log("==================== FIN AUTHMIDDLEWARE (ACCESO PERMITIDO) ====================");
                 return true;
@@ -103,8 +103,8 @@ class AuthMiddleware {
             }
             
         } catch (\Exception $e) {
-            error_log("AuthMiddleware - Error verificando sesión: " . $e->getMessage());
-            error_log("AuthMiddleware - Traza: " . $e->getTraceAsString());
+            error_log("AuthMiddleware - Error verificando sesión: " . get_class($e));
+            // Stack arguments can contain credentials.
             error_log("==================== FIN AUTHMIDDLEWARE (ERROR DB) ====================");
             return true;
         }
@@ -131,7 +131,7 @@ class AuthMiddleware {
 
         $token = $_COOKIE['remember_token'];
         $tokenHash = hash('sha256', $token);
-        error_log("AuthMiddleware - Token hash: " . substr($tokenHash, 0, 10) . "...");
+        // Remember-token hashes are private.
 
         try {
             $db = Database::connect();
@@ -151,7 +151,7 @@ class AuthMiddleware {
                 "| NO SE PERMITE user_session_tokens"
             );
         } catch (\Exception $e) {
-            error_log("AuthMiddleware - Error verificando token en BD: " . $e->getMessage());
+            error_log("AuthMiddleware - Error verificando token en BD: " . get_class($e));
         }
 
         if (SessionSecurity::checkRemembered()) {
@@ -188,8 +188,8 @@ class AuthMiddleware {
         error_log("AuthMiddleware - Ejecutando forceLogout()");
         
         // Capturar información de sesión antes de destruirla para diagnosticar
-        $sessionInfo = json_encode($_SESSION);
-        error_log("AuthMiddleware - Información de sesión antes de destruir: " . $sessionInfo);
+        // Session values include credentials and private profiles; never log them.
+        error_log("AuthMiddleware - Destruyendo sesión.");
         
         // Destruir la sesión
         SessionSecurity::destroy();
@@ -253,7 +253,7 @@ class AuthMiddleware {
             
             return $results;
         } catch (\Exception $e) {
-            error_log("Error al limpiar usuarios inactivos: " . $e->getMessage());
+            error_log("Error al limpiar usuarios inactivos: " . get_class($e));
             return false;
         }
     }
@@ -337,7 +337,7 @@ class AuthMiddleware {
             
             return $result;
         } catch (\Exception $e) {
-            error_log("Error al obtener usuarios activos: " . $e->getMessage());
+            error_log("Error al obtener usuarios activos: " . get_class($e));
             return [];
         }
     }

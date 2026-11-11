@@ -307,6 +307,7 @@
                 </select>
               </div>
 
+              @if(!\Screenart\Musedock\Security\Content\BlogAccess::ownOnly())
               {{-- Destacado --}}
               <div class="form-check form-switch mb-3">
                 <input class="form-check-input" type="checkbox" value="1" id="featured" name="featured" @checked(old('featured', $post->featured))>
@@ -314,6 +315,7 @@
                   {{ __('blog.post.featured_this_post') }}
                 </label>
               </div>
+              @endif
 
               {{-- {{ __('blog.post.allow_comments') }} --}}
               <div class="form-check form-switch mb-3">

@@ -1078,18 +1078,18 @@ public function dd()
 
         foreach ($data as $col => $val) {
             // Debug para ver qué tipo de datos exactos estamos recibiendo
-            error_log("[DEBUG QueryBuilder] Columna: {$col}, Valor: " . var_export($val, true) . ", Tipo: " . gettype($val));
+
             
             // ATENCIÓN: Para tenant_id específicamente, verificamos si está vacío o falsy excepto 0
             if ($col === 'tenant_id' && empty($val) && $val !== 0) {
-                error_log("[DEBUG QueryBuilder] Detectado tenant_id vacío, forzando a NULL");
+
                 $sets[] = $this->escapeColumn($col) . " = NULL";
                 continue; // Saltamos al siguiente item del loop
             }
             
             // Conversión general para otros campos
             if ($val === '' || $val === null) {
-                error_log("[DEBUG QueryBuilder] Detectado valor vacío para {$col}, forzando a NULL");
+
                 $sets[] = $this->escapeColumn($col) . " = NULL";
             } else {
                 $placeholder = ":set_{$col}";
@@ -1108,20 +1108,20 @@ public function dd()
         }
 
         // Debug SQL
-        error_log("[DEBUG SQL] " . $sql);
+
 
         // Combinar bindings del WHERE y del SET
         $allBindings = array_merge($this->bindings, $updateBindings);
 
         // Debug Bindings
-        error_log("[DEBUG Bindings] " . json_encode($allBindings));
+
 
         // Preparar y ejecutar
         $stmt = $this->pdo->prepare($sql);
         $result = $stmt->execute($allBindings);
 
         if (!$result) {
-            error_log("[ERROR UPDATE] " . json_encode($stmt->errorInfo()));
+            error_log("[ERROR UPDATE] Database update failed; values omitted.");
         }
 
         return $result;

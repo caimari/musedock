@@ -17,6 +17,7 @@ class Gallery extends Model
 
     protected array $fillable = [
         'tenant_id',
+        'owner_admin_id',
         'name',
         'slug',
         'description',

@@ -45,7 +45,7 @@ class CsrfMiddleware
         }
 
         // Verificar el token usando hash_equals (resistente a timing attacks)
-        if (!$token || !hash_equals($_SESSION['_csrf_token'], $token)) {
+        if (!is_string($token) || !is_string($_SESSION['_csrf_token']) || !hash_equals($_SESSION['_csrf_token'], $token)) {
             Logger::log("CSRF: Token inválido o faltante", 'WARNING', [
                 'uri' => $_SERVER['REQUEST_URI'] ?? 'unknown',
                 'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
