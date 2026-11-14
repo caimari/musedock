@@ -9,7 +9,7 @@ return [
     'username' => 'Usuario de WordPress',
     'app_password' => 'Application Password',
     'auth_info' => 'Para importar menús, borradores y contenido privado, necesitas Application Passwords (WordPress 5.6+).',
-    'credentials_optional' => 'Credenciales (opcional, necesario para menús)',
+    'credentials_optional' => 'Credenciales (opcional, solo para borradores y contenido privado)',
     'test_auth' => 'Test conexión',
     'testing_auth' => 'Verificando...',
     'connecting' => 'Conectando...',

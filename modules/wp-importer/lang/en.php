@@ -9,7 +9,7 @@ return [
     'username' => 'WordPress username',
     'app_password' => 'Application Password',
     'auth_info' => 'To import menus, drafts and private content, you need Application Passwords (WordPress 5.6+).',
-    'credentials_optional' => 'Credentials (optional, required for menus)',
+    'credentials_optional' => 'Credentials (optional, only for drafts and private content)',
     'test_auth' => 'Test connection',
     'testing_auth' => 'Verifying...',
     'connecting' => 'Connecting...',

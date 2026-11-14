@@ -287,8 +287,148 @@ class WpApiClient
             return $result;
         }
 
+        // Estrategia 4: sin credenciales — leer los menús del HTML público de la portada
+        $htmlMenus = $this->getMenusFromHtml();
+        if (!empty($htmlMenus)) {
+            Logger::info("WpApiClient: Obteniendo menús desde el HTML público (" . count($htmlMenus) . " menús)");
+            return $htmlMenus;
+        }
+
         Logger::warning("WpApiClient: No se pudieron obtener menús por ninguna estrategia");
         return [];
+    }
+
+    /**
+     * Extraer los menús de navegación del HTML público (sin credenciales).
+     *
+     * WordPress pinta los menús clásicos como <ul> con <li id="menu-item-N" class="menu-item ...">
+     * y submenús anidados en <ul class="sub-menu">. Muchos temas repiten el mismo menú
+     * (escritorio + móvil): se descartan los duplicados comparando la lista de IDs.
+     *
+     * Devuelve el mismo formato que getMenus(): items con id, parent, title, url,
+     * menu_order, object y target, que entiende WpContentImporter::importMenus().
+     */
+    public function getMenusFromHtml(?string $html = null): array
+    {
+        $html = $html ?? $this->fetchHomepageHtml();
+        if (!$html || stripos($html, 'menu-item') === false) {
+            return [];
+        }
+
+        $dom = new \DOMDocument();
+        $prev = libxml_use_internal_errors(true);
+        $dom->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NOWARNING | LIBXML_NOERROR);
+        libxml_clear_errors();
+        libxml_use_internal_errors($prev);
+        $xpath = new \DOMXPath($dom);
+
+        // <ul> raíz de menú: contiene <li id="menu-item-N"> directos y no es un submenú
+        $uls = $xpath->query('//ul[li[starts-with(@id, "menu-item-")]][not(ancestor::li[starts-with(@id, "menu-item-")])]');
+        if (!$uls || $uls->length === 0) {
+            return [];
+        }
+
+        $menus = [];
+        $seen = [];
+        foreach ($uls as $ul) {
+            $items = [];
+            $order = 0;
+            $this->collectHtmlMenuItems($xpath, $ul, 0, $items, $order);
+            if (empty($items)) {
+                continue;
+            }
+            $signature = implode(',', array_column($items, 'id'));
+            if (isset($seen[$signature])) {
+                continue; // mismo menú repetido (versión móvil, etc.)
+            }
+            $seen[$signature] = true;
+
+            $ulId = $ul->getAttribute('id');
+            $ulClass = $ul->getAttribute('class');
+            $hint = strtolower($ulId . ' ' . $ulClass);
+            if (str_contains($hint, 'footer')) {
+                $name = 'Menú pie de página';
+            } elseif (str_contains($hint, 'primary') || str_contains($hint, 'main') || str_contains($hint, 'header')) {
+                $name = 'Menú principal';
+            } else {
+                $name = $ulId !== '' ? ucfirst(str_replace(['-', '_'], ' ', $ulId)) : 'Menú ' . (count($menus) + 1);
+            }
+
+            $menus[] = [
+                'id' => count($menus) + 1,
+                'name' => $name,
+                'slug' => $ulId !== '' ? $ulId : 'menu-' . (count($menus) + 1),
+                'items' => $items,
+                '_primary' => $name === 'Menú principal',
+            ];
+        }
+
+        // El principal primero: importMenus() asigna la ubicación "nav" al primero
+        usort($menus, fn($a, $b) => (int) $b['_primary'] <=> (int) $a['_primary']);
+        foreach ($menus as &$m) {
+            unset($m['_primary']);
+        }
+        unset($m);
+
+        return $menus;
+    }
+
+    /**
+     * Recorrer un <ul> de menú (y sus submenús) en orden, aplanando a items con parent.
+     */
+    private function collectHtmlMenuItems(\DOMXPath $xpath, \DOMElement $ul, int $parentId, array &$items, int &$order): void
+    {
+        foreach ($ul->childNodes as $li) {
+            if (!$li instanceof \DOMElement || strtolower($li->nodeName) !== 'li') {
+                continue;
+            }
+            if (!preg_match('/^menu-item-(\d+)$/', $li->getAttribute('id'), $mm)) {
+                continue;
+            }
+            $itemId = (int) $mm[1];
+
+            // Primer <a> del propio <li> (no de sus submenús)
+            $link = null;
+            foreach ($xpath->query('.//a', $li) as $a) {
+                $ownerLi = $xpath->query('ancestor::li[1]', $a)->item(0);
+                if ($ownerLi === $li) {
+                    $link = $a;
+                    break;
+                }
+            }
+            if (!$link) {
+                continue;
+            }
+
+            $title = trim(preg_replace('/\s+/u', ' ', $link->textContent));
+            $class = ' ' . $li->getAttribute('class') . ' ';
+            $object = 'custom';
+            if (preg_match('/\smenu-item-object-([a-z0-9_-]+)\s/', $class, $om)) {
+                $object = $om[1];
+            }
+
+            $items[] = [
+                'id' => $itemId,
+                'parent' => $parentId,
+                'title' => $title !== '' ? $title : ($link->getAttribute('title') ?: 'Enlace'),
+                'url' => $link->getAttribute('href') ?: '#',
+                'menu_order' => ++$order,
+                'object' => $object,
+                'target' => $link->getAttribute('target') === '_blank' ? '_blank' : '',
+            ];
+
+            foreach ($li->childNodes as $child) {
+                if ($child instanceof \DOMElement && strtolower($child->nodeName) === 'ul') {
+                    $this->collectHtmlMenuItems($xpath, $child, $itemId, $items, $order);
+                }
+            }
+            // Algunos temas envuelven el submenú en un <div>
+            foreach ($xpath->query('./*[not(self::ul)]//ul[li[starts-with(@id, "menu-item-")]]', $li) as $nested) {
+                if ($xpath->query('ancestor::li[1]', $nested)->item(0) === $li) {
+                    $this->collectHtmlMenuItems($xpath, $nested, $itemId, $items, $order);
+                }
+            }
+        }
     }
 
     /**

@@ -302,6 +302,16 @@ class WpContentImporter
      */
     public function importPosts(array $wpPosts, ?callable $onProgress = null, bool $asBriefs = false): void
     {
+        // Tenant-scoped import default; existing posts retain individual SEO overrides.
+        $briefRobots = null;
+        if ($asBriefs && $this->tenantId !== null) {
+            $q = Database::connect()->prepare('SELECT value FROM tenant_settings WHERE tenant_id = ? AND key = ?');
+            $q->execute([$this->tenantId, 'imported_brief_robots_default']);
+            $value = $q->fetchColumn();
+            if (in_array($value, ['index,follow', 'noindex,follow', 'index,nofollow', 'noindex,nofollow'], true)) {
+                $briefRobots = $value;
+            }
+        }
         $total = count($wpPosts);
         $processed = 0;
 
@@ -412,6 +422,7 @@ class WpContentImporter
                     'show_hero' => false,
                     'hide_title' => true,
                     'post_type' => $asBriefs ? 'brief' : 'post',
+                    ...($briefRobots !== null ? ['robots_directive' => $briefRobots] : []),
                 ]);
 
                 // Pasar prefix correcto (leer de BD, no de tenant_id() global)
@@ -632,6 +643,7 @@ class WpContentImporter
 
                 // Mapear WP parent IDs a nuevos IDs de MuseDock
                 $idMap = [];
+                $depthMap = [];
                 $sort = 0;
 
                 // Separar padres e hijos
@@ -653,10 +665,12 @@ class WpContentImporter
                     $wpId = $item['ID'] ?? $item['id'] ?? 0;
                     $wpParent = $item['parent'] ?? $item['menu_item_parent'] ?? 0;
                     $parentItemId = $idMap[$wpParent] ?? null;
-                    $depth = $parentItemId ? 1 : 0;
+                    // Profundidad real (submenús de submenús, p. ej. leídos del HTML público)
+                    $depth = $parentItemId ? (($depthMap[$wpParent] ?? 0) + 1) : 0;
                     $newItemId = $this->insertMenuItem($pdo, $newMenuId, $item, $parentItemId, $sort, $depth);
                     if ($newItemId && $wpId) {
                         $idMap[$wpId] = $newItemId;
+                        $depthMap[$wpId] = $depth;
                         $this->stats['menu_items_imported']++;
                     }
                 }
@@ -715,6 +729,13 @@ class WpContentImporter
                 "SELECT id FROM pages WHERE slug = :slug AND tenant_id = :tid LIMIT 1",
                 ['slug' => $slug, 'tid' => $this->tenantId]
             )->fetch(\PDO::FETCH_ASSOC);
+            if (!$pageRow && str_contains($slug, '/')) {
+                // Subpágina de WP (/padre/hija/): la página importada lleva solo el último tramo
+                $pageRow = Database::query(
+                    "SELECT id FROM pages WHERE slug = :slug AND tenant_id = :tid LIMIT 1",
+                    ['slug' => basename($slug), 'tid' => $this->tenantId]
+                )->fetch(\PDO::FETCH_ASSOC);
+            }
             if ($pageRow) {
                 $pageId = $pageRow['id'];
             }

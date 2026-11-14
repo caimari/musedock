@@ -83,14 +83,14 @@
 
                         <div class="mb-3">
                             <a href="#" class="text-decoration-none" onclick="document.getElementById('wpi-auth-fields').classList.toggle('d-none'); return false;">
-                                <i class="bi bi-key me-1"></i> {{ __('wp_importer.credentials_optional') ?: 'Credenciales (opcional, necesario para menús)' }}
+                                <i class="bi bi-key me-1"></i> {{ __('wp_importer.credentials_optional') ?: 'Credenciales (opcional, solo para borradores y contenido privado)' }}
                             </a>
                         </div>
 
                         <div id="wpi-auth-fields" class="d-none">
                             <div class="alert alert-info py-2" style="font-size: 0.85rem;">
                                 <i class="bi bi-info-circle me-1"></i>
-                                <strong>Application Passwords</strong> (WordPress 5.6+) — necesario para importar menús y contenido privado.
+                                <strong>Application Passwords</strong> (WordPress 5.6+) — solo hace falta para borradores, contenido privado y ajustes. Sin credenciales se importa todo lo público, menús incluidos (se leen de la web).
                                 <details class="mt-1" style="font-size: 0.82rem;">
                                     <summary class="text-primary" style="cursor:pointer;">¿Cómo obtener las credenciales?</summary>
                                     <ol class="mt-1 mb-0 ps-3">
@@ -180,10 +180,10 @@
                                 </label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="wpi-opt-menus">
+                                <input class="form-check-input" type="checkbox" id="wpi-opt-menus" checked>
                                 <label class="form-check-label" for="wpi-opt-menus">
                                     <i class="bi bi-list me-1"></i> Menus
-                                    <small class="text-muted" id="wpi-menus-auth-hint">(requiere autenticación)</small>
+                                    <small class="text-muted" id="wpi-menus-auth-hint">(sin credenciales se leen de la web pública)</small>
                                 </label>
                             </div>
                             <div class="form-check">
@@ -647,7 +647,7 @@ async function wpiConnect() {
                 document.getElementById('wpi-menus-auth-hint').innerHTML = '<span class="text-success">(autenticado)</span>';
             } else {
                 authResult.className = 'alert alert-warning mt-3';
-                authResult.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Credenciales proporcionadas pero la autenticación falló. Verifica usuario y Application Password. Los menús no se podrán importar.';
+                authResult.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Credenciales proporcionadas pero la autenticación falló. Verifica usuario y Application Password. Los menús se leerán igualmente de la web pública.';
                 document.getElementById('wpi-menus-auth-hint').innerHTML = '<span class="text-danger">(autenticación fallida)</span>';
             }
         } else {
