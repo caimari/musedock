@@ -9,6 +9,7 @@
  *
  * Opciones: --policy=skip|overwrite|rename (páginas ya existentes), --no-media, --no-styles, --no-sliders (por defecto se importa todo: media, categorías, tags, entradas,
  * páginas, menús, sliders y estilos). Las direcciones (slugs) de las páginas se conservan.
+ * --delay=MS: pausa entre peticiones (p. ej. 1500) y reintentos con espera si el hosting corta por exceso de peticiones (Namecheap, etc.).
  */
 if (php_sapi_name() !== 'cli') {
     die('Solo CLI');
@@ -27,7 +28,7 @@ foreach (['Blog\\Models\\' => '/../blog/models', 'WpImporter\\Services\\' => '/s
 use Screenart\Musedock\Database;
 use WpImporter\Services\{WpApiClient, WpContentImporter, WpMediaImporter, WpStyleExtractor};
 
-$o = getopt('', ['site:', 'tenant:', 'policy:', 'run', 'no-media', 'no-styles', 'no-sliders']);
+$o = getopt('', ['site:', 'tenant:', 'policy:', 'run', 'no-media', 'no-styles', 'no-sliders', 'delay:']);
 $site = rtrim((string) ($o['site'] ?? ''), '/');
 $tenantId = (int) ($o['tenant'] ?? 0);
 $run = isset($o['run']);
@@ -61,6 +62,10 @@ if (function_exists('proc_nice')) {
 
 echo "Origen: $site → tenant #{$tenantId} {$tenant['domain']} · " . ($run ? 'IMPORTACIÓN REAL' : 'simulación') . "\n";
 $client = new WpApiClient($site);
+if (!empty($o['delay'])) {
+    $client->setThrottle((int) $o['delay']);
+    echo 'Modo suave: ' . (int) $o['delay'] . " ms entre peticiones, con reintentos si el hosting corta\n";
+}
 $test = $client->testConnection();
 if (empty($test['success'])) {
     fwrite(STDERR, 'No se pudo conectar con la API de WordPress: ' . ($test['error'] ?? json_encode($test)) . "\n");

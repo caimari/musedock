@@ -17,11 +17,63 @@ class WpApiClient
     private int $timeout = 30;
     private bool $useRestRouteParam = false;
 
+    /** Pausa mínima entre peticiones al WordPress (ms). 0 = sin pausa. */
+    private int $delayMs = 0;
+    /** Reintentos ante cortes de conexión o HTTP 429/503/508 (hostings con límite anti-bots). */
+    private int $maxRetries = 0;
+    private float $lastRequestAt = 0.0;
+
     public function __construct(string $siteUrl, ?string $username = null, ?string $appPassword = null)
     {
         $this->siteUrl = rtrim($siteUrl, '/');
         $this->username = $username;
         $this->appPassword = $appPassword;
+    }
+
+    /**
+     * Modo «suave» para hostings compartidos que bloquean IPs con muchas peticiones seguidas:
+     * espera $delayMs entre peticiones y, si cortan la conexión o responden 429/503/508,
+     * reintenta hasta $maxRetries veces esperando cada vez más (30 s, 60 s, 120 s… máx. 10 min).
+     */
+    public function setThrottle(int $delayMs, int $maxRetries = 6): void
+    {
+        $this->delayMs = max(0, $delayMs);
+        $this->maxRetries = max(0, $maxRetries);
+    }
+
+    /**
+     * curl_exec con pausa entre peticiones y reintentos.
+     * $beforeRetry se llama antes de repetir (p. ej. para vaciar el fichero de destino).
+     */
+    private function execCurl($ch, ?callable $beforeRetry = null)
+    {
+        $attempt = 0;
+        while (true) {
+            if ($this->delayMs > 0) {
+                $wait = $this->delayMs / 1000 - (microtime(true) - $this->lastRequestAt);
+                if ($wait > 0) {
+                    usleep((int) ($wait * 1e6));
+                }
+            }
+            $result = curl_exec($ch);
+            $this->lastRequestAt = microtime(true);
+            $errno = curl_errno($ch);
+            $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $blocked = $errno !== 0 || in_array($code, [429, 503, 508], true);
+            if (!$blocked || $attempt >= $this->maxRetries) {
+                return $result;
+            }
+            $attempt++;
+            $pause = min(600, 30 * (2 ** ($attempt - 1)));
+            Logger::warning("WpApiClient: el WordPress corta o limita (" . ($errno ? curl_error($ch) : "HTTP {$code}") . "), reintento {$attempt}/{$this->maxRetries} en {$pause} s");
+            if (PHP_SAPI === 'cli') {
+                fwrite(STDERR, "  … el WordPress nos limita, espero {$pause} s (reintento {$attempt}/{$this->maxRetries})\n");
+            }
+            sleep($pause);
+            if ($beforeRetry) {
+                $beforeRetry();
+            }
+        }
     }
 
     /**
@@ -899,7 +951,7 @@ class WpApiClient
             CURLOPT_USERAGENT => 'MuseDock-WP-Importer/1.0',
         ]);
 
-        $result = curl_exec($ch);
+        $result = $this->execCurl($ch, function () use ($fp) { ftruncate($fp, 0); rewind($fp); });
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
 
@@ -933,7 +985,7 @@ class WpApiClient
             CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; MuseDock-Importer/1.0)',
         ]);
 
-        $html = curl_exec($ch);
+        $html = $this->execCurl($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
@@ -1003,7 +1055,7 @@ class WpApiClient
                 CURLOPT_USERAGENT => 'MuseDock-Importer/1.0',
             ]);
 
-            $content = curl_exec($ch);
+            $content = $this->execCurl($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
 
@@ -1068,7 +1120,7 @@ class WpApiClient
             },
         ]);
 
-        $body = curl_exec($ch);
+        $body = $this->execCurl($ch, function () use (&$responseHeaders) { $responseHeaders = []; });
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
         curl_close($ch);
