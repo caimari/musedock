@@ -1,3 +1,7 @@
+@php
+// Editorial metadata arrives as trusted controller data, before this layout reads its sections.
+if(!empty($__editorialSeo))foreach($__editorialSeo as $__key=>$__value)\Screenart\Musedock\View::startSection($__key,$__value);
+@endphp
 <!doctype html>
 @php
     // ========================================
@@ -20,6 +24,16 @@
     $_twitterImage = site_setting('twitter_image', '');
     $_twitterDescription = site_setting('twitter_description', '');
     $_blogPublic = site_setting('blog_public', '1');
+    // NYCultura institutional pages use the native query-language selector.
+    if ((int)$_tenantId === 74 && isset($page->id) && !isset($post)) {
+        $__pageQuery = \Screenart\Musedock\Database::connect()->prepare("SELECT slug,prefix FROM slugs WHERE tenant_id=74 AND module='pages' AND reference_id=? AND locale IS NULL ORDER BY id LIMIT 1");
+        $__pageQuery->execute([$page->id]);
+        $__pageRoute = $__pageQuery->fetch(\PDO::FETCH_ASSOC);
+        if ($__pageRoute) {
+            $__pagePath = '/' . trim(($__pageRoute['prefix'] ? $__pageRoute['prefix'].'/' : '') . $__pageRoute['slug'], '/');
+            seo_set_language_urls(['en'=>$__pagePath,'es'=>'/es'.$__pagePath]);
+        }
+    }
 @endphp
 <html lang="{{ detectLanguage() }}" class="no-js">
 
@@ -73,7 +87,9 @@
         $robotsDirective = trim(\Screenart\Musedock\View::yieldSection('robots', ''));
 
         // Verificar setting de visibilidad en buscadores
-        if ($_blogPublic == '0' && empty($robotsDirective)) {
+        // Con «no indexar» activo manda sobre la directiva de cada página/entrada
+        // (las importadas llegan todas con index,follow por defecto de la BD)
+        if ($_blogPublic == '0') {
             $robotsDirective = 'noindex, nofollow';
         }
 
@@ -86,7 +102,8 @@
     @endif
     <meta property="og:title" content="{{ $ogTitle ?: $siteName }}">
     <meta property="og:description" content="{{ $ogDescription ?: $siteName }}">
-    <meta property="og:url" content="{{ url($_SERVER['REQUEST_URI']) }}">
+    {{-- og:url sigue al canonical: una copia sindicada comparte en redes la URL del original --}}
+    <meta property="og:url" content="{{ $canonicalUrl ?: (seo_language_canonical() ?: seo_self_url()) }}">
     @if($siteName)
     <meta property="og:site_name" content="{{ $siteName }}">
     @endif
@@ -99,7 +116,8 @@
     @if($canonicalUrl)
     <link rel="canonical" href="{{ $canonicalUrl }}">
     @else
-    <link rel="canonical" href="{{ seo_language_canonical() ?: url($_SERVER['REQUEST_URI']) }}">
+    {{-- Sin parámetros de consulta (?utm_*, ?fbclid…): solo ?page=N --}}
+    <link rel="canonical" href="{{ seo_language_canonical() ?: seo_self_url() }}">
     @endif
     {!! seo_language_tags() !!}
     @if($_siteName)
@@ -119,9 +137,9 @@
     @if($_twitterSite)
     <meta name="twitter:site" content="{{ $_twitterSite }}">
     @endif
-    @if($_twitterImage)
+    @if(!$twitterImage && $_twitterImage)
     <meta name="twitter:image" content="{{ public_file_url($_twitterImage) }}">
-    @elseif($_ogImage)
+    @elseif(!$twitterImage && $_ogImage)
     <meta name="twitter:image" content="{{ public_file_url($_ogImage) }}">
     @endif
 
@@ -164,10 +182,11 @@
         }
     @endphp
     @if(count($__langs) > 1)
+        @php $__hrefBase = url((string) (parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/')); @endphp
         @foreach($__langs as $__lang)
-    <link rel="alternate" hreflang="{{ $__lang }}" href="{{ url($_SERVER['REQUEST_URI']) }}?lang={{ $__lang }}">
+    <link rel="alternate" hreflang="{{ $__lang }}" href="{{ $__hrefBase }}?lang={{ $__lang }}">
         @endforeach
-    <link rel="alternate" hreflang="x-default" href="{{ url($_SERVER['REQUEST_URI']) }}">
+    <link rel="alternate" hreflang="x-default" href="{{ $__hrefBase }}">
     @endif
 
     <!-- Responsive (igual en ambos) -->
@@ -245,6 +264,8 @@
     {{-- CSS Custom global del tema (layout, anchos, header styles, etc.) --}}
     <link rel="stylesheet" href="{{ asset('themes/default/css/custom.css') }}?v={{ $cssVer('custom.css') }}">
 
+    <link rel="stylesheet" href="{{ asset('themes/default/css/buttons.css') }}?v={{ $cssVer('buttons.css') }}">
+
     {{-- CSS Custom del tenant - se carga DESPUÉS del global para poder sobrescribir --}}
     @php
         $cssTenantId = tenant()['id'] ?? null;
@@ -296,6 +317,11 @@
 	{{-- CSS Variables dinámicas desde la base de datos (tenant-aware) --}}
     <style>
     :root {
+        --md-button-bg: {{ themeOption('buttons.button_bg_color', '#f1f3f5') }};
+        --md-button-text: {{ themeOption('buttons.button_text_color', '#111111') }};
+        --md-button-border: {{ themeOption('buttons.button_border_color', '#d1d5db') }};
+        --md-button-hover: {{ themeOption('buttons.button_hover_color', '#e5e7eb') }};
+        --md-button-focus: {{ themeOption('buttons.button_focus_color', '#64748b') }};
         --topbar-bg-color: {{ themeOption('topbar.topbar_bg_color', '#1a2a40') }};
         --topbar-text-color: {{ themeOption('topbar.topbar_text_color', '#ffffff') }};
         /* Hero */
@@ -575,15 +601,15 @@
         color: #333;
     }
     /* === ENLACES - Links tradicionales azules === */
-    .page-content a, .page-body a, .content a, article a {
+    .page-content a:not(:where(.btn,[class*="btn-"],[class*="-btn"],.button,[role="button"],.md-cta-link,.element-button a)), .page-body a:not(:where(.btn,[class*="btn-"],[class*="-btn"],.button,[role="button"],.md-cta-link,.element-button a)), .content a:not(:where(.btn,[class*="btn-"],[class*="-btn"],.button,[role="button"],.md-cta-link,.element-button a)), article a:not(:where(.btn,[class*="btn-"],[class*="-btn"],.button,[role="button"],.md-cta-link,.element-button a)) {
         color: #0066cc !important;
         text-decoration: underline;
     }
-    .page-content a:hover, .page-body a:hover, .content a:hover, article a:hover {
+    .page-content a:not(:where(.btn,[class*="btn-"],[class*="-btn"],.button,[role="button"],.md-cta-link,.element-button a)):hover, .page-body a:not(:where(.btn,[class*="btn-"],[class*="-btn"],.button,[role="button"],.md-cta-link,.element-button a)):hover, .content a:not(:where(.btn,[class*="btn-"],[class*="-btn"],.button,[role="button"],.md-cta-link,.element-button a)):hover, article a:not(:where(.btn,[class*="btn-"],[class*="-btn"],.button,[role="button"],.md-cta-link,.element-button a)):hover {
         color: #0052a3 !important;
         text-decoration: underline;
     }
-    .page-content a:visited, .page-body a:visited, .content a:visited, article a:visited {
+    .page-content a:not(:where(.btn,[class*="btn-"],[class*="-btn"],.button,[role="button"],.md-cta-link,.element-button a)):visited, .page-body a:not(:where(.btn,[class*="btn-"],[class*="-btn"],.button,[role="button"],.md-cta-link,.element-button a)):visited, .content a:not(:where(.btn,[class*="btn-"],[class*="-btn"],.button,[role="button"],.md-cta-link,.element-button a)):visited, article a:not(:where(.btn,[class*="btn-"],[class*="-btn"],.button,[role="button"],.md-cta-link,.element-button a)):visited {
         color: #551a8b !important;
     }
     /* Enlaces que contienen imágenes: sin decoración ni color heredado */
@@ -1460,7 +1486,17 @@ body.layout-sidebar .header-top { display: none !important; }
 }
 /* Remove any body/html margin that creates gap at top */
 body:has(.header-layout-banner) { padding-top: 0 !important; margin-top: 0 !important; }
-body:has(.header-layout-banner) .header-top { display: none !important; }
+body:has(.header-layout-banner) .header-top:not(.md-topbar-visible) { display: none !important; }
+body .header-top.md-topbar-visible {display:block!important;padding:14px 0!important;}
+body .header-top.md-topbar-visible .topbar-flex {display:flex!important;align-items:center;justify-content:space-between;gap:14px;padding:0!important;}
+body .header-top.md-topbar-visible .header-info-left {display:flex!important;align-items:center;min-width:0;}
+body .header-top.md-topbar-visible .header-info-right {display:flex!important;margin-left:auto;flex-shrink:0;}
+body .header-top.md-topbar-visible .header-social {display:flex!important;visibility:visible!important;}
+/* A real utility bar replaces the banner's old reserved social-icon gap. */
+body:has(.header-top.md-topbar-visible) .header-layout-banner {margin-top:0!important;}
+body .header-top.md-topbar-visible {border-bottom:0!important;}
+
+
 .header-layout-banner .main-navigation ul { gap: 30px; }
 .header-layout-banner .main-navigation a {
     font-size: 13px !important;
@@ -1889,11 +1925,27 @@ footer .lang-select .lang-btn, .footer-area .lang-select .lang-btn { color: var(
     /* Add breathing room on smaller screens */
     .header-logo-above-brand .container,
     .header-logo-above-nav .container {
-        padding-left: 20px !important;
-        padding-right: 20px !important;
+        padding-left: 22px !important;
+        padding-right: 22px !important;
     }
     .logo-above-brand-row {
         padding: 0 5px;
+    }
+    /* Logo centrado: la hamburguesa va al borde derecho (no pegada al logo) y el logo
+       deja hueco a ambos lados para seguir centrado sin montarse con ella */
+    .header-layout-logo-above .logo-above-brand-row {
+        position: relative;
+    }
+    .header-layout-logo-above .logo-above-brand-center {
+        padding: 0 48px;
+        max-width: 100%;
+    }
+    .header-layout-logo-above .logo-above-mobile-toggle {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        margin: 0 !important;
     }
 
     /* Ocultar botón de acción y selector de idioma de escritorio */
@@ -1914,8 +1966,8 @@ footer .lang-select .lang-btn, .footer-area .lang-select .lang-btn { color: var(
 
     /* Ensure padding on all header containers */
     .musedock-header > .container {
-        padding-left: 20px !important;
-        padding-right: 20px !important;
+        padding-left: 22px !important;
+        padding-right: 22px !important;
     }
 
     /* Ajustar el contenedor principal si el logo y toggle quedan mal */
@@ -2165,13 +2217,15 @@ body.mobile-menu-open {
 .musedock-ad--sidebar-top,
 .musedock-ad--sidebar-bottom { margin-bottom: 1rem; }
 </style>
+@include('partials.editorial-breadcrumb-styles')
+<link rel="stylesheet" href="{{ asset('themes/default/css/editorial-alignment.css') }}?v={{ filemtime(APP_ROOT.'/public/assets/themes/default/css/editorial-alignment.css') }}">
 </head>
 @php
     $__ps = themeOption('structure.page_structure', 'classic');
     $__hl = themeOption('header.header_layout', 'default');
     $__isSidebar = ($__ps === 'sidebar' || ($__ps === 'classic' && $__hl === 'sidebar'));
 @endphp
-<body class="{{ themeOption('topbar.topbar_enabled', true) && !$__isSidebar ? '' : 'no-topbar' }} {{ themeOption('header.header_content_width', 'full') === 'boxed' ? 'header-boxed' : '' }} {{ themeOption('footer.footer_content_width', 'full') === 'boxed' ? 'footer-boxed' : '' }} {{ $__isSidebar ? 'layout-sidebar' : '' }}">
+<body class="{{ in_array(themeOption('header.header_layout', 'default'), ['logo-above','logo-above-left'], true) && themeOption('structure.page_structure', 'classic') !== 'sidebar' ? 'md-editorial-aligned' : '' }} {{ themeOption('topbar.topbar_enabled', true) && !$__isSidebar ? '' : 'no-topbar' }} {{ themeOption('header.header_content_width', 'full') === 'boxed' ? 'header-boxed' : '' }} {{ themeOption('footer.footer_content_width', 'full') === 'boxed' ? 'footer-boxed' : '' }} {{ $__isSidebar ? 'layout-sidebar' : '' }}">
 {{-- Codigo personalizado del tenant despues de <body> --}}
 @php $_customBodyStartCode = site_setting('custom_body_start_code', ''); @endphp
 @if(!empty($_customBodyStartCode))
@@ -2228,10 +2282,13 @@ body.mobile-menu-open {
     $__hasTopbarTicker = !empty($__topbarPosts);
 @endphp
 @if($topbarEnabled && ($headerLayout ?? null) !== 'sidebar'){{-- Auditoría 2026-10-05: misma lógica, sin aviso de variable indefinida --}}
-    <div class="header-top top-bg d-none d-lg-block">
+    <div class="header-top top-bg d-none d-lg-block{{ themeOption('topbar.topbar_search_enabled', false) ? ' md-topbar-visible' : '' }}">
    <div class="container">
        <div class="topbar-flex">
            <div class="header-info-left">
+               @if(themeOption('topbar.topbar_search_enabled', false))
+                   @include('partials._header-search', ['headerSearchEnabled'=>true])
+               @endif
                <ul>
                    @if($showAddress && site_setting('contact_address', ''))
                        <li><i class="fas fa-map-marker-alt"></i>{{ site_setting('contact_address') }}</li>
@@ -2818,7 +2875,7 @@ document.querySelectorAll('.footer-area .widget-area').forEach(function(wa) {
             );
         @endphp
         <!-- ===== Cookie Consent Popup ===== -->
-        <div id="cookie-consent-popup" class="cookie-consent-popup cookie-layout-{{ $cookieLayout }}" style="display: none; --cookie-bg: {{ $cookieBg }}; --cookie-text: {{ $cookieText }}; --cookie-btn-accept: {{ $cookieBtnAccept }}; --cookie-btn-reject: {{ $cookieBtnReject }};">
+        <div id="cookie-consent-popup" class="cookie-consent-popup cookie-layout-{{ $cookieLayout }}" data-google-cmp="{{ site_setting('cookies_google_cmp', '0') == '1' ? '1' : '0' }}" style="display: none; --cookie-bg: {{ $cookieBg }}; --cookie-text: {{ $cookieText }}; --cookie-btn-accept: {{ $cookieBtnAccept }}; --cookie-btn-reject: {{ $cookieBtnReject }};">
         <div class="cookie-popup-content">
             <h4 aria-level="2">{{ __('cookies.title') }}</h4>
             <p>{{ __('cookies.text') }}</p>
@@ -3044,7 +3101,9 @@ document.addEventListener('DOMContentLoaded', function() {
     @endif
 
     // 3. Inicializar Magnific Popup en todos los lightbox del contenido
-    var $contentLinks = $('.page-body .page-content-lightbox');
+    // Incluye los enlaces de imagen de entrevistas/reportajes (a.interview-lb), que llevan
+    // md-mfp-bound para que no se envuelvan solos y por eso nadie más los activaba.
+    var $contentLinks = $('.page-body .page-content-lightbox, .page-body a.interview-lb').addClass('page-content-lightbox');
     if ($contentLinks.length) {
         $contentLinks.magnificPopup({
             type: 'image',
