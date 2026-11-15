@@ -110,6 +110,9 @@
         "divider"
     ],
     "changelog": {
+        "pendiente (2026-11-15)": [
+            "El shortcode [custom-form slug=\"…\"] encuentra los formularios del tenant actual; antes solo buscaba formularios globales y en las webs de cliente salía vacío."
+        ],
         "pendiente (auditoría 2026-10-05)": [
             "Seguridad: los enlaces de envíos (archivo, URL, página de origen, referrer) solo aceptan http(s) o rutas; antes podían llevar javascript:",
             "Seguridad: los adjuntos de formularios públicos solo admiten extensiones de una lista fija (documentos, imágenes, audio, vídeo, zip), sea cual sea la configuración del tenant.",

@@ -65,7 +65,9 @@ if (!function_exists('process_custom_form_shortcodes')) {
             }
             // Find by slug
             elseif (!empty($attributes['slug'])) {
-                $form = Form::findBySlug($attributes['slug']);
+                // Buscar en el tenant actual (y globales); sin tenant solo encontraba formularios globales
+                $currentTenant = function_exists('tenant_id') ? tenant_id() : null;
+                $form = Form::findBySlug($attributes['slug'], $currentTenant !== null ? (int) $currentTenant : null);
             }
 
             if (!$form || !$form->is_active) {
