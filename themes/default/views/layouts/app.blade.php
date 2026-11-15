@@ -2480,7 +2480,7 @@ body.mobile-menu-open {
         <div class="mobile-menu-search" style="padding: 0 20px 16px;">
             <form action="{{ url('/search') }}" method="GET">
                 <div style="display:flex; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-                    <input type="text" name="q" placeholder="{{ ($currentLang ?? 'es') === 'en' ? 'Search...' : 'Buscar...' }}" required minlength="2" style="flex:1; border:none; padding: 10px 14px; font-size: 15px; outline:none; background: #f8f8f8;">
+                    <input type="text" name="q" placeholder="{{ ['en' => 'Search...', 'ca' => 'Cercar...'][$currentLang ?? 'es'] ?? 'Buscar...' }}" required minlength="2" style="flex:1; border:none; padding: 10px 14px; font-size: 15px; outline:none; background: #f8f8f8;">
                     <button type="submit" aria-label="{{ ($currentLang ?? 'es') === 'en' ? 'Search' : 'Buscar' }}" style="border:none; background: var(--header-link-hover-color, #ff5e15); color:#fff; padding: 10px 14px; cursor:pointer;">
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     </button>

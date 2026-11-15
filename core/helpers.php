@@ -987,6 +987,15 @@ if (!function_exists('site_setting')) {
 
         // Si hay tenant activo, usar tenant_setting (sin fallback)
         if ($tenantId !== null) {
+            // Subtítulo y descripción del sitio por idioma: si existe «site_subtitle_en», «site_description_es»…
+            // para el idioma de la visita, se usa esa versión (sitios bilingües); si no, la de siempre.
+            // También el pie («footer_copyright») y el nombre del listado del blog («blog_section_title»).
+            if (in_array($key, ['site_subtitle', 'site_description', 'footer_copyright', 'blog_section_title'], true) && function_exists('detectLanguage')) {
+                $localized = tenant_setting($key . '_' . detectLanguage(), null);
+                if (is_string($localized) && trim($localized) !== '') {
+                    return $localized;
+                }
+            }
             return tenant_setting($key, $default);
         }
 
@@ -1469,6 +1478,20 @@ if (!function_exists('seo_language_canonical')) {
     }
 }
 
+if (!function_exists('seo_self_url')) {
+    /**
+     * URL de la página actual para canonical/og:url: sin parámetros de consulta (?utm_*, ?fbclid,
+     * ?x=1… crearían duplicados en Google), conservando solo ?page=N de la paginación (N > 1).
+     */
+    function seo_self_url(): string
+    {
+        $path = (string) (parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/');
+        $page = (int) ($_GET['page'] ?? 1);
+
+        return url($path) . ($page > 1 ? '?page=' . $page : '');
+    }
+}
+
 if (!function_exists('site_default_language')) {
     /**
      * Idioma que ve un visitante sin preferencias (sin ?lang, cookie ni idioma de
@@ -1520,7 +1543,19 @@ if (!function_exists('blog_language_lists_enabled')) {
      */
     function blog_language_lists_enabled(): bool
     {
-        return (string) site_setting('blog_language_lists', '0') === '1';
+        // '1' = cada idioma lista solo lo que existe en él; '2' = lista todo, traducido si hay traducción
+        return in_array((string) site_setting('blog_language_lists', '0'), ['1', '2'], true);
+    }
+}
+
+if (!function_exists('blog_language_lists_fallback')) {
+    /**
+     * Listados por idioma «con respaldo» (blog_language_lists = 2): cada idioma muestra todos los
+     * artículos, con su traducción a ese idioma si la tienen y si no en su idioma original.
+     */
+    function blog_language_lists_fallback(): bool
+    {
+        return (string) site_setting('blog_language_lists', '0') === '2';
     }
 }
 
@@ -2554,6 +2589,51 @@ if (!function_exists('blog_section_title')) {
     {
         $t = trim((string) site_setting('blog_section_title', ''));
         return $t !== '' ? $t : (string) __('blog.title');
+    }
+}
+
+if (!function_exists('blog_list_path')) {
+    /**
+     * Dirección propia del listado del blog cuando el sitio no usa prefijo (ajuste «blog_list_path», p. ej. «articulos»).
+     * Los posts siguen en la raíz; /blog redirige con 301 a esta dirección. Vacío = sin cambio (/blog).
+     */
+    function blog_list_path(): string
+    {
+        $p = strtolower(trim((string) site_setting('blog_list_path', ''), '/ '));
+        return ($p !== '' && $p !== 'blog' && preg_match('/^[a-z0-9][a-z0-9-]{0,40}$/', $p)) ? $p : '';
+    }
+}
+
+if (!function_exists('blog_author_admin_id')) {
+    /**
+     * Id del administrador que firma un post (el que ve el lector): el propio autor si es un admin; si el post lo
+     * publicó el superadmin dentro de un tenant, el administrador raíz de ese tenant. null si no hay ficha de admin.
+     * Sirve para enlazar la firma a su página de autor cuando está activada.
+     *
+     * @param object|array $post
+     */
+    function blog_author_admin_id($post): ?int
+    {
+        $get = static fn (string $k) => is_array($post) ? ($post[$k] ?? null) : ($post->$k ?? null);
+        $type = (string) ($get('user_type') ?: 'admin');
+        if ($type === 'admin' && !empty($get('user_id'))) {
+            return (int) $get('user_id');
+        }
+        if ($type === 'superadmin' && !empty($get('tenant_id'))) {
+            static $roots = [];
+            $tid = (int) $get('tenant_id');
+            if (!array_key_exists($tid, $roots)) {
+                try {
+                    $id = \Screenart\Musedock\Database::connect()->prepare('SELECT id FROM admins WHERE tenant_id = ? AND is_root_admin = 1 LIMIT 1');
+                    $id->execute([$tid]);
+                    $roots[$tid] = $id->fetchColumn() ?: null;
+                } catch (\Throwable $e) {
+                    $roots[$tid] = null;
+                }
+            }
+            return $roots[$tid] !== null ? (int) $roots[$tid] : null;
+        }
+        return null;
     }
 }
 

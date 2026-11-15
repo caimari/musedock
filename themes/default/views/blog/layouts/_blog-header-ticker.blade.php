@@ -22,7 +22,8 @@
     $renderLatest  = $showLatestPost && ($latestPostPos === $tickerPosition);
 
     // Skip entirely if nothing to render here
-    $tickerSkip = (!$showClock && !$renderTags && !$renderLatest);
+    // Páginas de archivo (autor): sin banner ni franja de temas/últimos artículos (la vista pasa $hide_hero).
+    $tickerSkip = !empty($hide_hero) || (!$showClock && !$renderTags && !$renderLatest);
 @endphp
 @if(!$tickerSkip)
 @php
@@ -63,13 +64,16 @@
 
         if ($renderLatest) {
             if ($tenantId) {
+                // Título traducido al idioma de la visita cuando existe (sitios bilingües)
                 $stmt = $pdo->prepare("
-                    SELECT title, slug FROM blog_posts
-                    WHERE tenant_id = ? AND status = 'published'
-                    ORDER BY published_at DESC
+                    SELECT p.id, p.tenant_id, p.slug, p.base_locale, COALESCE(t.title, p.title) AS title
+                    FROM blog_posts p
+                    LEFT JOIN blog_post_translations t ON t.post_id = p.id AND t.locale = ?
+                    WHERE p.tenant_id = ? AND p.status = 'published'
+                    ORDER BY p.published_at DESC
                     LIMIT 8
                 ");
-                $stmt->execute([$tenantId]);
+                $stmt->execute([detectLanguage(), $tenantId]);
             } else {
                 $stmt = $pdo->query("
                     SELECT title, slug FROM blog_posts
@@ -79,6 +83,16 @@
                 ");
             }
             $tickerPosts = $stmt->fetchAll(\PDO::FETCH_OBJ);
+            $__tl = detectLanguage();
+            foreach ($tickerPosts as $tp) {
+                $tp->href = blog_url($tp->slug);
+                if (isset($tp->id, $tp->base_locale) && $__tl !== ($tp->base_locale ?: site_default_language())) {
+                    try {
+                        $__paths = \Screenart\Musedock\Services\LanguageUrl::postPaths($tp);
+                        if (!empty($__paths[$__tl])) $tp->href = $__paths[$__tl];
+                    } catch (\Throwable $e) {}
+                }
+            }
         }
     } catch (\Exception $e) {
         // Silencioso
@@ -98,7 +112,7 @@
     {{-- Top Tags --}}
     @if($renderTags && !empty($tickerTags))
     <div class="ticker-tags-row">
-        <span class="ticker-label-tags"><i class="fas fa-hashtag"></i> Top Tags</span>
+        <span class="ticker-label-tags"><i class="fas fa-hashtag"></i> {{ ['en' => 'Top Tags', 'ca' => 'Temes destacats'][detectLanguage()] ?? 'Temas destacados' }}</span>
         <div class="ticker-tags-list">
             @foreach($tickerTags as $tag)
             <a href="{{ blog_url($tag->slug, 'tag') }}" class="ticker-tag">{{ $tag->name }}</a>
@@ -110,17 +124,17 @@
     {{-- Latest Post ticker --}}
     @if($renderLatest && !empty($tickerPosts))
     <div class="ticker-latest-row">
-        <span class="ticker-label-latest">Latest Post</span>
+        <span class="ticker-label-latest">{{ ['en' => 'Latest Post', 'ca' => 'Darrers articles'][detectLanguage()] ?? 'Últimos artículos' }}</span>
         <div class="ticker-marquee-wrapper">
             <div class="ticker-marquee">
                 @foreach($tickerPosts as $tp)
-                <a href="{{ blog_url($tp->slug) }}" class="ticker-marquee-item">
+                <a href="{{ $tp->href ?? blog_url($tp->slug) }}" class="ticker-marquee-item">
                     <i class="fas fa-arrow-circle-right"></i> {{ $tp->title }}
                 </a>
                 @endforeach
                 {{-- Duplicate for seamless loop --}}
                 @foreach($tickerPosts as $tp)
-                <a href="{{ blog_url($tp->slug) }}" class="ticker-marquee-item">
+                <a href="{{ $tp->href ?? blog_url($tp->slug) }}" class="ticker-marquee-item">
                     <i class="fas fa-arrow-circle-right"></i> {{ $tp->title }}
                 </a>
                 @endforeach

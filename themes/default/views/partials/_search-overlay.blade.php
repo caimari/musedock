@@ -13,7 +13,7 @@
         <form action="{{ url('/search') }}" method="GET" class="md-search-form">
             <div class="md-search-input-wrap">
                 <svg class="md-search-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <input type="text" name="q" class="md-search-input" placeholder="{{ $__searchLang === 'en' ? 'Search...' : 'Buscar...' }}" autocomplete="off" autofocus>
+                <input type="text" name="q" class="md-search-input" placeholder="{{ ['en' => 'Search...', 'ca' => 'Cercar...'][$__searchLang] ?? 'Buscar...' }}" autocomplete="off" autofocus>
             </div>
             <p class="md-search-hint">{{ $__searchLang === 'en' ? 'Press Enter to search or Esc to close' : 'Pulsa Enter para buscar o Esc para cerrar' }}</p>
         </form>

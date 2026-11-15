@@ -13,12 +13,12 @@
 
             {{-- Search Form --}}
             <div class="md-search-page-header mb-5">
-                <h1 class="md-search-page-title">{{ $__sl === 'en' ? 'Search' : 'Buscar' }}</h1>
+                <h1 class="md-search-page-title">{{ ['en' => 'Search', 'ca' => 'Cercar'][$__sl] ?? 'Buscar' }}</h1>
                 <form action="{{ url('/search') }}" method="GET" class="md-search-page-form">
                     <div class="md-search-page-input-wrap">
                         <svg class="md-search-page-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                         <input type="text" name="q" class="md-search-page-input" placeholder="{{ $__sl === 'en' ? 'What are you looking for?' : '¿Qué estás buscando?' }}" value="{{ $query ?? '' }}" required minlength="2" autofocus>
-                        <button type="submit" class="md-search-page-btn">{{ $__sl === 'en' ? 'Search' : 'Buscar' }}</button>
+                        <button type="submit" class="md-search-page-btn">{{ ['en' => 'Search', 'ca' => 'Cercar'][$__sl] ?? 'Buscar' }}</button>
                     </div>
                 </form>
 

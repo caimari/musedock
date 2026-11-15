@@ -96,16 +96,16 @@
             @else
                 <ul class="footer-minimal-nav">
                     <li class="footer-minimal-nav-item">
-                        <a href="{{ $urlAvisoLegal }}" class="footer-minimal-nav-link">{{ $__bl === 'en' ? 'Legal Notice' : 'Aviso Legal' }}</a>
+                        <a href="{{ $urlAvisoLegal }}" class="footer-minimal-nav-link">{{ ['en' => 'Legal Notice', 'ca' => 'Avís legal'][$__bl] ?? 'Aviso Legal' }}</a>
                     </li>
                     <li class="footer-minimal-nav-item">
-                        <a href="{{ $urlPrivacidad }}" class="footer-minimal-nav-link">{{ $__bl === 'en' ? 'Privacy Policy' : 'Politica de Privacidad' }}</a>
+                        <a href="{{ $urlPrivacidad }}" class="footer-minimal-nav-link">{{ ['en' => 'Privacy Policy', 'ca' => 'Política de privadesa'][$__bl] ?? 'Política de Privacidad' }}</a>
                     </li>
                     <li class="footer-minimal-nav-item">
-                        <a href="{{ $urlCookies }}" class="footer-minimal-nav-link">{{ $__bl === 'en' ? 'Cookie Policy' : 'Politica de Cookies' }}</a>
+                        <a href="{{ $urlCookies }}" class="footer-minimal-nav-link">{{ ['en' => 'Cookie Policy', 'ca' => 'Política de galetes'][$__bl] ?? 'Política de Cookies' }}</a>
                     </li>
                     <li class="footer-minimal-nav-item">
-                        <a href="{{ $urlTerminos }}" class="footer-minimal-nav-link">{{ $__bl === 'en' ? 'Terms & Conditions' : 'Terminos y Condiciones' }}</a>
+                        <a href="{{ $urlTerminos }}" class="footer-minimal-nav-link">{{ ['en' => 'Terms & Conditions', 'ca' => 'Termes i condicions'][$__bl] ?? 'Términos y Condiciones' }}</a>
                     </li>
                     @php
                         $cookieIconEnabled = themeOption('footer.footer_cookie_icon_enabled', site_setting('cookies_show_icon', '1') == '1');
@@ -123,10 +123,36 @@
                         }
                     @endphp
                     <li class="footer-minimal-nav-item">
-                        <button type="button" id="open-cookie-settings" class="footer-minimal-nav-link" style="background: none; border: none; cursor: pointer; padding: 0; font-family: inherit;">{!! $cookieIconHtml !!}{{ $__bl === 'en' ? 'Cookie Settings' : 'Configuracion de Cookies' }}</button>
+                        <button type="button" id="open-cookie-settings" class="footer-minimal-nav-link" style="background: none; border: none; cursor: pointer; padding: 0; font-family: inherit;">{!! $cookieIconHtml !!}{{ ['en' => 'Cookie Settings', 'ca' => 'Configuració de galetes'][$__bl] ?? 'Configuración de Cookies' }}</button>
                     </li>
                     @endif
                 </ul>
+            @endif
+
+            {{-- Selector de idioma en el pie (opción del tema «footer.footer_lang_selector», desactivada por defecto) --}}
+            @php
+                $__footLangs = [];
+                if (themeOption('footer.footer_lang_selector', false) && site_setting('force_lang', '') === '' && site_setting('show_language_switcher', '1') !== '0') {
+                    try {
+                        $stmt = $pdo->prepare($tenantId
+                            ? "SELECT code, name FROM languages WHERE tenant_id = ? AND active = 1 ORDER BY order_position ASC, id ASC"
+                            : "SELECT code, name FROM languages WHERE tenant_id IS NULL AND active = 1 ORDER BY order_position ASC, id ASC");
+                        $stmt->execute($tenantId ? [$tenantId] : []);
+                        $__footLangs = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                    } catch (\Throwable $e) {
+                        $__footLangs = [];
+                    }
+                }
+            @endphp
+            @if(count($__footLangs) > 1)
+                <div class="footer-minimal-lang">
+                    <label for="footer-lang-select"><i class="fas fa-globe" aria-hidden="true"></i> <span class="visually-hidden">{{ ['en' => 'Language', 'ca' => 'Llengua'][$__bl] ?? 'Idioma' }}</span></label>
+                    <select id="footer-lang-select" onchange="if(this.value){window.location.href='?lang='+encodeURIComponent(this.value);}" aria-label="{{ ['en' => 'Language', 'ca' => 'Llengua'][$__bl] ?? 'Idioma' }}">
+                        @foreach($__footLangs as $__fl)
+                            <option value="{{ $__fl['code'] }}" {{ $__bl === $__fl['code'] ? 'selected' : '' }}>{{ $__fl['name'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
             @endif
         </div>
     </div>
@@ -174,6 +200,24 @@
     padding: 14px 0;
     border-top: 1px solid #eee;
     text-align: center;
+}
+.footer-minimal-lang {
+    margin-top: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    color: #666;
+    font-size: 0.8rem;
+}
+.footer-minimal-lang select {
+    font: inherit;
+    color: #444;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 999px;
+    padding: 4px 12px;
+    cursor: pointer;
 }
 .footer-minimal-nav {
     list-style: none;
