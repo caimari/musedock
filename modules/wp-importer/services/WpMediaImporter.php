@@ -384,11 +384,16 @@ class WpMediaImporter
             }
 
             $row = \Screenart\Musedock\Database::query(
-                "SELECT id, path FROM media WHERE (filename LIKE :filename OR path LIKE :filename) AND {$tenantCondition} LIMIT 1",
+                "SELECT id, path, slug, public_token, filename FROM media WHERE (filename LIKE :filename OR path LIKE :filename) AND {$tenantCondition} LIMIT 1",
                 $params
             )->fetch();
 
             if ($row && !empty($row['path'])) {
+                // URL pública (mismo formato que Media::getSeoUrl()); la ruta interna del disco no se sirve
+                if (!empty($row['slug']) && !empty($row['public_token'])) {
+                    $ext = strtolower(pathinfo((string) $row['filename'], PATHINFO_EXTENSION));
+                    return ['id' => $row['id'], 'url' => '/media/p/' . $row['slug'] . '-' . $row['public_token'] . '/' . $ext];
+                }
                 return ['id' => $row['id'], 'url' => $row['path']];
             }
         } catch (\Throwable $e) {

@@ -18,7 +18,8 @@
             "Menús sin credenciales: si WordPress no los publica por la API (error 401), se leen del HTML público de la portada, con submenús a cualquier profundidad, descartando la copia móvil repetida y poniendo el menú principal en la ubicación «nav». Vale para el asistente y para cli/import.php.",
             "Los enlaces del menú a subpáginas (/padre/hija/) se enlazan con la página importada aunque esta solo lleve el último tramo del slug.",
             "Pantalla del importador: la opción Menús viene marcada y ya no pide autenticación; las credenciales quedan como opcionales, solo para borradores, contenido privado y ajustes.",
-            "Modo suave para hostings que bloquean por exceso de peticiones (Namecheap y similares): cli/import.php --delay=MS espera entre peticiones y, si el hosting corta la conexión o responde 429/503/508, reintenta con esperas crecientes (30 s → 10 min) en API, descargas de imágenes, portada y CSS."
+            "Modo suave para hostings que bloquean por exceso de peticiones (Namecheap y similares): cli/import.php --delay=MS espera entre peticiones y, si el hosting corta la conexión o responde 429/503/508, reintenta con esperas crecientes (30 s → 10 min) en API, descargas de imágenes, portada y CSS.",
+            "Imágenes ya importadas antes: se enlazan con su URL pública (/media/p/…) en vez de con la ruta interna del disco, que salía rota en el contenido."
         ],
         "1.2.0 (2026-10-23)": [
             "Nuevo importador por línea de comandos (cli/import.php): clona un WordPress en un tenant ya creado con la API REST pública (páginas, entradas, categorías, etiquetas, imágenes, carruseles/sliders y estilos), conservando las direcciones de las páginas. Sin --run solo simula y cuenta lo que importaría; con --run importa. Los menús que WordPress no publica sin credenciales no se importan y se rehacen a mano.",
