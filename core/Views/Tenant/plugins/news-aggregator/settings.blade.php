@@ -13,6 +13,21 @@
         <form action="{{ admin_url('/plugins/news-aggregator/settings') }}" method="POST">
             @csrf
 
+
+            @php $translationUiEnglish = detectLanguage() === 'en'; @endphp
+            @if(count($activeLanguages ?? []) > 1)
+            <div class="card card-body mb-4">
+                <label class="form-check">
+                    <input class="form-check-input" type="checkbox" name="generate_translations" value="1" {{ !empty($settings['generate_translations']) ? 'checked' : '' }}>
+                    {{ $translationUiEnglish ? 'Also generate translations' : 'Generar también las traducciones' }}
+                </label>
+                <p class="text-muted">{{ $translationUiEnglish ? 'Creates translations and their own URLs on the same draft. Uses the configured AI provider. Off by default.' : 'Crea traducciones y sus URL propias en el mismo borrador. Usa el proveedor IA configurado. Desactivado por defecto.' }}</p>
+                @foreach($activeLanguages as $language)
+                <label for="translation-{{ $language['code'] }}">{{ $translationUiEnglish ? 'Instructions' : 'Instrucciones' }} — {{ $language['name'] }} ({{ $language['code'] }})</label>
+                <textarea class="form-control mb-3" id="translation-{{ $language['code'] }}" name="translation_instructions[{{ $language['code'] }}]" maxlength="4000" rows="3">{{ $settings['translation_instructions'][$language['code']] ?? '' }}</textarea>
+                @endforeach
+            </div>
+            @endif
             {{-- IA y Reescritura --}}
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white">

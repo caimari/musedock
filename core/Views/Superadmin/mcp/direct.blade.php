@@ -54,7 +54,7 @@
   <div class="col-12 col-xl-9">
 <div class="mcp-settings">
   <h1 class="h3"><i class="bi bi-robot me-2"></i>(MCP) Conexiones IA</h1>
-  @if(!$tenantMode)
+  @if(!$tenantMode || count($resourceOptions ?? []) > 1)
   <nav class="nav nav-pills mb-3">
     @foreach($resourceOptions as $key=>$label)
       <div class="d-flex align-items-center"><a class="nav-link {{ $resource['id']===$key ? 'active' : '' }}" href="{{ $base }}?resource={{ urlencode($key) }}">{{ $label }}</a><button type="button" class="btn btn-link px-2" data-mcp-info="{{ str_replace(':','-',$key) }}" aria-label="Información sobre {{ $label }}" title="Qué permite esta conexión"><i class="bi bi-info-circle" aria-hidden="true"></i></button></div>
@@ -66,8 +66,8 @@
           <p>Es la conexión recomendada para vuestro grupo editorial. Gestiona el blog de los sitios propios que marques y que estén en los grupos autorizados para cada cliente.</p>
           <p>También copia artículos entre esos sitios como borradores. La copia no activa sincronización ni traducción automática; puedes preparar las traducciones desde el asistente y guardarlas con sus herramientas.</p>
         @else
-          <p>Consulta las noticias originales, fuentes, agrupaciones y análisis IA que ya guarda News Aggregator en los sitios autorizados. Estas consultas no generan costes de IA. Convertir una noticia en borrador y publicar siguen sujetos a los permisos y aprobaciones configurados.</p>
-          <p>La conexión no ejecuta la captura de fuentes ni la reescritura automática del plugin.</p>
+          <p>{{ detectLanguage() === 'en' ? 'Captured news is a tip: research it and write an original article with the publication’s angle. Cite the source only for direct quotes or exclusive facts. Create your own draft and link the used idea to it.' : 'Las capturas son chivatos: investiga y escribe un artículo propio con el enfoque del medio. Cita la fuente solo para citas textuales o datos exclusivos. Crea tu borrador y enlaza la idea utilizada.' }}</p>
+          <p>{{ detectLanguage() === 'en' ? 'Context extraction, research, manual fetching and idea status changes require permission and approval. Tenant connections only access their own publication. Manual fetching never rewrites or publishes.' : 'La extracción de contexto, investigación, captura manual y gestión de ideas requieren permiso y aprobación. La conexión de un tenant solo accede a su medio. La captura manual nunca reescribe ni publica.' }}</p>
         @endif
         <p>Las herramientas dependen de los permisos del cliente. Publicar y aprobar desde MCP requieren habilitación explícita. Sin aprobación remota, los cambios se revisan y aprueban en el CMS.</p>
         <button type="button" class="btn btn-primary" data-mcp-close>Entendido</button>
@@ -77,7 +77,7 @@
   @else
     <p><a href="{{ '/' . admin_path() . '/mcp' }}">Volver a las conexiones del sitio</a></p>
   @endif
-  @if($tenantMode)
+  @if($tenantMode && !\Screenart\Musedock\Services\Mcp\Direct\Policy::news($resource['id']))
     <p class="text-muted">Al activar esta modalidad, las conexiones anteriores de este sitio deberán reconectarse con sus nuevos clientes OAuth.</p>
   @endif
   <div class="mb-3">
@@ -237,6 +237,7 @@
       @endif
         <div class="border rounded p-3 mb-3">
           <h3 class="h6">Aprobación automática de este acceso</h3>
+          <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_editorial"> Aprobar automáticamente páginas, colecciones y capítulos (solo con sus permisos explícitos)</label>
           <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_posts" > Aprobar automáticamente artículos, publicación, programación y asignación de portada</label>
           <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_images" > Aprobar automáticamente generaciones de imágenes</label>
           <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_taxonomy" > Aprobar automáticamente creación y edición de categorías y etiquetas</label>
@@ -300,6 +301,7 @@
         @endif
         <div class="border rounded p-3 mb-3">
           <h4 class="h6">Aprobación automática de este acceso</h4>
+          <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_editorial" {{ !empty($client['auto_approve_editorial']) ? 'checked' : '' }}> Aprobar automáticamente páginas, colecciones y capítulos (solo con sus permisos explícitos)</label>
           <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_posts" {{ !empty($client['auto_approve_posts']) ? 'checked' : '' }}> Aprobar automáticamente artículos, publicación, programación y asignación de portada</label>
           <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_images" {{ !empty($client['auto_approve_images']) ? 'checked' : '' }}> Aprobar automáticamente generaciones de imágenes</label>
           <label class="form-check"><input class="form-check-input" type="checkbox" name="auto_approve_taxonomy" {{ !empty($client['auto_approve_taxonomy']) ? 'checked' : '' }}> Aprobar automáticamente creación y edición de categorías y etiquetas</label>
@@ -449,7 +451,7 @@ providerSelect?.addEventListener('change',()=>{
 });
 document.querySelectorAll('[data-mcp-enable]').forEach(form=>form.addEventListener('submit',async event=>{
   event.preventDefault();const button=form.querySelector('button');const status=form.querySelector('[data-mcp-enable-status]');button.disabled=true;status.textContent='Habilitando conexión…';
-  try { const response=await fetch(form.action,{method:'POST',body:new FormData(form),headers:{'X-MCP-Progress':'1'},credentials:'same-origin'});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||'No se pudo habilitar la conexión.');button.textContent='Conexión habilitada';status.textContent='Ya puedes reintentar OAuth en el proveedor. Las credenciales siguen siendo las mismas.';const notice=form.closest('[role="status"]');notice.querySelector('strong').textContent='Esta conexión está habilitada.';document.querySelectorAll('input[name="enabled"]').forEach(input=>input.checked=true);
+  try { const response=await fetch(form.getAttribute('action'),{method:'POST',body:new FormData(form),headers:{'X-MCP-Progress':'1'},credentials:'same-origin'});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||'No se pudo habilitar la conexión.');button.textContent='Conexión habilitada';status.textContent='Ya puedes reintentar OAuth en el proveedor. Las credenciales siguen siendo las mismas.';const notice=form.closest('[role="status"]');notice.querySelector('strong').textContent='Esta conexión está habilitada.';document.querySelectorAll('input[name="enabled"]').forEach(input=>input.checked=true);
   } catch(error){button.disabled=false;status.textContent=error.message;}
 }));
 document.querySelectorAll('[data-copy]').forEach(button=>button.addEventListener('click',async()=>{const input=document.getElementById(button.dataset.copy);try{await navigator.clipboard.writeText(input.value);button.textContent='Copiado';}catch(e){input.focus();input.select();}}));

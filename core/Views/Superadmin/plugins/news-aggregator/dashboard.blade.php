@@ -12,10 +12,51 @@
 
         @if($isGlobal ?? true)
             {{-- Vista global: listado de tenants --}}
-            <div class="alert alert-light border mb-3">
-                <strong>¿Quieres añadir otro dominio?</strong> En «Gestionar tenants», abre «Editar» en el dominio y pulsa «Instalar y activar» para News Aggregator en «Plugins compartidos». Cuando el plugin esté instalado y activo, el dominio aparecerá en este listado. Después configura sus fuentes y autoriza su acceso MCP por separado.
-                <a class="btn btn-sm btn-outline-primary ms-2" href="/musedock/tenants">Gestionar tenants</a>
-            </div>
+            @php $en = detectLanguage() === 'en'; @endphp
+            <form method="POST" action="/musedock/news-aggregator/activate" class="card card-body mb-4">
+                @csrf
+                <h5>{{ $en ? 'Activate for a publication' : 'Activar en un medio' }}</h5>
+                <label for="activation-tenant">{{ $en ? 'Publication' : 'Medio' }}</label>
+                <select id="activation-tenant" name="tenant_id" class="form-select mb-2" required>
+                    @foreach($activationTenants as $tenant)
+                    <option value="{{ $tenant->id }}">{{ $tenant->domain }}</option>
+                    @endforeach
+                </select>
+                <label for="activation-category">{{ $en ? 'Default category' : 'Categoría predeterminada' }}</label>
+                <select id="activation-category" name="category_id" class="form-select mb-2" required>
+                    @foreach($categories as $category)
+                    <option data-tenant="{{ $category->tenant_id }}" value="{{ $category->id }}">{{ $category->name }}</option>
+                    @endforeach
+                </select>
+                <label for="activation-provider">{{ $en ? 'AI provider' : 'Proveedor IA' }}</label>
+                <select id="activation-provider" name="ai_provider_id" class="form-select mb-2" required>
+                    @foreach($providers as $provider)
+                    <option data-tenant="{{ $provider->tenant_id ?? '' }}" data-global="{{ $provider->system_wide }}" value="{{ $provider->id }}">{{ $provider->name }}</option>
+                    @endforeach
+                </select>
+                <p class="text-muted">{{ $en ? 'New installations capture drafts. Rewriting, approval and publishing remain manual. Existing settings are preserved.' : 'Las instalaciones nuevas capturan borradores. Reescritura, aprobación y publicación quedan en manual. Se conservan los ajustes existentes.' }}</p>
+                <button class="btn btn-primary">{{ $en ? 'Activate' : 'Activar' }}</button>
+            </form>
+            <script>
+            (() => {
+                const tenant = document.getElementById('activation-tenant');
+                const filter = () => {
+                    ['activation-category', 'activation-provider'].forEach(id => {
+                        const select = document.getElementById(id);
+                        Array.from(select.options).forEach(option => {
+                            const allowed = option.dataset.tenant === tenant.value || (id === 'activation-provider' && !option.dataset.tenant && option.dataset.global === '1');
+                            option.disabled = !allowed;
+                            option.hidden = !allowed;
+                        });
+                        if (!select.selectedOptions.length || select.selectedOptions[0].disabled) {
+                            select.value = Array.from(select.options).find(option => !option.disabled)?.value || '';
+                        }
+                    });
+                };
+                tenant.addEventListener('change', filter);
+                filter();
+            })();
+            </script>
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white">
                     <h5 class="mb-0">Tenants con News Aggregator activo</h5>
@@ -61,6 +102,11 @@
                                             <a href="/musedock/news-aggregator?tenant={{ $ts->id }}" class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-box-arrow-in-right"></i> Gestionar
                                             </a>
+                                            <form method="POST" action="/musedock/news-aggregator/deactivate" class="d-inline">
+                                                @csrf
+                                                <input type="hidden" name="tenant_id" value="{{ $ts->id }}">
+                                                <button class="btn btn-sm btn-outline-danger">{{ $en ? 'Deactivate' : 'Desactivar' }}</button>
+                                            </form>
                                         </td>
                                     </tr>
                                 @endforeach

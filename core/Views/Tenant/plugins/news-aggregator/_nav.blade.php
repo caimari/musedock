@@ -1,3 +1,4 @@
+<a class="btn btn-outline-primary mb-3" href="{{ '/' . admin_path() . '/mcp/direct?resource=plugin%3Anews-aggregator' }}">{{ detectLanguage() === 'en' ? 'News Aggregator MCP connection' : 'Conexión MCP News Aggregator' }}</a>
 {{-- News Aggregator Plugin Navigation --}}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>

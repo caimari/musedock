@@ -12,20 +12,23 @@ final class Admin
     {
         SessionSecurity::startSession();
         $tenant=!empty($GLOBALS['tenant']['id']);
-        $id=$tenant?'tenant:'.(int)$GLOBALS['tenant']['id']:(string)($_GET['resource']??$_POST['resource']??'main');
+        $requested=(string)($_GET['resource']??$_POST['resource']??'');
+        $id=$tenant?'tenant:'.(int)$GLOBALS['tenant']['id']:($requested?:'main');
+        if ($tenant && ($requested==='plugin:news-aggregator' || $requested===Policy::tenantNews((int)$GLOBALS['tenant']['id']))) $id=Policy::tenantNews((int)$GLOBALS['tenant']['id']);
+        elseif ($tenant && $requested!=='' && $requested!==$id) { http_response_code(404); return; }
         if (!$tenant && !in_array($id,['main','plugin:cross-publisher','plugin:news-aggregator'],true)) { http_response_code(404); return; }
-        if (str_starts_with($id,'plugin:') && !Endpoint::installed($id)) { http_response_code(404); echo 'La conexión de este plugin no está disponible.'; return; }
+        if (Policy::plugin($id)!==null && !Endpoint::installed($id)) { http_response_code(404); echo 'La conexión de este plugin no está disponible.'; return; }
         $ep=new Endpoint($id); $actor=$ep->actor(); $content=new Content(Database::connect());
-        if (!$actor || !$content->actorActive($id,$actor) || ($tenant && !userCan('settings.view'))) { http_response_code(403); echo 'Acceso denegado.'; return; }
+        if (!$actor || !$content->actorCanConnect($id,$actor) || ($tenant && !userCan('settings.view'))) { http_response_code(403); echo 'Acceso denegado.'; return; }
         $origin=$tenant?'https://'.$GLOBALS['tenant']['domain']:rtrim((string)Env::get('APP_URL',''),'/');
         $parts=parse_url($origin);
         if (!$parts || ($parts['scheme']??'')!=='https' || empty($parts['host']) || isset($parts['user']) || isset($parts['pass']) || isset($parts['port'])) { http_response_code(500); echo 'Configura APP_URL con el origen HTTPS canónico del CMS.'; return; }
         $origin='https://'.$parts['host'];
-        $url=$origin.'/mcp'.(str_starts_with($id,'plugin:')?'/'.substr($id,7):'');
-        $r=$ep->store->resource($id)??['id'=>$id,'name'=>$id==='main'?'MuseDock — dominio principal':($tenant?$GLOBALS['tenant']['name']:substr($id,7)),
+        $url=$origin.'/mcp'.(Policy::plugin($id)!==null?'/'.Policy::plugin($id):'');
+        $r=$ep->store->resource($id)??['id'=>$id,'name'=>$id==='main'?'MuseDock — dominio principal':(Policy::news($id)?'News Aggregator'.($tenant?' — '.$GLOBALS['tenant']['name']:''):($tenant?$GLOBALS['tenant']['name']:substr($id,7))),
             'url'=>$url,'enabled'=>false,'allow_drafts'=>false,'owned_sites'=>[],'revision'=>1];
         $base=$ep->adminBase().($tenant?'/mcp/direct':'/settings/mcp');
-        $back=$base.($tenant?'':'?resource='.urlencode($id)); $error=null; $ajax=($_SERVER['HTTP_X_MCP_PROGRESS']??'')==='1';
+        $back=$base.'?resource='.urlencode($id); $error=null; $ajax=($_SERVER['HTTP_X_MCP_PROGRESS']??'')==='1';
         if (($_SERVER['REQUEST_METHOD']??'GET')==='POST') {
             try {
                 if ($tenant && !userCan('settings.edit')) throw new \RuntimeException('No tienes permiso para modificar ajustes.');
@@ -60,7 +63,7 @@ final class Admin
                     $sql=$mysql?'INSERT INTO mcp_taxonomy_policies(site_id,data) VALUES(?,?) ON DUPLICATE KEY UPDATE data=VALUES(data)':'INSERT INTO mcp_taxonomy_policies(site_id,data) VALUES(?,?) ON CONFLICT(site_id) DO UPDATE SET data=excluded.data';
                     $db->prepare($sql)->execute([$site,Store::json($policy)]);
                     $ep->store->event($id,'taxonomy.policy.updated',$actor,['site_id'=>$site,'policy'=>$policy]);
-                    flash('success','Política editorial guardada sin modificar OAuth.');header('Location: '.$back.($tenant?'?':'&').'taxonomy_site='.$site.'#mcp-connection');return;
+                    flash('success','Política editorial guardada sin modificar OAuth.');header('Location: '.$back.'&taxonomy_site='.$site.'#mcp-connection');return;
                 }
                 if ($action==='operation_status') {
                     $row=$ep->store->one('SELECT id,status,data FROM requests WHERE id=? AND resource=?',[(string)($_POST['request']??''),$id]);
@@ -79,7 +82,7 @@ final class Admin
                 if ($action==='configure') {
                     $r['managed']=$r['managed']??false;
                     $r['url']=$url; $r['enabled']=isset($_POST['enabled']); $r['allow_drafts']=isset($_POST['allow_drafts']); $r['allow_publishing']=isset($_POST['allow_publishing']); $r['require_featured_image']=isset($_POST['require_featured_image']); $r['allow_mcp_approval']=isset($_POST['allow_mcp_approval']); $r['revision']++;
-                    if (str_starts_with($id,'plugin:')) {
+                    if (Policy::site($id)===null) {
                         $ids=array_values(array_unique(array_filter(array_map('intval',(array)($_POST['owned_sites']??[])),fn($n)=>$n>0)));
                         foreach ($ids as $site) {
                             $s=Database::connect()->prepare("SELECT t.id FROM tenants t INNER JOIN domain_groups g ON g.id=t.group_id WHERE t.id=? AND t.status='active'"); $s->execute([$site]);
@@ -108,15 +111,17 @@ final class Admin
                     $_SESSION['cms_mcp_new'][$id]=['id'=>$new['client']['id'],'secret'=>$new['secret']];
                     $ep->store->event($id,'client.created',$actor,['client'=>$new['client']['id']]);
                     $saved=$ep->store->client($new['client']['id']);
+                    $saved['auto_approve_editorial']=isset($_POST['auto_approve_editorial']);
                     $saved['auto_approve_posts']=isset($_POST['auto_approve_posts']);
                     $saved['auto_approve_images']=isset($_POST['auto_approve_images']);
                     $saved['auto_approve_taxonomy']=isset($_POST['auto_approve_taxonomy']);
                     $saved['auto_approve_translations']=isset($_POST['auto_approve_translations']);
                     $ep->store->putClient($saved);
-                    if (!empty($saved['auto_approve_posts']) || !empty($saved['auto_approve_images']) || !empty($saved['auto_approve_taxonomy']) || !empty($saved['auto_approve_translations'])) {
+                    if (!empty($saved['auto_approve_editorial']) || !empty($saved['auto_approve_posts']) || !empty($saved['auto_approve_images']) || !empty($saved['auto_approve_taxonomy']) || !empty($saved['auto_approve_translations'])) {
                         $current=$ep->store->resource($id)??$r;
                         $current['enabled']=true;
                         $current['allow_drafts']=true;
+                        if(!empty($saved['auto_approve_editorial']))foreach([Policy::PAGES_PUBLISH,Policy::COLLECTIONS_PUBLISH] as $scope)if(in_array($scope,$saved['scopes'],true)&&$content->actorActive($id,$actor,$scope))$current['allow_publishing']=true;
                         if ((!empty($saved['auto_approve_posts']) || !empty($saved['auto_approve_translations'])) && in_array(Policy::POSTS,$saved['scopes'],true) && $content->actorActive($id,$actor,Policy::POSTS)) $current['allow_publishing']=true;
                         $ep->store->putResource($current);
                         $r=$current;
@@ -132,7 +137,7 @@ final class Admin
                 } elseif ($action==='client_permissions' || $action==='revoke_client') {
                     $client=$ep->store->client((string)($_POST['client']??''));
                     if (!$client || $client['resource']!==$id) throw new \RuntimeException('Cliente no encontrado.');
-                    if ($action==='client_permissions' && isset($_POST['edit_sites']) && str_starts_with($id,'plugin:')) {
+                    if ($action==='client_permissions' && isset($_POST['edit_sites']) && Policy::site($id)===null) {
                         $selected=array_values(array_unique(array_map('intval',(array)($_POST['sites']??[]))));
                         if (!$selected || array_diff($selected,$r['owned_sites']??[])) throw new \RuntimeException('Selecciona sitios autorizados en Servicio y sitios.');
                         $selectedGroups=[];
@@ -149,21 +154,23 @@ final class Admin
                     $ep->oauth->reviseClient($id,$client['id'],$scopes,$action!=='revoke_client');
                     if ($action==='client_permissions') {
                         $saved=$ep->store->client($client['id']);
-                        $saved['auto_approve_posts']=isset($_POST['auto_approve_posts']);
+                        $saved['auto_approve_editorial']=isset($_POST['auto_approve_editorial']);
+                    $saved['auto_approve_posts']=isset($_POST['auto_approve_posts']);
                         $saved['auto_approve_images']=isset($_POST['auto_approve_images']);
                         $saved['auto_approve_taxonomy']=isset($_POST['auto_approve_taxonomy']);
                     $saved['auto_approve_translations']=isset($_POST['auto_approve_translations']);
                         $ep->store->putClient($saved);
-                    if (!empty($saved['auto_approve_posts']) || !empty($saved['auto_approve_images']) || !empty($saved['auto_approve_taxonomy']) || !empty($saved['auto_approve_translations'])) {
+                    if (!empty($saved['auto_approve_editorial']) || !empty($saved['auto_approve_posts']) || !empty($saved['auto_approve_images']) || !empty($saved['auto_approve_taxonomy']) || !empty($saved['auto_approve_translations'])) {
                         $current=$ep->store->resource($id)??$r;
                         $current['enabled']=true;
                         $current['allow_drafts']=true;
+                        if(!empty($saved['auto_approve_editorial']))foreach([Policy::PAGES_PUBLISH,Policy::COLLECTIONS_PUBLISH] as $scope)if(in_array($scope,$saved['scopes'],true)&&$content->actorActive($id,$actor,$scope))$current['allow_publishing']=true;
                         if ((!empty($saved['auto_approve_posts']) || !empty($saved['auto_approve_translations'])) && in_array(Policy::POSTS,$saved['scopes'],true) && $content->actorActive($id,$actor,Policy::POSTS)) $current['allow_publishing']=true;
                         $ep->store->putResource($current);
                         $r=$current;
                         $ep->store->event($id,'resource.auto_approval.requirements.enabled',$actor,['client'=>$saved['id'],'allow_publishing'=>!empty($current['allow_publishing'])]);
                     }
-                        $ep->store->event($id,'client.auto_approval.updated',$actor,['client'=>$client['id'],'posts'=>$saved['auto_approve_posts'],'images'=>$saved['auto_approve_images'],'taxonomy'=>$saved['auto_approve_taxonomy'],'translations'=>$saved['auto_approve_translations']]);
+                        $ep->store->event($id,'client.auto_approval.updated',$actor,['client'=>$client['id'],'editorial'=>$saved['auto_approve_editorial'],'posts'=>$saved['auto_approve_posts'],'images'=>$saved['auto_approve_images'],'taxonomy'=>$saved['auto_approve_taxonomy'],'translations'=>$saved['auto_approve_translations']]);
                     }
                     $ep->store->event($id,$action,$actor,['client'=>$client['id']]);
                 } elseif ($action==='revoke_grant') {
@@ -218,7 +225,13 @@ final class Admin
             if (count($imageDiagnostics)>=30) break;
         }
         $resourceOptions=['main'=>'Dominio principal'];
-        foreach (['cross-publisher'=>'Cross Publisher','news-aggregator'=>'News Aggregator'] as $slug=>$label) if (Endpoint::installed('plugin:'.$slug)) $resourceOptions['plugin:'.$slug]=$label;
+        if ($tenant) {
+            $resourceOptions=['tenant:'.(int)$GLOBALS['tenant']['id']=>detectLanguage()==='en'?'Site CMS':'CMS del sitio'];
+            $newsId=Policy::tenantNews((int)$GLOBALS['tenant']['id']);
+            if (Endpoint::installed($newsId)) $resourceOptions[$newsId]='News Aggregator';
+        } else {
+            foreach (['cross-publisher'=>'Cross Publisher','news-aggregator'=>'News Aggregator'] as $slug=>$label) if (Endpoint::installed('plugin:'.$slug)) $resourceOptions['plugin:'.$slug]=$label;
+        }
         (new Scheduler($ep->store,$content));
         foreach ($ep->store->all('SELECT data FROM article_workflows WHERE resource=? ORDER BY rowid DESC LIMIT 15',[$id]) as $workflowRow) {
             $workflow=json_decode($workflowRow['data'],true);

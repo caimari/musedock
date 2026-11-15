@@ -67,7 +67,11 @@ final class Authorization
         if (($p['response_type']??'')!=='code' || ($p['code_challenge_method']??'')!=='S256'
             || !preg_match('/^[A-Za-z0-9_-]{43}$/D',(string)($p['code_challenge']??''))) throw new RuntimeException('Se requiere PKCE S256.');
         if (($p['resource']??'')!==$r['url']) throw new RuntimeException('Recurso OAuth no autorizado.');
-        $scopes=Policy::requestedScopes((string)($p['scope']??''),$c['scopes']);
+        // Asistentes como Claude solo piden el ámbito de lectura que anuncia el 401 (o ninguno): en ese caso se
+        // ofrecen los permisos que el administrador eligió para este acceso; la pantalla de consentimiento los muestra.
+        $askedScope=trim((string)($p['scope']??''));
+        if (($askedScope==='' || $askedScope===Policy::READ) && in_array(Policy::READ,$c['scopes'],true)) $askedScope=implode(' ',$c['scopes']);
+        $scopes=Policy::requestedScopes($askedScope,$c['scopes']);
         return ['resource'=>$resource,'client'=>$c['id'],'callback'=>$c['callback'],'challenge'=>$p['code_challenge'],
             'scopes'=>$scopes,'state'=>substr((string)($p['state']??''),0,2048),'revision'=>$c['revision'],'resource_revision'=>$r['revision'],'created'=>time()];
     }

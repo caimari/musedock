@@ -5,12 +5,10 @@ use Screenart\Musedock\Services\Mcp\Direct\Routing;
 
 foreach (['cross-publisher','news-aggregator'] as $slug) {
     foreach (['get','post','options'] as $verb) Route::$verb('/mcp/'.$slug, function () use ($slug) {
-        if (!empty($GLOBALS['tenant']['id'])) { http_response_code(404); return; }
-        (new Endpoint('plugin:'.$slug))->mcp();
+        try { (new Endpoint(Routing::id($slug)))->mcp(); } catch (Throwable $e) { http_response_code(404); }
     });
     Route::get('/.well-known/oauth-protected-resource/mcp/'.$slug, function () use ($slug) {
-        if (!empty($GLOBALS['tenant']['id'])) { http_response_code(404); return; }
-        (new Endpoint('plugin:'.$slug))->metadata();
+        try { (new Endpoint(Routing::id($slug)))->metadata(); } catch (Throwable $e) { http_response_code(404); }
     });
 }
 foreach (['cms','cross-publisher','news-aggregator'] as $slug) {

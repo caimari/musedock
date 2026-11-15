@@ -3,7 +3,7 @@ use Screenart\Musedock\Services\Mcp\Direct\{Policy,Editor,Media,Scheduler};
 use Screenart\Musedock\Services\BlogAccess;
 // Continues the isolated fixture suite. No provider request is made.
 foreach (['main','plugin:cross-publisher','tenant:1'] as $rid) { $r=$store->resource($rid);$r['allow_publishing']=true;$r['require_featured_image']=false;$r['allow_mcp_approval']=true;$store->putResource($r); }
-$content->db->exec("UPDATE tenants SET group_id=10 WHERE id=2; INSERT INTO languages VALUES('en',1)");
+$content->db->exec("UPDATE tenants SET group_id=10 WHERE id=2; INSERT INTO languages(code,active) VALUES('en',1)");
 [$full]=connection($oauth,'plugin:cross-publisher',[Policy::READ,Policy::EDITOR,Policy::POSTS,Policy::TAXONOMY,Policy::COMMENTS,Policy::TRANSLATIONS,Policy::MEDIA,Policy::APPROVE],[1,2],[10]);
 [$draftEditor]=connection($oauth,'main',[Policy::READ,Policy::EDITOR]);
 $draft=$tools->call('create_post',$draftEditor,['title'=>'Full draft','content'=>'Text','template'=>'page','apply'=>true]);

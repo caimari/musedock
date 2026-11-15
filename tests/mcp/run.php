@@ -79,13 +79,13 @@ check($copied['site_id']===2&&$copied['status']==='draft','copy to owned site on
 denied(fn()=>$tools->call('update_draft',$cross,['post_id'=>4,'site_id'=>1,'title'=>'Touch live']),'scope update absent');
 [$editor]=connection($oauth,'plugin:cross-publisher',[Policy::READ,Policy::UPDATE],[1,2],[10]);
 denied(fn()=>$tools->call('update_draft',$editor,['post_id'=>4,'site_id'=>1,'title'=>'Touch live']),'published post cannot be edited');
-[$news]=connection($oauth,'plugin:news-aggregator',[Policy::READ,Policy::IMPORT],[1,2],[10]);
+[$news]=connection($oauth,'plugin:news-aggregator',[Policy::READ,Policy::IMPORT,Policy::CREATE],[1,2],[10]);
 check(count($tools->call('list_news_items',$news,['site_id'=>1]))===1,'news list isolated');
 denied(fn()=>$tools->call('import_news_draft',$news,['site_id'=>1,'item_id'=>2]),'news item isolation');
-$import=$tools->call('import_news_draft',$news,['site_id'=>1,'item_id'=>1,'apply'=>true]);
-$imported=$tools->decide('plugin:news-aggregator',$import['request_id'],7,true);
-check($imported['status']==='draft','news import stays draft');
-denied(fn()=>$tools->call('import_news_draft',$news,['site_id'=>1,'item_id'=>1]),'news duplicate import denied');
+denied(fn()=>$tools->call('import_news_draft',$news,['site_id'=>1,'item_id'=>1,'apply'=>true]),'literal news import retired');
+$own=$tools->call('create_draft',$news,['site_id'=>1,'title'=>'Artículo propio','content'=>'<p>Texto propio escrito por la IA conectada.</p>','apply'=>true]);
+$written=$tools->decide('plugin:news-aggregator',$own['request_id'],7,true);
+check($written['status']==='draft','own article uses existing draft tool');
 [$readonly]=connection($oauth,'main',[Policy::READ]);
 denied(fn()=>$tools->call('create_draft',$readonly,['title'=>'No','content'=>'No']),'read-only cannot write');
 // Refresh rotation and reuse must revoke the entire family, including access and pending writes.

@@ -14,9 +14,17 @@ final class Endpoint
     public static function siteResource(): string { return !empty($GLOBALS['tenant']['id'])?'tenant:'.(int)$GLOBALS['tenant']['id']:'main'; }
     public static function installed(string $id): bool
     {
-        if (!str_starts_with($id,'plugin:')) return true;
-        $slug=substr($id,7);
+        if (!($slug=Policy::plugin($id))) return true;
+        $site=Policy::site($id);
+        if ($site>0) return self::tenantPluginActive($site);
         return self::pluginActive($slug) && (!function_exists('is_superadmin_plugin_active') || is_superadmin_plugin_active($slug));
+    }
+    public static function tenantPluginActive(int $site): bool
+    {
+        try {
+            $q=Database::connect()->prepare("SELECT tp.id FROM tenant_plugins tp JOIN tenants t ON t.id=tp.tenant_id WHERE tp.tenant_id=? AND tp.slug='news-aggregator' AND tp.active=1 AND t.status='active'");
+            $q->execute([$site]); return (bool)$q->fetchColumn();
+        } catch (\Throwable $e) { return false; }
     }
     private static function pluginActive(string $slug): bool
     {
@@ -31,10 +39,10 @@ final class Endpoint
         $host=strtolower((string)($_SERVER['HTTP_HOST']??''));
         if ($host!==strtolower((string)parse_url($r['url'],PHP_URL_HOST))) return null;
         if (str_starts_with($this->resource,'plugin:') && !empty($GLOBALS['tenant']['id'])) return null;
-        if (Policy::site($this->resource)!==null && self::siteResource()!==$this->resource) return null;
+        if (($site=Policy::site($this->resource))!==null && self::siteResource()!==($site ? 'tenant:'.$site : 'main')) return null;
         return $r;
     }
-    public static function slug(string $resource): string { return str_starts_with($resource,'plugin:')?substr($resource,7):'cms'; }
+    public static function slug(string $resource): string { return Policy::plugin($resource) ?? 'cms'; }
     public static function issuer(array $r): string { return 'https://'.parse_url($r['url'],PHP_URL_HOST).'/mcp-auth/'.self::slug($r['id']); }
     public static function metadataUrl(array $r): string { return 'https://'.parse_url($r['url'],PHP_URL_HOST).'/.well-known/oauth-protected-resource'.parse_url($r['url'],PHP_URL_PATH); }
     public function metadata(bool $server=false): void
@@ -45,7 +53,7 @@ final class Endpoint
         $this->json(200,$server?[
             'issuer'=>$issuer,'authorization_endpoint'=>$issuer.'/authorize','token_endpoint'=>$issuer.'/token','revocation_endpoint'=>$issuer.'/revoke',
             'response_types_supported'=>['code'],'grant_types_supported'=>['authorization_code','refresh_token'],
-            'code_challenge_methods_supported'=>['S256'],'token_endpoint_auth_methods_supported'=>['client_secret_basic'],
+            'code_challenge_methods_supported'=>['S256'],'token_endpoint_auth_methods_supported'=>['client_secret_basic','client_secret_post'],
             'scopes_supported'=>Policy::scopes($r['id']),'authorization_response_iss_parameter_supported'=>true,
         ]:[ 'resource'=>$r['url'],'authorization_servers'=>[$issuer],'scopes_supported'=>Policy::scopes($r['id']),'bearer_methods_supported'=>['header'],'resource_name'=>$r['name'] ]);
     }
@@ -55,19 +63,31 @@ final class Endpoint
         if (($_SERVER['REQUEST_METHOD']??'GET')!=='POST') { $this->json(405,['error'=>'invalid_request']); return; }
         try {
             $this->store->limit('oauth:'.$this->resource.':'.IPHelper::getRealIP(),30);
-            $c=$this->oauth->authenticateClient($this->resource,$_SERVER['HTTP_AUTHORIZATION']??$_SERVER['REDIRECT_HTTP_AUTHORIZATION']??'');
-            if (!Network::allows($c['networks']??[],IPHelper::getRealIP())) { $this->json(403,['error'=>'network_denied']); return; }
             if (!empty($_POST)) $p=$_POST; else { parse_str((string)file_get_contents('php://input'),$p); }
+            $authHeader=$_SERVER['HTTP_AUTHORIZATION']??$_SERVER['REDIRECT_HTTP_AUTHORIZATION']??'';
+            // client_secret_post (Claude): credenciales en el cuerpo. Se normalizan a Basic y se validan igual.
+            if ($authHeader==='' && is_string($p['client_id']??null) && is_string($p['client_secret']??null) && $p['client_id']!=='' && $p['client_secret']!=='') {
+                $authHeader='Basic '.base64_encode(rawurlencode($p['client_id']).':'.rawurlencode($p['client_secret']));
+            }
+            unset($p['client_secret']);
+            $c=$this->oauth->authenticateClient($this->resource,$authHeader);
+            if (!Network::allows($c['networks']??[],IPHelper::getRealIP())) { $this->json(403,['error'=>'network_denied']); return; }
             if ($action==='revoke') { $this->oauth->revoke($c,(string)($p['token']??'')); $this->json(200,(object)[]); }
             else {
                 $tokens=$this->oauth->exchange($c,$p);
                 // Revalidate owner before returning usable tokens. Access checks also repeat this.
                 $auth=$this->oauth->access($this->resource,$tokens['access_token']);
                 $content=new Content(Database::connect());
-                if (!$content->actorActive($this->resource,$auth['grant']['actor'])) { $this->oauth->invalidateClient($c['id']); throw new \RuntimeException('Usuario ya no autorizado.'); }
+                if (!$content->actorCanConnect($this->resource,$auth['grant']['actor'])) { $this->oauth->invalidateClient($c['id']); throw new \RuntimeException('Usuario ya no autorizado.'); }
                 $this->json(200,$tokens);
             }
-        } catch (\Throwable $e) { $this->json(400,['error'=>'invalid_grant','error_description'=>'Cliente, código o autorización no válidos.']); }
+        } catch (\Throwable $e) {
+            // Diagnóstico sin secretos: motivo del rechazo, si llegó cabecera Authorization y qué campos traía el cuerpo.
+            error_log('MCP token '.$this->resource.' rechazado: '.get_class($e).': '.$e->getMessage()
+                .' | auth_header='.(($_SERVER['HTTP_AUTHORIZATION']??$_SERVER['REDIRECT_HTTP_AUTHORIZATION']??'')!==''?'si':'no')
+                .' | campos='.implode(',',array_keys($p??$_POST??[])));
+            $this->json(400,['error'=>'invalid_grant','error_description'=>'Cliente, código o autorización no válidos.']);
+        }
     }
     public function authorize(): void
     {
@@ -88,20 +108,20 @@ final class Endpoint
         }
         try {
             $content=new Content(Database::connect());
-            if (!$content->actorActive($this->resource,$actor)) throw new \RuntimeException('No tienes permiso para conectar este recurso.');
+            if (!$content->actorCanConnect($this->resource,$actor)) throw new \RuntimeException('No tienes permiso para conectar este recurso.');
             if (($_SERVER['REQUEST_METHOD']??'GET')==='POST') {
                 $rid=(string)($_POST['rid']??''); $p=$_SESSION['cms_mcp_consent'][$rid]??null; unset($_SESSION['cms_mcp_consent'][$rid]);
                 if (!$p || $p['resource']!==$this->resource) throw new \RuntimeException('Solicitud de consentimiento caducada.');
                 if (empty($_SESSION['_csrf_token']) || !hash_equals($_SESSION['_csrf_token'],(string)($_POST['_token']??''))) throw new \RuntimeException('CSRF no válido.');
                 $query=['state'=>$p['state'],'iss'=>self::issuer($r)];
                 if (($_POST['decision']??'')==='approve') {
-                    foreach ($p['scopes'] as $scope) if (!$content->actorActive($this->resource,$actor,$scope)) throw new \RuntimeException('No puedes conceder esos permisos.');
+                    foreach ($p['scopes'] as $scope) if (!($scope===Policy::READ?$content->actorCanConnect($this->resource,$actor):$content->actorActive($this->resource,$actor,$scope))) throw new \RuntimeException('No puedes conceder esos permisos.');
                     $query['code']=$this->oauth->consent($p,$actor);
                 } else $query['error']='access_denied';
                 header('Location: '.$p['callback'].(str_contains($p['callback'],'?')?'&':'?').http_build_query($query)); return;
             }
             $p=$this->oauth->validateRequest($this->resource,$_GET);
-            foreach ($p['scopes'] as $scope) if (!$content->actorActive($this->resource,$actor,$scope)) throw new \RuntimeException('No puedes conceder esos permisos.');
+            foreach ($p['scopes'] as $scope) if (!($scope===Policy::READ?$content->actorCanConnect($this->resource,$actor):$content->actorActive($this->resource,$actor,$scope))) throw new \RuntimeException('No puedes conceder esos permisos.');
             $rid=bin2hex(random_bytes(16));
             $_SESSION['cms_mcp_consent']=array_slice(array_filter($_SESSION['cms_mcp_consent']??[],fn($v)=>$v['created']>time()-900),-4,null,true);
             $_SESSION['cms_mcp_consent'][$rid]=$p;
@@ -141,7 +161,7 @@ final class Endpoint
             if (!preg_match('/^Bearer (cms_access_[a-f0-9]{64})$/D',$header,$m)) throw new \RuntimeException('Token requerido.');
             $auth=$this->oauth->access($this->resource,$m[1]);
             $content=new Content(Database::connect());
-            if (!$content->actorActive($this->resource,$auth['grant']['actor'])) throw new \RuntimeException('Usuario revocado.');
+            if (!$content->actorCanConnect($this->resource,$auth['grant']['actor'])) throw new \RuntimeException('Usuario revocado.');
         } catch (\Throwable $e) {
             header('WWW-Authenticate: Bearer resource_metadata="'.self::metadataUrl($r).'", scope="'.Policy::READ.'"');
             $this->json(401,['error'=>'invalid_token']); return;

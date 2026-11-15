@@ -1,3 +1,4 @@
+<a class="btn btn-outline-primary mb-3" href="/musedock/news-aggregator/pending">{{ detectLanguage() === 'en' ? 'Global pending inbox' : 'Bandeja global de pendientes' }}</a>
 {{-- News Aggregator Superadmin - Navigation --}}
 <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
     <div>

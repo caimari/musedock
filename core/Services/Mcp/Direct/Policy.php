@@ -5,6 +5,14 @@ use RuntimeException;
 
 final class Policy
 {
+    public const PAGES_ARCHIVE='musedock-cms:pages:archive';
+    public const COLLECTIONS_ARCHIVE='musedock-cms:collections:archive';
+    public const PAGES_READ='musedock-cms:pages:read';
+    public const PAGES_EDIT='musedock-cms:pages:edit';
+    public const PAGES_PUBLISH='musedock-cms:pages:publish';
+    public const COLLECTIONS_READ='musedock-cms:collections:read';
+    public const COLLECTIONS_EDIT='musedock-cms:collections:edit';
+    public const COLLECTIONS_PUBLISH='musedock-cms:collections:publish';
     public const READ = 'musedock-cms:read';
     public const CREATE = 'musedock-cms:drafts:create';
     public const UPDATE = 'musedock-cms:drafts:update';
@@ -19,19 +27,29 @@ final class Policy
     public const IMPORT = 'musedock-news-aggregator:drafts:import';
     public static function scopes(string $resource): array
     {
-        $scopes = [self::READ, self::CREATE, self::UPDATE, self::EDITOR, self::POSTS, self::TAXONOMY, self::COMMENTS, self::TRANSLATIONS, self::MEDIA, self::APPROVE];
+        $scopes = [self::PAGES_ARCHIVE,self::COLLECTIONS_ARCHIVE,self::PAGES_READ,self::PAGES_EDIT,self::PAGES_PUBLISH,self::COLLECTIONS_READ,self::COLLECTIONS_EDIT,self::COLLECTIONS_PUBLISH,self::READ, self::CREATE, self::UPDATE, self::EDITOR, self::POSTS, self::TAXONOMY, self::COMMENTS, self::TRANSLATIONS, self::MEDIA, self::APPROVE];
         if ($resource === 'plugin:cross-publisher') $scopes[] = self::COPY;
-        if ($resource === 'plugin:news-aggregator') $scopes[] = self::IMPORT;
+        if (self::news($resource)) $scopes[] = self::IMPORT;
         return $scopes;
     }
     public static function label(string $scope): string
     {
-        return match($scope) { self::READ=>'Consultar artículos, categorías y etiquetas', self::CREATE=>'Crear borradores', self::UPDATE=>'Editar borradores', self::EDITOR=>'Editar todas las opciones de borradores', self::POSTS=>'Publicar, programar y editar artículos publicados', self::TAXONOMY=>'Crear y editar categorías y etiquetas', self::COMMENTS=>'Consultar y moderar comentarios', self::TRANSLATIONS=>'Consultar y guardar traducciones', self::MEDIA=>'Consultar, subir y generar imágenes', self::APPROVE=>'Aprobar solicitudes propias desde MCP', self::COPY=>'Copiar artículos a otros sitios como borradores', self::IMPORT=>'Importar noticias como borradores', default=>$scope };
+        return match($scope) { self::PAGES_ARCHIVE=>'Archivar páginas',self::COLLECTIONS_ARCHIVE=>'Archivar colecciones', self::PAGES_READ=>'Consultar páginas',self::PAGES_EDIT=>'Crear y editar páginas',self::PAGES_PUBLISH=>'Publicar y despublicar páginas',self::COLLECTIONS_READ=>'Consultar colecciones',self::COLLECTIONS_EDIT=>'Organizar colecciones y capítulos',self::COLLECTIONS_PUBLISH=>'Publicar y despublicar colecciones', self::READ=>'Consultar contenido autorizado', self::CREATE=>'Crear borradores', self::UPDATE=>'Editar borradores', self::EDITOR=>'Editar todas las opciones de borradores', self::POSTS=>'Publicar, programar y editar artículos publicados', self::TAXONOMY=>'Crear y editar categorías y etiquetas', self::COMMENTS=>'Consultar y moderar comentarios', self::TRANSLATIONS=>'Consultar y guardar traducciones', self::MEDIA=>'Consultar, subir y generar imágenes', self::APPROVE=>'Aprobar solicitudes propias desde MCP', self::COPY=>'Copiar artículos a otros sitios como borradores y encargar resúmenes editoriales', self::IMPORT=>(function_exists('detectLanguage') && detectLanguage()==='en' ? 'Manage news tips and evidence' : 'Gestionar avisos y documentación de noticias'), default=>$scope };
+    }
+    public static function news(string $resource): bool
+    {
+        return $resource === 'plugin:news-aggregator' || (bool) preg_match('/^tenant:[1-9][0-9]*:plugin:news-aggregator$/D', $resource);
+    }
+    public static function tenantNews(int $tenant): string { return 'tenant:'.$tenant.':plugin:news-aggregator'; }
+    public static function plugin(string $resource): ?string
+    {
+        if (self::news($resource)) return 'news-aggregator';
+        return $resource === 'plugin:cross-publisher' ? 'cross-publisher' : null;
     }
     public static function site(string $resource): ?int
     {
         if ($resource === 'main') return 0;
-        if (preg_match('/^tenant:([1-9][0-9]*)$/D', $resource, $m)) return (int)$m[1];
+        if (preg_match('/^tenant:([1-9][0-9]*)(?::plugin:news-aggregator)?$/D', $resource, $m)) return (int)$m[1];
         if (in_array($resource, ['plugin:cross-publisher','plugin:news-aggregator'], true)) return null;
         throw new RuntimeException('Recurso MCP desconocido.');
     }

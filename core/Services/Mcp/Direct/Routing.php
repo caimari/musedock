@@ -23,6 +23,7 @@ final class Routing
     public static function id(string $slug): string
     {
         if ($slug==='cms') return Endpoint::siteResource();
+        if ($slug==='news-aggregator' && !empty($GLOBALS['tenant']['id'])) return Policy::tenantNews((int)$GLOBALS['tenant']['id']);
         if (!empty($GLOBALS['tenant']['id'])) throw new \RuntimeException('Plugins editoriales no disponibles en este dominio.');
         if (!in_array($slug,['cross-publisher','news-aggregator'],true)) throw new \RuntimeException('Recurso desconocido.');
         return 'plugin:'.$slug;
