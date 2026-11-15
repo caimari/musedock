@@ -16,6 +16,9 @@
         }
     },
     "changelog": {
+        "pendiente (2026-11-15)": [
+            "«No indexar» (Ajustes → Lectura, blog_public=0) cierra también el rastreo: robots.txt pasa a «Disallow: /» sin sitemap, /sitemap.xml responde 404 y el feed lleva X-Robots-Tag noindex. Antes solo se ponía la etiqueta noindex en el HTML."
+        ],
         "pendiente (listados del superadmin)": [
             "Arreglo: la lista de comentarios (superadmin y tenant) daba error 500 en cuanto había comentarios: las fechas llegan como DateTime y la vista las convertía con (string).",
             "Arreglo: guardar una entrada ya no cambia su URL. El superadmin ponía el prefijo «blog» por defecto (los artículos del sitio principal, que van sin prefijo, daban 404) y, al guardar, superadmin y tenants borraban los slugs traducidos (/en/… daba 404). Ahora se conserva el prefijo que tenía (o el del blog del sitio) y solo se reescribe el slug del idioma base; las entradas nuevas del sitio principal usan el prefijo de su blog.",
@@ -24,7 +27,13 @@
             "Listados de entradas (superadmin y tenant): se quita la píldora gris vacía de «comentarios desactivados» (su icono bi-chat-slash no existe en la versión instalada de Bootstrap Icons).",
             "Listados de entradas (superadmin y tenant): la columna Vistas muestra visitantes únicos (personas distintas por día) y cargas de página (incluidas recargas), ambas de la analítica del sitio y sumando todas las URL de la entrada (con y sin prefijo, traducidas), con un botón (i) que explica la diferencia.",
             "El contador de vistas de cada entrada (view_count) ya no suma robots ni buscadores: misma regla que la analítica.",
-            "Entradas traducidas (/en/…): el <title>, la meta descripción y og:title salen en el idioma de la traducción (antes, en el idioma base)."
+            "Entradas traducidas (/en/…): el <title>, la meta descripción y og:title salen en el idioma de la traducción (antes, en el idioma base).",
+            "Arreglo SEO: el autor del JSON-LD del artículo salía siempre con el nombre del sitio (la consulta usaba una clase Database sin importar y fallaba en silencio). Ahora es la misma firma que ve el lector (administrador raíz si publica el superadmin) y el tipo es Organization cuando el nombre coincide con el del medio y Person cuando es una persona.",
+            "Autor con página pública activada: la firma del artículo y de los listados del tema por defecto enlaza a /author/…, también cuando el artículo lo publicó el superadmin (se firma con el administrador raíz del tenant; antes solo enlazaba si lo había publicado un admin). El JSON-LD del artículo añade esa URL al autor.",
+            "El slug de la página de autor ya no pierde la vocal acentuada (Redacción daba «redaccin»; ahora «redaccion») y se puede cambiar desde Mi perfil → Página de autor.",
+            "Página pública de autor del administrador raíz de un tenant: ahora lista también los artículos que publicó el superadmin dentro de ese tenant (los que él firma); antes salía «0 posts».",
+            "La firma con enlace a la página de autor se ve como el texto que la rodea (color heredado, sin subrayado ni morado de enlace visitado) en el artículo y en los listados del tema por defecto.",
+            "Páginas de autor, categoría y etiqueta: sin el banner/carrusel grande de portada en los diseños Fashion y Magazine del tema por defecto; solo la lista de artículos (flag hide_hero de la vista del autor), y sin la franja de «Temas destacados» / «Últimos artículos» en ningún diseño."
         ],
         "pendiente (auditoría 2026-10-05)": [
             "Seguridad: suggest/batch-taxonomy solo aceptan tenant_id del cuerpo si es superadmin.",

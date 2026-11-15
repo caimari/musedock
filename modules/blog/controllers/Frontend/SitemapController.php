@@ -37,6 +37,15 @@ class SitemapController
     {
         $tenantId = TenantManager::currentTenantId();
 
+        // «No indexar» activo: el sitio no publica sitemap
+        if (function_exists('site_setting') && (string) site_setting('blog_public', '1') === '0') {
+            http_response_code(404);
+            header('Content-Type: text/plain; charset=UTF-8');
+            header('X-Robots-Tag: noindex, nofollow');
+            echo "Not found\n";
+            exit;
+        }
+
         // Intentar servir desde caché
         $cacheFile = $this->getCacheFile($tenantId);
         if ($this->isCacheValid($cacheFile)) {
@@ -69,9 +78,13 @@ class SitemapController
             if (function_exists('blog_language_lists_enabled') && blog_language_lists_enabled()) {
                 $default = site_default_language();
                 $listPaths = [];
+                // Listado con nombre propio (blog_list_path, p. ej. /stories o /ideas): /blog es solo una 301
+                // Si no hay nombre propio pero sí prefijo de artículos (p. ej. /stories/slug), el listado vive en /{prefijo}
+                $listSlug = function_exists('blog_list_path') && blog_list_path() !== '' ? blog_list_path()
+                    : (trim(blog_prefix(), '/') !== '' ? trim(blog_prefix(), '/') : 'blog');
                 foreach (\Screenart\Musedock\Services\LanguageUrl::activeLanguages() as $locale) {
                     if ($locale === $default || \Screenart\Musedock\Services\LanguageUrl::siteHasPostsIn($locale)) {
-                        $listPaths[$locale] = $siteUrl . ($locale === $default ? '' : '/' . $locale) . '/blog';
+                        $listPaths[$locale] = $siteUrl . ($locale === $default ? '' : '/' . $locale) . '/' . $listSlug;
                     }
                 }
                 foreach ($listPaths as $locale => $loc) {
@@ -102,17 +115,47 @@ class SitemapController
                 }
             }
 
+            // Versiones por idioma de una ruta que el sitio declara multilingüe («language_url_paths»):
+            // devuelve [locale => URL] (vacío si la ruta solo existe en el idioma por defecto)
+            $langVariants = function (string $path) use ($siteUrl): array {
+                if (!function_exists('blog_language_lists_enabled') || !blog_language_lists_enabled()
+                    || !\Screenart\Musedock\Services\LanguageUrl::isMultilingualPath($path)) {
+                    return [];
+                }
+                $default = site_default_language();
+                $out = [];
+                foreach (\Screenart\Musedock\Services\LanguageUrl::activeLanguages() as $locale) {
+                    $out[$locale] = $siteUrl . ($locale === $default ? '' : '/' . $locale) . ($path === '/' ? '/' : $path);
+                }
+                return count($out) > 1 ? $out : [];
+            };
+            // Añade una URL; si tiene versiones por idioma, una entrada por idioma con sus hreflang
+            $addLocalized = function (array $entry, string $path) use (&$urls, $langVariants): void {
+                $variants = $langVariants($path);
+                if (!$variants) {
+                    $urls[] = $entry;
+                    return;
+                }
+                $default = site_default_language();
+                $alternates = $variants + ['x-default' => $variants[$default] ?? reset($variants)];
+                foreach ($variants as $loc) {
+                    $urls[] = array_merge($entry, ['loc' => $loc, 'alternates' => $alternates]);
+                }
+            };
+
             // 1. Homepage
-            $urls[] = [
+            $addLocalized([
                 'loc' => $siteUrl . '/',
                 'lastmod' => $listingLastmod,
                 'changefreq' => 'daily',
                 'priority' => '1.0'
-            ];
+            ], '/');
 
             // 2. Página del blog (solo si tiene prefijo, si no, coincide con homepage)
             $blogPrefix = blog_prefix();
-            if ($blogPrefix !== '') {
+            // Con listados por idioma ya va arriba (paso 0) con sus hreflang: no repetirla
+            $languageListed = function_exists('blog_language_lists_enabled') && blog_language_lists_enabled();
+            if ($blogPrefix !== '' && !$languageListed) {
                 $urls[] = [
                     'loc' => $siteUrl . '/' . $blogPrefix,
                     'lastmod' => $listingLastmod,
@@ -125,12 +168,12 @@ class SitemapController
             foreach ($pages as $page) {
                 $pageUrl = $this->getPageUrl($pdo, $page, $siteUrl, $tenantId);
                 if ($pageUrl) {
-                    $urls[] = [
+                    $addLocalized([
                         'loc' => $pageUrl,
                         'lastmod' => $this->formatDate($page->updated_at ?? $page->published_at),
                         'changefreq' => 'monthly',
                         'priority' => '0.7'
-                    ];
+                    ], (string) (parse_url($pageUrl, PHP_URL_PATH) ?: '/'));
                 }
             }
 
@@ -146,6 +189,15 @@ class SitemapController
                 }
                 if (!$paths) {
                     $paths = [(string) ($post->base_locale ?: 'es') => blog_url($post->slug)];
+                }
+                // A translated URL may have its own SEO directive. Never advertise
+                // noindex translations, including in hreflang sitemap alternates.
+                $translationSeo = $pdo->prepare('SELECT locale, robots_directive, canonical_url FROM blog_post_translations WHERE post_id = ? AND COALESCE(tenant_id, 0) = ?');
+                $translationSeo->execute([$post->id, (int) $tenantId]);
+                foreach ($translationSeo->fetchAll(\PDO::FETCH_OBJ) as $localized) {
+                    if (self::isNotOwnIndexable($localized)) {
+                        unset($paths[$localized->locale]);
+                    }
                 }
                 $alternates = [];
                 if (count($paths) > 1) {
@@ -195,6 +247,12 @@ class SitemapController
                     'priority' => '0.5'
                 ];
             }
+
+            // Public, indexable collections only. Missing migration is compatible with old installations.
+            try {
+                $presenter=new \Screenart\Musedock\Services\Editorial\CollectionPresenter(new \Screenart\Musedock\Services\Editorial\EditorialService($pdo));
+                $urls=array_merge($urls,$presenter->sitemap((int)($tenantId??0),$siteUrl));
+            } catch (\PDOException $e) { if(!in_array($e->getCode(),['42P01','42S02'],true))throw $e; }
 
             // Hook: allow plugins to add their URLs
             if (function_exists('apply_filters')) {
@@ -360,12 +418,29 @@ class SitemapController
     /**
      * Obtiene todos los posts publicados y públicos
      */
+    /** ¿El post es noindex o su canonical apunta a otro dominio? */
+    private static function isNotOwnIndexable(object $p): bool
+    {
+        if (stripos((string) ($p->robots_directive ?? ''), 'noindex') !== false) {
+            return true;
+        }
+        $canon = trim((string) ($p->canonical_url ?? ''));
+        if ($canon === '' || !preg_match('#^https?://#i', $canon)) {
+            return false;
+        }
+        $bare = fn ($h) => preg_replace('/^www\./', '', strtolower((string) $h));
+        $canonHost = $bare(parse_url($canon, PHP_URL_HOST));
+        $siteHost = $bare(explode(':', (string) ($_SERVER['HTTP_HOST'] ?? ''))[0]);
+
+        return $canonHost !== '' && $siteHost !== '' && $canonHost !== $siteHost;
+    }
+
     private function getPosts(\PDO $pdo, ?int $tenantId): array
     {
         try {
             if ($tenantId !== null) {
                 $stmt = $pdo->prepare("
-                    SELECT id, tenant_id, slug, base_locale, title, published_at, updated_at, featured_image
+                    SELECT id, tenant_id, slug, base_locale, title, published_at, updated_at, featured_image, canonical_url, robots_directive
                     FROM blog_posts
                     WHERE status = 'published'
                       AND visibility = 'public'
@@ -376,7 +451,7 @@ class SitemapController
                 $stmt->execute([$tenantId]);
             } else {
                 $stmt = $pdo->prepare("
-                    SELECT id, tenant_id, slug, base_locale, title, published_at, updated_at, featured_image
+                    SELECT id, tenant_id, slug, base_locale, title, published_at, updated_at, featured_image, canonical_url, robots_directive
                     FROM blog_posts
                     WHERE status = 'published'
                       AND visibility = 'public'
@@ -386,7 +461,9 @@ class SitemapController
                 ");
                 $stmt->execute();
             }
-            return $stmt->fetchAll(\PDO::FETCH_OBJ);
+            // Fuera del sitemap: copias que remiten a otro dominio (canonical externo) y posts noindex.
+            // El sitemap solo debe listar URLs que el sitio quiere indexar como propias.
+            return array_values(array_filter($stmt->fetchAll(\PDO::FETCH_OBJ), fn ($p) => !self::isNotOwnIndexable($p)));
         } catch (\Exception $e) {
             return [];
         }

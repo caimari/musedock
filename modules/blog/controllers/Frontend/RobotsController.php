@@ -20,6 +20,15 @@ class RobotsController
     {
         $siteUrl = $this->getSiteUrl();
 
+        // «No indexar» activo (Ajustes → Lectura): nada de rastreo ni sitemap, como WordPress
+        if (function_exists('site_setting') && (string) site_setting('blog_public', '1') === '0') {
+            header('Content-Type: text/plain; charset=utf-8');
+            header('X-Content-Type-Options: nosniff');
+            header('X-Robots-Tag: noindex, nofollow');
+            echo "User-agent: *\nDisallow: /\n";
+            exit;
+        }
+
         $lines = [
             'User-agent: *',
             'Allow: /',

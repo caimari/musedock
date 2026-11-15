@@ -35,6 +35,11 @@ class FeedController
     {
         $tenantId = TenantManager::currentTenantId();
 
+        // «No indexar» activo: el feed se sigue sirviendo, pero los buscadores no lo indexan
+        if (function_exists('site_setting') && (string) site_setting('blog_public', '1') === '0') {
+            header('X-Robots-Tag: noindex, nofollow');
+        }
+
         // Intentar servir desde caché
         $cacheFile = $this->getCacheFile($tenantId);
         if ($this->isCacheValid($cacheFile)) {
