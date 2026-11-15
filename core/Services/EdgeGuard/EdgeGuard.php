@@ -55,6 +55,14 @@ class EdgeGuard
         if (self::$ready) {
             return;
         }
+        // PostgreSQL: una sola consulta de lectura comprueba que todo existe. Antes se ejecutaban 7 sentencias de
+        // creación (CREATE TABLE/INDEX IF NOT EXISTS y ALTER TABLE) en CADA petición, informes de sonda incluidos; el
+        // ALTER TABLE además pide un bloqueo fuerte aunque no cambie nada. Si falta algo, se cae al camino de siempre.
+        if ($this->driver === 'pgsql' && $this->schemaComplete()) {
+            self::$ready = true;
+
+            return;
+        }
         $pk = $this->driver === 'pgsql' ? 'SERIAL PRIMARY KEY' : ($this->driver === 'sqlite' ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'INT UNSIGNED AUTO_INCREMENT PRIMARY KEY');
         $small = $this->driver === 'pgsql' ? 'SMALLINT' : ($this->driver === 'sqlite' ? 'INTEGER' : 'TINYINT(1)');
         $ts = $this->driver === 'mysql' ? 'DATETIME' : 'TIMESTAMP';
@@ -78,6 +86,12 @@ class EdgeGuard
         } catch (\Throwable $e) {
             // MySQL sin IF NOT EXISTS en índices: la tabla funciona igual
         }
+        // La retención borra por fecha sola: sin este índice cada borrado recorría toda la tabla
+        try {
+            $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_edge_guard_obs_created ON edge_guard_observations (created_at)');
+        } catch (\Throwable $e) {
+            // ver arriba
+        }
         // IPs de Cloudflare que ven las sondas en su país (Cloudflare responde distinto según desde dónde se pregunte)
         try {
             $this->pdo->exec($this->driver === 'pgsql'
@@ -87,6 +101,28 @@ class EdgeGuard
             // ya existe
         }
         self::$ready = true;
+    }
+
+    /** PostgreSQL: ¿existen ya las 5 tablas, los 2 índices y la columna edge_ips_probe? (una consulta, sin bloqueos) */
+    private function schemaComplete(): bool
+    {
+        try {
+            $ok = $this->pdo->query(
+                "SELECT to_regclass('edge_guard_settings') IS NOT NULL
+                    AND to_regclass('edge_guard_records') IS NOT NULL
+                    AND to_regclass('edge_guard_observations') IS NOT NULL
+                    AND to_regclass('edge_guard_changes') IS NOT NULL
+                    AND to_regclass('edge_guard_events') IS NOT NULL
+                    AND to_regclass('idx_edge_guard_obs') IS NOT NULL
+                    AND to_regclass('idx_edge_guard_obs_created') IS NOT NULL
+                    AND EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass('edge_guard_records')
+                                AND attname = 'edge_ips_probe' AND NOT attisdropped)"
+            )->fetchColumn();
+
+            return $ok === true || $ok === 't' || $ok === 1 || $ok === '1';
+        } catch (\Throwable $e) {
+            return false; // ante la duda, el camino de siempre (crear lo que falte)
+        }
     }
 
     public function setting(string $key, ?string $default = null): ?string
@@ -100,6 +136,12 @@ class EdgeGuard
 
     public function setSetting(string $key, ?string $value): void
     {
+        if ($value !== null && $this->driver === 'pgsql') {
+            // Una sola sentencia (antes DELETE + INSERT = 2 confirmaciones); k es la clave primaria
+            $this->pdo->prepare('INSERT INTO edge_guard_settings (k, v) VALUES (?, ?) ON CONFLICT (k) DO UPDATE SET v = EXCLUDED.v')->execute([$key, $value]);
+
+            return;
+        }
         $this->pdo->prepare('DELETE FROM edge_guard_settings WHERE k = ?')->execute([$key]);
         if ($value !== null) {
             $this->pdo->prepare('INSERT INTO edge_guard_settings (k, v) VALUES (?, ?)')->execute([$key, $value]);
@@ -709,40 +751,59 @@ class EdgeGuard
     {
         $known = array_flip(array_column($this->targets(), 'id'));
         $now = self::now();
-        $upd = $this->pdo->prepare('UPDATE edge_guard_records SET edge_ips_probe = ? WHERE record_id = ? AND proxied = 1 AND (origin_ip IS NULL OR origin_ip <> ?)');
-        foreach (array_slice($dns, 0, 1000) as $d) {
-            $t = is_array($d) ? (string) ($d['t'] ?? '') : '';
-            if (!isset($known[$t]) || !str_starts_with($t, 'dns:')) {
-                continue;
-            }
-            $ips = array_values(array_unique(array_filter((array) ($d['ips'] ?? []), fn ($ip) => is_string($ip) && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4))));
-            $ips = array_slice($ips, 0, 8);
-            if ($ips) {
-                sort($ips);
-                $upd->execute([implode(',', $ips), substr($t, 4), $ips[0]]);
-            }
+        // Todo el informe en UNA transacción (antes: un COMMIT por observación, ~300 por informe) y las
+        // observaciones en INSERT múltiple por bloques. Mismas filas, mismo orden, mismo valor devuelto.
+        $ownTx = !$this->pdo->inTransaction();
+        if ($ownTx) {
+            $this->pdo->beginTransaction();
         }
-        $ins = $this->pdo->prepare('INSERT INTO edge_guard_observations (probe, path, target, ok, code, ms, public_ip, created_at) VALUES (?,?,?,?,?,?,?,?)');
-        $n = 0;
-        foreach (array_slice($paths, 0, 6) as $p) {
-            if (!is_array($p)) {
-                continue;
-            }
-            $path = substr(preg_replace('/[^A-Za-z0-9._-]/', '', (string) ($p['path'] ?? '')) ?: 'default', 0, 40);
-            $pub = substr(preg_replace('/[^0-9a-fA-F.:]/', '', (string) ($p['public_ip'] ?? '')), 0, 64) ?: null;
-            $ins->execute([$probe, $path, 'control', !empty($p['control_ok']) ? 1 : 0, null, null, $pub, $now]);
-            $n++;
-            foreach (array_slice((array) ($p['results'] ?? []), 0, 500) as $res) {
-                $t = is_array($res) ? (string) ($res['t'] ?? '') : '';
-                if (!isset($known[$t])) {
-                    continue; // solo objetivos que este servidor pidió
+        try {
+            $upd = $this->pdo->prepare('UPDATE edge_guard_records SET edge_ips_probe = ? WHERE record_id = ? AND proxied = 1 AND (origin_ip IS NULL OR origin_ip <> ?)');
+            foreach (array_slice($dns, 0, 1000) as $d) {
+                $t = is_array($d) ? (string) ($d['t'] ?? '') : '';
+                if (!isset($known[$t]) || !str_starts_with($t, 'dns:')) {
+                    continue;
                 }
-                $ins->execute([$probe, $path, $t, !empty($res['ok']) ? 1 : 0, substr((string) ($res['code'] ?? ''), 0, 10), isset($res['ms']) ? (int) $res['ms'] : null, $pub, $now]);
-                $n++;
+                $ips = array_values(array_unique(array_filter((array) ($d['ips'] ?? []), fn ($ip) => is_string($ip) && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4))));
+                $ips = array_slice($ips, 0, 8);
+                if ($ips) {
+                    sort($ips);
+                    $upd->execute([implode(',', $ips), substr($t, 4), $ips[0]]);
+                }
             }
+            $rows = [];
+            foreach (array_slice($paths, 0, 6) as $p) {
+                if (!is_array($p)) {
+                    continue;
+                }
+                $path = substr(preg_replace('/[^A-Za-z0-9._-]/', '', (string) ($p['path'] ?? '')) ?: 'default', 0, 40);
+                $pub = substr(preg_replace('/[^0-9a-fA-F.:]/', '', (string) ($p['public_ip'] ?? '')), 0, 64) ?: null;
+                $rows[] = [$probe, $path, 'control', !empty($p['control_ok']) ? 1 : 0, null, null, $pub, $now];
+                foreach (array_slice((array) ($p['results'] ?? []), 0, 500) as $res) {
+                    $t = is_array($res) ? (string) ($res['t'] ?? '') : '';
+                    if (!isset($known[$t])) {
+                        continue; // solo objetivos que este servidor pidió
+                    }
+                    $rows[] = [$probe, $path, $t, !empty($res['ok']) ? 1 : 0, substr((string) ($res['code'] ?? ''), 0, 10), isset($res['ms']) ? (int) $res['ms'] : null, $pub, $now];
+                }
+            }
+            // 8 parámetros por fila: bloques de 500 filas = 4.000 parámetros (límite de PostgreSQL: 65.535)
+            foreach (array_chunk($rows, 500) as $chunk) {
+                $sql = 'INSERT INTO edge_guard_observations (probe, path, target, ok, code, ms, public_ip, created_at) VALUES '
+                    . implode(',', array_fill(0, count($chunk), '(?,?,?,?,?,?,?,?)'));
+                $this->pdo->prepare($sql)->execute(array_merge(...$chunk));
+            }
+            if ($ownTx) {
+                $this->pdo->commit();
+            }
+        } catch (\Throwable $e) {
+            if ($ownTx && $this->pdo->inTransaction()) {
+                $this->pdo->rollBack(); // un informe a medias no deja filas sueltas
+            }
+            throw $e;
         }
 
-        return $n;
+        return count($rows);
     }
 
     // ------------------------------------------------------------------ estado
@@ -887,8 +948,12 @@ class EdgeGuard
                 $this->noteOnce('inventory', 'Lectura de Cloudflare con errores: ' . implode('; ', $inv['errors']), $report);
             }
         }
-        $this->pdo->prepare('DELETE FROM edge_guard_observations WHERE created_at < ?')->execute([self::now(-3 * 86400)]);
-        $this->pdo->prepare('DELETE FROM edge_guard_events WHERE created_at < ?')->execute([self::now(-30 * 86400)]);
+        // Retención: basta con purgar cada 10 minutos (la caducidad es de 3 y 30 días); antes, cada minuto
+        if (time() - (int) $this->setting('last_purge_at', '0') >= 600) {
+            $this->pdo->prepare('DELETE FROM edge_guard_observations WHERE created_at < ?')->execute([self::now(-3 * 86400)]);
+            $this->pdo->prepare('DELETE FROM edge_guard_events WHERE created_at < ?')->execute([self::now(-30 * 86400)]);
+            $this->setSetting('last_purge_at', (string) time());
+        }
 
         // Al salir de la simulación, lo simulado deja de tener sentido
         if ($mode !== 'simulate') {

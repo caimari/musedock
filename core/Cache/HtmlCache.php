@@ -192,6 +192,11 @@ class HtmlCache
      */
     private static function invalidateSitemap(?int $tenantId): void
     {
+        // Vía del propio sitemap: además de retirar el fichero, descarta una regeneración en curso con datos viejos
+        if (class_exists('\\Blog\\Controllers\\Frontend\\SitemapController')) {
+            \Blog\Controllers\Frontend\SitemapController::invalidateCache($tenantId ?: null);
+            return;
+        }
         $file=APP_ROOT.'/storage/cache/sitemaps/sitemap_'.($tenantId ?: 'global').'.xml';
         if (is_file($file)) @unlink($file);
     }

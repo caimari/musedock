@@ -312,33 +312,19 @@
                 $legalPageUrl = function(array $slugCandidates, string $defaultSlug) use ($pdo, $tenantId) {
                     $prefix = function_exists('page_prefix') ? page_prefix() : 'p';
                     $prefix = $prefix ? '/' . ltrim($prefix, '/') . '/' : '/';
-                    foreach ($slugCandidates as $candidate) {
-                        if ($tenantId) {
-                            $stmt = $pdo->prepare("SELECT slug FROM pages WHERE slug = ? AND tenant_id = ? AND status = 'published' LIMIT 1");
-                            $stmt->execute([$candidate, $tenantId]);
-                        } else {
-                            $stmt = $pdo->prepare("SELECT slug FROM pages WHERE slug = ? AND tenant_id IS NULL AND status = 'published' LIMIT 1");
-                            $stmt->execute([$candidate]);
-                        }
-                        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-                        if ($row) {
-                            return url($prefix . $row['slug']);
-                        }
-                        if ($tenantId) {
-                            $stmt = $pdo->prepare("SELECT s.slug FROM slugs s WHERE s.slug = ? AND s.tenant_id = ? AND s.module = 'pages' LIMIT 1");
-                            $stmt->execute([$candidate, $tenantId]);
-                        } else {
-                            $stmt = $pdo->prepare("SELECT s.slug FROM slugs s WHERE s.slug = ? AND s.tenant_id IS NULL AND s.module = 'pages' LIMIT 1");
-                            $stmt->execute([$candidate]);
-                        }
-                        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-                        if ($row) {
-                            return url($prefix . $row['slug']);
-                        }
+                    // Mismo criterio de antes (primer nombre, por prioridad, con página publicada o slug de páginas),
+                    // pero todos los nombres se consultan de una vez en lugar de 2 consultas por nombre
+                    $found = \Screenart\Musedock\Helpers\LegalPageUrl::firstExisting($pdo, $tenantId ? (int) $tenantId : null, $slugCandidates);
+                    if ($found !== null) {
+                        return url($prefix . $found);
                     }
                     return url(page_url($defaultSlug));
                 };
 
+                \Screenart\Musedock\Helpers\LegalPageUrl::preload($pdo, $tenantId ? (int) $tenantId : null, [
+                    'aviso-legal', 'legal', 'aviso_legal', 'privacy', 'privacidad', 'politica-de-privacidad',
+                    'cookie-policy', 'cookies', 'politica-de-cookies', 'terms-and-conditions', 'terminos-y-condiciones', 'terminos', 'terms',
+                ]);
                 $urlAvisoLegal   = $legalPageUrl(['aviso-legal', 'legal', 'aviso_legal'], 'aviso-legal');
                 $urlPrivacidad   = $legalPageUrl(['privacy', 'privacidad', 'politica-de-privacidad'], 'privacy');
                 $urlCookies      = $legalPageUrl(['cookie-policy', 'cookies', 'politica-de-cookies'], 'cookie-policy');

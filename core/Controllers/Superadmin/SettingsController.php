@@ -1022,6 +1022,11 @@ public function deleteFavicon()
             __DIR__ . '/../../../storage/cache/sitemaps',
             __DIR__ . '/../../../storage/cache/feeds',
         ];
+        if (class_exists('\\Blog\\Controllers\\Frontend\\SitemapController')) {
+            // Los sitemaps se invalidan por su vía propia (descarta también regeneraciones en curso)
+            \Blog\Controllers\Frontend\SitemapController::invalidateAllCache();
+            array_shift($xmlCacheDirs);
+        }
         foreach ($xmlCacheDirs as $dir) {
             if (is_dir($dir)) {
                 foreach (glob($dir . '/*.xml') as $file) {

@@ -183,12 +183,75 @@ class LanguageUrl
         $tenantId = $post->tenant_id === null ? null : (int) $post->tenant_id;
         $tenantSql = $tenantId === null ? 'tenant_id IS NULL' : 'tenant_id = ' . $tenantId;
 
-        $slugs = $pdo->prepare("SELECT slug, prefix, locale FROM slugs WHERE module = 'blog' AND reference_id = ? AND {$tenantSql}");
+        $slugs = $pdo->prepare("SELECT slug, prefix, locale FROM slugs WHERE module = 'blog' AND reference_id = ? AND {$tenantSql} ORDER BY id");
         $slugs->execute([(int) $post->id]);
+        $tr = $pdo->prepare('SELECT locale FROM blog_post_translations WHERE post_id = ? ORDER BY id');
+        $tr->execute([(int) $post->id]);
+
+        return self::buildPostPaths($post, $slugs->fetchAll(\PDO::FETCH_ASSOC), $tr->fetchAll(\PDO::FETCH_COLUMN));
+    }
+
+    /**
+     * Igual que postPaths() para muchos posts a la vez: [id del post => [locale => path]].
+     * Hace 2 consultas en total (por tenant) en vez de 2 por post; la construcción de cada ruta es la
+     * misma función que usa postPaths(), así que el resultado de cada post es idéntico.
+     *
+     * @param object[] $posts  objetos con id, tenant_id, slug y base_locale
+     */
+    public static function postPathsBatch(array $posts): array
+    {
+        if (!$posts) {
+            return [];
+        }
+        $pdo = Database::connect();
+
+        // Los posts se agrupan por tenant: cada grupo se consulta con su propio filtro de tenant (como postPaths)
+        $groups = [];
+        foreach ($posts as $post) {
+            $key = $post->tenant_id === null ? 'null' : (string) (int) $post->tenant_id;
+            $groups[$key][(int) $post->id] = $post;
+        }
+
+        $result = [];
+        foreach ($groups as $key => $group) {
+            $ids = '{' . implode(',', array_keys($group)) . '}';
+            $tenantSql = $key === 'null' ? 'tenant_id IS NULL' : 'tenant_id = ' . (int) $key;
+
+            $slugRows = [];
+            $stmt = $pdo->prepare("SELECT reference_id, slug, prefix, locale FROM slugs WHERE module = 'blog' AND reference_id = ANY (?::int[]) AND {$tenantSql} ORDER BY id");
+            $stmt->execute([$ids]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $slugRows[(int) $row['reference_id']][] = $row;
+            }
+
+            $trRows = [];
+            $stmt = $pdo->prepare('SELECT post_id, locale FROM blog_post_translations WHERE post_id = ANY (?::int[]) ORDER BY id');
+            $stmt->execute([$ids]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $trRows[(int) $row['post_id']][] = $row['locale'];
+            }
+
+            foreach ($group as $id => $post) {
+                $result[$id] = self::buildPostPaths($post, $slugRows[$id] ?? [], $trRows[$id] ?? []);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Construye las rutas de un post a partir de sus filas de slugs y de los idiomas de sus traducciones.
+     * Lógica única compartida por postPaths() y postPathsBatch().
+     *
+     * @param array[]  $slugRows  filas [slug, prefix, locale] de la tabla slugs (módulo blog) del post, en orden de id
+     * @param string[] $trLocales idiomas de blog_post_translations del post, en orden de id
+     */
+    private static function buildPostPaths(object $post, array $slugRows, array $trLocales): array
+    {
         $baseSlug = (string) $post->slug;
         $basePrefix = null;
         $bySlugLocale = [];
-        foreach ($slugs->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+        foreach ($slugRows as $row) {
             if ($row['locale'] === null || $row['locale'] === '') {
                 if ($row['slug'] === $baseSlug || $basePrefix === null) {
                     $basePrefix = $row['prefix'];
@@ -203,10 +266,8 @@ class LanguageUrl
         $default = site_default_language();
         $paths = [$base => ($base === $default ? '' : '/' . $base) . $build($basePrefix, $baseSlug)];
 
-        $tr = $pdo->prepare('SELECT locale FROM blog_post_translations WHERE post_id = ?');
-        $tr->execute([(int) $post->id]);
         $active = self::activeLanguages();
-        foreach ($tr->fetchAll(\PDO::FETCH_COLUMN) as $locale) {
+        foreach ($trLocales as $locale) {
             if ($locale === $base || ($active && !in_array($locale, $active, true))) {
                 continue;
             }

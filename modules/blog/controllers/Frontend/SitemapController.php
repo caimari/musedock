@@ -30,6 +30,18 @@ class SitemapController
      */
     private const CACHE_TTL = 3600;
 
+    /** Segundos máximos que espera una petición a que otra termine de generar (si no hay versión anterior) */
+    private const LOCK_WAIT_SECONDS = 10;
+
+    /** Valor de Retry-After (segundos) cuando se responde 503 */
+    private const RETRY_AFTER = 5;
+
+    /** Veces que se repite la generación si una invalidación llega mientras se genera */
+    private const MAX_ATTEMPTS = 3;
+
+    /** Segundos sin reintentar tras un fallo de generación, mientras haya una versión anterior que servir */
+    private const FAIL_BACKOFF = 30;
+
     /**
      * Genera el sitemap.xml del sitio
      */
@@ -46,20 +58,93 @@ class SitemapController
             exit;
         }
 
-        // Intentar servir desde caché
         $cacheFile = $this->getCacheFile($tenantId);
+
+        // 1. Caché vigente: se sirve tal cual
         if ($this->isCacheValid($cacheFile)) {
             $this->sendHeaders();
             readfile($cacheFile);
             exit;
         }
 
+        // 2. Caché caducada o inexistente: solo UNA petición por tenant la regenera (bloqueo de fichero que el
+        //    sistema libera solo si el proceso muere). Las demás sirven la versión anterior si existe, o esperan.
+        $hadStale = is_file($cacheFile);
+        $lock = $this->openLock($tenantId);
+        // Si no se puede abrir el fichero de bloqueo (disco de solo lectura) se genera sin caché ni bloqueo
+        $locked = $lock === null || flock($lock, LOCK_EX | LOCK_NB);
+
+        if (!$locked) {
+            if ($hadStale) {
+                $this->serveStale($cacheFile);
+            }
+            // Sin versión anterior (primera vez o contenido retirado): esperar a que termine quien la genera
+            $locked = $this->waitLock($lock, self::LOCK_WAIT_SECONDS);
+            if (!$locked) {
+                $this->fail(503, 'Sitemap temporarily unavailable', self::RETRY_AFTER);
+            }
+            // Quien tenía el bloqueo ya habrá publicado el fichero nuevo
+            if ($this->isCacheValid($cacheFile)) {
+                $this->sendHeaders();
+                readfile($cacheFile);
+                exit;
+            }
+        } elseif ($this->isCacheValid($cacheFile)) {
+            // Otra petición acaba de regenerarla mientras esperábamos el bloqueo
+            $this->sendHeaders();
+            readfile($cacheFile);
+            exit;
+        }
+
+        // 3. Hay que regenerar. Si ya falló hace poco y existe versión anterior, no se insiste (evita tormentas)
+        if ($hadStale && $this->recentFailure($tenantId)) {
+            $this->serveStale($cacheFile);
+        }
+
+        try {
+            for ($attempt = 1; $attempt <= self::MAX_ATTEMPTS; $attempt++) {
+                // Generación de invalidaciones ANTES de leer la BD: si cambia mientras generamos, el XML puede
+                // contener contenido ya retirado y NO se publica ni se sirve (se vuelve a generar).
+                $generation = self::readGeneration($tenantId);
+                $xml = $this->buildSitemapXml($tenantId);
+
+                if (!self::publish($tenantId, $cacheFile, $xml, $generation)) {
+                    if (self::readGeneration($tenantId) !== $generation) {
+                        continue; // invalidado durante la generación
+                    }
+                    error_log("SitemapController: no se pudo escribir la caché del sitemap del tenant " . ($tenantId ?? 'global'));
+                }
+                $this->clearFailure($tenantId);
+                if ($lock !== null) {
+                    flock($lock, LOCK_UN); // no retener el bloqueo mientras se envía la respuesta
+                }
+                $this->sendHeaders();
+                echo $xml;
+                exit;
+            }
+            throw new \RuntimeException('el contenido cambió durante la generación ' . self::MAX_ATTEMPTS . ' veces');
+        } catch (\Throwable $e) {
+            error_log("SitemapController: Error al generar sitemap: " . $e->getMessage());
+            $this->markFailure($tenantId);
+            if ($hadStale && is_file($cacheFile)) {
+                $this->serveStale($cacheFile);
+            }
+            $this->fail(500, 'Error generating sitemap');
+        }
+    }
+
+    /**
+     * Construye el XML completo del sitemap de un tenant (sin tocar caché ni cabeceras).
+     * Número de consultas constante: no crece con el número de páginas ni de posts.
+     */
+    private function buildSitemapXml(?int $tenantId): string
+    {
         // El sitemap no depende del idioma del visitante (el idioma del navegador de quien lo pida primero no puede
         // colarse en las URL de categorías y etiquetas que se guardan en la caché)
         $GLOBALS['__request_lang'] = site_default_language();
         detectLanguage(true);
 
-        try {
+        {
             $pdo = Database::connect();
             $siteUrl = $this->getSiteUrl();
 
@@ -164,9 +249,10 @@ class SitemapController
                 ];
             }
 
-            // 3. Páginas estáticas
+            // 3. Páginas estáticas (slugs de todas las páginas en una sola consulta)
+            $pageSlugs = $this->getPageSlugs($pdo, $pages, $tenantId);
             foreach ($pages as $page) {
-                $pageUrl = $this->getPageUrl($pdo, $page, $siteUrl, $tenantId);
+                $pageUrl = $this->getPageUrl($pageSlugs, $page, $siteUrl);
                 if ($pageUrl) {
                     $addLocalized([
                         'loc' => $pageUrl,
@@ -178,23 +264,28 @@ class SitemapController
             }
 
             // 4. Posts del blog
+            // Rutas de todos los posts en 2 consultas (antes: 2 por post). Si falla, la generación entera falla y se
+            // conserva el sitemap anterior, en lugar de publicar durante una hora un sitemap con URLs recortadas.
+            $postPaths = \Screenart\Musedock\Services\LanguageUrl::postPathsBatch($posts);
+            // Directrices SEO de las traducciones de todos los posts en UNA consulta (antes: una por post)
+            $translationSeoByPost = [];
+            if ($posts) {
+                $translationSeo = $pdo->prepare('SELECT post_id, locale, robots_directive, canonical_url FROM blog_post_translations WHERE post_id = ANY (?::int[]) AND COALESCE(tenant_id, 0) = ?');
+                $translationSeo->execute(['{' . implode(',', array_map(static fn ($p) => (int) $p->id, $posts)) . '}', (int) $tenantId]);
+                foreach ($translationSeo->fetchAll(\PDO::FETCH_OBJ) as $localized) {
+                    $translationSeoByPost[(int) $localized->post_id][] = $localized;
+                }
+            }
             foreach ($posts as $post) {
                 // URL real de cada idioma (prefijo de la tabla slugs: docs, blog...) y
                 // enlaces hreflang entre versiones traducidas
-                $paths = [];
-                try {
-                    $paths = \Screenart\Musedock\Services\LanguageUrl::postPaths($post);
-                } catch (\Throwable $e) {
-                    $paths = [];
-                }
+                $paths = $postPaths[(int) $post->id] ?? [];
                 if (!$paths) {
                     $paths = [(string) ($post->base_locale ?: 'es') => blog_url($post->slug)];
                 }
                 // A translated URL may have its own SEO directive. Never advertise
                 // noindex translations, including in hreflang sitemap alternates.
-                $translationSeo = $pdo->prepare('SELECT locale, robots_directive, canonical_url FROM blog_post_translations WHERE post_id = ? AND COALESCE(tenant_id, 0) = ?');
-                $translationSeo->execute([$post->id, (int) $tenantId]);
-                foreach ($translationSeo->fetchAll(\PDO::FETCH_OBJ) as $localized) {
+                foreach ($translationSeoByPost[(int) $post->id] ?? [] as $localized) {
                     if (self::isNotOwnIndexable($localized)) {
                         unset($paths[$localized->locale]);
                     }
@@ -259,23 +350,7 @@ class SitemapController
                 $urls = apply_filters('musedock_sitemap_urls', $urls, $tenantId, $siteUrl, $pdo);
             }
 
-            // Generar XML
-            $xml = $this->generateSitemapXml($urls);
-
-            // Guardar en caché
-            $this->saveCache($cacheFile, $xml);
-
-            // Enviar respuesta
-            $this->sendHeaders();
-            echo $xml;
-            exit;
-
-        } catch (\Exception $e) {
-            error_log("SitemapController: Error al generar sitemap: " . $e->getMessage());
-            http_response_code(500);
-            header('Content-Type: application/xml; charset=UTF-8');
-            echo '<?xml version="1.0" encoding="UTF-8"?><error>Error generating sitemap</error>';
-            exit;
+            return $this->generateSitemapXml($urls);
         }
     }
 
@@ -357,62 +432,75 @@ class SitemapController
             }
             return $stmt->fetchAll(\PDO::FETCH_OBJ);
         } catch (\Exception $e) {
-            return [];
+            // No se oculta el error: un sitemap vacío cacheado una hora es peor que conservar el anterior
+            throw $e;
         }
     }
 
     /**
      * Obtiene la URL pública de una página usando la tabla de slugs
      */
-    private function getPageUrl(\PDO $pdo, object $page, string $siteUrl, ?int $tenantId): ?string
+    private function getPageUrl(array $pageSlugs, object $page, string $siteUrl): ?string
     {
         // No incluir la homepage como página separada (ya está como /)
         if (!empty($page->is_homepage)) {
             return null;
         }
 
-        try {
-            if ($tenantId !== null) {
-                $stmt = $pdo->prepare("
-                    SELECT slug, prefix
-                    FROM slugs
-                    WHERE module = 'pages'
-                      AND reference_id = ?
-                      AND tenant_id = ?
-                    LIMIT 1
-                ");
-                $stmt->execute([$page->id, $tenantId]);
-            } else {
-                $stmt = $pdo->prepare("
-                    SELECT slug, prefix
-                    FROM slugs
-                    WHERE module = 'pages'
-                      AND reference_id = ?
-                      AND tenant_id IS NULL
-                    LIMIT 1
-                ");
-                $stmt->execute([$page->id]);
+        $slugRecord = $pageSlugs[(int) $page->id] ?? null;
+
+        if ($slugRecord) {
+            $prefix = $slugRecord->prefix ?? null;
+            if ($prefix) {
+                return $siteUrl . '/' . $prefix . '/' . $slugRecord->slug;
             }
-
-            $slugRecord = $stmt->fetch(\PDO::FETCH_OBJ);
-
-            if ($slugRecord) {
-                $prefix = $slugRecord->prefix ?? null;
-                if ($prefix) {
-                    return $siteUrl . '/' . $prefix . '/' . $slugRecord->slug;
-                }
-                return $siteUrl . '/' . $slugRecord->slug;
-            }
-
-            // Fallback: usar slug directo (sin prefijo)
-            if (!empty($page->slug)) {
-                return $siteUrl . '/' . $page->slug;
-            }
-
-            return null;
-        } catch (\Exception $e) {
-            return null;
+            return $siteUrl . '/' . $slugRecord->slug;
         }
+
+        // Fallback: usar slug directo (sin prefijo)
+        if (!empty($page->slug)) {
+            return $siteUrl . '/' . $page->slug;
+        }
+
+        return null;
+    }
+
+    /**
+     * Slugs (slug + prefix) de todas las páginas no-homepage en UNA consulta: [id de página => registro].
+     * Si una página tuviera varios slugs se usa el primero (menor id), como el LIMIT 1 anterior pero determinista.
+     */
+    private function getPageSlugs(\PDO $pdo, array $pages, ?int $tenantId): array
+    {
+        $ids = [];
+        foreach ($pages as $page) {
+            if (empty($page->is_homepage)) {
+                $ids[] = (int) $page->id;
+            }
+        }
+        if (!$ids) {
+            return [];
+        }
+
+        $tenantSql = $tenantId !== null ? 'tenant_id = ?' : 'tenant_id IS NULL';
+        $stmt = $pdo->prepare("
+            SELECT reference_id, slug, prefix
+            FROM slugs
+            WHERE module = 'pages'
+              AND reference_id = ANY (?::int[])
+              AND {$tenantSql}
+            ORDER BY id
+        ");
+        $params = ['{' . implode(',', $ids) . '}'];
+        if ($tenantId !== null) {
+            $params[] = $tenantId;
+        }
+        $stmt->execute($params);
+
+        $bySlug = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_OBJ) as $row) {
+            $bySlug[(int) $row->reference_id] ??= $row;
+        }
+        return $bySlug;
     }
 
     /**
@@ -465,7 +553,8 @@ class SitemapController
             // El sitemap solo debe listar URLs que el sitio quiere indexar como propias.
             return array_values(array_filter($stmt->fetchAll(\PDO::FETCH_OBJ), fn ($p) => !self::isNotOwnIndexable($p)));
         } catch (\Exception $e) {
-            return [];
+            // No se oculta el error: un sitemap vacío cacheado una hora es peor que conservar el anterior
+            throw $e;
         }
     }
 
@@ -504,6 +593,9 @@ class SitemapController
             }
             return $stmt->fetchAll(\PDO::FETCH_OBJ);
         } catch (\Exception $e) {
+            // CONSERVADO tal cual (comportamiento previo): PostgreSQL rechaza «SELECT DISTINCT … ORDER BY c.name»
+            // (name no está en la lista), así que hoy esta consulta siempre falla y las categorías NO salen en el
+            // sitemap. Corregirlo cambia las URLs publicadas: decisión pendiente, ver informe M-005.
             return [];
         }
     }
@@ -543,6 +635,7 @@ class SitemapController
             }
             return $stmt->fetchAll(\PDO::FETCH_OBJ);
         } catch (\Exception $e) {
+            // CONSERVADO tal cual (comportamiento previo): misma consulta inválida que en getCategories()
             return [];
         }
     }
@@ -606,30 +699,167 @@ class SitemapController
         return (time() - $cacheTime) < self::CACHE_TTL;
     }
 
-    /**
-     * Guarda el contenido en caché
-     */
-    private function saveCache(string $cacheFile, string $content): void
-    {
-        $dir = dirname($cacheFile);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
+    // ---------------------------------------------------------------------------------------------------------
+    // Regeneración segura: bloqueo por tenant, publicación atómica y contador de invalidaciones
+    //
+    //  sitemap_{id}.xml   sitemap publicado (único fichero que sirven las peticiones)
+    //  sitemap_{id}.lock  bloqueo de regeneración (flock; el sistema lo libera si el proceso muere)
+    //  sitemap_{id}.gen   contador de invalidaciones; su flock protege «publicar» e «invalidar» entre sí
+    //  sitemap_{id}.fail  su fecha marca el último fallo de generación (evita reintentar en bucle)
+    // ---------------------------------------------------------------------------------------------------------
 
-        file_put_contents($cacheFile, $content);
+    private static function auxFile(?int $tenantId, string $ext): string
+    {
+        return self::CACHE_DIR . '/sitemap_' . ($tenantId ?? 'global') . '.' . $ext;
+    }
+
+    private static function ensureDir(): void
+    {
+        if (!is_dir(self::CACHE_DIR)) {
+            @mkdir(self::CACHE_DIR, 0755, true);
+        }
+    }
+
+    /** Abre (sin bloquear) el fichero de bloqueo del tenant. null si no se puede: entonces se genera sin caché. */
+    private function openLock(?int $tenantId)
+    {
+        self::ensureDir();
+        $h = @fopen(self::auxFile($tenantId, 'lock'), 'c');
+        return $h === false ? null : $h;
+    }
+
+    /** Espera hasta $seconds a que quien regenera termine. true si se obtuvo el bloqueo. */
+    private function waitLock($lock, int $seconds): bool
+    {
+        $deadline = microtime(true) + $seconds;
+        do {
+            if (flock($lock, LOCK_EX | LOCK_NB)) {
+                return true;
+            }
+            usleep(50000);
+        } while (microtime(true) < $deadline);
+        return false;
+    }
+
+    /** Sirve la versión publicada anterior (caducada pero existente) y termina. */
+    private function serveStale(string $cacheFile): void
+    {
+        $this->sendHeaders();
+        // Versión provisional: que los buscadores y proxies vuelvan a pedirla pronto
+        header('Cache-Control: public, max-age=300');
+        header('X-Sitemap-Cache: stale');
+        if (@readfile($cacheFile) === false) {
+            $this->fail(503, 'Sitemap temporarily unavailable', self::RETRY_AFTER);
+        }
+        exit;
+    }
+
+    private function fail(int $status, string $message, ?int $retryAfter = null): void
+    {
+        http_response_code($status);
+        header('Content-Type: application/xml; charset=UTF-8');
+        if ($retryAfter !== null) {
+            header('Retry-After: ' . $retryAfter);
+        }
+        echo '<?xml version="1.0" encoding="UTF-8"?><error>' . $this->escapeXml($message) . '</error>';
+        exit;
+    }
+
+    private function recentFailure(?int $tenantId): bool
+    {
+        $t = @filemtime(self::auxFile($tenantId, 'fail'));
+        return $t !== false && (time() - $t) < self::FAIL_BACKOFF;
+    }
+
+    private function markFailure(?int $tenantId): void
+    {
+        self::ensureDir();
+        @touch(self::auxFile($tenantId, 'fail'));
+    }
+
+    private function clearFailure(?int $tenantId): void
+    {
+        $f = self::auxFile($tenantId, 'fail');
+        if (is_file($f)) {
+            @unlink($f);
+        }
+    }
+
+    /** Número de invalidaciones del tenant hasta ahora. */
+    private static function readGeneration(?int $tenantId): int
+    {
+        $v = @file_get_contents(self::auxFile($tenantId, 'gen'));
+        return $v === false ? 0 : (int) $v;
     }
 
     /**
-     * Invalida el caché de un tenant específico
-     * Llamar este método cuando se publique, edite o elimine contenido
+     * Publica el XML de forma atómica: se escribe en un fichero temporal del mismo directorio y se renombra.
+     * Solo se publica si no hubo ninguna invalidación desde que empezó la generación ($generation); la
+     * comprobación y el rename ocurren dentro del mismo bloqueo que usa invalidateCache(), así que un
+     * sitemap generado con datos anteriores a una retirada de contenido nunca queda publicado.
+     */
+    private static function publish(?int $tenantId, string $cacheFile, string $xml, int $generation): bool
+    {
+        self::ensureDir();
+        $tmp = $cacheFile . '.' . getmypid() . '.' . bin2hex(random_bytes(4)) . '.tmp';
+        $written = @file_put_contents($tmp, $xml);
+        if ($written === false || $written !== strlen($xml)) {
+            @unlink($tmp);
+            return false;
+        }
+
+        $gen = @fopen(self::auxFile($tenantId, 'gen'), 'c+');
+        if ($gen === false) {
+            @unlink($tmp);
+            return false;
+        }
+        try {
+            flock($gen, LOCK_EX);
+            rewind($gen);
+            if ((int) stream_get_contents($gen) !== $generation) {
+                @unlink($tmp);
+                return false;
+            }
+            if (!@rename($tmp, $cacheFile)) {
+                @unlink($tmp);
+                return false;
+            }
+            return true;
+        } finally {
+            flock($gen, LOCK_UN);
+            fclose($gen);
+        }
+    }
+
+    /**
+     * Invalida el caché de un tenant específico: el sitemap publicado se retira YA (nadie lo sirve ni como
+     * «versión anterior») y cualquier regeneración que estuviera en curso con datos viejos se descarta.
+     * Llamar este método cuando se publique, edite, despublique o elimine contenido.
      */
     public static function invalidateCache(?int $tenantId = null): void
     {
-        $id = $tenantId ?? 'global';
-        $cacheFile = self::CACHE_DIR . "/sitemap_{$id}.xml";
-
-        if (file_exists($cacheFile)) {
-            unlink($cacheFile);
+        self::ensureDir();
+        $gen = @fopen(self::auxFile($tenantId, 'gen'), 'c+');
+        if ($gen === false) {
+            // Sin contador no hay garantía frente a regeneraciones en curso, pero al menos se retira el fichero
+            @unlink(self::auxFile($tenantId, 'xml'));
+            return;
+        }
+        try {
+            flock($gen, LOCK_EX);
+            rewind($gen);
+            $next = (int) stream_get_contents($gen) + 1;
+            rewind($gen);
+            ftruncate($gen, 0);
+            fwrite($gen, (string) $next);
+            fflush($gen);
+            $file = self::auxFile($tenantId, 'xml');
+            if (is_file($file)) {
+                @unlink($file);
+            }
+        } finally {
+            flock($gen, LOCK_UN);
+            fclose($gen);
         }
     }
 
@@ -638,13 +868,17 @@ class SitemapController
      */
     public static function invalidateAllCache(): void
     {
-        $cacheDir = self::CACHE_DIR;
-
-        if (is_dir($cacheDir)) {
-            $files = glob($cacheDir . '/sitemap_*.xml');
-            foreach ($files as $file) {
-                unlink($file);
+        if (!is_dir(self::CACHE_DIR)) {
+            return;
+        }
+        $ids = [];
+        foreach (glob(self::CACHE_DIR . '/sitemap_*.{xml,gen}', GLOB_BRACE) ?: [] as $file) {
+            if (preg_match('/^sitemap_(\d+|global)\.(xml|gen)$/', basename($file), $m)) {
+                $ids[$m[1]] = $m[1] === 'global' ? null : (int) $m[1];
             }
+        }
+        foreach ($ids as $tenantId) {
+            self::invalidateCache($tenantId);
         }
     }
 }
